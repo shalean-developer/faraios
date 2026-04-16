@@ -677,7 +677,9 @@ export default function ServiceBusinessTemplate({
                     <Star className="h-4 w-4 fill-current" />
                     <Star className="h-4 w-4 fill-current" />
                   </div>
-                  <p className="text-sm leading-7 text-slate-700">"{item.quote}"</p>
+                  <p className="text-sm leading-7 text-slate-700">
+                    &ldquo;{item.quote}&rdquo;
+                  </p>
                   {item.author ? (
                     <p className="mt-4 font-semibold text-slate-900">
                       {item.author}

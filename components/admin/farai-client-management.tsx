@@ -20,7 +20,6 @@ import {
   MapPin,
   Calendar,
   Hash,
-  ChevronRight,
   ArrowUpRight,
   CheckCircle2,
   Clock,
