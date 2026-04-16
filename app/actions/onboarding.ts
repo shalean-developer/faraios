@@ -8,6 +8,12 @@ import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 export type OnboardingSubmitInput = {
   businessName: string;
   industryId: string;
+  onboardingData?: {
+    pages?: string[];
+    features?: string[];
+    style?: string | null;
+    competitors?: string | null;
+  };
   /** From `/get-started?plan=` — starter | business | premium */
   plan?: string | null;
   /** Must match signed-in user (validated server-side). */
@@ -35,6 +41,7 @@ export async function createCompanyFromOnboarding(
   const result = await createBusinessSystem({
     businessName: input.businessName,
     industryId: input.industryId,
+    onboardingData: input.onboardingData,
     plan: input.plan,
     userId: input.userId,
   });
@@ -44,10 +51,15 @@ export async function createCompanyFromOnboarding(
   }
 
   const { slug } = result.data.company;
+  const company = result.data.company;
+  const membership = result.data.membership;
+
+  if (!company?.id || !membership?.id) {
+    throw new Error("Onboarding failed");
+  }
 
   revalidatePath("/");
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/projects");
+  revalidatePath("/app");
   revalidatePath(`/${slug}/dashboard`);
   revalidatePath(`/${slug}/project`);
 

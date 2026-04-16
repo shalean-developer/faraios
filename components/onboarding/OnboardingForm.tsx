@@ -105,12 +105,6 @@ export function OnboardingForm({
     );
   };
 
-  const toggleFeatureSlug = (slug: string) => {
-    setFeatureSlugs((prev) =>
-      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
-    );
-  };
-
   const onFile = (file: File | null) => {
     setError(null);
     if (!file) {
@@ -145,8 +139,8 @@ export function OnboardingForm({
     } = await getSupabaseBrowserClient().auth.getUser();
 
     if (!user) {
-      const next = `/get-started${window.location.search}`;
-      router.push(`/auth?next=${encodeURIComponent(next)}`);
+      const next = `/onboarding${window.location.search}`;
+      router.push(`/auth/sign-in?next=${encodeURIComponent(next)}`);
       return;
     }
 
@@ -155,6 +149,12 @@ export function OnboardingForm({
       const result = await createCompanyFromOnboarding({
         businessName: name,
         industryId,
+        onboardingData: {
+          pages: selectedPages,
+          features: featureSlugs,
+          style: designStyle,
+          competitors,
+        },
         plan: planSlug,
         userId: user.id,
       });
@@ -162,7 +162,7 @@ export function OnboardingForm({
         setError(result.error);
         return;
       }
-      router.push(`/${result.slug}/dashboard`);
+      router.push("/app");
       router.refresh();
     } finally {
       setPending(false);

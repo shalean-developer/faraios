@@ -8,13 +8,13 @@ This document summarizes gaps and suggested next steps based on a scan of the co
 
 | Area | Location | Gap |
 |------|-----------|-----|
-| **Project detail (global list)** | `app/dashboard/projects/[id]/page.tsx` | Explicit placeholder: no Supabase/API; only shows `id`. |
-| **New project** | `app/dashboard/projects/new/page.tsx` | Placeholder copy only; no form or API. |
-| **Main client dashboard nav** | `components/dashboard/farai-dashboard.tsx` | Sidebar items (`hosting`, `domains`, `settings`, `projects`) only update **active state**; **main content never changes** — everything is still the dashboard home view. |
+| **Project detail (legacy global list)** | removed legacy route | Removed with global projects routes cleanup (single company-scoped flow). |
+| **New project (legacy global flow)** | removed legacy route | Removed with global projects routes cleanup (use onboarding + `/{company}/project`). |
+| **Main client dashboard nav** | `components/Navbar.tsx` + company-scoped routes | Resolved: navigation now routes to company-scoped dashboard/project flows. |
 | **Workspace booking block** | `app/[company]/dashboard/company-dashboard-client.tsx` | “Booking system” section with **disabled “Coming soon”** button — no scheduling UI or APIs. |
 | **Project tracker copy** | `components/project/project-status-tracker.tsx` | Mentions future **notifications, realtime, chat, uploads** — not built. |
 
-**Implication:** Decide whether `/dashboard/projects/[id]` and `/new` should exist at all, or should deep-link to `/{slug}/project` and onboarding instead, to avoid duplicate concepts.
+**Decision applied:** legacy global projects routes were removed. Product flow is company-scoped via `/{company}/dashboard` and `/{company}/project`.
 
 ---
 
@@ -64,7 +64,7 @@ This document summarizes gaps and suggested next steps based on a scan of the co
 
 ## 6. Suggested completion order (pragmatic)
 
-1. **Product clarity:** Single story for “project” — either finish `/dashboard/projects/*` or remove/replace with `/{company}/project` + onboarding.
+1. **Product clarity:** Completed — legacy global projects routes removed in favor of `/{company}/project` + onboarding.
 2. **Client dashboard:** Implement real **section routing** (or replace nav with links to real pages) for Projects / Settings / Domains / Hosting.
 3. **Billing:** Schema + provider (Stripe/Paddle/etc.) + webhook → then replace subscription/renewal fields end-to-end.
 4. **Workspace value:** Replace booking “Coming soon” with MVP (list bookings from DB + simple form) if that’s core to the offer.

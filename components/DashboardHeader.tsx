@@ -21,14 +21,14 @@ export function DashboardHeader() {
       </div>
 
       <Link
-        href="/dashboard/projects/new"
+        href="/onboarding"
         className={cn(
           buttonVariants({ size: "lg" }),
           "inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-2xl border-0 bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] px-6 text-white shadow-md transition-all hover:brightness-110 hover:shadow-lg active:translate-y-px md:self-start"
         )}
       >
         <Plus className="size-4" strokeWidth={2.5} aria-hidden />
-        New Project
+        Start Project
       </Link>
     </div>
   );

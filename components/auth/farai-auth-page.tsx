@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -152,14 +153,16 @@ const formVariants = {
 export type FaraiAuthPageProps = {
   redirectTo?: string;
   initialError?: string;
+  initialMode?: AuthMode;
 };
 
 export function FaraiAuthPage({
-  redirectTo = "/dashboard",
+  redirectTo = "/app",
   initialError,
+  initialMode = "login",
 }: FaraiAuthPageProps) {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>("login");
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -173,6 +176,10 @@ export function FaraiAuthPage({
     if (initialError) setFormError(initialError);
   }, [initialError]);
 
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
+
   const finishSession = async () => {
     router.push(redirectTo);
     router.refresh();
@@ -184,11 +191,10 @@ export function FaraiAuthPage({
     setBusy(true);
     try {
       const supabase = getSupabaseBrowserClient();
-      const next = encodeURIComponent(redirectTo);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${next}`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
       if (error) setFormError(error.message);
@@ -233,8 +239,9 @@ export function FaraiAuthPage({
       const supabase = getSupabaseBrowserClient();
 
       if (mode === "login") {
+        const loginEmail = email.trim();
         const { error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
+          email: loginEmail,
           password,
         });
         if (error) {
@@ -245,8 +252,9 @@ export function FaraiAuthPage({
         return;
       }
 
+      const signupEmail = email.trim();
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: signupEmail,
         password,
       });
 
@@ -260,9 +268,8 @@ export function FaraiAuthPage({
         return;
       }
 
-      setInfo(
-        "Account created. Check your email to confirm, then sign in — or sign in now if confirmation is disabled."
-      );
+      router.push(`/auth/verify-email?email=${encodeURIComponent(signupEmail)}`);
+      router.refresh();
     } finally {
       setBusy(false);
     }
@@ -434,7 +441,7 @@ export function FaraiAuthPage({
                 </h2>
                 <p className="mt-1 text-sm text-slate-400">
                   {mode === "login"
-                    ? "Sign in to continue to your FaraiOS dashboard."
+                    ? "Sign in to continue to your FaraiOS app."
                     : "Join thousands of builders on FaraiOS."}
                 </p>
               </div>
@@ -697,13 +704,13 @@ export function FaraiAuthPage({
               </p>
               <p className="mt-3 text-center text-[10px] leading-relaxed text-slate-300">
                 <span>By continuing, you agree to our </span>
-                <span className="cursor-pointer text-slate-400 hover:underline">
+                <Link href="/terms" className="text-slate-400 hover:underline">
                   Terms of Service
-                </span>
+                </Link>
                 <span> and </span>
-                <span className="cursor-pointer text-slate-400 hover:underline">
+                <Link href="/privacy" className="text-slate-400 hover:underline">
                   Privacy Policy
-                </span>
+                </Link>
                 <span>.</span>
               </p>
             </div>
@@ -711,9 +718,12 @@ export function FaraiAuthPage({
 
           <p className="mt-6 text-center text-xs text-slate-400">
             <span>Need help? </span>
-            <span className="cursor-pointer font-semibold text-indigo-500 hover:underline">
-              Contact our support team
-            </span>
+            <a
+              href="mailto:support@faraios.com"
+              className="font-semibold text-indigo-500 hover:underline"
+            >
+              Contact support
+            </a>
             <span> — average response under 2 hours.</span>
           </p>
         </motion.div>

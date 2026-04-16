@@ -1,45 +1,49 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/public-env";
-
-function safeRedirectPath(raw: string | null): string | null {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
-  return raw;
-}
-
-function isProtectedPath(pathname: string): boolean {
-  if (pathname.startsWith("/get-started")) return true;
-  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/"))
-    return true;
-  if (pathname.startsWith("/admin")) return true;
-  const segments = pathname.split("/").filter(Boolean);
-  if (segments.length >= 2 && segments[1] === "dashboard") return true;
-  return false;
-}
-
 export async function middleware(request: NextRequest) {
-  const url = getSupabaseUrl();
-  const key = getSupabasePublicKey();
+  const { pathname } = request.nextUrl;
+  const isPublicWebsiteRoute =
+    pathname === "/" ||
+    pathname.startsWith("/preview/") ||
+    pathname === "/services" ||
+    pathname === "/about" ||
+    pathname === "/contact" ||
+    pathname === "/sitemap.xml" ||
+    pathname === "/robots.txt";
 
-  let supabaseResponse = NextResponse.next({ request });
-
-  if (!url || !key) {
-    return supabaseResponse;
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    isPublicWebsiteRoute ||
+    pathname === "/" ||
+    pathname.startsWith("/examples") ||
+    pathname.startsWith("/pricing") ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/terms") ||
+    pathname.startsWith("/privacy")
+  ) {
+    return NextResponse.next();
   }
 
-  const supabase = createServerClient(url, key, {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  const response = NextResponse.next({ request });
+  if (!url || !anonKey) {
+    return response;
+  }
+
+  const supabase = createServerClient(url, anonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value)
-        );
-        supabaseResponse = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
+          response.cookies.set(name, value, options)
         );
       },
     },
@@ -49,24 +53,79 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const pathname = request.nextUrl.pathname;
+  if (!user) {
+    return NextResponse.redirect(new URL("/auth/sign-in", request.url));
+  }
 
-  if (pathname.startsWith("/auth")) {
-    if (user) {
-      const nextRaw = request.nextUrl.searchParams.get("next");
-      const dest = safeRedirectPath(nextRaw) ?? "/dashboard";
-      return NextResponse.redirect(new URL(dest, request.url));
+  const { data: admin } = await supabase
+    .from("platform_admins")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  // Always route super admins to /admin before membership checks.
+  if (admin && !pathname.startsWith("/admin")) {
+    return NextResponse.redirect(new URL("/admin", request.url));
+  }
+
+  if (pathname.startsWith("/admin")) {
+    if (!admin) {
+      return NextResponse.redirect(new URL("/app", request.url));
     }
-    return supabaseResponse;
+    return response;
   }
 
-  if (isProtectedPath(pathname) && !user) {
-    const login = new URL("/auth", request.url);
-    login.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
-    return NextResponse.redirect(login);
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select(
+      `
+      company_id,
+      role,
+      companies ( slug )
+    `
+    )
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  type MembershipWithCompany =
+    | {
+        companies?:
+          | { slug?: string | null }
+          | { slug?: string | null }[]
+          | null;
+      }
+    | null;
+
+  const typedMembership = membership as MembershipWithCompany;
+  const companySlug = Array.isArray(typedMembership?.companies)
+    ? typedMembership.companies[0]?.slug ?? null
+    : typedMembership?.companies?.slug ?? null;
+
+  if (!companySlug && pathname !== "/onboarding") {
+    return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
-  return supabaseResponse;
+  if (companySlug && pathname === "/onboarding") {
+    return NextResponse.redirect(
+      new URL(`/${encodeURIComponent(companySlug)}/dashboard`, request.url)
+    );
+  }
+
+  const isCompanyRoute = /^\/[^/]+\/(dashboard|project)/.test(pathname);
+  if (isCompanyRoute) {
+    const pathCompany = pathname.split("/")[1];
+    if (pathCompany !== companySlug) {
+      const fallback = companySlug
+        ? `/${encodeURIComponent(companySlug)}/dashboard`
+        : "/onboarding";
+      return NextResponse.redirect(
+        new URL(fallback, request.url)
+      );
+    }
+  }
+
+  return response;
 }
 
 export const config = {

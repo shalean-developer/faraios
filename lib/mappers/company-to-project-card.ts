@@ -24,7 +24,7 @@ function mapStatus(row: CompanyWithIndustry): ProjectStatus {
   }
 }
 
-/** Maps a company row to the `/dashboard/projects` card model. */
+/** Maps a company row to the shared project card model. */
 export function companyToProjectCard(row: CompanyWithIndustry): Project {
   return {
     id: row.id,

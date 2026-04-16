@@ -6,6 +6,12 @@ import { createClient } from "@/lib/supabase/server";
 export type CreateBusinessSystemInput = {
   businessName: string;
   industryId: string;
+  onboardingData?: {
+    pages?: string[];
+    features?: string[];
+    style?: string | null;
+    competitors?: string | null;
+  };
   /** From pricing page query, e.g. starter | business | premium */
   plan: string | null | undefined;
   /** Optional client hint; must match the authenticated session user. */
@@ -18,6 +24,9 @@ export type CreateBusinessSystemSuccess = {
     slug: string;
     name: string;
     plan: string;
+  };
+  membership: {
+    id: string;
   };
   project: {
     id: string;
@@ -80,12 +89,19 @@ export async function createBusinessSystem(
 
   const planSlug = normalizePlanSlug(input.plan);
   const slug = slugifyBusinessName(name);
+  const onboardingData = {
+    pages: (input.onboardingData?.pages ?? []).filter(Boolean),
+    features: (input.onboardingData?.features ?? []).filter(Boolean),
+    style: input.onboardingData?.style?.trim() || null,
+    competitors: input.onboardingData?.competitors?.trim() || null,
+  };
 
   const insertCompany: Record<string, unknown> = {
     name,
     slug,
     industry_id: input.industryId,
     plan: planSlug,
+    onboarding_data: onboardingData,
   };
 
   const email = user.email ?? undefined;
@@ -119,11 +135,15 @@ export async function createBusinessSystem(
 
   const companyId = companyRow.id as string;
 
-  const { error: membershipError } = await supabase.from("memberships").insert({
-    user_id: user.id,
-    company_id: companyId,
-    role: "owner",
-  });
+  const { data: membershipRow, error: membershipError } = await supabase
+    .from("memberships")
+    .insert({
+      user_id: user.id,
+      company_id: companyId,
+      role: "owner",
+    })
+    .select("id")
+    .single();
 
   if (membershipError) {
     console.error(
@@ -135,6 +155,16 @@ export async function createBusinessSystem(
       error: `Workspace created but membership failed: ${membershipError.message}`,
     };
   }
+
+  if (!membershipRow?.id) {
+    return {
+      ok: false,
+      error: "Onboarding failed: membership was not created.",
+    };
+  }
+
+  // Force a fresh auth read to reduce eventual consistency issues in middleware checks.
+  await supabase.auth.getUser();
 
   const projectName = `${name} Website Build`;
 
@@ -194,6 +224,9 @@ export async function createBusinessSystem(
         slug: companyRow.slug as string,
         name: companyRow.name as string,
         plan: planSlug,
+      },
+      membership: {
+        id: membershipRow.id as string,
       },
       project: {
         id: projectId,

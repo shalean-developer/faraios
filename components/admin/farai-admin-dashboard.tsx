@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useState, useTransition } from "react";
+import React, { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -31,6 +31,7 @@ import {
   ChevronRight,
   Tag,
   Sparkles,
+  Users2,
 } from "lucide-react";
 
 import {
@@ -85,13 +86,15 @@ const STATUS_OPTIONS: { value: AdminPipelineStatus; label: string }[] = [
 ];
 
 const NAV_ITEMS: {
-  key: "dashboard" | "pipeline" | "team";
+  key: "dashboard" | "pipeline" | "team" | "clients";
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  href: string;
 }[] = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { key: "pipeline", label: "Project Pipeline", icon: GitBranch },
-  { key: "team", label: "Team", icon: Users },
+  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
+  { key: "pipeline", label: "Project Pipeline", icon: GitBranch, href: "/admin" },
+  { key: "team", label: "Team", icon: Users, href: "/admin/team" },
+  { key: "clients", label: "Clients", icon: Users2, href: "/admin/clients" },
 ];
 
 const featureIconMap: Record<string, React.ReactNode> = {
@@ -134,6 +137,7 @@ export type FaraiAdminDashboardProps = {
   stats: AdminProjectStats;
   adminEmail: string | null;
   adminDisplayName: string;
+  activeNav?: "dashboard" | "pipeline" | "team" | "clients";
 };
 
 export function FaraiAdminDashboard({
@@ -141,12 +145,10 @@ export function FaraiAdminDashboard({
   stats,
   adminEmail,
   adminDisplayName,
+  activeNav = "pipeline",
 }: FaraiAdminDashboardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [activeNav, setActiveNav] = useState<
-    "dashboard" | "pipeline" | "team"
-  >("dashboard");
   const [searchValue, setSearchValue] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "all" | AdminPipelineStatus
@@ -157,10 +159,6 @@ export function FaraiAdminDashboard({
   );
   const [openDevDropdown, setOpenDevDropdown] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setPage(1);
-  }, [searchValue, statusFilter]);
 
   const selectedProject = useMemo(
     () =>
@@ -248,10 +246,9 @@ export function FaraiAdminDashboard({
             const Icon = item.icon;
             const isActive = activeNav === item.key;
             return (
-              <button
+              <Link
                 key={item.key}
-                type="button"
-                onClick={() => setActiveNav(item.key)}
+                href={item.href}
                 className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                   isActive
                     ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/40"
@@ -265,7 +262,7 @@ export function FaraiAdminDashboard({
                 {isActive && (
                   <div className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-200" />
                 )}
-              </button>
+              </Link>
             );
           })}
 
@@ -273,20 +270,20 @@ export function FaraiAdminDashboard({
             <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
               System
             </p>
-            <button
-              type="button"
+            <Link
+              href="/admin/analytics"
               className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition-all duration-150 hover:bg-slate-800 hover:text-white"
             >
               <BarChart3 className="h-4 w-4 text-slate-500" />
               <span>Analytics</span>
-            </button>
-            <button
-              type="button"
+            </Link>
+            <Link
+              href="/admin/settings"
               className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition-all duration-150 hover:bg-slate-800 hover:text-white"
             >
               <Settings className="h-4 w-4 text-slate-500" />
               <span>Settings</span>
-            </button>
+            </Link>
           </div>
         </nav>
 
@@ -325,9 +322,10 @@ export function FaraiAdminDashboard({
             <select
               id="admin-status-filter"
               value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(e.target.value as typeof statusFilter)
-              }
+              onChange={(e) => {
+                setStatusFilter(e.target.value as typeof statusFilter);
+                setPage(1);
+              }}
               className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-2 pr-2 text-xs text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="all">All statuses</option>
@@ -346,19 +344,29 @@ export function FaraiAdminDashboard({
                 type="search"
                 placeholder="Search projects or clients..."
                 value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
+                onChange={(e) => {
+                  setSearchValue(e.target.value);
+                  setPage(1);
+                }}
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-8 pr-4 text-xs text-gray-900 placeholder:text-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>
 
-          <button
-            type="button"
+          <Link
+            href="/admin/websites"
+            className="inline-flex h-9 items-center justify-center rounded-xl bg-indigo-600 px-3 text-xs font-semibold text-white transition-all hover:bg-indigo-700"
+          >
+            + Create Website
+          </Link>
+
+          <Link
+            href="/admin/activity"
             className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-800"
           >
             <Bell className="h-[18px] w-[18px]" />
             <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-indigo-500" />
-          </button>
+          </Link>
         </header>
 
         <main className="flex-1 overflow-y-auto px-6 py-6">
@@ -686,15 +694,14 @@ export function FaraiAdminDashboard({
                           </td>
 
                           <td className="px-6 py-4 text-right">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedId(project.id)}
+                            <Link
+                              href={`/admin/pipeline/${project.id}`}
                               className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 transition-all hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
                             >
                               <Eye className="h-3.5 w-3.5" />
                               View Details
                               <ChevronRight className="h-3 w-3" />
-                            </button>
+                            </Link>
                           </td>
                         </tr>
                       );
@@ -837,7 +844,7 @@ export function FaraiAdminDashboard({
                       <span className="font-medium">Design Style</span>
                     </div>
                     <span className="text-xs font-semibold text-gray-800">
-                      {selectedProject.designStyle}
+                      {selectedProject.designStyle ?? "Not provided"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between border-b border-gray-100 py-3">
@@ -852,10 +859,10 @@ export function FaraiAdminDashboard({
                   <div className="border-b border-gray-100 py-3">
                     <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
                       <Search className="h-3.5 w-3.5 text-gray-400" />
-                      <span className="font-medium">Competitors</span>
+                      <span className="font-medium">Competitor Analysis</span>
                     </div>
                     <p className="text-xs font-medium leading-relaxed text-gray-700">
-                      {selectedProject.competitors}
+                      {selectedProject.competitors ?? "Not provided"}
                     </p>
                   </div>
                 </div>

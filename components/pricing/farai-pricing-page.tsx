@@ -102,7 +102,7 @@ export function FaraiPricingPage() {
         </Link>
         <nav className="hidden items-center gap-6 md:flex" aria-label="Pricing subnav">
           <Link
-            href="/dashboard"
+            href="/auth/sign-in"
             className="cursor-pointer text-sm text-slate-400 transition-colors hover:text-white"
           >
             Dashboard
@@ -111,7 +111,7 @@ export function FaraiPricingPage() {
             Pricing
           </span>
           <Link
-            href="/get-started?plan=business"
+            href="/auth/sign-up?next=/onboarding%3Fplan%3Dbusiness"
             className="cursor-pointer text-sm text-slate-400 transition-colors hover:text-white"
           >
             Get Started
@@ -307,7 +307,7 @@ export function FaraiPricingPage() {
 
                 <div className="px-6 pb-6">
                   <Link
-                    href={`/get-started?plan=${encodeURIComponent(plan.slug)}`}
+                    href={`/auth/sign-up?next=${encodeURIComponent(`/onboarding?plan=${plan.slug}`)}`}
                     className={cn(
                       "flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all duration-200",
                       plan.is_popular
@@ -382,7 +382,7 @@ export function FaraiPricingPage() {
             in as little as 14 days.
           </p>
           <Link
-            href="/get-started?plan=business"
+            href="/auth/sign-up?next=/onboarding%3Fplan%3Dbusiness"
             className="inline-flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-900/50 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-900/60"
           >
             <span>Get Started — Most Popular</span>

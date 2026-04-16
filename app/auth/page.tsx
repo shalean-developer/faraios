@@ -1,31 +1,13 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { FaraiAuthPage } from "@/components/auth/farai-auth-page";
-
-export const metadata: Metadata = {
-  title: "Sign in — FaraiOS",
-  description: "Log in or create your FaraiOS account.",
-};
-
-function safeNext(raw: string | undefined): string {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/dashboard";
-  return raw;
-}
-
-export default async function AuthPage({
+export default async function AuthIndexPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
-  const { next, error } = await searchParams;
-  return (
-    <FaraiAuthPage
-      redirectTo={safeNext(next)}
-      initialError={
-        error === "auth"
-          ? "Could not complete sign-in. Try again."
-          : undefined
-      }
-    />
-  );
+  const { error } = await searchParams;
+  const query = new URLSearchParams();
+  if (error) query.set("error", error);
+  const suffix = query.toString();
+  redirect(`/auth/sign-in${suffix ? `?${suffix}` : ""}`);
 }

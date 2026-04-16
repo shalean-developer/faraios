@@ -144,7 +144,7 @@ export function ProjectStatusTracker({ data }: Props) {
         </Link>
         <nav className="hidden items-center gap-6 md:flex" aria-label="Tracker nav">
           <Link
-            href="/dashboard"
+            href={`/${encodeURIComponent(data.company_slug)}/dashboard`}
             className="text-sm text-slate-400 transition-colors hover:text-slate-700"
           >
             Dashboard
@@ -438,7 +438,7 @@ export function ProjectStatusTracker({ data }: Props) {
             <span> — average response time under 2 hours.</span>
           </p>
           <p className="mt-4 text-[10px] text-slate-400">
-            Coming soon: in-app notifications, realtime updates, team chat, and file uploads.
+            Planned next: in-app notifications, realtime updates, team chat, and file uploads.
           </p>
         </motion.div>
       </main>

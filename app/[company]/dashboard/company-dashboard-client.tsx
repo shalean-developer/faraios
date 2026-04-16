@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { type FormEvent, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -19,16 +20,29 @@ import {
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { createBookingForCompany } from "@/app/actions/bookings";
+import {
+  connectDomainAction,
+  publishWebsiteAction,
+  updateWebsiteSeoAction,
+} from "@/app/actions/websites";
 import {
   normalizePlanSlug,
   planLabelForSlug,
 } from "@/lib/data/pricing";
-import type { CompanyWithIndustry, Project } from "@/types/database";
+import type {
+  Booking,
+  CompanyWithIndustry,
+  Project,
+  Website,
+} from "@/types/database";
 
 type Props = {
   slug: string;
   company: CompanyWithIndustry | null;
   projects: Project[];
+  bookings: Booking[];
+  website: Website | null;
 };
 
 const fadeUp = {
@@ -62,6 +76,8 @@ export function CompanyDashboardClient({
   slug,
   company,
   projects,
+  bookings,
+  website,
 }: Props) {
   const title = company?.name ?? slug.replace(/-/g, " ");
   const planSlug = normalizePlanSlug(company?.plan);
@@ -69,6 +85,153 @@ export function CompanyDashboardClient({
   const totalProjects = projects.length;
   const activeProjects = countActiveProjects(projects);
   const base = `/${encodeURIComponent(slug)}`;
+  const [bookingRows, setBookingRows] = useState<Booking[]>(bookings);
+  const [customerName, setCustomerName] = useState("");
+  const [service, setService] = useState("");
+  const [bookingDate, setBookingDate] = useState("");
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [bookingPending, setBookingPending] = useState(false);
+  const [billingPlan, setBillingPlan] = useState(planSlug);
+  const [billingPending, setBillingPending] = useState(false);
+  const [billingError, setBillingError] = useState<string | null>(null);
+  const [domainInput, setDomainInput] = useState(website?.domain ?? "");
+  const [domainPending, setDomainPending] = useState(false);
+  const [domainError, setDomainError] = useState<string | null>(null);
+  const [publishPending, setPublishPending] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [seoTitle, setSeoTitle] = useState(website?.seo_title ?? "");
+  const [seoDescription, setSeoDescription] = useState(
+    website?.seo_description ?? ""
+  );
+  const [seoKeywords, setSeoKeywords] = useState(website?.seo_keywords ?? "");
+  const [seoPending, setSeoPending] = useState(false);
+  const [seoError, setSeoError] = useState<string | null>(null);
+
+  const onCreateBooking = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!company) return;
+    setBookingError(null);
+    setBookingPending(true);
+    try {
+      const result = await createBookingForCompany({
+        companyId: company.id,
+        companySlug: slug,
+        customerName,
+        service,
+        bookingDate,
+      });
+      if (!result.ok) {
+        setBookingError(result.error);
+        return;
+      }
+      setBookingRows((prev) => [
+        {
+          id: crypto.randomUUID(),
+          company_id: company.id,
+          customer_name: customerName.trim(),
+          service: service.trim(),
+          booking_date: new Date(bookingDate).toISOString(),
+          date: new Date(bookingDate).toISOString(),
+          status: "pending",
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+      setCustomerName("");
+      setService("");
+      setBookingDate("");
+    } finally {
+      setBookingPending(false);
+    }
+  };
+
+  const onStartPayment = async () => {
+    if (!company?.id || !company.primary_contact_email) {
+      setBillingError("Missing company billing email.");
+      return;
+    }
+    setBillingError(null);
+    setBillingPending(true);
+    try {
+      const res = await fetch("/api/paystack/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyId: company.id,
+          plan: billingPlan,
+          email: company.primary_contact_email,
+        }),
+      });
+      const data = (await res.json()) as {
+        ok: boolean;
+        authorizationUrl?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.ok || !data.authorizationUrl) {
+        setBillingError(data.error ?? "Failed to initialize payment.");
+        return;
+      }
+      window.location.href = data.authorizationUrl;
+    } catch {
+      setBillingError("Could not start payment.");
+    } finally {
+      setBillingPending(false);
+    }
+  };
+
+  const onPublishWebsite = async () => {
+    if (!website?.id) return;
+    setPublishError(null);
+    setPublishPending(true);
+    try {
+      const result = await publishWebsiteAction(website.id, slug);
+      if (!result.ok) {
+        setPublishError(result.error);
+        return;
+      }
+      window.location.reload();
+    } finally {
+      setPublishPending(false);
+    }
+  };
+
+  const onConnectDomain = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!website?.id) return;
+    setDomainError(null);
+    setDomainPending(true);
+    try {
+      const result = await connectDomainAction(website.id, domainInput, slug);
+      if (!result.ok) {
+        setDomainError(result.error);
+        return;
+      }
+      window.location.reload();
+    } finally {
+      setDomainPending(false);
+    }
+  };
+
+  const onSaveSeo = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!website?.id) return;
+    setSeoError(null);
+    setSeoPending(true);
+    try {
+      const result = await updateWebsiteSeoAction(website.id, slug, {
+        seoTitle,
+        seoDescription,
+        seoKeywords,
+      });
+      if (!result.ok) {
+        setSeoError(result.error);
+        return;
+      }
+      window.location.reload();
+    } finally {
+      setSeoPending(false);
+    }
+  };
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-[#f4f6fb]">
@@ -146,7 +309,7 @@ export function CompanyDashboardClient({
               . It may not exist yet, or Supabase env is not configured.
             </p>
             <Link
-              href="/get-started"
+              href="/onboarding"
               className={cn(buttonVariants({ size: "lg" }), "mt-6 rounded-xl")}
             >
               Start onboarding
@@ -211,12 +374,134 @@ export function CompanyDashboardClient({
                   subtitle="Jobs & calendar"
                 />
                 <QuickAction
-                  href="/dashboard"
+                  href={`${base}/dashboard`}
                   icon={<Settings className="h-5 w-5" />}
                   title="Settings"
                   subtitle="Account & workspace"
                 />
               </div>
+            </motion.section>
+
+            <motion.section variants={fadeUp} className="mt-10">
+              <h2 className="text-lg font-bold text-slate-900">Billing</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Select a plan and continue to secure Paystack checkout.
+              </p>
+              <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center">
+                <select
+                  value={billingPlan}
+                  onChange={(e) => setBillingPlan(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+                >
+                  <option value="starter">Starter</option>
+                  <option value="business">Business</option>
+                  <option value="premium">Premium</option>
+                </select>
+                <Button
+                  onClick={onStartPayment}
+                  className="rounded-xl"
+                  disabled={billingPending}
+                >
+                  {billingPending ? "Redirecting..." : "Pay with Paystack"}
+                </Button>
+              </div>
+              {billingError ? (
+                <p className="mt-2 text-sm font-medium text-red-600">
+                  {billingError}
+                </p>
+              ) : null}
+            </motion.section>
+
+            <motion.section variants={fadeUp} className="mt-10">
+              <h2 className="text-lg font-bold text-slate-900">Website publishing</h2>
+              {!website ? (
+                <p className="mt-2 text-sm text-slate-500">
+                  No website draft yet. Use <span className="font-medium">Create website</span> to start.
+                </p>
+              ) : (
+                <div className="mt-4 space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+                    <span className="rounded-full bg-slate-100 px-2 py-1 font-medium">
+                      Status: {website.status}
+                    </span>
+                    <span className="rounded-full bg-slate-100 px-2 py-1 font-medium">
+                      Fallback: {website.subdomain}.faraios.com
+                    </span>
+                  </div>
+
+                  <form onSubmit={onConnectDomain} className="space-y-2">
+                    <p className="text-sm font-medium text-slate-800">Connect domain</p>
+                    <p className="text-xs text-slate-500">
+                      Add an <strong>A</strong> record to Vercel IP or a <strong>CNAME</strong> to
+                      <code className="ml-1 rounded bg-slate-100 px-1 py-0.5">cname.vercel-dns.com</code>
+                    </p>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        value={domainInput}
+                        onChange={(e) => setDomainInput(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                        placeholder="www.clientbusiness.com"
+                      />
+                      <Button type="submit" disabled={domainPending}>
+                        {domainPending ? "Saving..." : "Save domain"}
+                      </Button>
+                    </div>
+                    {domainError ? (
+                      <p className="text-sm font-medium text-red-600">{domainError}</p>
+                    ) : null}
+                  </form>
+
+                  <div className="flex items-center gap-3">
+                    <Button disabled={publishPending} onClick={onPublishWebsite}>
+                      {publishPending ? "Publishing..." : "Publish Website"}
+                    </Button>
+                    <Link
+                      href={`/dashboard/websites/${website.id}/edit`}
+                      className={cn(
+                        buttonVariants({ variant: "outline" }),
+                        "rounded-xl border-slate-200"
+                      )}
+                    >
+                      Edit content
+                    </Link>
+                    <p className="text-xs text-slate-500">
+                      Only published websites are publicly accessible.
+                    </p>
+                  </div>
+                  {publishError ? (
+                    <p className="text-sm font-medium text-red-600">{publishError}</p>
+                  ) : null}
+
+                  <form onSubmit={onSaveSeo} className="space-y-2 rounded-xl border border-slate-200 p-3">
+                    <p className="text-sm font-medium text-slate-800">SEO settings</p>
+                    <input
+                      value={seoTitle}
+                      onChange={(e) => setSeoTitle(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                      placeholder="SEO title"
+                    />
+                    <textarea
+                      value={seoDescription}
+                      onChange={(e) => setSeoDescription(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                      rows={3}
+                      placeholder="SEO description"
+                    />
+                    <input
+                      value={seoKeywords}
+                      onChange={(e) => setSeoKeywords(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                      placeholder="SEO keywords (comma-separated)"
+                    />
+                    <Button type="submit" disabled={seoPending}>
+                      {seoPending ? "Saving SEO..." : "Save SEO"}
+                    </Button>
+                    {seoError ? (
+                      <p className="text-sm font-medium text-red-600">{seoError}</p>
+                    ) : null}
+                  </form>
+                </div>
+              )}
             </motion.section>
 
             {/* Projects list */}
@@ -240,7 +525,7 @@ export function CompanyDashboardClient({
                       hub to create the first build.
                     </p>
                     <Link
-                      href="/get-started"
+                      href="/onboarding"
                       className={cn(
                         buttonVariants({ variant: "outline", size: "lg" }),
                         "mt-4 rounded-xl"
@@ -324,25 +609,95 @@ export function CompanyDashboardClient({
               variants={fadeUp}
               className="mt-10 scroll-mt-24 rounded-2xl border border-dashed border-slate-200 bg-white p-6 shadow-sm sm:p-8"
             >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex flex-col gap-6">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
                     Booking system
                   </h2>
                   <p className="mt-1 max-w-lg text-sm text-slate-500">
-                    Scheduling, quotes, and job management will connect here as
-                    your site goes live. Track everything next to your website
-                    project.
+                    Create and track bookings for this company workspace.
                   </p>
                 </div>
-                <Button
-                  variant="secondary"
-                  className="shrink-0 rounded-xl"
-                  disabled
+
+                <form
+                  onSubmit={onCreateBooking}
+                  className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:grid-cols-4"
                 >
-                  <CalendarDays className="mr-2 h-4 w-4" />
-                  Coming soon
-                </Button>
+                  <input
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                    placeholder="Customer name"
+                    required
+                  />
+                  <input
+                    value={service}
+                    onChange={(e) => setService(e.target.value)}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                    placeholder="Service"
+                    required
+                  />
+                  <input
+                    value={bookingDate}
+                    onChange={(e) => setBookingDate(e.target.value)}
+                    type="datetime-local"
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                    required
+                  />
+                  <Button
+                    type="submit"
+                    className="rounded-xl"
+                    disabled={bookingPending}
+                  >
+                    {bookingPending ? "Saving..." : "Create Booking"}
+                  </Button>
+                </form>
+                {bookingError ? (
+                  <p className="text-sm font-medium text-red-600">{bookingError}</p>
+                ) : null}
+
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="px-4 py-3">Name</th>
+                        <th className="px-4 py-3">Service</th>
+                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-sm">
+                      {bookingRows.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                            No bookings yet.
+                          </td>
+                        </tr>
+                      ) : (
+                        bookingRows.map((row) => (
+                          <tr key={row.id}>
+                            <td className="px-4 py-3 text-slate-900">
+                              {row.customer_name ?? "—"}
+                            </td>
+                            <td className="px-4 py-3 text-slate-700">
+                              {row.service ?? "—"}
+                            </td>
+                            <td className="px-4 py-3 text-slate-700">
+                              {new Date(
+                                row.booking_date ?? row.date ?? ""
+                              ).toLocaleString("en-ZA")}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+                                {row.status ?? "pending"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </motion.section>
           </>

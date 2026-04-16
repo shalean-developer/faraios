@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -34,6 +35,7 @@ import {
 import type { CompanyWithIndustry } from "@/types/database";
 import type { Feature } from "@/types/database";
 import type { Industry } from "@/types/database";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Screen = "landing" | "form" | "dashboard" | "project-detail";
 
@@ -91,76 +93,119 @@ const stagger = {
 };
 
 const NavBar = ({
-  screen,
-  onNav,
+  isAuthenticated,
+  companySlug,
+  onLogout,
 }: {
-  screen: Screen;
-  onNav: (s: Screen) => void;
+  isAuthenticated: boolean;
+  companySlug: string | null;
+  onLogout: () => Promise<void>;
 }) => (
   <header className="fixed left-0 right-0 top-0 z-50 border-b border-gray-100 bg-white/90 shadow-sm backdrop-blur-md">
     <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-      <button
-        type="button"
-        onClick={() => onNav("landing")}
-        className="group flex items-center gap-2"
-      >
+      <Link href={isAuthenticated ? "/app" : "/"} className="group flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 shadow-md">
           <Zap className="h-4 w-4 text-white" />
         </div>
         <span className="text-lg font-bold tracking-tight text-gray-900">
           FaraiOS
         </span>
-      </button>
+      </Link>
       <nav className="hidden items-center gap-6 md:flex">
-        <button
-          type="button"
-          onClick={() => onNav("landing")}
-          className={`text-sm font-medium transition-colors ${
-            screen === "landing"
-              ? "text-violet-600"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
-        >
-          Home
-        </button>
-        <button
-          type="button"
-          onClick={() => onNav("dashboard")}
-          className={`text-sm font-medium transition-colors ${
-            screen === "dashboard" || screen === "project-detail"
-              ? "text-violet-600"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
-        >
-          My Projects
-        </button>
+        {isAuthenticated ? (
+          <>
+            <Link href="/app" className="text-sm font-medium text-violet-600">
+              App
+            </Link>
+            <Link
+              href={companySlug ? `/${encodeURIComponent(companySlug)}/dashboard` : "/app"}
+              className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+            >
+              Dashboard
+            </Link>
+            <Link
+              href={companySlug ? `/${encodeURIComponent(companySlug)}/project` : "/app"}
+              className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+            >
+              Project
+            </Link>
+          </>
+        ) : (
+          <Link
+            href="/pricing"
+            className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+          >
+            Pricing
+          </Link>
+        )}
       </nav>
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => onNav("dashboard")}
-          className="hidden items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 sm:flex"
-        >
-          <LayoutDashboard className="h-4 w-4" />
-          Dashboard
-        </button>
-        <button
-          type="button"
-          onClick={() => onNav("form")}
-          className="rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-violet-200"
-        >
-          Get Started
-        </button>
+        {isAuthenticated ? (
+          <details className="relative">
+            <summary className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:text-gray-900">
+              <LayoutDashboard className="h-4 w-4" />
+              Account
+            </summary>
+            <div className="absolute right-0 mt-2 w-44 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+              <Link
+                href={companySlug ? `/${encodeURIComponent(companySlug)}/dashboard` : "/app"}
+                className="block rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href={companySlug ? `/${encodeURIComponent(companySlug)}/project` : "/app"}
+                className="block rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Project
+              </Link>
+              <Link
+                href="/pricing"
+                className="block rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Billing
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  void onLogout();
+                }}
+                className="mt-1 flex w-full items-center gap-1 rounded-md px-2 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </button>
+            </div>
+          </details>
+        ) : (
+          <>
+            <Link
+              href="/auth/sign-in"
+              className="hidden items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 sm:flex"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Login
+            </Link>
+            <Link
+              href="/auth/sign-up"
+              className="rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-violet-200"
+            >
+              Get Started
+            </Link>
+          </>
+        )}
       </div>
     </div>
   </header>
 );
 
 const LandingScreen = ({
-  onNav,
+  onGetStarted,
+  onViewExamples,
   industries,
 }: {
-  onNav: (s: Screen) => void;
+  onGetStarted: () => void;
+  onViewExamples: () => void;
   industries: Industry[];
 }) => (
   <div className="min-h-screen bg-white">
@@ -204,7 +249,7 @@ const LandingScreen = ({
           >
             <button
               type="button"
-              onClick={() => onNav("form")}
+              onClick={onGetStarted}
               className="group inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-violet-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-violet-300"
             >
               Get Started
@@ -212,7 +257,7 @@ const LandingScreen = ({
             </button>
             <button
               type="button"
-              onClick={() => onNav("dashboard")}
+              onClick={onViewExamples}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-8 py-3.5 text-base font-semibold text-gray-700 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md"
             >
               <Eye className="h-4 w-4" />
@@ -366,10 +411,10 @@ const LandingScreen = ({
           <motion.button
             variants={fadeUp}
             type="button"
-            onClick={() => onNav("form")}
+            onClick={onGetStarted}
             className="group inline-flex items-center gap-2 rounded-xl bg-white px-10 py-3.5 text-base font-bold text-violet-700 shadow-lg transition-colors hover:bg-violet-50"
           >
-            Start Your Project
+            Get Started
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </motion.button>
         </motion.div>
@@ -475,7 +520,7 @@ const RequirementsForm = ({
               <Globe className="h-4 w-4 text-violet-500" />
               <span>Custom Website Service</span>
               <ChevronRight className="h-3.5 w-3.5" />
-              <span className="font-medium text-gray-900">Submit Requirements</span>
+              <span className="font-medium text-gray-900">Start Project</span>
             </div>
             <h1 className="mb-2 text-3xl font-extrabold text-gray-900">
               Tell us about your website
@@ -787,7 +832,7 @@ const DashboardScreen = ({
             className="group flex flex-shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-violet-300"
           >
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-            New Project
+            Start Project
           </button>
         </motion.div>
 
@@ -806,7 +851,7 @@ const DashboardScreen = ({
               onClick={() => onNav("form")}
               className="rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-200"
             >
-              Get Started
+              Start Project
             </button>
           </motion.div>
         ) : (
@@ -1115,10 +1160,68 @@ export function CustomWebsiteService({
   );
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [companySlug, setCompanySlug] = useState<string | null>(null);
 
   useEffect(() => {
     setProjects(initialCompanies.map(companyToProject));
   }, [initialCompanies]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadAuthState = async () => {
+      const supabase = getSupabaseBrowserClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!isMounted) return;
+
+      if (!user) {
+        setIsAuthenticated(false);
+        setCompanySlug(null);
+        return;
+      }
+
+      setIsAuthenticated(true);
+
+      const { data: membership } = await supabase
+        .from("memberships")
+        .select("company_id")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (!membership?.company_id) {
+        setCompanySlug(null);
+        return;
+      }
+
+      const { data: company } = await supabase
+        .from("companies")
+        .select("slug")
+        .eq("id", membership.company_id)
+        .maybeSingle();
+
+      setCompanySlug(company?.slug ?? null);
+    };
+
+    void loadAuthState();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    const supabase = getSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    setIsAuthenticated(false);
+    setCompanySlug(null);
+    router.push("/");
+    router.refresh();
+  };
 
   const handleFormSubmit = async (data: WebsiteFormData) => {
     setSubmitError(null);
@@ -1126,12 +1229,18 @@ export function CustomWebsiteService({
       const result = await createCompanyFromOnboarding({
         businessName: data.businessName,
         industryId: data.industryId,
+        onboardingData: {
+          pages: data.pages,
+          features: data.featureSlugs,
+          style: data.designStyle || null,
+          competitors: data.competitors || null,
+        },
       });
       if (!result.ok) {
         setSubmitError(result.error);
         return;
       }
-      router.push(`/${result.slug}/dashboard`);
+      router.push("/app");
       router.refresh();
     });
   };
@@ -1142,13 +1251,25 @@ export function CustomWebsiteService({
   };
 
   const handleNav = (s: Screen) => {
+    if (s === "form") {
+      router.push(isAuthenticated ? "/onboarding" : "/auth/sign-up");
+      return;
+    }
+    if (s === "dashboard") {
+      router.push("/examples");
+      return;
+    }
     setSelectedProject(null);
     setScreen(s);
   };
 
   return (
     <div className="min-h-screen w-full bg-white font-sans">
-      <NavBar screen={screen} onNav={handleNav} />
+      <NavBar
+        isAuthenticated={isAuthenticated}
+        companySlug={companySlug}
+        onLogout={handleLogout}
+      />
       <AnimatePresence mode="wait">
         {screen === "landing" && (
           <motion.div
@@ -1158,7 +1279,15 @@ export function CustomWebsiteService({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <LandingScreen industries={industries} onNav={handleNav} />
+            <LandingScreen
+              industries={industries}
+              onGetStarted={() => {
+                router.push("/auth/sign-up");
+              }}
+              onViewExamples={() => {
+                router.push("/examples");
+              }}
+            />
           </motion.div>
         )}
         {screen === "form" && (

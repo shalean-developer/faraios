@@ -31,6 +31,14 @@ export type Company = {
   primary_contact_email?: string | null;
   /** Pricing tier slug: starter | business | premium */
   plan?: string | null;
+  subscription_status?: string;
+  next_billing_date?: string | null;
+  /** Public production URL for launched company website. */
+  production_url?: string | null;
+  /** Product lifecycle status for company project card/views. */
+  project_status?: string;
+  /** Raw onboarding payload for admin and project detail use cases. */
+  onboarding_data?: Record<string, unknown> | null;
 };
 
 export type CompanyWithIndustry = Company & {
@@ -83,6 +91,32 @@ export type Booking = {
   customer_name: string | null;
   service: string | null;
   date: string | null;
+  booking_date?: string | null;
   status: string | null;
   created_at?: string;
+};
+
+/** Aligns with public.websites */
+export type Website = {
+  id: string;
+  client_id: string;
+  name: string;
+  industry: string;
+  template: string;
+  domain: string | null;
+  subdomain: string;
+  status: "draft" | "published";
+  seo_title?: string | null;
+  seo_description?: string | null;
+  seo_keywords?: string | null;
+  og_image?: string | null;
+  created_at: string;
+};
+
+/** Aligns with public.website_content */
+export type WebsiteContent = {
+  id: string;
+  website_id: string;
+  section: string;
+  content: Record<string, unknown>;
 };

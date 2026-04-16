@@ -20,13 +20,6 @@ type ProjectRow = {
   created_at: string;
 };
 
-type ActivityRow = {
-  id: string;
-  title: string;
-  completed: boolean;
-  stage: ProjectPipelineStatus;
-};
-
 function normalizeProgress(
   status: ProjectPipelineStatus,
   raw: number | null | undefined

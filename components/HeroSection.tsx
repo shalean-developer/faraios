@@ -28,7 +28,7 @@ export function HeroSection() {
 
           <div className="mt-10 flex w-full flex-col items-stretch justify-center gap-3 sm:max-w-none sm:flex-row sm:items-center">
             <Link
-              href="/get-started"
+              href="/auth/sign-up"
               className={cn(
                 buttonVariants({ size: "lg" }),
                 "h-12 gap-2 rounded-2xl border-0 bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] px-8 text-base text-white shadow-lg transition-all hover:brightness-110 hover:shadow-xl active:translate-y-px"

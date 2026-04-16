@@ -17,13 +17,13 @@ export function CTASection() {
             online presence.
           </p>
           <Link
-            href="/get-started"
+            href="/auth/sign-up"
             className={cn(
               buttonVariants({ size: "lg" }),
               "mt-10 inline-flex h-12 gap-2 rounded-2xl border-0 bg-white px-8 text-base font-semibold text-[#5B21B6] shadow-lg transition-all hover:bg-white/95 hover:shadow-xl active:translate-y-px"
             )}
           >
-            Start Your Project
+            Get Started
             <ArrowRight className="size-4" aria-hidden />
           </Link>
         </div>

@@ -26,8 +26,8 @@ function AccessWall({ slug }: { slug: string }) {
           or return to your company hub.
         </p>
         <div className="mt-6 flex flex-col gap-2 text-sm font-semibold">
-          <Link href="/get-started" className="text-indigo-600 hover:underline">
-            Get started
+          <Link href="/auth/sign-in" className="text-indigo-600 hover:underline">
+            Sign in
           </Link>
           <Link href={`/${encodeURIComponent(slug)}/dashboard`} className="text-slate-600 hover:underline">
             Back to {slug} dashboard
