@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import type { Metadata } from "next";
 
 import { getDomain } from "@/lib/getDomain";
+import { getMarketplaceBookingUrlForClient } from "@/lib/services/marketplace";
 import {
   getWebsiteByDomain,
   getWebsiteContentByWebsiteId,
@@ -9,23 +10,53 @@ import {
 } from "@/lib/services/websites";
 import type { WebsiteContent } from "@/types/database";
 
-export type TenantPageKind = "home" | "services" | "about" | "contact";
+export type TenantPageKind = "home" | "services" | "about" | "reviews" | "contact";
 
 export async function getTenantContext() {
   const requestHeaders = await headers();
   const host = getDomain(requestHeaders);
   const mainHost = isMainHost(host);
   if (mainHost) {
-    return { host, mainHost: true as const, website: null, content: [] as WebsiteContent[] };
+    return {
+      host,
+      mainHost: true as const,
+      website: null,
+      content: [] as WebsiteContent[],
+      marketplaceBookingUrl: null as string | null,
+      publicBookingUrl: null as string | null,
+      bookingUrl: null as string | null,
+    };
   }
 
   const website = await getWebsiteByDomain(host);
   if (!website) {
-    return { host, mainHost: false as const, website: null, content: [] as WebsiteContent[] };
+    return {
+      host,
+      mainHost: false as const,
+      website: null,
+      content: [] as WebsiteContent[],
+      marketplaceBookingUrl: null as string | null,
+      publicBookingUrl: null as string | null,
+      bookingUrl: null as string | null,
+    };
   }
 
-  const content = await getWebsiteContentByWebsiteId(website.id);
-  return { host, mainHost: false as const, website, content };
+  const [content, marketplaceBookingUrl] = await Promise.all([
+    getWebsiteContentByWebsiteId(website.id),
+    getMarketplaceBookingUrlForClient(website.client_id),
+  ]);
+
+  const publicBookingUrl = `/book/${encodeURIComponent(website.client_id)}`;
+
+  return {
+    host,
+    mainHost: false as const,
+    website,
+    content,
+    marketplaceBookingUrl,
+    publicBookingUrl,
+    bookingUrl: publicBookingUrl,
+  };
 }
 
 export async function getTenantMetadata(kind: TenantPageKind): Promise<Metadata> {

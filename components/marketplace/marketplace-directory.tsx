@@ -58,7 +58,7 @@ export function MarketplaceDirectory({
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans">
+    <div className="min-h-screen w-full overflow-x-hidden bg-white font-sans">
       <MarketingNav
         isAuthenticated={isAuthenticated}
         companySlug={companySlug}
@@ -67,7 +67,7 @@ export function MarketplaceDirectory({
         onLogout={handleLogout}
       />
 
-      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
+      <main className="mx-auto w-full max-w-6xl px-4 pb-8 pt-24 sm:px-6 lg:px-8">
         <motion.section initial="hidden" animate="visible" variants={fadeUp} className="mb-10">
           <p className="text-sm font-semibold uppercase tracking-widest text-violet-600">
             FaraiOS Marketplace

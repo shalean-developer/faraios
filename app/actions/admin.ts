@@ -51,7 +51,7 @@ function revalidateAdminSurfaces(options?: {
     revalidatePath(`/admin/pipeline/${options.companyId}`);
   }
   if (options?.companySlug) {
-    revalidatePath(`/${options.companySlug}/project`);
+    revalidatePath(`/${options.companySlug}/dashboard/project`);
     revalidatePath(`/${options.companySlug}/dashboard`);
   }
 }

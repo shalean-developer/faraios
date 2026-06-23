@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LayoutGrid, LogOut, UserCircle2 } from "lucide-react";
-import { redirect } from "next/navigation";
 
+import { signOutAction } from "@/app/actions/auth";
 import { FaraiLogo } from "@/components/brand/farai-logo";
 import { buttonVariants } from "@/components/ui/button";
 import { isPlatformAdminUser } from "@/lib/auth/post-login-redirect";
@@ -14,6 +14,8 @@ export type NavbarActiveNav = "app" | "pricing" | "dashboard" | "project";
 export type NavbarProps = {
   /** Highlights Home or Pricing; omit on pages without center nav. */
   activeNav?: NavbarActiveNav;
+  /** Slim header for company workspace (sidebar handles navigation). */
+  variant?: "default" | "workspace";
 };
 
 const navLinkClass = (active: boolean) =>
@@ -24,19 +26,11 @@ const navLinkClass = (active: boolean) =>
       : "text-muted-foreground hover:text-foreground"
   );
 
-export async function Navbar({ activeNav }: NavbarProps) {
+export async function Navbar({ activeNav, variant = "default" }: NavbarProps) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  async function signOutAction() {
-    "use server";
-
-    const actionClient = await createClient();
-    await actionClient.auth.signOut();
-    redirect("/");
-  }
 
   const primaryCompanySlug = user
     ? await getPrimaryCompanySlugForUser(user.id)
@@ -50,76 +44,101 @@ export async function Navbar({ activeNav }: NavbarProps) {
     : primaryCompanySlug
       ? `/${encodeURIComponent(primaryCompanySlug)}/dashboard`
       : appHref;
-  const projectHref = isPlatformAdmin
-    ? "/admin/pipeline"
-    : primaryCompanySlug
-      ? `/${encodeURIComponent(primaryCompanySlug)}/project`
-      : appHref;
+  const pipelineHref = "/admin/pipeline";
   const logoHref = user ? appHref : "/";
 
+  const isWorkspace = variant === "workspace";
+
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-4 md:h-16 md:flex-row md:items-center md:justify-between md:gap-0 md:py-0">
-        <div className="flex items-center justify-between md:contents">
+    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
+      <div
+        className={cn(
+          "flex items-center justify-between gap-4 px-4 sm:px-6",
+          isWorkspace
+            ? "h-16 w-full"
+            : "mx-auto max-w-6xl flex-col gap-4 py-4 md:h-16 md:flex-row md:py-0"
+        )}
+      >
+        <div
+          className={cn(
+            "flex items-center justify-between",
+            isWorkspace ? "shrink-0" : "md:contents"
+          )}
+        >
           <Link
             href={logoHref}
-            className="flex shrink-0 items-center transition-opacity hover:opacity-90 md:flex-1"
+            className={cn(
+              "flex shrink-0 items-center transition-opacity hover:opacity-90",
+              !isWorkspace && "md:flex-1"
+            )}
           >
             <FaraiLogo size="header" priority />
           </Link>
 
-          <div className="flex items-center gap-2 sm:gap-3 md:hidden">
-            <Actions
-              isAuthenticated={Boolean(user)}
-              activeNav={activeNav}
-              appHref={appHref}
-              dashboardHref={dashboardHref}
-              projectHref={projectHref}
-              onSignOut={signOutAction}
-            />
-          </div>
+          {!isWorkspace ? (
+            <div className="flex items-center gap-2 sm:gap-3 md:hidden">
+              <Actions
+                isAuthenticated={Boolean(user)}
+                activeNav={activeNav}
+                isPlatformAdmin={isPlatformAdmin}
+                appHref={appHref}
+                dashboardHref={dashboardHref}
+                pipelineHref={pipelineHref}
+                onSignOut={signOutAction}
+              />
+            </div>
+          ) : null}
         </div>
 
-        <nav
-          className="flex justify-center gap-8 md:flex-1 md:justify-center"
-          aria-label="Primary"
-        >
-          {user ? (
-            <>
-              <Link href={appHref} className={navLinkClass(activeNav === "app")}>
-                App
+        {!isWorkspace ? (
+          <nav
+            className="flex justify-center gap-8 md:flex-1 md:justify-center"
+            aria-label="Primary"
+          >
+            {user ? (
+              isPlatformAdmin ? (
+                <>
+                  <Link href={appHref} className={navLinkClass(activeNav === "app")}>
+                    Admin
+                  </Link>
+                  <Link
+                    href={pipelineHref}
+                    className={navLinkClass(activeNav === "project")}
+                  >
+                    Client projects
+                  </Link>
+                </>
+              ) : (
+                <Link
+                  href={dashboardHref}
+                  className={navLinkClass(activeNav === "dashboard")}
+                >
+                  Workspace
+                </Link>
+              )
+            ) : (
+              <Link href="/pricing" className={navLinkClass(activeNav === "pricing")}>
+                Pricing
               </Link>
-              <Link
-                href={dashboardHref}
-                className={navLinkClass(activeNav === "dashboard")}
-              >
-                Dashboard
-              </Link>
-              <Link
-                href={projectHref}
-                className={navLinkClass(activeNav === "project")}
-              >
-                Project
-              </Link>
-            </>
-          ) : (
-            <Link href="/pricing" className={navLinkClass(activeNav === "pricing")}>
-              Pricing
-            </Link>
-          )}
-        </nav>
+            )}
+          </nav>
+        ) : (
+          <div className="hidden min-w-0 flex-1 sm:block" aria-hidden />
+        )}
 
         <div
           className={cn(
-            "hidden items-center justify-end gap-2 sm:gap-3 md:flex md:flex-1"
+            "flex items-center justify-end gap-2 sm:gap-3",
+            isWorkspace ? "shrink-0" : "hidden md:flex md:flex-1"
           )}
         >
           <Actions
             isAuthenticated={Boolean(user)}
             activeNav={activeNav}
+            isPlatformAdmin={isPlatformAdmin}
             appHref={appHref}
             dashboardHref={dashboardHref}
-            projectHref={projectHref}
+            pipelineHref={pipelineHref}
             onSignOut={signOutAction}
           />
         </div>
@@ -131,16 +150,18 @@ export async function Navbar({ activeNav }: NavbarProps) {
 function Actions({
   isAuthenticated,
   activeNav,
+  isPlatformAdmin,
   appHref,
   dashboardHref,
-  projectHref,
+  pipelineHref,
   onSignOut,
 }: {
   isAuthenticated: boolean;
   activeNav?: NavbarActiveNav;
+  isPlatformAdmin: boolean;
   appHref: string;
   dashboardHref: string;
-  projectHref: string;
+  pipelineHref: string;
   onSignOut: () => Promise<void>;
 }) {
   if (!isAuthenticated) {
@@ -182,33 +203,38 @@ function Actions({
           Account
         </summary>
         <div className="absolute right-0 mt-2 w-48 rounded-xl border border-border/80 bg-background p-2 shadow-lg">
-          <Link
-            href={appHref}
-            className={cn(
-              "block rounded-lg px-3 py-2 text-sm transition-colors hover:bg-violet-50 hover:text-[#7C3AED]",
-              activeNav === "app" ? "text-[#7C3AED]" : "text-foreground"
-            )}
-          >
-            App
-          </Link>
-          <Link
-            href={dashboardHref}
-            className={cn(
-              "block rounded-lg px-3 py-2 text-sm transition-colors hover:bg-violet-50 hover:text-[#7C3AED]",
-              activeNav === "dashboard" ? "text-[#7C3AED]" : "text-foreground"
-            )}
-          >
-            Dashboard
-          </Link>
-          <Link
-            href={projectHref}
-            className={cn(
-              "block rounded-lg px-3 py-2 text-sm transition-colors hover:bg-violet-50 hover:text-[#7C3AED]",
-              activeNav === "project" ? "text-[#7C3AED]" : "text-foreground"
-            )}
-          >
-            Project
-          </Link>
+          {isPlatformAdmin ? (
+            <>
+              <Link
+                href={appHref}
+                className={cn(
+                  "block rounded-lg px-3 py-2 text-sm transition-colors hover:bg-violet-50 hover:text-[#7C3AED]",
+                  activeNav === "app" ? "text-[#7C3AED]" : "text-foreground"
+                )}
+              >
+                Admin
+              </Link>
+              <Link
+                href={pipelineHref}
+                className={cn(
+                  "block rounded-lg px-3 py-2 text-sm transition-colors hover:bg-violet-50 hover:text-[#7C3AED]",
+                  activeNav === "project" ? "text-[#7C3AED]" : "text-foreground"
+                )}
+              >
+                Client projects
+              </Link>
+            </>
+          ) : (
+            <Link
+              href={dashboardHref}
+              className={cn(
+                "block rounded-lg px-3 py-2 text-sm transition-colors hover:bg-violet-50 hover:text-[#7C3AED]",
+                activeNav === "dashboard" ? "text-[#7C3AED]" : "text-foreground"
+              )}
+            >
+              Workspace
+            </Link>
+          )}
           <Link
             href="/pricing"
             className="block rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-violet-50 hover:text-[#7C3AED]"

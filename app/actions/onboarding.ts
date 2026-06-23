@@ -19,6 +19,8 @@ export type OnboardingSubmitInput = {
   };
   /** From `/get-started?plan=` — starter | business | premium */
   plan?: string | null;
+  /** When false, skip website build project creation. */
+  setupWebsite?: boolean;
   /** Must match signed-in user (validated server-side). */
   userId?: string | null;
 };
@@ -47,6 +49,7 @@ export async function createCompanyFromOnboarding(
     onboardingData: input.onboardingData,
     plan: input.plan,
     userId: input.userId,
+    setupWebsite: input.setupWebsite,
   });
 
   if (!result.ok) {
@@ -65,7 +68,7 @@ export async function createCompanyFromOnboarding(
   revalidatePath("/app");
   revalidatePath(`/${slug}/dashboard`);
   revalidatePath(`/${slug}/dashboard/hosting`);
-  revalidatePath(`/${slug}/project`);
+  revalidatePath(`/${slug}/dashboard/project`);
 
   return { ok: true, slug };
 }

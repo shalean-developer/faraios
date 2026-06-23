@@ -82,6 +82,9 @@ export default async function CompanyEditWebsitePage({ params }: Props) {
       websiteId={typedWebsite.id}
       companySlug={companySlug}
       previewUrl={previewUrl}
+      previewPath={`/preview/${typedWebsite.id}`}
+      websiteIndustry={typedWebsite.industry}
+      websiteTemplate={typedWebsite.template}
       contentRows={(rows as WebsiteContent[]) ?? []}
     />
   );

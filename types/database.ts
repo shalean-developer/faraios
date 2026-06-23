@@ -21,7 +21,7 @@ export type Company = {
   slug: string;
   industry_id: string | null;
   created_at: string;
-  /** Live / launched site (counts toward “active sites”). */
+  /** @deprecated Use websites.status = 'published' instead. Kept in sync via DB trigger. */
   is_published?: boolean;
   /** Website build pipeline status. */
   build_status?: string | null;
@@ -29,6 +29,8 @@ export type Company = {
   assigned_developer?: string | null;
   primary_contact_name?: string | null;
   primary_contact_email?: string | null;
+  contact_phone?: string | null;
+  contact_location?: string | null;
   /** Pricing tier slug: starter | business | premium */
   plan?: string | null;
   subscription_status?: string;
@@ -43,6 +45,96 @@ export type Company = {
   marketplace_summary?: string | null;
   marketplace_location?: string | null;
   marketplace_featured?: boolean;
+  service_areas?: string | null;
+  business_description?: string | null;
+  booking_hours?: Record<string, unknown> | null;
+  blocked_booking_dates?: string[];
+};
+
+/** Aligns with public.customers */
+export type Customer = {
+  id: string;
+  company_id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Aligns with public.company_services */
+export type CompanyService = {
+  id: string;
+  company_id: string;
+  name: string;
+  category: string | null;
+  description: string | null;
+  base_price_cents: number;
+  active: boolean;
+  duration_minutes?: number | null;
+  addons?: unknown[] | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Aligns with public.connected_websites */
+export type ConnectedWebsite = {
+  id: string;
+  company_id: string;
+  type: "external" | "hosted";
+  production_url: string | null;
+  api_key: string;
+  name?: string | null;
+  status?: string;
+  primary_domain?: string | null;
+  preview_subdomain?: string | null;
+  hosting_provider?: string | null;
+  booking_enabled?: boolean;
+  tracking_enabled?: boolean;
+  seo_enabled?: boolean;
+  api_key_status?: "active" | "revoked";
+  api_key_last_used_at?: string | null;
+  website_id?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type { BookingStatus } from "@/lib/bookings/status";
+export { BOOKING_STATUSES } from "@/lib/bookings/status";
+
+/** Aligns with public.bookings */
+export type Booking = {
+  id: string;
+  company_id: string;
+  customer_name: string | null;
+  service: string | null;
+  booking_date?: string | null;
+  status: string | null;
+  customer_email?: string | null;
+  customer_phone?: string | null;
+  source?: string | null;
+  customer_id?: string | null;
+  service_id?: string | null;
+  price_cents?: number | null;
+  assigned_staff_id?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  internal_notes?: string | null;
+  duration_minutes?: number | null;
+  custom_responses?: Record<string, unknown> | null;
+  addons?: unknown[] | null;
+  payment_status?: string | null;
+  source_website?: string | null;
+  referrer?: string | null;
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+  website_id?: string | null;
+  device_type?: string | null;
+  consent_given?: boolean;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type CompanyWithIndustry = Company & {
@@ -64,6 +156,13 @@ export type Membership = {
   company_id: string;
   role: string | null;
   created_at?: string;
+};
+
+/** Company summary for workspace switcher UI */
+export type UserCompany = {
+  id: string;
+  slug: string;
+  name: string;
 };
 
 /** Aligns with public.projects */
@@ -88,21 +187,6 @@ export type ProjectActivity = {
   created_at?: string;
 };
 
-/** Aligns with public.bookings */
-export type Booking = {
-  id: string;
-  company_id: string;
-  customer_name: string | null;
-  service: string | null;
-  date: string | null;
-  booking_date?: string | null;
-  status: string | null;
-  customer_email?: string | null;
-  customer_phone?: string | null;
-  source?: string | null;
-  created_at?: string;
-};
-
 /** Aligns with public.websites */
 export type Website = {
   id: string;
@@ -113,6 +197,12 @@ export type Website = {
   domain: string | null;
   subdomain: string;
   status: "draft" | "published";
+  connection_status?: string;
+  hosting_provider?: string | null;
+  booking_enabled?: boolean;
+  tracking_enabled?: boolean;
+  seo_connection_enabled?: boolean;
+  preview_subdomain?: string | null;
   seo_title?: string | null;
   seo_description?: string | null;
   seo_keywords?: string | null;
@@ -137,7 +227,7 @@ export type HostingSubscription = {
   subdomain: string | null;
   custom_domain: string | null;
   domain_status: "none" | "pending" | "verified";
-  ssl_status: "pending" | "active" | "failed";
+  ssl_status: "not_started" | "pending" | "active" | "failed";
   bandwidth_limit_gb: number;
   sites_limit: number;
   next_billing_date: string | null;

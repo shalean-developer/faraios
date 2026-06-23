@@ -1,8 +1,8 @@
 import { getAdminQueryClient } from "@/lib/services/admin";
+import { buildMarketplaceBookingUrl } from "@/lib/marketplace/booking-link";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import { createClient } from "@/lib/supabase/server";
 import type { MarketplaceListing } from "@/types/marketplace";
-
 type MarketplaceCompanyRow = {
   id: string;
   name: string;
@@ -169,6 +169,9 @@ export async function getMarketplaceBusinessBySlugPublic(
 export async function listMarketplaceBusinessesPublic(): Promise<MarketplaceListing[]> {
   if (!isSupabaseConfigured()) return [];
 
+  const adminList = await listMarketplaceBusinesses();
+  if (adminList.length > 0) return adminList;
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("companies")
@@ -180,10 +183,42 @@ export async function listMarketplaceBusinessesPublic(): Promise<MarketplaceList
 
   if (error) {
     console.error("[marketplace] listMarketplaceBusinessesPublic", error.message);
-    return listMarketplaceBusinesses();
+    return [];
   }
 
   return ((data ?? []) as MarketplaceCompanyRow[])
     .map(rowToListing)
     .filter((row): row is MarketplaceListing => row !== null);
+}
+
+/** Booking URL for tenant sites when the company is marketplace-listed. */
+export async function getMarketplaceBookingUrlForClient(
+  clientId: string
+): Promise<string | null> {
+  if (!isSupabaseConfigured() || !clientId.trim()) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("companies")
+    .select("slug, listed_in_marketplace")
+    .eq("id", clientId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[marketplace] getMarketplaceBookingUrlForClient", error.message);
+    const admin = await getAdminQueryClient();
+    if (!admin) return null;
+    const { data: fallback, error: fallbackError } = await admin
+      .from("companies")
+      .select("slug, listed_in_marketplace")
+      .eq("id", clientId)
+      .maybeSingle();
+    if (fallbackError || !fallback?.listed_in_marketplace || !fallback.slug) {
+      return null;
+    }
+    return buildMarketplaceBookingUrl(fallback.slug);
+  }
+
+  if (!data?.listed_in_marketplace || !data.slug) return null;
+  return buildMarketplaceBookingUrl(data.slug);
 }

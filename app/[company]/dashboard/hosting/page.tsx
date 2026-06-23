@@ -1,10 +1,10 @@
-import { Navbar } from "@/components/Navbar";
+import { notFound } from "next/navigation";
+
 import { getCompanyBySlug } from "@/lib/services/companies";
 import {
   getHostingSubscriptionForCompany,
   listHostingPaymentsForCompany,
 } from "@/lib/services/hosting";
-import { notFound } from "next/navigation";
 
 import { CompanyHostingClient } from "./company-hosting-client";
 
@@ -29,18 +29,13 @@ export default async function CompanyHostingPage({ params, searchParams }: Props
   const payments = await listHostingPaymentsForCompany(row.id);
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
-      <Navbar />
-      <main>
-        <CompanyHostingClient
-          slug={slug}
-          company={row}
-          subscription={subscription}
-          payments={payments}
-          initialPlan={plan}
-          paymentSuccess={payment === "success"}
-        />
-      </main>
-    </div>
+    <CompanyHostingClient
+      slug={slug}
+      company={row}
+      subscription={subscription}
+      payments={payments}
+      initialPlan={plan}
+      paymentSuccess={payment === "success"}
+    />
   );
 }

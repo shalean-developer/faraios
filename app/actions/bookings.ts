@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { buildBookingPayload } from "@/lib/bookings/validation";
-import { createClient } from "@/lib/supabase/server";
+
+import { createEngineBooking } from "@/lib/services/booking-engine";
+import { requireCompanyMembership } from "@/lib/services/company-access";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 
 export type CreateBookingInput = {
@@ -11,9 +12,18 @@ export type CreateBookingInput = {
   customerName: string;
   service: string;
   bookingDate: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  serviceId?: string;
+  preferredTime?: string;
+  address?: string;
+  notes?: string;
+  customResponses?: Record<string, unknown>;
 };
 
-export type CreateBookingResult = { ok: true } | { ok: false; error: string };
+export type CreateBookingResult =
+  | { ok: true; bookingId: string }
+  | { ok: false; error: string };
 
 export async function createBookingForCompany(
   input: CreateBookingInput
@@ -28,47 +38,31 @@ export async function createBookingForCompany(
 
   if (!input.companyId) return { ok: false, error: "Missing company." };
 
-  const parsed = buildBookingPayload({
+  const access = await requireCompanyMembership(input.companyId);
+  if (!access.ok) return access;
+
+  const result = await createEngineBooking({
+    companyId: input.companyId,
     customerName: input.customerName,
+    customerEmail: input.customerEmail,
+    customerPhone: input.customerPhone,
+    serviceId: input.serviceId,
     service: input.service,
     bookingDate: input.bookingDate,
-  });
-  if (!parsed.ok) {
-    return { ok: false, error: parsed.error };
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Please sign in again." };
-
-  const { data: membership, error: memberError } = await supabase
-    .from("memberships")
-    .select("id")
-    .eq("company_id", input.companyId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (memberError || !membership) {
-    return { ok: false, error: "You do not have access to this company." };
-  }
-
-  const { error } = await supabase.from("bookings").insert({
-    company_id: input.companyId,
-    customer_name: parsed.data.customerName,
-    service: parsed.data.service,
-    booking_date: parsed.data.bookingDateIso,
-    date: parsed.data.bookingDateIso,
-    status: "pending",
+    preferredTime: input.preferredTime,
+    address: input.address,
+    notes: input.notes,
+    customResponses: input.customResponses,
     source: "internal",
+    skipFormValidation: true,
+    skipAvailabilityCheck: true,
   });
 
-  if (error) {
-    return { ok: false, error: error.message };
-  }
+  if (!result.ok) return result;
 
   revalidatePath(`/${input.companySlug}/dashboard`);
+  revalidatePath(`/${input.companySlug}/dashboard/bookings`);
+  revalidatePath(`/${input.companySlug}/dashboard/customers`);
   revalidatePath("/app");
-  return { ok: true };
+  return result;
 }

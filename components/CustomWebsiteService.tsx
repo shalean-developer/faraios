@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 import { createCompanyFromOnboarding } from "@/app/actions/onboarding";
+import { DualHero } from "@/components/marketing/dual-hero";
 import { HomeMarketingSections } from "@/components/marketing/home-sections";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
@@ -110,98 +111,15 @@ const stagger = {
 
 const LandingScreen = ({
   onGetStarted,
-  onViewExamples,
   industries,
   features,
 }: {
   onGetStarted: () => void;
-  onViewExamples: () => void;
   industries: Industry[];
   features: Feature[];
 }) => (
   <div className="min-h-screen bg-white">
-    <section className="relative overflow-hidden px-4 pb-24 pt-32 sm:px-6 lg:px-8">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-violet-50 via-white to-indigo-50" />
-      <div className="pointer-events-none absolute right-0 top-20 h-96 w-96 rounded-full bg-violet-200/30 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 left-10 h-72 w-72 rounded-full bg-indigo-200/30 blur-3xl" />
-      <div className="relative mx-auto max-w-4xl text-center">
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={stagger}
-          className="space-y-6"
-        >
-          <motion.div variants={fadeUp}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-100 px-4 py-1.5 text-xs font-semibold text-violet-700">
-              <Star className="h-3.5 w-3.5 fill-violet-500" />
-              Done-For-You Website Service
-            </span>
-          </motion.div>
-          <motion.h1
-            variants={fadeUp}
-            className="text-4xl font-extrabold leading-tight tracking-tight text-gray-900 sm:text-5xl lg:text-6xl"
-          >
-            Let FaraiOS Build Your
-            <br />
-            <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
-              Website For You
-            </span>
-          </motion.h1>
-          <motion.p
-            variants={fadeUp}
-            className="mx-auto max-w-2xl text-lg leading-relaxed text-gray-500 sm:text-xl"
-          >
-            We design, build, and launch your website while you focus on your
-            business. Professional results. Zero technical hassle.
-          </motion.p>
-          <motion.div
-            variants={fadeUp}
-            className="flex flex-col justify-center gap-4 pt-2 sm:flex-row"
-          >
-            <button
-              type="button"
-              onClick={onGetStarted}
-              className="group inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-violet-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-violet-300"
-            >
-              Get Started
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </button>
-            <button
-              type="button"
-              onClick={onViewExamples}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-8 py-3.5 text-base font-semibold text-gray-700 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md"
-            >
-              <Eye className="h-4 w-4" />
-              View Examples
-            </button>
-          </motion.div>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.4, ease: "easeOut" }}
-          className="mx-auto mt-16 max-w-3xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl"
-        >
-          <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-100 px-4 py-3">
-            <div className="flex gap-1.5">
-              <div className="h-3 w-3 rounded-full bg-red-400" />
-              <div className="h-3 w-3 rounded-full bg-amber-400" />
-              <div className="h-3 w-3 rounded-full bg-emerald-400" />
-            </div>
-            <div className="mx-4 flex h-6 flex-1 items-center justify-center rounded-md bg-white">
-              <span className="text-xs text-gray-400">yourbusiness.com</span>
-            </div>
-          </div>
-          <div className="flex h-48 items-center justify-center bg-gradient-to-br from-violet-600 to-indigo-700 sm:h-64">
-            <div className="space-y-3 text-center text-white">
-              <Globe className="mx-auto h-10 w-10 opacity-80" />
-              <p className="text-lg font-bold">Your Dream Website</p>
-              <p className="text-sm opacity-70">Designed & built by FaraiOS</p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </section>
+    <DualHero onGetStarted={onGetStarted} />
 
     <section className="bg-gray-50 px-4 py-20 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
@@ -249,7 +167,6 @@ const LandingScreen = ({
       industries={industries}
       features={features}
       onGetStarted={onGetStarted}
-      onViewExamples={onViewExamples}
     />
     <MarketingFooter />
   </div>
@@ -1268,7 +1185,7 @@ export function CustomWebsiteService({
         setSubmitError(result.error);
         return;
       }
-      router.push(`/${encodeURIComponent(result.slug)}/project?submitted=1`);
+      router.push(`/${encodeURIComponent(result.slug)}/dashboard/project?submitted=1`);
       router.refresh();
     });
   };
@@ -1314,9 +1231,6 @@ export function CustomWebsiteService({
               features={features}
               onGetStarted={() => {
                 router.push("/auth/sign-up");
-              }}
-              onViewExamples={() => {
-                router.push("/marketplace");
               }}
             />
           </motion.div>

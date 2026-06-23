@@ -1,6 +1,10 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
+import { MarketplaceDynamicBookingForm } from "@/components/marketplace/marketplace-dynamic-booking-form";
 import { MarketplaceListingPage } from "@/components/marketplace/marketplace-listing-page";
+import { getPublishedBookingFormForCompany } from "@/lib/services/booking-forms";
+import { listServicesForCompany } from "@/lib/services/company-services";
 import { getMarketplaceBusinessBySlugPublic } from "@/lib/services/marketplace";
 
 export const dynamic = "force-dynamic";
@@ -43,5 +47,21 @@ export default async function MarketplaceBusinessPage({ params }: Props) {
     );
   }
 
-  return <MarketplaceListingPage listing={listing} />;
+  const [form, services] = await Promise.all([
+    getPublishedBookingFormForCompany(listing.companyId),
+    listServicesForCompany(listing.companyId, { activeOnly: true }),
+  ]);
+
+  return (
+    <MarketplaceListingPage
+      listing={listing}
+      bookingForm={
+        <MarketplaceDynamicBookingForm
+          listing={listing}
+          fields={form?.fields ?? []}
+          services={services}
+        />
+      }
+    />
+  );
 }

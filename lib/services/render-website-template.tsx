@@ -3,15 +3,30 @@ import type { ReactNode } from "react";
 import ServiceBusinessTemplate from "@/templates/service-business/ServiceBusinessTemplate";
 import type { Website, WebsiteContent } from "@/types/database";
 
-type PageSection = "home" | "services" | "about" | "contact";
+type PageSection = "home" | "services" | "about" | "reviews" | "contact";
+
+type RenderWebsiteOptions = {
+  marketplaceBookingUrl?: string | null;
+  bookingUrl?: string | null;
+  previewWebsiteId?: string | null;
+};
 
 export function renderWebsiteTemplate(
   website: Website,
   content: WebsiteContent[],
-  pageSection: PageSection = "home"
+  pageSection: PageSection = "home",
+  options?: RenderWebsiteOptions
 ): ReactNode {
   if (website.template === "service-business" || website.template === "cleaning") {
-    return <ServiceBusinessTemplate content={content} pageSection={pageSection} />;
+    return (
+      <ServiceBusinessTemplate
+        content={content}
+        pageSection={pageSection}
+        marketplaceBookingUrl={options?.marketplaceBookingUrl ?? null}
+        bookingUrl={options?.bookingUrl ?? options?.marketplaceBookingUrl ?? null}
+        previewWebsiteId={options?.previewWebsiteId ?? null}
+      />
+    );
   }
 
   return (

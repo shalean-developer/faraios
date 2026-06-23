@@ -598,7 +598,11 @@ export function FaraiAdminProjectDetails({
                   </div>
                 </motion.div>
 
-                <motion.div variants={fadeUp} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                <motion.div
+                  id="marketplace"
+                  variants={fadeUp}
+                  className="scroll-mt-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+                >
                   <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
                     <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50">
                       <Globe className="h-3.5 w-3.5 text-emerald-600" />

@@ -2,13 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 
-import { buildBookingPayload } from "@/lib/bookings/validation";
+import { createEngineBooking } from "@/lib/services/booking-engine";
 import { getMarketplaceBusinessBySlug } from "@/lib/services/marketplace";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
-import { createClient } from "@/lib/supabase/server";
 import type { PublicBookingInput } from "@/types/marketplace";
 
-export type PublicBookingResult = { ok: true } | { ok: false; error: string };
+export type PublicBookingResult =
+  | { ok: true; bookingId: string }
+  | { ok: false; error: string };
 
 export async function createPublicMarketplaceBooking(
   input: PublicBookingInput
@@ -22,41 +23,60 @@ export async function createPublicMarketplaceBooking(
     return { ok: false, error: "This business is not available for booking." };
   }
 
-  const parsed = buildBookingPayload({
-    customerName: input.customerName,
-    service: input.service,
-    bookingDate: input.bookingDate,
-  });
-  if (!parsed.ok) {
-    return { ok: false, error: parsed.error };
-  }
-
-  const customerEmail = input.customerEmail.trim();
-  const customerPhone = input.customerPhone.trim();
+  const customerEmail = input.customerEmail?.trim() ?? "";
   if (!customerEmail || !customerEmail.includes("@")) {
     return { ok: false, error: "A valid email is required." };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("bookings").insert({
-    company_id: input.companyId,
-    customer_name: parsed.data.customerName,
-    service: parsed.data.service,
-    booking_date: parsed.data.bookingDateIso,
-    date: parsed.data.bookingDateIso,
-    status: "pending",
-    customer_email: customerEmail,
-    customer_phone: customerPhone || null,
+  const result = await createEngineBooking({
+    companyId: input.companyId,
+    customerName: input.customerName,
+    customerEmail,
+    customerPhone: input.customerPhone?.trim() || undefined,
+    serviceId: input.serviceId,
+    service: input.service,
+    bookingDate: input.bookingDate,
+    preferredTime: input.preferredTime,
+    address: input.address,
+    notes: input.notes,
+    customResponses: input.customResponses,
+    consentGiven: input.consentGiven ?? true,
     source: "marketplace",
+    sourceWebsite: `/marketplace/${input.companySlug}`,
   });
 
-  if (error) {
-    console.error("[marketplace] createPublicMarketplaceBooking", error.message);
-    return { ok: false, error: error.message };
-  }
+  if (!result.ok) return result;
 
   revalidatePath("/marketplace");
   revalidatePath(`/marketplace/${input.companySlug}`);
   revalidatePath(`/${input.companySlug}/dashboard`);
-  return { ok: true };
+  revalidatePath(`/${input.companySlug}/dashboard/bookings`);
+  revalidatePath(`/${input.companySlug}/dashboard/customers`);
+  return result;
+}
+
+export async function createPublicPageBooking(input: {
+  companyId: string;
+  customerName: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  serviceId?: string;
+  service?: string;
+  bookingDate: string;
+  preferredTime?: string;
+  address?: string;
+  notes?: string;
+  customResponses?: Record<string, unknown>;
+  consentGiven?: boolean;
+  sourceWebsite?: string;
+}): Promise<PublicBookingResult> {
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: "Bookings are not configured yet." };
+  }
+
+  return createEngineBooking({
+    ...input,
+    source: "public",
+    sourceWebsite: input.sourceWebsite ?? `/book/${input.companyId}`,
+  });
 }

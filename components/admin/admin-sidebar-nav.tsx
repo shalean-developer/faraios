@@ -3,6 +3,7 @@ import {
   BarChart3,
   Bell,
   GitBranch,
+  Globe,
   LayoutDashboard,
   Settings,
   Users,
@@ -20,6 +21,7 @@ const PRIMARY_ICONS = {
   pipeline: GitBranch,
   team: Users,
   clients: Users2,
+  websites: Globe,
 } as const;
 
 const SYSTEM_ICONS = {

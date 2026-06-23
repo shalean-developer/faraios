@@ -36,3 +36,14 @@ create policy "users_select_own" on public.users
   using (id = (select auth.uid()));
 
 grant select on table public.users to authenticated;
+
+-- Backfill accounts that existed before this trigger was installed.
+insert into public.users (id, email, full_name)
+select
+  u.id,
+  coalesce(nullif(trim(u.email), ''), u.id::text || '@users.local'),
+  nullif(trim(coalesce(u.raw_user_meta_data->>'full_name', '')), '')
+from auth.users u
+on conflict (id) do update
+  set email = excluded.email,
+      full_name = coalesce(excluded.full_name, public.users.full_name);

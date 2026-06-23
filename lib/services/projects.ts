@@ -194,6 +194,26 @@ export async function getProjectByCompany(
   };
 }
 
+/** Whether the company has an active Farai website build project. */
+export async function companyHasWebsiteProject(
+  companyId: string
+): Promise<boolean> {
+  if (!isSupabaseConfigured() || !companyId) return false;
+
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("projects")
+    .select("*", { count: "exact", head: true })
+    .eq("company_id", companyId);
+
+  if (error) {
+    console.error("[projects] companyHasWebsiteProject", error.message);
+    return false;
+  }
+
+  return (count ?? 0) > 0;
+}
+
 /** Compact progress snapshot (e.g. header widgets, realtime later). */
 export async function getProjectProgress(
   slug: string

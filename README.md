@@ -1,7 +1,7 @@
 # FaraiOS
 
-FaraiOS is a SaaS platform for done-for-you websites, with onboarding, company
-workspaces, project tracking, booking MVP, and billing integrations.
+FaraiOS is a **Business Operating System** for service businesses — company
+workspaces, customers, services, bookings, team access, websites, and billing.
 
 ## Setup
 
@@ -27,7 +27,7 @@ npm run dev
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)
-- `SUPABASE_SERVICE_ROLE_KEY` (required for secure webhook updates)
+- `SUPABASE_SERVICE_ROLE_KEY` (required for webhooks, team email lookup, external booking API)
 
 ### Billing (Paystack)
 
@@ -47,7 +47,7 @@ npm run dev
 4. Confirm RLS policies are active for `memberships`, `bookings`, and `companies`.
 5. For webhook updates, ensure `SUPABASE_SERVICE_ROLE_KEY` is set in deployment.
 6. Seed the first platform admin via SQL (service role), e.g. `insert into public.platform_admins (user_id) values ('<auth-user-uuid>');`
-7. Apply **all** migrations through `20260622210000_fix_rls_auth_email.sql` (fixes `permission denied for table users` on company queries).
+7. Apply **all** migrations through `20260624000000_v2_booking_engine.sql`.
 
 ## Scripts
 
@@ -57,15 +57,57 @@ npm run dev
 - `npm run test` - run unit tests (Vitest)
 - `npm run build` - production build
 
-## Client dashboard routes
+## Company workspace routes
 
 Canonical workspace URLs are company-scoped:
 
-- `/{company}/dashboard` — main workspace
-- `/{company}/dashboard/websites` — website list
+- `/{company}/dashboard` — operational overview (bookings, customers, revenue)
+- `/{company}/dashboard/bookings` — create, filter, and manage bookings
+- `/{company}/dashboard/bookings/{id}` — booking detail, staff assignment, custom responses
+- `/{company}/dashboard/calendar` — week schedule view
+- `/{company}/dashboard/booking-form` — industry presets, custom fields, publish form
+- `/{company}/dashboard/customers` — customer records
+- `/{company}/dashboard/customers/{id}` — customer detail and booking history
+- `/{company}/dashboard/services` — service catalog and pricing
+- `/{company}/dashboard/settings` — business profile and connected website
+- `/{company}/dashboard/team` — staff invites and roles
+- `/{company}/dashboard/websites` — websites hub (hosted sites, connected site, hosting add-on, build progress)
 - `/{company}/dashboard/websites/create` — create draft website
 - `/{company}/dashboard/websites/{id}/edit` — edit website content
-- `/{company}/project` — project tracker
+- `/{company}/dashboard/hosting` — hosting add-on (linked from Websites hub)
+- `/{company}/dashboard/project` — Farai website build tracker (when a build project exists)
+
+Legacy `/{company}/project` redirects to `/{company}/dashboard/project`.
+
+### Multi-company access
+
+Users with multiple workspace memberships can switch companies from the sidebar.
+Middleware validates access to the company slug in the URL (not only the first membership).
+
+### Public booking API (V2)
+
+Business ID is the company UUID (shown on Booking form settings).
+
+```
+GET  /api/public/business/{businessId}
+GET  /api/public/business/{businessId}/services
+GET  /api/public/business/{businessId}/booking-form
+POST /api/public/business/{businessId}/bookings
+```
+
+Embed widget:
+
+```html
+<script src="https://your-domain.com/embed/booking.js" data-business-id="COMPANY_UUID"></script>
+```
+
+Legacy API key flow (still supported):
+
+```
+GET  /api/v1/health
+POST /api/v1/bookings
+Header: X-FaraiOS-Company-Key: <key>
+```
 
 Legacy `/dashboard/*` paths redirect to the signed-in user's company workspace.
 

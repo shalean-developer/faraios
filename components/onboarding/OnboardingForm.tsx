@@ -86,7 +86,10 @@ export function OnboardingForm({
   const [dragActive, setDragActive] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
-  const [step, setStep] = React.useState<"form" | "review">("form");
+  const [step, setStep] = React.useState<"business" | "website" | "review">(
+    "business"
+  );
+  const [includeWebsiteBrief, setIncludeWebsiteBrief] = React.useState(false);
   const [isAuthenticated, setIsAuthenticated] = React.useState<boolean | null>(
     null
   );
@@ -181,46 +184,80 @@ export function OnboardingForm({
     setLogoFileName(file.name);
   };
 
-  const validateForm = (): boolean => {
+  const validateBusiness = (): boolean => {
     const name = businessName.trim();
     if (!name) {
       setError("Please enter your business name.");
       return false;
     }
     if (!industryId) {
-      setError("Select an industry so we can tailor your site.");
+      setError("Select an industry for your business.");
       return false;
     }
     if (!contactPhone.trim()) {
-      setError("Please add a phone or WhatsApp number so we can reach you.");
-      return false;
-    }
-    if (!projectGoal.trim()) {
-      setError("Tell us what you want this website to achieve.");
-      return false;
-    }
-    if (!designStyle) {
-      setError("Choose a design style for your project.");
-      return false;
-    }
-    if (selectedPages.length === 0) {
-      setError("Select at least one page for your website.");
+      setError("Please add a phone or WhatsApp number.");
       return false;
     }
     return true;
   };
 
-  const handleContinueToReview = (e: React.FormEvent) => {
+  const validateWebsiteBrief = (): boolean => {
+    if (!includeWebsiteBrief) return true;
+    if (!projectGoal.trim()) {
+      setError("Tell us what you want the website to achieve, or skip website setup.");
+      return false;
+    }
+    if (!designStyle) {
+      setError("Choose a design style, or skip website setup.");
+      return false;
+    }
+    if (selectedPages.length === 0) {
+      setError("Select at least one page, or skip website setup.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleBusinessContinue = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!validateForm()) return;
+    if (!validateBusiness()) return;
+    if (isHostingFlow) {
+      setIncludeWebsiteBrief(false);
+      setStep("review");
+      return;
+    }
+    setStep("website");
+  };
+
+  const handleSkipWebsite = () => {
+    setError(null);
+    setIncludeWebsiteBrief(false);
+    setProjectGoal("");
+    setDesignStyle(null);
+    setSelectedPages([]);
+    setCompetitors("");
+    setLogoFileName(null);
+    setFeatureSlugs([]);
+    setStep("review");
+  };
+
+  const handleWebsiteContinue = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIncludeWebsiteBrief(true);
+    if (!validateWebsiteBrief()) return;
     setStep("review");
   };
 
   const handleSubmit = async () => {
     setError(null);
-    if (!validateForm()) {
-      setStep("form");
+    if (!validateBusiness()) {
+      setStep("business");
+      return;
+    }
+    if (includeWebsiteBrief && !validateWebsiteBrief()) {
+      setStep("website");
       return;
     }
     const {
@@ -240,30 +277,35 @@ export function OnboardingForm({
       const result = await createCompanyFromOnboarding({
         businessName: businessName.trim(),
         industryId,
-        onboardingData: {
-          pages: selectedPages,
-          features: featureSlugs,
-          style: designStyle,
-          competitors,
-          logoFileName,
-          projectGoal: projectGoal.trim(),
-          contactPhone: contactPhone.trim(),
-        },
+        onboardingData: includeWebsiteBrief
+          ? {
+              pages: selectedPages,
+              features: featureSlugs,
+              style: designStyle,
+              competitors,
+              logoFileName,
+              projectGoal: projectGoal.trim(),
+              contactPhone: contactPhone.trim(),
+            }
+          : {
+              contactPhone: contactPhone.trim(),
+            },
         plan: planSlug,
         userId: user.id,
+        setupWebsite: includeWebsiteBrief,
       });
       if (!result.ok) {
         setError(result.error);
-        setStep("form");
+        setStep(includeWebsiteBrief ? "website" : "business");
         return;
       }
       if (redirectAfter === "hosting") {
         const planQuery = hostingPlan ? `?plan=${encodeURIComponent(hostingPlan)}` : "";
         router.push(`/${encodeURIComponent(result.slug)}/dashboard/hosting${planQuery}`);
+      } else if (includeWebsiteBrief) {
+        router.push(`/${encodeURIComponent(result.slug)}/dashboard/project?submitted=1`);
       } else {
-        router.push(
-          `/${encodeURIComponent(result.slug)}/project?submitted=1`
-        );
+        router.push(`/${encodeURIComponent(result.slug)}/dashboard`);
       }
       router.refresh();
     } finally {
@@ -273,15 +315,30 @@ export function OnboardingForm({
 
   return (
     <form
-      onSubmit={step === "form" ? handleContinueToReview : (e) => e.preventDefault()}
+      onSubmit={
+        step === "business"
+          ? handleBusinessContinue
+          : step === "website"
+            ? handleWebsiteContinue
+            : (e) => e.preventDefault()
+      }
       className="rounded-3xl border border-border/60 bg-card p-6 shadow-xl sm:p-8 md:p-10"
     >
       <div className="space-y-8">
         <div className="space-y-2 border-b border-border/50 pb-6">
-          <h2 className="text-xl font-bold text-foreground">Submit your project request</h2>
+          <h2 className="text-xl font-bold text-foreground">
+            {step === "business"
+              ? "Set up your business"
+              : step === "website"
+                ? "Website setup (optional)"
+                : "Review and create workspace"}
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Tell us about your business. After you submit, our team reviews your brief and
-            typically starts within 1–2 business days.
+            {step === "business"
+              ? "Create your FaraiOS workspace. You can add services, customers, and bookings right away."
+              : step === "website"
+                ? "Tell us about a website build if you want Farai to create one. You can skip this and connect your own site later."
+                : "Confirm your details before we create your workspace."}
           </p>
         </div>
 
@@ -309,6 +366,14 @@ export function OnboardingForm({
                   <dd className="font-medium text-foreground">{contactPhone}</dd>
                 </div>
                 <div>
+                  <dt className="text-muted-foreground">Website setup</dt>
+                  <dd className="mt-1 font-medium text-foreground">
+                    {includeWebsiteBrief ? "Website brief included" : "Skipped — operations only"}
+                  </dd>
+                </div>
+                {includeWebsiteBrief ? (
+                  <>
+                <div>
                   <dt className="text-muted-foreground">Project goal</dt>
                   <dd className="mt-1 font-medium text-foreground">{projectGoal}</dd>
                 </div>
@@ -331,6 +396,8 @@ export function OnboardingForm({
                   <dt className="text-muted-foreground">Design style</dt>
                   <dd className="font-medium capitalize text-foreground">{designStyle}</dd>
                 </div>
+                  </>
+                ) : null}
               </dl>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -338,7 +405,7 @@ export function OnboardingForm({
                 type="button"
                 variant="outline"
                 className="h-12 rounded-2xl"
-                onClick={() => setStep("form")}
+                onClick={() => setStep(includeWebsiteBrief ? "website" : "business")}
                 disabled={pending}
               >
                 Back to edit
@@ -349,11 +416,15 @@ export function OnboardingForm({
                 disabled={pending}
                 onClick={() => void handleSubmit()}
               >
-                {pending ? "Submitting request…" : "Submit project request"}
+                {pending
+                  ? "Creating workspace…"
+                  : includeWebsiteBrief
+                    ? "Create workspace & submit website brief"
+                    : "Create workspace"}
               </Button>
             </div>
           </div>
-        ) : (
+        ) : step === "business" ? (
           <>
         {isHostingFlow ? (
           <div className="rounded-2xl border border-indigo-200 bg-indigo-50/80 p-4 text-sm text-indigo-900">
@@ -451,21 +522,6 @@ export function OnboardingForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="project-goal" className="text-base font-medium">
-            What should this website achieve?
-          </Label>
-          <Textarea
-            id="project-goal"
-            name="projectGoal"
-            value={projectGoal}
-            onChange={(e) => setProjectGoal(e.target.value)}
-            placeholder="e.g. Get more booking enquiries, showcase our services, and look professional online."
-            rows={3}
-            className="min-h-[96px] rounded-xl border-border/80 px-4 py-3 text-base"
-          />
-        </div>
-
-        <div className="space-y-2">
           <Label htmlFor="industry" className="text-base font-medium">
             Industry
           </Label>
@@ -499,9 +555,40 @@ export function OnboardingForm({
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
-            We&apos;ll suggest pages and features that match your sector.
+        </div>
+
+        {error ? (
+          <p className="text-sm font-medium text-destructive" role="alert">
+            {error}
           </p>
+        ) : null}
+
+        <Button
+          type="submit"
+          disabled={pending || industries.length === 0}
+          className={cn(
+            "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border-0 bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] text-base font-semibold text-white shadow-lg transition-all hover:brightness-110 hover:shadow-xl disabled:opacity-60"
+          )}
+        >
+          Continue
+          <ArrowRight className="size-4" aria-hidden />
+        </Button>
+          </>
+        ) : (
+          <>
+        <div className="space-y-2">
+          <Label htmlFor="project-goal" className="text-base font-medium">
+            What should this website achieve?
+          </Label>
+          <Textarea
+            id="project-goal"
+            name="projectGoal"
+            value={projectGoal}
+            onChange={(e) => setProjectGoal(e.target.value)}
+            placeholder="e.g. Get more booking enquiries, showcase our services, and look professional online."
+            rows={3}
+            className="min-h-[96px] rounded-xl border-border/80 px-4 py-3 text-base"
+          />
         </div>
 
         <div className="space-y-3">
@@ -680,16 +767,34 @@ export function OnboardingForm({
           </p>
         ) : null}
 
-        <Button
-          type="submit"
-          disabled={pending || industries.length === 0}
-          className={cn(
-            "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border-0 bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] text-base font-semibold text-white shadow-lg transition-all hover:brightness-110 hover:shadow-xl disabled:opacity-60"
-          )}
-        >
-          Review project request
-          <ArrowRight className="size-4" aria-hidden />
-        </Button>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-12 rounded-2xl"
+            onClick={() => setStep("business")}
+            disabled={pending}
+          >
+            Back
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-12 flex-1 rounded-2xl"
+            onClick={handleSkipWebsite}
+            disabled={pending}
+          >
+            Skip for now
+          </Button>
+          <Button
+            type="submit"
+            disabled={pending}
+            className="h-12 flex-1 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5]"
+          >
+            Continue to review
+            <ArrowRight className="ml-2 size-4" aria-hidden />
+          </Button>
+        </div>
           </>
         )}
       </div>

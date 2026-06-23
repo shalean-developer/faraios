@@ -8,6 +8,7 @@ import { listIndustries } from "@/lib/services/industries";
 import { createClient } from "@/lib/supabase/server";
 import { renderWebsiteTemplate } from "@/lib/services/render-website-template";
 import { getTenantContext, getTenantMetadata } from "@/lib/services/tenant-site";
+import { TenantHomeSchema } from "@/lib/services/tenant-seo";
 
 import { HomeFallback } from "./home-fallback";
 
@@ -67,5 +68,21 @@ export default async function HomePage() {
     );
   }
 
-  return renderWebsiteTemplate(website, ctx.content, "home");
+  return (
+    <>
+      <TenantHomeSchema
+        companyId={website.client_id}
+        websiteName={website.name}
+        host={ctx.host}
+        websiteContent={ctx.content.map((c) => ({
+          section: c.section,
+          content: c.content as Record<string, unknown>,
+        }))}
+      />
+      {renderWebsiteTemplate(website, ctx.content, "home", {
+        bookingUrl: ctx.bookingUrl,
+        marketplaceBookingUrl: ctx.marketplaceBookingUrl,
+      })}
+    </>
+  );
 }

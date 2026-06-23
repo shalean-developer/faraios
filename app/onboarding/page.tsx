@@ -10,7 +10,7 @@ import { GetStartedFallback } from "@/app/get-started/get-started-fallback";
 
 export const metadata = {
   title: "Onboarding — FaraiOS",
-  description: "Create your workspace and business setup.",
+  description: "Create your business workspace on FaraiOS.",
 };
 
 type SearchProps = {
@@ -39,7 +39,7 @@ export default async function OnboardingPage({ searchParams }: SearchProps) {
           <ChevronRight className="size-4 shrink-0 opacity-60" aria-hidden />
           <span className="font-medium text-[#7C3AED]">Onboarding</span>
           <ChevronRight className="size-4 shrink-0 opacity-60" aria-hidden />
-          <span className="text-foreground/80">Start Project</span>
+          <span className="text-foreground/80">Business setup</span>
         </nav>
 
         {industries.length === 0 ? (

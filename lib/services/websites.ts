@@ -1,6 +1,9 @@
 import { slugifyBusinessName } from "@/lib/slug";
+import { industryImagePreset } from "@/lib/data/industry-stock-images";
+import { buildServiceBusinessContentSeed } from "@/lib/data/service-business-content-seed";
 import { getAdminQueryClient, isCurrentUserPlatformAdmin } from "@/lib/services/admin";
 import { createClient } from "@/lib/supabase/server";
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Website, WebsiteContent } from "@/types/database";
 
@@ -11,6 +14,7 @@ export type CreateWebsiteInput = {
   contactInfo: string;
   template: string;
   customDomain?: string;
+  location?: string;
 };
 
 export type WebsiteSeoInput = {
@@ -85,9 +89,65 @@ function titleCase(value: string): string {
     .join(" ");
 }
 
+export function mergeStockImagesIntoContent(
+  industry: string,
+  content: Record<string, Record<string, unknown>>
+): Record<string, Record<string, unknown>> {
+  const images = industryImagePreset(industry);
+  const hero = { ...(content.hero ?? {}) };
+  const about = { ...(content.about ?? {}) };
+  const services = { ...(content.services ?? {}) };
+  const rawItems = services.items;
+  const items = Array.isArray(rawItems) ? rawItems : [];
+
+  hero.image = images.heroImage;
+  hero.imageAlt = images.heroImageAlt;
+  about.image = images.aboutImage;
+  about.imageAlt = images.aboutImageAlt;
+  services.items = items.map((item, index) => {
+    const image = images.serviceImages[index % images.serviceImages.length];
+    if (typeof item === "string") {
+      return { title: item, description: "", image, imageAlt: item };
+    }
+    if (typeof item === "object" && item) {
+      const record = item as Record<string, unknown>;
+      const title = typeof record.title === "string" ? record.title : "Service";
+      return {
+        ...record,
+        image,
+        imageAlt: typeof record.imageAlt === "string" ? record.imageAlt : title,
+      };
+    }
+    return { title: "Service", description: "", image, imageAlt: "Service" };
+  });
+
+  const whyChooseUs = { ...(content.whyChooseUs as Record<string, unknown> | undefined) };
+  if (!asString(whyChooseUs.image)) {
+    whyChooseUs.image = images.aboutImage;
+    whyChooseUs.imageAlt = images.aboutImageAlt;
+  }
+
+  return {
+    ...content,
+    hero,
+    about,
+    services,
+    whyChooseUs,
+  };
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
 export function buildDefaultWebsiteContent(
   input: CreateWebsiteInput
 ): WebsiteSectionSeed[] {
+  const template = input.template.trim().toLowerCase();
+  if (template === "service-business" || template === "cleaning") {
+    return buildServiceBusinessContentSeed(input);
+  }
+
   const normalizedIndustry = input.industry.trim().toLowerCase();
   const preset = INDUSTRY_PRESETS[normalizedIndustry] ?? {
     heroSubtitle: "Trusted professional services tailored to your needs.",
@@ -113,13 +173,20 @@ export function buildDefaultWebsiteContent(
         title: input.businessName.trim(),
         subtitle: preset.heroSubtitle,
         ctaLabel: "Book a service",
+        image: "",
+        imageAlt: input.businessName.trim(),
       },
     },
     {
       section: "services",
       content: {
         heading: "Services",
-        items: finalServices,
+        items: finalServices.map((title) => ({
+          title,
+          description: "",
+          image: "",
+          imageAlt: title,
+        })),
       },
     },
     {
@@ -127,6 +194,8 @@ export function buildDefaultWebsiteContent(
       content: {
         heading: "About",
         body: preset.aboutBody,
+        image: "",
+        imageAlt: input.businessName.trim(),
       },
     },
     {
@@ -207,10 +276,16 @@ async function insertWebsiteDraft(
     return { ok: false, error: websiteError?.message ?? "Failed to create website." };
   }
 
-  const sections = buildDefaultWebsiteContent(input).map((item) => ({
+  const seedSections = buildDefaultWebsiteContent(input);
+  const seedMap = Object.fromEntries(
+    seedSections.map((item) => [item.section, item.content])
+  ) as Record<string, Record<string, unknown>>;
+  const mergedContent = mergeStockImagesIntoContent(industry, seedMap);
+
+  const sections = Object.entries(mergedContent).map(([section, content]) => ({
     website_id: website.id,
-    section: item.section,
-    content: item.content,
+    section,
+    content,
   }));
 
   const { error: contentError } = await supabase
@@ -242,6 +317,18 @@ export async function createWebsiteDraftForCompanyIdAsAdmin(
 
   const supabase = await getAdminQueryClient();
   return insertWebsiteDraft(supabase, companyId, input);
+}
+
+/** Create a website using the service-role client (scripts / local admin tooling). */
+export async function createWebsiteForCompanyWithServiceRole(
+  companyId: string,
+  input: CreateWebsiteInput
+): Promise<{ ok: true; websiteId: string } | { ok: false; error: string }> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) {
+    return { ok: false, error: admin.error };
+  }
+  return insertWebsiteDraft(admin.client, companyId, input);
 }
 
 export async function getWebsiteForCompany(
@@ -302,6 +389,356 @@ export async function getWebsiteById(websiteId: string): Promise<Website | null>
   }
 
   return (data as Website | null) ?? null;
+}
+
+/** Server-side preview reads bypass draft RLS when service role is configured. */
+async function getPreviewQueryClient(): Promise<SupabaseClient> {
+  const admin = tryCreateAdminClient();
+  if (admin.ok) {
+    return admin.client;
+  }
+  return await createClient();
+}
+
+export async function getWebsiteByIdForPreview(
+  websiteId: string
+): Promise<Website | null> {
+  const supabase = await getPreviewQueryClient();
+  const { data, error } = await supabase
+    .from("websites")
+    .select("*")
+    .eq("id", websiteId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[websites] getWebsiteByIdForPreview", error.message);
+    return null;
+  }
+
+  return (data as Website | null) ?? null;
+}
+
+export async function getWebsiteContentByWebsiteIdForPreview(
+  websiteId: string
+): Promise<WebsiteContent[]> {
+  const supabase = await getPreviewQueryClient();
+  const { data, error } = await supabase
+    .from("website_content")
+    .select("*")
+    .eq("website_id", websiteId);
+
+  if (error) {
+    console.error("[websites] getWebsiteContentByWebsiteIdForPreview", error.message);
+    return [];
+  }
+
+  return (data as WebsiteContent[]) ?? [];
+}
+
+function parseContactInfo(raw: string): { phone: string; email: string } {
+  const details = raw.trim();
+  const emailMatch = details.match(/[^\s@]+@[^\s@]+\.[^\s@]+/);
+  const phoneMatch = details.match(/(\+?\d[\d\s()-]{8,}\d)/);
+  return {
+    email: emailMatch?.[0] ?? "",
+    phone: phoneMatch?.[0]?.trim() ?? "",
+  };
+}
+
+function contentMap(rows: WebsiteContent[]): Record<string, Record<string, unknown>> {
+  const map: Record<string, Record<string, unknown>> = {};
+  for (const row of rows) {
+    map[row.section] = row.content ?? {};
+  }
+  return map;
+}
+
+function mergeServiceImagesOnly(
+  seeded: Record<string, unknown>[],
+  existing: unknown
+): Record<string, unknown>[] {
+  const existingItems = Array.isArray(existing) ? existing : [];
+  return seeded.map((item, index) => {
+    const existingItem = existingItems[index];
+    if (typeof existingItem !== "object" || !existingItem) {
+      return item;
+    }
+    const record = existingItem as Record<string, unknown>;
+    const merged = { ...item };
+    for (const key of ["image", "imageAlt"]) {
+      const value = record[key];
+      if (typeof value === "string" && value.trim()) {
+        merged[key] = value;
+      }
+    }
+    return merged;
+  });
+}
+
+function isLegacyGenericServices(titles: string[]): boolean {
+  if (titles.length === 0 || titles.length > 5) return titles.length === 0;
+  return titles.every((title) =>
+    /^(residential|commercial|one-time|on-site|consultation|maintenance|emergency) service$/i.test(
+      title.trim()
+    )
+  );
+}
+
+export type BackfillWebsiteOptions = {
+  locationOverride?: string;
+};
+
+/**
+ * Upserts missing service-business CMS sections for legacy websites while
+ * preserving existing images, copy, and contact details where present.
+ */
+export async function backfillServiceBusinessWebsiteContent(
+  websiteId: string,
+  options: BackfillWebsiteOptions = {}
+): Promise<{ ok: true; sections: number } | { ok: false; error: string }> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) {
+    return { ok: false, error: admin.error };
+  }
+
+  const supabase = admin.client;
+  const { data: website, error: websiteError } = await supabase
+    .from("websites")
+    .select("*")
+    .eq("id", websiteId)
+    .maybeSingle();
+
+  if (websiteError || !website) {
+    return { ok: false, error: websiteError?.message ?? "Website not found." };
+  }
+
+  const template = (website.template as string).trim().toLowerCase();
+  if (template !== "service-business" && template !== "cleaning") {
+    return { ok: false, error: "Website template is not service-business." };
+  }
+
+  const { data: existingRows, error: contentError } = await supabase
+    .from("website_content")
+    .select("*")
+    .eq("website_id", websiteId);
+
+  if (contentError) {
+    return { ok: false, error: contentError.message };
+  }
+
+  const existing = contentMap((existingRows as WebsiteContent[]) ?? []);
+  const contactSection = existing.contact ?? {};
+  const contactDetails = asString(contactSection.details);
+  const parsedContact = parseContactInfo(contactDetails);
+  const servicesSection = existing.services ?? {};
+  const existingServiceTitles = Array.isArray(servicesSection.items)
+    ? (servicesSection.items as unknown[])
+        .map((item) => {
+          if (typeof item === "string") return item;
+          if (typeof item === "object" && item && "title" in item) {
+            return asString((item as Record<string, unknown>).title);
+          }
+          return "";
+        })
+        .filter(Boolean)
+    : [];
+  const useDefaultServices = isLegacyGenericServices(existingServiceTitles);
+  const serviceTitles = useDefaultServices ? "" : existingServiceTitles.join(", ");
+
+  const seedInput: CreateWebsiteInput = {
+    businessName: website.name,
+    industry: website.industry || "cleaning",
+    template: website.template,
+    services: serviceTitles,
+    contactInfo: contactDetails || `${parsedContact.phone} ${parsedContact.email}`.trim(),
+  };
+
+  const seedSections = buildServiceBusinessContentSeed(seedInput);
+  const seedMap = Object.fromEntries(
+    seedSections.map((section) => [section.section, section.content])
+  ) as Record<string, Record<string, unknown>>;
+
+  const mergedContent = mergeStockImagesIntoContent(website.industry || "cleaning", seedMap);
+
+  const hero = { ...(mergedContent.hero ?? {}) };
+  const existingHero = existing.hero ?? {};
+  if (asString(existingHero.image)) hero.image = existingHero.image;
+  if (asString(existingHero.imageAlt)) hero.imageAlt = existingHero.imageAlt;
+  if (asString(existingHero.subtitle)) hero.subtitle = existingHero.subtitle;
+  hero.businessName = website.name;
+  if (options.locationOverride) {
+    hero.location = options.locationOverride;
+    hero.headline = `Professional Cleaning in ${options.locationOverride}`;
+    const primary = options.locationOverride.split("&")[0].trim();
+    hero.badge = `${primary.toUpperCase()}'S TRUSTED PROFESSIONAL CLEANING`;
+  }
+
+  const topbar = { ...(mergedContent.topbar ?? {}) };
+  if (options.locationOverride) {
+    topbar.serviceArea = options.locationOverride;
+  }
+
+  const services = { ...(mergedContent.services ?? {}) };
+  services.items = mergeServiceImagesOnly(
+    Array.isArray(services.items) ? (services.items as Record<string, unknown>[]) : [],
+    servicesSection.items
+  );
+
+  const about = { ...(mergedContent.about ?? {}) };
+  const existingAbout = existing.about ?? {};
+  if (asString(existingAbout.body)) about.body = existingAbout.body;
+  if (asString(existingAbout.image)) about.image = existingAbout.image;
+  if (asString(existingAbout.imageAlt)) about.imageAlt = existingAbout.imageAlt;
+
+  const contact = { ...(mergedContent.contact ?? {}) };
+  contact.phone = asString(contactSection.phone, parsedContact.phone);
+  contact.email = asString(contactSection.email, parsedContact.email);
+  if (contactDetails) contact.details = contactDetails;
+  if (options.locationOverride) {
+    contact.address = options.locationOverride;
+  }
+
+  const socialProof = { ...(mergedContent.socialProof ?? {}) };
+  const testimonialItems = Array.isArray(existing.testimonials?.items)
+    ? (existing.testimonials.items as unknown[]).filter(
+        (item): item is string => typeof item === "string" && item.trim().length > 0
+      )
+    : [];
+  if (testimonialItems[0]) {
+    socialProof.reviewQuote = testimonialItems[0];
+  }
+
+  const serviceAreas = { ...(mergedContent.serviceAreas ?? {}) };
+  const footer = { ...(mergedContent.footer ?? {}) };
+  if (options.locationOverride) {
+    serviceAreas.heading = `Services Across ${options.locationOverride}`;
+    serviceAreas.intro = `We proudly serve ${options.locationOverride} and surrounding suburbs with reliable, professional cleaning you can book online.`;
+    footer.description = `Professional cleaning in ${options.locationOverride}. Book online for fast, reliable results.`;
+    if (options.locationOverride.toLowerCase().includes("cape town")) {
+      serviceAreas.popular = ["Cape Town CBD", "Northern Suburbs", "Southern Suburbs"];
+      serviceAreas.areas = [
+        "Sea Point",
+        "Camps Bay",
+        "Claremont",
+        "Bellville",
+        "Durbanville",
+        "Constantia",
+        "Fish Hoek",
+        "Somerset West",
+      ];
+    }
+  }
+
+  const finalSections: Record<string, Record<string, unknown>> = {
+    ...mergedContent,
+    hero,
+    topbar,
+    services,
+    about,
+    contact,
+    socialProof,
+    serviceAreas,
+    footer,
+  };
+
+  const rows = Object.entries(finalSections).map(([section, content]) => ({
+    website_id: websiteId,
+    section,
+    content,
+  }));
+
+  const { error: upsertError } = await supabase
+    .from("website_content")
+    .upsert(rows, { onConflict: "website_id,section" });
+
+  if (upsertError) {
+    return { ok: false, error: upsertError.message };
+  }
+
+  return { ok: true, sections: rows.length };
+}
+
+/** Permanently deletes a website and all CMS content (cascade). */
+export async function deleteWebsiteById(
+  websiteId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) {
+    return { ok: false, error: admin.error };
+  }
+
+  const { error } = await admin.client.from("websites").delete().eq("id", websiteId);
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Deletes all CMS content for a website and re-seeds from the service-business
+ * template defaults (with stock images). Keeps the same website id and URL.
+ */
+export async function resetWebsiteContentFromSeed(
+  websiteId: string,
+  overrides: Partial<CreateWebsiteInput> = {}
+): Promise<{ ok: true; sections: number } | { ok: false; error: string }> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) {
+    return { ok: false, error: admin.error };
+  }
+
+  const supabase = admin.client;
+  const { data: website, error: websiteError } = await supabase
+    .from("websites")
+    .select("*")
+    .eq("id", websiteId)
+    .maybeSingle();
+
+  if (websiteError || !website) {
+    return { ok: false, error: websiteError?.message ?? "Website not found." };
+  }
+
+  const input: CreateWebsiteInput = {
+    businessName: overrides.businessName ?? website.name,
+    industry: overrides.industry ?? website.industry ?? "cleaning",
+    template: overrides.template ?? website.template ?? "service-business",
+    services: overrides.services ?? "",
+    contactInfo: overrides.contactInfo ?? "",
+    customDomain: overrides.customDomain,
+    location: overrides.location,
+  };
+
+  const seedSections = buildDefaultWebsiteContent(input);
+  const seedMap = Object.fromEntries(
+    seedSections.map((item) => [item.section, item.content])
+  ) as Record<string, Record<string, unknown>>;
+  const industry = input.industry.trim().toLowerCase() || "cleaning";
+  const mergedContent = mergeStockImagesIntoContent(industry, seedMap);
+
+  const { error: deleteError } = await supabase
+    .from("website_content")
+    .delete()
+    .eq("website_id", websiteId);
+
+  if (deleteError) {
+    return { ok: false, error: deleteError.message };
+  }
+
+  const rows = Object.entries(mergedContent).map(([section, content]) => ({
+    website_id: websiteId,
+    section,
+    content,
+  }));
+
+  const { error: insertError } = await supabase.from("website_content").insert(rows);
+
+  if (insertError) {
+    return { ok: false, error: insertError.message };
+  }
+
+  return { ok: true, sections: rows.length };
 }
 
 export async function updateWebsiteSeo(

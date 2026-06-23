@@ -1,10 +1,11 @@
-import { Navbar } from "@/components/Navbar";
-import { listBookingsForCompany } from "@/lib/services/bookings";
-import { getCompanyBySlug } from "@/lib/services/companies";
-import { listProjectsForCompany } from "@/lib/services/projects";
-import { getWebsiteForCompany } from "@/lib/services/websites";
+import { notFound } from "next/navigation";
 
-import { CompanyDashboardClient } from "./company-dashboard-client";
+import { CompanyOperationsDashboard } from "./company-operations-dashboard";
+import { getCompanyBySlug } from "@/lib/services/companies";
+import {
+  getOperationsMetrics,
+  getRecentActivity,
+} from "@/lib/services/operations-metrics";
 
 type Props = { params: Promise<{ company: string }> };
 
@@ -14,22 +15,22 @@ export default async function CompanyDashboardPage({ params }: Props) {
   const { company } = await params;
   const slug = decodeURIComponent(company);
   const row = await getCompanyBySlug(slug);
-  const projects = row ? await listProjectsForCompany(row.id, row.build_status) : [];
-  const bookings = row ? await listBookingsForCompany(row.id) : [];
-  const website = row ? await getWebsiteForCompany(row.id) : null;
+
+  if (!row) {
+    notFound();
+  }
+
+  const [metrics, recentActivity] = await Promise.all([
+    getOperationsMetrics(row.id),
+    getRecentActivity(row.id),
+  ]);
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
-      <Navbar />
-      <main>
-        <CompanyDashboardClient
-          slug={slug}
-          company={row}
-          projects={projects}
-          bookings={bookings}
-          website={website}
-        />
-      </main>
-    </div>
+    <CompanyOperationsDashboard
+      slug={slug}
+      company={row}
+      metrics={metrics}
+      recentActivity={recentActivity}
+    />
   );
 }

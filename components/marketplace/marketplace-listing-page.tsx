@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, Globe, MapPin, Sparkles } from "lucide-react";
 
-import { PublicBookingForm } from "@/components/marketplace/public-booking-form";
 import type { MarketplaceListing } from "@/types/marketplace";
 
 type Props = {
   listing: MarketplaceListing;
+  bookingForm: React.ReactNode;
 };
 
-export function MarketplaceListingPage({ listing }: Props) {
+export function MarketplaceListingPage({ listing, bookingForm }: Props) {
   const siteHref = listing.websitePublicUrl ?? listing.websitePreviewPath;
 
   return (
@@ -85,9 +85,7 @@ export function MarketplaceListingPage({ listing }: Props) {
           </div>
         </section>
 
-        <section>
-          <PublicBookingForm listing={listing} />
-        </section>
+        <section>{bookingForm}</section>
       </main>
     </div>
   );

@@ -13,6 +13,10 @@ import {
   deriveHostingSubdomain,
   hostingPlanEntitlements,
 } from "@/lib/services/hosting";
+import { markPaymentPaid } from "@/lib/services/payments";
+import {
+  notifyPaymentReceived,
+} from "@/lib/services/financial-notifications";
 
 type PaystackEvent = {
   event?: string;
@@ -22,6 +26,10 @@ type PaystackEvent = {
       product_type?: string;
       company_id?: string;
       plan?: string;
+      invoice_id?: string;
+      payment_id?: string;
+      customer_id?: string;
+      payment_type?: string;
     };
     paid_at?: string;
     reference?: string;
@@ -201,6 +209,80 @@ async function handleHostingPayment(
   return NextResponse.json({ ok: true });
 }
 
+async function handleCustomerInvoicePayment(
+  admin: ReturnType<typeof createAdminClient>,
+  companyId: string,
+  invoiceId: string,
+  paymentId: string,
+  paidAt: Date,
+  reference: string | undefined,
+  paidAmount: number
+) {
+  const { data: invoice } = await admin
+    .from("invoices")
+    .select("*, customers(name, email)")
+    .eq("company_id", companyId)
+    .eq("id", invoiceId)
+    .maybeSingle();
+
+  if (!invoice) {
+    return NextResponse.json({ ok: false, error: "Invoice not found." }, { status: 404 });
+  }
+
+  const { data: payment } = await admin
+    .from("customer_payments")
+    .select("*")
+    .eq("id", paymentId)
+    .eq("company_id", companyId)
+    .eq("invoice_id", invoiceId)
+    .maybeSingle();
+
+  if (!payment) {
+    return NextResponse.json({ ok: false, error: "Payment not found." }, { status: 404 });
+  }
+
+  if (paidAmount !== payment.amount_cents) {
+    console.error("[paystack webhook] customer invoice amount mismatch", {
+      paymentId,
+      expected: payment.amount_cents,
+      paidAmount,
+      reference,
+    });
+    return NextResponse.json({ ok: false, error: "Payment amount mismatch." }, { status: 400 });
+  }
+
+  if (reference) {
+    const { data: existing } = await admin
+      .from("customer_payments")
+      .select("id")
+      .eq("provider", "paystack")
+      .eq("provider_reference", reference)
+      .neq("id", paymentId)
+      .maybeSingle();
+    if (existing) {
+      return NextResponse.json({ ok: true, duplicate: true });
+    }
+  }
+
+  const result = await markPaymentPaid(paymentId, reference ?? paymentId, paidAt.toISOString());
+  if (!result.ok) {
+    return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
+  }
+
+  const customer = invoice.customers as { name: string; email: string | null } | null;
+  if (customer?.email) {
+    await notifyPaymentReceived({
+      companyId,
+      customerEmail: customer.email,
+      customerName: customer.name,
+      invoiceNumber: invoice.invoice_number,
+      amountCents: payment.amount_cents,
+    });
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
 export async function POST(req: Request) {
   const secret = process.env.PAYSTACK_SECRET_KEY;
   if (!secret) {
@@ -237,6 +319,23 @@ export async function POST(req: Request) {
   const reference = payload.data?.reference;
   const productType = payload.data?.metadata?.product_type ?? "website";
   const admin = createAdminClient();
+
+  if (productType === "customer_invoice") {
+    const invoiceId = payload.data?.metadata?.invoice_id;
+    const paymentId = payload.data?.metadata?.payment_id;
+    if (!invoiceId || !paymentId) {
+      return NextResponse.json({ ok: false, error: "Missing invoice metadata." }, { status: 400 });
+    }
+    return handleCustomerInvoicePayment(
+      admin,
+      companyId,
+      invoiceId,
+      paymentId,
+      paidAt,
+      reference,
+      paidAmount
+    );
+  }
 
   if (productType === "hosting") {
     const plan = normalizeHostingBillingPlan(payload.data?.metadata?.plan);

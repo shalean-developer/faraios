@@ -39,6 +39,33 @@ function companySlugFromMembership(membership: MembershipWithCompany): string | 
 
 
 
+async function userHasCompanySlugAccess(
+  supabase: ReturnType<typeof createServerClient>,
+  userId: string,
+  companySlug: string
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("memberships")
+    .select(
+      `
+      company_id,
+      companies!inner ( slug )
+    `
+    )
+    .eq("user_id", userId)
+    .eq("companies.slug", companySlug)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[middleware] userHasCompanySlugAccess", error.message);
+    return false;
+  }
+
+  return Boolean(data);
+}
+
+
+
 function signInRedirect(request: NextRequest) {
 
   const signInUrl = new URL("/auth/sign-in", request.url);
@@ -73,6 +100,8 @@ export async function middleware(request: NextRequest) {
 
     pathname === "/contact" ||
 
+    pathname === "/reviews" ||
+
     pathname === "/sitemap.xml" ||
 
     pathname === "/robots.txt";
@@ -92,6 +121,10 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/examples") ||
 
     pathname.startsWith("/marketplace") ||
+
+    pathname.startsWith("/book/") ||
+
+    pathname.startsWith("/portal/") ||
 
     pathname.startsWith("/pricing") ||
 
@@ -343,22 +376,34 @@ export async function middleware(request: NextRequest) {
 
 
 
-  const isCompanyRoute = /^\/[^/]+\/(dashboard|project)/.test(pathname);
+  if (/^\/[^/]+\/project(\/|$)/.test(pathname)) {
+    const pathCompanySlug = decodeURIComponent(pathname.split("/")[1]);
+    const suffix = pathname.replace(/^\/[^/]+\/project/, "");
+    return NextResponse.redirect(
+      new URL(
+        `/${encodeURIComponent(pathCompanySlug)}/dashboard/project${suffix}`,
+        request.url
+      )
+    );
+  }
 
-  if (isCompanyRoute) {
 
-    const pathCompany = pathname.split("/")[1];
 
-    if (pathCompany !== companySlug) {
+  const companyRouteMatch = pathname.match(/^\/([^/]+)\/(dashboard|project)/);
 
+  if (companyRouteMatch) {
+    const pathCompanySlug = decodeURIComponent(companyRouteMatch[1]);
+    const hasAccess = await userHasCompanySlugAccess(
+      supabase,
+      user.id,
+      pathCompanySlug
+    );
+
+    if (!hasAccess) {
       return NextResponse.redirect(
-
         new URL(`/${encodeURIComponent(companySlug)}/dashboard`, request.url)
-
       );
-
     }
-
   }
 
 

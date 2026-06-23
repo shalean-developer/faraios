@@ -45,6 +45,20 @@ create table if not exists public.bookings (
   created_at timestamptz default now()
 );
 
+-- Repair pre-existing bookings tables created without FaraiOS columns.
+alter table public.bookings
+  add column if not exists company_id uuid references public.companies (id) on delete cascade;
+alter table public.bookings
+  add column if not exists customer_name text;
+alter table public.bookings
+  add column if not exists service text;
+alter table public.bookings
+  add column if not exists date timestamptz;
+alter table public.bookings
+  add column if not exists status text default 'pending';
+alter table public.bookings
+  add column if not exists created_at timestamptz default now();
+
 -- Seed industries
 insert into public.industries (name, slug, description) values
   ('Cleaning Services', 'cleaning', 'Cleaning businesses'),

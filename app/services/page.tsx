@@ -19,5 +19,5 @@ export default async function ServicesPage() {
     );
   }
 
-  return <ServiceBusinessTemplate content={ctx.content} pageSection="services" />;
+  return <ServiceBusinessTemplate content={ctx.content} pageSection="services" bookingUrl={ctx.bookingUrl} marketplaceBookingUrl={ctx.marketplaceBookingUrl} />;
 }

@@ -20,6 +20,12 @@ export type PublicBookingInput = {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
-  service: string;
+  service?: string;
+  serviceId?: string;
   bookingDate: string;
+  preferredTime?: string;
+  address?: string;
+  notes?: string;
+  customResponses?: Record<string, unknown>;
+  consentGiven?: boolean;
 };
