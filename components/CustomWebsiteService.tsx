@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -25,8 +24,24 @@ import {
 } from "lucide-react";
 
 import { createCompanyFromOnboarding } from "@/app/actions/onboarding";
+import { HomeMarketingSections } from "@/components/marketing/home-sections";
+import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { getSmartDefaultsForIndustrySlug } from "@/lib/constants/industry-defaults";
-import { PAGE_OPTIONS } from "@/lib/constants/onboarding-pages";
+import { PAGE_OPTIONS_VISIBLE, syncBlogPageWithFeatures } from "@/lib/constants/onboarding-pages";
+import {
+  canAddPageToPlan,
+  trimPagesToPlanLimit,
+} from "@/lib/onboarding/plan-pages";
+import {
+  normalizePlanSlug,
+  planLabelForSlug,
+  planPageLimit,
+  planPageLimitLabel,
+  pricingPlans,
+  type PricingPlanSlug,
+} from "@/lib/data/pricing";
+import type { DesignStyle } from "@/types/company";
 import {
   type Project,
   type ProjectStatus,
@@ -35,6 +50,7 @@ import {
 import type { CompanyWithIndustry } from "@/types/database";
 import type { Feature } from "@/types/database";
 import type { Industry } from "@/types/database";
+import { loadMarketingNavAuth } from "@/lib/auth/marketing-nav-auth";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Screen = "landing" | "form" | "dashboard" | "project-detail";
@@ -92,121 +108,16 @@ const stagger = {
   visible: { transition: { staggerChildren: 0.1 } },
 };
 
-const NavBar = ({
-  isAuthenticated,
-  companySlug,
-  onLogout,
-}: {
-  isAuthenticated: boolean;
-  companySlug: string | null;
-  onLogout: () => Promise<void>;
-}) => (
-  <header className="fixed left-0 right-0 top-0 z-50 border-b border-gray-100 bg-white/90 shadow-sm backdrop-blur-md">
-    <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-      <Link href={isAuthenticated ? "/app" : "/"} className="group flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 shadow-md">
-          <Zap className="h-4 w-4 text-white" />
-        </div>
-        <span className="text-lg font-bold tracking-tight text-gray-900">
-          FaraiOS
-        </span>
-      </Link>
-      <nav className="hidden items-center gap-6 md:flex">
-        {isAuthenticated ? (
-          <>
-            <Link href="/app" className="text-sm font-medium text-violet-600">
-              App
-            </Link>
-            <Link
-              href={companySlug ? `/${encodeURIComponent(companySlug)}/dashboard` : "/app"}
-              className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href={companySlug ? `/${encodeURIComponent(companySlug)}/project` : "/app"}
-              className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
-            >
-              Project
-            </Link>
-          </>
-        ) : (
-          <Link
-            href="/pricing"
-            className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
-          >
-            Pricing
-          </Link>
-        )}
-      </nav>
-      <div className="flex items-center gap-3">
-        {isAuthenticated ? (
-          <details className="relative">
-            <summary className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:text-gray-900">
-              <LayoutDashboard className="h-4 w-4" />
-              Account
-            </summary>
-            <div className="absolute right-0 mt-2 w-44 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
-              <Link
-                href={companySlug ? `/${encodeURIComponent(companySlug)}/dashboard` : "/app"}
-                className="block rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                Dashboard
-              </Link>
-              <Link
-                href={companySlug ? `/${encodeURIComponent(companySlug)}/project` : "/app"}
-                className="block rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                Project
-              </Link>
-              <Link
-                href="/pricing"
-                className="block rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                Billing
-              </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  void onLogout();
-                }}
-                className="mt-1 flex w-full items-center gap-1 rounded-md px-2 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-              >
-                <LogOut className="h-4 w-4" />
-                Logout
-              </button>
-            </div>
-          </details>
-        ) : (
-          <>
-            <Link
-              href="/auth/sign-in"
-              className="hidden items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 sm:flex"
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              Login
-            </Link>
-            <Link
-              href="/auth/sign-up"
-              className="rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-violet-200"
-            >
-              Get Started
-            </Link>
-          </>
-        )}
-      </div>
-    </div>
-  </header>
-);
-
 const LandingScreen = ({
   onGetStarted,
   onViewExamples,
   industries,
+  features,
 }: {
   onGetStarted: () => void;
   onViewExamples: () => void;
   industries: Industry[];
+  features: Feature[];
 }) => (
   <div className="min-h-screen bg-white">
     <section className="relative overflow-hidden px-4 pb-24 pt-32 sm:px-6 lg:px-8">
@@ -334,100 +245,30 @@ const LandingScreen = ({
       </div>
     </section>
 
-    <section className="border-t border-gray-100 bg-white px-4 py-20 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={stagger}
-        >
-          <motion.h2
-            variants={fadeUp}
-            className="mb-2 text-center text-2xl font-extrabold text-gray-900 sm:text-3xl"
-          >
-            Industries we serve
-          </motion.h2>
-          <motion.p
-            variants={fadeUp}
-            className="mb-10 text-center text-gray-500"
-          >
-            Data-driven defaults for your sector — loaded from your workspace
-            database.
-          </motion.p>
-          {industries.length === 0 ? (
-            <motion.p
-              variants={fadeUp}
-              className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 py-12 text-center text-sm text-gray-500"
-            >
-              No industries yet. Add rows to the{" "}
-              <code className="rounded bg-gray-200 px-1">industries</code> table
-              in Supabase to see them here.
-            </motion.p>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {industries.map((ind) => (
-                <motion.div
-                  key={ind.id}
-                  variants={fadeUp}
-                  className="rounded-2xl border border-gray-100 bg-gradient-to-br from-white to-violet-50/40 p-6 shadow-sm transition-shadow hover:shadow-md"
-                >
-                  <h3 className="font-bold text-gray-900">{ind.name}</h3>
-                  {ind.description ? (
-                    <p className="mt-2 text-sm leading-relaxed text-gray-500">
-                      {ind.description}
-                    </p>
-                  ) : null}
-                  <p className="mt-3 text-xs font-medium uppercase tracking-wide text-violet-600">
-                    {ind.slug}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </motion.div>
-      </div>
-    </section>
-
-    <section className="px-4 py-20 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-3xl text-center">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={stagger}
-          className="rounded-3xl bg-gradient-to-br from-violet-600 to-indigo-700 p-12 shadow-2xl shadow-violet-200"
-        >
-          <motion.h2
-            variants={fadeUp}
-            className="mb-4 text-3xl font-extrabold text-white"
-          >
-            Ready to launch your website?
-          </motion.h2>
-          <motion.p variants={fadeUp} className="mb-8 text-lg text-violet-100">
-            Join hundreds of businesses that trust FaraiOS to build their online
-            presence.
-          </motion.p>
-          <motion.button
-            variants={fadeUp}
-            type="button"
-            onClick={onGetStarted}
-            className="group inline-flex items-center gap-2 rounded-xl bg-white px-10 py-3.5 text-base font-bold text-violet-700 shadow-lg transition-colors hover:bg-violet-50"
-          >
-            Get Started
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </motion.button>
-        </motion.div>
-      </div>
-    </section>
+    <HomeMarketingSections
+      industries={industries}
+      features={features}
+      onGetStarted={onGetStarted}
+      onViewExamples={onViewExamples}
+    />
+    <MarketingFooter />
   </div>
 );
 
+const DESIGN_STYLES: { id: DesignStyle; label: string }[] = [
+  { id: "modern", label: "Modern" },
+  { id: "luxury", label: "Luxury" },
+  { id: "minimal", label: "Minimal" },
+];
+
 type WebsiteFormData = {
   businessName: string;
+  contactPhone: string;
+  projectGoal: string;
   industryId: string;
+  planSlug: PricingPlanSlug;
   pages: string[];
-  designStyle: string;
+  designStyle: DesignStyle | "";
   competitors: string;
   logoName: string;
   featureSlugs: string[];
@@ -435,7 +276,10 @@ type WebsiteFormData = {
 
 const defaultForm: WebsiteFormData = {
   businessName: "",
+  contactPhone: "",
+  projectGoal: "",
   industryId: "",
+  planSlug: "starter",
   pages: [],
   designStyle: "",
   competitors: "",
@@ -457,10 +301,23 @@ const RequirementsForm = ({
   isSubmitting: boolean;
 }) => {
   const [form, setForm] = useState<WebsiteFormData>({ ...defaultForm });
+  const [step, setStep] = useState<"form" | "review">("form");
+  const [formError, setFormError] = useState<string | null>(null);
   const [errors, setErrors] = useState<
     Partial<Record<keyof WebsiteFormData, string>>
   >({});
   const [dragOver, setDragOver] = useState(false);
+
+  const pageLimit = planPageLimit(form.planSlug);
+  const selectedIndustryName =
+    industries.find((i) => i.id === form.industryId)?.name ?? null;
+
+  useEffect(() => {
+    setForm((f) => ({
+      ...f,
+      pages: trimPagesToPlanLimit(f.pages, f.planSlug),
+    }));
+  }, [form.planSlug]);
 
   const applyIndustry = (id: string) => {
     const row = industries.find((i) => i.id === id);
@@ -469,40 +326,74 @@ const RequirementsForm = ({
     setForm((f) => ({
       ...f,
       industryId: id,
-      pages,
+      pages: trimPagesToPlanLimit(
+        syncBlogPageWithFeatures(pages, featureSlugs),
+        f.planSlug
+      ),
       featureSlugs,
     }));
   };
 
   const togglePage = (page: string) => {
-    setForm((f) => ({
-      ...f,
-      pages: f.pages.includes(page)
-        ? f.pages.filter((p) => p !== page)
-        : [...f.pages, page],
-    }));
+    setForm((f) => {
+      if (f.pages.includes(page)) {
+        return { ...f, pages: f.pages.filter((p) => p !== page) };
+      }
+      if (!canAddPageToPlan(f.pages, f.planSlug)) {
+        setFormError(
+          `${planLabelForSlug(f.planSlug)} includes ${planPageLimitLabel(f.planSlug).toLowerCase()}. Remove a page or choose a higher plan.`
+        );
+        return f;
+      }
+      setFormError(null);
+      return { ...f, pages: [...f.pages, page] };
+    });
   };
 
   const toggleFeatureSlug = (slug: string) => {
-    setForm((f) => ({
-      ...f,
-      featureSlugs: f.featureSlugs.includes(slug)
+    setForm((f) => {
+      const featureSlugs = f.featureSlugs.includes(slug)
         ? f.featureSlugs.filter((x) => x !== slug)
-        : [...f.featureSlugs, slug],
-    }));
+        : [...f.featureSlugs, slug];
+      return {
+        ...f,
+        featureSlugs,
+        pages: trimPagesToPlanLimit(
+          syncBlogPageWithFeatures(f.pages, featureSlugs),
+          f.planSlug
+        ),
+      };
+    });
   };
 
   const validate = (): boolean => {
     const e: Partial<Record<keyof WebsiteFormData, string>> = {};
     if (!form.businessName.trim()) e.businessName = "Business name is required";
+    if (!form.contactPhone.trim()) e.contactPhone = "Phone or WhatsApp is required";
+    if (!form.projectGoal.trim()) e.projectGoal = "Tell us what you want this website to achieve";
     if (!form.industryId) e.industryId = "Please select an industry";
+    if (!form.designStyle) e.designStyle = "Choose a design style";
+    if (form.pages.length === 0) e.pages = "Select at least one page";
     setErrors(e);
-    return Object.keys(e).length === 0;
+    if (Object.keys(e).length > 0) {
+      setFormError(null);
+      return false;
+    }
+    setFormError(null);
+    return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleContinueToReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+    setStep("review");
+  };
+
+  const handleFinalSubmit = async () => {
+    if (!validate()) {
+      setStep("form");
+      return;
+    }
     await onSubmit(form);
   };
 
@@ -523,19 +414,118 @@ const RequirementsForm = ({
               <span className="font-medium text-gray-900">Start Project</span>
             </div>
             <h1 className="mb-2 text-3xl font-extrabold text-gray-900">
-              Tell us about your website
+              Submit your project request
             </h1>
             <p className="text-gray-500">
-              Fill in the details below and our team will get started right away.
+              Tell us about your business. After you submit, our team reviews your brief and
+              typically starts within 1–2 business days.
             </p>
           </motion.div>
 
           <motion.form
             variants={fadeUp}
-            onSubmit={handleSubmit}
+            onSubmit={step === "form" ? handleContinueToReview : (e) => e.preventDefault()}
             className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
           >
+            {step === "review" ? (
+              <div className="space-y-6 p-6 sm:p-8">
+                <div className="rounded-2xl border border-violet-200 bg-violet-50/60 p-5">
+                  <h2 className="text-base font-semibold text-gray-900">Review your brief</h2>
+                  <dl className="mt-4 space-y-3 text-sm">
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-gray-500">Plan</dt>
+                      <dd className="font-medium text-gray-900">
+                        {planLabelForSlug(form.planSlug)}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-gray-500">Business</dt>
+                      <dd className="font-medium text-gray-900">{form.businessName}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-gray-500">Industry</dt>
+                      <dd className="font-medium text-gray-900">{selectedIndustryName}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-gray-500">Phone</dt>
+                      <dd className="font-medium text-gray-900">{form.contactPhone}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-gray-500">Project goal</dt>
+                      <dd className="mt-1 font-medium text-gray-900">{form.projectGoal}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-gray-500">Pages</dt>
+                      <dd className="mt-1 font-medium text-gray-900">{form.pages.join(", ")}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-gray-500">Features</dt>
+                      <dd className="mt-1 font-medium text-gray-900">
+                        {form.featureSlugs.length > 0
+                          ? features
+                              .filter((f) => form.featureSlugs.includes(f.slug))
+                              .map((f) => f.name)
+                              .join(", ")
+                          : "None selected"}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-gray-500">Design style</dt>
+                      <dd className="font-medium capitalize text-gray-900">{form.designStyle}</dd>
+                    </div>
+                  </dl>
+                </div>
+                {(submitError || formError) && (
+                  <p className="text-center text-sm font-medium text-red-600">
+                    {submitError ?? formError}
+                  </p>
+                )}
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => setStep("form")}
+                    disabled={isSubmitting}
+                    className="rounded-xl border border-gray-200 py-3 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    Back to edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleFinalSubmit()}
+                    disabled={isSubmitting || industries.length === 0}
+                    className="group flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 py-3.5 text-base font-bold text-white shadow-lg shadow-violet-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-violet-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSubmitting ? "Submitting request…" : "Submit project request"}
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+            <>
             <div className="space-y-6 p-6 sm:p-8">
+              <div>
+                <label className={labelClass}>Plan</label>
+                <select
+                  value={form.planSlug}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      planSlug: normalizePlanSlug(e.target.value),
+                    }))
+                  }
+                  className={inputClass}
+                >
+                  {pricingPlans.map((p) => (
+                    <option key={p.id} value={p.slug}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1.5 text-xs text-gray-500">
+                  {planPageLimitLabel(form.planSlug)}
+                </p>
+              </div>
+
               <div>
                 <label className={labelClass}>
                   Business Name <span className="text-red-500">*</span>
@@ -551,6 +541,42 @@ const RequirementsForm = ({
                 />
                 {errors.businessName && (
                   <p className={errorClass}>{errors.businessName}</p>
+                )}
+              </div>
+
+              <div>
+                <label className={labelClass}>
+                  Phone or WhatsApp <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  placeholder="e.g. 082 123 4567"
+                  value={form.contactPhone}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, contactPhone: e.target.value }))
+                  }
+                  className={inputClass}
+                />
+                {errors.contactPhone && (
+                  <p className={errorClass}>{errors.contactPhone}</p>
+                )}
+              </div>
+
+              <div>
+                <label className={labelClass}>
+                  What should this website achieve? <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  placeholder="e.g. Get more booking enquiries, showcase our services, and look professional online."
+                  value={form.projectGoal}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, projectGoal: e.target.value }))
+                  }
+                  rows={3}
+                  className={`${inputClass} resize-none`}
+                />
+                {errors.projectGoal && (
+                  <p className={errorClass}>{errors.projectGoal}</p>
                 )}
               </div>
 
@@ -587,11 +613,21 @@ const RequirementsForm = ({
               </div>
 
               <div>
-                <label className={labelClass}>
-                  Pages Needed <span className="text-red-500">*</span>
-                </label>
+                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                  <label className={labelClass}>
+                    Pages Needed <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-xs text-gray-500">
+                    {form.pages.length}
+                    {pageLimit !== null ? ` of ${pageLimit}` : ""} selected ·{" "}
+                    {planPageLimitLabel(form.planSlug)}
+                  </span>
+                </div>
+                <p className="mb-2 text-xs text-gray-500">
+                  A Blog page is added automatically when Blog / CMS is enabled below.
+                </p>
                 <div className="flex flex-wrap gap-2">
-                  {PAGE_OPTIONS.map((page) => (
+                  {PAGE_OPTIONS_VISIBLE.map((page) => (
                     <button
                       key={page}
                       type="button"
@@ -614,20 +650,20 @@ const RequirementsForm = ({
                   Design Style <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-3 gap-3">
-                  {["Modern", "Luxury", "Minimal"].map((style) => (
+                  {DESIGN_STYLES.map(({ id, label }) => (
                     <button
-                      key={style}
+                      key={id}
                       type="button"
                       onClick={() =>
-                        setForm((f) => ({ ...f, designStyle: style }))
+                        setForm((f) => ({ ...f, designStyle: id }))
                       }
                       className={`rounded-xl border-2 py-3 text-sm font-semibold transition-all ${
-                        form.designStyle === style
+                        form.designStyle === id
                           ? "border-violet-600 bg-violet-50 text-violet-700"
                           : "border-gray-200 text-gray-600 hover:border-violet-200 hover:bg-violet-50/50"
                       }`}
                     >
-                      {style}
+                      {label}
                     </button>
                   ))}
                 </div>
@@ -650,7 +686,7 @@ const RequirementsForm = ({
               </div>
 
               <div>
-                <label className={labelClass}>Upload Logo</label>
+                <label className={labelClass}>Logo (optional)</label>
                 <div
                   role="presentation"
                   onDragOver={(e) => {
@@ -710,7 +746,7 @@ const RequirementsForm = ({
                         or drag and drop
                       </p>
                       <p className="mt-1 text-xs text-gray-400">
-                        PNG, JPG, SVG up to 10MB
+                        Optional for now — we&apos;ll collect the file after your workspace is created.
                       </p>
                     </div>
                   )}
@@ -774,23 +810,26 @@ const RequirementsForm = ({
                   </div>
                 )}
               </div>
+
+              {(formError || submitError) && (
+                <p className="text-center text-sm font-medium text-red-600">
+                  {formError ?? submitError}
+                </p>
+              )}
             </div>
 
             <div className="space-y-3 px-6 pb-8 sm:px-8">
-              {submitError ? (
-                <p className="text-center text-sm font-medium text-red-600">
-                  {submitError}
-                </p>
-              ) : null}
               <button
                 type="submit"
                 disabled={isSubmitting || industries.length === 0}
                 className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 py-3.5 text-base font-bold text-white shadow-lg shadow-violet-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-violet-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmitting ? "Saving…" : "Submit Request"}
+                Review project request
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </button>
             </div>
+            </>
+            )}
           </motion.form>
         </motion.div>
       </div>
@@ -1162,6 +1201,7 @@ export function CustomWebsiteService({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [companySlug, setCompanySlug] = useState<string | null>(null);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
 
   useEffect(() => {
     setProjects(initialCompanies.map(companyToProject));
@@ -1172,40 +1212,12 @@ export function CustomWebsiteService({
 
     const loadAuthState = async () => {
       const supabase = getSupabaseBrowserClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const auth = await loadMarketingNavAuth(supabase);
 
       if (!isMounted) return;
-
-      if (!user) {
-        setIsAuthenticated(false);
-        setCompanySlug(null);
-        return;
-      }
-
-      setIsAuthenticated(true);
-
-      const { data: membership } = await supabase
-        .from("memberships")
-        .select("company_id")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (!membership?.company_id) {
-        setCompanySlug(null);
-        return;
-      }
-
-      const { data: company } = await supabase
-        .from("companies")
-        .select("slug")
-        .eq("id", membership.company_id)
-        .maybeSingle();
-
-      setCompanySlug(company?.slug ?? null);
+      setIsAuthenticated(auth.isAuthenticated);
+      setCompanySlug(auth.companySlug);
+      setIsPlatformAdmin(auth.isPlatformAdmin);
     };
 
     void loadAuthState();
@@ -1219,28 +1231,44 @@ export function CustomWebsiteService({
     await supabase.auth.signOut();
     setIsAuthenticated(false);
     setCompanySlug(null);
+    setIsPlatformAdmin(false);
     router.push("/");
     router.refresh();
   };
 
   const handleFormSubmit = async (data: WebsiteFormData) => {
     setSubmitError(null);
+    const supabase = getSupabaseBrowserClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      router.push(`/auth/sign-up?next=${encodeURIComponent("/onboarding")}`);
+      return;
+    }
+
     startTransition(async () => {
       const result = await createCompanyFromOnboarding({
-        businessName: data.businessName,
+        businessName: data.businessName.trim(),
         industryId: data.industryId,
         onboardingData: {
           pages: data.pages,
           features: data.featureSlugs,
           style: data.designStyle || null,
           competitors: data.competitors || null,
+          logoFileName: data.logoName || null,
+          projectGoal: data.projectGoal.trim(),
+          contactPhone: data.contactPhone.trim(),
         },
+        plan: data.planSlug,
+        userId: user.id,
       });
       if (!result.ok) {
         setSubmitError(result.error);
         return;
       }
-      router.push("/app");
+      router.push(`/${encodeURIComponent(result.slug)}/project?submitted=1`);
       router.refresh();
     });
   };
@@ -1256,7 +1284,7 @@ export function CustomWebsiteService({
       return;
     }
     if (s === "dashboard") {
-      router.push("/examples");
+      router.push("/marketplace");
       return;
     }
     setSelectedProject(null);
@@ -1265,9 +1293,11 @@ export function CustomWebsiteService({
 
   return (
     <div className="min-h-screen w-full bg-white font-sans">
-      <NavBar
+      <MarketingNav
         isAuthenticated={isAuthenticated}
         companySlug={companySlug}
+        isPlatformAdmin={isPlatformAdmin}
+        active="home"
         onLogout={handleLogout}
       />
       <AnimatePresence mode="wait">
@@ -1281,11 +1311,12 @@ export function CustomWebsiteService({
           >
             <LandingScreen
               industries={industries}
+              features={features}
               onGetStarted={() => {
                 router.push("/auth/sign-up");
               }}
               onViewExamples={() => {
-                router.push("/examples");
+                router.push("/marketplace");
               }}
             />
           </motion.div>

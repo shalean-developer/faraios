@@ -2,7 +2,9 @@ import Link from "next/link";
 
 import { FaraiSettings } from "@/components/admin/farai-settings";
 import {
+  getAdminNotificationPreferences,
   getAdminSettingsUsers,
+  getPlatformSettings,
   isCurrentUserPlatformAdmin,
 } from "@/lib/services/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -20,9 +22,7 @@ function AccessDenied() {
       <div className="max-w-md rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
         <h1 className="text-xl font-bold text-gray-900">Admin access required</h1>
         <p className="mt-2 text-sm text-gray-500">
-          This area is restricted to platform administrators. Ask an owner to add
-          your account to <code className="rounded bg-gray-100 px-1">platform_admins</code>{" "}
-          in Supabase, then sign in again.
+          This area is restricted to platform administrators.
         </p>
         <Link href="/" className="mt-6 inline-block text-sm font-semibold text-indigo-600 hover:text-indigo-800">
           ← Back to home
@@ -32,16 +32,29 @@ function AccessDenied() {
   );
 }
 
-export default async function AdminSettingsPage() {
+export default async function AdminSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const allowed = await isCurrentUserPlatformAdmin();
   if (!allowed) return <AccessDenied />;
 
+  const { tab } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const adminUsers = await getAdminSettingsUsers();
+  const [adminUsers, platformSettings, notificationPreferences] = await Promise.all([
+    getAdminSettingsUsers(),
+    getPlatformSettings(),
+    user ? getAdminNotificationPreferences(user.id) : Promise.resolve({
+      emailAlerts: true,
+      projectUpdates: true,
+      clientActivity: false,
+    }),
+  ]);
 
   const adminDisplayName =
     (typeof user?.user_metadata?.full_name === "string" &&
@@ -50,11 +63,22 @@ export default async function AdminSettingsPage() {
       : null) ??
     (user?.email ? user.email.split("@")[0]! : "Super Admin");
 
+  const initialTab =
+    tab === "users" ||
+    tab === "notifications" ||
+    tab === "security" ||
+    tab === "billing"
+      ? tab
+      : "general";
+
   return (
     <FaraiSettings
       adminUsers={adminUsers}
       adminEmail={user?.email ?? null}
       adminDisplayName={adminDisplayName}
+      platformSettings={platformSettings}
+      notificationPreferences={notificationPreferences}
+      initialTab={initialTab}
     />
   );
 }

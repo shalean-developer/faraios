@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap,
-  Bot,
-  BarChart,
+  Globe,
+  Headphones,
   Lock,
   Eye,
   EyeOff,
@@ -15,7 +15,9 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { FaraiLogo } from "@/components/brand/farai-logo";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { authCallbackUrl, authHref } from "@/lib/auth/safe-next-path";
 
 type AuthMode = "login" | "signup";
 
@@ -42,27 +44,27 @@ type OrbConfig = {
 const FEATURES: FeatureItem[] = [
   {
     id: "f1",
-    icon: <Zap className="h-4 w-4" />,
-    title: "Instant Builds",
-    description: "Launch your project at lightning speed",
+    icon: <Globe className="h-4 w-4" />,
+    title: "Professional websites",
+    description: "Custom-built for your brand and industry",
   },
   {
     id: "f2",
-    icon: <Bot className="h-4 w-4" />,
-    title: "AI-Powered Workflow",
-    description: "Intelligent automation at every step",
+    icon: <Zap className="h-4 w-4" />,
+    title: "Live in 14 days",
+    description: "From sign-up to launch with a dedicated team",
   },
   {
     id: "f3",
-    icon: <BarChart className="h-4 w-4" />,
-    title: "Live Analytics",
-    description: "Real-time insights into your growth",
+    icon: <Headphones className="h-4 w-4" />,
+    title: "Hosting & support",
+    description: "Secure hosting and ongoing help included",
   },
   {
     id: "f4",
     icon: <Lock className="h-4 w-4" />,
-    title: "Enterprise Security",
-    description: "Bank-grade protection for your data",
+    title: "Easy dashboard",
+    description: "Track progress and manage your site in one place",
   },
 ];
 
@@ -153,12 +155,14 @@ const formVariants = {
 export type FaraiAuthPageProps = {
   redirectTo?: string;
   initialError?: string;
+  initialInfo?: string;
   initialMode?: AuthMode;
 };
 
 export function FaraiAuthPage({
   redirectTo = "/app",
   initialError,
+  initialInfo,
   initialMode = "login",
 }: FaraiAuthPageProps) {
   const router = useRouter();
@@ -177,12 +181,19 @@ export function FaraiAuthPage({
   }, [initialError]);
 
   useEffect(() => {
+    if (initialInfo) setInfo(initialInfo);
+  }, [initialInfo]);
+
+  useEffect(() => {
     setMode(initialMode);
   }, [initialMode]);
 
   const finishSession = async () => {
-    router.push(redirectTo);
-    router.refresh();
+    const res = await fetch(
+      `/api/auth/post-login-redirect?next=${encodeURIComponent(redirectTo)}`
+    );
+    const payload = (await res.json()) as { path?: string };
+    window.location.assign(payload.path ?? redirectTo);
   };
 
   const handleGoogle = async () => {
@@ -194,31 +205,10 @@ export function FaraiAuthPage({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}${authCallbackUrl(redirectTo)}`,
         },
       });
       if (error) setFormError(error.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleForgotPassword = async () => {
-    setFormError(null);
-    setInfo(null);
-    const trimmed = email.trim();
-    if (!trimmed) {
-      setFormError("Enter your email above, then click Forgot password.");
-      return;
-    }
-    setBusy(true);
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
-        redirectTo: `${window.location.origin}/auth`,
-      });
-      if (error) setFormError(error.message);
-      else setInfo("Check your email for a password reset link.");
     } finally {
       setBusy(false);
     }
@@ -256,6 +246,9 @@ export function FaraiAuthPage({
       const { data, error } = await supabase.auth.signUp({
         email: signupEmail,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}${authCallbackUrl(redirectTo)}`,
+        },
       });
 
       if (error) {
@@ -268,7 +261,13 @@ export function FaraiAuthPage({
         return;
       }
 
-      router.push(`/auth/verify-email?email=${encodeURIComponent(signupEmail)}`);
+      const nextQuery =
+        redirectTo !== "/app"
+          ? `&next=${encodeURIComponent(redirectTo)}`
+          : "";
+      router.push(
+        `/auth/verify-email?email=${encodeURIComponent(signupEmail)}${nextQuery}`
+      );
       router.refresh();
     } finally {
       setBusy(false);
@@ -276,9 +275,9 @@ export function FaraiAuthPage({
   };
 
   return (
-    <div className="flex min-h-screen w-full overflow-x-hidden font-sans">
+    <div className="flex min-h-0 w-full overflow-x-hidden font-sans lg:min-h-screen">
       <div
-        className="relative hidden flex-col justify-between overflow-hidden p-12 lg:flex lg:w-[52%]"
+        className="relative hidden flex-col justify-between overflow-hidden p-8 lg:flex lg:w-[52%] xl:p-10"
         style={{
           background:
             "linear-gradient(145deg, #1e0a3c 0%, #2d1b69 45%, #312e81 100%)",
@@ -322,17 +321,9 @@ export function FaraiAuthPage({
         />
 
         <div className="relative z-10 flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-white/10 shadow-lg backdrop-blur-sm">
-            <Zap className="h-[18px] w-[18px] text-violet-300" />
-          </div>
-          <div>
-            <span className="block text-base font-bold leading-tight tracking-tight text-white">
-              FaraiOS
-            </span>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-violet-300">
-              Project Platform
-            </span>
-          </div>
+          <Link href="/" className="flex items-center">
+            <FaraiLogo size="sm" priority imageClassName="brightness-0 invert" />
+          </Link>
         </div>
 
         <motion.div
@@ -342,17 +333,17 @@ export function FaraiAuthPage({
           variants={stagger}
         >
           <motion.div variants={fadeUp}>
-            <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-violet-300">
+            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-violet-300">
               <Sparkles className="h-3 w-3" />
-              <span>The Future of Building</span>
+              <span>Built for growing businesses</span>
             </div>
           </motion.div>
 
           <motion.h1
             variants={fadeUp}
-            className="mb-5 text-4xl font-extrabold leading-[1.1] tracking-tight text-white xl:text-5xl"
+            className="mb-3 text-3xl font-extrabold leading-[1.1] tracking-tight text-white xl:text-4xl"
           >
-            From Idea
+            From sign-up
             <br />
             <span
               style={{
@@ -362,26 +353,26 @@ export function FaraiAuthPage({
                 backgroundClip: "text",
               }}
             >
-              to Empire.
+              to live website.
             </span>
           </motion.h1>
 
           <motion.p
             variants={fadeUp}
-            className="mb-10 max-w-xs text-sm leading-relaxed text-violet-200/70"
+            className="mb-6 max-w-xs text-sm leading-relaxed text-violet-200/70"
           >
-            The all-in-one platform that takes your project from first commit
-            to global scale — beautifully.
+            Get a professionally designed website with hosting, support, and a
+            dashboard to track your project — live in as little as 14 days.
           </motion.p>
 
-          <motion.ul variants={stagger} className="space-y-4">
+          <motion.ul variants={stagger} className="space-y-3">
             {FEATURES.map((feat) => (
               <motion.li
                 key={feat.id}
                 variants={fadeUp}
-                className="flex items-start gap-3.5"
+                className="flex items-start gap-3"
               >
-                <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/10 text-violet-300">
+                <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/10 text-violet-300">
                   {feat.icon}
                 </div>
                 <div>
@@ -408,16 +399,19 @@ export function FaraiAuthPage({
       </div>
 
       <div
-        className="flex flex-1 items-center justify-center px-4 py-12 lg:py-0"
+        className="flex flex-1 items-center justify-center px-4 py-6 lg:py-4"
         style={{ background: "#f8f9fc" }}
       >
-        <div className="fixed left-0 right-0 top-0 z-30 flex items-center gap-3 border-b border-slate-100 bg-white px-5 py-4 shadow-sm lg:hidden">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 shadow-md">
-            <Zap className="h-3.5 w-3.5 text-white" />
-          </div>
-          <span className="text-sm font-bold tracking-tight text-slate-800">
-            FaraiOS
-          </span>
+        <div className="fixed left-0 right-0 top-0 z-30 flex h-12 items-center justify-between border-b border-gray-100 bg-white/90 px-4 shadow-sm backdrop-blur-md lg:hidden">
+          <Link href="/" className="flex items-center">
+            <FaraiLogo size="sm" />
+          </Link>
+          <Link
+            href="/"
+            className="text-sm font-medium text-gray-600 hover:text-gray-900"
+          >
+            Home
+          </Link>
         </div>
 
         <motion.div
@@ -426,7 +420,7 @@ export function FaraiAuthPage({
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="w-full max-w-md"
         >
-          <div className="mt-14 overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl shadow-slate-200/70 lg:mt-0">
+          <div className="mt-12 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl shadow-slate-200/70 lg:mt-0">
             <div
               className="h-1 w-full"
               style={{
@@ -434,19 +428,19 @@ export function FaraiAuthPage({
               }}
             />
 
-            <div className="px-8 pb-6 pt-8">
-              <div className="mb-7">
-                <h2 className="text-2xl font-extrabold leading-snug tracking-tight text-slate-900">
+            <div className="px-6 pb-4 pt-5">
+              <div className="mb-4">
+                <h2 className="text-xl font-extrabold leading-snug tracking-tight text-slate-900">
                   {mode === "login" ? "Welcome back" : "Create your account"}
                 </h2>
-                <p className="mt-1 text-sm text-slate-400">
+                <p className="mt-1 text-sm text-slate-500">
                   {mode === "login"
-                    ? "Sign in to continue to your FaraiOS app."
-                    : "Join thousands of builders on FaraiOS."}
+                    ? "Sign in to continue to your FaraiOS dashboard."
+                    : "Create your account and start your website project."}
                 </p>
               </div>
 
-              <div className="relative mb-7 flex items-center rounded-full bg-slate-100 p-1">
+              <div className="relative mb-4 flex items-center rounded-full bg-slate-100 p-1">
                 <motion.div
                   className="absolute rounded-full bg-white shadow-sm"
                   layout
@@ -458,39 +452,29 @@ export function FaraiAuthPage({
                     left: mode === "login" ? 4 : "calc(50%)",
                   }}
                 />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode("login");
-                    setFormError(null);
-                    setInfo(null);
-                  }}
-                  className={`relative z-10 flex-1 rounded-full py-2 text-sm font-semibold transition-colors duration-200 ${
+                <Link
+                  href={authHref("/auth/sign-in", redirectTo)}
+                  className={`relative z-10 flex-1 rounded-full py-1.5 text-center text-sm font-semibold transition-colors duration-200 ${
                     mode === "login" ? "text-slate-900" : "text-slate-400"
                   }`}
                 >
                   Login
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode("signup");
-                    setFormError(null);
-                    setInfo(null);
-                  }}
-                  className={`relative z-10 flex-1 rounded-full py-2 text-sm font-semibold transition-colors duration-200 ${
+                </Link>
+                <Link
+                  href={authHref("/auth/sign-up", redirectTo)}
+                  className={`relative z-10 flex-1 rounded-full py-1.5 text-center text-sm font-semibold transition-colors duration-200 ${
                     mode === "signup" ? "text-slate-900" : "text-slate-400"
                   }`}
                 >
                   Sign Up
-                </button>
+                </Link>
               </div>
 
               <button
                 type="button"
                 onClick={() => void handleGoogle()}
                 disabled={busy}
-                className="mb-5 flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-50/40 hover:shadow-md disabled:opacity-60"
+                className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-50/40 hover:shadow-md disabled:opacity-60"
               >
                 <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
                   <path
@@ -513,7 +497,7 @@ export function FaraiAuthPage({
                 <span>Continue with Google</span>
               </button>
 
-              <div className="mb-5 flex items-center gap-3">
+              <div className="mb-4 flex items-center gap-3">
                 <div className="h-px flex-1 bg-slate-100" />
                 <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">
                   OR
@@ -543,7 +527,7 @@ export function FaraiAuthPage({
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                    className="space-y-4"
+                    className="space-y-3"
                   >
                     <div className="space-y-1.5">
                       <label
@@ -558,7 +542,7 @@ export function FaraiAuthPage({
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="you@example.com"
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-2.5 text-sm text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                         required
                         autoComplete="email"
                       />
@@ -573,13 +557,16 @@ export function FaraiAuthPage({
                           Password
                         </label>
                         {mode === "login" && (
-                          <button
-                            type="button"
-                            onClick={() => void handleForgotPassword()}
-                            className="text-xs font-semibold text-indigo-500 transition-colors duration-150 hover:text-indigo-700 hover:underline"
+                          <Link
+                            href={
+                              email.trim()
+                                ? `/auth/forgot-password?email=${encodeURIComponent(email.trim())}`
+                                : "/auth/forgot-password"
+                            }
+                            className="text-xs font-semibold text-violet-600 transition-colors duration-150 hover:text-violet-800 hover:underline"
                           >
                             Forgot password?
-                          </button>
+                          </Link>
                         )}
                       </div>
                       <div className="relative">
@@ -589,7 +576,7 @@ export function FaraiAuthPage({
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           placeholder="••••••••"
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 pr-11 text-sm text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-2.5 pr-11 text-sm text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                           required
                           autoComplete={
                             mode === "login" ? "current-password" : "new-password"
@@ -629,7 +616,7 @@ export function FaraiAuthPage({
                               setConfirmPassword(e.target.value)
                             }
                             placeholder="••••••••"
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 pr-11 text-sm text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-2.5 pr-11 text-sm text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                             required
                             autoComplete="new-password"
                           />
@@ -658,7 +645,7 @@ export function FaraiAuthPage({
                     <button
                       type="submit"
                       disabled={busy}
-                      className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white shadow-md shadow-indigo-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-200 disabled:opacity-60"
+                      className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white shadow-md shadow-indigo-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-200 disabled:opacity-60"
                       style={{
                         background:
                           "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)",
@@ -676,33 +663,31 @@ export function FaraiAuthPage({
               </form>
             </div>
 
-            <div className="px-8 pb-7 pt-1">
+            <div className="px-6 pb-5 pt-0">
               <p className="text-center text-xs text-slate-400">
                 {mode === "login" ? (
                   <span>
                     Don&apos;t have an account?{" "}
-                    <button
-                      type="button"
-                      onClick={() => setMode("signup")}
-                      className="font-semibold text-indigo-500 transition-colors duration-150 hover:underline"
+                    <Link
+                      href={authHref("/auth/sign-up", redirectTo)}
+                      className="font-semibold text-violet-600 transition-colors duration-150 hover:underline"
                     >
                       Sign up free
-                    </button>
+                    </Link>
                   </span>
                 ) : (
                   <span>
                     Already have an account?{" "}
-                    <button
-                      type="button"
-                      onClick={() => setMode("login")}
-                      className="font-semibold text-indigo-500 transition-colors duration-150 hover:underline"
+                    <Link
+                      href={authHref("/auth/sign-in", redirectTo)}
+                      className="font-semibold text-violet-600 transition-colors duration-150 hover:underline"
                     >
                       Sign in
-                    </button>
+                    </Link>
                   </span>
                 )}
               </p>
-              <p className="mt-3 text-center text-[10px] leading-relaxed text-slate-300">
+              <p className="mt-2 text-center text-[10px] leading-relaxed text-slate-300">
                 <span>By continuing, you agree to our </span>
                 <Link href="/terms" className="text-slate-400 hover:underline">
                   Terms of Service
@@ -716,11 +701,11 @@ export function FaraiAuthPage({
             </div>
           </div>
 
-          <p className="mt-6 text-center text-xs text-slate-400">
+          <p className="mt-3 text-center text-xs text-slate-400">
             <span>Need help? </span>
             <a
               href="mailto:support@faraios.com"
-              className="font-semibold text-indigo-500 hover:underline"
+              className="font-semibold text-violet-600 hover:underline"
             >
               Contact support
             </a>

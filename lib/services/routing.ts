@@ -1,6 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 
+export {
+  companyDashboardPath,
+  companyWebsiteCreatePath,
+  companyWebsiteEditPath,
+  companyWebsitesPath,
+} from "@/lib/paths/company";
+
 export async function getPrimaryCompanySlugForUser(
   userId: string
 ): Promise<string | null> {
@@ -32,8 +39,4 @@ export async function getPrimaryCompanySlugForUser(
   }
 
   return company.slug as string;
-}
-
-export function companyDashboardPath(slug: string): string {
-  return `/${encodeURIComponent(slug)}/dashboard`;
 }

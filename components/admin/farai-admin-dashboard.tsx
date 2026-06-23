@@ -1,16 +1,18 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import React, { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
+import { AdminSidebarBrand } from "@/components/admin/admin-sidebar-brand";
+import { AdminSidebarNav } from "@/components/admin/admin-sidebar-nav";
+import { AdminSidebarUser } from "@/components/admin/admin-sidebar-user";
+import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
 import {
   LayoutDashboard,
   GitBranch,
   Users,
-  Zap,
   Search,
-  Bell,
   ChevronDown,
   X,
   Calendar,
@@ -22,14 +24,8 @@ import {
   Eye,
   UserCheck,
   UserPlus,
-  Shield,
   Layers,
-  CreditCard,
-  BookOpen,
-  BarChart3,
-  Settings,
   ChevronRight,
-  Tag,
   Sparkles,
   Users2,
 } from "lucide-react";
@@ -38,6 +34,8 @@ import {
   adminUpdateAssignedDeveloper,
   adminUpdateCompanyStatus,
 } from "@/app/actions/admin";
+import { ADMIN_PIPELINE_PATH } from "@/lib/constants/admin-nav";
+import type { AdminNavKey } from "@/lib/constants/admin-nav";
 import { ADMIN_DEVELOPER_OPTIONS } from "@/lib/constants/admin-developers";
 import type { AdminPipelineStatus, AdminProject, AdminProjectStats } from "@/types/admin";
 
@@ -85,24 +83,6 @@ const STATUS_OPTIONS: { value: AdminPipelineStatus; label: string }[] = [
   { value: "completed", label: "Completed" },
 ];
 
-const NAV_ITEMS: {
-  key: "dashboard" | "pipeline" | "team" | "clients";
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  href: string;
-}[] = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
-  { key: "pipeline", label: "Project Pipeline", icon: GitBranch, href: "/admin" },
-  { key: "team", label: "Team", icon: Users, href: "/admin/team" },
-  { key: "clients", label: "Clients", icon: Users2, href: "/admin/clients" },
-];
-
-const featureIconMap: Record<string, React.ReactNode> = {
-  Booking: <Calendar className="h-3.5 w-3.5" />,
-  Payments: <CreditCard className="h-3.5 w-3.5" />,
-  Blog: <BookOpen className="h-3.5 w-3.5" />,
-};
-
 const fadeUp = {
   hidden: { opacity: 0, y: 18 },
   visible: {
@@ -118,26 +98,14 @@ const stagger = {
   },
 };
 
-const slideOver = {
-  hidden: { x: "100%", opacity: 0 },
-  visible: {
-    x: 0,
-    opacity: 1,
-    transition: { duration: 0.35 },
-  },
-  exit: {
-    x: "100%",
-    opacity: 0,
-    transition: { duration: 0.28 },
-  },
-};
-
 export type FaraiAdminDashboardProps = {
   projects: AdminProject[];
   stats: AdminProjectStats;
   adminEmail: string | null;
   adminDisplayName: string;
-  activeNav?: "dashboard" | "pipeline" | "team" | "clients";
+  activeNav?: AdminNavKey;
+  /** Overview on `/admin`; full pipeline table on `/admin/pipeline`. */
+  viewMode?: "overview" | "pipeline";
 };
 
 export function FaraiAdminDashboard({
@@ -145,7 +113,8 @@ export function FaraiAdminDashboard({
   stats,
   adminEmail,
   adminDisplayName,
-  activeNav = "pipeline",
+  activeNav = "dashboard",
+  viewMode = "overview",
 }: FaraiAdminDashboardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -158,15 +127,10 @@ export function FaraiAdminDashboard({
     null
   );
   const [openDevDropdown, setOpenDevDropdown] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
 
-  const selectedProject = useMemo(
-    () =>
-      selectedId
-        ? projects.find((p) => p.id === selectedId) ?? null
-        : null,
-    [projects, selectedId]
-  );
+  const isOverview = viewMode === "overview";
+  const recentProjects = useMemo(() => projects.slice(0, 5), [projects]);
 
   const filteredProjects = useMemo(() => {
     const q = searchValue.toLowerCase().trim();
@@ -198,21 +162,75 @@ export function FaraiAdminDashboard({
   };
 
   const updateStatus = async (id: string, status: AdminPipelineStatus) => {
+    setMutationError(null);
     const res = await adminUpdateCompanyStatus(id, status);
     setOpenStatusDropdown(null);
-    if (res.ok) refresh();
+    if (res.ok) {
+      refresh();
+      return;
+    }
+    setMutationError(res.error);
   };
 
   const assignDeveloper = async (id: string, dev: string | null) => {
+    setMutationError(null);
     const res = await adminUpdateAssignedDeveloper(id, dev);
     setOpenDevDropdown(null);
-    if (res.ok) refresh();
+    if (res.ok) {
+      refresh();
+      return;
+    }
+    setMutationError(res.error);
   };
 
   const totalCount = stats.total;
   const pendingCount = stats.pending;
   const inProgressCount = stats.inProgress;
+  const inReviewCount = stats.inReview;
   const completedCount = stats.completed;
+
+  const statCards = [
+    {
+      label: "Total Projects",
+      value: totalCount,
+      icon: Layers,
+      iconBg: "bg-indigo-50",
+      iconColor: "text-indigo-600",
+      accent: "from-indigo-500 to-violet-500",
+    },
+    {
+      label: "Pending",
+      value: pendingCount,
+      icon: Clock4,
+      iconBg: "bg-amber-50",
+      iconColor: "text-amber-600",
+      accent: "from-amber-400 to-orange-400",
+    },
+    {
+      label: "In Progress",
+      value: inProgressCount,
+      icon: CircleDot,
+      iconBg: "bg-blue-50",
+      iconColor: "text-blue-600",
+      accent: "from-blue-400 to-indigo-400",
+    },
+    {
+      label: "In Review",
+      value: inReviewCount,
+      icon: Eye,
+      iconBg: "bg-purple-50",
+      iconColor: "text-purple-600",
+      accent: "from-purple-400 to-violet-400",
+    },
+    {
+      label: "Completed",
+      value: completedCount,
+      icon: CheckCircle2,
+      iconBg: "bg-emerald-50",
+      iconColor: "text-emerald-600",
+      accent: "from-emerald-400 to-teal-400",
+    },
+  ];
 
   return (
     <div
@@ -224,97 +242,31 @@ export function FaraiAdminDashboard({
       }}
     >
       <aside className="flex h-full w-60 flex-shrink-0 flex-col bg-slate-900">
-        <div className="flex h-16 flex-shrink-0 items-center gap-3 border-b border-slate-800 px-5">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md">
-            <Zap className="h-4 w-4 text-white" />
-          </div>
-          <div className="min-w-0">
-            <span className="block text-base font-bold leading-tight tracking-tight text-white">
-              FaraiOS
-            </span>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-indigo-300">
-              Admin
-            </span>
-          </div>
-        </div>
+        <AdminSidebarBrand />
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-5">
-          <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            Navigation
-          </p>
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeNav === item.key;
-            return (
-              <Link
-                key={item.key}
-                href={item.href}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
-                  isActive
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/40"
-                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
-                }`}
-              >
-                <Icon
-                  className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-white" : "text-slate-500"}`}
-                />
-                <span>{item.label}</span>
-                {isActive && (
-                  <div className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-200" />
-                )}
-              </Link>
-            );
-          })}
+        <AdminSidebarNav activeNav={activeNav} />
 
-          <div className="pt-5">
-            <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-              System
-            </p>
-            <Link
-              href="/admin/analytics"
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition-all duration-150 hover:bg-slate-800 hover:text-white"
-            >
-              <BarChart3 className="h-4 w-4 text-slate-500" />
-              <span>Analytics</span>
-            </Link>
-            <Link
-              href="/admin/settings"
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition-all duration-150 hover:bg-slate-800 hover:text-white"
-            >
-              <Settings className="h-4 w-4 text-slate-500" />
-              <span>Settings</span>
-            </Link>
-          </div>
-        </nav>
-
-        <div className="flex-shrink-0 border-t border-slate-800 px-4 py-4">
-          <div className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600">
-              <Shield className="h-3.5 w-3.5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold text-white">
-                {adminDisplayName}
-              </p>
-              <p className="truncate text-[10px] text-slate-400">
-                {adminEmail ?? "—"}
-              </p>
-            </div>
-          </div>
-        </div>
+        <AdminSidebarUser
+          adminDisplayName={adminDisplayName}
+          adminEmail={adminEmail}
+        />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-16 flex-shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-extrabold leading-tight tracking-tight text-gray-900">
-              Project Pipeline
+              {isOverview ? "Dashboard" : "Project Pipeline"}
             </h1>
             <p className="mt-0.5 text-xs text-gray-400">
-              Manage all client website projects in one place
+              {isOverview
+                ? "Overview of client projects and quick actions"
+                : "Manage all client website projects in one place"}
             </p>
           </div>
 
+          {!isOverview ? (
+            <>
           <div className="flex w-40 flex-shrink-0 items-center gap-2">
             <label htmlFor="admin-status-filter" className="sr-only">
               Filter by status
@@ -360,13 +312,16 @@ export function FaraiAdminDashboard({
             + Create Website
           </Link>
 
-          <Link
-            href="/admin/activity"
-            className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-800"
-          >
-            <Bell className="h-[18px] w-[18px]" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-indigo-500" />
-          </Link>
+          <AdminActivityBellLink />
+            </>
+          ) : (
+            <Link
+              href={ADMIN_PIPELINE_PATH}
+              className="inline-flex h-9 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-3 text-xs font-semibold text-indigo-700 transition-all hover:bg-indigo-100"
+            >
+              Open full pipeline
+            </Link>
+          )}
         </header>
 
         <main className="flex-1 overflow-y-auto px-6 py-6">
@@ -375,47 +330,25 @@ export function FaraiAdminDashboard({
               Syncing…
             </p>
           )}
+          {mutationError ? (
+            <p
+              className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700"
+              role="alert"
+            >
+              {mutationError}
+            </p>
+          ) : null}
           <motion.div
             initial="hidden"
             animate="visible"
             variants={stagger}
             className="mx-auto max-w-7xl space-y-5"
           >
-            <motion.div variants={fadeUp} className="grid grid-cols-4 gap-4">
-              {[
-                {
-                  label: "Total Projects",
-                  value: totalCount,
-                  icon: Layers,
-                  iconBg: "bg-indigo-50",
-                  iconColor: "text-indigo-600",
-                  accent: "from-indigo-500 to-violet-500",
-                },
-                {
-                  label: "Pending",
-                  value: pendingCount,
-                  icon: Clock4,
-                  iconBg: "bg-amber-50",
-                  iconColor: "text-amber-600",
-                  accent: "from-amber-400 to-orange-400",
-                },
-                {
-                  label: "In Progress",
-                  value: inProgressCount,
-                  icon: CircleDot,
-                  iconBg: "bg-blue-50",
-                  iconColor: "text-blue-600",
-                  accent: "from-blue-400 to-indigo-400",
-                },
-                {
-                  label: "Completed",
-                  value: completedCount,
-                  icon: CheckCircle2,
-                  iconBg: "bg-emerald-50",
-                  iconColor: "text-emerald-600",
-                  accent: "from-emerald-400 to-teal-400",
-                },
-              ].map((stat) => {
+            <motion.div
+              variants={fadeUp}
+              className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5"
+            >
+              {statCards.map((stat) => {
                 const Icon = stat.icon;
                 return (
                   <div
@@ -444,6 +377,101 @@ export function FaraiAdminDashboard({
               })}
             </motion.div>
 
+            {isOverview ? (
+              <div className="grid gap-5 lg:grid-cols-3">
+                <motion.div
+                  variants={fadeUp}
+                  className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm lg:col-span-2"
+                >
+                  <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                    <div>
+                      <h2 className="text-sm font-bold text-gray-900">
+                        Recent projects
+                      </h2>
+                      <p className="mt-0.5 text-xs text-gray-400">
+                        Latest client requests
+                      </p>
+                    </div>
+                    <Link
+                      href={ADMIN_PIPELINE_PATH}
+                      className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                    >
+                      View all
+                    </Link>
+                  </div>
+                  {recentProjects.length === 0 ? (
+                    <div className="py-14 text-center">
+                      <Globe className="mx-auto mb-2 h-8 w-8 text-gray-200" />
+                      <p className="text-sm text-gray-400">No projects yet</p>
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-gray-50">
+                      {recentProjects.map((project) => {
+                        const st = statusConfig[project.status];
+                        return (
+                          <li
+                            key={project.id}
+                            className="flex items-center justify-between gap-4 px-6 py-4"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-gray-900">
+                                {project.businessName}
+                              </p>
+                              <p className="truncate text-xs text-gray-400">
+                                {project.user.name} · {project.createdDate}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span
+                                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold ${st.bg} ${st.color}`}
+                              >
+                                {st.label}
+                              </span>
+                              <Link
+                                href={`/admin/pipeline/${project.id}`}
+                                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                              >
+                                Details
+                              </Link>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </motion.div>
+
+                <motion.div
+                  variants={fadeUp}
+                  className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm"
+                >
+                  <h2 className="text-sm font-bold text-gray-900">Quick links</h2>
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    Jump to admin tools
+                  </p>
+                  <div className="mt-4 space-y-2">
+                    {[
+                      { href: ADMIN_PIPELINE_PATH, label: "Project pipeline" },
+                      { href: "/admin/team", label: "Team management" },
+                      { href: "/admin/clients", label: "Client directory" },
+                      { href: "/admin/analytics", label: "Analytics" },
+                      { href: "/admin/activity", label: "Activity feed" },
+                      { href: "/admin/settings", label: "Settings" },
+                      { href: "/admin/websites", label: "Websites" },
+                    ].map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className="flex items-center justify-between rounded-xl border border-gray-100 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50/60 hover:text-indigo-700"
+                      >
+                        {link.label}
+                        <ChevronRight className="h-4 w-4 text-gray-300" />
+                      </Link>
+                    ))}
+                  </div>
+                </motion.div>
+              </div>
+            ) : (
             <motion.div
               variants={fadeUp}
               className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
@@ -746,189 +774,10 @@ export function FaraiAdminDashboard({
                 </div>
               )}
             </motion.div>
+            )}
           </motion.div>
         </main>
       </div>
-
-      <AnimatePresence>
-        {selectedProject && (
-          <div
-            className="fixed inset-0 z-50 flex justify-end"
-            role="presentation"
-            onClick={() => setSelectedId(null)}
-          >
-            <div className="flex-1 bg-black/20 backdrop-blur-sm" />
-            <motion.aside
-              variants={slideOver}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              onClick={(e) => e.stopPropagation()}
-              className="flex h-full w-full max-w-md flex-col overflow-hidden bg-white shadow-2xl"
-            >
-              <div className="flex flex-shrink-0 items-start justify-between border-b border-gray-100 bg-gradient-to-br from-indigo-600 to-violet-700 px-6 py-5">
-                <div>
-                  <div className="mb-1 flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 text-indigo-200" />
-                    <span className="text-xs font-semibold uppercase tracking-widest text-indigo-200">
-                      Project Details
-                    </span>
-                  </div>
-                  <h2 className="text-xl font-extrabold leading-tight text-white">
-                    {selectedProject.businessName}
-                  </h2>
-                  <p className="mt-1 text-xs text-indigo-200">
-                    {selectedProject.user.name} · {selectedProject.user.email}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedId(null)}
-                  className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white/10 transition-colors hover:bg-white/20"
-                >
-                  <X className="h-4 w-4 text-white" />
-                </button>
-              </div>
-
-              <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                    <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                      Status
-                    </p>
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold ${statusConfig[selectedProject.status].bg} ${statusConfig[selectedProject.status].color}`}
-                    >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${statusConfig[selectedProject.status].dot}`}
-                      />
-                      {statusConfig[selectedProject.status].label}
-                    </span>
-                  </div>
-                  <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                    <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                      Developer
-                    </p>
-                    {selectedProject.assignedDeveloper ? (
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-violet-500">
-                          <span className="text-[8px] font-bold text-white">
-                            {selectedProject.assignedDeveloper[0]}
-                          </span>
-                        </div>
-                        <span className="text-xs font-semibold text-gray-700">
-                          {selectedProject.assignedDeveloper}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-xs italic text-gray-400">
-                        Unassigned
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between border-b border-gray-100 py-3">
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <Globe className="h-3.5 w-3.5 text-gray-400" />
-                      <span className="font-medium">Industry</span>
-                    </div>
-                    <span className="text-xs font-semibold text-gray-800">
-                      {selectedProject.industry}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between border-b border-gray-100 py-3">
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <Tag className="h-3.5 w-3.5 text-gray-400" />
-                      <span className="font-medium">Design Style</span>
-                    </div>
-                    <span className="text-xs font-semibold text-gray-800">
-                      {selectedProject.designStyle ?? "Not provided"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between border-b border-gray-100 py-3">
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                      <span className="font-medium">Created</span>
-                    </div>
-                    <span className="text-xs font-semibold text-gray-800">
-                      {selectedProject.createdDate}
-                    </span>
-                  </div>
-                  <div className="border-b border-gray-100 py-3">
-                    <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
-                      <Search className="h-3.5 w-3.5 text-gray-400" />
-                      <span className="font-medium">Competitor Analysis</span>
-                    </div>
-                    <p className="text-xs font-medium leading-relaxed text-gray-700">
-                      {selectedProject.competitors ?? "Not provided"}
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                    Pages
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedProject.pages.length === 0 ? (
-                      <span className="text-xs text-gray-400">
-                        No pages on file yet
-                      </span>
-                    ) : (
-                      selectedProject.pages.map((pageName) => (
-                        <span
-                          key={pageName}
-                          className="inline-flex items-center gap-1 rounded-lg border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700"
-                        >
-                          <Layers className="h-3 w-3" />
-                          {pageName}
-                        </span>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                    Features
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedProject.features.length === 0 ? (
-                      <span className="text-xs text-gray-400">
-                        No features on file yet
-                      </span>
-                    ) : (
-                      selectedProject.features.map((feature) => (
-                        <span
-                          key={feature}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-violet-100 bg-violet-50 px-2.5 py-1.5 text-xs font-semibold text-violet-700"
-                        >
-                          {featureIconMap[feature] ?? (
-                            <Sparkles className="h-3.5 w-3.5" />
-                          )}
-                          {feature}
-                        </span>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex-shrink-0 border-t border-gray-100 bg-gray-50/60 px-6 py-4">
-                <Link
-                  href={`/${encodeURIComponent(selectedProject.slug)}/dashboard`}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-300"
-                >
-                  <Eye className="h-4 w-4" />
-                  Open Full Project
-                </Link>
-              </div>
-            </motion.aside>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

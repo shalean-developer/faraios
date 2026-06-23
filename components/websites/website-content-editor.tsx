@@ -8,6 +8,7 @@ import {
   updateWebsiteContentAction,
 } from "@/app/actions/websites";
 import { Button } from "@/components/ui/button";
+import { companyDashboardPath, companyWebsitesPath } from "@/lib/paths/company";
 import type { WebsiteContent } from "@/types/database";
 
 type ServiceItem = { title: string; description: string };
@@ -174,10 +175,16 @@ export function WebsiteContentEditor({
     <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Link
-          href={`/${encodeURIComponent(companySlug)}/dashboard`}
+          href={companyWebsitesPath(companySlug)}
           className="text-sm font-medium text-violet-700 transition-colors hover:text-violet-900"
         >
-          ← Back to dashboard
+          ← Back to websites
+        </Link>
+        <Link
+          href={companyDashboardPath(companySlug)}
+          className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
+        >
+          Dashboard
         </Link>
         <a
           href={previewUrl}

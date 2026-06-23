@@ -34,11 +34,19 @@ type CompanyOption = { id: string; name: string };
 
 type Props = {
   companies: CompanyOption[];
+  initialCompanyId?: string;
 };
 
-export function AdminCreateWebsiteForm({ companies }: Props) {
+export function AdminCreateWebsiteForm({ companies, initialCompanyId = "" }: Props) {
   const router = useRouter();
-  const [state, setState] = useState<FormState>(INITIAL_STATE);
+  const [state, setState] = useState<FormState>(() => {
+    const selectedCompany = companies.find((company) => company.id === initialCompanyId);
+    return {
+      ...INITIAL_STATE,
+      companyId: initialCompanyId,
+      businessName: selectedCompany?.name ?? "",
+    };
+  });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,7 +94,15 @@ export function AdminCreateWebsiteForm({ companies }: Props) {
         <select
           className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
           value={state.companyId}
-          onChange={(e) => setState((prev) => ({ ...prev, companyId: e.target.value }))}
+          onChange={(e) => {
+            const companyId = e.target.value;
+            const selectedCompany = companies.find((company) => company.id === companyId);
+            setState((prev) => ({
+              ...prev,
+              companyId,
+              businessName: selectedCompany?.name ?? prev.businessName,
+            }));
+          }}
           required
         >
           <option value="">Select client</option>

@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { LayoutGrid, LogOut, UserCircle2, Zap } from "lucide-react";
+import { LayoutGrid, LogOut, UserCircle2 } from "lucide-react";
 import { redirect } from "next/navigation";
 
+import { FaraiLogo } from "@/components/brand/farai-logo";
 import { buttonVariants } from "@/components/ui/button";
+import { isPlatformAdminUser } from "@/lib/auth/post-login-redirect";
 import { getPrimaryCompanySlugForUser } from "@/lib/services/routing";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -39,13 +41,20 @@ export async function Navbar({ activeNav }: NavbarProps) {
   const primaryCompanySlug = user
     ? await getPrimaryCompanySlugForUser(user.id)
     : null;
-  const appHref = "/app";
-  const dashboardHref = primaryCompanySlug
-    ? `/${encodeURIComponent(primaryCompanySlug)}/dashboard`
-    : appHref;
-  const projectHref = primaryCompanySlug
-    ? `/${encodeURIComponent(primaryCompanySlug)}/project`
-    : appHref;
+  const isPlatformAdmin = user
+    ? await isPlatformAdminUser(supabase, user.id)
+    : false;
+  const appHref = isPlatformAdmin ? "/admin" : "/app";
+  const dashboardHref = isPlatformAdmin
+    ? "/admin"
+    : primaryCompanySlug
+      ? `/${encodeURIComponent(primaryCompanySlug)}/dashboard`
+      : appHref;
+  const projectHref = isPlatformAdmin
+    ? "/admin/pipeline"
+    : primaryCompanySlug
+      ? `/${encodeURIComponent(primaryCompanySlug)}/project`
+      : appHref;
   const logoHref = user ? appHref : "/";
 
   return (
@@ -54,15 +63,9 @@ export async function Navbar({ activeNav }: NavbarProps) {
         <div className="flex items-center justify-between md:contents">
           <Link
             href={logoHref}
-            className="flex shrink-0 items-center gap-2 font-semibold tracking-tight text-foreground transition-opacity hover:opacity-90 md:flex-1"
+            className="flex shrink-0 items-center transition-opacity hover:opacity-90 md:flex-1"
           >
-            <span
-              className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] text-white shadow-sm"
-              aria-hidden
-            >
-              <Zap className="size-5" strokeWidth={2.25} />
-            </span>
-            FaraiOS
+            <FaraiLogo size="header" priority />
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3 md:hidden">

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { createWebsiteDraftAction } from "@/app/actions/websites";
+import { companyWebsitesPath } from "@/lib/paths/company";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,7 +27,7 @@ const INITIAL_STATE: FormState = {
   customDomain: "",
 };
 
-export function CreateWebsiteForm() {
+export function CreateWebsiteForm({ companySlug }: { companySlug: string }) {
   const router = useRouter();
   const [state, setState] = useState<FormState>(INITIAL_STATE);
   const [pending, setPending] = useState(false);
@@ -56,6 +57,7 @@ export function CreateWebsiteForm() {
 
       setSuccess("Website draft created. You can now connect a domain and publish.");
       setState(INITIAL_STATE);
+      router.push(companyWebsitesPath(companySlug));
       router.refresh();
     } finally {
       setPending(false);

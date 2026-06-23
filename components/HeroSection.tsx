@@ -38,14 +38,14 @@ export function HeroSection() {
               <ArrowRight className="size-4" aria-hidden />
             </Link>
             <Link
-              href="/examples"
+              href="/marketplace"
               className={cn(
                 buttonVariants({ variant: "outline", size: "lg" }),
                 "h-12 gap-2 rounded-2xl border-border/80 bg-background px-8 text-base shadow-sm transition-all hover:border-violet-300/80 hover:bg-muted/50 hover:shadow-md active:translate-y-px"
               )}
             >
               <Eye className="size-4" aria-hidden />
-              View Examples
+              Browse Marketplace
             </Link>
           </div>
 

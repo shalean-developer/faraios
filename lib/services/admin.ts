@@ -1,4 +1,7 @@
+import { isPlatformAdminUser } from "@/lib/auth/platform-admin";
+import { ADMIN_DEVELOPER_OPTIONS } from "@/lib/constants/admin-developers";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { CompanyWithIndustry } from "@/types/database";
 import type {
@@ -9,7 +12,10 @@ import type {
   AdminClient,
   AdminClientProject,
   AdminClientStats,
+  AdminCompanyNote,
   AdminAssignableProject,
+  AdminNotificationPreferences,
+  AdminPlatformSettings,
   AdminProjectActivity,
   AdminProjectDetails,
   AdminMemberAvailability,
@@ -21,6 +27,19 @@ import type {
 } from "@/types/admin";
 import type { AppUser } from "@/types/database";
 import { normalizePlanSlug, pricingPlans } from "@/lib/data/pricing";
+
+async function resolveAdminQueryClient() {
+  const adminClient = tryCreateAdminClient();
+  if (adminClient.ok) {
+    return adminClient.client;
+  }
+  return await createClient();
+}
+
+/** Server-side Supabase client for admin reads (service role when configured). */
+export async function getAdminQueryClient() {
+  return resolveAdminQueryClient();
+}
 
 /** DB `companies.build_status` values (hyphenated) — shared with client dashboard. */
 export type DbBuildStatus =
@@ -70,6 +89,8 @@ type CompanyOnboardingData = {
   features?: unknown;
   style?: unknown;
   competitors?: unknown;
+  project_goal?: unknown;
+  contact_phone?: unknown;
 };
 
 function parseStringList(value: unknown): string[] {
@@ -124,6 +145,8 @@ function companyRowToAdminProject(row: CompanyWithIndustry): AdminProject {
     features: parseStringList(onboardingData.features),
     designStyle: parseOptionalString(onboardingData.style),
     competitors: parseCompetitors(onboardingData.competitors),
+    projectGoal: parseOptionalString(onboardingData.project_goal),
+    contactPhone: parseOptionalString(onboardingData.contact_phone),
   };
 }
 
@@ -272,17 +295,7 @@ export async function isCurrentUserPlatformAdmin(): Promise<boolean> {
   if (!user) {
     return false;
   }
-  const { data, error } = await supabase
-    .from("platform_admins")
-    .select("user_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[admin] isCurrentUserPlatformAdmin", error.message);
-    return false;
-  }
-  return Boolean(data);
+  return isPlatformAdminUser(supabase, user.id);
 }
 
 /**
@@ -297,7 +310,7 @@ export async function getAllProjects(): Promise<AdminProject[]> {
     return [];
   }
 
-  const supabase = await createClient();
+  const supabase = await resolveAdminQueryClient();
   const { data, error } = await supabase
     .from("companies")
     .select(
@@ -345,70 +358,109 @@ export async function getAdminTeamMembers(): Promise<AdminTeamMember[]> {
     return [];
   }
 
-  const supabase = await createClient();
-  const [{ data: users, error: usersError }, { data: memberships, error: membershipsError }, { data: companies, error: companiesError }] =
-    await Promise.all([
-      supabase.from("users").select("id,email,full_name"),
-      supabase.from("memberships").select("user_id,role"),
-      supabase
-        .from("companies")
-        .select("id,assigned_developer,primary_contact_name,primary_contact_email,name,build_status"),
-    ]);
+  const supabase = await resolveAdminQueryClient();
+  const [
+    { data: platformAdmins, error: adminsError },
+    { data: companies, error: companiesError },
+  ] = await Promise.all([
+    supabase.from("platform_admins").select("user_id"),
+    supabase.from("companies").select("id,assigned_developer"),
+  ]);
 
-  if (usersError) {
-    console.error("[admin] getAdminTeamMembers users", usersError.message);
-    return [];
-  }
-  if (membershipsError) {
-    console.error(
-      "[admin] getAdminTeamMembers memberships",
-      membershipsError.message
-    );
-    return [];
+  if (adminsError) {
+    console.error("[admin] getAdminTeamMembers admins", adminsError.message);
   }
   if (companiesError) {
     console.error("[admin] getAdminTeamMembers companies", companiesError.message);
-    return [];
   }
 
-  const membershipsByUser = new Map<string, MembershipRoleRow[]>();
-  for (const membership of (memberships ?? []) as MembershipRoleRow[]) {
-    const current = membershipsByUser.get(membership.user_id) ?? [];
-    current.push(membership);
-    membershipsByUser.set(membership.user_id, current);
-  }
+  const adminUserIds = new Set(
+    (platformAdmins ?? []).map((row) => (row as { user_id: string }).user_id)
+  );
 
   const companiesByAssignee = new Map<string, number>();
-  for (const company of (companies ?? []) as CompanyTeamRow[]) {
+  for (const company of (companies ?? []) as Array<{ assigned_developer: string | null }>) {
     const assignee = company.assigned_developer?.trim();
     if (!assignee) continue;
     const key = normalizeNameForCompare(assignee);
     companiesByAssignee.set(key, (companiesByAssignee.get(key) ?? 0) + 1);
   }
 
-  return ((users ?? []) as AppUser[])
-    .map((user) => {
-      const name =
-        user.full_name?.trim() || user.email.split("@")[0]?.trim() || "Unknown";
-      const userMemberships = membershipsByUser.get(user.id) ?? [];
-      const role = toDisplayRole(userMemberships[0]?.role);
-      const projectCount = companiesByAssignee.get(normalizeNameForCompare(name)) ?? 0;
-      const status = computeStatus(projectCount, userMemberships.length);
-      const availability = computeAvailability(projectCount);
+  let users: AppUser[] = [];
+  if (adminUserIds.size > 0) {
+    const { data: adminUsers, error: usersError } = await supabase
+      .from("users")
+      .select("id,email,full_name")
+      .in("id", Array.from(adminUserIds));
 
-      return {
-        id: user.id,
-        name,
-        email: user.email,
-        role,
-        status,
-        availability,
-        projectCount,
-        avatarInitials: initialsFromName(name),
-        avatarGradient: gradientForId(user.id),
-      } satisfies AdminTeamMember;
-    })
-    .sort((a, b) => a.name.localeCompare(b.name));
+    if (usersError) {
+      console.error("[admin] getAdminTeamMembers users", usersError.message);
+    } else {
+      users = (adminUsers ?? []) as AppUser[];
+    }
+  }
+
+  const members: AdminTeamMember[] = [];
+  const seenNameKeys = new Set<string>();
+
+  for (const user of users) {
+    const name =
+      user.full_name?.trim() || user.email.split("@")[0]?.trim() || "Unknown";
+    const key = normalizeNameForCompare(name);
+    seenNameKeys.add(key);
+    const projectCount = companiesByAssignee.get(key) ?? 0;
+    members.push({
+      id: user.id,
+      name,
+      email: user.email,
+      role: "Admin",
+      status: computeStatus(projectCount, 0),
+      availability: computeAvailability(projectCount),
+      projectCount,
+      avatarInitials: initialsFromName(name),
+      avatarGradient: gradientForId(user.id),
+    });
+  }
+
+  for (const dev of ADMIN_DEVELOPER_OPTIONS) {
+    const key = normalizeNameForCompare(dev.name);
+    if (seenNameKeys.has(key)) continue;
+    seenNameKeys.add(key);
+    const projectCount = companiesByAssignee.get(key) ?? 0;
+    members.push({
+      id: `dev-${dev.id}`,
+      name: dev.name,
+      email: "Internal developer",
+      role: "Developer",
+      status: computeStatus(projectCount, 0),
+      availability: computeAvailability(projectCount),
+      projectCount,
+      avatarInitials: initialsFromName(dev.name),
+      avatarGradient: gradientForId(dev.id),
+    });
+  }
+
+  for (const [assigneeKey, projectCount] of companiesByAssignee.entries()) {
+    if (seenNameKeys.has(assigneeKey)) continue;
+    const displayName = assigneeKey
+      .split(" ")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+    seenNameKeys.add(assigneeKey);
+    members.push({
+      id: `assignee-${assigneeKey.replace(/\s+/g, "-")}`,
+      name: displayName,
+      email: "Assigned on projects",
+      role: "Developer",
+      status: computeStatus(projectCount, 0),
+      availability: computeAvailability(projectCount),
+      projectCount,
+      avatarInitials: initialsFromName(displayName),
+      avatarGradient: gradientForId(assigneeKey),
+    });
+  }
+
+  return members.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function getAdminAssignableProjects(): Promise<AdminAssignableProject[]> {
@@ -420,7 +472,7 @@ export async function getAdminAssignableProjects(): Promise<AdminAssignableProje
     return [];
   }
 
-  const supabase = await createClient();
+  const supabase = await resolveAdminQueryClient();
   const { data, error } = await supabase
     .from("companies")
     .select("id,name,primary_contact_name,primary_contact_email,build_status")
@@ -457,7 +509,7 @@ export async function getAdminProjectDetails(
     return null;
   }
 
-  const supabase = await createClient();
+  const supabase = await resolveAdminQueryClient();
   const { data: company, error: companyError } = await supabase
     .from("companies")
     .select("*, industries ( name, slug )")
@@ -524,13 +576,46 @@ export async function getAdminProjectDetails(
             ? 65
             : 20;
 
+  const { data: noteRows, error: notesError } = await supabase
+    .from("admin_company_notes")
+    .select("id, author_name, body, created_at")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (notesError) {
+    console.error("[admin] getAdminProjectDetails notes", notesError.message);
+  }
+
+  const notes: AdminCompanyNote[] = (noteRows ?? []).map((entry) => ({
+    id: entry.id as string,
+    authorName: entry.author_name as string,
+    body: entry.body as string,
+    createdAtIso: entry.created_at as string,
+  }));
+
+  const { data: website } = await supabase
+    .from("websites")
+    .select("id, status")
+    .eq("client_id", companyId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   return {
     ...base,
     companyId: row.id,
     plan: row.plan?.trim() ?? null,
     deadline: row.next_billing_date ?? null,
     projectProgress: numericProgress,
+    websiteId: (website?.id as string | undefined) ?? null,
+    listedInMarketplace: Boolean(row.listed_in_marketplace),
+    marketplaceSummary: row.marketplace_summary?.trim() ?? null,
+    marketplaceLocation: row.marketplace_location?.trim() ?? null,
+    marketplaceFeatured: Boolean(row.marketplace_featured),
+    websitePublished: website?.status === "published",
     activities,
+    notes,
   };
 }
 
@@ -581,31 +666,39 @@ export async function getAdminAnalyticsData(): Promise<AdminAnalyticsData> {
   if (!isSupabaseConfigured()) return empty;
   if (!(await isCurrentUserPlatformAdmin())) return empty;
 
-  const supabase = await createClient();
-  const [{ data: companies, error: companiesError }, { data: projects, error: projectsError }, { data: activities, error: activitiesError }] =
-    await Promise.all([
-      supabase
-        .from("companies")
-        .select("id,name,created_at,build_status,assigned_developer,plan")
-        .order("created_at", { ascending: true }),
-      supabase.from("projects").select("id,company_id,progress,status"),
-      supabase
-        .from("project_activities")
-        .select("id,project_id,title,stage,created_at")
-        .order("created_at", { ascending: false })
-        .limit(6),
-    ]);
+  const supabase = await resolveAdminQueryClient();
+  const [{ data: companies, error: companiesError },
+    { data: projects, error: projectsError },
+    { data: activities, error: activitiesError },
+  ] = await Promise.all([
+    supabase
+      .from("companies")
+      .select("id,name,created_at,build_status,assigned_developer,plan")
+      .order("created_at", { ascending: true }),
+    supabase.from("projects").select("id,company_id,progress,status"),
+    supabase
+      .from("project_activities")
+      .select("id,project_id,title,stage,created_at")
+      .order("created_at", { ascending: false })
+      .limit(6),
+  ]);
 
-  if (companiesError || projectsError || activitiesError) {
-    if (companiesError) console.error("[admin] getAdminAnalytics companies", companiesError.message);
-    if (projectsError) console.error("[admin] getAdminAnalytics projects", projectsError.message);
-    if (activitiesError) console.error("[admin] getAdminAnalytics activities", activitiesError.message);
+  if (companiesError) {
+    console.error("[admin] getAdminAnalytics companies", companiesError.message);
     return empty;
+  }
+  if (projectsError) {
+    console.error("[admin] getAdminAnalytics projects", projectsError.message);
+  }
+  if (activitiesError) {
+    console.error("[admin] getAdminAnalytics activities", activitiesError.message);
   }
 
   const companyRows = (companies ?? []) as AnalyticsCompanyRow[];
-  const projectRows = (projects ?? []) as AnalyticsProjectRow[];
-  const activityRows = (activities ?? []) as AnalyticsActivityRow[];
+  const projectRows = projectsError ? [] : ((projects ?? []) as AnalyticsProjectRow[]);
+  const activityRows = activitiesError
+    ? []
+    : ((activities ?? []) as AnalyticsActivityRow[]);
 
   const now = new Date();
   const months: { key: string; label: string; date: Date }[] = [];
@@ -632,7 +725,9 @@ export async function getAdminAnalyticsData(): Promise<AdminAnalyticsData> {
     }
   }
 
-  let runningTotal = 0;
+  let runningTotal = companyRows.filter(
+    (company) => new Date(company.created_at) < months[0]!.date
+  ).length;
   const projectsOverTime = months.map((m) => {
     runningTotal += createdCountByMonth.get(m.key) ?? 0;
     return { label: m.label, value: runningTotal };
@@ -763,6 +858,10 @@ type AdminClientCompanyRow = {
   build_status: string | null;
   primary_contact_name: string | null;
   primary_contact_email: string | null;
+  contact_phone: string | null;
+  contact_location: string | null;
+  admin_client_note: string | null;
+  admin_client_note_updated_at: string | null;
 };
 
 type AdminClientProjectRow = {
@@ -784,29 +883,60 @@ export async function getAdminClients(): Promise<{
   if (!isSupabaseConfigured()) return empty;
   if (!(await isCurrentUserPlatformAdmin())) return empty;
 
-  const supabase = await createClient();
-  const [{ data: companies, error: companiesError }, { data: projects, error: projectsError }] =
-    await Promise.all([
-      supabase
-        .from("companies")
-        .select(
-          "id,name,created_at,build_status,primary_contact_name,primary_contact_email"
-        )
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("projects")
-        .select("id,company_id,name,status,created_at")
-        .order("created_at", { ascending: false }),
-    ]);
+  const supabase = await resolveAdminQueryClient();
+  const extendedCompanySelect =
+    "id,name,created_at,build_status,primary_contact_name,primary_contact_email,contact_phone,contact_location,admin_client_note,admin_client_note_updated_at";
+  const baseCompanySelect =
+    "id,name,created_at,build_status,primary_contact_name,primary_contact_email";
 
-  if (companiesError || projectsError) {
-    if (companiesError) console.error("[admin] getAdminClients companies", companiesError.message);
-    if (projectsError) console.error("[admin] getAdminClients projects", projectsError.message);
-    return empty;
+  let companyRows: AdminClientCompanyRow[] = [];
+  const extendedCompanies = await supabase
+    .from("companies")
+    .select(extendedCompanySelect)
+    .order("created_at", { ascending: false });
+
+  if (extendedCompanies.error) {
+    console.error(
+      "[admin] getAdminClients companies extended",
+      extendedCompanies.error.message
+    );
+    const baseCompanies = await supabase
+      .from("companies")
+      .select(baseCompanySelect)
+      .order("created_at", { ascending: false });
+    if (baseCompanies.error) {
+      console.error(
+        "[admin] getAdminClients companies base",
+        baseCompanies.error.message
+      );
+      return empty;
+    }
+    companyRows = ((baseCompanies.data ?? []) as Omit<
+      AdminClientCompanyRow,
+      "contact_phone" | "contact_location" | "admin_client_note" | "admin_client_note_updated_at"
+    >[]).map((row) => ({
+      ...row,
+      contact_phone: null,
+      contact_location: null,
+      admin_client_note: null,
+      admin_client_note_updated_at: null,
+    }));
+  } else {
+    companyRows = (extendedCompanies.data ?? []) as AdminClientCompanyRow[];
   }
 
-  const companyRows = (companies ?? []) as AdminClientCompanyRow[];
-  const projectRows = (projects ?? []) as AdminClientProjectRow[];
+  let projectRows: AdminClientProjectRow[] = [];
+  const { data: projects, error: projectsError } = await supabase
+    .from("projects")
+    .select("id,company_id,name,status,created_at")
+    .order("created_at", { ascending: false });
+
+  if (projectsError) {
+    console.error("[admin] getAdminClients projects", projectsError.message);
+  } else {
+    projectRows = (projects ?? []) as AdminClientProjectRow[];
+  }
+
   const now = new Date();
   const thisMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
 
@@ -814,28 +944,49 @@ export async function getAdminClients(): Promise<{
     const email = company.primary_contact_email?.trim() || "unknown@client.local";
     const name = company.primary_contact_name?.trim() || email.split("@")[0] || "Unknown Client";
     const companyProjects = projectRows.filter((p) => p.company_id === company.id);
-    const status = dbBuildStatusToAdmin(company.build_status) === "pending" ? "Inactive" : "Active";
+    const buildStatus = dbBuildStatusToAdmin(company.build_status);
+    const status = buildStatus === "completed" ? "Inactive" : "Active";
     const joinedDate = formatJoinedDate(company.created_at);
-    const note = `Primary contact for ${company.name}.`;
-    const mostRecentProjectDate = companyProjects[0]?.created_at ?? company.created_at;
+    const note = company.admin_client_note?.trim() || null;
+    const noteTime = company.admin_client_note_updated_at
+      ? shortRelativeTime(company.admin_client_note_updated_at)
+      : null;
+    const fallbackProjectStatus = projectStatusToClientLabel(
+      buildStatus === "in_progress"
+        ? "in_progress"
+        : buildStatus === "in_review"
+          ? "review"
+          : buildStatus === "completed"
+            ? "completed"
+            : "pending"
+    );
 
     return {
       id: company.id,
       name,
       email,
       business: company.name,
-      phone: null,
-      location: null,
+      phone: company.contact_phone?.trim() || null,
+      location: company.contact_location?.trim() || null,
       joined: joinedDate,
-      projectCount: companyProjects.length,
+      projectCount: Math.max(companyProjects.length, 1),
       status,
-      projects: companyProjects.map((p) => ({
-        id: p.id,
-        name: p.name,
-        status: projectStatusToClientLabel(p.status),
-      })),
+      projects:
+        companyProjects.length > 0
+          ? companyProjects.map((p) => ({
+              id: p.id,
+              name: p.name,
+              status: projectStatusToClientLabel(p.status),
+            }))
+          : [
+              {
+                id: company.id,
+                name: company.name,
+                status: fallbackProjectStatus,
+              },
+            ],
       note,
-      noteTime: shortRelativeTime(mostRecentProjectDate),
+      noteTime,
     };
   });
 
@@ -856,25 +1007,29 @@ export async function getAdminActivityItems(): Promise<AdminActivityItem[]> {
   if (!isSupabaseConfigured()) return [];
   if (!(await isCurrentUserPlatformAdmin())) return [];
 
-  const supabase = await createClient();
-  const [{ data: companies }, { data: projects }, { data: activities }] =
-    await Promise.all([
-      supabase
-        .from("companies")
-        .select("id,name,created_at,build_status,assigned_developer,primary_contact_name")
-        .order("created_at", { ascending: false })
-        .limit(10),
-      supabase
-        .from("projects")
-        .select("id,company_id,name,status,created_at")
-        .order("created_at", { ascending: false })
-        .limit(10),
-      supabase
-        .from("project_activities")
-        .select("id,project_id,title,stage,created_at")
-        .order("created_at", { ascending: false })
-        .limit(20),
-    ]);
+  const supabase = await resolveAdminQueryClient();
+  const [
+    { data: companies, error: companiesError },
+    { data: activities, error: activitiesError },
+  ] = await Promise.all([
+    supabase
+      .from("companies")
+      .select("id,name,created_at,build_status,assigned_developer,primary_contact_name")
+      .order("created_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("project_activities")
+      .select("id,project_id,title,stage,created_at")
+      .order("created_at", { ascending: false })
+      .limit(20),
+  ]);
+
+  if (companiesError) {
+    console.error("[admin] getAdminActivityItems companies", companiesError.message);
+  }
+  if (activitiesError) {
+    console.error("[admin] getAdminActivityItems activities", activitiesError.message);
+  }
 
   const companyRows = (companies ?? []) as Array<{
     id: string;
@@ -884,13 +1039,6 @@ export async function getAdminActivityItems(): Promise<AdminActivityItem[]> {
     assigned_developer: string | null;
     primary_contact_name: string | null;
   }>;
-  const projectRows = (projects ?? []) as Array<{
-    id: string;
-    company_id: string;
-    name: string;
-    status: string;
-    created_at: string;
-  }>;
   const activityRows = (activities ?? []) as Array<{
     id: string;
     project_id: string;
@@ -899,7 +1047,58 @@ export async function getAdminActivityItems(): Promise<AdminActivityItem[]> {
     created_at: string;
   }>;
 
+  const activityProjectIds = Array.from(
+    new Set(activityRows.map((row) => row.project_id).filter(Boolean))
+  );
+
+  let projectRows: Array<{
+    id: string;
+    company_id: string;
+    name: string;
+    status: string;
+    created_at: string;
+  }> = [];
+
+  if (activityProjectIds.length > 0) {
+    const { data: projects, error: projectsError } = await supabase
+      .from("projects")
+      .select("id,company_id,name,status,created_at")
+      .in("id", activityProjectIds);
+
+    if (projectsError) {
+      console.error("[admin] getAdminActivityItems projects", projectsError.message);
+    } else {
+      projectRows = (projects ?? []) as typeof projectRows;
+    }
+  }
+
   const companyNameById = new Map(companyRows.map((c) => [c.id, c.name]));
+  const missingCompanyIds = Array.from(
+    new Set(
+      projectRows
+        .map((project) => project.company_id)
+        .filter((companyId) => companyId && !companyNameById.has(companyId))
+    )
+  );
+
+  if (missingCompanyIds.length > 0) {
+    const { data: linkedCompanies, error: linkedCompaniesError } = await supabase
+      .from("companies")
+      .select("id,name")
+      .in("id", missingCompanyIds);
+
+    if (linkedCompaniesError) {
+      console.error(
+        "[admin] getAdminActivityItems linked companies",
+        linkedCompaniesError.message
+      );
+    } else {
+      for (const company of linkedCompanies ?? []) {
+        companyNameById.set(company.id, company.name);
+      }
+    }
+  }
+
   const projectById = new Map(projectRows.map((p) => [p.id, p]));
   const now = Date.now();
 
@@ -952,8 +1151,7 @@ export async function getAdminActivityItems(): Promise<AdminActivityItem[]> {
   }
 
   for (const c of companyRows.filter((c) => c.assigned_developer).slice(0, 3)) {
-    const relatedProject = projectRows.find((p) => p.company_id === c.id);
-    const at = relatedProject?.created_at ?? c.created_at;
+    const at = c.created_at;
     const ageHours = Math.floor((now - new Date(at).getTime()) / 3_600_000);
     const isToday = ageHours < 24;
     items.push({
@@ -991,7 +1189,7 @@ export async function getAdminSettingsUsers(): Promise<
   if (!isSupabaseConfigured()) return [];
   if (!(await isCurrentUserPlatformAdmin())) return [];
 
-  const supabase = await createClient();
+  const supabase = await resolveAdminQueryClient();
   const { data: admins, error: adminError } = await supabase
     .from("platform_admins")
     .select("user_id");
@@ -1046,4 +1244,83 @@ export async function getAdminSettingsUsers(): Promise<
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+const DEFAULT_PLATFORM_SETTINGS: AdminPlatformSettings = {
+  companyName: "Farai Creative Studio",
+  platformName: "FaraiOS",
+};
+
+const DEFAULT_NOTIFICATION_PREFERENCES: AdminNotificationPreferences = {
+  emailAlerts: true,
+  projectUpdates: true,
+  clientActivity: false,
+};
+
+function parseNotificationPreferences(
+  value: unknown
+): AdminNotificationPreferences {
+  if (!value || typeof value !== "object") {
+    return { ...DEFAULT_NOTIFICATION_PREFERENCES };
+  }
+  const row = value as Record<string, unknown>;
+  return {
+    emailAlerts:
+      typeof row.emailAlerts === "boolean"
+        ? row.emailAlerts
+        : DEFAULT_NOTIFICATION_PREFERENCES.emailAlerts,
+    projectUpdates:
+      typeof row.projectUpdates === "boolean"
+        ? row.projectUpdates
+        : DEFAULT_NOTIFICATION_PREFERENCES.projectUpdates,
+    clientActivity:
+      typeof row.clientActivity === "boolean"
+        ? row.clientActivity
+        : DEFAULT_NOTIFICATION_PREFERENCES.clientActivity,
+  };
+}
+
+export async function getPlatformSettings(): Promise<AdminPlatformSettings> {
+  if (!isSupabaseConfigured()) return { ...DEFAULT_PLATFORM_SETTINGS };
+  if (!(await isCurrentUserPlatformAdmin())) return { ...DEFAULT_PLATFORM_SETTINGS };
+
+  const supabase = await resolveAdminQueryClient();
+  const { data, error } = await supabase
+    .from("platform_settings")
+    .select("company_name, platform_name")
+    .eq("id", 1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[admin] getPlatformSettings", error.message);
+    return { ...DEFAULT_PLATFORM_SETTINGS };
+  }
+
+  return {
+    companyName: data?.company_name?.trim() || DEFAULT_PLATFORM_SETTINGS.companyName,
+    platformName: data?.platform_name?.trim() || DEFAULT_PLATFORM_SETTINGS.platformName,
+  };
+}
+
+export async function getAdminNotificationPreferences(
+  userId: string
+): Promise<AdminNotificationPreferences> {
+  if (!isSupabaseConfigured()) return { ...DEFAULT_NOTIFICATION_PREFERENCES };
+  if (!(await isCurrentUserPlatformAdmin())) {
+    return { ...DEFAULT_NOTIFICATION_PREFERENCES };
+  }
+
+  const supabase = await resolveAdminQueryClient();
+  const { data, error } = await supabase
+    .from("users")
+    .select("admin_preferences")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[admin] getAdminNotificationPreferences", error.message);
+    return { ...DEFAULT_NOTIFICATION_PREFERENCES };
+  }
+
+  return parseNotificationPreferences(data?.admin_preferences);
 }

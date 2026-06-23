@@ -159,3 +159,19 @@ export function stageKeyToDbStatus(key: ProjectStageKey): ProjectPipelineStatus 
   if (key === "inprogress") return "in_progress";
   return key as ProjectPipelineStatus;
 }
+
+/** Map `companies.build_status` (hyphenated) to `projects.status`. */
+export function buildStatusToProjectStatus(
+  raw: string | null | undefined
+): ProjectPipelineStatus {
+  switch (raw) {
+    case "in-progress":
+      return "in_progress";
+    case "review":
+      return "review";
+    case "completed":
+      return "completed";
+    default:
+      return "pending";
+  }
+}

@@ -1,9 +1,13 @@
 import Link from "next/link";
 
 import { ProjectStatusTracker } from "@/components/project/project-status-tracker";
+import { Navbar } from "@/components/Navbar";
 import { getProjectByCompany } from "@/lib/services/projects";
 
-type Props = { params: Promise<{ company: string }> };
+type Props = {
+  params: Promise<{ company: string }>;
+  searchParams: Promise<{ submitted?: string }>;
+};
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +30,10 @@ function AccessWall({ slug }: { slug: string }) {
           or return to your company hub.
         </p>
         <div className="mt-6 flex flex-col gap-2 text-sm font-semibold">
-          <Link href="/auth/sign-in" className="text-indigo-600 hover:underline">
+          <Link
+            href={`/auth/sign-in?next=${encodeURIComponent(`/${slug}/project`)}`}
+            className="text-indigo-600 hover:underline"
+          >
             Sign in
           </Link>
           <Link href={`/${encodeURIComponent(slug)}/dashboard`} className="text-slate-600 hover:underline">
@@ -41,8 +48,9 @@ function AccessWall({ slug }: { slug: string }) {
   );
 }
 
-export default async function CompanyProjectPage({ params }: Props) {
+export default async function CompanyProjectPage({ params, searchParams }: Props) {
   const { company } = await params;
+  const { submitted } = await searchParams;
   const slug = decodeURIComponent(company);
 
   const data = await getProjectByCompany(slug);
@@ -50,5 +58,15 @@ export default async function CompanyProjectPage({ params }: Props) {
     return <AccessWall slug={slug} />;
   }
 
-  return <ProjectStatusTracker data={data} />;
+  return (
+    <div className="min-h-screen bg-[#F9FAFB]">
+      <Navbar activeNav="project" />
+      <main>
+        <ProjectStatusTracker
+          data={data}
+          showSubmittedBanner={submitted === "1"}
+        />
+      </main>
+    </div>
+  );
 }

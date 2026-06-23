@@ -3,13 +3,19 @@
 import { revalidatePath } from "next/cache";
 
 import {
-  createWebsiteDraftForCompanyId,
+  createWebsiteDraftForCompanyIdAsAdmin,
   createWebsiteDraftForCurrentUser,
   type CreateWebsiteInput,
   type WebsiteSeoInput,
   updateWebsiteSeo,
 } from "@/lib/services/websites";
-import { isCurrentUserPlatformAdmin } from "@/lib/services/admin";
+import { getAdminQueryClient, isCurrentUserPlatformAdmin } from "@/lib/services/admin";
+import {
+  companyDashboardPath,
+  companyWebsiteEditPath,
+  companyWebsitesPath,
+} from "@/lib/paths/company";
+import { getPrimaryCompanySlugForUser } from "@/lib/services/routing";
 import { createClient } from "@/lib/supabase/server";
 
 export type WebsiteMutationResult =
@@ -23,6 +29,18 @@ export type WebsiteContentFormPayload = {
   contact: Record<string, unknown>;
 };
 
+async function revalidateCompanyWebsitePaths(
+  companySlug: string,
+  websiteId?: string
+) {
+  revalidatePath(companyDashboardPath(companySlug));
+  revalidatePath(companyWebsitesPath(companySlug));
+  revalidatePath(`${companyWebsitesPath(companySlug)}/create`);
+  if (websiteId) {
+    revalidatePath(companyWebsiteEditPath(companySlug, websiteId));
+  }
+}
+
 export async function createWebsiteDraftAction(
   input: CreateWebsiteInput
 ): Promise<WebsiteMutationResult> {
@@ -31,7 +49,16 @@ export async function createWebsiteDraftAction(
     return { ok: false, error: result.error };
   }
 
-  revalidatePath("/dashboard/create-website");
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    const slug = await getPrimaryCompanySlugForUser(user.id);
+    if (slug) {
+      await revalidateCompanyWebsitePaths(slug);
+    }
+  }
   revalidatePath("/app");
   return { ok: true, websiteId: result.websiteId };
 }
@@ -47,13 +74,14 @@ export async function createWebsiteDraftAsAdminAction(
     return { ok: false, error: "Client is required." };
   }
 
-  const result = await createWebsiteDraftForCompanyId(companyId, input);
+  const result = await createWebsiteDraftForCompanyIdAsAdmin(companyId, input);
   if (!result.ok) {
     return { ok: false, error: result.error };
   }
 
   revalidatePath("/admin/websites");
-  revalidatePath("/admin/dashboard");
+  revalidatePath("/admin");
+  revalidatePath("/admin/pipeline");
   return { ok: true, websiteId: result.websiteId };
 }
 
@@ -97,7 +125,7 @@ export async function publishWebsiteAction(
     return { ok: false, error: error.message };
   }
 
-  revalidatePath(`/${companySlug}/dashboard`);
+  await revalidateCompanyWebsitePaths(companySlug, websiteId);
   revalidatePath("/");
   return { ok: true };
 }
@@ -154,7 +182,7 @@ export async function connectDomainAction(
     return { ok: false, error: error.message };
   }
 
-  revalidatePath(`/${companySlug}/dashboard`);
+  await revalidateCompanyWebsitePaths(companySlug, websiteId);
   revalidatePath("/");
   return { ok: true };
 }
@@ -194,7 +222,7 @@ export async function updateWebsiteSeoAction(
   const result = await updateWebsiteSeo(websiteId, input);
   if (!result.ok) return { ok: false, error: result.error };
 
-  revalidatePath(`/${companySlug}/dashboard`);
+  await revalidateCompanyWebsitePaths(companySlug, websiteId);
   revalidatePath("/");
   revalidatePath("/services");
   revalidatePath("/about");
@@ -207,33 +235,38 @@ export async function updateWebsiteContentAction(
   companySlug: string,
   payload: WebsiteContentFormPayload
 ): Promise<WebsiteMutationResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Please sign in again." };
+  const isAdmin = await isCurrentUserPlatformAdmin();
+  const authClient = await createClient();
 
-  const { data: website, error: websiteError } = await supabase
-    .from("websites")
-    .select("id,client_id")
-    .eq("id", websiteId)
-    .maybeSingle();
+  if (!isAdmin) {
+    const {
+      data: { user },
+    } = await authClient.auth.getUser();
+    if (!user) return { ok: false, error: "Please sign in again." };
 
-  if (websiteError || !website) {
-    return { ok: false, error: websiteError?.message ?? "Website not found." };
+    const { data: website, error: websiteError } = await authClient
+      .from("websites")
+      .select("id,client_id")
+      .eq("id", websiteId)
+      .maybeSingle();
+
+    if (websiteError || !website) {
+      return { ok: false, error: websiteError?.message ?? "Website not found." };
+    }
+
+    const { data: membership, error: membershipError } = await authClient
+      .from("memberships")
+      .select("id")
+      .eq("company_id", website.client_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (membershipError || !membership) {
+      return { ok: false, error: "You do not have access to this website." };
+    }
   }
 
-  const { data: membership, error: membershipError } = await supabase
-    .from("memberships")
-    .select("id")
-    .eq("company_id", website.client_id)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (membershipError || !membership) {
-    return { ok: false, error: "You do not have access to this website." };
-  }
-
+  const supabase = isAdmin ? await getAdminQueryClient() : authClient;
   const rows = [
     { website_id: websiteId, section: "hero", content: payload.hero },
     { website_id: websiteId, section: "services", content: payload.services },
@@ -249,8 +282,10 @@ export async function updateWebsiteContentAction(
     return { ok: false, error: error.message };
   }
 
-  revalidatePath(`/dashboard/websites/${websiteId}/edit`);
-  revalidatePath(`/${companySlug}/dashboard`);
+  if (companySlug !== "admin") {
+    await revalidateCompanyWebsitePaths(companySlug, websiteId);
+  }
+  revalidatePath("/admin/websites");
   revalidatePath("/");
   revalidatePath("/services");
   revalidatePath("/about");

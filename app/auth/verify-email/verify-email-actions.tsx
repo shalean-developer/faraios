@@ -3,11 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 
+import { authCallbackUrl, authHref } from "@/lib/auth/safe-next-path";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+
 type VerifyEmailActionsProps = {
   email: string | null;
+  redirectTo: string;
 };
 
-export function VerifyEmailActions({ email }: VerifyEmailActionsProps) {
+export function VerifyEmailActions({ email, redirectTo }: VerifyEmailActionsProps) {
   const [isResending, setIsResending] = useState(false);
   const [resendMessage, setResendMessage] = useState<string | null>(null);
   const [resendError, setResendError] = useState<string | null>(null);
@@ -23,15 +27,17 @@ export function VerifyEmailActions({ email }: VerifyEmailActionsProps) {
     setResendError(null);
     setResendMessage(null);
     try {
-      const response = await fetch("/api/auth/resend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}${authCallbackUrl(redirectTo)}`,
+        },
       });
-      const payload = (await response.json()) as { error?: string };
 
-      if (!response.ok) {
-        setResendError(payload.error ?? "Could not resend verification email.");
+      if (error) {
+        setResendError(error.message);
         return;
       }
 
@@ -46,7 +52,7 @@ export function VerifyEmailActions({ email }: VerifyEmailActionsProps) {
   return (
     <div className="mt-8 space-y-3">
       <Link
-        href="/auth/sign-in"
+        href={authHref("/auth/sign-in", redirectTo)}
         className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-sm font-semibold text-white transition-all hover:brightness-110"
       >
         Go to Login

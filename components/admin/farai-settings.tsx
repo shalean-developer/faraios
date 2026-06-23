@@ -1,8 +1,12 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useEffect, useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { AdminSidebarBrand } from "@/components/admin/admin-sidebar-brand";
+import { AdminSidebarNav } from "@/components/admin/admin-sidebar-nav";
+import { AdminSidebarUser } from "@/components/admin/admin-sidebar-user";
 import {
   Settings,
   Shield,
@@ -14,19 +18,20 @@ import {
   Plus,
   Check,
   ChevronRight,
-  LayoutDashboard,
-  GitBranch,
-  Users2,
-  BarChart3,
-  Zap,
 } from "lucide-react";
 
 import {
   adminAddPlatformAdminByEmail,
   adminRemovePlatformAdmin,
+  adminUpdateNotificationPreferences,
+  adminUpdatePlatformSettings,
 } from "@/app/actions/admin";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import type {
+  AdminNotificationPreferences,
+  AdminPlatformSettings,
+} from "@/types/admin";
 
-type ActiveNav = "dashboard" | "pipeline" | "team" | "analytics" | "settings" | "clients";
 type SettingsTab = "general" | "users" | "notifications" | "security" | "billing";
 
 interface AdminUser {
@@ -37,18 +42,6 @@ interface AdminUser {
   initials: string;
   color: string;
 }
-
-const NAV_ITEMS = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
-  { key: "pipeline", label: "Project Pipeline", icon: GitBranch, href: "/admin" },
-  { key: "team", label: "Team", icon: Users, href: "/admin/team" },
-  { key: "clients", label: "Clients", icon: Users2, href: "/admin/clients" },
-] as const;
-
-const SYSTEM_NAV_ITEMS = [
-  { key: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/analytics" },
-  { key: "settings", label: "Settings", icon: Settings, href: "/admin/settings" },
-] as const;
 
 const SETTINGS_TABS: {
   key: SettingsTab;
@@ -86,66 +79,177 @@ export function FaraiSettings({
   adminUsers,
   adminEmail,
   adminDisplayName,
+  platformSettings,
+  notificationPreferences,
+  initialTab = "general",
 }: {
   adminUsers: AdminUser[];
   adminEmail: string | null;
   adminDisplayName: string;
+  platformSettings: AdminPlatformSettings;
+  notificationPreferences: AdminNotificationPreferences;
+  initialTab?: SettingsTab;
 }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [activeNav] = useState<ActiveNav>("settings");
-  const [activeTab, setActiveTab] = useState<SettingsTab>("general");
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const [companyName, setCompanyName] = useState("Farai Creative Studio");
-  const [platformName, setPlatformName] = useState("FaraiOS");
+  const [companyName, setCompanyName] = useState(platformSettings.companyName);
+  const [platformName, setPlatformName] = useState(platformSettings.platformName);
 
   const [admins, setAdmins] = useState<AdminUser[]>(adminUsers);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
 
-  const [emailAlerts, setEmailAlerts] = useState(true);
-  const [projectUpdates, setProjectUpdates] = useState(true);
-  const [clientActivity, setClientActivity] = useState(false);
+  const [emailAlerts, setEmailAlerts] = useState(notificationPreferences.emailAlerts);
+  const [projectUpdates, setProjectUpdates] = useState(
+    notificationPreferences.projectUpdates
+  );
+  const [clientActivity, setClientActivity] = useState(
+    notificationPreferences.clientActivity
+  );
 
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [twoFactor, setTwoFactor] = useState(false);
 
+  const tabLabel =
+    SETTINGS_TABS.find((tab) => tab.key === activeTab)?.label ?? "General";
+
+  useEffect(() => {
+    setAdmins(adminUsers);
+  }, [adminUsers]);
+
+  useEffect(() => {
+    setCompanyName(platformSettings.companyName);
+    setPlatformName(platformSettings.platformName);
+  }, [platformSettings]);
+
+  useEffect(() => {
+    setEmailAlerts(notificationPreferences.emailAlerts);
+    setProjectUpdates(notificationPreferences.projectUpdates);
+    setClientActivity(notificationPreferences.clientActivity);
+  }, [notificationPreferences]);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  const selectTab = (tab: SettingsTab) => {
+    setActiveTab(tab);
+    const href =
+      tab === "general" ? "/admin/settings" : `/admin/settings?tab=${tab}`;
+    router.replace(href, { scroll: false });
+  };
+
   const handleRemoveAdmin = (id: string) => {
+    setError(null);
+    setMessage(null);
     startTransition(async () => {
       const result = await adminRemovePlatformAdmin(id);
-      if (result.ok) {
-        setAdmins((prev) => prev.filter((a) => a.id !== id));
+      if (!result.ok) {
+        setError(result.error);
+        return;
       }
+      setAdmins((prev) => prev.filter((a) => a.id !== id));
+      setMessage("Admin access removed.");
+      router.refresh();
     });
   };
 
   const handleAddAdmin = () => {
     if (!newEmail.trim()) return;
+    setError(null);
+    setMessage(null);
     startTransition(async () => {
       const result = await adminAddPlatformAdminByEmail(newEmail);
-      if (!result.ok) return;
-      const initials = (newName.trim() || newEmail.trim())
-        .split(" ")
-        .map((n) => n[0] ?? "")
-        .join("")
-        .slice(0, 2)
-        .toUpperCase();
-      setAdmins((prev) => [
-        ...prev,
-        {
-          id: `tmp-${Date.now()}`,
-          name: newName.trim() || newEmail.split("@")[0] || "Admin",
-          email: newEmail.trim(),
-          role: "Admin",
-          initials,
-          color: "from-amber-500 to-orange-600",
-        },
-      ]);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       setNewName("");
       setNewEmail("");
       setShowAddForm(false);
+      setMessage("Admin added successfully.");
+      router.refresh();
+    });
+  };
+
+  const handleSaveGeneral = () => {
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      const result = await adminUpdatePlatformSettings({
+        companyName,
+        platformName,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setMessage("General settings saved.");
+      router.refresh();
+    });
+  };
+
+  const handleSaveNotifications = () => {
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      const result = await adminUpdateNotificationPreferences({
+        emailAlerts,
+        projectUpdates,
+        clientActivity,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setMessage("Notification preferences saved.");
+    });
+  };
+
+  const handleChangePassword = () => {
+    setError(null);
+    setMessage(null);
+    if (!adminEmail) {
+      setError("Sign in again to change your password.");
+      return;
+    }
+    if (newPw.length < 8) {
+      setError("New password must be at least 8 characters.");
+      return;
+    }
+    if (newPw !== confirmPw) {
+      setError("New passwords do not match.");
+      return;
+    }
+
+    startTransition(async () => {
+      const supabase = getSupabaseBrowserClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: adminEmail,
+        password: currentPw,
+      });
+      if (signInError) {
+        setError("Current password is incorrect.");
+        return;
+      }
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPw,
+      });
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+      setCurrentPw("");
+      setNewPw("");
+      setConfirmPw("");
+      setMessage("Password updated successfully.");
     });
   };
 
@@ -155,54 +259,11 @@ export function FaraiSettings({
   return (
     <div className="flex h-screen w-full overflow-hidden font-sans" style={{ background: "#f8f7ff" }}>
       <aside className="flex h-full w-60 flex-shrink-0 flex-col bg-slate-900">
-        <div className="flex h-16 flex-shrink-0 items-center gap-3 border-b border-slate-800 px-5">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md">
-            <Zap className="h-4 w-4 text-white" />
-          </div>
-          <div className="min-w-0">
-            <span className="block text-base font-bold leading-tight tracking-tight text-white">FaraiOS</span>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-indigo-300">Admin</span>
-          </div>
-        </div>
+        <AdminSidebarBrand />
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-5">
-          <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Navigation</p>
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeNav === item.key;
-            return (
-              <Link key={item.key} href={item.href} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/40" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}>
-                <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-white" : "text-slate-500"}`} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-          <div className="pt-5">
-            <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">System</p>
-            {SYSTEM_NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeNav === item.key;
-              return (
-                <Link key={item.key} href={item.href} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/40" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}>
-                  <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-white" : "text-slate-500"}`} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
+        <AdminSidebarNav activeNav="settings" />
 
-        <div className="flex-shrink-0 border-t border-slate-800 px-4 py-4">
-          <div className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600">
-              <Shield className="h-3.5 w-3.5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold text-white">{adminDisplayName}</p>
-              <p className="truncate text-[10px] text-slate-400">{adminEmail ?? "—"}</p>
-            </div>
-          </div>
-        </div>
+        <AdminSidebarUser adminDisplayName={adminDisplayName} adminEmail={adminEmail} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -210,12 +271,22 @@ export function FaraiSettings({
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <span className="text-sm font-medium text-gray-400">Settings</span>
             <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-300" />
-            <span className="text-sm font-extrabold tracking-tight text-gray-900">General</span>
+            <span className="text-sm font-extrabold tracking-tight text-gray-900">{tabLabel}</span>
           </div>
         </header>
 
         <main className="flex-1 overflow-y-auto px-6 py-6">
           <div className="mx-auto max-w-4xl space-y-5">
+            {error ? (
+              <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+                {error}
+              </p>
+            ) : null}
+            {message ? (
+              <p className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                {message}
+              </p>
+            ) : null}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
               <h1 className="text-xl font-extrabold tracking-tight text-gray-900">Settings</h1>
               <p className="mt-1 text-xs text-gray-400">Manage your workspace preferences and configuration.</p>
@@ -223,7 +294,7 @@ export function FaraiSettings({
 
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.38, delay: 0.05 }} className="flex flex-wrap items-center gap-2">
               {SETTINGS_TABS.map((tab) => (
-                <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)} className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all duration-150 ${activeTab === tab.key ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200" : "border border-gray-100 bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700"}`}>
+                <button key={tab.key} type="button" onClick={() => selectTab(tab.key)} className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all duration-150 ${activeTab === tab.key ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200" : "border border-gray-100 bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700"}`}>
                   {tab.label}
                 </button>
               ))}
@@ -257,9 +328,9 @@ export function FaraiSettings({
                       </div>
                     </div>
                     <div className="flex justify-end">
-                      <button type="button" className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700">
+                      <button type="button" onClick={handleSaveGeneral} disabled={isPending} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700 disabled:opacity-60">
                         <Check className="h-3.5 w-3.5" />
-                        <span>Save Changes</span>
+                        <span>{isPending ? "Saving…" : "Save Changes"}</span>
                       </button>
                     </div>
                   </section>
@@ -293,6 +364,11 @@ export function FaraiSettings({
                     </AnimatePresence>
 
                     <div className="divide-y divide-gray-50">
+                      {admins.length === 0 ? (
+                        <p className="px-6 py-8 text-center text-xs text-gray-400">
+                          No platform admins found. Add an admin by email below.
+                        </p>
+                      ) : null}
                       {admins.map((admin) => (
                         <div key={admin.id} className="flex items-center gap-4 px-6 py-3.5 transition-colors hover:bg-gray-50/60">
                           <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${admin.color}`}>
@@ -347,6 +423,12 @@ export function FaraiSettings({
                         </div>
                       ))}
                     </div>
+                    <div className="mt-5 flex justify-end">
+                      <button type="button" onClick={handleSaveNotifications} disabled={isPending} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700 disabled:opacity-60">
+                        <Check className="h-3.5 w-3.5" />
+                        <span>{isPending ? "Saving…" : "Save Preferences"}</span>
+                      </button>
+                    </div>
                   </section>
                 </motion.div>
               ) : null}
@@ -369,11 +451,16 @@ export function FaraiSettings({
                         <input type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} className={inputClass} placeholder="••••••••" />
                       </div>
                     </div>
+                    <div className="flex justify-end">
+                      <button type="button" onClick={handleChangePassword} disabled={isPending} className="rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-indigo-700 disabled:opacity-60">
+                        {isPending ? "Updating…" : "Update Password"}
+                      </button>
+                    </div>
                   </section>
 
                   <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
                     <h2 className="mb-1 text-sm font-extrabold tracking-tight text-gray-900">Two-Factor Authentication</h2>
-                    <p className="mb-5 text-[11px] text-gray-400">Add an extra layer of security to your account with 2FA.</p>
+                    <p className="mb-5 text-[11px] text-gray-400">Full 2FA enrollment is coming soon. You can mark your preference now.</p>
                     <div className="flex items-center justify-between gap-4 pb-5">
                       <div>
                         <p className="text-xs font-bold text-gray-800">Enable 2FA</p>

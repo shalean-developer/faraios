@@ -11,6 +11,9 @@ export type CreateBusinessSystemInput = {
     features?: string[];
     style?: string | null;
     competitors?: string | null;
+    logoFileName?: string | null;
+    projectGoal?: string | null;
+    contactPhone?: string | null;
   };
   /** From pricing page query, e.g. starter | business | premium */
   plan: string | null | undefined;
@@ -87,6 +90,25 @@ export async function createBusinessSystem(
     };
   }
 
+  const { data: existingMembership, error: existingMembershipError } =
+    await supabase
+      .from("memberships")
+      .select("id")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+
+  if (existingMembershipError) {
+    return { ok: false, error: existingMembershipError.message };
+  }
+  if (existingMembership) {
+    return {
+      ok: false,
+      error:
+        "You already have a workspace. Open your dashboard from the app menu.",
+    };
+  }
+
   const planSlug = normalizePlanSlug(input.plan);
   const slug = slugifyBusinessName(name);
   const onboardingData = {
@@ -94,6 +116,9 @@ export async function createBusinessSystem(
     features: (input.onboardingData?.features ?? []).filter(Boolean),
     style: input.onboardingData?.style?.trim() || null,
     competitors: input.onboardingData?.competitors?.trim() || null,
+    logoFileName: input.onboardingData?.logoFileName?.trim() || null,
+    project_goal: input.onboardingData?.projectGoal?.trim() || null,
+    contact_phone: input.onboardingData?.contactPhone?.trim() || null,
   };
 
   const insertCompany: Record<string, unknown> = {

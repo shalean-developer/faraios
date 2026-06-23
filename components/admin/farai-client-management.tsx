@@ -1,17 +1,14 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { AdminSidebarBrand } from "@/components/admin/admin-sidebar-brand";
+import { AdminSidebarNav } from "@/components/admin/admin-sidebar-nav";
+import { AdminSidebarUser } from "@/components/admin/admin-sidebar-user";
+import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
 import {
-  LayoutDashboard,
-  GitBranch,
-  Users,
-  Zap,
-  Bell,
-  Shield,
-  BarChart3,
-  Settings,
   Users2,
   Plus,
   Search,
@@ -30,21 +27,39 @@ import {
 
 import type { AdminClient, AdminClientStats } from "@/types/admin";
 import { clientProjectStatusStyles } from "@/lib/constants/admin-status";
+import {
+  adminCreateClientCompany,
+  adminSaveClientNote,
+  adminUpdateClientCompany,
+} from "@/app/actions/admin";
+import { ADMIN_PIPELINE_PATH } from "@/lib/constants/admin-nav";
 
-type ActiveNav = "dashboard" | "pipeline" | "team" | "analytics" | "settings" | "clients";
 type ModalTab = "contact" | "projects" | "notes";
+type ClientFormState = {
+  businessName: string;
+  contactName: string;
+  contactEmail: string;
+  phone: string;
+  location: string;
+};
 
-const NAV_ITEMS = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
-  { key: "pipeline", label: "Project Pipeline", icon: GitBranch, href: "/admin" },
-  { key: "team", label: "Team", icon: Users, href: "/admin/team" },
-  { key: "clients", label: "Clients", icon: Users2, href: "/admin/clients" },
-] as const;
+const emptyForm: ClientFormState = {
+  businessName: "",
+  contactName: "",
+  contactEmail: "",
+  phone: "",
+  location: "",
+};
 
-const SYSTEM_NAV_ITEMS = [
-  { key: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/analytics" },
-  { key: "settings", label: "Settings", icon: Settings, href: "/admin/settings" },
-] as const;
+function clientToForm(client: AdminClient): ClientFormState {
+  return {
+    businessName: client.business,
+    contactName: client.name,
+    contactEmail: client.email,
+    phone: client.phone ?? "",
+    location: client.location ?? "",
+  };
+}
 
 const fadeUp = {
   hidden: { opacity: 0, y: 18 },
@@ -85,10 +100,20 @@ export function FaraiClientManagement({
   adminEmail: string | null;
   adminDisplayName: string;
 }) {
-  const [activeNav] = useState<ActiveNav>("clients");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedClient, setSelectedClient] = useState<AdminClient | null>(null);
   const [activeTab, setActiveTab] = useState<ModalTab>("contact");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editClient, setEditClient] = useState<AdminClient | null>(null);
+  const [form, setForm] = useState<ClientFormState>(emptyForm);
+  const [noteInput, setNoteInput] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const [noteSuccess, setNoteSuccess] = useState<string | null>(null);
 
   const filteredClients = useMemo(
     () =>
@@ -102,6 +127,15 @@ export function FaraiClientManagement({
       }),
     [clients, searchQuery]
   );
+
+  useEffect(() => {
+    const companyId = searchParams.get("companyId");
+    if (!companyId) return;
+    const client = clients.find((entry) => entry.id === companyId);
+    if (client) {
+      setSelectedClient(client);
+    }
+  }, [clients, searchParams]);
 
   const statsCards = [
     {
@@ -138,59 +172,92 @@ export function FaraiClientManagement({
     },
   ];
 
+  const openAddModal = () => {
+    setForm(emptyForm);
+    setFormError(null);
+    setFormSuccess(null);
+    setShowAddModal(true);
+  };
+
+  const openEditModal = (client: AdminClient) => {
+    setEditClient(client);
+    setForm(clientToForm(client));
+    setFormError(null);
+    setFormSuccess(null);
+  };
+
+  const closeFormModal = () => {
+    setShowAddModal(false);
+    setEditClient(null);
+    setForm(emptyForm);
+    setFormError(null);
+    setFormSuccess(null);
+  };
+
+  const handleSaveClient = () => {
+    setFormError(null);
+    setFormSuccess(null);
+    startTransition(async () => {
+      const payload = {
+        businessName: form.businessName,
+        contactName: form.contactName,
+        contactEmail: form.contactEmail,
+        phone: form.phone.trim() || null,
+        location: form.location.trim() || null,
+      };
+
+      const res = editClient
+        ? await adminUpdateClientCompany(editClient.id, payload)
+        : await adminCreateClientCompany(payload);
+
+      if (!res.ok) {
+        setFormError(res.error ?? "Could not save client.");
+        return;
+      }
+
+      setFormSuccess(editClient ? "Client updated." : "Client created.");
+      router.refresh();
+      if (!editClient) {
+        setTimeout(() => closeFormModal(), 800);
+      } else {
+        setEditClient(null);
+        setSelectedClient(null);
+      }
+    });
+  };
+
+  const handleSaveNote = () => {
+    if (!selectedClient) return;
+    const trimmed = noteInput.trim();
+    if (!trimmed) {
+      setNoteError("Note cannot be empty.");
+      return;
+    }
+    setNoteError(null);
+    setNoteSuccess(null);
+    startTransition(async () => {
+      const res = await adminSaveClientNote(selectedClient.id, trimmed);
+      if (!res.ok) {
+        setNoteError(res.error ?? "Could not save note.");
+        return;
+      }
+      setNoteInput("");
+      setNoteSuccess("Note saved.");
+      router.refresh();
+    });
+  };
+
+  const inputClass =
+    "w-full rounded-xl border border-gray-100 bg-gray-50 px-4 py-2.5 text-xs font-medium text-gray-700 placeholder:text-gray-300 outline-none transition-all focus:border-indigo-300 focus:bg-white";
+
   return (
     <div className="flex h-screen w-full overflow-hidden font-sans" style={{ background: "#f8f7ff" }}>
       <aside className="flex h-full w-60 flex-shrink-0 flex-col bg-slate-900">
-        <div className="flex h-16 flex-shrink-0 items-center gap-3 border-b border-slate-800 px-5">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md">
-            <Zap className="h-4 w-4 text-white" />
-          </div>
-          <div className="min-w-0">
-            <span className="block text-base font-bold leading-tight tracking-tight text-white">FaraiOS</span>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-indigo-300">Admin</span>
-          </div>
-        </div>
+        <AdminSidebarBrand />
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-5">
-          <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Navigation</p>
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeNav === item.key;
-            return (
-              <Link key={item.key} href={item.href} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/40" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}>
-                <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-white" : "text-slate-500"}`} />
-                <span>{item.label}</span>
-                {isActive ? <div className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-200" /> : null}
-              </Link>
-            );
-          })}
+        <AdminSidebarNav activeNav="clients" />
 
-          <div className="pt-5">
-            <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">System</p>
-            {SYSTEM_NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeNav === item.key;
-              return (
-                <Link key={item.key} href={item.href} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/40" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}>
-                  <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-white" : "text-slate-500"}`} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-
-        <div className="flex-shrink-0 border-t border-slate-800 px-4 py-4">
-          <div className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600">
-              <Shield className="h-3.5 w-3.5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold text-white">{adminDisplayName}</p>
-              <p className="truncate text-[10px] text-slate-400">{adminEmail ?? "—"}</p>
-            </div>
-          </div>
-        </div>
+        <AdminSidebarUser adminDisplayName={adminDisplayName} adminEmail={adminEmail} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -211,18 +278,18 @@ export function FaraiClientManagement({
             />
           </div>
 
-          <button type="button" className="flex flex-shrink-0 items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700">
+          <button type="button" onClick={openAddModal} disabled={isPending} className="flex flex-shrink-0 items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700 disabled:opacity-60">
             <Plus className="h-3.5 w-3.5" />
             <span>Add Client</span>
           </button>
 
-          <Link href="/admin/activity" className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-800">
-            <Bell className="h-[18px] w-[18px]" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-indigo-500" />
-          </Link>
+          <AdminActivityBellLink />
         </header>
 
         <main className="flex-1 overflow-y-auto px-6 py-6">
+          {isPending ? (
+            <p className="mb-2 text-xs font-medium text-indigo-600">Syncing…</p>
+          ) : null}
           <motion.div initial="hidden" animate="visible" variants={stagger} className="mx-auto max-w-7xl space-y-5">
             <motion.div variants={fadeUp} className="grid grid-cols-4 gap-4">
               {statsCards.map((stat) => (
@@ -250,8 +317,25 @@ export function FaraiClientManagement({
 
               {filteredClients.length === 0 ? (
                 <div className="px-6 py-14 text-center">
-                  <p className="text-sm font-semibold text-gray-700">No clients found</p>
-                  <p className="mt-1 text-xs text-gray-400">Try a different search term.</p>
+                  <Users2 className="mx-auto mb-3 h-10 w-10 text-gray-200" />
+                  <p className="text-sm font-semibold text-gray-700">
+                    {clients.length === 0 ? "No clients yet" : "No clients found"}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-400">
+                    {clients.length === 0
+                      ? "Add a client manually or wait for onboarding submissions."
+                      : "Try a different search term."}
+                  </p>
+                  {clients.length === 0 ? (
+                    <button
+                      type="button"
+                      onClick={openAddModal}
+                      className="mt-5 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add first client
+                    </button>
+                  ) : null}
                 </div>
               ) : (
                 <table className="w-full">
@@ -303,12 +387,12 @@ export function FaraiClientManagement({
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2">
-                          <button type="button" onClick={() => { setSelectedClient(client); setActiveTab("contact"); }} className="flex items-center gap-1 text-xs font-semibold text-indigo-600 transition-colors hover:text-indigo-800">
+                          <button type="button" onClick={() => { setSelectedClient(client); setActiveTab("contact"); setNoteInput(""); setNoteError(null); setNoteSuccess(null); }} className="flex items-center gap-1 text-xs font-semibold text-indigo-600 transition-colors hover:text-indigo-800">
                             <Eye className="h-3 w-3" />
                             <span>View</span>
                           </button>
                           <span className="text-gray-200">|</span>
-                          <button type="button" className="flex items-center gap-1 text-xs font-semibold text-gray-400 transition-colors hover:text-gray-700">
+                          <button type="button" onClick={() => openEditModal(client)} className="flex items-center gap-1 text-xs font-semibold text-gray-400 transition-colors hover:text-gray-700">
                             <Pencil className="h-3 w-3" />
                             <span>Edit</span>
                           </button>
@@ -380,18 +464,22 @@ export function FaraiClientManagement({
                     {selectedClient.projects.map((proj) => {
                       const style = clientProjectStatusStyles[proj.status];
                       return (
-                        <div key={proj.id} className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 p-3.5 transition-colors hover:bg-gray-100">
+                        <Link
+                          key={proj.id}
+                          href={`${ADMIN_PIPELINE_PATH}/${selectedClient.id}`}
+                          className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 p-3.5 transition-colors hover:border-indigo-200 hover:bg-indigo-50/60"
+                        >
                           <div className="min-w-0">
                             <p className="truncate text-xs font-semibold text-gray-800">{proj.name}</p>
+                            <p className="mt-0.5 text-[10px] font-medium text-indigo-600">View in pipeline</p>
                           </div>
                           <span className={`ml-3 inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-bold ${style.bg} ${style.text}`}>
                             <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
                             <span>{proj.status}</span>
                           </span>
-                        </div>
+                        </Link>
                       );
                     })}
-                    {selectedClient.projects.length === 0 ? <p className="text-xs text-gray-400">No projects yet.</p> : null}
                   </div>
                 ) : null}
 
@@ -409,10 +497,12 @@ export function FaraiClientManagement({
                     </div>
                     <div>
                       <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-gray-400">Add a note</label>
-                      <textarea placeholder="Write something about this client..." rows={3} className="w-full resize-none rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-xs font-medium text-gray-700 placeholder:text-gray-300 outline-none transition-all focus:border-indigo-300 focus:bg-white" />
-                      <button type="button" className="mt-2 flex items-center gap-2 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700">
+                      <textarea value={noteInput} onChange={(e) => setNoteInput(e.target.value)} placeholder="Write something about this client..." rows={3} className="w-full resize-none rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-xs font-medium text-gray-700 placeholder:text-gray-300 outline-none transition-all focus:border-indigo-300 focus:bg-white" />
+                      {noteError ? <p className="mt-2 text-xs font-medium text-red-600">{noteError}</p> : null}
+                      {noteSuccess ? <p className="mt-2 text-xs font-medium text-emerald-600">{noteSuccess}</p> : null}
+                      <button type="button" onClick={handleSaveNote} disabled={isPending} className="mt-2 flex items-center gap-2 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700 disabled:opacity-60">
                         <CheckCircle2 className="h-3.5 w-3.5" />
-                        <span>Save Note</span>
+                        <span>{isPending ? "Saving…" : "Save Note"}</span>
                       </button>
                     </div>
                   </div>
@@ -421,9 +511,50 @@ export function FaraiClientManagement({
 
               <div className="flex items-center justify-between border-t border-gray-50 bg-gray-50/50 px-6 py-4">
                 <button type="button" onClick={() => setSelectedClient(null)} className="rounded-xl px-3 py-2 text-xs font-semibold text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800">Close</button>
-                <button type="button" className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700">
+                <button type="button" onClick={() => { if (selectedClient) openEditModal(selectedClient); }} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700">
                   <Pencil className="h-3 w-3" />
                   <span>Edit Client</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showAddModal || editClient ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div key="form-backdrop" variants={backdropVariants} initial="hidden" animate="visible" exit="exit" onClick={closeFormModal} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div key="form-modal" variants={modalVariants} initial="hidden" animate="visible" exit="exit" className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl shadow-slate-900/20">
+              <div className="border-b border-gray-50 px-6 py-5">
+                <h2 className="text-base font-extrabold text-gray-900">{editClient ? "Edit Client" : "Add Client"}</h2>
+                <p className="mt-0.5 text-xs text-gray-400">{editClient ? "Update client contact details." : "Create a new client company record."}</p>
+              </div>
+              <div className="space-y-3 px-6 py-5">
+                {[
+                  { key: "businessName" as const, label: "Business Name" },
+                  { key: "contactName" as const, label: "Contact Name" },
+                  { key: "contactEmail" as const, label: "Contact Email", type: "email" },
+                  { key: "phone" as const, label: "Phone" },
+                  { key: "location" as const, label: "Location" },
+                ].map((field) => (
+                  <div key={field.key} className="space-y-1.5">
+                    <label className="text-xs font-semibold text-gray-500">{field.label}</label>
+                    <input
+                      type={field.type ?? "text"}
+                      value={form[field.key]}
+                      onChange={(e) => setForm((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                      className={inputClass}
+                    />
+                  </div>
+                ))}
+                {formError ? <p className="text-xs font-medium text-red-600">{formError}</p> : null}
+                {formSuccess ? <p className="text-xs font-medium text-emerald-600">{formSuccess}</p> : null}
+              </div>
+              <div className="flex items-center justify-end gap-2 border-t border-gray-50 bg-gray-50/50 px-6 py-4">
+                <button type="button" onClick={closeFormModal} className="rounded-xl px-3 py-2 text-xs font-semibold text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800">Cancel</button>
+                <button type="button" onClick={handleSaveClient} disabled={isPending} className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700 disabled:opacity-60">
+                  {isPending ? "Saving…" : editClient ? "Save Changes" : "Create Client"}
                 </button>
               </div>
             </motion.div>

@@ -1,8 +1,7 @@
 import Link from "next/link";
 
 import { PreviewWebsiteButton } from "@/components/websites/preview-website-button";
-import { isCurrentUserPlatformAdmin } from "@/lib/services/admin";
-import { createClient } from "@/lib/supabase/server";
+import { getAdminQueryClient, isCurrentUserPlatformAdmin } from "@/lib/services/admin";
 import type { Website } from "@/types/database";
 
 export const metadata = {
@@ -28,7 +27,7 @@ type WebsiteWithCompany = Website & { companies?: { name?: string | null } | nul
 
 export default async function AdminWebsitesPage() {
   if (!(await isCurrentUserPlatformAdmin())) return <AccessDenied />;
-  const supabase = await createClient();
+  const supabase = await getAdminQueryClient();
   const { data } = await supabase
     .from("websites")
     .select("*, companies(name)")

@@ -21,7 +21,7 @@ function AccordionItem({
   return (
     <Accordion.Item
       className={cn(
-        "overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] transition-colors hover:border-white/15",
+        "overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-colors hover:border-gray-200",
         className
       )}
       {...props}
@@ -38,13 +38,13 @@ function AccordionTrigger({
     <Accordion.Header className="flex">
       <Accordion.Trigger
         className={cn(
-          "group/trigger flex flex-1 items-center justify-between gap-4 px-5 py-4 text-left text-sm font-semibold text-slate-200 outline-none transition-colors hover:bg-white/[0.03] hover:text-white focus-visible:ring-2 focus-visible:ring-indigo-500/50",
+          "group/trigger flex flex-1 items-center justify-between gap-4 px-5 py-4 text-left text-sm font-semibold text-gray-900 outline-none transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-violet-500/50",
           className
         )}
         {...props}
       >
         {children}
-        <ChevronDown className="h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200 group-data-[panel-open]/trigger:rotate-180" />
+        <ChevronDown className="h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 group-data-[panel-open]/trigger:rotate-180" />
       </Accordion.Trigger>
     </Accordion.Header>
   );
@@ -57,7 +57,7 @@ function AccordionContent({
   return (
     <Accordion.Panel
       className={cn(
-        "overflow-hidden px-5 pb-5 pl-[3.25rem] text-sm leading-relaxed text-slate-400",
+        "overflow-hidden px-5 pb-5 text-sm leading-relaxed text-gray-600",
         className
       )}
       keepMounted={false}

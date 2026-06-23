@@ -14,7 +14,6 @@ import {
   Search,
   Sparkles,
   Users,
-  Zap,
 } from "lucide-react";
 
 import {
@@ -76,9 +75,10 @@ const stagger = {
 
 type Props = {
   data: ProjectTrackingDTO;
+  showSubmittedBanner?: boolean;
 };
 
-export function ProjectStatusTracker({ data }: Props) {
+export function ProjectStatusTracker({ data, showSubmittedBanner = false }: Props) {
   const gradId = useId();
   const currentKey = dbStatusToStageKey(data.status);
   const currentIndex =
@@ -124,44 +124,17 @@ export function ProjectStatusTracker({ data }: Props) {
   }, [data.activities, activeData, viewingKey]);
 
   return (
-    <div
-      className="min-h-screen w-full overflow-x-hidden font-sans"
-      style={{ background: "#f8f9fc" }}
-    >
-      <header className="flex w-full items-center justify-between border-b border-slate-100 bg-white px-6 py-5 shadow-sm md:px-12">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md">
-            <Zap className="h-4 w-4 text-white" />
+    <div className="w-full overflow-x-hidden bg-[#f8f9fc]">
+      <div className="mx-auto w-full max-w-4xl px-4 pb-24 pt-8 md:px-8">
+        {showSubmittedBanner ? (
+          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-900">
+            <p className="font-semibold">Project request received</p>
+            <p className="mt-1 text-emerald-800">
+              Thanks — we&apos;ve logged your brief. Our team will review it and update
+              this tracker as your build progresses.
+            </p>
           </div>
-          <div>
-            <span className="block text-base font-bold leading-tight tracking-tight text-slate-800">
-              FaraiOS
-            </span>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-indigo-500">
-              Project Tracker
-            </span>
-          </div>
-        </Link>
-        <nav className="hidden items-center gap-6 md:flex" aria-label="Tracker nav">
-          <Link
-            href={`/${encodeURIComponent(data.company_slug)}/dashboard`}
-            className="text-sm text-slate-400 transition-colors hover:text-slate-700"
-          >
-            Dashboard
-          </Link>
-          <Link
-            href="/pricing"
-            className="text-sm text-slate-400 transition-colors hover:text-slate-700"
-          >
-            Pricing
-          </Link>
-          <span className="border-b border-indigo-500 pb-0.5 text-sm font-semibold text-slate-800">
-            My Project
-          </span>
-        </nav>
-      </header>
-
-      <main className="mx-auto w-full max-w-4xl px-4 pb-24 pt-10 md:px-8">
+        ) : null}
         <motion.div
           initial="hidden"
           animate="visible"
@@ -441,7 +414,7 @@ export function ProjectStatusTracker({ data }: Props) {
             Planned next: in-app notifications, realtime updates, team chat, and file uploads.
           </p>
         </motion.div>
-      </main>
+      </div>
     </div>
   );
 }

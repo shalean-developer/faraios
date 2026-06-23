@@ -1,5 +1,7 @@
 import { slugifyBusinessName } from "@/lib/slug";
+import { getAdminQueryClient, isCurrentUserPlatformAdmin } from "@/lib/services/admin";
 import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Website, WebsiteContent } from "@/types/database";
 
 export type CreateWebsiteInput = {
@@ -170,12 +172,11 @@ export async function createWebsiteDraftForCurrentUser(
   return createWebsiteDraftForCompanyId(membership.company_id, input);
 }
 
-export async function createWebsiteDraftForCompanyId(
+async function insertWebsiteDraft(
+  supabase: SupabaseClient,
   companyId: string,
   input: CreateWebsiteInput
 ): Promise<{ ok: true; websiteId: string } | { ok: false; error: string }> {
-  const supabase = await createClient();
-
   const domain = cleanDomain(input.customDomain ?? "");
   const subdomain = buildSubdomainSeed(input.businessName);
   const businessName = input.businessName.trim();
@@ -221,6 +222,26 @@ export async function createWebsiteDraftForCompanyId(
   }
 
   return { ok: true, websiteId: website.id };
+}
+
+export async function createWebsiteDraftForCompanyId(
+  companyId: string,
+  input: CreateWebsiteInput
+): Promise<{ ok: true; websiteId: string } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  return insertWebsiteDraft(supabase, companyId, input);
+}
+
+export async function createWebsiteDraftForCompanyIdAsAdmin(
+  companyId: string,
+  input: CreateWebsiteInput
+): Promise<{ ok: true; websiteId: string } | { ok: false; error: string }> {
+  if (!(await isCurrentUserPlatformAdmin())) {
+    return { ok: false, error: "Forbidden." };
+  }
+
+  const supabase = await getAdminQueryClient();
+  return insertWebsiteDraft(supabase, companyId, input);
 }
 
 export async function getWebsiteForCompany(

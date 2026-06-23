@@ -9,7 +9,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "Admin — FaraiOS",
+  title: "Admin Dashboard — FaraiOS",
   robots: { index: false, follow: false },
 };
 
@@ -66,6 +66,8 @@ export default async function AdminPage() {
       stats={stats}
       adminEmail={user?.email ?? null}
       adminDisplayName={adminDisplayName}
+      activeNav="dashboard"
+      viewMode="overview"
     />
   );
 }

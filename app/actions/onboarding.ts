@@ -13,6 +13,9 @@ export type OnboardingSubmitInput = {
     features?: string[];
     style?: string | null;
     competitors?: string | null;
+    logoFileName?: string | null;
+    projectGoal?: string | null;
+    contactPhone?: string | null;
   };
   /** From `/get-started?plan=` — starter | business | premium */
   plan?: string | null;
@@ -61,6 +64,7 @@ export async function createCompanyFromOnboarding(
   revalidatePath("/");
   revalidatePath("/app");
   revalidatePath(`/${slug}/dashboard`);
+  revalidatePath(`/${slug}/dashboard/hosting`);
   revalidatePath(`/${slug}/project`);
 
   return { ok: true, slug };

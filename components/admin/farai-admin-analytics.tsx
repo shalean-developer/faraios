@@ -1,18 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import React, { useState } from "react";
+import React, { useMemo, useTransition } from "react";
 import { motion } from "framer-motion";
+import { AdminSidebarBrand } from "@/components/admin/admin-sidebar-brand";
+import { AdminSidebarNav } from "@/components/admin/admin-sidebar-nav";
+import { AdminSidebarUser } from "@/components/admin/admin-sidebar-user";
+import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
 import {
-  LayoutDashboard,
-  GitBranch,
-  Users,
-  Users2,
-  Zap,
-  Bell,
-  Shield,
-  BarChart3,
-  Settings,
   Layers,
   CheckCircle2,
   TrendingUp,
@@ -20,7 +14,7 @@ import {
   Trophy,
   Clock,
   ArrowUpRight,
-  DollarSign,
+  CircleDollarSign,
   UserCheck,
   CircleDot,
   Clock4,
@@ -42,20 +36,7 @@ import {
 } from "recharts";
 
 import type { AdminAnalyticsData } from "@/types/admin";
-
-type ActiveNav = "dashboard" | "pipeline" | "team" | "clients" | "analytics" | "settings";
-
-const NAV_ITEMS = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
-  { key: "pipeline", label: "Project Pipeline", icon: GitBranch, href: "/admin" },
-  { key: "team", label: "Team", icon: Users, href: "/admin/team" },
-  { key: "clients", label: "Clients", icon: Users2, href: "/admin/clients" },
-] as const;
-
-const SYSTEM_NAV_ITEMS = [
-  { key: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/analytics" },
-  { key: "settings", label: "Settings", icon: Settings, href: "/admin/settings" },
-] as const;
+import { formatZar } from "@/lib/data/pricing";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 18 },
@@ -66,12 +47,18 @@ const stagger = { visible: { transition: { staggerChildren: 0.07 } } };
 
 const trophyColors = ["text-amber-400", "text-slate-400", "text-orange-400", "text-slate-300"];
 
-const usdNumberFormat = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 0,
-});
+const activityStatusTextColors: Record<string, string> = {
+  "bg-emerald-500": "text-emerald-600",
+  "bg-purple-500": "text-purple-600",
+  "bg-blue-500": "text-blue-600",
+  "bg-amber-500": "text-amber-600",
+};
 
-function formatUsd(value: number): string {
-  return `$${usdNumberFormat.format(value)}`;
+function formatZarCompact(amount: number): string {
+  if (amount >= 1000) {
+    return `R${Math.round(amount / 1000)}k`;
+  }
+  return formatZar(amount);
 }
 
 const CustomTooltip = ({
@@ -112,21 +99,55 @@ const RevenueTooltip = ({
     return (
       <div className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 shadow-xl">
         <p className="mb-0.5 text-xs font-bold text-white">{label}</p>
-        <p className="text-xs font-semibold text-violet-300">{formatUsd(payload[0]!.value)}</p>
+        <p className="text-xs font-semibold text-violet-300">{formatZar(payload[0]!.value)}</p>
       </div>
     );
   }
   return null;
 };
 
+function getViewBoxCenter(viewBox?: {
+  cx?: number;
+  cy?: number;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+}) {
+  if (!viewBox) return { cx: 0, cy: 0 };
+  if (Number.isFinite(viewBox.cx) && Number.isFinite(viewBox.cy)) {
+    return { cx: viewBox.cx!, cy: viewBox.cy! };
+  }
+  if (
+    Number.isFinite(viewBox.x) &&
+    Number.isFinite(viewBox.y) &&
+    Number.isFinite(viewBox.width) &&
+    Number.isFinite(viewBox.height)
+  ) {
+    return {
+      cx: viewBox.x! + viewBox.width! / 2,
+      cy: viewBox.y! + viewBox.height! / 2,
+    };
+  }
+  return { cx: 0, cy: 0 };
+}
+
 const DonutLabel = ({
   viewBox,
   total,
 }: {
-  viewBox?: { cx: number; cy: number };
+  viewBox?: {
+    cx?: number;
+    cy?: number;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+  };
   total: number;
 }) => {
-  const { cx, cy } = viewBox ?? { cx: 0, cy: 0 };
+  const { cx, cy } = getViewBoxCenter(viewBox);
+  const safeTotal = Number.isFinite(total) ? total : 0;
   return (
     <g>
       <text
@@ -137,7 +158,7 @@ const DonutLabel = ({
         className="fill-gray-900 text-xl font-extrabold"
         style={{ fontSize: 22, fontWeight: 800 }}
       >
-        {total}
+        {safeTotal}
       </text>
       <text
         x={cx}
@@ -161,59 +182,14 @@ export function FaraiAdminAnalytics({
   adminEmail: string | null;
   adminDisplayName: string;
 }) {
-  const [activeNav] = useState<ActiveNav>("analytics");
   return (
     <div className="flex h-screen w-full overflow-hidden font-sans" style={{ background: "#f8f7ff" }}>
       <aside className="flex h-full w-60 flex-shrink-0 flex-col bg-slate-900">
-        <div className="flex h-16 flex-shrink-0 items-center gap-3 border-b border-slate-800 px-5">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md">
-            <Zap className="h-4 w-4 text-white" />
-          </div>
-          <div className="min-w-0">
-            <span className="block text-base font-bold leading-tight tracking-tight text-white">FaraiOS</span>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-indigo-300">Admin</span>
-          </div>
-        </div>
+        <AdminSidebarBrand />
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-5">
-          <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Navigation</p>
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeNav === item.key;
-            return (
-              <Link key={item.key} href={item.href} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/40" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}>
-                <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-white" : "text-slate-500"}`} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+        <AdminSidebarNav activeNav="analytics" />
 
-          <div className="pt-5">
-            <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">System</p>
-            {SYSTEM_NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeNav === item.key;
-              return (
-                <Link key={item.key} href={item.href} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/40" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}>
-                  <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-white" : "text-slate-500"}`} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-
-        <div className="flex-shrink-0 border-t border-slate-800 px-4 py-4">
-          <div className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600">
-              <Shield className="h-3.5 w-3.5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold text-white">{adminDisplayName}</p>
-              <p className="truncate text-[10px] text-slate-400">{adminEmail ?? "—"}</p>
-            </div>
-          </div>
-        </div>
+        <AdminSidebarUser adminDisplayName={adminDisplayName} adminEmail={adminEmail} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -226,19 +202,16 @@ export function FaraiAdminAnalytics({
             <TrendingUp className="h-3.5 w-3.5" />
             <span>{analytics.monthLabel}</span>
           </div>
-          <Link href="/admin/activity" className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-800">
-            <Bell className="h-[18px] w-[18px]" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-indigo-500" />
-          </Link>
+          <AdminActivityBellLink />
         </header>
 
         <main className="flex-1 overflow-y-auto px-6 py-6">
           <motion.div initial="hidden" animate="visible" variants={stagger} className="mx-auto max-w-7xl space-y-5">
-            <motion.div variants={fadeUp} className="grid grid-cols-4 gap-4">
+            <motion.div variants={fadeUp} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {[
                 { label: "Total Projects", value: String(analytics.totalProjects), icon: Layers, iconBg: "bg-indigo-50", iconColor: "text-indigo-600", accent: "from-indigo-500 to-violet-500", sub: "All-time projects" },
                 { label: "Completed", value: String(analytics.completedProjects), icon: CheckCircle2, iconBg: "bg-emerald-50", iconColor: "text-emerald-600", accent: "from-emerald-400 to-teal-400", sub: `${analytics.totalProjects > 0 ? Math.round((analytics.completedProjects / analytics.totalProjects) * 100) : 0}% completion rate` },
-                { label: "Revenue", value: formatUsd(analytics.revenueTotal), icon: DollarSign, iconBg: "bg-violet-50", iconColor: "text-violet-600", accent: "from-violet-400 to-purple-500", sub: "Estimated setup revenue" },
+                { label: "Revenue", value: formatZar(analytics.revenueTotal), icon: CircleDollarSign, iconBg: "bg-violet-50", iconColor: "text-violet-600", accent: "from-violet-400 to-purple-500", sub: "Estimated setup revenue" },
                 { label: "Active Clients", value: String(analytics.activeClients), icon: UserCheck, iconBg: "bg-blue-50", iconColor: "text-blue-600", accent: "from-blue-400 to-indigo-400", sub: "Non-pending projects" },
               ].map((stat) => {
                 const Icon = stat.icon;
@@ -262,8 +235,8 @@ export function FaraiAdminAnalytics({
               })}
             </motion.div>
 
-            <motion.div variants={fadeUp} className="grid grid-cols-3 gap-5">
-              <div className="col-span-2 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+            <motion.div variants={fadeUp} className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+              <div className="col-span-1 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:col-span-2">
                 <div className="mb-5 flex items-center justify-between">
                   <div>
                     <h2 className="text-sm font-bold text-gray-900">Projects Over Time</h2>
@@ -303,7 +276,12 @@ export function FaraiAdminAnalytics({
                         {analytics.statusBreakdown.map((entry) => (
                           <Cell key={entry.name} fill={entry.color} />
                         ))}
-                        <Label content={<DonutLabel total={analytics.totalProjects} />} position="center" />
+                        <Label
+                          content={(props) => (
+                            <DonutLabel viewBox={props.viewBox} total={analytics.totalProjects} />
+                          )}
+                          position="center"
+                        />
                       </Pie>
                       <Tooltip content={<CustomTooltip />} />
                     </PieChart>
@@ -321,7 +299,7 @@ export function FaraiAdminAnalytics({
               </div>
             </motion.div>
 
-            <motion.div variants={fadeUp} className="grid grid-cols-2 gap-5">
+            <motion.div variants={fadeUp} className="grid grid-cols-1 gap-5 lg:grid-cols-2">
               <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
                 <div className="mb-5 flex items-center justify-between">
                   <div>
@@ -353,8 +331,8 @@ export function FaraiAdminAnalytics({
                     <p className="mt-0.5 text-xs text-gray-400">Estimated setup revenue (last 6 months)</p>
                   </div>
                   <div className="flex items-center gap-1.5 rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-600">
-                    <DollarSign className="h-3 w-3" />
-                    <span>{formatUsd(analytics.revenueTotal)} total</span>
+                    <CircleDollarSign className="h-3 w-3" />
+                    <span>{formatZar(analytics.revenueTotal)} total</span>
                   </div>
                 </div>
                 <ResponsiveContainer width="100%" height={180}>
@@ -367,7 +345,7 @@ export function FaraiAdminAnalytics({
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                     <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 600 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 600 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                    <YAxis tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 600 }} axisLine={false} tickLine={false} tickFormatter={(v) => formatZarCompact(Number(v))} />
                     <Tooltip content={<RevenueTooltip />} />
                     <Bar dataKey="value" fill="url(#rev-bar)" radius={[6, 6, 0, 0]} maxBarSize={40} />
                   </BarChart>
@@ -375,7 +353,7 @@ export function FaraiAdminAnalytics({
               </div>
             </motion.div>
 
-            <motion.div variants={fadeUp} className="grid grid-cols-2 gap-5">
+            <motion.div variants={fadeUp} className="grid grid-cols-1 gap-5 lg:grid-cols-2">
               <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
                 <div className="mb-5 flex items-center justify-between">
                   <div>
@@ -434,7 +412,7 @@ export function FaraiAdminAnalytics({
                           <p className="text-xs leading-snug text-gray-700">
                             <strong className="font-semibold text-gray-900">{entry.project}</strong>
                             <span> {entry.action} </span>
-                            <span className={`font-semibold ${entry.color.replace("bg-", "text-").replace("-500", "-600")}`}>{entry.status}</span>
+                            <span className={`font-semibold ${activityStatusTextColors[entry.color] ?? "text-gray-600"}`}>{entry.status}</span>
                           </p>
                           <div className="mt-0.5 flex items-center gap-1">
                             <Clock className="h-3 w-3 text-gray-300" />

@@ -14,7 +14,7 @@ export default async function CompanyDashboardPage({ params }: Props) {
   const { company } = await params;
   const slug = decodeURIComponent(company);
   const row = await getCompanyBySlug(slug);
-  const projects = row ? await listProjectsForCompany(row.id) : [];
+  const projects = row ? await listProjectsForCompany(row.id, row.build_status) : [];
   const bookings = row ? await listBookingsForCompany(row.id) : [];
   const website = row ? await getWebsiteForCompany(row.id) : null;
 

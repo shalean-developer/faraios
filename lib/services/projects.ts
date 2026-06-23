@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { DEFAULT_PROGRESS_BY_STATUS } from "@/lib/data/project-stages";
+import { buildStatusToProjectStatus } from "@/lib/data/project-stages";
 import type { Project } from "@/types/database";
 import type {
   ProjectActivityRow,
@@ -31,11 +32,36 @@ function normalizeProgress(
   return Math.round(n);
 }
 
+/** Align project row with `companies.build_status` when admin has updated the pipeline. */
+export function applyCompanyBuildStatus(
+  project: Project,
+  companyBuildStatus: string | null | undefined
+): Project {
+  const statusFromCompany = companyBuildStatus
+    ? buildStatusToProjectStatus(companyBuildStatus)
+    : null;
+  const status =
+    statusFromCompany ?? (project.status as ProjectPipelineStatus);
+  const progress =
+    statusFromCompany != null
+      ? DEFAULT_PROGRESS_BY_STATUS[status]
+      : normalizeProgress(status, project.progress);
+
+  return {
+    ...project,
+    status,
+    progress,
+    current_stage: statusFromCompany ?? project.current_stage ?? status,
+  };
+}
+
 /**
  * Projects for a company (RLS: members only). Used by company dashboard.
+ * When `companyBuildStatus` is set, status/progress mirror the company pipeline.
  */
 export async function listProjectsForCompany(
-  companyId: string
+  companyId: string,
+  companyBuildStatus?: string | null
 ): Promise<Project[]> {
   if (!isSupabaseConfigured()) {
     return [];
@@ -54,7 +80,9 @@ export async function listProjectsForCompany(
     return [];
   }
 
-  return (data ?? []) as Project[];
+  return ((data ?? []) as Project[]).map((project) =>
+    applyCompanyBuildStatus(project, companyBuildStatus)
+  );
 }
 
 async function hasMembership(
@@ -118,7 +146,7 @@ export async function getProjectByCompany(
   }
 
   if (!project) {
-    const status: ProjectPipelineStatus = "pending";
+    const status = buildStatusToProjectStatus(company.build_status);
     return {
       company_id: company.id,
       company_slug: company.slug,
@@ -132,7 +160,9 @@ export async function getProjectByCompany(
   }
 
   const p = project as ProjectRow;
-  const status = p.status as ProjectPipelineStatus;
+  const merged = applyCompanyBuildStatus(p as Project, company.build_status);
+  const status = merged.status as ProjectPipelineStatus;
+  const progress_percentage = merged.progress ?? DEFAULT_PROGRESS_BY_STATUS[status];
 
   const { data: actRows, error: actError } = await supabase
     .from("project_activities")
@@ -158,8 +188,8 @@ export async function getProjectByCompany(
     project_id: p.id,
     name: p.name,
     status,
-    progress_percentage: normalizeProgress(status, p.progress),
-    current_stage: p.current_stage ?? status,
+    progress_percentage,
+    current_stage: merged.current_stage ?? status,
     activities,
   };
 }

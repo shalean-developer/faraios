@@ -1,8 +1,7 @@
 import Link from "next/link";
 
 import { WebsiteContentEditor } from "@/components/websites/website-content-editor";
-import { isCurrentUserPlatformAdmin } from "@/lib/services/admin";
-import { createClient } from "@/lib/supabase/server";
+import { getAdminQueryClient, isCurrentUserPlatformAdmin } from "@/lib/services/admin";
 import type { Website, WebsiteContent } from "@/types/database";
 
 export const metadata = {
@@ -29,7 +28,7 @@ export default async function AdminEditWebsitePage({ params }: Props) {
   if (!(await isCurrentUserPlatformAdmin())) return <AccessDenied />;
 
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = await getAdminQueryClient();
   const { data: website } = await supabase.from("websites").select("*").eq("id", id).maybeSingle();
   if (!website) return <AccessDenied />;
   const typedWebsite = website as Website;

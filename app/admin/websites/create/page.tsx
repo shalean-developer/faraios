@@ -1,8 +1,7 @@
 import Link from "next/link";
 
 import { AdminCreateWebsiteForm } from "@/components/websites/admin-create-website-form";
-import { isCurrentUserPlatformAdmin } from "@/lib/services/admin";
-import { createClient } from "@/lib/supabase/server";
+import { getAdminQueryClient, isCurrentUserPlatformAdmin } from "@/lib/services/admin";
 
 export const metadata = {
   title: "Admin Create Website — FaraiOS",
@@ -22,9 +21,14 @@ function AccessDenied() {
   );
 }
 
-export default async function AdminCreateWebsitePage() {
+export default async function AdminCreateWebsitePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ companyId?: string }>;
+}) {
   if (!(await isCurrentUserPlatformAdmin())) return <AccessDenied />;
-  const supabase = await createClient();
+  const { companyId } = await searchParams;
+  const supabase = await getAdminQueryClient();
   const { data } = await supabase
     .from("companies")
     .select("id,name")
@@ -40,7 +44,10 @@ export default async function AdminCreateWebsitePage() {
       <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Create Website</h1>
       <p className="mt-2 text-sm text-slate-500">Generate a new website for a selected client.</p>
       <div className="mt-6">
-        <AdminCreateWebsiteForm companies={((data ?? []) as { id: string; name: string }[])} />
+        <AdminCreateWebsiteForm
+          companies={((data ?? []) as { id: string; name: string }[])}
+          initialCompanyId={companyId ?? ""}
+        />
       </div>
     </main>
   );

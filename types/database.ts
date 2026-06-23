@@ -39,6 +39,10 @@ export type Company = {
   project_status?: string;
   /** Raw onboarding payload for admin and project detail use cases. */
   onboarding_data?: Record<string, unknown> | null;
+  listed_in_marketplace?: boolean;
+  marketplace_summary?: string | null;
+  marketplace_location?: string | null;
+  marketplace_featured?: boolean;
 };
 
 export type CompanyWithIndustry = Company & {
@@ -93,6 +97,9 @@ export type Booking = {
   date: string | null;
   booking_date?: string | null;
   status: string | null;
+  customer_email?: string | null;
+  customer_phone?: string | null;
+  source?: string | null;
   created_at?: string;
 };
 
@@ -119,4 +126,36 @@ export type WebsiteContent = {
   website_id: string;
   section: string;
   content: Record<string, unknown>;
+};
+
+/** Aligns with public.hosting_subscriptions */
+export type HostingSubscription = {
+  id: string;
+  company_id: string;
+  plan_slug: string;
+  status: "pending" | "active" | "suspended" | "cancelled";
+  subdomain: string | null;
+  custom_domain: string | null;
+  domain_status: "none" | "pending" | "verified";
+  ssl_status: "pending" | "active" | "failed";
+  bandwidth_limit_gb: number;
+  sites_limit: number;
+  next_billing_date: string | null;
+  activated_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Aligns with public.hosting_payments */
+export type HostingPayment = {
+  id: string;
+  subscription_id: string | null;
+  company_id: string;
+  plan_slug: string;
+  amount_cents: number;
+  currency: string;
+  paystack_reference: string | null;
+  status: "pending" | "success" | "failed";
+  paid_at: string | null;
+  created_at: string;
 };

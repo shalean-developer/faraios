@@ -3,19 +3,15 @@
 import Link from "next/link";
 import React, { useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { AdminSidebarBrand } from "@/components/admin/admin-sidebar-brand";
+import { AdminSidebarNav } from "@/components/admin/admin-sidebar-nav";
+import { AdminSidebarUser } from "@/components/admin/admin-sidebar-user";
+import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
 import {
-  LayoutDashboard,
-  GitBranch,
   Users,
-  Users2,
-  Zap,
   Search,
-  Bell,
   ChevronDown,
   X,
-  Shield,
-  BarChart3,
-  Settings,
   Sparkles,
   UserCheck,
   UserPlus,
@@ -33,20 +29,6 @@ import { useRouter } from "next/navigation";
 
 import { adminAssignProjectsToMember } from "@/app/actions/admin";
 import type { AdminAssignableProject, AdminTeamMember } from "@/types/admin";
-
-type ActiveNav = "dashboard" | "pipeline" | "team" | "clients";
-
-const NAV_ITEMS: {
-  key: ActiveNav;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  href: string;
-}[] = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
-  { key: "pipeline", label: "Project Pipeline", icon: GitBranch, href: "/admin" },
-  { key: "team", label: "Team", icon: Users, href: "/admin/team" },
-  { key: "clients", label: "Clients", icon: Users2, href: "/admin/clients" },
-];
 
 const rolePalette = [
   {
@@ -156,7 +138,6 @@ export function FaraiAdminTeamManagement({
 }: FaraiAdminTeamManagementProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [activeNav] = useState<ActiveNav>("team");
   const [searchValue, setSearchValue] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("All");
   const [statusFilter, setStatusFilter] = useState<"All" | "Active" | "Offline">(
@@ -166,6 +147,8 @@ export function FaraiAdminTeamManagement({
   const [openStatusDropdown, setOpenStatusDropdown] = useState(false);
   const [assignTarget, setAssignTarget] = useState<AdminTeamMember | null>(null);
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+  const [assignError, setAssignError] = useState<string | null>(null);
+  const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
 
   const roleOptions = useMemo(
     () => ["All", ...Array.from(new Set(members.map((m) => m.role))).sort()],
@@ -202,6 +185,8 @@ export function FaraiAdminTeamManagement({
   const handleAssignOpen = (member: AdminTeamMember) => {
     setAssignTarget(member);
     setSelectedProjects([]);
+    setAssignError(null);
+    setAssignSuccess(null);
   };
 
   const toggleProjectSelection = (projectId: string) => {
@@ -214,9 +199,17 @@ export function FaraiAdminTeamManagement({
 
   const handleConfirmAssignment = () => {
     if (!assignTarget || selectedProjects.length === 0) return;
+    setAssignError(null);
+    setAssignSuccess(null);
     startTransition(async () => {
-      await adminAssignProjectsToMember(assignTarget.name, selectedProjects);
-      setAssignTarget(null);
+      const res = await adminAssignProjectsToMember(assignTarget.name, selectedProjects);
+      if (!res.ok) {
+        setAssignError(res.error ?? "Could not assign projects.");
+        return;
+      }
+      setAssignSuccess(
+        `Assigned ${selectedProjects.length} project${selectedProjects.length === 1 ? "" : "s"} to ${assignTarget.name}.`
+      );
       setSelectedProjects([]);
       router.refresh();
     });
@@ -232,84 +225,14 @@ export function FaraiAdminTeamManagement({
       }}
     >
       <aside className="flex h-full w-60 flex-shrink-0 flex-col bg-slate-900">
-        <div className="flex h-16 flex-shrink-0 items-center gap-3 border-b border-slate-800 px-5">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md">
-            <Zap className="h-4 w-4 text-white" />
-          </div>
-          <div className="min-w-0">
-            <span className="block text-base font-bold leading-tight tracking-tight text-white">
-              FaraiOS
-            </span>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-indigo-300">
-              Admin
-            </span>
-          </div>
-        </div>
+        <AdminSidebarBrand />
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-5">
-          <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            Navigation
-          </p>
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeNav === item.key;
-            return (
-              <Link
-                key={item.key}
-                href={item.href}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
-                  isActive
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/40"
-                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
-                }`}
-              >
-                <Icon
-                  className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-white" : "text-slate-500"}`}
-                />
-                <span>{item.label}</span>
-                {isActive && (
-                  <div className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-200" />
-                )}
-              </Link>
-            );
-          })}
+        <AdminSidebarNav activeNav="team" />
 
-          <div className="pt-5">
-            <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-              System
-            </p>
-            <Link
-              href="/admin/analytics"
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition-all duration-150 hover:bg-slate-800 hover:text-white"
-            >
-              <BarChart3 className="h-4 w-4 text-slate-500" />
-              <span>Analytics</span>
-            </Link>
-            <Link
-              href="/admin/settings"
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition-all duration-150 hover:bg-slate-800 hover:text-white"
-            >
-              <Settings className="h-4 w-4 text-slate-500" />
-              <span>Settings</span>
-            </Link>
-          </div>
-        </nav>
-
-        <div className="flex-shrink-0 border-t border-slate-800 px-4 py-4">
-          <div className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600">
-              <Shield className="h-3.5 w-3.5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold text-white">
-                {adminDisplayName}
-              </p>
-              <p className="truncate text-[10px] text-slate-400">
-                {adminEmail ?? "—"}
-              </p>
-            </div>
-          </div>
-        </div>
+        <AdminSidebarUser
+          adminDisplayName={adminDisplayName}
+          adminEmail={adminEmail}
+        />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -336,19 +259,29 @@ export function FaraiAdminTeamManagement({
             </div>
           </div>
 
-          <Link
-            href="/admin/activity"
-            className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-800"
-          >
-            <Bell className="h-[18px] w-[18px]" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-indigo-500" />
-          </Link>
+          <AdminActivityBellLink />
         </header>
 
         <main className="flex-1 overflow-y-auto px-6 py-6">
           {isPending && (
             <p className="mb-2 text-xs font-medium text-indigo-600">Syncing…</p>
           )}
+          {members.length === 0 ? (
+            <div className="mx-auto max-w-lg rounded-2xl border border-gray-100 bg-white p-10 text-center shadow-sm">
+              <Users className="mx-auto mb-3 h-10 w-10 text-gray-200" />
+              <h2 className="text-sm font-bold text-gray-900">No team members yet</h2>
+              <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                Add platform admins in Settings, or assign developers from the project pipeline.
+              </p>
+              <Link
+                href="/admin/settings?tab=users"
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                Manage admins
+              </Link>
+            </div>
+          ) : (
           <motion.div
             initial="hidden"
             animate="visible"
@@ -531,13 +464,13 @@ export function FaraiAdminTeamManagement({
                     </AnimatePresence>
                   </div>
 
-                  <button
-                    type="button"
+                  <Link
+                    href="/admin/settings?tab=users"
                     className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-3.5 py-2 text-xs font-bold text-white shadow-md shadow-indigo-200 transition-all duration-200 hover:-translate-y-px hover:shadow-lg hover:shadow-indigo-300"
                   >
                     <UserPlus className="h-3.5 w-3.5" />
                     Add Member
-                  </button>
+                  </Link>
                 </div>
               </div>
 
@@ -673,6 +606,7 @@ export function FaraiAdminTeamManagement({
               </div>
             </motion.div>
           </motion.div>
+          )}
         </main>
       </div>
 
@@ -725,11 +659,22 @@ export function FaraiAdminTeamManagement({
               </div>
 
               <div className="px-6 py-5">
+                {assignError ? (
+                  <p className="mb-3 text-xs font-medium text-red-600">{assignError}</p>
+                ) : null}
+                {assignSuccess ? (
+                  <p className="mb-3 text-xs font-medium text-emerald-600">{assignSuccess}</p>
+                ) : null}
                 <p className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-400">
                   Select Projects to Assign
                 </p>
                 <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
-                  {assignableProjects.map((project) => {
+                  {assignableProjects.length === 0 ? (
+                    <p className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-6 text-center text-xs text-gray-500">
+                      No projects available yet. Client projects will appear here once companies are onboarded.
+                    </p>
+                  ) : (
+                  assignableProjects.map((project) => {
                     const isSelected = selectedProjects.includes(project.id);
                     const pStatus = projectStatusConfig[project.status];
                     return (
@@ -768,7 +713,8 @@ export function FaraiAdminTeamManagement({
                         </div>
                       </button>
                     );
-                  })}
+                  })
+                  )}
                 </div>
 
                 {selectedProjects.length > 0 && (

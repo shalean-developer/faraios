@@ -91,6 +91,25 @@ export function planLabelForSlug(slug: PricingPlanSlug): string {
   return pricingPlans.find((p) => p.slug === slug)?.name ?? slug;
 }
 
+/** Max pages included per plan (`null` = unlimited). */
+export function planPageLimit(slug: PricingPlanSlug): number | null {
+  switch (slug) {
+    case "starter":
+      return 4;
+    case "business":
+      return 7;
+    case "premium":
+      return null;
+    default:
+      return 4;
+  }
+}
+
+export function planPageLimitLabel(slug: PricingPlanSlug): string {
+  const limit = planPageLimit(slug);
+  return limit === null ? "Unlimited pages" : `Up to ${limit} pages`;
+}
+
 export type TrustBadgeRecord = {
   id: string;
   label: string;

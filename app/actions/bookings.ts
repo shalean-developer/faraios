@@ -61,6 +61,7 @@ export async function createBookingForCompany(
     booking_date: parsed.data.bookingDateIso,
     date: parsed.data.bookingDateIso,
     status: "pending",
+    source: "internal",
   });
 
   if (error) {

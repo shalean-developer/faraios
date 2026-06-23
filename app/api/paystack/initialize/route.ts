@@ -55,10 +55,10 @@ export async function POST(req: Request) {
   const amount = planAmountInKobo(plan);
 
   const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+    process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
   if (!siteUrl) {
     return NextResponse.json(
-      { ok: false, error: "Missing NEXT_PUBLIC_SITE_URL or NEXT_PUBLIC_APP_URL." },
+      { ok: false, error: "Missing NEXT_PUBLIC_APP_URL or NEXT_PUBLIC_SITE_URL." },
       { status: 500 }
     );
   }

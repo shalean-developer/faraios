@@ -52,7 +52,7 @@ export default async function AdminPipelineProjectPage(props: Props) {
           <p className="mt-2 text-sm text-gray-500">
             The requested project does not exist or cannot be accessed.
           </p>
-          <Link href="/admin" className="mt-6 inline-block text-sm font-semibold text-indigo-600 hover:text-indigo-800">
+          <Link href="/admin/pipeline" className="mt-6 inline-block text-sm font-semibold text-indigo-600 hover:text-indigo-800">
             ← Back to pipeline
           </Link>
         </div>

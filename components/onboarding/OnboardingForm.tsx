@@ -8,13 +8,23 @@ import { ArrowRight, Upload } from "lucide-react";
 import { createCompanyFromOnboarding } from "@/app/actions/onboarding";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
+  hostingPlanLabelForSlug,
+  normalizeHostingPlanSlug,
+} from "@/lib/data/hosting";
+import {
   normalizePlanSlug,
   planLabelForSlug,
+  planPageLimit,
+  planPageLimitLabel,
   pricingPlans,
   type PricingPlanSlug,
 } from "@/lib/data/pricing";
 import { getSmartDefaultsForIndustrySlug } from "@/lib/constants/industry-defaults";
-import { PAGE_OPTIONS } from "@/lib/constants/onboarding-pages";
+import { PAGE_OPTIONS_VISIBLE, syncBlogPageWithFeatures } from "@/lib/constants/onboarding-pages";
+import {
+  canAddPageToPlan,
+  trimPagesToPlanLimit,
+} from "@/lib/onboarding/plan-pages";
 import { cn } from "@/lib/utils";
 import type { DesignStyle } from "@/types/company";
 import type { Feature } from "@/types/database";
@@ -29,7 +39,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -46,17 +55,25 @@ export type OnboardingFormProps = {
   features: Feature[];
   /** From `/get-started?plan=` */
   initialPlan?: string | null;
+  /** After onboarding, redirect to hosting purchase (`redirect=hosting`). */
+  redirectAfter?: string | null;
+  /** Hosting plan slug when `redirectAfter` is `hosting`. */
+  hostingPlan?: string | null;
 };
 
 export function OnboardingForm({
   industries,
   features,
   initialPlan = null,
+  redirectAfter = null,
+  hostingPlan = null,
 }: OnboardingFormProps) {
   const router = useRouter();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const [businessName, setBusinessName] = React.useState("");
+  const [contactPhone, setContactPhone] = React.useState("");
+  const [projectGoal, setProjectGoal] = React.useState("");
   const [industryId, setIndustryId] = React.useState(
     () => industries[0]?.id ?? ""
   );
@@ -69,6 +86,10 @@ export function OnboardingForm({
   const [dragActive, setDragActive] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
+  const [step, setStep] = React.useState<"form" | "review">("form");
+  const [isAuthenticated, setIsAuthenticated] = React.useState<boolean | null>(
+    null
+  );
   const [planSlug, setPlanSlug] = React.useState<PricingPlanSlug>(() =>
     normalizePlanSlug(initialPlan || "starter")
   );
@@ -77,6 +98,29 @@ export function OnboardingForm({
     setPlanSlug(normalizePlanSlug(initialPlan || "starter"));
   }, [initialPlan]);
 
+  React.useEffect(() => {
+    setSelectedPages((prev) => trimPagesToPlanLimit(prev, planSlug));
+  }, [planSlug]);
+
+  React.useEffect(() => {
+    let mounted = true;
+    const loadAuth = async () => {
+      const { data } = await getSupabaseBrowserClient().auth.getUser();
+      if (mounted) setIsAuthenticated(Boolean(data.user));
+    };
+    void loadAuth();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const isHostingFlow = redirectAfter === "hosting";
+  const hostingPlanSlug = normalizeHostingPlanSlug(hostingPlan);
+  const selectedIndustryName = React.useMemo(
+    () => industries.find((ind) => ind.id === industryId)?.name ?? null,
+    [industries, industryId]
+  );
+
   const applyIndustryDefaults = React.useCallback(
     (id: string) => {
       const industry = industries.find((i) => i.id === id);
@@ -84,7 +128,12 @@ export function OnboardingForm({
       const { pages, featureSlugs } = getSmartDefaultsForIndustrySlug(
         industry.slug
       );
-      setSelectedPages(pages);
+      setSelectedPages(
+        trimPagesToPlanLimit(
+          syncBlogPageWithFeatures(pages, featureSlugs),
+          planSlug
+        )
+      );
       setFeatureSlugs(featureSlugs);
     },
     [industries]
@@ -99,10 +148,22 @@ export function OnboardingForm({
     setIndustryId(value ?? "");
   };
 
+  const pageLimit = planPageLimit(planSlug);
+
   const togglePage = (page: string) => {
-    setSelectedPages((prev) =>
-      prev.includes(page) ? prev.filter((p) => p !== page) : [...prev, page]
-    );
+    setSelectedPages((prev) => {
+      if (prev.includes(page)) {
+        return prev.filter((p) => p !== page);
+      }
+      if (!canAddPageToPlan(prev, planSlug)) {
+        setError(
+          `${planLabelForSlug(planSlug)} includes ${planPageLimitLabel(planSlug).toLowerCase()}. Remove a page or upgrade your plan.`
+        );
+        return prev;
+      }
+      setError(null);
+      return [...prev, page];
+    });
   };
 
   const onFile = (file: File | null) => {
@@ -120,49 +181,90 @@ export function OnboardingForm({
     setLogoFileName(file.name);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
+  const validateForm = (): boolean => {
     const name = businessName.trim();
     if (!name) {
       setError("Please enter your business name.");
-      return;
+      return false;
     }
     if (!industryId) {
       setError("Select an industry so we can tailor your site.");
+      return false;
+    }
+    if (!contactPhone.trim()) {
+      setError("Please add a phone or WhatsApp number so we can reach you.");
+      return false;
+    }
+    if (!projectGoal.trim()) {
+      setError("Tell us what you want this website to achieve.");
+      return false;
+    }
+    if (!designStyle) {
+      setError("Choose a design style for your project.");
+      return false;
+    }
+    if (selectedPages.length === 0) {
+      setError("Select at least one page for your website.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleContinueToReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!validateForm()) return;
+    setStep("review");
+  };
+
+  const handleSubmit = async () => {
+    setError(null);
+    if (!validateForm()) {
+      setStep("form");
       return;
     }
-
     const {
       data: { user },
     } = await getSupabaseBrowserClient().auth.getUser();
 
     if (!user) {
       const next = `/onboarding${window.location.search}`;
-      router.push(`/auth/sign-in?next=${encodeURIComponent(next)}`);
+      router.push(
+        `/auth/sign-up?next=${encodeURIComponent(next)}`
+      );
       return;
     }
 
     setPending(true);
     try {
       const result = await createCompanyFromOnboarding({
-        businessName: name,
+        businessName: businessName.trim(),
         industryId,
         onboardingData: {
           pages: selectedPages,
           features: featureSlugs,
           style: designStyle,
           competitors,
+          logoFileName,
+          projectGoal: projectGoal.trim(),
+          contactPhone: contactPhone.trim(),
         },
         plan: planSlug,
         userId: user.id,
       });
       if (!result.ok) {
         setError(result.error);
+        setStep("form");
         return;
       }
-      router.push("/app");
+      if (redirectAfter === "hosting") {
+        const planQuery = hostingPlan ? `?plan=${encodeURIComponent(hostingPlan)}` : "";
+        router.push(`/${encodeURIComponent(result.slug)}/dashboard/hosting${planQuery}`);
+      } else {
+        router.push(
+          `/${encodeURIComponent(result.slug)}/project?submitted=1`
+        );
+      }
       router.refresh();
     } finally {
       setPending(false);
@@ -171,10 +273,106 @@ export function OnboardingForm({
 
   return (
     <form
-      onSubmit={handleSubmit}
+      onSubmit={step === "form" ? handleContinueToReview : (e) => e.preventDefault()}
       className="rounded-3xl border border-border/60 bg-card p-6 shadow-xl sm:p-8 md:p-10"
     >
       <div className="space-y-8">
+        <div className="space-y-2 border-b border-border/50 pb-6">
+          <h2 className="text-xl font-bold text-foreground">Submit your project request</h2>
+          <p className="text-sm text-muted-foreground">
+            Tell us about your business. After you submit, our team reviews your brief and
+            typically starts within 1–2 business days.
+          </p>
+        </div>
+
+        {step === "review" ? (
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-violet-200 bg-violet-50/60 p-5">
+              <h3 className="text-base font-semibold text-foreground">Review your brief</h3>
+              <dl className="mt-4 space-y-3 text-sm">
+                {!isHostingFlow ? (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Plan</dt>
+                    <dd className="font-medium text-foreground">{planLabelForSlug(planSlug)}</dd>
+                  </div>
+                ) : null}
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">Business</dt>
+                  <dd className="font-medium text-foreground">{businessName}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">Industry</dt>
+                  <dd className="font-medium text-foreground">{selectedIndustryName}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">Phone</dt>
+                  <dd className="font-medium text-foreground">{contactPhone}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Project goal</dt>
+                  <dd className="mt-1 font-medium text-foreground">{projectGoal}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Pages</dt>
+                  <dd className="mt-1 font-medium text-foreground">{selectedPages.join(", ")}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Features</dt>
+                  <dd className="mt-1 font-medium text-foreground">
+                    {featureSlugs.length > 0
+                      ? features
+                          .filter((f) => featureSlugs.includes(f.slug))
+                          .map((f) => f.name)
+                          .join(", ")
+                      : "None selected"}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">Design style</dt>
+                  <dd className="font-medium capitalize text-foreground">{designStyle}</dd>
+                </div>
+              </dl>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12 rounded-2xl"
+                onClick={() => setStep("form")}
+                disabled={pending}
+              >
+                Back to edit
+              </Button>
+              <Button
+                type="button"
+                className="h-12 flex-1 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#4F46E5]"
+                disabled={pending}
+                onClick={() => void handleSubmit()}
+              >
+                {pending ? "Submitting request…" : "Submit project request"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+        {isHostingFlow ? (
+          <div className="rounded-2xl border border-indigo-200 bg-indigo-50/80 p-4 text-sm text-indigo-900">
+            <p className="font-semibold">Hosting setup</p>
+            <p className="mt-1 text-indigo-800">
+              Create your workspace first, then you&apos;ll continue to buy{" "}
+              <strong>{hostingPlanLabelForSlug(hostingPlanSlug)}</strong> hosting.
+            </p>
+          </div>
+        ) : null}
+
+        {isAuthenticated === false ? (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            Fill in your details below. When you submit, you&apos;ll be asked to sign in
+            or create an account to save your workspace.
+          </div>
+        ) : null}
+
+        {!isHostingFlow ? (
         <div className="space-y-3 rounded-2xl border border-violet-200/70 bg-violet-50/60 p-4 dark:border-violet-900/50 dark:bg-violet-950/25">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <Label htmlFor="plan-select" className="text-base font-medium">
@@ -201,7 +399,9 @@ export function OnboardingForm({
               size="default"
               className="h-11 w-full min-w-0 justify-between rounded-xl border-border/80 px-4 text-base data-[size=default]:h-11"
             >
-              <SelectValue placeholder="Select a plan" />
+              <span className="flex flex-1 truncate text-left">
+                {planLabelForSlug(planSlug)}
+              </span>
             </SelectTrigger>
             <SelectContent>
               {pricingPlans.map((p) => (
@@ -217,6 +417,7 @@ export function OnboardingForm({
             it here before submitting.
           </p>
         </div>
+        ) : null}
 
         <div className="space-y-2">
           <Label htmlFor="business-name" className="text-base font-medium">
@@ -234,6 +435,37 @@ export function OnboardingForm({
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="contact-phone" className="text-base font-medium">
+            Phone or WhatsApp
+          </Label>
+          <Input
+            id="contact-phone"
+            name="contactPhone"
+            type="tel"
+            value={contactPhone}
+            onChange={(e) => setContactPhone(e.target.value)}
+            placeholder="e.g. 082 123 4567"
+            autoComplete="tel"
+            className="h-11 rounded-xl border-border/80 px-4 text-base"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="project-goal" className="text-base font-medium">
+            What should this website achieve?
+          </Label>
+          <Textarea
+            id="project-goal"
+            name="projectGoal"
+            value={projectGoal}
+            onChange={(e) => setProjectGoal(e.target.value)}
+            placeholder="e.g. Get more booking enquiries, showcase our services, and look professional online."
+            rows={3}
+            className="min-h-[96px] rounded-xl border-border/80 px-4 py-3 text-base"
+          />
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="industry" className="text-base font-medium">
             Industry
           </Label>
@@ -247,13 +479,17 @@ export function OnboardingForm({
               size="default"
               className="h-11 w-full min-w-0 justify-between rounded-xl border-border/80 px-4 text-base data-[size=default]:h-11"
             >
-              <SelectValue
-                placeholder={
-                  industries.length === 0
+              <span
+                className={cn(
+                  "flex flex-1 truncate text-left",
+                  !selectedIndustryName && "text-muted-foreground"
+                )}
+              >
+                {selectedIndustryName ??
+                  (industries.length === 0
                     ? "No industries — add data in Supabase"
-                    : "Select your industry"
-                }
-              />
+                    : "Select your industry")}
+              </span>
             </SelectTrigger>
             <SelectContent>
               {industries.map((ind) => (
@@ -269,9 +505,19 @@ export function OnboardingForm({
         </div>
 
         <div className="space-y-3">
-          <Label className="text-base font-medium">Pages needed</Label>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <Label className="text-base font-medium">Pages needed</Label>
+            <span className="text-xs text-muted-foreground">
+              {selectedPages.length}
+              {pageLimit !== null ? ` of ${pageLimit}` : ""} selected ·{" "}
+              {planPageLimitLabel(planSlug)}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            A Blog page is added automatically when you enable Blog / CMS below.
+          </p>
           <div className="flex flex-wrap gap-2">
-            {PAGE_OPTIONS.map((page) => {
+            {PAGE_OPTIONS_VISIBLE.map((page) => {
               const on = selectedPages.includes(page);
               return (
                 <button
@@ -293,7 +539,9 @@ export function OnboardingForm({
         </div>
 
         <div className="space-y-3">
-          <Label className="text-base font-medium">Design style</Label>
+          <Label className="text-base font-medium">
+            Design style <span className="text-destructive">*</span>
+          </Label>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {DESIGN.map(({ id, label }) => {
               const active = designStyle === id;
@@ -332,7 +580,7 @@ export function OnboardingForm({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-base font-medium">Upload logo</Label>
+          <Label className="text-base font-medium">Logo (optional)</Label>
           <div
             role="button"
             tabIndex={0}
@@ -370,7 +618,7 @@ export function OnboardingForm({
               Click to upload or drag and drop
             </span>
             <span className="text-xs text-muted-foreground">
-              PNG, JPG, SVG up to 10MB
+              Optional for now — we&apos;ll collect the file after your workspace is created.
             </span>
             {logoFileName ? (
               <span className="mt-2 text-xs font-medium text-[#7C3AED]">
@@ -390,37 +638,40 @@ export function OnboardingForm({
 
         <div className="space-y-3">
           <Label className="text-base font-medium">Features needed</Label>
-          {features.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-border/80 bg-muted/30 px-4 py-6 text-sm text-muted-foreground">
-              No features configured. Add rows to the{" "}
-              <code className="rounded bg-muted px-1">features</code> table in
-              Supabase.
-            </p>
-          ) : (
-            <div className="space-y-3 rounded-2xl border border-border/60 bg-muted/20 p-4">
-              {features.map((feat) => (
-                <label
-                  key={feat.id}
-                  className="flex cursor-pointer items-center gap-3 text-sm font-medium"
-                >
-                  <Checkbox
-                    checked={featureSlugs.includes(feat.slug)}
-                    onCheckedChange={(v) => {
-                      if (v === true) {
-                        setFeatureSlugs((s) =>
-                          s.includes(feat.slug) ? s : [...s, feat.slug]
-                        );
-                      } else {
-                        setFeatureSlugs((s) => s.filter((x) => x !== feat.slug));
-                      }
-                    }}
+          <p className="text-xs text-muted-foreground">
+            Interactive capabilities for your site — not the same as static pages above.
+          </p>
+          <div className="space-y-3 rounded-2xl border border-border/60 bg-muted/20 p-4">
+            {features.map((feat) => (
+              <label
+                key={feat.id}
+                className="flex cursor-pointer items-center gap-3 text-sm font-medium"
+              >
+                <Checkbox
+                  checked={featureSlugs.includes(feat.slug)}
+                  onCheckedChange={(v) => {
+                    setFeatureSlugs((s) => {
+                      const next =
+                        v === true
+                          ? s.includes(feat.slug)
+                            ? s
+                            : [...s, feat.slug]
+                          : s.filter((x) => x !== feat.slug);
+                      setSelectedPages((pages) =>
+                        trimPagesToPlanLimit(
+                          syncBlogPageWithFeatures(pages, next),
+                          planSlug
+                        )
+                      );
+                      return next;
+                    });
+                  }}
                     className="data-checked:border-[#7C3AED] data-checked:bg-[#7C3AED]"
                   />
                   {feat.name}
                 </label>
               ))}
-            </div>
-          )}
+          </div>
         </div>
 
         {error ? (
@@ -431,19 +682,16 @@ export function OnboardingForm({
 
         <Button
           type="submit"
-          disabled={
-            pending ||
-            industries.length === 0 ||
-            !businessName.trim() ||
-            !industryId
-          }
+          disabled={pending || industries.length === 0}
           className={cn(
             "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border-0 bg-gradient-to-r from-[#7C3AED] to-[#4F46E5] text-base font-semibold text-white shadow-lg transition-all hover:brightness-110 hover:shadow-xl disabled:opacity-60"
           )}
         >
-          {pending ? "Setting up your workspace…" : "Create workspace"}
+          Review project request
           <ArrowRight className="size-4" aria-hidden />
         </Button>
+          </>
+        )}
       </div>
     </form>
   );

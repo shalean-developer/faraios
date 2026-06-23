@@ -23,6 +23,8 @@ export type AdminProject = {
   features: string[];
   designStyle: string | null;
   competitors: string | null;
+  projectGoal: string | null;
+  contactPhone: string | null;
 };
 
 export type AdminProjectStats = {
@@ -68,7 +70,32 @@ export type AdminProjectDetails = AdminProject & {
   plan: string | null;
   deadline: string | null;
   projectProgress: number;
+  websiteId: string | null;
+  listedInMarketplace: boolean;
+  marketplaceSummary: string | null;
+  marketplaceLocation: string | null;
+  marketplaceFeatured: boolean;
+  websitePublished: boolean;
   activities: AdminProjectActivity[];
+  notes: AdminCompanyNote[];
+};
+
+export type AdminCompanyNote = {
+  id: string;
+  authorName: string;
+  body: string;
+  createdAtIso: string;
+};
+
+export type AdminPlatformSettings = {
+  companyName: string;
+  platformName: string;
+};
+
+export type AdminNotificationPreferences = {
+  emailAlerts: boolean;
+  projectUpdates: boolean;
+  clientActivity: boolean;
 };
 
 export type AdminAnalyticsPoint = {

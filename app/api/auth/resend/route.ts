@@ -1,26 +1,42 @@
 import { NextResponse } from "next/server";
 
+import { getClientIp, rateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
-type ResendRequest = {
-  email?: string;
-};
+const RESEND_LIMIT = 3;
+const RESEND_WINDOW_MS = 15 * 60 * 1000;
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as ResendRequest;
-  const email = typeof body.email === "string" ? body.email.trim() : "";
-
-  if (!email) {
+  const ip = getClientIp(request);
+  const limited = rateLimit(`auth-resend:${ip}`, RESEND_LIMIT, RESEND_WINDOW_MS);
+  if (!limited.ok) {
     return NextResponse.json(
-      { ok: false, error: "Email is required." },
-      { status: 400 }
+      {
+        ok: false,
+        error: `Too many requests. Try again in ${limited.retryAfterSec} seconds.`,
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limited.retryAfterSec) },
+      }
     );
   }
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.email) {
+    return NextResponse.json(
+      { ok: false, error: "Sign in to resend your verification email." },
+      { status: 401 }
+    );
+  }
+
   const { error } = await supabase.auth.resend({
     type: "signup",
-    email,
+    email: user.email,
   });
 
   if (error) {

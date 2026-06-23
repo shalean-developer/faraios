@@ -10,3 +10,19 @@ export function createAdminClient() {
   }
   return createClient(url, key, { auth: { persistSession: false } });
 }
+
+export function tryCreateAdminClient():
+  | { ok: true; client: ReturnType<typeof createAdminClient> }
+  | { ok: false; error: string } {
+  try {
+    return { ok: true, client: createAdminClient() };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Admin client is not configured.",
+    };
+  }
+}

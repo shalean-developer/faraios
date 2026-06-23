@@ -13,12 +13,12 @@ import {
   FolderKanban,
   Globe,
   LayoutGrid,
-  Settings,
   Sparkles,
   Zap,
 } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import { companyWebsiteEditPath, companyHostingPath } from "@/lib/paths/company";
 import { cn } from "@/lib/utils";
 import { createBookingForCompany } from "@/app/actions/bookings";
 import {
@@ -70,6 +70,19 @@ function formatProjectStatus(status: string): string {
 
 function countActiveProjects(list: Project[]): number {
   return list.filter((p) => p.status !== "completed").length;
+}
+
+function projectStatusBadgeClass(status: string): string {
+  switch (status) {
+    case "completed":
+      return "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100";
+    case "in_progress":
+      return "bg-blue-50 text-blue-800 ring-1 ring-blue-100";
+    case "review":
+      return "bg-violet-50 text-violet-800 ring-1 ring-violet-100";
+    default:
+      return "bg-amber-50 text-amber-800 ring-1 ring-amber-100";
+  }
 }
 
 export function CompanyDashboardClient({
@@ -356,6 +369,12 @@ export function CompanyDashboardClient({
               </h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <QuickAction
+                  href={companyHostingPath(slug)}
+                  icon={<Globe className="h-5 w-5" />}
+                  title="Hosting"
+                  subtitle="Buy & manage hosting"
+                />
+                <QuickAction
                   href={`${base}/project`}
                   icon={<LayoutGrid className="h-5 w-5" />}
                   title="View project"
@@ -372,12 +391,6 @@ export function CompanyDashboardClient({
                   icon={<CalendarDays className="h-5 w-5" />}
                   title="Booking system"
                   subtitle="Jobs & calendar"
-                />
-                <QuickAction
-                  href={`${base}/dashboard`}
-                  icon={<Settings className="h-5 w-5" />}
-                  title="Settings"
-                  subtitle="Account & workspace"
                 />
               </div>
             </motion.section>
@@ -456,7 +469,7 @@ export function CompanyDashboardClient({
                       {publishPending ? "Publishing..." : "Publish Website"}
                     </Button>
                     <Link
-                      href={`/dashboard/websites/${website.id}/edit`}
+                      href={companyWebsiteEditPath(slug, website.id)}
                       className={cn(
                         buttonVariants({ variant: "outline" }),
                         "rounded-xl border-slate-200"
@@ -564,11 +577,7 @@ export function CompanyDashboardClient({
                           <span
                             className={cn(
                               "inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold",
-                              p.status === "completed"
-                                ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100"
-                                : p.status === "in_progress"
-                                  ? "bg-blue-50 text-blue-800 ring-1 ring-blue-100"
-                                  : "bg-amber-50 text-amber-800 ring-1 ring-amber-100"
+                              projectStatusBadgeClass(p.status)
                             )}
                           >
                             {formatProjectStatus(p.status)}
@@ -661,15 +670,17 @@ export function CompanyDashboardClient({
                     <thead>
                       <tr className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                         <th className="px-4 py-3">Name</th>
+                        <th className="px-4 py-3">Contact</th>
                         <th className="px-4 py-3">Service</th>
                         <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3">Source</th>
                         <th className="px-4 py-3">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-sm">
                       {bookingRows.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                          <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                             No bookings yet.
                           </td>
                         </tr>
@@ -680,12 +691,43 @@ export function CompanyDashboardClient({
                               {row.customer_name ?? "—"}
                             </td>
                             <td className="px-4 py-3 text-slate-700">
+                              <div className="space-y-0.5">
+                                {row.customer_email ? (
+                                  <a
+                                    href={`mailto:${row.customer_email}`}
+                                    className="block text-indigo-600 hover:text-indigo-800"
+                                  >
+                                    {row.customer_email}
+                                  </a>
+                                ) : (
+                                  <span className="text-slate-400">—</span>
+                                )}
+                                {row.customer_phone ? (
+                                  <span className="block text-xs text-slate-500">
+                                    {row.customer_phone}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-slate-700">
                               {row.service ?? "—"}
                             </td>
                             <td className="px-4 py-3 text-slate-700">
                               {new Date(
                                 row.booking_date ?? row.date ?? ""
                               ).toLocaleString("en-ZA")}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={cn(
+                                  "rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize",
+                                  row.source === "marketplace"
+                                    ? "bg-violet-50 text-violet-700"
+                                    : "bg-slate-100 text-slate-600"
+                                )}
+                              >
+                                {row.source ?? "internal"}
+                              </span>
                             </td>
                             <td className="px-4 py-3">
                               <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">

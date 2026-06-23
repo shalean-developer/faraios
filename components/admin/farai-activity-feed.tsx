@@ -2,7 +2,9 @@
 
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
+import { AdminSidebarBrand } from "@/components/admin/admin-sidebar-brand";
+import { AdminSidebarNav } from "@/components/admin/admin-sidebar-nav";
+import { AdminSidebarUser } from "@/components/admin/admin-sidebar-user";
 import {
   Bell,
   FolderPlus,
@@ -14,31 +16,9 @@ import {
   Filter,
   Check,
   ChevronRight,
-  LayoutDashboard,
-  GitBranch,
-  Users,
-  Users2,
-  BarChart3,
-  Settings,
-  Zap,
-  Shield,
 } from "lucide-react";
 
 import type { AdminActivityCategory, AdminActivityItem } from "@/types/admin";
-
-type ActiveNav = "dashboard" | "pipeline" | "team" | "analytics" | "settings" | "clients";
-
-const NAV_ITEMS = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
-  { key: "pipeline", label: "Project Pipeline", icon: GitBranch, href: "/admin" },
-  { key: "team", label: "Team", icon: Users, href: "/admin/team" },
-  { key: "clients", label: "Clients", icon: Users2, href: "/admin/clients" },
-] as const;
-
-const SYSTEM_NAV_ITEMS = [
-  { key: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/analytics" },
-  { key: "settings", label: "Settings", icon: Settings, href: "/admin/settings" },
-] as const;
 
 const FILTER_TABS: { key: AdminActivityCategory; label: string }[] = [
   { key: "all", label: "All" },
@@ -83,7 +63,6 @@ export function FaraiActivityFeed({
   adminEmail: string | null;
   adminDisplayName: string;
 }) {
-  const [activeNav] = useState<ActiveNav>("dashboard");
   const [activeFilter, setActiveFilter] = useState<AdminActivityCategory>("all");
   const [allRead, setAllRead] = useState(false);
 
@@ -103,53 +82,11 @@ export function FaraiActivityFeed({
   return (
     <div className="flex h-screen w-full overflow-hidden font-sans" style={{ background: "#f8f7ff" }}>
       <aside className="flex h-full w-60 flex-shrink-0 flex-col bg-slate-900">
-        <div className="flex h-16 flex-shrink-0 items-center gap-3 border-b border-slate-800 px-5">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md">
-            <Zap className="h-4 w-4 text-white" />
-          </div>
-          <div className="min-w-0">
-            <span className="block text-base font-bold leading-tight tracking-tight text-white">FaraiOS</span>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-indigo-300">Admin</span>
-          </div>
-        </div>
+        <AdminSidebarBrand />
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-5">
-          <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Navigation</p>
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeNav === item.key;
-            return (
-              <Link key={item.key} href={item.href} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/40" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}>
-                <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-white" : "text-slate-500"}`} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-          <div className="pt-5">
-            <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">System</p>
-            {SYSTEM_NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link key={item.key} href={item.href} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition-all duration-150 hover:bg-slate-800 hover:text-white">
-                  <Icon className="h-4 w-4 flex-shrink-0 text-slate-500" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
+        <AdminSidebarNav activeNav="activity" />
 
-        <div className="flex-shrink-0 border-t border-slate-800 px-4 py-4">
-          <div className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600">
-              <Shield className="h-3.5 w-3.5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold text-white">{adminDisplayName}</p>
-              <p className="truncate text-[10px] text-slate-400">{adminEmail ?? "—"}</p>
-            </div>
-          </div>
-        </div>
+        <AdminSidebarUser adminDisplayName={adminDisplayName} adminEmail={adminEmail} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
