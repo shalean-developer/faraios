@@ -151,28 +151,24 @@ export function FaraiAdminProjectDetails({
   const [marketplaceMessage, setMarketplaceMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    setListedInMarketplace(project.listedInMarketplace);
-    setMarketplaceSummary(project.marketplaceSummary ?? "");
-    setMarketplaceLocation(project.marketplaceLocation ?? "");
-    setMarketplaceFeatured(project.marketplaceFeatured);
+    queueMicrotask(() => {
+      setListedInMarketplace(project.listedInMarketplace);
+      setMarketplaceSummary(project.marketplaceSummary ?? "");
+      setMarketplaceLocation(project.marketplaceLocation ?? "");
+      setMarketplaceFeatured(project.marketplaceFeatured);
+      setStatus(project.status);
+      setAssignedDeveloper(project.assignedDeveloper);
+      setNotes(project.notes.map(noteFromServer));
+    });
   }, [
     project.listedInMarketplace,
     project.marketplaceSummary,
     project.marketplaceLocation,
     project.marketplaceFeatured,
+    project.status,
+    project.assignedDeveloper,
+    project.notes,
   ]);
-
-  useEffect(() => {
-    setStatus(project.status);
-  }, [project.status]);
-
-  useEffect(() => {
-    setAssignedDeveloper(project.assignedDeveloper);
-  }, [project.assignedDeveloper]);
-
-  useEffect(() => {
-    setNotes(project.notes.map(noteFromServer));
-  }, [project.notes]);
 
   const clientHref = `/admin/clients?companyId=${project.id}`;
   const websiteHref = project.websiteId

@@ -104,7 +104,13 @@ export function FaraiClientManagement({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedClient, setSelectedClient] = useState<AdminClient | null>(null);
+  const companyIdFromUrl = searchParams.get("companyId");
+  const [manualSelectedClient, setManualSelectedClient] = useState<AdminClient | null>(null);
+  const selectedClient =
+    manualSelectedClient ??
+    (companyIdFromUrl
+      ? clients.find((entry) => entry.id === companyIdFromUrl) ?? null
+      : null);
   const [activeTab, setActiveTab] = useState<ModalTab>("contact");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editClient, setEditClient] = useState<AdminClient | null>(null);
@@ -127,15 +133,6 @@ export function FaraiClientManagement({
       }),
     [clients, searchQuery]
   );
-
-  useEffect(() => {
-    const companyId = searchParams.get("companyId");
-    if (!companyId) return;
-    const client = clients.find((entry) => entry.id === companyId);
-    if (client) {
-      setSelectedClient(client);
-    }
-  }, [clients, searchParams]);
 
   const statsCards = [
     {
@@ -221,7 +218,7 @@ export function FaraiClientManagement({
         setTimeout(() => closeFormModal(), 800);
       } else {
         setEditClient(null);
-        setSelectedClient(null);
+        setManualSelectedClient(null);
       }
     });
   };
@@ -387,7 +384,7 @@ export function FaraiClientManagement({
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2">
-                          <button type="button" onClick={() => { setSelectedClient(client); setActiveTab("contact"); setNoteInput(""); setNoteError(null); setNoteSuccess(null); }} className="flex items-center gap-1 text-xs font-semibold text-indigo-600 transition-colors hover:text-indigo-800">
+                          <button type="button" onClick={() => { setManualSelectedClient(client); setActiveTab("contact"); setNoteInput(""); setNoteError(null); setNoteSuccess(null); }} className="flex items-center gap-1 text-xs font-semibold text-indigo-600 transition-colors hover:text-indigo-800">
                             <Eye className="h-3 w-3" />
                             <span>View</span>
                           </button>
@@ -411,7 +408,7 @@ export function FaraiClientManagement({
       <AnimatePresence>
         {selectedClient ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div key="backdrop" variants={backdropVariants} initial="hidden" animate="visible" exit="exit" onClick={() => setSelectedClient(null)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div key="backdrop" variants={backdropVariants} initial="hidden" animate="visible" exit="exit" onClick={() => setManualSelectedClient(null)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
             <motion.div key="modal" variants={modalVariants} initial="hidden" animate="visible" exit="exit" className="relative z-10 w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl shadow-slate-900/20">
               <div className="bg-gradient-to-br from-indigo-600 to-violet-600 px-6 pb-5 pt-6">
                 <div className="mb-4 flex items-start justify-between">
@@ -424,7 +421,7 @@ export function FaraiClientManagement({
                       <p className="mt-0.5 text-xs text-indigo-200">{selectedClient.email}</p>
                     </div>
                   </div>
-                  <button type="button" onClick={() => setSelectedClient(null)} className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white/10 text-white/80 transition-all hover:bg-white/20 hover:text-white">
+                  <button type="button" onClick={() => setManualSelectedClient(null)} className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white/10 text-white/80 transition-all hover:bg-white/20 hover:text-white">
                     <X className="h-4 w-4" />
                   </button>
                 </div>
@@ -510,7 +507,7 @@ export function FaraiClientManagement({
               </div>
 
               <div className="flex items-center justify-between border-t border-gray-50 bg-gray-50/50 px-6 py-4">
-                <button type="button" onClick={() => setSelectedClient(null)} className="rounded-xl px-3 py-2 text-xs font-semibold text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800">Close</button>
+                <button type="button" onClick={() => setManualSelectedClient(null)} className="rounded-xl px-3 py-2 text-xs font-semibold text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800">Close</button>
                 <button type="button" onClick={() => { if (selectedClient) openEditModal(selectedClient); }} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700">
                   <Pencil className="h-3 w-3" />
                   <span>Edit Client</span>

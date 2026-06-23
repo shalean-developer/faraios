@@ -4,6 +4,7 @@ import {
   Phone,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 import type { ParsedSiteContent } from "@/templates/service-business/content";
 import type { TemplatePaths } from "@/templates/service-business/paths";
@@ -37,6 +38,32 @@ function InstagramIcon({ className }: { className?: string }) {
   );
 }
 
+function isInternalPath(href: string): boolean {
+  return href.startsWith("/") && !href.startsWith("//");
+}
+
+function FooterLink({
+  href,
+  className,
+  children,
+}: {
+  href: string;
+  className: string;
+  children: React.ReactNode;
+}) {
+  if (isInternalPath(href)) {
+    return (
+      <Link href={href} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  );
+}
 function footerLinkHref(label: string, paths: TemplatePaths): string {
   const lower = label.toLowerCase();
   if (lower.includes("review")) return paths.reviews;
@@ -129,9 +156,9 @@ export function SiteFooter({ site, paths }: Props) {
           <ul className="mt-3 space-y-2">
             {footer.serviceLinks.map((item) => (
               <li key={item}>
-                <a href={paths.services} className={linkClass}>
+                <FooterLink href={paths.services} className={linkClass}>
                   {item}
-                </a>
+                </FooterLink>
               </li>
             ))}
           </ul>
@@ -142,9 +169,9 @@ export function SiteFooter({ site, paths }: Props) {
           <ul className="mt-3 space-y-2">
             {footer.companyLinks.map((item) => (
               <li key={item}>
-                <a href={footerLinkHref(item, paths)} className={linkClass}>
+                <FooterLink href={footerLinkHref(item, paths)} className={linkClass}>
                   {item}
-                </a>
+                </FooterLink>
               </li>
             ))}
           </ul>
@@ -155,9 +182,9 @@ export function SiteFooter({ site, paths }: Props) {
           <ul className="mt-3 space-y-2">
             {footer.supportLinks.map((item) => (
               <li key={item}>
-                <a href={footerLinkHref(item, paths)} className={linkClass}>
+                <FooterLink href={footerLinkHref(item, paths)} className={linkClass}>
                   {item}
-                </a>
+                </FooterLink>
               </li>
             ))}
           </ul>
@@ -202,12 +229,12 @@ export function SiteFooter({ site, paths }: Props) {
             &copy; {new Date().getFullYear()} {businessName}. All rights reserved.
           </p>
           <div className="flex items-center gap-6 text-slate-400">
-            <a href="/privacy" className="transition hover:text-white">
+            <FooterLink href="/privacy" className="transition hover:text-white">
               Privacy Policy
-            </a>
-            <a href="/terms" className="transition hover:text-white">
+            </FooterLink>
+            <FooterLink href="/terms" className="transition hover:text-white">
               Terms of Service
-            </a>
+            </FooterLink>
           </div>
         </div>
       </div>

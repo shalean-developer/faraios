@@ -65,7 +65,7 @@ export async function createEngineBooking(
   }
 
   let serviceName = input.service?.trim() || "General booking";
-  let serviceId: string | null = input.serviceId ?? null;
+  const serviceId: string | null = input.serviceId ?? null;
   let priceCents: number | null = null;
   let durationMinutes: number | null = null;
 

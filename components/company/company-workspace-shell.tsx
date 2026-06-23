@@ -62,7 +62,8 @@ export function CompanyWorkspaceShell({
 
   useEffect(() => {
     try {
-      setCollapsed(window.localStorage.getItem(STORAGE_KEY) === "1");
+      const stored = window.localStorage.getItem(STORAGE_KEY) === "1";
+      queueMicrotask(() => setCollapsed(stored));
     } catch {
       // ignore
     }

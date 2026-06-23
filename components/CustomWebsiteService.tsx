@@ -229,13 +229,6 @@ const RequirementsForm = ({
   const selectedIndustryName =
     industries.find((i) => i.id === form.industryId)?.name ?? null;
 
-  useEffect(() => {
-    setForm((f) => ({
-      ...f,
-      pages: trimPagesToPlanLimit(f.pages, f.planSlug),
-    }));
-  }, [form.planSlug]);
-
   const applyIndustry = (id: string) => {
     const row = industries.find((i) => i.id === id);
     if (!row) return;
@@ -424,12 +417,14 @@ const RequirementsForm = ({
                 <label className={labelClass}>Plan</label>
                 <select
                   value={form.planSlug}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const planSlug = normalizePlanSlug(e.target.value);
                     setForm((f) => ({
                       ...f,
-                      planSlug: normalizePlanSlug(e.target.value),
-                    }))
-                  }
+                      planSlug,
+                      pages: trimPagesToPlanLimit(f.pages, planSlug),
+                    }));
+                  }}
                   className={inputClass}
                 >
                   {pricingPlans.map((p) => (

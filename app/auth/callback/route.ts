@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     return signInErrorRedirect(request, next);
   }
 
-  let response = NextResponse.redirect(new URL(next, request.url));
+  const response = NextResponse.redirect(new URL(next, request.url));
   const supabase = createCallbackClient(request, response);
   if (!supabase) {
     console.error("[auth/callback] Supabase is not configured");
