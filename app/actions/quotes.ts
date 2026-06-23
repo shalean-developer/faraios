@@ -21,6 +21,7 @@ import type { LineItemInput } from "@/types/financial";
 export type QuoteActionResult = { ok: true; id: string } | { ok: false; error: string };
 
 function revalidateQuotePaths(slug: string) {
+  revalidatePath(`/${slug}/dashboard/bookings/quote-requests`);
   revalidatePath(`/${slug}/dashboard/quotes`);
   revalidatePath(`/${slug}/dashboard`);
   revalidatePath(`/${slug}/dashboard/revenue`);

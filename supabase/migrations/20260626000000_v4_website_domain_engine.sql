@@ -440,3 +440,9 @@ create policy "website_tracking_events_select_member" on public.website_tracking
     )
     or public.is_platform_admin()
   );
+
+grant select, insert, update, delete on table public.website_domains to authenticated;
+grant select, insert, update on table public.website_dns_records to authenticated;
+grant select, insert, update on table public.website_deployments to authenticated;
+grant select on table public.business_api_key_events to authenticated;
+grant select on table public.website_tracking_events to authenticated;

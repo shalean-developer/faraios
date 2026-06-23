@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { ContentPost, ContentPostCategory } from "@/types/growth-engine";
 
@@ -45,14 +44,53 @@ function mapRow(row: Record<string, unknown>): ContentPost {
 }
 
 export async function listContentPosts(companyId: string): Promise<ContentPost[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return [];
+
+  const { data, error } = await admin.client
     .from("content_posts")
     .select("*")
     .eq("company_id", companyId)
     .order("updated_at", { ascending: false });
 
+  if (error) {
+    console.error("[content_posts] listContentPosts", error.message);
+    return [];
+  }
+
   return (data ?? []).map(mapRow);
+}
+
+export type ContentPostSummary = {
+  total: number;
+  drafts: number;
+  published: number;
+  byCategory: Record<ContentPostCategory, number>;
+};
+
+export function summarizeContentPosts(posts: ContentPost[]): ContentPostSummary {
+  const byCategory: Record<ContentPostCategory, number> = {
+    blog: 0,
+    guide: 0,
+    service_article: 0,
+    faq: 0,
+  };
+
+  let drafts = 0;
+  let published = 0;
+
+  for (const post of posts) {
+    byCategory[post.category] += 1;
+    if (post.status === "published") published += 1;
+    else drafts += 1;
+  }
+
+  return {
+    total: posts.length,
+    drafts,
+    published,
+    byCategory,
+  };
 }
 
 export async function getPublishedContentPost(
@@ -77,11 +115,13 @@ export async function createContentPost(
   companyId: string,
   input: ContentPostInput
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  const supabase = await createClient();
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return { ok: false, error: admin.error };
+
   const slug = input.slug || slugify(input.title);
   const isPublished = input.status === "published";
 
-  const { data, error } = await supabase
+  const { data, error } = await admin.client
     .from("content_posts")
     .insert({
       company_id: companyId,
@@ -101,7 +141,10 @@ export async function createContentPost(
     .select("id")
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message ?? "Failed to create post." };
+  if (error || !data) {
+    console.error("[content_posts] createContentPost", error?.message);
+    return { ok: false, error: error?.message ?? "Failed to create post." };
+  }
   return { ok: true, id: data.id as string };
 }
 
@@ -124,7 +167,9 @@ export async function updateContentPost(
   postId: string,
   input: Partial<ContentPostInput>
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const supabase = await createClient();
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return { ok: false, error: admin.error };
+
   const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
   if (input.title !== undefined) payload.title = input.title;
@@ -144,12 +189,15 @@ export async function updateContentPost(
     }
   }
 
-  const { error } = await supabase
+  const { error } = await admin.client
     .from("content_posts")
     .update(payload)
     .eq("id", postId)
     .eq("company_id", companyId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[content_posts] updateContentPost", error.message);
+    return { ok: false, error: error.message };
+  }
   return { ok: true };
 }

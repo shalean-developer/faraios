@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { ReviewRequest } from "@/types/growth-engine";
 import { getLocalSeoSettingsAdmin } from "@/lib/services/local-seo";
@@ -55,15 +54,54 @@ async function sendReviewEmail(input: {
 }
 
 export async function listReviewRequests(companyId: string): Promise<ReviewRequest[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return [];
+
+  const { data, error } = await admin.client
     .from("review_requests")
     .select("*")
     .eq("company_id", companyId)
     .order("sent_at", { ascending: false })
     .limit(50);
 
+  if (error) {
+    console.error("[review_requests] listReviewRequests", error.message);
+    return [];
+  }
+
   return (data ?? []).map(mapRow);
+}
+
+export type ReviewRequestSummary = {
+  total: number;
+  sent: number;
+  clicked: number;
+  failed: number;
+  clickRate: number;
+};
+
+export function summarizeReviewRequests(requests: ReviewRequest[]): ReviewRequestSummary {
+  let sent = 0;
+  let clicked = 0;
+  let failed = 0;
+
+  for (const request of requests) {
+    if (request.status === "clicked") clicked += 1;
+    else if (request.status === "failed") failed += 1;
+    else if (request.status === "sent") sent += 1;
+  }
+
+  const delivered = sent + clicked;
+  const clickRate =
+    delivered > 0 ? Math.round((clicked / delivered) * 1000) / 10 : 0;
+
+  return {
+    total: requests.length,
+    sent,
+    clicked,
+    failed,
+    clickRate,
+  };
 }
 
 export async function sendReviewRequest(input: {

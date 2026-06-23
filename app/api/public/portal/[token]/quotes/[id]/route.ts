@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { notifyQuoteAcceptedAction } from "@/app/actions/quotes";
 import { resolvePortalToken } from "@/lib/services/portal-access";
 import { updateQuoteStatusPortal } from "@/lib/services/quotes";
+import { triggerWorkflows } from "@/lib/services/workflow-engine";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 
 type Params = { params: Promise<{ token: string; id: string }> };
@@ -53,6 +54,12 @@ export async function PATCH(req: Request, { params }: Params) {
       quoteId: id,
       quoteNumber: quote.quote_number,
       customerName: customer?.name ?? ctx.customerName,
+    });
+    await triggerWorkflows("quote_accepted", {
+      companyId: ctx.companyId,
+      entityType: "quote",
+      entityId: id,
+      payload: { customerId: ctx.customerId, customerName: ctx.customerName },
     });
   }
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Globe, Key, LineChart, Server } from "lucide-react";
+import { Globe, Key, LineChart, CreditCard, Server } from "lucide-react";
 
 import {
   companyHostingPath,
@@ -23,11 +23,11 @@ export function WebsiteHubNav({ slug }: { slug: string }) {
     { href: companyWebsiteApiKeysPath(slug), label: "API keys", icon: Key },
     { href: companyWebsiteTrackingPath(slug), label: "Tracking", icon: LineChart },
     { href: companyWebsiteHostingPath(slug), label: "Hosting", icon: Server },
-    { href: companyHostingPath(slug), label: "Billing", icon: Server },
+    { href: companyHostingPath(slug), label: "Billing", icon: CreditCard },
   ];
 
   return (
-    <nav className="mb-8 flex flex-wrap gap-2 border-b border-slate-200 pb-4">
+    <nav className="mb-6 flex flex-wrap gap-2 border-b border-slate-200 pb-4">
       {items.map(({ href, label, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (

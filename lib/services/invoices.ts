@@ -15,6 +15,56 @@ export type InvoiceMutationResult =
   | { ok: true; id: string }
   | { ok: false; error: string };
 
+export type InvoiceListSummary = {
+  total: number;
+  draftCount: number;
+  outstandingCents: number;
+  overdueCents: number;
+  paidCents: number;
+  totalBilledCents: number;
+};
+
+export function summarizeInvoices(invoices: InvoiceWithCustomer[]): InvoiceListSummary {
+  let draftCount = 0;
+  let outstandingCents = 0;
+  let overdueCents = 0;
+  let paidCents = 0;
+  let totalBilledCents = 0;
+
+  for (const invoice of invoices) {
+    totalBilledCents += invoice.total_cents;
+    paidCents += invoice.amount_paid_cents;
+
+    if (invoice.status === "draft") {
+      draftCount += 1;
+      continue;
+    }
+
+    if (invoice.status === "cancelled" || invoice.status === "refunded") continue;
+
+    outstandingCents += invoice.balance_due_cents;
+    if (invoice.status === "overdue") {
+      overdueCents += invoice.balance_due_cents;
+    }
+  }
+
+  return {
+    total: invoices.length,
+    draftCount,
+    outstandingCents,
+    overdueCents,
+    paidCents,
+    totalBilledCents,
+  };
+}
+
+export async function getInvoiceSummaryForCompany(
+  companyId: string
+): Promise<InvoiceListSummary> {
+  const invoices = await listInvoicesForCompany(companyId);
+  return summarizeInvoices(invoices);
+}
+
 async function allocateInvoiceNumber(
   client: Awaited<ReturnType<typeof createClient>>,
   companyId: string
@@ -297,6 +347,48 @@ export async function issueInvoice(
     entityType: "invoice",
     entityId: invoiceId,
     action: "issued",
+    actorId,
+  });
+
+  return { ok: true, id: invoiceId };
+}
+
+export async function cancelDraftInvoice(
+  companyId: string,
+  invoiceId: string,
+  actorId?: string | null
+): Promise<InvoiceMutationResult> {
+  const supabase = await createClient();
+  const { data: invoice } = await supabase
+    .from("invoices")
+    .select("id, status, amount_paid_cents")
+    .eq("company_id", companyId)
+    .eq("id", invoiceId)
+    .maybeSingle();
+
+  if (!invoice) return { ok: false, error: "Invoice not found." };
+  if (invoice.status !== "draft") {
+    return { ok: false, error: "Only draft invoices can be cancelled." };
+  }
+  if (invoice.amount_paid_cents > 0) {
+    return { ok: false, error: "This invoice has payments and cannot be cancelled." };
+  }
+
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("invoices")
+    .update({ status: "cancelled", updated_at: now })
+    .eq("company_id", companyId)
+    .eq("id", invoiceId)
+    .eq("status", "draft");
+
+  if (error) return { ok: false, error: error.message };
+
+  await logFinancialAudit({
+    companyId,
+    entityType: "invoice",
+    entityId: invoiceId,
+    action: "cancelled",
     actorId,
   });
 

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import type { ConnectedWebsite } from "@/types/database";
 
@@ -7,8 +7,10 @@ export async function getConnectedWebsiteForCompany(
 ): Promise<ConnectedWebsite | null> {
   if (!isSupabaseConfigured() || !companyId) return null;
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return null;
+
+  const { data, error } = await admin.client
     .from("connected_websites")
     .select("*")
     .eq("company_id", companyId)

@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { createLead } from "@/lib/services/leads";
 import { trackWebsiteEvent } from "@/lib/services/website-tracking";
 import { parseUtmFromUrl } from "@/lib/services/website-tracking";
+import { triggerWorkflows } from "@/lib/services/workflow-engine";
+import { createNotification } from "@/lib/services/notifications";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 
@@ -103,6 +105,23 @@ export async function POST(request: Request, context: RouteContext) {
     utmCampaign: body.utmCampaign ?? utm.utmCampaign,
     metadata: { leadId: result.leadId },
   });
+
+  if (result.leadId) {
+    await triggerWorkflows("lead_created", {
+      companyId: businessId,
+      entityType: "lead",
+      entityId: result.leadId,
+      payload: { name: body.name, email: body.email },
+    });
+    await createNotification({
+      companyId: businessId,
+      type: "lead",
+      title: "New lead captured",
+      body: body.name ?? body.email ?? "Website lead",
+      entityType: "lead",
+      entityId: result.leadId,
+    });
+  }
 
   return NextResponse.json({ ok: true, leadId: result.leadId });
 }

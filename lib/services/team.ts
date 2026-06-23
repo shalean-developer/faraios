@@ -1,9 +1,14 @@
 import { requireCompanyMembership } from "@/lib/services/company-access";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 
-export type CompanyMemberRole = "owner" | "admin" | "staff";
+export type CompanyMemberRole =
+  | "owner"
+  | "admin"
+  | "manager"
+  | "staff"
+  | "finance"
+  | "marketing";
 
 export type CompanyMember = {
   id: string;
@@ -15,71 +20,70 @@ export type CompanyMember = {
   full_name: string | null;
 };
 
-export async function listCompanyMembers(
-  companyId: string
-): Promise<CompanyMember[]> {
-  if (!isSupabaseConfigured() || !companyId) return [];
+export type TeamSummary = {
+  total: number;
+  owners: number;
+  admins: number;
+  staff: number;
+  other: number;
+};
 
-  const access = await requireCompanyMembership(companyId);
-  if (!access.ok) return [];
+export function summarizeTeamMembers(members: CompanyMember[]): TeamSummary {
+  let owners = 0;
+  let admins = 0;
+  let staff = 0;
+  let other = 0;
 
-  const admin = tryCreateAdminClient();
-  if (!admin.ok) {
-    const supabase = await createClient();
-    const { data, error } = await supabase.rpc("list_company_members", {
-      p_company_id: companyId,
-    });
-
-    if (error) {
-      console.error("[team] listCompanyMembers rpc", error.message);
-      return [];
-    }
-
-    return (data ?? []).map((row: {
-      id: string;
-      user_id: string;
-      company_id: string;
-      role: string | null;
-      created_at: string | null;
-      email?: string | null;
-      full_name?: string | null;
-    }) => ({
-      id: row.id,
-      user_id: row.user_id,
-      company_id: row.company_id,
-      role: (row.role ?? "owner") as CompanyMemberRole,
-      created_at: row.created_at ?? "",
-      email: row.email ?? "",
-      full_name: row.full_name ?? null,
-    }));
+  for (const member of members) {
+    if (member.role === "owner") owners += 1;
+    else if (member.role === "admin") admins += 1;
+    else if (member.role === "staff") staff += 1;
+    else other += 1;
   }
 
-  const { data, error } = await admin.client
+  return { total: members.length, owners, admins, staff, other };
+}
+
+async function listCompanyMembersWithAdmin(
+  companyId: string
+): Promise<CompanyMember[]> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return [];
+
+  const { data: memberships, error } = await admin.client
     .from("memberships")
-    .select(
-      `
-      id,
-      user_id,
-      company_id,
-      role,
-      created_at,
-      users ( email, full_name )
-    `
-    )
+    .select("id, user_id, company_id, role, created_at")
     .eq("company_id", companyId)
     .order("created_at", { ascending: true });
 
   if (error) {
-    console.error("[team] listCompanyMembers admin", error.message);
+    console.error("[team] listCompanyMembers admin fallback", error.message);
     return [];
   }
 
-  return (data ?? []).map((row) => {
-    const users = row.users as
-      | { email?: string; full_name?: string | null }
-      | { email?: string; full_name?: string | null }[]
-      | null;
-    const user = Array.isArray(users) ? users[0] : users;
+  if (!memberships?.length) return [];
+
+  const userIds = [
+    ...new Set(
+      memberships.map((row) => row.user_id).filter((id): id is string => Boolean(id))
+    ),
+  ];
+
+  const { data: users, error: usersError } = await admin.client
+    .from("users")
+    .select("id, email, full_name")
+    .in("id", userIds);
+
+  if (usersError) {
+    console.error("[team] listCompanyMembers users lookup", usersError.message);
+  }
+
+  const userById = new Map(
+    (users ?? []).map((user) => [user.id as string, user as { email?: string; full_name?: string | null }])
+  );
+
+  return memberships.map((row) => {
+    const user = userById.get(row.user_id);
     return {
       id: row.id,
       user_id: row.user_id,
@@ -92,14 +96,27 @@ export async function listCompanyMembers(
   });
 }
 
+export async function listCompanyMembers(
+  companyId: string
+): Promise<CompanyMember[]> {
+  if (!isSupabaseConfigured() || !companyId) return [];
+
+  const access = await requireCompanyMembership(companyId);
+  if (!access.ok) return [];
+
+  return listCompanyMembersWithAdmin(companyId);
+}
+
 export async function getMemberRoleForUser(
   companyId: string,
   userId: string
 ): Promise<CompanyMemberRole | null> {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured() || !companyId || !userId) return null;
 
-  const supabase = await createClient();
-  const { data } = await supabase
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return null;
+
+  const { data } = await admin.client
     .from("memberships")
     .select("role")
     .eq("company_id", companyId)

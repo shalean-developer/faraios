@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import {
+  Activity,
   BarChart3,
+  Bell,
   CalendarDays,
+  CheckSquare,
+  ChevronDown,
   ClipboardList,
   CreditCard,
-  FileText,
   FolderKanban,
   Globe,
   LayoutDashboard,
@@ -17,14 +22,18 @@ import {
   Receipt,
   Search,
   Settings,
+  Sparkles,
   Star,
   TrendingUp,
   Users,
   Users2,
   Wrench,
+  Zap,
 } from "lucide-react";
 
 import {
+  bookingsSubNavItems,
+  bookingsViewFromPathname,
   companyNavItems,
   type CompanyNavKey,
 } from "@/lib/constants/company-nav";
@@ -32,11 +41,13 @@ import { cn } from "@/lib/utils";
 
 const ICONS = {
   dashboard: LayoutDashboard,
+  insights: TrendingUp,
+  "business-health": Activity,
+  "ai-insights": Sparkles,
   bookings: CalendarDays,
   calendar: CalendarDays,
   customers: Users,
   services: Wrench,
-  quotes: FileText,
   invoices: Receipt,
   payments: CreditCard,
   revenue: TrendingUp,
@@ -51,6 +62,9 @@ const ICONS = {
   project: FolderKanban,
   settings: Settings,
   team: Users2,
+  tasks: CheckSquare,
+  automations: Zap,
+  notifications: Bell,
   "booking-form": ClipboardList,
 } as const;
 
@@ -58,6 +72,7 @@ const SECTION_LABELS: Record<string, string> = {
   operations: "Operations",
   websites: "Websites",
   growth: "Growth",
+  intelligence: "Intelligence",
   settings: "Settings",
 };
 
@@ -72,14 +87,47 @@ export function CompanySidebarNav({
   hasWebsiteProject?: boolean;
   collapsed?: boolean;
 }) {
+  const pathname = usePathname() ?? "";
   const items = companyNavItems(slug, { hasWebsiteProject });
-  const sections = ["operations", "websites", "growth", "settings"] as const;
+  const sections = ["operations", "intelligence", "websites", "growth", "settings"] as const;
+  const bookingsSubNav = bookingsSubNavItems(slug);
+  const activeBookingsView = bookingsViewFromPathname(slug, pathname);
+  const isBookingsSection = activeNav === "bookings";
+  const [bookingsExpanded, setBookingsExpanded] = useState(isBookingsSection);
+  const previousPathnameRef = useRef(pathname);
+
+  useEffect(() => {
+    const bookingsBase = `/${encodeURIComponent(slug)}/dashboard/bookings`;
+    const quotesBase = `/${encodeURIComponent(slug)}/dashboard/quotes`;
+    const isBookingsPath = (path: string) =>
+      path.startsWith(bookingsBase) || path.startsWith(quotesBase);
+
+    const wasBookings = isBookingsPath(previousPathnameRef.current);
+    const isNowBookings = isBookingsPath(pathname);
+
+    if (isNowBookings && !wasBookings) {
+      setBookingsExpanded(true);
+    } else if (!isNowBookings) {
+      setBookingsExpanded(false);
+    }
+
+    previousPathnameRef.current = pathname;
+  }, [pathname, slug]);
+
+  const handleBookingsClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (isBookingsSection) {
+      event.preventDefault();
+      setBookingsExpanded((value) => !value);
+      return;
+    }
+    setBookingsExpanded(true);
+  };
 
   return (
     <nav
       className={cn(
-        "overflow-hidden px-2 py-2",
-        collapsed ? "shrink-0" : "min-h-0 flex-1 py-3"
+        "min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 py-2",
+        !collapsed && "py-3"
       )}
     >
       {sections.map((section) => {
@@ -95,11 +143,18 @@ export function CompanySidebarNav({
               {sectionItems.map((item) => {
                 const Icon = ICONS[item.key];
                 const isActive = activeNav === item.key;
+                const showBookingsSubNav =
+                  item.key === "bookings" && !collapsed && bookingsExpanded;
+
                 return (
                   <li key={item.key}>
                     <Link
                       href={item.href}
                       title={collapsed ? item.label : undefined}
+                      onClick={item.key === "bookings" ? handleBookingsClick : undefined}
+                      aria-expanded={
+                        item.key === "bookings" && !collapsed ? bookingsExpanded : undefined
+                      }
                       className={cn(
                         "flex items-center text-sm font-medium transition-all",
                         collapsed
@@ -117,9 +172,42 @@ export function CompanySidebarNav({
                         )}
                       />
                       {!collapsed ? (
-                        <span className="truncate">{item.label}</span>
+                        <>
+                          <span className="truncate">{item.label}</span>
+                          {item.key === "bookings" ? (
+                            <ChevronDown
+                              className={cn(
+                                "ml-auto h-4 w-4 shrink-0 transition-transform duration-200",
+                                bookingsExpanded && "rotate-180",
+                                isActive ? "text-white/80" : "text-slate-500"
+                              )}
+                            />
+                          ) : null}
+                        </>
                       ) : null}
                     </Link>
+                    {showBookingsSubNav ? (
+                      <ul className="mb-1 ml-3 space-y-0.5 border-l border-slate-700 pl-2.5">
+                        {bookingsSubNav.map((subItem) => {
+                          const isSubActive = activeBookingsView === subItem.key;
+                          return (
+                            <li key={subItem.key}>
+                              <Link
+                                href={subItem.href}
+                                className={cn(
+                                  "block rounded-md px-2 py-1.5 text-xs font-medium transition-all",
+                                  isSubActive
+                                    ? "bg-violet-600/90 text-white"
+                                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                                )}
+                              >
+                                {subItem.label}
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : null}
                   </li>
                 );
               })}

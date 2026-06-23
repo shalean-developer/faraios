@@ -2,7 +2,6 @@ import { promises as dns } from "dns";
 
 import { getHostingProvider } from "@/lib/hosting/providers";
 import type { DnsRecordType } from "@/lib/hosting/providers";
-import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import type {
@@ -15,8 +14,10 @@ export async function getWebsiteDomainsForCompany(
 ): Promise<WebsiteDomain[]> {
   if (!isSupabaseConfigured() || !companyId) return [];
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return [];
+
+  const { data, error } = await admin.client
     .from("website_domains")
     .select("*")
     .eq("company_id", companyId)
@@ -35,8 +36,10 @@ export async function getDnsRecordsForDomain(
 ): Promise<WebsiteDnsRecord[]> {
   if (!isSupabaseConfigured() || !websiteDomainId) return [];
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return [];
+
+  const { data, error } = await admin.client
     .from("website_dns_records")
     .select("*")
     .eq("website_domain_id", websiteDomainId)

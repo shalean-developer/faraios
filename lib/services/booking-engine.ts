@@ -1,4 +1,4 @@
-import { upsertCustomerFromBooking } from "@/app/actions/customers";
+import { upsertCustomerForCompany } from "@/lib/services/customers";
 import { validateBookingAvailability } from "@/lib/bookings/availability";
 import {
   combineDateAndTime,
@@ -8,6 +8,8 @@ import {
 import { logBookingActivity } from "@/lib/services/booking-activities";
 import { getPublishedBookingFormForCompany } from "@/lib/services/booking-forms";
 import { notifyBookingCreated } from "@/lib/services/booking-notifications";
+import { triggerWorkflows } from "@/lib/services/workflow-engine";
+import { createNotification } from "@/lib/services/notifications";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { PublicBookingInput, ServiceAddon } from "@/types/booking-form";
 import type { BookingStatus } from "@/lib/bookings/status";
@@ -115,12 +117,15 @@ export async function createEngineBooking(
     if (!availability.ok) return availability;
   }
 
-  const customerId = await upsertCustomerFromBooking({
-    companyId: input.companyId,
-    name,
-    email: input.customerEmail,
-    phone: input.customerPhone,
-  });
+  const customerId = await upsertCustomerForCompany(
+    {
+      companyId: input.companyId,
+      name,
+      email: input.customerEmail,
+      phone: input.customerPhone,
+    },
+    admin.client
+  );
 
   const customResponses = form
     ? sanitizeCustomResponses(form.fields, input.customResponses ?? {})
@@ -183,6 +188,25 @@ export async function createEngineBooking(
     eventType: "created",
     message: `Booking created via ${input.source}.`,
     metadata: { status: input.status ?? "pending", service: serviceName },
+  });
+
+  await triggerWorkflows("booking_created", {
+    companyId: input.companyId,
+    entityType: "booking",
+    entityId: data.id,
+    payload: {
+      customerEmail: input.customerEmail,
+      customerName: name,
+    },
+  });
+
+  await createNotification({
+    companyId: input.companyId,
+    type: "booking",
+    title: "New booking",
+    body: `${name} — ${serviceName}`,
+    entityType: "booking",
+    entityId: data.id,
   });
 
   return { ok: true, bookingId: data.id };

@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check, Copy, ExternalLink, Loader2 } from "lucide-react";
 
 import {
@@ -25,6 +26,7 @@ export function ConnectedWebsitePanel({
   slug: string;
   connectedWebsite: ConnectedWebsite | null;
 }) {
+  const router = useRouter();
   const [name, setName] = useState(connectedWebsite?.name ?? "");
   const [productionUrl, setProductionUrl] = useState(
     connectedWebsite?.production_url ?? ""
@@ -69,7 +71,7 @@ export function ConnectedWebsitePanel({
         return;
       }
       setSuccess("Connected website saved.");
-      window.location.reload();
+      router.refresh();
     } finally {
       setPending(false);
     }
@@ -113,7 +115,7 @@ export function ConnectedWebsitePanel({
       [field]: value,
     });
     if (!result.ok) setError(result.error);
-    else window.location.reload();
+    else router.refresh();
   };
 
   return (

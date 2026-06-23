@@ -7,6 +7,7 @@ import { getCustomerById } from "@/lib/services/customers";
 import { listInvoicesForCustomer } from "@/lib/services/invoices";
 import { listPaymentsForCustomer, getCustomerPaymentSummary } from "@/lib/services/payments";
 import { listQuotesForCustomer } from "@/lib/services/quotes";
+import { CompanyCustomerDetailHeader } from "../company-customer-detail-header";
 import { companyCustomersPath } from "@/lib/paths/company";
 import { formatRevenue } from "@/lib/operations/metrics";
 import { invoiceStatusBadgeClass, quoteStatusBadgeClass } from "@/lib/financial/status";
@@ -64,12 +65,14 @@ export default async function CompanyCustomerDetailPage({ params }: Props) {
         ← Back to customers
       </Link>
 
-      <header className="mt-4 mb-8">
-        <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
-          Customer
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">{customer.name}</h1>
-        <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-600">
+      <CompanyCustomerDetailHeader
+        slug={slug}
+        companyId={row.id}
+        customer={customer}
+      />
+
+      <div className="mb-8">
+        <div className="flex flex-wrap gap-4 text-sm text-slate-600">
           {customer.email ? <span>{customer.email}</span> : null}
           {customer.phone ? <span>{customer.phone}</span> : null}
         </div>
@@ -89,7 +92,7 @@ export default async function CompanyCustomerDetailPage({ params }: Props) {
             </span>
           ) : null}
         </div>
-      </header>
+      </div>
 
       <section className="mb-10">
         <h2 className="text-lg font-bold text-slate-900">Quotes</h2>

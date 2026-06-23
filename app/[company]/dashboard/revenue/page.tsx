@@ -1,12 +1,23 @@
 import { notFound } from "next/navigation";
 
 import { getCompanyBySlug } from "@/lib/services/companies";
-import { getRevenueMetrics } from "@/lib/services/revenue-metrics";
-import { formatRevenue } from "@/lib/operations/metrics";
+import { markOverdueInvoices } from "@/lib/services/invoices";
+import { listPaymentsForCompany } from "@/lib/services/payments";
+import {
+  getRevenueByPeriod,
+  getRevenueMetrics,
+} from "@/lib/services/revenue-metrics";
+
+import { CompanyRevenueClient } from "./company-revenue-client";
 
 type Props = { params: Promise<{ company: string }> };
 
 export const dynamic = "force-dynamic";
+
+export const metadata = {
+  title: "Revenue — FaraiOS",
+  robots: { index: false, follow: false },
+};
 
 export default async function CompanyRevenuePage({ params }: Props) {
   const { company } = await params;
@@ -14,43 +25,20 @@ export default async function CompanyRevenuePage({ params }: Props) {
   const row = await getCompanyBySlug(slug);
   if (!row) notFound();
 
-  const metrics = await getRevenueMetrics(row.id);
+  await markOverdueInvoices(row.id);
 
-  const cards = [
-    { label: "Revenue today", value: formatRevenue(metrics.revenueTodayCents) },
-    { label: "Revenue this month", value: formatRevenue(metrics.revenueMonthCents) },
-    { label: "Revenue this year", value: formatRevenue(metrics.revenueYearCents) },
-    { label: "Total paid", value: formatRevenue(metrics.totalPaidCents) },
-    { label: "Outstanding invoices", value: formatRevenue(metrics.outstandingInvoicesCents) },
-    { label: "Overdue invoices", value: formatRevenue(metrics.overdueInvoicesCents) },
-    {
-      label: "Avg booking value",
-      value: formatRevenue(metrics.averageBookingValueCents),
-    },
-  ];
+  const [metrics, monthlyTrend, payments] = await Promise.all([
+    getRevenueMetrics(row.id),
+    getRevenueByPeriod(row.id, "monthly", 6),
+    listPaymentsForCompany(row.id),
+  ]);
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">Revenue</p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">Revenue dashboard</h1>
-        <p className="mt-2 text-sm text-slate-500">
-          Based on collected customer payments, not booking estimates.
-        </p>
-      </header>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {cards.map((card) => (
-          <div
-            key={card.label}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-          >
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-              {card.label}
-            </p>
-            <p className="mt-2 text-2xl font-bold text-slate-900">{card.value}</p>
-          </div>
-        ))}
-      </div>
-    </div>
+    <CompanyRevenueClient
+      slug={slug}
+      metrics={metrics}
+      monthlyTrend={monthlyTrend}
+      recentPayments={payments.slice(0, 8)}
+    />
   );
 }

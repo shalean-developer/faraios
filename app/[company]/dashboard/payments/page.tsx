@@ -1,13 +1,21 @@
 import { notFound } from "next/navigation";
 
 import { getCompanyBySlug } from "@/lib/services/companies";
-import { listPaymentsForCompany } from "@/lib/services/payments";
+import {
+  listPaymentsForCompany,
+  summarizePayments,
+} from "@/lib/services/payments";
 
 import { CompanyPaymentsClient } from "./company-payments-client";
 
 type Props = { params: Promise<{ company: string }> };
 
 export const dynamic = "force-dynamic";
+
+export const metadata = {
+  title: "Payments — FaraiOS",
+  robots: { index: false, follow: false },
+};
 
 export default async function CompanyPaymentsPage({ params }: Props) {
   const { company } = await params;
@@ -18,6 +26,11 @@ export default async function CompanyPaymentsPage({ params }: Props) {
   const payments = await listPaymentsForCompany(row.id);
 
   return (
-    <CompanyPaymentsClient slug={slug} companyId={row.id} payments={payments} />
+    <CompanyPaymentsClient
+      slug={slug}
+      company={row}
+      payments={payments}
+      summary={summarizePayments(payments)}
+    />
   );
 }

@@ -9,6 +9,11 @@ import Link from "next/link";
 
 import { PortalQuoteActions } from "./portal-quote-actions";
 import { PortalPayButton } from "./portal-pay-button";
+import {
+  PortalBookingsSection,
+  PortalProfileSection,
+  PortalReviewsSection,
+} from "./portal-sections";
 
 type Props = { params: Promise<{ token: string }> };
 
@@ -22,32 +27,62 @@ export default async function CustomerPortalPage({ params }: Props) {
   const admin = tryCreateAdminClient();
   if (!admin.ok) notFound();
 
-  const [quotes, invoices, payments] = await Promise.all([
-    admin.client
-      .from("quotes")
-      .select("*")
-      .eq("company_id", ctx.companyId)
-      .eq("customer_id", ctx.customerId)
-      .neq("status", "draft")
-      .order("created_at", { ascending: false }),
-    admin.client
-      .from("invoices")
-      .select("*")
-      .eq("company_id", ctx.companyId)
-      .eq("customer_id", ctx.customerId)
-      .neq("status", "draft")
-      .order("created_at", { ascending: false }),
-    admin.client
-      .from("customer_payments")
-      .select("*")
-      .eq("company_id", ctx.companyId)
-      .eq("customer_id", ctx.customerId)
-      .order("created_at", { ascending: false }),
-  ]);
+  const [quotes, invoices, payments, bookings, customer, reviews, seoSettings] =
+    await Promise.all([
+      admin.client
+        .from("quotes")
+        .select("*")
+        .eq("company_id", ctx.companyId)
+        .eq("customer_id", ctx.customerId)
+        .neq("status", "draft")
+        .order("created_at", { ascending: false }),
+      admin.client
+        .from("invoices")
+        .select("*")
+        .eq("company_id", ctx.companyId)
+        .eq("customer_id", ctx.customerId)
+        .neq("status", "draft")
+        .order("created_at", { ascending: false }),
+      admin.client
+        .from("customer_payments")
+        .select("*")
+        .eq("company_id", ctx.companyId)
+        .eq("customer_id", ctx.customerId)
+        .order("created_at", { ascending: false }),
+      admin.client
+        .from("bookings")
+        .select("id, service, status, booking_date, scheduled_at")
+        .eq("company_id", ctx.companyId)
+        .eq("customer_id", ctx.customerId)
+        .order("created_at", { ascending: false }),
+      admin.client
+        .from("customers")
+        .select("name, email, phone")
+        .eq("id", ctx.customerId)
+        .maybeSingle(),
+      admin.client
+        .from("review_requests")
+        .select("id, status, created_at")
+        .eq("company_id", ctx.companyId)
+        .eq("customer_email", ctx.customerEmail ?? "")
+        .order("created_at", { ascending: false })
+        .limit(10),
+      admin.client
+        .from("local_seo_settings")
+        .select("google_review_link")
+        .eq("company_id", ctx.companyId)
+        .maybeSingle(),
+    ]);
 
   const quoteRows = quotes.data ?? [];
   const invoiceRows = invoices.data ?? [];
   const paymentRows = payments.data ?? [];
+  const bookingRows = bookings.data ?? [];
+  const customerRow = customer.data ?? {
+    name: ctx.customerName,
+    email: ctx.customerEmail,
+    phone: null,
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6">
@@ -59,6 +94,9 @@ export default async function CustomerPortalPage({ params }: Props) {
           <h1 className="mt-1 text-2xl font-bold text-slate-900">{ctx.companyName}</h1>
           <p className="mt-2 text-sm text-slate-600">Welcome, {ctx.customerName}</p>
         </header>
+
+        <PortalProfileSection token={token} customer={customerRow} />
+        <PortalBookingsSection token={token} bookings={bookingRows} />
 
         <section className="mb-8">
           <h2 className="text-lg font-bold text-slate-900">Quotes</h2>
@@ -157,7 +195,7 @@ export default async function CustomerPortalPage({ params }: Props) {
           </ul>
         </section>
 
-        <section>
+        <section className="mb-8">
           <h2 className="text-lg font-bold text-slate-900">Payment history</h2>
           <ul className="mt-4 space-y-2">
             {paymentRows.length === 0 ? (
@@ -178,6 +216,12 @@ export default async function CustomerPortalPage({ params }: Props) {
             )}
           </ul>
         </section>
+
+        <PortalReviewsSection
+          token={token}
+          reviewLink={seoSettings.data?.google_review_link ?? null}
+          reviews={reviews.data ?? []}
+        />
       </div>
     </div>
   );

@@ -3,12 +3,16 @@
 import { revalidatePath } from "next/cache";
 
 import { requireCompanyMembership } from "@/lib/services/company-access";
+import { upsertLocalSeoSettings } from "@/lib/services/local-seo";
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import { isBookingStatus, type BookingStatus } from "@/lib/bookings/status";
 import { logBookingActivity } from "@/lib/services/booking-activities";
 import { notifyBookingStatusChanged } from "@/lib/services/booking-notifications";
 import { maybeAutoSendReviewRequest } from "@/lib/services/review-requests";
+import { triggerWorkflows } from "@/lib/services/workflow-engine";
+import { createNotification } from "@/lib/services/notifications";
 
 export type UpdateCompanySettingsInput = {
   companyId: string;
@@ -37,8 +41,10 @@ export async function updateCompanySettings(
   const access = await requireCompanyMembership(input.companyId);
   if (!access.ok) return access;
 
-  const supabase = await createClient();
-  const { error } = await supabase
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return { ok: false, error: admin.error };
+
+  const { error } = await admin.client
     .from("companies")
     .update({
       name,
@@ -55,8 +61,21 @@ export async function updateCompanySettings(
     return { ok: false, error: error.message };
   }
 
-  revalidatePath(`/${input.companySlug}/dashboard`);
+  const serviceAreas = input.serviceAreas?.trim()
+    ? input.serviceAreas.split(/[,;]/).map((a) => a.trim()).filter(Boolean)
+    : [];
+
+  await upsertLocalSeoSettings(input.companyId, {
+    business_name: name,
+    phone: input.contactPhone?.trim() || null,
+    email: input.primaryContactEmail?.trim() || null,
+    primary_location: input.contactLocation?.trim() || null,
+    service_areas: serviceAreas,
+    main_service: input.businessDescription?.trim()?.slice(0, 120) || null,
+  });
+
   revalidatePath(`/${input.companySlug}/dashboard/settings`);
+  revalidatePath(`/${input.companySlug}/dashboard/seo`);
   return { ok: true };
 }
 
@@ -90,8 +109,10 @@ export async function connectExternalWebsite(
   const access = await requireCompanyMembership(input.companyId);
   if (!access.ok) return access;
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("connected_websites").upsert(
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return { ok: false, error: admin.error };
+
+  const { error } = await admin.client.from("connected_websites").upsert(
     {
       company_id: input.companyId,
       type: "external",
@@ -178,7 +199,43 @@ export async function updateBookingStatus(input: {
       customerName: existing?.customer_name,
       businessName: companyRow?.name ?? "our business",
     });
+
+    await triggerWorkflows("booking_completed", {
+      companyId: input.companyId,
+      entityType: "booking",
+      entityId: input.bookingId,
+      payload: {
+        customerEmail: existing?.customer_email,
+        customerName: existing?.customer_name,
+      },
+    });
   }
+
+  const triggerMap: Record<string, "booking_confirmed" | "booking_cancelled" | undefined> = {
+    confirmed: "booking_confirmed",
+    cancelled: "booking_cancelled",
+  };
+  const wfTrigger = triggerMap[input.status];
+  if (wfTrigger && existing?.status !== input.status) {
+    await triggerWorkflows(wfTrigger, {
+      companyId: input.companyId,
+      entityType: "booking",
+      entityId: input.bookingId,
+      payload: {
+        customerEmail: existing?.customer_email,
+        customerName: existing?.customer_name,
+      },
+    });
+  }
+
+  await createNotification({
+    companyId: input.companyId,
+    type: "booking",
+    title: `Booking ${input.status.replace(/_/g, " ")}`,
+    body: `${existing?.service ?? "Booking"} — ${existing?.customer_name ?? "Customer"}`,
+    entityType: "booking",
+    entityId: input.bookingId,
+  });
 
   revalidatePath(`/${input.companySlug}/dashboard`);
   revalidatePath(`/${input.companySlug}/dashboard/bookings`);

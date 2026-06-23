@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
-import type { BookingFormField } from "@/types/booking-form";
+import { formatRevenue } from "@/lib/operations/metrics";
+import { cn } from "@/lib/utils";
+import type { BookingFormField, ServiceAddon } from "@/types/booking-form";
 import type { CompanyService } from "@/types/database";
 
 type SubmitPayload = {
@@ -18,13 +20,22 @@ type SubmitPayload = {
   notes?: string;
   consentGiven?: boolean;
   customResponses?: Record<string, unknown>;
+  addons?: ServiceAddon[];
 };
 
 type Props = {
   businessName: string;
   fields: BookingFormField[];
-  services: Pick<CompanyService, "id" | "name" | "base_price_cents">[];
+  services: Pick<CompanyService, "id" | "name" | "base_price_cents" | "addons">[];
   onSubmit: (payload: SubmitPayload) => Promise<{ ok: true } | { ok: false; error: string }>;
+  mode?: "public" | "admin";
+  formTitle?: string;
+  formDescription?: string;
+  submitLabel?: string;
+  successMessage?: string;
+  onSuccess?: () => void;
+  embedded?: boolean;
+  preview?: boolean;
 };
 
 function initialValues(fields: BookingFormField[]): Record<string, string | boolean> {
@@ -42,25 +53,54 @@ export function DynamicPublicBookingForm({
   fields,
   services,
   onSubmit,
+  mode = "public",
+  formTitle,
+  formDescription,
+  submitLabel,
+  successMessage,
+  onSuccess,
+  embedded = false,
+  preview = false,
 }: Props) {
   const [values, setValues] = useState<Record<string, string | boolean>>(() =>
     initialValues(fields)
   );
+  const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const selectedServiceId = String(values.service_id ?? "");
+  const selectedService = useMemo(
+    () => services.find((service) => service.id === selectedServiceId) ?? null,
+    [services, selectedServiceId]
+  );
+  const availableAddons = useMemo(() => {
+    if (!selectedService?.addons || !Array.isArray(selectedService.addons)) return [];
+    return selectedService.addons as ServiceAddon[];
+  }, [selectedService]);
+
+  useEffect(() => {
+    setSelectedAddonIds((current) =>
+      current.filter((id) => availableAddons.some((addon) => addon.id === id))
+    );
+  }, [availableAddons]);
+
+  const setValue = (key: string, value: string | boolean) => {
+    setValues((prev) => ({ ...prev, [key]: value }));
+    if (key === "service_id") {
+      setSelectedAddonIds([]);
+    }
+  };
 
   const sortedFields = useMemo(
     () => [...fields].sort((a, b) => a.sortOrder - b.sortOrder),
     [fields]
   );
 
-  const setValue = (key: string, value: string | boolean) => {
-    setValues((prev) => ({ ...prev, [key]: value }));
-  };
-
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    if (preview) return;
     setError(null);
     setSuccess(false);
 
@@ -77,6 +117,10 @@ export function DynamicPublicBookingForm({
       new Date().toISOString();
 
     startTransition(async () => {
+      const selectedAddons = availableAddons.filter((addon) =>
+        selectedAddonIds.includes(addon.id)
+      );
+
       const result = await onSubmit({
         customerName: String(values.customer_name ?? ""),
         customerEmail: String(values.customer_email ?? "") || undefined,
@@ -89,6 +133,7 @@ export function DynamicPublicBookingForm({
         notes: String(values.notes ?? "") || undefined,
         consentGiven: Boolean(values.consent),
         customResponses,
+        addons: selectedAddons.length > 0 ? selectedAddons : undefined,
       });
 
       if (!result.ok) {
@@ -98,8 +143,25 @@ export function DynamicPublicBookingForm({
 
       setSuccess(true);
       setValues(initialValues(fields));
+      setSelectedAddonIds([]);
+      onSuccess?.();
     });
   };
+
+  const title =
+    formTitle ?? (mode === "admin" ? "Create booking request" : `Book ${businessName}`);
+  const description =
+    formDescription ??
+    (mode === "admin"
+      ? "Fill in the configured booking form on behalf of a customer."
+      : "Submit your request and the business will confirm your booking.");
+  const submitText =
+    submitLabel ?? (mode === "admin" ? "Create booking request" : "Request booking");
+  const successText =
+    successMessage ??
+    (mode === "admin"
+      ? "Booking request created for the customer."
+      : "Booking request sent. The business will contact you to confirm.");
 
   const renderField = (field: BookingFormField) => {
     if (field.type === "hidden") return null;
@@ -118,7 +180,7 @@ export function DynamicPublicBookingForm({
             <option value="">Select a service</option>
             {services.map((service) => (
               <option key={service.id} value={service.id}>
-                {service.name}
+                {service.name} — {formatRevenue(service.base_price_cents)}
               </option>
             ))}
           </select>
@@ -212,14 +274,19 @@ export function DynamicPublicBookingForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm"
+      className={cn(
+        "space-y-4",
+        embedded
+          ? "p-0"
+          : "rounded-2xl border border-gray-100 bg-white p-6 shadow-sm"
+      )}
     >
+      {!embedded && (title || description) ? (
       <div>
-        <h2 className="text-lg font-bold text-gray-900">Book {businessName}</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Submit your request and the business will confirm your booking.
-        </p>
+        <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+        <p className="mt-1 text-sm text-gray-500">{description}</p>
       </div>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
         {sortedFields.map((field) => (
@@ -236,20 +303,50 @@ export function DynamicPublicBookingForm({
         ))}
       </div>
 
-      {error ? (
+      {availableAddons.length > 0 ? (
+        <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 sm:col-span-2">
+          <p className="text-sm font-medium text-gray-800">Optional add-ons</p>
+          <div className="mt-2 space-y-2">
+            {availableAddons.map((addon) => (
+              <label key={addon.id} className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={selectedAddonIds.includes(addon.id)}
+                  onChange={(e) => {
+                    setSelectedAddonIds((current) =>
+                      e.target.checked
+                        ? [...current, addon.id]
+                        : current.filter((id) => id !== addon.id)
+                    );
+                  }}
+                />
+                <span>
+                  {addon.name} — {formatRevenue(addon.price_cents)}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {error && !preview ? (
         <p className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       ) : null}
-      {success ? (
+      {success && !preview ? (
         <p className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-          Booking request sent. The business will contact you to confirm.
+          {successText}
         </p>
       ) : null}
 
-      <Button type="submit" disabled={isPending} className="rounded-xl">
-        {isPending ? "Sending request…" : "Request booking"}
-      </Button>
+      {preview ? (
+        <p className="text-xs text-slate-500">Live preview — submit is disabled here.</p>
+      ) : (
+        <Button type="submit" disabled={isPending} className="rounded-xl">
+          {isPending ? "Saving…" : submitText}
+        </Button>
+      )}
     </form>
   );
 }

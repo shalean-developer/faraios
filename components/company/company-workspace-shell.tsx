@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import { CompanyMobileNav } from "@/components/company/company-mobile-nav";
 import { CompanySidebarBrand } from "@/components/company/company-sidebar-brand";
@@ -13,31 +12,6 @@ import type { UserCompany } from "@/types/database";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "faraios.workspace-sidebar-collapsed";
-
-function CollapsedFooter({
-  onToggle,
-  displayName,
-  email,
-}: {
-  onToggle: () => void;
-  displayName: string;
-  email: string | null;
-}) {
-  return (
-    <div className="mt-auto flex shrink-0 flex-col items-center gap-1 border-t border-slate-800 px-2 py-2">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
-        aria-label="Expand sidebar"
-        title="Expand sidebar"
-      >
-        <PanelLeftOpen className="h-4 w-4" />
-      </button>
-      <CompanySidebarUser displayName={displayName} email={email} collapsed />
-    </div>
-  );
-}
 
 export function CompanyWorkspaceShell({
   slug,
@@ -59,14 +33,16 @@ export function CompanyWorkspaceShell({
   const pathname = usePathname() ?? "";
   const activeNav = companyNavKeyFromPathname(slug, pathname);
   const [collapsed, setCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY) === "1";
-      queueMicrotask(() => setCollapsed(stored));
+      setCollapsed(stored);
     } catch {
       // ignore
     }
+    setMounted(true);
   }, []);
 
   const toggleCollapsed = () => {
@@ -85,48 +61,29 @@ export function CompanyWorkspaceShell({
     <div className="flex h-screen w-full overflow-hidden bg-[#f4f6fb] font-sans">
       <aside
         className={cn(
-          "hidden h-full flex-shrink-0 flex-col overflow-hidden bg-slate-900 transition-[width] duration-200 ease-out lg:flex",
-          collapsed ? "w-[3.75rem]" : "w-52"
+          "hidden h-full flex-shrink-0 flex-col overflow-hidden bg-slate-900 lg:flex",
+          mounted && "transition-[width] duration-200 ease-out",
+          mounted && collapsed ? "w-[3.75rem]" : "w-56"
         )}
       >
         <CompanySidebarBrand
           slug={slug}
           companyName={companyName}
           companies={companies}
-          collapsed={collapsed}
+          collapsed={mounted && collapsed}
+          onToggle={toggleCollapsed}
         />
         <CompanySidebarNav
           slug={slug}
           activeNav={activeNav}
           hasWebsiteProject={hasWebsiteProject}
-          collapsed={collapsed}
+          collapsed={mounted && collapsed}
         />
-        {collapsed ? (
-          <CollapsedFooter
-            onToggle={toggleCollapsed}
-            displayName={userDisplayName}
-            email={userEmail}
-          />
-        ) : (
-          <>
-            <div className="mt-auto shrink-0 border-t border-slate-800 p-2">
-              <button
-                type="button"
-                onClick={toggleCollapsed}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
-                aria-label="Collapse sidebar"
-              >
-                <PanelLeftClose className="h-4 w-4 shrink-0" />
-                <span>Collapse</span>
-              </button>
-            </div>
-            <CompanySidebarUser
-              displayName={userDisplayName}
-              email={userEmail}
-              collapsed={false}
-            />
-          </>
-        )}
+        <CompanySidebarUser
+          displayName={userDisplayName}
+          email={userEmail}
+          collapsed={mounted && collapsed}
+        />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">

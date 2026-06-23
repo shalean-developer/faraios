@@ -44,3 +44,10 @@ alter table public.bookings
 
 -- 2) booking_activities: drop broken table if present, then re-apply completion migration
 --    or run: supabase/migrations/20260624010000_v2_booking_completion.sql
+
+-- 3) company_services display order
+alter table public.company_services
+  add column if not exists sort_order integer not null default 0;
+
+create index if not exists company_services_company_sort_idx
+  on public.company_services (company_id, sort_order, name);

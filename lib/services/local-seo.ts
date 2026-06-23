@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { LocalSeoSettings } from "@/types/growth-engine";
 
@@ -31,12 +30,19 @@ function mapRow(row: Record<string, unknown>): LocalSeoSettings {
 export async function getLocalSeoSettings(
   companyId: string
 ): Promise<LocalSeoSettings | null> {
-  const supabase = await createClient();
-  const { data } = await supabase
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return null;
+
+  const { data, error } = await admin.client
     .from("local_seo_settings")
     .select("*")
     .eq("company_id", companyId)
     .maybeSingle();
+
+  if (error) {
+    console.error("[local_seo_settings] getLocalSeoSettings", error.message);
+    return null;
+  }
 
   return data ? mapRow(data) : null;
 }
@@ -60,18 +66,23 @@ export async function upsertLocalSeoSettings(
   companyId: string,
   input: LocalSeoInput
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const supabase = await createClient();
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return { ok: false, error: admin.error };
+
   const payload = {
     company_id: companyId,
     ...input,
     updated_at: new Date().toISOString(),
   };
 
-  const { error } = await supabase
+  const { error } = await admin.client
     .from("local_seo_settings")
     .upsert(payload, { onConflict: "company_id" });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[local_seo_settings] upsertLocalSeoSettings", error.message);
+    return { ok: false, error: error.message };
+  }
   return { ok: true };
 }
 

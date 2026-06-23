@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { CampaignType, EmailCampaign } from "@/types/growth-engine";
 
@@ -36,22 +35,94 @@ function mapRow(row: Record<string, unknown>): EmailCampaign {
 }
 
 export async function listEmailCampaigns(companyId: string): Promise<EmailCampaign[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return [];
+
+  const { data, error } = await admin.client
     .from("email_campaigns")
     .select("*")
     .eq("company_id", companyId)
     .order("created_at", { ascending: false });
 
+  if (error) {
+    console.error("[email_campaigns] listEmailCampaigns", error.message);
+    return [];
+  }
+
   return (data ?? []).map(mapRow);
+}
+
+export type EmailCampaignSummary = {
+  total: number;
+  drafts: number;
+  sent: number;
+  totalSent: number;
+  totalRevenueCents: number;
+};
+
+export function summarizeEmailCampaigns(campaigns: EmailCampaign[]): EmailCampaignSummary {
+  let drafts = 0;
+  let sent = 0;
+  let totalSent = 0;
+  let totalRevenueCents = 0;
+
+  for (const campaign of campaigns) {
+    if (campaign.status === "draft" || campaign.status === "scheduled") drafts += 1;
+    if (campaign.status === "sent") {
+      sent += 1;
+      totalSent += campaign.sent_count;
+      totalRevenueCents += campaign.revenue_generated_cents;
+    }
+  }
+
+  return {
+    total: campaigns.length,
+    drafts,
+    sent,
+    totalSent,
+    totalRevenueCents,
+  };
+}
+
+export async function countCampaignAudience(companyId: string): Promise<number> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return 0;
+
+  const [{ count: customerCount }, { data: unsubscribes }] = await Promise.all([
+    admin.client
+      .from("customers")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .not("email", "is", null),
+    admin.client.from("email_unsubscribes").select("email").eq("company_id", companyId),
+  ]);
+
+  const unsubSet = new Set(
+    (unsubscribes ?? []).map((u) => (u.email as string).toLowerCase())
+  );
+
+  if (!customerCount) return 0;
+
+  const { data: customers } = await admin.client
+    .from("customers")
+    .select("email")
+    .eq("company_id", companyId)
+    .not("email", "is", null);
+
+  return (customers ?? []).filter((c) => {
+    const email = (c.email as string)?.trim().toLowerCase();
+    return email && !unsubSet.has(email);
+  }).length;
 }
 
 export async function createEmailCampaign(
   companyId: string,
   input: EmailCampaignInput
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return { ok: false, error: admin.error };
+
+  const { data, error } = await admin.client
     .from("email_campaigns")
     .insert({
       company_id: companyId,
@@ -67,7 +138,10 @@ export async function createEmailCampaign(
     .select("id")
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message ?? "Failed to create campaign." };
+  if (error || !data) {
+    console.error("[email_campaigns] createEmailCampaign", error?.message);
+    return { ok: false, error: error?.message ?? "Failed to create campaign." };
+  }
   return { ok: true, id: data.id as string };
 }
 
@@ -75,19 +149,22 @@ export async function sendEmailCampaign(
   companyId: string,
   campaignId: string
 ): Promise<{ ok: true; sentCount: number } | { ok: false; error: string }> {
-  const supabase = await createClient();
-  const { data: campaign } = await supabase
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return { ok: false, error: admin.error };
+
+  const { data: campaign, error: fetchError } = await admin.client
     .from("email_campaigns")
     .select("*")
     .eq("id", campaignId)
     .eq("company_id", companyId)
     .maybeSingle();
 
+  if (fetchError) {
+    console.error("[email_campaigns] sendEmailCampaign fetch", fetchError.message);
+    return { ok: false, error: fetchError.message };
+  }
   if (!campaign) return { ok: false, error: "Campaign not found." };
   if (campaign.status === "sent") return { ok: false, error: "Campaign already sent." };
-
-  const admin = tryCreateAdminClient();
-  if (!admin.ok) return { ok: false, error: "Email service not configured." };
 
   const { data: customers } = await admin.client
     .from("customers")
@@ -138,7 +215,7 @@ export async function sendEmailCampaign(
     }
   }
 
-  await supabase
+  const { error: updateError } = await admin.client
     .from("email_campaigns")
     .update({
       status: "sent",
@@ -148,6 +225,11 @@ export async function sendEmailCampaign(
     })
     .eq("id", campaignId)
     .eq("company_id", companyId);
+
+  if (updateError) {
+    console.error("[email_campaigns] sendEmailCampaign update", updateError.message);
+    return { ok: false, error: updateError.message };
+  }
 
   return { ok: true, sentCount };
 }

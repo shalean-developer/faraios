@@ -56,16 +56,19 @@ export async function addWebsiteDomainAction(input: {
     return { ok: false, error: connectResult.error };
   }
 
-  const supabase = await createClient();
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) {
+    return { ok: false, error: admin.error };
+  }
 
   if (input.isPrimary) {
-    await supabase
+    await admin.client
       .from("website_domains")
       .update({ is_primary: false, updated_at: new Date().toISOString() })
       .eq("company_id", input.companyId);
   }
 
-  const { data: domainRow, error } = await supabase
+  const { data: domainRow, error } = await admin.client
     .from("website_domains")
     .insert({
       company_id: input.companyId,
@@ -88,26 +91,23 @@ export async function addWebsiteDomainAction(input: {
 
   await seedDnsRecordsForDomain(domainRow.id as string, connectResult.dnsRecords);
 
-  // TXT verification record for FaraiOS ownership
-  const admin = tryCreateAdminClient();
-  if (admin.ok) {
-    const { data: fullDomain } = await admin.client
-      .from("website_domains")
-      .select("verification_token")
-      .eq("id", domainRow.id)
-      .maybeSingle();
+  const { data: fullDomain } = await admin.client
+    .from("website_domains")
+    .select("verification_token")
+    .eq("id", domainRow.id)
+    .maybeSingle();
 
-    if (fullDomain?.verification_token) {
-      await admin.client.from("website_dns_records").insert({
-        website_domain_id: domainRow.id,
-        record_type: "TXT",
-        host: "_faraios",
-        value: `faraios-verify=${fullDomain.verification_token}`,
-        status: "pending",
-      });
-    }
+  if (fullDomain?.verification_token) {
+    await admin.client.from("website_dns_records").insert({
+      website_domain_id: domainRow.id,
+      record_type: "TXT",
+      host: "_faraios",
+      value: `faraios-verify=${fullDomain.verification_token}`,
+      status: "pending",
+    });
   }
 
+  const supabase = await createClient();
   await supabase
     .from("connected_websites")
     .upsert(
@@ -334,8 +334,12 @@ export async function triggerWebsiteDeploymentAction(input: {
     return { ok: false, error: deployResult.error };
   }
 
-  const supabase = await createClient();
-  await supabase.from("website_deployments").insert({
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) {
+    return { ok: false, error: admin.error };
+  }
+
+  await admin.client.from("website_deployments").insert({
     company_id: input.companyId,
     website_id: input.websiteId,
     environment: input.environment ?? "production",
@@ -345,6 +349,7 @@ export async function triggerWebsiteDeploymentAction(input: {
     url: deployResult.url || null,
   });
 
+  const supabase = await createClient();
   await supabase
     .from("websites")
     .update({

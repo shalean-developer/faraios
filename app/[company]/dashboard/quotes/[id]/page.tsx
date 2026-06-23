@@ -29,7 +29,7 @@ export default async function CompanyQuoteDetailPage({ params }: Props) {
         href={companyQuotesPath(slug)}
         className="text-sm font-medium text-violet-700 hover:text-violet-900"
       >
-        ← Back to quotes
+        ← Back to quote requests
       </Link>
       <header className="mt-4 mb-6">
         <h1 className="text-2xl font-bold text-slate-900">{detail.quote.quote_number}</h1>

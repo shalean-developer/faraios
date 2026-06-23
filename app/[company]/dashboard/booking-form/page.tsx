@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { ensureBookingFormForCompany } from "@/lib/services/booking-forms";
 import { defaultBookingHours } from "@/lib/bookings/availability";
+import { listServicesForCompany } from "@/lib/services/company-services";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import type { BookingHours } from "@/types/booking-form";
 
@@ -23,20 +24,24 @@ export default async function CompanyBookingFormPage({ params }: Props) {
   if (!row) notFound();
 
   const industrySlug = row.industries?.slug ?? null;
-  const form = await ensureBookingFormForCompany({
-    companyId: row.id,
-    industrySlug,
-  });
+  const [form, services] = await Promise.all([
+    ensureBookingFormForCompany({
+      companyId: row.id,
+      industrySlug,
+    }),
+    listServicesForCompany(row.id),
+  ]);
   if (!form) notFound();
 
   return (
     <CompanyBookingFormClient
       slug={slug}
-      companyId={row.id}
+      company={row}
       industrySlug={industrySlug}
       initialForm={form}
       initialBookingHours={(row.booking_hours as BookingHours | null) ?? defaultBookingHours()}
       initialBlockedDates={row.blocked_booking_dates ?? []}
+      services={services}
     />
   );
 }

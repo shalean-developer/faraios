@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
 
-import { listCustomersForCompany } from "@/lib/services/customers";
+import {
+  getCustomerStatsForCompany,
+  listCustomersForCompany,
+  syncCustomersFromBookings,
+} from "@/lib/services/customers";
 import { getCompanyBySlug } from "@/lib/services/companies";
 
 import { CompanyCustomersClient } from "./company-customers-client";
@@ -23,9 +27,18 @@ export default async function CompanyCustomersPage({ params }: Props) {
     notFound();
   }
 
-  const customers = await listCustomersForCompany(row.id);
+  await syncCustomersFromBookings(row.id);
+  const [customers, stats] = await Promise.all([
+    listCustomersForCompany(row.id),
+    getCustomerStatsForCompany(row.id),
+  ]);
 
   return (
-    <CompanyCustomersClient slug={slug} company={row} customers={customers} />
+    <CompanyCustomersClient
+      slug={slug}
+      company={row}
+      customers={customers}
+      stats={stats}
+    />
   );
 }

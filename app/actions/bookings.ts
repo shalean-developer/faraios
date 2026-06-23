@@ -2,9 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 
+import { validateBookingFormSubmission } from "@/lib/bookings/form-validation";
 import { createEngineBooking } from "@/lib/services/booking-engine";
+import { getBookingFormForCompany } from "@/lib/services/booking-forms";
 import { requireCompanyMembership } from "@/lib/services/company-access";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
+import type { ServiceAddon } from "@/types/booking-form";
 
 export type CreateBookingInput = {
   companyId: string;
@@ -19,11 +22,37 @@ export type CreateBookingInput = {
   address?: string;
   notes?: string;
   customResponses?: Record<string, unknown>;
+  consentGiven?: boolean;
+  addons?: ServiceAddon[];
 };
 
 export type CreateBookingResult =
   | { ok: true; bookingId: string }
   | { ok: false; error: string };
+
+function revalidateBookingPaths(slug: string) {
+  revalidatePath(`/${slug}/dashboard`);
+  revalidatePath(`/${slug}/dashboard/bookings`);
+  revalidatePath(`/${slug}/dashboard/bookings/booking-requests`);
+  revalidatePath(`/${slug}/dashboard/calendar`);
+  revalidatePath(`/${slug}/dashboard/customers`);
+  revalidatePath("/app");
+}
+
+function buildValidationPayload(input: CreateBookingInput): Record<string, unknown> {
+  return {
+    customer_name: input.customerName,
+    customer_email: input.customerEmail,
+    customer_phone: input.customerPhone,
+    service_id: input.serviceId,
+    booking_date: input.bookingDate,
+    preferred_time: input.preferredTime,
+    address: input.address,
+    notes: input.notes,
+    consent: input.consentGiven ?? false,
+    ...input.customResponses,
+  };
+}
 
 export async function createBookingForCompany(
   input: CreateBookingInput
@@ -53,6 +82,8 @@ export async function createBookingForCompany(
     address: input.address,
     notes: input.notes,
     customResponses: input.customResponses,
+    consentGiven: input.consentGiven,
+    addons: input.addons,
     source: "internal",
     skipFormValidation: true,
     skipAvailabilityCheck: true,
@@ -60,9 +91,61 @@ export async function createBookingForCompany(
 
   if (!result.ok) return result;
 
-  revalidatePath(`/${input.companySlug}/dashboard`);
-  revalidatePath(`/${input.companySlug}/dashboard/bookings`);
-  revalidatePath(`/${input.companySlug}/dashboard/customers`);
-  revalidatePath("/app");
+  revalidateBookingPaths(input.companySlug);
+  return result;
+}
+
+export async function createBookingFromConfiguredForm(
+  input: CreateBookingInput
+): Promise<CreateBookingResult> {
+  if (!isSupabaseConfigured()) {
+    return {
+      ok: false,
+      error:
+        "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY / NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.",
+    };
+  }
+
+  if (!input.companyId) return { ok: false, error: "Missing company." };
+
+  const access = await requireCompanyMembership(input.companyId);
+  if (!access.ok) return access;
+
+  const form = await getBookingFormForCompany(input.companyId);
+  if (!form) {
+    return {
+      ok: false,
+      error: "No booking form configured yet. Set up your form first.",
+    };
+  }
+
+  const validation = validateBookingFormSubmission(
+    form.fields,
+    buildValidationPayload(input)
+  );
+  if (!validation.ok) return validation;
+
+  const result = await createEngineBooking({
+    companyId: input.companyId,
+    customerName: input.customerName,
+    customerEmail: input.customerEmail,
+    customerPhone: input.customerPhone,
+    serviceId: input.serviceId,
+    service: input.service,
+    bookingDate: input.bookingDate,
+    preferredTime: input.preferredTime,
+    address: input.address,
+    notes: input.notes,
+    customResponses: input.customResponses,
+    consentGiven: input.consentGiven,
+    addons: input.addons,
+    source: "internal",
+    skipFormValidation: true,
+    skipAvailabilityCheck: true,
+  });
+
+  if (!result.ok) return result;
+
+  revalidateBookingPaths(input.companySlug);
   return result;
 }

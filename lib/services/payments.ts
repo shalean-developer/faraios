@@ -7,26 +7,67 @@ import { logFinancialAudit } from "@/lib/services/financial-audit";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
-import type { CustomerPayment } from "@/types/financial";
+import type { CustomerPayment, PaymentWithRelations } from "@/types/financial";
 import type { PaymentProvider, PaymentType } from "@/lib/financial/status";
 
 export type PaymentMutationResult =
   | { ok: true; id: string }
   | { ok: false; error: string };
 
-export async function listPaymentsForCompany(companyId: string): Promise<CustomerPayment[]> {
+export type PaymentListSummary = {
+  total: number;
+  collectedCents: number;
+  pendingCents: number;
+  pendingCount: number;
+  failedCount: number;
+  refundedCount: number;
+};
+
+export function summarizePayments(payments: CustomerPayment[]): PaymentListSummary {
+  let collectedCents = 0;
+  let pendingCents = 0;
+  let pendingCount = 0;
+  let failedCount = 0;
+  let refundedCount = 0;
+
+  for (const payment of payments) {
+    if (payment.status === "paid") {
+      collectedCents += payment.amount_cents;
+    } else if (payment.status === "pending" || payment.status === "processing") {
+      pendingCents += payment.amount_cents;
+      pendingCount += 1;
+    } else if (payment.status === "failed") {
+      failedCount += 1;
+    } else if (payment.status === "refunded") {
+      refundedCount += 1;
+    }
+  }
+
+  return {
+    total: payments.length,
+    collectedCents,
+    pendingCents,
+    pendingCount,
+    failedCount,
+    refundedCount,
+  };
+}
+
+export async function listPaymentsForCompany(
+  companyId: string
+): Promise<PaymentWithRelations[]> {
   if (!isSupabaseConfigured() || !companyId) return [];
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("customer_payments")
-    .select("*")
+    .select("*, customers(name, email), invoices(invoice_number)")
     .eq("company_id", companyId)
     .order("created_at", { ascending: false });
   if (error) {
     console.error("[payments] listPaymentsForCompany", error.message);
     return [];
   }
-  return (data ?? []) as CustomerPayment[];
+  return (data ?? []) as PaymentWithRelations[];
 }
 
 export async function listPaymentsForCustomer(

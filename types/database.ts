@@ -1,3 +1,5 @@
+import type { BookingRequestType } from "@/lib/bookings/request-type";
+
 /** Aligns with public.industries */
 export type Industry = {
   id: string;
@@ -74,6 +76,7 @@ export type CompanyService = {
   active: boolean;
   duration_minutes?: number | null;
   addons?: unknown[] | null;
+  sort_order?: number;
   created_at: string;
   updated_at: string;
 };
@@ -114,6 +117,7 @@ export type Booking = {
   customer_email?: string | null;
   customer_phone?: string | null;
   source?: string | null;
+  request_type?: BookingRequestType | null;
   customer_id?: string | null;
   service_id?: string | null;
   price_cents?: number | null;

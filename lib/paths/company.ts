@@ -30,6 +30,14 @@ export function companyServicesPath(slug: string): string {
   return `/${encodeURIComponent(slug)}/dashboard/services`;
 }
 
+export function companyServicePath(slug: string, serviceId: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/services/${encodeURIComponent(serviceId)}`;
+}
+
+export function publicBookPath(companyId: string): string {
+  return `/book/${encodeURIComponent(companyId)}`;
+}
+
 export function companySettingsPath(slug: string): string {
   return `/${encodeURIComponent(slug)}/dashboard/settings`;
 }
@@ -54,8 +62,16 @@ export function companyCustomerPath(slug: string, customerId: string): string {
   return `/${encodeURIComponent(slug)}/dashboard/customers/${encodeURIComponent(customerId)}`;
 }
 
+export function companyCustomerSegmentsPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/customers/segments`;
+}
+
 export function companyQuotesPath(slug: string): string {
-  return `/${encodeURIComponent(slug)}/dashboard/quotes`;
+  return companyQuoteRequestsPath(slug);
+}
+
+export function companyQuoteRequestsPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/bookings/quote-requests`;
 }
 
 export function companyQuotePath(slug: string, quoteId: string): string {
@@ -80,6 +96,26 @@ export function companyRevenuePath(slug: string): string {
 
 export function companyReportsPath(slug: string): string {
   return `/${encodeURIComponent(slug)}/dashboard/reports`;
+}
+
+export function companyInsightsPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/insights`;
+}
+
+export function companyAiInsightsPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/ai-insights`;
+}
+
+export function companyTasksPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/tasks`;
+}
+
+export function companyAutomationsPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/automations`;
+}
+
+export function companyNotificationsPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/notifications`;
 }
 
 export function companyProjectPath(slug: string): string {

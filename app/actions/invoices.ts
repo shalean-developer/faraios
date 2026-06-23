@@ -7,6 +7,7 @@ import { notifyInvoiceIssued } from "@/lib/services/financial-notifications";
 import {
   createInvoice,
   createInvoiceFromBooking,
+  cancelDraftInvoice,
   getInvoiceById,
   issueInvoice,
 } from "@/lib/services/invoices";
@@ -103,5 +104,22 @@ export async function issueInvoiceAction(input: {
   }
 
   revalidateInvoicePaths(input.companySlug);
+  return result;
+}
+
+export async function cancelDraftInvoiceAction(input: {
+  companyId: string;
+  companySlug: string;
+  invoiceId: string;
+}): Promise<InvoiceActionResult> {
+  const access = await requireCompanyMembership(input.companyId);
+  if (!access.ok) return access;
+
+  const result = await cancelDraftInvoice(
+    input.companyId,
+    input.invoiceId,
+    access.userId
+  );
+  if (result.ok) revalidateInvoicePaths(input.companySlug);
   return result;
 }

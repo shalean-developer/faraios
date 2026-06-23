@@ -24,60 +24,100 @@ export async function getMarketingAnalytics(
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const since = thirtyDaysAgo.toISOString();
 
+  const visitQuery = admin.client
+    .from("website_tracking_events")
+    .select("id", { count: "exact", head: true })
+    .eq("company_id", companyId)
+    .eq("event_type", "page_visit")
+    .gte("created_at", since);
+
+  const leadQuery = admin.client
+    .from("leads")
+    .select("id", { count: "exact", head: true })
+    .eq("company_id", companyId)
+    .gte("created_at", since);
+
+  const bookingCountQuery = admin.client
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("company_id", companyId)
+    .gte("created_at", since);
+
+  const quoteQuery = admin.client
+    .from("website_tracking_events")
+    .select("id", { count: "exact", head: true })
+    .eq("company_id", companyId)
+    .eq("event_type", "quote_request")
+    .gte("created_at", since);
+
+  const bookingsQuery = admin.client
+    .from("bookings")
+    .select("utm_source, source, source_website")
+    .eq("company_id", companyId)
+    .gte("created_at", since);
+
+  const eventsQuery = admin.client
+    .from("website_tracking_events")
+    .select("source_url, event_type")
+    .eq("company_id", companyId)
+    .gte("created_at", since)
+    .in("event_type", ["page_visit", "booking_form_view"]);
+
+  const reviewQuery = admin.client
+    .from("review_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("company_id", companyId)
+    .gte("sent_at", since);
+
+  const campaignsQuery = admin.client
+    .from("email_campaigns")
+    .select("name, sent_count, bookings_generated, revenue_generated_cents, status")
+    .eq("company_id", companyId)
+    .eq("status", "sent");
+
   const [
-    { count: visitCount },
-    { count: leadCount },
-    { count: bookingCount },
-    { count: quoteRequestCount },
-    { data: bookings },
-    { data: events },
-    { count: reviewCount },
-    { data: campaigns },
+    visitResult,
+    leadResult,
+    bookingCountResult,
+    quoteResult,
+    bookingsResult,
+    eventsResult,
+    reviewResult,
+    campaignsResult,
   ] = await Promise.all([
-    admin.client
-      .from("website_tracking_events")
-      .select("id", { count: "exact", head: true })
-      .eq("company_id", companyId)
-      .eq("event_type", "page_visit")
-      .gte("created_at", since),
-    admin.client
-      .from("leads")
-      .select("id", { count: "exact", head: true })
-      .eq("company_id", companyId)
-      .gte("created_at", since),
-    admin.client
-      .from("bookings")
-      .select("id", { count: "exact", head: true })
-      .eq("company_id", companyId)
-      .gte("created_at", since),
-    admin.client
-      .from("website_tracking_events")
-      .select("id", { count: "exact", head: true })
-      .eq("company_id", companyId)
-      .eq("event_type", "quote_request")
-      .gte("created_at", since),
-    admin.client
-      .from("bookings")
-      .select("utm_source, source, source_website")
-      .eq("company_id", companyId)
-      .gte("created_at", since),
-    admin.client
-      .from("website_tracking_events")
-      .select("source_url, event_type")
-      .eq("company_id", companyId)
-      .gte("created_at", since)
-      .in("event_type", ["page_visit", "booking_form_view"]),
-    admin.client
-      .from("review_requests")
-      .select("id", { count: "exact", head: true })
-      .eq("company_id", companyId)
-      .gte("sent_at", since),
-    admin.client
-      .from("email_campaigns")
-      .select("name, sent_count, bookings_generated, revenue_generated_cents, status")
-      .eq("company_id", companyId)
-      .eq("status", "sent"),
+    visitQuery,
+    leadQuery,
+    bookingCountQuery,
+    quoteQuery,
+    bookingsQuery,
+    eventsQuery,
+    reviewQuery,
+    campaignsQuery,
   ]);
+
+  for (const [label, result] of [
+    ["website_tracking_events visits", visitResult],
+    ["leads", leadResult],
+    ["bookings count", bookingCountResult],
+    ["quote requests", quoteResult],
+    ["bookings attribution", bookingsResult],
+    ["tracking events", eventsResult],
+    ["review_requests", reviewResult],
+    ["email_campaigns", campaignsResult],
+  ] as const) {
+    if (result.error) {
+      console.error(`[marketing_analytics] ${label}`, result.error.message);
+    }
+  }
+
+  const visitCount = visitResult.count;
+  const leadCount = leadResult.count;
+  const bookingCount = bookingCountResult.count;
+  const quoteRequestCount = quoteResult.count;
+  const bookings = bookingsResult.data;
+  const events = eventsResult.data;
+  const reviewCount = reviewResult.count;
+  const campaigns = campaignsResult.data;
 
   const sourceMap = new Map<string, number>();
   for (const b of bookings ?? []) {
@@ -135,5 +175,38 @@ export async function getMarketingAnalytics(
     reviewRequestsSent: reviewCount ?? 0,
     campaignPerformance,
     campaignRevenueCents,
+  };
+}
+
+export type MarketingAnalyticsSummary = {
+  leadToBookingRate: number;
+  visitToLeadRate: number;
+  hasActivity: boolean;
+  topSource: string | null;
+  topPage: string | null;
+};
+
+export function summarizeMarketingAnalytics(
+  analytics: MarketingAnalytics
+): MarketingAnalyticsSummary {
+  const leadToBookingRate =
+    analytics.leads > 0
+      ? Math.round((analytics.bookings / analytics.leads) * 1000) / 10
+      : 0;
+  const visitToLeadRate =
+    analytics.websiteVisits > 0
+      ? Math.round((analytics.leads / analytics.websiteVisits) * 1000) / 10
+      : 0;
+
+  return {
+    leadToBookingRate,
+    visitToLeadRate,
+    hasActivity:
+      analytics.websiteVisits > 0 ||
+      analytics.leads > 0 ||
+      analytics.bookings > 0 ||
+      analytics.campaignPerformance.length > 0,
+    topSource: analytics.topSources[0]?.source ?? null,
+    topPage: analytics.topServicePages[0]?.page ?? null,
   };
 }

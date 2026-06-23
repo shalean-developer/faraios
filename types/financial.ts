@@ -112,6 +112,11 @@ export type CustomerPayment = {
   updated_at: string;
 };
 
+export type PaymentWithRelations = CustomerPayment & {
+  customers?: { name: string; email: string | null } | null;
+  invoices?: { invoice_number: string } | null;
+};
+
 export type CompanyPaymentSettings = {
   company_id: string;
   default_deposit_type: DepositType;

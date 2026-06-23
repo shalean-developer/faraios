@@ -28,16 +28,26 @@ export function CompanySidebarUser({
   };
 
   if (collapsed) {
+    const initial = displayName.trim().charAt(0).toUpperCase() || "?";
     return (
-      <button
-        type="button"
-        onClick={handleLogout}
-        disabled={isPending}
-        title={`${displayName} — Log out`}
-        className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-800 hover:text-white disabled:opacity-60"
-      >
-        <LogOut className="h-4 w-4" />
-      </button>
+      <div className="flex shrink-0 flex-col items-center gap-1 border-t border-slate-800 px-2 py-2">
+        <div
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white"
+          title={displayName}
+        >
+          {initial}
+        </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={isPending}
+          title="Log out"
+          suppressHydrationWarning
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-800 hover:text-white disabled:opacity-60"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+        </button>
+      </div>
     );
   }
 
@@ -62,6 +72,7 @@ export function CompanySidebarUser({
             onClick={handleLogout}
             disabled={isPending}
             title="Log out"
+            suppressHydrationWarning
             className={cn(
               "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-900 hover:text-white disabled:opacity-60"
             )}

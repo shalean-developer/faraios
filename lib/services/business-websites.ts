@@ -118,8 +118,10 @@ export async function getWebsiteDeployments(
 ): Promise<WebsiteDeployment[]> {
   if (!isSupabaseConfigured()) return [];
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return [];
+
+  const { data, error } = await admin.client
     .from("website_deployments")
     .select("*")
     .eq("website_id", websiteId)
@@ -132,6 +134,40 @@ export async function getWebsiteDeployments(
   }
 
   return (data ?? []) as WebsiteDeployment[];
+}
+
+export type WebsiteHubSummary = {
+  hostedCount: number;
+  domainCount: number;
+  setupPercent: number;
+  connectionLabel: string;
+  hostingActive: boolean;
+  recentEventCount: number;
+};
+
+export function summarizeWebsiteHub(input: {
+  websites: Website[];
+  domains: WebsiteDomain[];
+  properties: BusinessWebProperty[];
+  checklist: { percentComplete: number };
+  hosting: { status?: string } | null;
+  recentEvents: unknown[];
+}): WebsiteHubSummary {
+  const hostedCount = input.websites.length;
+  const domainCount = input.domains.length;
+  const primary = input.properties[0];
+  const connectionLabel = primary
+    ? primary.status.replace(/_/g, " ")
+    : "Not connected";
+
+  return {
+    hostedCount,
+    domainCount,
+    setupPercent: input.checklist.percentComplete,
+    connectionLabel,
+    hostingActive: input.hosting?.status === "active",
+    recentEventCount: input.recentEvents.length,
+  };
 }
 
 export async function getPrimaryDomainForCompany(

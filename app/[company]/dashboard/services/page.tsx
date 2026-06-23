@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
 
-import { listServicesForCompany } from "@/lib/services/company-services";
+import {
+  companyServicesSupportSortOrder,
+  getServiceStatsForCompany,
+  listServicesForCompany,
+} from "@/lib/services/company-services";
 import { getCompanyBySlug } from "@/lib/services/companies";
 
 import { CompanyServicesClient } from "./company-services-client";
@@ -23,9 +27,19 @@ export default async function CompanyServicesPage({ params }: Props) {
     notFound();
   }
 
-  const services = await listServicesForCompany(row.id);
+  const [services, stats, canReorder] = await Promise.all([
+    listServicesForCompany(row.id),
+    getServiceStatsForCompany(row.id),
+    companyServicesSupportSortOrder(row.id),
+  ]);
 
   return (
-    <CompanyServicesClient slug={slug} company={row} services={services} />
+    <CompanyServicesClient
+      slug={slug}
+      company={row}
+      services={services}
+      stats={stats}
+      canReorder={canReorder}
+    />
   );
 }

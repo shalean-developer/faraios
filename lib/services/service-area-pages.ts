@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { ServiceAreaPage } from "@/types/growth-engine";
 
@@ -72,12 +71,19 @@ export function generateDefaultServiceAreaContent(
 export async function listServiceAreaPages(
   companyId: string
 ): Promise<ServiceAreaPage[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return [];
+
+  const { data, error } = await admin.client
     .from("service_area_pages")
     .select("*")
     .eq("company_id", companyId)
     .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.error("[service_area_pages] listServiceAreaPages", error.message);
+    return [];
+  }
 
   return (data ?? []).map(mapRow);
 }
@@ -104,10 +110,12 @@ export async function createServiceAreaPage(
   companyId: string,
   input: ServiceAreaPageInput
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  const supabase = await createClient();
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return { ok: false, error: admin.error };
+
   const slug = input.slug || generateServiceAreaSlug(input.serviceName, input.areaName);
 
-  const { data, error } = await supabase
+  const { data, error } = await admin.client
     .from("service_area_pages")
     .insert({
       company_id: companyId,
@@ -128,7 +136,10 @@ export async function createServiceAreaPage(
     .select("id")
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message ?? "Failed to create page." };
+  if (error || !data) {
+    console.error("[service_area_pages] createServiceAreaPage", error?.message);
+    return { ok: false, error: error?.message ?? "Failed to create page." };
+  }
   return { ok: true, id: data.id as string };
 }
 
@@ -137,7 +148,9 @@ export async function updateServiceAreaPage(
   pageId: string,
   input: Partial<ServiceAreaPageInput>
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const supabase = await createClient();
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return { ok: false, error: admin.error };
+
   const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
   if (input.slug !== undefined) payload.slug = input.slug;
@@ -153,13 +166,16 @@ export async function updateServiceAreaPage(
   if (input.ctaText !== undefined) payload.cta_text = input.ctaText;
   if (input.status !== undefined) payload.status = input.status;
 
-  const { error } = await supabase
+  const { error } = await admin.client
     .from("service_area_pages")
     .update(payload)
     .eq("id", pageId)
     .eq("company_id", companyId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[service_area_pages] updateServiceAreaPage", error.message);
+    return { ok: false, error: error.message };
+  }
   return { ok: true };
 }
 

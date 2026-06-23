@@ -1,289 +1,526 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Copy,
+  Download,
+  ExternalLink,
+  Pencil,
+  Trash2,
+  Upload,
+} from "lucide-react";
 
 import {
-  createCompanyService,
+  createServicesFromTemplates,
   deleteCompanyService,
-  updateCompanyService,
+  duplicateCompanyService,
+  importServices,
+  moveCompanyService,
 } from "@/app/actions/company-services";
-import { formatPriceInput } from "@/lib/operations/metrics";
+import { ServiceFormPopover } from "@/components/company/service-form-popover";
 import { Button } from "@/components/ui/button";
+import {
+  CLEANING_SERVICE_TEMPLATES,
+  type ServiceTemplate,
+} from "@/lib/company-services/constants";
+import { downloadServicesCsv } from "@/lib/company-services/csv";
+import { formatDuration } from "@/lib/calendar/schedule";
+import { formatRevenue } from "@/lib/operations/metrics";
+import {
+  companyServicePath,
+  publicBookPath,
+} from "@/lib/paths/company";
+import type { CompanyServiceStats } from "@/lib/services/company-services";
 import { cn } from "@/lib/utils";
 import type { CompanyService, CompanyWithIndustry } from "@/types/database";
 
-type FormState = {
-  name: string;
-  category: string;
-  description: string;
-  price: string;
-  active: boolean;
-};
-
-const emptyForm: FormState = {
-  name: "",
-  category: "",
-  description: "",
-  price: "0",
-  active: true,
-};
+type StatusFilter = "all" | "active" | "inactive";
 
 export function CompanyServicesClient({
   slug,
   company,
   services: initialServices,
+  stats,
+  canReorder,
 }: {
   slug: string;
   company: CompanyWithIndustry;
   services: CompanyService[];
+  stats: Record<string, CompanyServiceStats>;
+  canReorder: boolean;
 }) {
+  const router = useRouter();
   const [rows, setRows] = useState(initialServices);
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showServiceForm, setShowServiceForm] = useState(false);
+  const [editingService, setEditingService] = useState<CompanyService | null>(null);
+  const [template, setTemplate] = useState<ServiceTemplate | null>(null);
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [importPending, setImportPending] = useState(false);
+  const [templatePending, setTemplatePending] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setPending(true);
-    try {
-      const payload = {
-        companyId: company.id,
-        companySlug: slug,
-        name: form.name,
-        category: form.category,
-        description: form.description,
-        price: form.price,
-        active: form.active,
-      };
+  useEffect(() => {
+    setRows(initialServices);
+  }, [initialServices]);
 
-      if (editingId) {
-        const result = await updateCompanyService(editingId, payload);
-        if (!result.ok) {
-          setError(result.error);
-          return;
-        }
-        const priceCents = Math.round(Number.parseFloat(form.price) * 100);
-        setRows((prev) =>
-          prev.map((row) =>
-            row.id === editingId
-              ? {
-                  ...row,
-                  name: form.name.trim(),
-                  category: form.category.trim() || null,
-                  description: form.description.trim() || null,
-                  base_price_cents: priceCents,
-                  active: form.active,
-                }
-              : row
-          )
-        );
-      } else {
-        const result = await createCompanyService(payload);
-        if (!result.ok) {
-          setError(result.error);
-          return;
-        }
-        const priceCents = Math.round(Number.parseFloat(form.price) * 100);
-        setRows((prev) => [
-          {
-            id: result.id,
-            company_id: company.id,
-            name: form.name.trim(),
-            category: form.category.trim() || null,
-            description: form.description.trim() || null,
-            base_price_cents: priceCents,
-            active: form.active,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-          ...prev,
-        ]);
-      }
-
-      setForm(emptyForm);
-      setEditingId(null);
-    } finally {
-      setPending(false);
+  const categories = useMemo(() => {
+    const values = new Set<string>();
+    for (const row of rows) {
+      if (row.category?.trim()) values.add(row.category.trim());
     }
-  };
+    return Array.from(values).sort();
+  }, [rows]);
 
-  const startEdit = (service: CompanyService) => {
-    setEditingId(service.id);
-    setForm({
-      name: service.name,
-      category: service.category ?? "",
-      description: service.description ?? "",
-      price: formatPriceInput(service.base_price_cents),
-      active: service.active,
+  const filteredRows = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return rows.filter((row) => {
+      if (statusFilter === "active" && !row.active) return false;
+      if (statusFilter === "inactive" && row.active) return false;
+      if (categoryFilter !== "all" && row.category !== categoryFilter) return false;
+      if (!query) return true;
+
+      return (
+        row.name.toLowerCase().includes(query) ||
+        (row.category ?? "").toLowerCase().includes(query) ||
+        (row.description ?? "").toLowerCase().includes(query)
+      );
     });
+  }, [rows, search, categoryFilter, statusFilter]);
+
+  const openCreateForm = () => {
+    setEditingService(null);
+    setTemplate(null);
+    setShowServiceForm(true);
   };
 
-  const onDelete = async (serviceId: string) => {
-    if (!confirm("Delete this service?")) return;
-    const result = await deleteCompanyService(serviceId, company.id, slug);
+  const openEditForm = (service: CompanyService) => {
+    setEditingService(service);
+    setTemplate(null);
+    setShowServiceForm(true);
+  };
+
+  const openTemplateForm = (item: ServiceTemplate) => {
+    setEditingService(null);
+    setTemplate(item);
+    setShowServiceForm(true);
+  };
+
+  const closeServiceForm = () => {
+    setShowServiceForm(false);
+    setEditingService(null);
+    setTemplate(null);
+  };
+
+  const onDelete = async (service: CompanyService) => {
+    const linked = stats[service.id]?.bookingCount ?? 0;
+    const message =
+      linked > 0
+        ? `This service has ${linked} linked booking${linked === 1 ? "" : "s"} and cannot be deleted. Deactivate it instead?`
+        : "Delete this service?";
+
+    if (!confirm(message)) return;
+
+    if (linked > 0) {
+      setError(
+        `Deactivate "${service.name}" from the edit form instead of deleting.`
+      );
+      return;
+    }
+
+    const result = await deleteCompanyService(service.id, company.id, slug);
     if (!result.ok) {
       setError(result.error);
       return;
     }
-    setRows((prev) => prev.filter((row) => row.id !== serviceId));
+    setRows((prev) => prev.filter((row) => row.id !== service.id));
+  };
+
+  const onDuplicate = async (serviceId: string) => {
+    const result = await duplicateCompanyService(serviceId, company.id, slug);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    router.refresh();
+  };
+
+  const onMove = async (serviceId: string, direction: "up" | "down") => {
+    const result = await moveCompanyService(serviceId, company.id, slug, direction);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    router.refresh();
+  };
+
+  const onExport = () => {
+    downloadServicesCsv(rows, `${slug}-services.csv`);
+  };
+
+  const onImportClick = () => {
+    setImportMessage(null);
+    setError(null);
+    fileInputRef.current?.click();
+  };
+
+  const onImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setImportPending(true);
+    setImportMessage(null);
+    setError(null);
+
+    try {
+      const csvText = await file.text();
+      const result = await importServices(company.id, slug, csvText);
+
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
+      const parts = [`Imported ${result.imported} service${result.imported === 1 ? "" : "s"}.`];
+      if (result.skipped > 0) {
+        parts.push(`Skipped ${result.skipped} duplicate${result.skipped === 1 ? "" : "s"}.`);
+      }
+      if (result.errors.length > 0) {
+        parts.push(`${result.errors.length} row${result.errors.length === 1 ? "" : "s"} failed.`);
+        setError(result.errors.slice(0, 3).join(" "));
+      }
+      setImportMessage(parts.join(" "));
+
+      router.refresh();
+    } finally {
+      setImportPending(false);
+    }
+  };
+
+  const addAllTemplates = async () => {
+    setTemplatePending(true);
+    setError(null);
+
+    try {
+      const result = await createServicesFromTemplates(
+        company.id,
+        slug,
+        CLEANING_SERVICE_TEMPLATES.map((item) => ({
+          companyId: company.id,
+          companySlug: slug,
+          name: item.name,
+          category: item.category,
+          description: item.description,
+          price: item.price,
+          durationMinutes: item.durationMinutes,
+          active: true,
+          addons: item.addons.map((addon) => ({
+            id: crypto.randomUUID(),
+            name: addon.name,
+            price: addon.price,
+          })),
+        }))
+      );
+
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
+      setImportMessage(
+        `Added ${result.created} starter service${result.created === 1 ? "" : "s"}.`
+      );
+      router.refresh();
+    } finally {
+      setTemplatePending(false);
+    }
   };
 
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
-          Operations
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">Services</h1>
-        <p className="mt-2 text-sm text-slate-500">
-          Define your service catalog and pricing for bookings.
-        </p>
+      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
+            Operations
+          </p>
+          <h1 className="mt-1 text-2xl font-bold text-slate-900">Services</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Define your catalog, pricing, duration, and add-ons for bookings.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-xl"
+            onClick={onExport}
+            disabled={rows.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-xl"
+            onClick={onImportClick}
+            disabled={importPending}
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            {importPending ? "Importing..." : "Import CSV"}
+          </Button>
+          <Button
+            type="button"
+            className="shrink-0 rounded-xl"
+            variant={showServiceForm && !editingService ? "outline" : "default"}
+            aria-expanded={showServiceForm && !editingService}
+            aria-haspopup="dialog"
+            onClick={() =>
+              showServiceForm && !editingService
+                ? closeServiceForm()
+                : openCreateForm()
+            }
+          >
+            Add service
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={onImportFile}
+          />
+        </div>
       </header>
 
-      <form
-        onSubmit={onSubmit}
-        className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-      >
-        <p className="text-sm font-semibold text-slate-900">
-          {editingId ? "Edit service" : "Add service"}
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2">
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-1 flex-col gap-2 sm:flex-row">
           <input
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm sm:max-w-xs"
+            placeholder="Search services..."
+          />
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
             className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-            placeholder="Service name"
-            required
-          />
-          <input
-            value={form.category}
-            onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+          >
+            <option value="all">All categories</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
             className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-            placeholder="Category"
-          />
-          <input
-            value={form.price}
-            onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-            type="number"
-            min="0"
-            step="0.01"
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-            placeholder="Price (ZAR)"
-            required
-          />
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={form.active}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, active: e.target.checked }))
-              }
-            />
-            Active
-          </label>
-          <textarea
-            value={form.description}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, description: e.target.value }))
-            }
-            className="min-h-[80px] rounded-xl border border-slate-200 px-3 py-2 text-sm sm:col-span-2"
-            placeholder="Description"
-          />
+          >
+            <option value="all">All statuses</option>
+            <option value="active">Active only</option>
+            <option value="inactive">Inactive only</option>
+          </select>
         </div>
-        <div className="flex gap-2">
-          <Button type="submit" className="rounded-xl" disabled={pending}>
-            {pending ? "Saving..." : editingId ? "Update" : "Add service"}
-          </Button>
-          {editingId ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-xl"
-              onClick={() => {
-                setEditingId(null);
-                setForm(emptyForm);
-              }}
-            >
-              Cancel
-            </Button>
-          ) : null}
-        </div>
-      </form>
+        <a
+          href={publicBookPath(company.id)}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center text-sm font-medium text-violet-700 hover:text-violet-900"
+        >
+          Preview booking page
+          <ExternalLink className="ml-1.5 h-4 w-4" />
+        </a>
+      </div>
 
-      {error ? (
-        <p className="mt-3 text-sm font-medium text-red-600">{error}</p>
+      <ServiceFormPopover
+        open={showServiceForm}
+        onClose={closeServiceForm}
+        slug={slug}
+        companyId={company.id}
+        service={editingService}
+        template={template}
+      />
+
+      {importMessage ? (
+        <p className="mb-3 text-sm font-medium text-emerald-700">{importMessage}</p>
       ) : null}
 
-      <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      {error ? (
+        <p className="mb-3 text-sm font-medium text-red-600">{error}</p>
+      ) : null}
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               <th className="px-4 py-3">Service</th>
-              <th className="px-4 py-3">Category</th>
+              <th className="hidden px-4 py-3 md:table-cell">Category</th>
               <th className="px-4 py-3">Price</th>
+              <th className="hidden px-4 py-3 lg:table-cell">Duration</th>
+              <th className="hidden px-4 py-3 xl:table-cell">Bookings</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {rows.length === 0 ? (
+            {filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-slate-500">
-                  No services yet. Add your first service above.
+                <td colSpan={7} className="px-4 py-10">
+                  <div className="mx-auto max-w-lg text-center">
+                    <p className="text-slate-500">
+                      {rows.length === 0
+                        ? "No services yet."
+                        : "No services match your filters."}
+                    </p>
+                    {rows.length === 0 ? (
+                      <div className="mt-6 space-y-3">
+                        <p className="text-sm font-medium text-slate-700">
+                          Quick start for cleaning businesses
+                        </p>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {CLEANING_SERVICE_TEMPLATES.map((item) => (
+                            <Button
+                              key={item.name}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="rounded-xl"
+                              onClick={() => openTemplateForm(item)}
+                            >
+                              {item.name}
+                            </Button>
+                          ))}
+                        </div>
+                        <Button
+                          type="button"
+                          className="rounded-xl"
+                          disabled={templatePending}
+                          onClick={addAllTemplates}
+                        >
+                          {templatePending ? "Adding..." : "Add all starter services"}
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
-                <tr key={row.id}>
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-slate-900">{row.name}</p>
-                    {row.description ? (
-                      <p className="text-xs text-slate-500">{row.description}</p>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {row.category ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-slate-700">
-                    R {(row.base_price_cents / 100).toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={cn(
-                        "rounded-full px-2.5 py-0.5 text-xs font-semibold",
-                        row.active
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-slate-100 text-slate-500"
-                      )}
-                    >
-                      {row.active ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => startEdit(row)}
-                        className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-violet-700"
-                        aria-label="Edit service"
+              filteredRows.map((row) => {
+                const fullIndex = rows.findIndex((item) => item.id === row.id);
+                const rowStats = stats[row.id];
+                const addonCount = Array.isArray(row.addons) ? row.addons.length : 0;
+
+                return (
+                  <tr key={row.id}>
+                    <td className="px-4 py-3">
+                      <Link
+                        href={companyServicePath(slug, row.id)}
+                        className="font-medium text-violet-700 hover:text-violet-900"
                       >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onDelete(row.id)}
-                        className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-red-600"
-                        aria-label="Delete service"
+                        {row.name}
+                      </Link>
+                      {row.description ? (
+                        <p className="mt-0.5 text-xs text-slate-500">{row.description}</p>
+                      ) : null}
+                      {addonCount > 0 ? (
+                        <p className="mt-0.5 text-xs text-slate-400">
+                          {addonCount} add-on{addonCount === 1 ? "" : "s"}
+                        </p>
+                      ) : null}
+                    </td>
+                    <td className="hidden px-4 py-3 text-slate-600 md:table-cell">
+                      {row.category ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {formatRevenue(row.base_price_cents)}
+                    </td>
+                    <td className="hidden px-4 py-3 text-slate-600 lg:table-cell">
+                      {formatDuration(row.duration_minutes) ?? "—"}
+                    </td>
+                    <td className="hidden px-4 py-3 text-slate-600 xl:table-cell">
+                      <div>{rowStats?.bookingCount ?? 0} bookings</div>
+                      {(rowStats?.revenueCents ?? 0) > 0 ? (
+                        <div className="text-xs text-slate-400">
+                          {formatRevenue(rowStats?.revenueCents ?? 0)}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={cn(
+                          "rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                          row.active
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-slate-100 text-slate-500"
+                        )}
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+                        {row.active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-1">
+                        {canReorder ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => onMove(row.id, "up")}
+                              disabled={fullIndex <= 0}
+                              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-violet-700 disabled:opacity-30"
+                              aria-label="Move up"
+                            >
+                              <ArrowUp className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onMove(row.id, "down")}
+                              disabled={fullIndex < 0 || fullIndex >= rows.length - 1}
+                              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-violet-700 disabled:opacity-30"
+                              aria-label="Move down"
+                            >
+                              <ArrowDown className="h-4 w-4" />
+                            </button>
+                          </>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => onDuplicate(row.id)}
+                          className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-violet-700"
+                          aria-label="Duplicate service"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openEditForm(row)}
+                          className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-violet-700"
+                          aria-label="Edit service"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDelete(row)}
+                          className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-red-600"
+                          aria-label="Delete service"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
