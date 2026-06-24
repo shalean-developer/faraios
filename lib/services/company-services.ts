@@ -1,6 +1,7 @@
 import { aggregateServicePaymentStats } from "@/lib/financial/payment-revenue";
 import { isMissingSortOrderColumn } from "@/lib/company-services/sort-order";
 import { createClient } from "@/lib/supabase/server";
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import type { Booking, CompanyService } from "@/types/database";
 
@@ -41,6 +42,44 @@ export async function listServicesForCompany(
 
   if (error) {
     console.error("[services] listServicesForCompany", error.message);
+    return [];
+  }
+
+  return (data ?? []) as CompanyService[];
+}
+
+/** Public booking pages: use service role so anonymous visitors see active services. */
+export async function listPublicServicesForCompany(
+  companyId: string,
+  options?: { activeOnly?: boolean }
+): Promise<CompanyService[]> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok || !companyId) return [];
+
+  const runQuery = (useSortOrder: boolean) => {
+    let query = admin.client.from("company_services").select("*").eq("company_id", companyId);
+
+    if (options?.activeOnly) {
+      query = query.eq("active", true);
+    }
+
+    if (useSortOrder) {
+      query = query.order("sort_order", { ascending: true }).order("name", { ascending: true });
+    } else {
+      query = query.order("name", { ascending: true });
+    }
+
+    return query;
+  };
+
+  let { data, error } = await runQuery(true);
+
+  if (error && isMissingSortOrderColumn(error.message)) {
+    ({ data, error } = await runQuery(false));
+  }
+
+  if (error) {
+    console.error("[services] listPublicServicesForCompany", error.message);
     return [];
   }
 

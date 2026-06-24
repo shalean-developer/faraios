@@ -12,6 +12,7 @@ import {
   saveBookingFormDraft,
 } from "@/app/actions/booking-form";
 import { DynamicPublicBookingForm } from "@/components/booking/dynamic-public-booking-form";
+import { BookingWidgetInstallSummary } from "@/components/company/booking-widget-install-summary";
 import { Button } from "@/components/ui/button";
 import { defaultBookingHours } from "@/lib/bookings/availability";
 import { INDUSTRY_PRESET_SLUGS } from "@/lib/bookings/industry-presets";
@@ -364,6 +365,14 @@ export function CompanyBookingFormClient({
 
       {error ? <p className="mb-4 text-sm font-medium text-red-600">{error}</p> : null}
       {success ? <p className="mb-4 text-sm font-medium text-emerald-700">{success}</p> : null}
+
+      <BookingWidgetInstallSummary
+        companySlug={slug}
+        businessId={company.id}
+        formPublished={initialForm.status === "published"}
+        showSnippet={initialForm.status === "published"}
+        className="mb-6"
+      />
 
       <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
         <section className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">

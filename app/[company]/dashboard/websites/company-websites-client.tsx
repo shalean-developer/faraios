@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { PreviewWebsiteButton } from "@/components/websites/preview-website-button";
+import { BookingWidgetInstallSummary } from "@/components/company/booking-widget-install-summary";
 import { WebsiteSetupChecklistPanel } from "@/components/websites/website-setup-checklist";
 import {
   companyHostingPath,
@@ -79,8 +80,10 @@ export function CompanyWebsitesClient({
   checklist,
   summary,
   recentEvents,
+  companyId,
 }: {
   slug: string;
+  companyId: string;
   websites: Website[];
   hasWebsiteProject: boolean;
   connectedWebsite: ConnectedWebsite | null;
@@ -372,6 +375,14 @@ export function CompanyWebsitesClient({
           </div>
 
           <WebsiteSetupChecklistPanel checklist={checklist} />
+
+          {!checklist.items.find((item) => item.key === "booking_widget")?.done ? (
+            <BookingWidgetInstallSummary
+              companySlug={slug}
+              businessId={companyId}
+              formPublished={checklist.items.find((item) => item.key === "booking_form")?.done}
+            />
+          ) : null}
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="text-sm font-semibold text-slate-900">Quick links</h3>

@@ -48,8 +48,9 @@ export default async function CompanyWebsiteConnectionPage({ params }: Props) {
           Connection
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-slate-500">
-          Connect an external website, embed booking and tracking scripts, and manage integration
-          toggles. For FaraiOS-hosted sites, manage domains and deployments from the website hub.
+          Connect an external website, embed booking and tracking scripts, and follow setup guides
+          for WordPress, Wix, Squarespace, Shopify, and other builders. For FaraiOS-hosted sites,
+          manage domains and deployments from the website hub.
         </p>
       </header>
 

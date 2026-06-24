@@ -113,7 +113,7 @@ export async function buildWebsiteSetupChecklist(
       key: "booking_widget",
       label: "Booking widget installed",
       done: hasExternalConnection || hasHostedLive,
-      href: `${base}/websites/api-keys`,
+      href: `${base}/websites/connection`,
     },
     {
       key: "tracking",

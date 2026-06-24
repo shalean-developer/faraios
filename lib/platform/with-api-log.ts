@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { applyPublicCorsHeaders } from "@/lib/api/public-cors";
 import { logPlatformApiRequest } from "@/lib/platform/api-log";
 
 export async function withPlatformApiLog(
@@ -25,7 +26,8 @@ export async function withPlatformApiLog(
       errorMessage: message,
       isPublic: options?.isPublic ?? route.startsWith("/api/public"),
     });
-    return response;
+    const isPublic = options?.isPublic ?? route.startsWith("/api/public");
+    return isPublic ? applyPublicCorsHeaders(response) : response;
   }
 
   await logPlatformApiRequest({
@@ -37,5 +39,6 @@ export async function withPlatformApiLog(
     isPublic: options?.isPublic ?? route.startsWith("/api/public"),
   });
 
-  return response;
+  const isPublic = options?.isPublic ?? route.startsWith("/api/public");
+  return isPublic ? applyPublicCorsHeaders(response) : response;
 }

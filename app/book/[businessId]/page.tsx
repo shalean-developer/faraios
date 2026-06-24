@@ -3,15 +3,17 @@ import { notFound } from "next/navigation";
 
 import { BookPageClient } from "./book-page-client";
 import { getPublishedBookingFormForCompany } from "@/lib/services/booking-forms";
-import { listServicesForCompany } from "@/lib/services/company-services";
+import { listPublicServicesForCompany } from "@/lib/services/company-services";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ businessId: string }> };
+type Props = { params: Promise<{ businessId: string }>; searchParams: Promise<{ embed?: string }> };
 
-export default async function PublicBookPage({ params }: Props) {
+export default async function PublicBookPage({ params, searchParams }: Props) {
   const { businessId } = await params;
+  const { embed } = await searchParams;
+  const embedded = embed === "1" || embed === "true";
   const admin = tryCreateAdminClient();
   if (!admin.ok) notFound();
 
@@ -25,7 +27,7 @@ export default async function PublicBookPage({ params }: Props) {
 
   const [form, services] = await Promise.all([
     getPublishedBookingFormForCompany(company.id),
-    listServicesForCompany(company.id, { activeOnly: true }),
+    listPublicServicesForCompany(company.id, { activeOnly: true }),
   ]);
 
   if (!form) {
@@ -43,13 +45,20 @@ export default async function PublicBookPage({ params }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8f7ff] px-4 py-10">
-      <div className="mx-auto max-w-xl">
+    <main
+      className={
+        embedded
+          ? "bg-transparent px-0 py-0"
+          : "min-h-screen bg-[#f8f7ff] px-4 py-10"
+      }
+    >
+      <div className={embedded ? "mx-auto w-full max-w-none" : "mx-auto max-w-xl"}>
         <BookPageClient
           companyId={company.id}
           businessName={company.name}
           fields={form.fields}
           services={services}
+          embedded={embedded}
         />
       </div>
     </main>

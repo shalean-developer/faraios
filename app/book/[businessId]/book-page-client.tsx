@@ -10,17 +10,20 @@ export function BookPageClient({
   businessName,
   fields,
   services,
+  embedded = false,
 }: {
   companyId: string;
   businessName: string;
   fields: BookingFormField[];
   services: CompanyService[];
+  embedded?: boolean;
 }) {
   return (
     <DynamicPublicBookingForm
       businessName={businessName}
       fields={fields}
       services={services}
+      embedded={embedded}
       onSubmit={async (payload) =>
         createPublicPageBooking({
           companyId,

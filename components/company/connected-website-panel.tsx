@@ -9,12 +9,18 @@ import {
   updateWebsiteConnectionSettingsAction,
 } from "@/app/actions/website-engine";
 import { connectExternalWebsite } from "@/app/actions/company";
+import { BookingWidgetPlatformGuides } from "@/components/company/booking-widget-platform-guides";
 import { Button } from "@/components/ui/button";
+import {
+  bookingWidgetSnippet,
+  bookingIframeSnippet,
+  faraiosAppOrigin,
+  trackingWidgetSnippet,
+} from "@/lib/integrations/booking-widget-snippets";
 import type { ConnectedWebsite } from "@/types/database";
 
 function appOrigin(): string {
-  if (typeof window !== "undefined") return window.location.origin;
-  return process.env.NEXT_PUBLIC_APP_URL ?? "https://faraios.com";
+  return faraiosAppOrigin();
 }
 
 export function ConnectedWebsitePanel({
@@ -41,8 +47,9 @@ export function ConnectedWebsitePanel({
   const origin = appOrigin();
   const businessId = companyId;
 
-  const bookingSnippet = `<script src="${origin}/embed/booking.js" data-business-id="${businessId}"></script>`;
-  const trackingSnippet = `<script src="${origin}/tracking.js" data-business-id="${businessId}"></script>`;
+  const bookingSnippet = bookingWidgetSnippet(origin, businessId);
+  const trackingSnippet = trackingWidgetSnippet(origin, businessId);
+  const iframeSnippet = bookingIframeSnippet(origin, businessId);
 
   const onConnect = async (e: FormEvent) => {
     e.preventDefault();
@@ -215,10 +222,16 @@ export function ConnectedWebsitePanel({
           <h4 className="text-sm font-semibold text-slate-900">Embed scripts</h4>
 
           <SnippetBlock
-            label="Booking widget"
+            label="Booking widget (script — recommended)"
             snippet={bookingSnippet}
             copied={copied === "booking"}
             onCopy={() => onCopy(bookingSnippet, "booking")}
+          />
+          <SnippetBlock
+            label="Booking page (iframe)"
+            snippet={iframeSnippet}
+            copied={copied === "iframe"}
+            onCopy={() => onCopy(iframeSnippet, "iframe")}
           />
           <SnippetBlock
             label="Tracking script"
@@ -263,6 +276,15 @@ export function ConnectedWebsitePanel({
       {success ? (
         <p className="mt-3 text-sm font-medium text-emerald-600">{success}</p>
       ) : null}
+
+      <BookingWidgetPlatformGuides
+        businessId={businessId}
+        appOrigin={origin}
+        bookingSnippet={bookingSnippet}
+        trackingSnippet={trackingSnippet}
+        hasConnectedWebsite={Boolean(connectedWebsite)}
+        companySlug={slug}
+      />
     </div>
   );
 }

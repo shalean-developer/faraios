@@ -1,6 +1,13 @@
 (function () {
   var script = document.currentScript;
-  if (!script) return;
+  if (!script) {
+    var embedScripts = document.querySelectorAll('script[src*="embed/booking.js"]');
+    script = embedScripts.length ? embedScripts[embedScripts.length - 1] : null;
+  }
+  if (!script) {
+    console.error("[FaraiOS] booking.js could not find its script tag.");
+    return;
+  }
 
   var businessId = script.getAttribute("data-business-id");
   if (!businessId) {
@@ -96,7 +103,7 @@
     container.innerHTML = "";
     var style = el("style", {
       text:
-        ".faraios-booking{font-family:system-ui,sans-serif;max-width:480px;margin:0 auto}" +
+        ".faraios-booking{font-family:system-ui,sans-serif;max-width:100%;width:100%;margin:0}" +
         ".faraios-field{margin-bottom:12px}" +
         ".faraios-label{display:block;font-size:14px;font-weight:600;margin-bottom:4px}" +
         ".faraios-input{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;font-size:14px}" +
@@ -123,19 +130,28 @@
           })
         );
       }
-      if (field.key === "service_id" && serviceOptions.length) {
-        var serviceSelect = el("select", {
-          name: "service_id",
-          className: "faraios-input",
-          required: field.required ? "required" : null,
-        });
-        serviceSelect.appendChild(el("option", { value: "", text: "Select a service" }));
-        serviceOptions.forEach(function (svc) {
-          serviceSelect.appendChild(
-            el("option", { value: svc.id, text: svc.name })
+      if (field.key === "service_id") {
+        if (serviceOptions.length) {
+          var serviceSelect = el("select", {
+            name: "service_id",
+            className: "faraios-input",
+            required: field.required ? "required" : null,
+          });
+          serviceSelect.appendChild(el("option", { value: "", text: "Select a service" }));
+          serviceOptions.forEach(function (svc) {
+            serviceSelect.appendChild(
+              el("option", { value: svc.id, text: svc.name })
+            );
+          });
+          wrap.appendChild(serviceSelect);
+        } else {
+          wrap.appendChild(
+            el("p", {
+              className: "faraios-msg",
+              text: "No services are available to book online yet. Please contact the business directly.",
+            })
           );
-        });
-        wrap.appendChild(serviceSelect);
+        }
       } else {
         var input = fieldInput(field);
         if (field.required && field.type !== "consent") input.required = true;
@@ -246,7 +262,11 @@
       var formResult = results[0];
       var servicesResult = results[1];
       if (!formResult.ok) throw new Error(formResult.error || "Form not available.");
-      renderForm(formResult.form, servicesResult.services || []);
+      var services = servicesResult && servicesResult.ok ? servicesResult.services || [] : [];
+      if (servicesResult && !servicesResult.ok) {
+        console.warn("[FaraiOS] Services could not be loaded:", servicesResult.error);
+      }
+      renderForm(formResult.form, services);
       trackEvent("booking_form_view");
     })
     .catch(function (err) {

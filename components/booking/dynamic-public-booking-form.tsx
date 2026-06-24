@@ -98,6 +98,12 @@ export function DynamicPublicBookingForm({
     [fields]
   );
 
+  const serviceFieldRequired = sortedFields.some(
+    (field) => field.key === "service_id" && field.required
+  );
+  const submitDisabled =
+    isPending || (serviceFieldRequired && services.length === 0);
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (preview) return;
@@ -166,7 +172,22 @@ export function DynamicPublicBookingForm({
   const renderField = (field: BookingFormField) => {
     if (field.type === "hidden") return null;
 
-    if (field.key === "service_id" && services.length > 0) {
+    if (field.key === "service_id") {
+      if (services.length === 0) {
+        return (
+          <div
+            key={field.key}
+            className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+          >
+            <p className="font-medium">No services available to book online yet.</p>
+            <p className="mt-1 text-xs text-amber-800">
+              The business has not added active services in FaraiOS. Please contact them by phone or
+              email, or try again later.
+            </p>
+          </div>
+        );
+      }
+
       return (
         <label key={field.key} className="block text-sm font-medium text-gray-700">
           {field.label}
@@ -343,7 +364,7 @@ export function DynamicPublicBookingForm({
       {preview ? (
         <p className="text-xs text-slate-500">Live preview — submit is disabled here.</p>
       ) : (
-        <Button type="submit" disabled={isPending} className="rounded-xl">
+        <Button type="submit" disabled={submitDisabled} className="rounded-xl">
           {isPending ? "Saving…" : submitText}
         </Button>
       )}
