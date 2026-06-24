@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireCompanyMembership } from "@/lib/services/company-access";
+import { requireCompanyPermission } from "@/lib/services/company-access";
 import { createTask, deleteTask, updateTask } from "@/lib/services/tasks";
 import type { CompanyTask } from "@/types/v6-engine";
 
@@ -24,7 +24,7 @@ export async function createTaskAction(input: {
   dueDate?: string;
   status?: CompanyTask["status"];
 }): Promise<TaskActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "manage_tasks");
   if (!access.ok) return access;
 
   const result = await createTask({
@@ -54,7 +54,7 @@ export async function updateTaskAction(input: {
   assignedTo?: string | null;
   dueDate?: string | null;
 }): Promise<TaskActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "manage_tasks");
   if (!access.ok) return access;
 
   const { taskId, companyId, companySlug, ...updates } = input;
@@ -69,7 +69,7 @@ export async function deleteTaskAction(input: {
   companyId: string;
   companySlug: string;
 }): Promise<TaskActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "manage_tasks");
   if (!access.ok) return access;
 
   const result = await deleteTask(input.taskId, input.companyId);

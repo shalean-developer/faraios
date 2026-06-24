@@ -82,6 +82,7 @@ export default async function HomePage() {
       {renderWebsiteTemplate(website, ctx.content, "home", {
         bookingUrl: ctx.bookingUrl,
         marketplaceBookingUrl: ctx.marketplaceBookingUrl,
+        companyBranding: ctx.companyBranding,
       })}
     </>
   );

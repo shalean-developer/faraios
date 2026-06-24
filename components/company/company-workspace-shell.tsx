@@ -7,7 +7,9 @@ import { CompanyMobileNav } from "@/components/company/company-mobile-nav";
 import { CompanySidebarBrand } from "@/components/company/company-sidebar-brand";
 import { CompanySidebarNav } from "@/components/company/company-sidebar-nav";
 import { CompanySidebarUser } from "@/components/company/company-sidebar-user";
+import { CompanyWorkspaceHeader } from "@/components/company/company-workspace-header";
 import { companyNavKeyFromPathname } from "@/lib/constants/company-nav";
+import type { PermissionKey } from "@/lib/permissions/shared";
 import type { UserCompany } from "@/types/database";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +22,7 @@ export function CompanyWorkspaceShell({
   companies = [],
   userDisplayName,
   userEmail,
+  userPermissions = [],
   children,
 }: {
   slug: string;
@@ -28,6 +31,7 @@ export function CompanyWorkspaceShell({
   companies?: UserCompany[];
   userDisplayName: string;
   userEmail: string | null;
+  userPermissions?: PermissionKey[];
   children: ReactNode;
 }) {
   const pathname = usePathname() ?? "";
@@ -78,6 +82,7 @@ export function CompanyWorkspaceShell({
           activeNav={activeNav}
           hasWebsiteProject={hasWebsiteProject}
           collapsed={mounted && collapsed}
+          userPermissions={userPermissions}
         />
         <CompanySidebarUser
           displayName={userDisplayName}
@@ -92,7 +97,9 @@ export function CompanyWorkspaceShell({
           activeNav={activeNav}
           companyName={companyName}
           hasWebsiteProject={hasWebsiteProject}
+          userPermissions={userPermissions}
         />
+        <CompanyWorkspaceHeader slug={slug} className="hidden lg:flex" />
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>

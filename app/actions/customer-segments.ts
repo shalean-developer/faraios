@@ -1,6 +1,6 @@
 "use server";
 
-import { requireCompanyMembership } from "@/lib/services/company-access";
+import { requireCompanyPermission } from "@/lib/services/company-access";
 import { getSegmentCustomers } from "@/lib/services/customer-segments";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 
@@ -16,7 +16,7 @@ export async function getSegmentCustomersAction(input: {
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "view_customers");
   if (!access.ok) return access;
 
   const customers = await getSegmentCustomers(

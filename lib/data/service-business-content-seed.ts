@@ -1,3 +1,4 @@
+import { resolveWebsiteTemplateVariant } from "@/lib/website-templates/variants";
 import type { CreateWebsiteInput, WebsiteSectionSeed } from "@/lib/services/websites";
 
 const PRICE_TIERS = ["From R299", "From R399", "From R449", "From R349", "From R499", "From R549"];
@@ -85,6 +86,69 @@ const INDUSTRY_SEEDS: Record<string, IndustrySeed> = {
     ],
     serviceAreas: ["CBD", "Northern Suburbs", "Southern Suburbs", "East", "West"],
   },
+  beauty: {
+    serviceLabel: "Beauty & Spa",
+    location: "Cape Town & Surrounding Areas",
+    heroSubtitle:
+      "Luxury treatments, skilled therapists, and a calm spa experience — book facials, massage, and wellness services online.",
+    aboutBody:
+      "We create a relaxing escape with professional beauty and spa services tailored to your skin, body, and schedule.",
+    testimonialItems: [
+      "Absolutely luxurious experience — left feeling completely refreshed.",
+      "Professional staff and beautiful atmosphere. My new favourite spa.",
+    ],
+    defaultServices: [
+      { title: "Swedish Massage", description: "Full-body relaxation massage." },
+      { title: "Deep Tissue Massage", description: "Targeted relief for tension and sore muscles." },
+      { title: "Classic Facial", description: "Deep cleanse, exfoliation, and hydration." },
+      { title: "Manicure & Pedicure", description: "Nail care with premium products." },
+      { title: "Couples Spa Package", description: "Side-by-side treatments for two." },
+      { title: "Bridal Beauty", description: "Pre-event hair, makeup, and skin prep." },
+    ],
+    serviceAreas: ["Sea Point", "Camps Bay", "Claremont", "Constantia", "Stellenbosch", "Somerset West"],
+  },
+  technology: {
+    serviceLabel: "IT Support",
+    location: "Greater Metro Area",
+    heroSubtitle:
+      "Fast IT support for homes and businesses — remote troubleshooting, on-site repairs, and network setup with clear pricing.",
+    aboutBody:
+      "Our certified technicians solve device, network, and software problems quickly so you can get back to work.",
+    testimonialItems: [
+      "Fixed our office network the same day. Highly professional team.",
+      "Clear communication and fair pricing. Will use again for all IT issues.",
+    ],
+    defaultServices: [
+      { title: "Remote IT Support", description: "Fast remote troubleshooting for software issues." },
+      { title: "On-site Repair", description: "Hardware diagnostics and repair at your location." },
+      { title: "Network Setup", description: "Wi-Fi, routers, and office network configuration." },
+      { title: "Data Recovery", description: "Recover files from failed drives and devices." },
+      { title: "Cybersecurity Check", description: "Security audit and hardening for small teams." },
+      { title: "Managed IT Plans", description: "Monthly support for growing businesses." },
+    ],
+    serviceAreas: ["Sandton", "Midrand", "Centurion", "Fourways", "Randburg", "Roodepoort"],
+  },
+  tourism: {
+    serviceLabel: "Tours & Travel",
+    location: "South Africa",
+    heroSubtitle:
+      "Curated day tours, safari experiences, and custom itineraries — book unforgettable local adventures online.",
+    aboutBody:
+      "We connect travellers with authentic local experiences led by knowledgeable guides who know the region inside out.",
+    testimonialItems: [
+      "An unforgettable safari — the guide was incredible and very knowledgeable.",
+      "Well organised tour with stunning views. Booking online was effortless.",
+    ],
+    defaultServices: [
+      { title: "City Day Tour", description: "Half-day guided tour of top landmarks." },
+      { title: "Safari Experience", description: "Game drives with experienced rangers." },
+      { title: "Wine Route Tour", description: "Scenic vineyard visits and tastings." },
+      { title: "Adventure Package", description: "Hiking, kayaking, and outdoor activities." },
+      { title: "Custom Itinerary", description: "Tailored multi-day travel planning." },
+      { title: "Airport Transfers", description: "Reliable pickup and drop-off service." },
+    ],
+    serviceAreas: ["Cape Town", "Johannesburg", "Durban", "Garden Route", "Kruger", "Stellenbosch"],
+  },
 };
 
 const DEFAULT_SEED: IndustrySeed = {
@@ -126,7 +190,7 @@ function locationTrustBadge(location: string, serviceLabel: string): string {
 }
 
 export function buildServiceBusinessContentSeed(input: CreateWebsiteInput): WebsiteSectionSeed[] {
-  const industry = input.industry.trim().toLowerCase();
+  const industry = resolveWebsiteTemplateVariant(input.industry);
   const seed = INDUSTRY_SEEDS[industry] ?? DEFAULT_SEED;
   const businessName = input.businessName.trim();
   const contactParsed = parseContactInfo(input.contactInfo);

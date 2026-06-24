@@ -62,7 +62,7 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-  const callbackUrl = `${(siteUrl ?? "").replace(/\/$/, "")}/app`;
+  const callbackUrl = `${(siteUrl ?? "").replace(/\/$/, "")}/app?payment=success`;
 
   const paystackRes = await fetch(`${PAYSTACK_BASE_URL}/transaction/initialize`, {
     method: "POST",
@@ -77,6 +77,7 @@ export async function POST(req: Request) {
       metadata: {
         company_id: body.companyId,
         plan,
+        product_type: "website",
       },
     }),
   });

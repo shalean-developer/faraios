@@ -3,16 +3,25 @@
 import { revalidatePath } from "next/cache";
 
 import { requireCompanyOwner } from "@/lib/services/company-access";
+import { listCompanyRoles } from "@/lib/services/company-roles";
 import {
   findUserIdByEmail,
   type CompanyMemberRole,
 } from "@/lib/services/team";
+import { ASSIGNABLE_MEMBER_ROLES } from "@/lib/team/assignable-roles";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 
 export type TeamMutationResult = { ok: true } | { ok: false; error: string };
 
-const INVITE_ROLES: CompanyMemberRole[] = ["admin", "staff"];
+const INVITE_ROLES = ASSIGNABLE_MEMBER_ROLES;
+
+async function isAssignableRole(companyId: string, role: string): Promise<boolean> {
+  if (INVITE_ROLES.includes(role as CompanyMemberRole)) return true;
+  if (!role.startsWith("custom_")) return false;
+  const customRoles = await listCompanyRoles(companyId);
+  return customRoles.some((item) => item.roleKey === role);
+}
 
 function revalidateTeamPaths(slug: string) {
   revalidatePath(`/${slug}/dashboard/team`);
@@ -23,7 +32,7 @@ export async function inviteTeamMember(input: {
   companyId: string;
   companySlug: string;
   email: string;
-  role: CompanyMemberRole;
+  role: string;
 }): Promise<TeamMutationResult> {
   if (!isSupabaseConfigured()) {
     return { ok: false, error: "Supabase is not configured." };
@@ -34,8 +43,8 @@ export async function inviteTeamMember(input: {
     return { ok: false, error: "Enter a valid email address." };
   }
 
-  if (!INVITE_ROLES.includes(input.role)) {
-    return { ok: false, error: "Role must be admin or staff." };
+  if (!(await isAssignableRole(input.companyId, input.role))) {
+    return { ok: false, error: "Invalid role selected." };
   }
 
   const access = await requireCompanyOwner(input.companyId);
@@ -73,14 +82,14 @@ export async function updateTeamMemberRole(input: {
   memberUserId: string;
   companyId: string;
   companySlug: string;
-  role: CompanyMemberRole;
+  role: string;
 }): Promise<TeamMutationResult> {
   if (!isSupabaseConfigured()) {
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  if (!INVITE_ROLES.includes(input.role)) {
-    return { ok: false, error: "Role must be admin or staff." };
+  if (!(await isAssignableRole(input.companyId, input.role))) {
+    return { ok: false, error: "Invalid role selected." };
   }
 
   const access = await requireCompanyOwner(input.companyId);

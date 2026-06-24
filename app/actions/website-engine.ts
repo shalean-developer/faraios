@@ -5,7 +5,7 @@ import { randomBytes } from "crypto";
 
 import { getHostingProvider } from "@/lib/hosting/providers";
 import { previewSubdomainForSlug } from "@/lib/constants/tenant-domain";
-import { requireCompanyMembership } from "@/lib/services/company-access";
+import { requireCompanyPermission } from "@/lib/services/company-access";
 import {
   normalizeDomain,
   seedDnsRecordsForDomain,
@@ -43,7 +43,7 @@ export async function addWebsiteDomainAction(input: {
     return { ok: false, error: "Enter a valid domain." };
   }
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "view_websites");
   if (!access.ok) return access;
 
   const provider = getHostingProvider(input.hostingProvider ?? "vercel");
@@ -130,7 +130,7 @@ export async function verifyWebsiteDomainAction(input: {
   companySlug: string;
   websiteDomainId: string;
 }): Promise<{ ok: true; verified: boolean } | { ok: false; error: string }> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "view_websites");
   if (!access.ok) return access;
 
   const result = await verifyWebsiteDomain(input.websiteDomainId, input.companyId);
@@ -158,7 +158,7 @@ export async function rotateApiKeyAction(input: {
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "view_websites");
   if (!access.ok) return access;
 
   const newKey = randomBytes(24).toString("hex");
@@ -201,7 +201,7 @@ export async function revokeApiKeyAction(input: {
   companyId: string;
   companySlug: string;
 }): Promise<ActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "view_websites");
   if (!access.ok) return access;
 
   const supabase = await createClient();
@@ -247,7 +247,7 @@ export async function registerExternalWebsiteAction(input: {
     return { ok: false, error: "Enter a valid website URL." };
   }
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "view_websites");
   if (!access.ok) return access;
 
   const domain = normalizeDomain(normalized);
@@ -283,7 +283,7 @@ export async function updateWebsiteConnectionSettingsAction(input: {
   trackingEnabled?: boolean;
   seoEnabled?: boolean;
 }): Promise<ActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "view_websites");
   if (!access.ok) return access;
 
   const supabase = await createClient();
@@ -312,7 +312,7 @@ export async function triggerWebsiteDeploymentAction(input: {
   environment?: "preview" | "production";
   hostingProvider?: string;
 }): Promise<ActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "view_websites");
   if (!access.ok) return access;
 
   const provider = getHostingProvider(input.hostingProvider ?? "vercel");

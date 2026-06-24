@@ -46,3 +46,21 @@ export async function isPlatformAdminUser(
   console.error("[auth] isPlatformAdminUser", error.message);
   return false;
 }
+
+/** User IDs with a row in `platform_admins` (FaraiOS staff — not business customers). */
+export async function getPlatformAdminUserIds(
+  supabase: SupabaseClient
+): Promise<Set<string>> {
+  const { data, error } = await supabase.from("platform_admins").select("user_id");
+
+  if (error) {
+    console.error("[auth] getPlatformAdminUserIds", error.message);
+    return new Set();
+  }
+
+  return new Set(
+    (data ?? [])
+      .map((row) => (row as { user_id: string }).user_id)
+      .filter((id): id is string => Boolean(id))
+  );
+}

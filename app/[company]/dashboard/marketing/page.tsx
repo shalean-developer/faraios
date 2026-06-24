@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { GrowthHubNav } from "@/components/growth/growth-hub-nav";
+
 import { companyDashboardPath } from "@/lib/paths/company";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { getMarketingAnalytics } from "@/lib/services/marketing-analytics";
@@ -85,7 +85,6 @@ export default async function CompanyMarketingPage({ params }: Props) {
         </div>
       </header>
 
-      <GrowthHubNav slug={slug} active="marketing" />
       <CompanyMarketingClient slug={slug} analytics={analytics} />
     </div>
   );

@@ -4,9 +4,6 @@ import React, { useEffect, useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AdminSidebarBrand } from "@/components/admin/admin-sidebar-brand";
-import { AdminSidebarNav } from "@/components/admin/admin-sidebar-nav";
-import { AdminSidebarUser } from "@/components/admin/admin-sidebar-user";
 import {
   Settings,
   Shield,
@@ -28,6 +25,7 @@ import {
 } from "@/app/actions/admin";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type {
+  AdminAuditLogRow,
   AdminNotificationPreferences,
   AdminPlatformSettings,
 } from "@/types/admin";
@@ -78,16 +76,16 @@ function Toggle({ enabled, onChange }: { enabled: boolean; onChange: () => void 
 export function FaraiSettings({
   adminUsers,
   adminEmail,
-  adminDisplayName,
   platformSettings,
   notificationPreferences,
+  auditLogs,
   initialTab = "general",
 }: {
   adminUsers: AdminUser[];
   adminEmail: string | null;
-  adminDisplayName: string;
   platformSettings: AdminPlatformSettings;
   notificationPreferences: AdminNotificationPreferences;
+  auditLogs: AdminAuditLogRow[];
   initialTab?: SettingsTab;
 }) {
   const router = useRouter();
@@ -257,17 +255,8 @@ export function FaraiSettings({
     "w-full bg-white rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all";
 
   return (
-    <div className="flex h-screen w-full overflow-hidden font-sans" style={{ background: "#f8f7ff" }}>
-      <aside className="flex h-full w-60 flex-shrink-0 flex-col bg-slate-900">
-        <AdminSidebarBrand />
-
-        <AdminSidebarNav activeNav="settings" />
-
-        <AdminSidebarUser adminDisplayName={adminDisplayName} adminEmail={adminEmail} />
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 flex-shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
+    <>
+      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <span className="text-sm font-medium text-gray-400">Settings</span>
             <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-300" />
@@ -469,6 +458,40 @@ export function FaraiSettings({
                       <Toggle enabled={twoFactor} onChange={() => setTwoFactor((v) => !v)} />
                     </div>
                   </section>
+
+                  <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                    <div className="flex items-center justify-between gap-3 border-b border-gray-50 px-6 py-4">
+                      <h2 className="text-sm font-extrabold tracking-tight text-gray-900">Platform Audit Log</h2>
+                      <Link
+                        href="/admin/activity"
+                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700"
+                      >
+                        View all activity
+                      </Link>
+                    </div>
+                    {auditLogs.length === 0 ? (
+                      <p className="px-6 py-8 text-center text-xs text-gray-400">
+                        No audit events yet. Admin actions will appear here once recorded.
+                      </p>
+                    ) : (
+                      <ul className="divide-y divide-gray-50">
+                        {auditLogs.map((entry) => (
+                          <li key={entry.id} className="px-6 py-3.5">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-gray-900">{entry.action}</p>
+                                <p className="mt-0.5 truncate text-[10px] text-gray-400">
+                                  {entry.targetLabel ?? entry.targetType}
+                                  {entry.actorEmail ? ` · ${entry.actorEmail}` : ""}
+                                </p>
+                              </div>
+                              <span className="flex-shrink-0 text-[10px] text-gray-400">{entry.createdAt}</span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
                 </motion.div>
               ) : null}
 
@@ -483,7 +506,6 @@ export function FaraiSettings({
             </AnimatePresence>
           </div>
         </main>
-      </div>
-    </div>
+    </>
   );
 }

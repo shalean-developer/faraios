@@ -3,9 +3,6 @@
 import Link from "next/link";
 import React, { useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { AdminSidebarBrand } from "@/components/admin/admin-sidebar-brand";
-import { AdminSidebarNav } from "@/components/admin/admin-sidebar-nav";
-import { AdminSidebarUser } from "@/components/admin/admin-sidebar-user";
 import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
 import {
   Users,
@@ -126,15 +123,11 @@ const modalVariants = {
 type FaraiAdminTeamManagementProps = {
   members: AdminTeamMember[];
   assignableProjects: AdminAssignableProject[];
-  adminEmail: string | null;
-  adminDisplayName: string;
 };
 
 export function FaraiAdminTeamManagement({
   members,
   assignableProjects,
-  adminEmail,
-  adminDisplayName,
 }: FaraiAdminTeamManagementProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -217,26 +210,13 @@ export function FaraiAdminTeamManagement({
 
   return (
     <div
-      className="flex h-screen w-full overflow-hidden font-sans"
-      style={{ background: "#f8f7ff" }}
+      className="flex min-h-0 flex-1 flex-col overflow-hidden"
       onClick={() => {
         setOpenRoleDropdown(false);
         setOpenStatusDropdown(false);
       }}
     >
-      <aside className="flex h-full w-60 flex-shrink-0 flex-col bg-slate-900">
-        <AdminSidebarBrand />
-
-        <AdminSidebarNav activeNav="team" />
-
-        <AdminSidebarUser
-          adminDisplayName={adminDisplayName}
-          adminEmail={adminEmail}
-        />
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 flex-shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
+      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-extrabold leading-tight tracking-tight text-gray-900">
               Team Management
@@ -608,7 +588,6 @@ export function FaraiAdminTeamManagement({
           </motion.div>
           )}
         </main>
-      </div>
 
       <AnimatePresence>
         {assignTarget && (

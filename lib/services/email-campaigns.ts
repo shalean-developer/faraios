@@ -1,3 +1,4 @@
+import { getSegmentCustomers } from "@/lib/services/customer-segments";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { CampaignType, EmailCampaign } from "@/types/growth-engine";
 
@@ -228,6 +229,94 @@ export async function sendEmailCampaign(
 
   if (updateError) {
     console.error("[email_campaigns] sendEmailCampaign update", updateError.message);
+    return { ok: false, error: updateError.message };
+  }
+
+  return { ok: true, sentCount };
+}
+
+export async function sendEmailCampaignToSegment(
+  companyId: string,
+  campaignId: string,
+  segment: { segmentType: string; criteria: unknown }
+): Promise<{ ok: true; sentCount: number } | { ok: false; error: string }> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return { ok: false, error: admin.error };
+
+  const { data: campaign, error: fetchError } = await admin.client
+    .from("email_campaigns")
+    .select("*")
+    .eq("id", campaignId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+
+  if (fetchError) {
+    return { ok: false, error: fetchError.message };
+  }
+  if (!campaign) return { ok: false, error: "Campaign not found." };
+  if (campaign.status === "sent") return { ok: false, error: "Campaign already sent." };
+
+  const segmentCustomers = await getSegmentCustomers(
+    companyId,
+    segment.segmentType,
+    segment.criteria
+  );
+
+  const { data: unsubscribes } = await admin.client
+    .from("email_unsubscribes")
+    .select("email")
+    .eq("company_id", companyId);
+
+  const unsubSet = new Set(
+    (unsubscribes ?? []).map((u) => (u.email as string).toLowerCase())
+  );
+
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const from = process.env.BOOKING_FROM_EMAIL?.trim();
+  if (!apiKey || !from) return { ok: false, error: "Email provider not configured." };
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  let sentCount = 0;
+
+  for (const customer of segmentCustomers) {
+    const email = customer.email?.trim();
+    if (!email || unsubSet.has(email.toLowerCase())) continue;
+
+    const unsubscribeUrl = `${appUrl}/api/public/unsubscribe?companyId=${encodeURIComponent(companyId)}&email=${encodeURIComponent(email)}`;
+    const html = `${campaign.body_html as string}<p style="font-size:12px;color:#888;margin-top:24px;"><a href="${unsubscribeUrl}">Unsubscribe</a></p>`;
+
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from,
+          to: [email],
+          subject: campaign.subject as string,
+          html,
+        }),
+      });
+      if (res.ok) sentCount++;
+    } catch {
+      // continue
+    }
+  }
+
+  const { error: updateError } = await admin.client
+    .from("email_campaigns")
+    .update({
+      status: "sent",
+      sent_count: sentCount,
+      sent_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", campaignId)
+    .eq("company_id", companyId);
+
+  if (updateError) {
     return { ok: false, error: updateError.message };
   }
 

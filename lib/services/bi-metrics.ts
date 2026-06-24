@@ -1,3 +1,4 @@
+import { averagePaymentCents } from "@/lib/financial/payment-revenue";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import { getMarketingAnalytics } from "@/lib/services/marketing-analytics";
@@ -151,16 +152,7 @@ export async function getBiMetrics(companyId: string): Promise<BiMetrics> {
       ? Math.min(100, Math.round((assignedBookings / totalBookings) * 100))
       : 0;
 
-  const completedWithPrice = bookings.filter(
-    (b) => b.status === "completed" && (b.price_cents ?? 0) > 0
-  );
-  const averageJobValueCents =
-    completedWithPrice.length > 0
-      ? Math.round(
-          completedWithPrice.reduce((s, b) => s + (b.price_cents ?? 0), 0) /
-            completedWithPrice.length
-        )
-      : 0;
+  const averageJobValueCents = averagePaymentCents(payments);
 
   const responseTimes: number[] = [];
   for (const b of bookings) {

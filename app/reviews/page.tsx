@@ -25,6 +25,8 @@ export default async function ReviewsPage() {
       pageSection="reviews"
       bookingUrl={ctx.bookingUrl}
       marketplaceBookingUrl={ctx.marketplaceBookingUrl}
+      templateVariant={ctx.website.template}
+      companyBranding={ctx.companyBranding}
     />
   );
 }

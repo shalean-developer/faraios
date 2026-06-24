@@ -1,3 +1,4 @@
+import { aggregateServicePaymentStats } from "@/lib/financial/payment-revenue";
 import { isMissingSortOrderColumn } from "@/lib/company-services/sort-order";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
@@ -97,29 +98,35 @@ export async function getServiceStatsForCompany(
   if (!isSupabaseConfigured() || !companyId) return {};
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("bookings")
-    .select("service_id, price_cents")
-    .eq("company_id", companyId)
-    .not("service_id", "is", null);
+  const [bookingsRes, paymentsRes] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select("id, service_id")
+      .eq("company_id", companyId)
+      .not("service_id", "is", null),
+    supabase
+      .from("customer_payments")
+      .select("amount_cents, status, booking_id")
+      .eq("company_id", companyId),
+  ]);
 
-  if (error) {
-    console.error("[services] getServiceStatsForCompany", error.message);
+  if (bookingsRes.error) {
+    console.error("[services] getServiceStatsForCompany bookings", bookingsRes.error.message);
+    return {};
+  }
+  if (paymentsRes.error) {
+    console.error("[services] getServiceStatsForCompany payments", paymentsRes.error.message);
     return {};
   }
 
-  const stats: Record<string, CompanyServiceStats> = {};
-
-  for (const row of data ?? []) {
-    const serviceId = row.service_id as string;
-    if (!stats[serviceId]) {
-      stats[serviceId] = { bookingCount: 0, revenueCents: 0 };
-    }
-    stats[serviceId].bookingCount += 1;
-    stats[serviceId].revenueCents += row.price_cents ?? 0;
-  }
-
-  return stats;
+  return aggregateServicePaymentStats(
+    (bookingsRes.data ?? []) as { id: string; service_id: string | null }[],
+    (paymentsRes.data ?? []) as {
+      amount_cents: number;
+      status: string;
+      booking_id: string | null;
+    }[]
+  );
 }
 
 export async function listBookingsForService(

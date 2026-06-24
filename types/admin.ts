@@ -149,18 +149,26 @@ export type AdminClientProject = {
 
 export type AdminClient = {
   id: string;
+  slug: string;
   name: string;
   email: string;
   business: string;
+  industry: string;
+  plan: string;
+  platformStatus: AdminPlatformStatus;
+  subscriptionStatus: string;
   phone: string | null;
   location: string | null;
   joined: string;
   projectCount: number;
+  /** @deprecated Use platformStatus for SaaS lifecycle */
   status: "Active" | "Inactive";
   projects: AdminClientProject[];
   note: string | null;
   noteTime: string | null;
 };
+
+export type AdminPlatformStatus = "Active" | "Trial" | "Suspended" | "Inactive";
 
 export type AdminClientStats = {
   total: number;
@@ -169,7 +177,14 @@ export type AdminClientStats = {
   newThisMonth: number;
 };
 
-export type AdminActivityCategory = "all" | "projects" | "team" | "clients";
+export type AdminActivityCategory =
+  | "all"
+  | "projects"
+  | "team"
+  | "clients"
+  | "platform"
+  | "operations";
+
 export type AdminActivityGroup = "today" | "week";
 
 export type AdminActivityItem = {
@@ -180,7 +195,375 @@ export type AdminActivityItem = {
   category: AdminActivityCategory;
   unread: boolean;
   group: AdminActivityGroup;
-  iconKey: "bell" | "folderPlus" | "userCheck" | "userPlus" | "checkCircle2" | "stickyNote" | "upload";
+  href?: string | null;
+  iconKey:
+    | "bell"
+    | "folderPlus"
+    | "userCheck"
+    | "userPlus"
+    | "checkCircle2"
+    | "stickyNote"
+    | "upload"
+    | "shield"
+    | "lifeBuoy"
+    | "lightbulb";
   iconBg: string;
   iconColor: string;
+};
+
+export type AdminHealthStatus = "healthy" | "warning" | "critical" | "unknown";
+
+export type AdminSystemHealth = {
+  api: AdminHealthStatus;
+  cron: AdminHealthStatus;
+  email: AdminHealthStatus;
+  websites: AdminHealthStatus;
+  domains: AdminHealthStatus;
+};
+
+export type AdminPlatformBusinessMetrics = {
+  total: number;
+  active: number;
+  trial: number;
+  suspended: number;
+  newThisMonth: number;
+};
+
+export type AdminPlatformUserMetrics = {
+  total: number;
+  active: number;
+  newThisMonth: number;
+  growthRatePercent: number;
+};
+
+export type AdminPlatformRevenueMetrics = {
+  mrr: number;
+  arr: number;
+  totalRevenue: number;
+  activeSubscriptions: number;
+  failedPayments: number;
+};
+
+export type AdminPlatformActivityMetrics = {
+  totalBookings: number;
+  totalLeads: number;
+  totalInvoices: number;
+  totalPayments: number;
+  totalEmailsSent: number;
+};
+
+export type AdminOverviewBusinessRow = {
+  id: string;
+  name: string;
+  industry: string;
+  plan: string;
+  status: string;
+  createdDate: string;
+};
+
+export type AdminOverviewTicketRow = {
+  id: string;
+  ticketNumber: number;
+  subject: string;
+  status: string;
+  priority: string;
+  updatedAt: string;
+};
+
+export type AdminOverviewFeatureRequestRow = {
+  id: string;
+  title: string;
+  voteCount: number;
+  status: string;
+};
+
+export type AdminPlatformOperationsMetrics = {
+  openTickets: number;
+  urgentTickets: number;
+  pendingFeatureRequests: number;
+};
+
+export type AdminPlatformOverviewMetrics = {
+  businesses: AdminPlatformBusinessMetrics;
+  users: AdminPlatformUserMetrics;
+  revenue: AdminPlatformRevenueMetrics;
+  activity: AdminPlatformActivityMetrics;
+  operations: AdminPlatformOperationsMetrics;
+  systemHealth: AdminSystemHealth;
+  recentBusinesses: AdminOverviewBusinessRow[];
+  recentOpenTickets: AdminOverviewTicketRow[];
+  topFeatureRequests: AdminOverviewFeatureRequestRow[];
+  pipelineStats: AdminProjectStats;
+};
+
+export type AdminRevenueTransaction = {
+  id: string;
+  companyId: string;
+  businessName: string;
+  plan: string;
+  amount: number;
+  currency: string;
+  status: "success" | "failed" | "pending";
+  date: string;
+  dateIso: string;
+  reference: string | null;
+};
+
+export type AdminPlatformRevenueData = {
+  mrr: number;
+  arr: number;
+  activeSubscriptions: number;
+  churnRatePercent: number;
+  arpa: number;
+  successfulPayments: number;
+  failedPayments: number;
+  refunds: number;
+  monthlyTrend: AdminAnalyticsPoint[];
+  weeklyTrend: AdminAnalyticsPoint[];
+  transactions: AdminRevenueTransaction[];
+};
+
+export type AdminPlatformUserRow = {
+  id: string;
+  name: string;
+  email: string;
+  businessId: string | null;
+  businessName: string;
+  role: string;
+  status: "Active" | "Inactive";
+  joined: string;
+  membershipCount: number;
+};
+
+export type AdminPlatformUserStats = {
+  total: number;
+  active: number;
+  owners: number;
+  newThisMonth: number;
+};
+
+export type AdminBusinessMember = {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: string;
+  joined: string;
+};
+
+export type AdminBusinessDetail = {
+  id: string;
+  slug: string;
+  name: string;
+  industry: string;
+  plan: string;
+  platformStatus: AdminPlatformStatus;
+  subscriptionStatus: string;
+  contactName: string;
+  contactEmail: string;
+  phone: string | null;
+  location: string | null;
+  joined: string;
+  hostingStatus: string | null;
+  nextBillingDate: string | null;
+  note: string | null;
+  recentPayments: AdminRevenueTransaction[];
+  members: AdminBusinessMember[];
+};
+
+export type AdminDomainRow = {
+  id: string;
+  domain: string;
+  businessName: string;
+  companyId: string;
+  domainType: string;
+  verificationStatus: string;
+  sslStatus: string;
+  lastChecked: string | null;
+};
+
+export type AdminDomainsData = {
+  total: number;
+  verified: number;
+  pending: number;
+  sslActive: number;
+  sslFailed: number;
+  domains: AdminDomainRow[];
+};
+
+export type AdminCronJobRow = {
+  id: string;
+  name: string;
+  schedule: string;
+  description: string | null;
+  enabled: boolean;
+  lastRun: string | null;
+  lastStatus: "success" | "failed" | null;
+  successRate: number;
+};
+
+export type AdminCronRunRow = {
+  id: string;
+  jobId: string;
+  jobName: string;
+  status: string;
+  startedAt: string;
+  durationMs: number;
+  errorMessage: string | null;
+};
+
+export type AdminCronData = {
+  jobs: AdminCronJobRow[];
+  recentRuns: AdminCronRunRow[];
+  overallSuccessRate: number;
+};
+
+export type AdminApiLogRow = {
+  id: string;
+  route: string;
+  method: string;
+  statusCode: number;
+  businessName: string | null;
+  durationMs: number;
+  isPublic: boolean;
+  createdAt: string;
+  errorMessage: string | null;
+};
+
+export type AdminApiUsageData = {
+  totalRequests: number;
+  failedRequests: number;
+  rateLimitEvents: number;
+  requestsToday: number;
+  failureRatePercent: number;
+  topRoutes: { route: string; count: number }[];
+  recentLogs: AdminApiLogRow[];
+};
+
+export type AdminEmailLogRow = {
+  id: string;
+  to: string;
+  subject: string | null;
+  template: string | null;
+  status: string;
+  provider: string;
+  businessName: string | null;
+  createdAt: string;
+  errorMessage: string | null;
+};
+
+export type AdminEmailsData = {
+  totalSent: number;
+  deliveryRate: number;
+  failedCount: number;
+  sentToday: number;
+  recentLogs: AdminEmailLogRow[];
+};
+
+export type AdminAuditLogRow = {
+  id: string;
+  actorEmail: string | null;
+  action: string;
+  targetType: string;
+  targetLabel: string | null;
+  createdAt: string;
+};
+
+export type AdminSupportTicketStatus =
+  | "open"
+  | "in_progress"
+  | "waiting"
+  | "resolved"
+  | "closed";
+
+export type AdminSupportTicketPriority = "low" | "medium" | "high" | "urgent";
+
+export type AdminSupportTicketCategory =
+  | "general"
+  | "billing"
+  | "technical"
+  | "account";
+
+export type AdminSupportTicketRow = {
+  id: string;
+  ticketNumber: number;
+  subject: string;
+  status: AdminSupportTicketStatus;
+  priority: AdminSupportTicketPriority;
+  category: AdminSupportTicketCategory;
+  businessName: string | null;
+  companyId: string | null;
+  requesterName: string | null;
+  requesterEmail: string | null;
+  assignedTo: string | null;
+  messageCount: number;
+  updatedAt: string;
+  createdAt: string;
+};
+
+export type AdminSupportStats = {
+  open: number;
+  inProgress: number;
+  waiting: number;
+  resolvedThisMonth: number;
+};
+
+export type AdminSupportData = {
+  tickets: AdminSupportTicketRow[];
+  stats: AdminSupportStats;
+};
+
+export type AdminSupportMessageRow = {
+  id: string;
+  authorName: string;
+  authorEmail: string | null;
+  body: string;
+  isInternal: boolean;
+  createdAt: string;
+};
+
+export type AdminSupportTicketDetail = AdminSupportTicketRow & {
+  description: string;
+  resolvedAt: string | null;
+  messages: AdminSupportMessageRow[];
+};
+
+export type AdminFeatureRequestStatus =
+  | "submitted"
+  | "under_review"
+  | "planned"
+  | "in_progress"
+  | "shipped"
+  | "declined";
+
+export type AdminFeatureRequestPriority = "low" | "medium" | "high";
+
+export type AdminFeatureRequestRow = {
+  id: string;
+  title: string;
+  description: string;
+  status: AdminFeatureRequestStatus;
+  priority: AdminFeatureRequestPriority;
+  category: string | null;
+  voteCount: number;
+  businessName: string | null;
+  companyId: string | null;
+  submittedByName: string | null;
+  submittedByEmail: string | null;
+  adminNotes: string | null;
+  updatedAt: string;
+  createdAt: string;
+};
+
+export type AdminFeatureRequestStats = {
+  submitted: number;
+  underReview: number;
+  planned: number;
+  inProgress: number;
+  shipped: number;
+};
+
+export type AdminFeatureRequestsData = {
+  requests: AdminFeatureRequestRow[];
+  stats: AdminFeatureRequestStats;
 };

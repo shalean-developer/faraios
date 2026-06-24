@@ -2,6 +2,7 @@ import { slugifyBusinessName } from "@/lib/slug";
 import { industryImagePreset } from "@/lib/data/industry-stock-images";
 import { buildServiceBusinessContentSeed } from "@/lib/data/service-business-content-seed";
 import { loadIndustryModule } from "@/lib/industry-modules/loader";
+import { resolveWebsiteTemplateVariant } from "@/lib/website-templates/variants";
 import { getAdminQueryClient, isCurrentUserPlatformAdmin } from "@/lib/services/admin";
 import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
@@ -126,9 +127,19 @@ function asString(value: unknown, fallback = ""): string {
 export function buildDefaultWebsiteContent(
   input: CreateWebsiteInput
 ): WebsiteSectionSeed[] {
-  const template = input.template.trim().toLowerCase();
-  if (template === "service-business" || template === "cleaning") {
-    return buildServiceBusinessContentSeed(input);
+  const template = resolveWebsiteTemplateVariant(input.template || input.industry);
+  if (
+    template === "service-business" ||
+    template === "cleaning" ||
+    template === "beauty" ||
+    template === "technology" ||
+    template === "tourism"
+  ) {
+    return buildServiceBusinessContentSeed({
+      ...input,
+      industry: template,
+      template,
+    });
   }
 
   const normalizedIndustry = resolveWebsiteIndustry(input.industry);
@@ -245,7 +256,7 @@ async function insertWebsiteDraft(
       client_id: companyId,
       name: businessName,
       industry,
-      template: input.template.trim() || "service-business",
+      template: resolveWebsiteTemplateVariant(input.template || input.industry),
       domain,
       subdomain,
       status: "draft",
@@ -496,9 +507,15 @@ export async function backfillServiceBusinessWebsiteContent(
     return { ok: false, error: websiteError?.message ?? "Website not found." };
   }
 
-  const template = (website.template as string).trim().toLowerCase();
-  if (template !== "service-business" && template !== "cleaning") {
-    return { ok: false, error: "Website template is not service-business." };
+  const template = resolveWebsiteTemplateVariant(website.template || website.industry);
+  if (
+    template !== "service-business" &&
+    template !== "cleaning" &&
+    template !== "beauty" &&
+    template !== "technology" &&
+    template !== "tourism"
+  ) {
+    return { ok: false, error: "Website template is not a supported service-business variant." };
   }
 
   const { data: existingRows, error: contentError } = await supabase

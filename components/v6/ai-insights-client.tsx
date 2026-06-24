@@ -29,7 +29,7 @@ export function AiInsightsClient({
   return (
     <div className="space-y-10">
       <section>
-        <h2 className="mb-4 text-lg font-bold text-slate-900">Business insights</h2>
+        <h2 className="mb-4 text-lg font-bold text-slate-900">Suggested actions</h2>
         <ul className="space-y-3">
           {insights.length === 0 ? (
             <li className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
@@ -60,7 +60,10 @@ export function AiInsightsClient({
       </section>
 
       <section>
-        <h2 className="mb-4 text-lg font-bold text-slate-900">Search your business</h2>
+        <h2 className="mb-4 text-lg font-bold text-slate-900">Smart Search</h2>
+        <p className="mb-4 text-sm text-slate-600">
+          Search your workspace with natural phrases — results come from your live business data.
+        </p>
         <form onSubmit={onSearch} className="flex gap-2">
           <input
             value={query}

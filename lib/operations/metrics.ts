@@ -5,6 +5,82 @@ export type OperationsMetrics = {
   revenueCents: number;
 };
 
+export type HomeOverviewMetrics = {
+  bookingsToday: number;
+  pendingBookings: number;
+  totalBookings: number;
+  customers: number;
+  revenueTodayCents: number;
+  revenueMonthCents: number;
+  pendingQuotes: number;
+  outstandingInvoices: number;
+  overdueInvoices: number;
+  outstandingInvoicesCents: number;
+  newLeads7d: number;
+  businessHealthScore: number;
+};
+
+export type HomeActivityKind =
+  | "booking"
+  | "activity"
+  | "payment"
+  | "invoice"
+  | "quote"
+  | "lead";
+
+export type HomeActivityItem = {
+  id: string;
+  kind: HomeActivityKind;
+  title: string;
+  subtitle: string;
+  status: string | null;
+  createdAt: string;
+  entityId?: string;
+};
+
+export type HomeOverviewInsight = {
+  title: string;
+  body: string;
+  priority?: "high" | "medium" | "low";
+};
+
+export type HomeOverviewData = {
+  metrics: HomeOverviewMetrics;
+  recentActivity: HomeActivityItem[];
+  topInsight: HomeOverviewInsight | null;
+};
+
+export type GrowthOverviewMetrics = {
+  seoScore: number;
+  leads30d: number;
+  conversionRate: number;
+  websiteVisits30d: number;
+  reviewRequestsSent30d: number;
+  campaignsSent: number;
+  publishedPosts: number;
+  draftPosts: number;
+};
+
+export type GrowthOverviewData = {
+  metrics: GrowthOverviewMetrics;
+  topSeoAction: string | null;
+};
+
+export type IntelligenceOverviewMetrics = {
+  businessHealthScore: number;
+  revenueMonthCents: number;
+  revenueGrowthPercent: number;
+  bookingConversionRate: number;
+  newCustomers30d: number;
+  activeWorkflows: number;
+};
+
+export type IntelligenceOverviewData = {
+  metrics: IntelligenceOverviewMetrics;
+  topInsight: HomeOverviewInsight | null;
+  healthRecommendations: string[];
+};
+
 export type RecentActivityItem = {
   id: string;
   type: "booking";

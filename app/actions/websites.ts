@@ -17,6 +17,10 @@ import {
   companyWebsitesPath,
 } from "@/lib/paths/company";
 import { getPrimaryCompanySlugForUser } from "@/lib/services/routing";
+import {
+  requireCompanyPermission,
+  requireWebsiteCompanyPermission,
+} from "@/lib/services/company-access";
 import { createClient } from "@/lib/supabase/server";
 
 export type WebsiteMutationResult =
@@ -50,20 +54,34 @@ async function revalidateCompanyWebsitePaths(
 export async function createWebsiteDraftAction(
   input: CreateWebsiteInput
 ): Promise<WebsiteMutationResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Please sign in again." };
+
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("company_id")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!membership?.company_id) {
+    return { ok: false, error: "No workspace found." };
+  }
+
+  const access = await requireCompanyPermission(membership.company_id, "view_websites");
+  if (!access.ok) return access;
+
   const result = await createWebsiteDraftForCurrentUser(input);
   if (!result.ok) {
     return { ok: false, error: result.error };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user) {
-    const slug = await getPrimaryCompanySlugForUser(user.id);
-    if (slug) {
-      await revalidateCompanyWebsitePaths(slug);
-    }
+  const slug = await getPrimaryCompanySlugForUser(user.id);
+  if (slug) {
+    await revalidateCompanyWebsitePaths(slug);
   }
   revalidatePath("/app");
   return { ok: true, websiteId: result.websiteId };
@@ -284,33 +302,10 @@ export async function publishWebsiteAction(
   websiteId: string,
   companySlug: string
 ): Promise<WebsiteMutationResult> {
+  const access = await requireWebsiteCompanyPermission(websiteId);
+  if (!access.ok) return access;
+
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Please sign in again." };
-
-  const { data: website, error: websiteError } = await supabase
-    .from("websites")
-    .select("id,client_id")
-    .eq("id", websiteId)
-    .maybeSingle();
-
-  if (websiteError || !website) {
-    return { ok: false, error: websiteError?.message ?? "Website not found." };
-  }
-
-  const { data: membership, error: membershipError } = await supabase
-    .from("memberships")
-    .select("id")
-    .eq("company_id", website.client_id)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (membershipError || !membership) {
-    return { ok: false, error: "You do not have access to this website." };
-  }
-
   const { error } = await supabase
     .from("websites")
     .update({
@@ -325,7 +320,7 @@ export async function publishWebsiteAction(
   }
 
   await supabase.from("website_deployments").insert({
-    company_id: website.client_id,
+    company_id: access.companyId,
     website_id: websiteId,
     environment: "production",
     status: "live",
@@ -335,7 +330,7 @@ export async function publishWebsiteAction(
 
   await supabase.from("connected_websites").upsert(
     {
-      company_id: website.client_id,
+      company_id: access.companyId,
       type: "hosted",
       website_id: websiteId,
       status: "live",
@@ -362,33 +357,10 @@ export async function connectDomainAction(
     return { ok: false, error: "Please provide a valid domain." };
   }
 
+  const access = await requireWebsiteCompanyPermission(websiteId);
+  if (!access.ok) return access;
+
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Please sign in again." };
-
-  const { data: website, error: websiteError } = await supabase
-    .from("websites")
-    .select("id,client_id")
-    .eq("id", websiteId)
-    .maybeSingle();
-
-  if (websiteError || !website) {
-    return { ok: false, error: websiteError?.message ?? "Website not found." };
-  }
-
-  const { data: membership, error: membershipError } = await supabase
-    .from("memberships")
-    .select("id")
-    .eq("company_id", website.client_id)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (membershipError || !membership) {
-    return { ok: false, error: "You do not have access to this website." };
-  }
-
   const { error } = await supabase
     .from("websites")
     .update({ domain: normalizedDomain })
@@ -408,32 +380,8 @@ export async function updateWebsiteSeoAction(
   companySlug: string,
   input: WebsiteSeoInput
 ): Promise<WebsiteMutationResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Please sign in again." };
-
-  const { data: website, error: websiteError } = await supabase
-    .from("websites")
-    .select("id,client_id")
-    .eq("id", websiteId)
-    .maybeSingle();
-
-  if (websiteError || !website) {
-    return { ok: false, error: websiteError?.message ?? "Website not found." };
-  }
-
-  const { data: membership, error: membershipError } = await supabase
-    .from("memberships")
-    .select("id")
-    .eq("company_id", website.client_id)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (membershipError || !membership) {
-    return { ok: false, error: "You do not have access to this website." };
-  }
+  const access = await requireWebsiteCompanyPermission(websiteId);
+  if (!access.ok) return access;
 
   const result = await updateWebsiteSeo(websiteId, input);
   if (!result.ok) return { ok: false, error: result.error };
@@ -455,31 +403,8 @@ export async function updateWebsiteContentAction(
   const authClient = await createClient();
 
   if (!isAdmin) {
-    const {
-      data: { user },
-    } = await authClient.auth.getUser();
-    if (!user) return { ok: false, error: "Please sign in again." };
-
-    const { data: website, error: websiteError } = await authClient
-      .from("websites")
-      .select("id,client_id")
-      .eq("id", websiteId)
-      .maybeSingle();
-
-    if (websiteError || !website) {
-      return { ok: false, error: websiteError?.message ?? "Website not found." };
-    }
-
-    const { data: membership, error: membershipError } = await authClient
-      .from("memberships")
-      .select("id")
-      .eq("company_id", website.client_id)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (membershipError || !membership) {
-      return { ok: false, error: "You do not have access to this website." };
-    }
+    const access = await requireWebsiteCompanyPermission(websiteId);
+    if (!access.ok) return access;
   }
 
   const supabase = isAdmin ? await getAdminQueryClient() : authClient;
@@ -517,31 +442,8 @@ export async function applyIndustryStockImagesAction(
   const authClient = await createClient();
 
   if (!isAdmin) {
-    const {
-      data: { user },
-    } = await authClient.auth.getUser();
-    if (!user) return { ok: false, error: "Please sign in again." };
-
-    const { data: website, error: websiteError } = await authClient
-      .from("websites")
-      .select("id,client_id")
-      .eq("id", websiteId)
-      .maybeSingle();
-
-    if (websiteError || !website) {
-      return { ok: false, error: websiteError?.message ?? "Website not found." };
-    }
-
-    const { data: membership, error: membershipError } = await authClient
-      .from("memberships")
-      .select("id")
-      .eq("company_id", website.client_id)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (membershipError || !membership) {
-      return { ok: false, error: "You do not have access to this website." };
-    }
+    const access = await requireWebsiteCompanyPermission(websiteId);
+    if (!access.ok) return access;
   }
 
   const supabase = isAdmin ? await getAdminQueryClient() : authClient;

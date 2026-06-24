@@ -73,6 +73,7 @@ export default async function CompanyQuoteDetailPage({ params }: Props) {
         slug={slug}
         companyId={row.id}
         quote={detail.quote}
+        lineItems={detail.lineItems}
       />
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireCompanyMembership } from "@/lib/services/company-access";
+import { requireCompanyPermission } from "@/lib/services/company-access";
 import {
   notifyQuoteAcceptedAdmin,
   notifyQuoteSent,
@@ -15,6 +15,7 @@ import {
   createQuoteFromBooking,
   getQuoteById,
   sendQuote,
+  updateQuote,
 } from "@/lib/services/quotes";
 import type { LineItemInput } from "@/types/financial";
 
@@ -38,7 +39,7 @@ export async function createQuoteAction(input: {
   notes?: string;
   validUntil?: string;
 }): Promise<QuoteActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "create_invoices");
   if (!access.ok) return access;
 
   const result = await createQuote({
@@ -61,7 +62,7 @@ export async function createQuoteFromBookingAction(input: {
   companySlug: string;
   bookingId: string;
 }): Promise<QuoteActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "create_invoices");
   if (!access.ok) return access;
 
   const result = await createQuoteFromBooking(
@@ -78,7 +79,7 @@ export async function sendQuoteAction(input: {
   companySlug: string;
   quoteId: string;
 }): Promise<QuoteActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "create_invoices");
   if (!access.ok) return access;
 
   const result = await sendQuote(input.companyId, input.quoteId, access.userId);
@@ -108,7 +109,7 @@ export async function convertQuoteToBookingAction(input: {
   companySlug: string;
   quoteId: string;
 }): Promise<QuoteActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "create_invoices");
   if (!access.ok) return access;
 
   const result = await convertQuoteToBooking(
@@ -128,7 +129,7 @@ export async function convertQuoteToInvoiceAction(input: {
   companySlug: string;
   quoteId: string;
 }): Promise<QuoteActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "create_invoices");
   if (!access.ok) return access;
 
   const result = await convertQuoteToInvoice(
@@ -150,4 +151,33 @@ export async function notifyQuoteAcceptedAction(input: {
   customerName: string;
 }): Promise<void> {
   await notifyQuoteAcceptedAdmin(input);
+}
+
+export async function updateQuoteAction(input: {
+  companyId: string;
+  companySlug: string;
+  quoteId: string;
+  lineItems: LineItemInput[];
+  discountCents?: number;
+  taxCents?: number;
+  notes?: string;
+  validUntil?: string;
+}): Promise<QuoteActionResult> {
+  const access = await requireCompanyPermission(input.companyId, "create_invoices");
+  if (!access.ok) return access;
+
+  const result = await updateQuote({
+    companyId: input.companyId,
+    quoteId: input.quoteId,
+    lineItems: input.lineItems,
+    discountCents: input.discountCents,
+    taxCents: input.taxCents,
+    notes: input.notes,
+    validUntil: input.validUntil ?? null,
+    actorId: access.userId,
+  });
+
+  if (result.ok) revalidateQuotePaths(input.companySlug);
+  revalidatePath(`/${input.companySlug}/dashboard/quotes/${input.quoteId}`);
+  return result;
 }

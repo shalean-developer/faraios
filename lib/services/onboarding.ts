@@ -1,4 +1,5 @@
 import { seedPublishedBookingFormForCompany } from "@/lib/services/booking-forms";
+import { claimPendingOwnerWorkspace } from "@/lib/auth/claim-pending-workspace";
 import { applyIndustryModulePreset } from "@/lib/industry-modules/seeding";
 import { loadIndustryModule } from "@/lib/industry-modules/loader";
 import { slugifyBusinessName } from "@/lib/slug";
@@ -94,6 +95,8 @@ export async function createBusinessSystem(
       error: "Session mismatch. Please refresh the page and sign in again.",
     };
   }
+
+  await claimPendingOwnerWorkspace(supabase);
 
   const { data: existingMembership, error: existingMembershipError } =
     await supabase

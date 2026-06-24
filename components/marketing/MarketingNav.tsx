@@ -7,7 +7,14 @@ import { LayoutDashboard, LogOut, Menu, X } from "lucide-react";
 import { FaraiLogo } from "@/components/brand/farai-logo";
 import { cn } from "@/lib/utils";
 
-export type MarketingNavActive = "home" | "pricing" | "hosting" | "marketplace" | "examples";
+export type MarketingNavActive =
+  | "home"
+  | "features"
+  | "industries"
+  | "pricing"
+  | "hosting"
+  | "marketplace"
+  | "examples";
 
 type MarketingNavProps = {
   isAuthenticated: boolean;
@@ -20,6 +27,18 @@ type MarketingNavProps = {
 const navLinkClass =
   "text-sm font-medium text-gray-600 transition-colors hover:text-gray-900";
 
+const centerNavLinks: {
+  label: string;
+  href: string;
+  active?: MarketingNavActive;
+}[] = [
+  { label: "Features", href: "/features", active: "features" },
+  { label: "Industries", href: "/industries", active: "industries" },
+  { label: "Pricing", href: "/pricing", active: "pricing" },
+  { label: "Marketplace", href: "/marketplace", active: "marketplace" },
+  { label: "Contact", href: "/platform/contact" },
+];
+
 export function MarketingNav({
   isAuthenticated,
   companySlug,
@@ -29,34 +48,49 @@ export function MarketingNav({
 }: MarketingNavProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const appHref = isPlatformAdmin ? "/admin" : "/app";
-  const dashboardHref = isPlatformAdmin
-    ? "/admin"
-    : companySlug
-      ? `/${encodeURIComponent(companySlug)}/dashboard`
-      : appHref;
+  const workspaceHref = companySlug
+    ? `/${encodeURIComponent(companySlug)}/dashboard`
+    : "/app";
+  const logoHref = isAuthenticated ? workspaceHref : "/";
 
   const closeMobile = () => setMobileOpen(false);
 
-  const activeClass = (key: MarketingNavActive) =>
-    active === key ? "text-violet-700" : undefined;
+  const activeClass = (key?: MarketingNavActive) =>
+    key && active === key ? "text-violet-700" : undefined;
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-gray-100 bg-white/90 shadow-sm backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link
-          href={isAuthenticated ? appHref : "/"}
-          className="group flex items-center"
+          href={logoHref}
+          className="group flex shrink-0 items-center"
           onClick={closeMobile}
         >
           <FaraiLogo size="header" priority />
         </Link>
 
+        {!isAuthenticated ? (
+          <nav
+            className="hidden items-center justify-center gap-6 md:flex"
+            aria-label="Main navigation"
+          >
+            {centerNavLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(navLinkClass, activeClass(link.active))}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
+
         <div className="flex items-center gap-2">
-          <div className="hidden items-center gap-4 md:flex">
+          <div className="hidden items-center gap-3 md:flex">
             {isAuthenticated ? (
               <>
-                <Link href={dashboardHref} className={navLinkClass}>
+                <Link href={workspaceHref} className={navLinkClass}>
                   Workspace
                 </Link>
                 <details className="relative">
@@ -64,21 +98,36 @@ export function MarketingNav({
                     <LayoutDashboard className="h-4 w-4" />
                     Account
                   </summary>
-                  <div className="absolute right-0 mt-2 w-44 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+                  <div className="absolute right-0 mt-2 w-48 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
                     <Link
-                      href={appHref}
+                      href={workspaceHref}
                       className="block rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
-                      {isPlatformAdmin ? "Admin" : "App"}
+                      Workspace
                     </Link>
                     {isPlatformAdmin ? (
+                      <>
+                        <Link
+                          href="/admin"
+                          className="block rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Platform admin
+                        </Link>
+                        <Link
+                          href="/admin/pipeline"
+                          className="block rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Client projects
+                        </Link>
+                      </>
+                    ) : (
                       <Link
-                        href="/admin/pipeline"
+                        href="/app"
                         className="block rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       >
-                        Client projects
+                        App home
                       </Link>
-                    ) : null}
+                    )}
                     <Link
                       href="/pricing"
                       className="block rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -101,12 +150,6 @@ export function MarketingNav({
             ) : (
               <>
                 <Link
-                  href="/pricing"
-                  className={cn(navLinkClass, activeClass("pricing"))}
-                >
-                  Pricing
-                </Link>
-                <Link
                   href="/auth/sign-in"
                   className="hidden items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 sm:flex"
                 >
@@ -117,7 +160,7 @@ export function MarketingNav({
                   href="/auth/sign-up"
                   className="rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-violet-200"
                 >
-                  Get Started
+                  Start workspace
                 </Link>
               </>
             )}
@@ -137,32 +180,42 @@ export function MarketingNav({
 
       {mobileOpen ? (
         <div className="border-t border-gray-100 bg-white px-4 py-4 md:hidden">
-          <nav className="flex flex-col gap-1" aria-label="Mobile account">
+          <nav className="flex flex-col gap-1" aria-label="Mobile navigation">
             {isAuthenticated ? (
               <>
                 <Link
-                  href={appHref}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  onClick={closeMobile}
-                >
-                  App
-                </Link>
-                <Link
-                  href={dashboardHref}
+                  href={workspaceHref}
                   className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                   onClick={closeMobile}
                 >
                   Workspace
                 </Link>
                 {isPlatformAdmin ? (
+                  <>
+                    <Link
+                      href="/admin"
+                      className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      onClick={closeMobile}
+                    >
+                      Platform admin
+                    </Link>
+                    <Link
+                      href="/admin/pipeline"
+                      className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      onClick={closeMobile}
+                    >
+                      Client projects
+                    </Link>
+                  </>
+                ) : (
                   <Link
-                    href="/admin/pipeline"
+                    href="/app"
                     className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                     onClick={closeMobile}
                   >
-                    Client projects
+                    App home
                   </Link>
-                ) : null}
+                )}
                 <Link
                   href="/pricing"
                   className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -183,19 +236,23 @@ export function MarketingNav({
               </>
             ) : (
               <>
+                {centerNavLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    onClick={closeMobile}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+                <div className="my-2 border-t border-gray-100" />
                 <Link
                   href="/auth/sign-up"
                   className="rounded-lg px-3 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50"
                   onClick={closeMobile}
                 >
-                  Get started
-                </Link>
-                <Link
-                  href="/pricing"
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  onClick={closeMobile}
-                >
-                  Pricing
+                  Start workspace
                 </Link>
                 <Link
                   href="/auth/sign-in"
@@ -203,13 +260,6 @@ export function MarketingNav({
                   onClick={closeMobile}
                 >
                   Sign in
-                </Link>
-                <Link
-                  href="/marketplace"
-                  className="mt-2 rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-                  onClick={closeMobile}
-                >
-                  Marketplace
                 </Link>
               </>
             )}

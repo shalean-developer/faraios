@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import { getTenantContext, getTenantMetadata } from "@/lib/services/tenant-site";
 import ServiceBusinessTemplate from "@/templates/service-business/ServiceBusinessTemplate";
@@ -6,12 +7,25 @@ import ServiceBusinessTemplate from "@/templates/service-business/ServiceBusines
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const ctx = await getTenantContext();
+  if (ctx.mainHost) {
+    return {
+      title: "About — FaraiOS",
+      description:
+        "FaraiOS is the business operating system for local service teams.",
+    };
+  }
   return getTenantMetadata("about");
 }
 
 export default async function AboutPage() {
   const ctx = await getTenantContext();
-  if (ctx.mainHost || !ctx.website || ctx.website.status !== "published") {
+
+  if (ctx.mainHost) {
+    redirect("/platform/about");
+  }
+
+  if (!ctx.website || ctx.website.status !== "published") {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-slate-600">
         Website not configured
@@ -19,5 +33,14 @@ export default async function AboutPage() {
     );
   }
 
-  return <ServiceBusinessTemplate content={ctx.content} pageSection="about" bookingUrl={ctx.bookingUrl} marketplaceBookingUrl={ctx.marketplaceBookingUrl} />;
+  return (
+    <ServiceBusinessTemplate
+      content={ctx.content}
+      pageSection="about"
+      bookingUrl={ctx.bookingUrl}
+      marketplaceBookingUrl={ctx.marketplaceBookingUrl}
+      templateVariant={ctx.website.template}
+      companyBranding={ctx.companyBranding}
+    />
+  );
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { GrowthHubNav } from "@/components/growth/growth-hub-nav";
+
 import {
   companyDashboardPath,
   companyInsightsPath,
@@ -92,7 +92,6 @@ export default async function CompanyAnalyticsPage({ params }: Props) {
         </div>
       </header>
 
-      <GrowthHubNav slug={slug} active="analytics" />
       <CompanyAnalyticsClient slug={slug} analytics={analytics} summary={summary} />
     </div>
   );

@@ -2,13 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireCompanyMembership } from "@/lib/services/company-access";
+import type { CompanyNotificationPreferences } from "@/lib/services/company-notification-preferences";
 import { upsertLocalSeoSettings } from "@/lib/services/local-seo";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import { isBookingStatus, type BookingStatus } from "@/lib/bookings/status";
 import { logBookingActivity } from "@/lib/services/booking-activities";
+import { requireCompanyPermission } from "@/lib/services/company-access";
 import { notifyBookingStatusChanged } from "@/lib/services/booking-notifications";
 import { maybeAutoSendReviewRequest } from "@/lib/services/review-requests";
 import { triggerWorkflows } from "@/lib/services/workflow-engine";
@@ -24,6 +25,10 @@ export type UpdateCompanySettingsInput = {
   contactLocation?: string;
   serviceAreas?: string;
   businessDescription?: string;
+  brandLogoUrl?: string;
+  brandPrimaryColor?: string;
+  brandAccentColor?: string;
+  notificationPreferences?: CompanyNotificationPreferences;
 };
 
 export type CompanySettingsResult = { ok: true } | { ok: false; error: string };
@@ -38,7 +43,7 @@ export async function updateCompanySettings(
   const name = input.name.trim();
   if (!name) return { ok: false, error: "Business name is required." };
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "manage_settings");
   if (!access.ok) return access;
 
   const admin = tryCreateAdminClient();
@@ -54,6 +59,18 @@ export async function updateCompanySettings(
       contact_location: input.contactLocation?.trim() || null,
       service_areas: input.serviceAreas?.trim() || null,
       business_description: input.businessDescription?.trim() || null,
+      ...(input.brandLogoUrl !== undefined
+        ? { brand_logo_url: input.brandLogoUrl.trim() || null }
+        : {}),
+      ...(input.brandPrimaryColor !== undefined
+        ? { brand_primary_color: input.brandPrimaryColor.trim() || null }
+        : {}),
+      ...(input.brandAccentColor !== undefined
+        ? { brand_accent_color: input.brandAccentColor.trim() || null }
+        : {}),
+      ...(input.notificationPreferences !== undefined
+        ? { notification_preferences: input.notificationPreferences }
+        : {}),
     })
     .eq("id", input.companyId);
 
@@ -106,7 +123,7 @@ export async function connectExternalWebsite(
     return { ok: false, error: "Enter a valid website URL." };
   }
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "view_websites");
   if (!access.ok) return access;
 
   const admin = tryCreateAdminClient();
@@ -127,6 +144,7 @@ export async function connectExternalWebsite(
   }
 
   revalidatePath(`/${input.companySlug}/dashboard/settings`);
+  revalidatePath(`/${input.companySlug}/dashboard/websites/connection`);
   revalidatePath(`/${input.companySlug}/dashboard/websites`);
   return { ok: true };
 }
@@ -145,7 +163,7 @@ export async function updateBookingStatus(input: {
     return { ok: false, error: "Invalid booking status." };
   }
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "edit_bookings");
   if (!access.ok) return access;
 
   const supabase = await createClient();

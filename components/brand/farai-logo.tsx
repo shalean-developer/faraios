@@ -8,6 +8,9 @@ type FaraiLogoProps = {
   imageClassName?: string;
   priority?: boolean;
   size?: "sm" | "header" | "md" | "lg";
+  /** Invert colors for dark backgrounds (e.g. footer, auth panel). */
+  onDark?: boolean;
+  onError?: () => void;
 };
 
 const sizeClasses = {
@@ -22,6 +25,8 @@ export function FaraiLogo({
   imageClassName,
   priority = false,
   size = "md",
+  onDark = false,
+  onError,
 }: FaraiLogoProps) {
   return (
     <span className={cn("inline-flex items-center", className)}>
@@ -31,7 +36,13 @@ export function FaraiLogo({
         width={160}
         height={48}
         priority={priority}
-        className={cn(sizeClasses[size], "object-contain object-left", imageClassName)}
+        onError={onError}
+        className={cn(
+          sizeClasses[size],
+          "object-contain object-left",
+          onDark && "brightness-0 invert",
+          imageClassName
+        )}
       />
     </span>
   );

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { initializeCustomerPayment } from "@/lib/payments";
-import { requireCompanyMembership } from "@/lib/services/company-access";
+import { requireCompanyPermission } from "@/lib/services/company-access";
 import { getInvoiceById } from "@/lib/services/invoices";
 import {
   confirmEftPayment,
@@ -25,7 +25,7 @@ export async function confirmEftPaymentAction(input: {
   companySlug: string;
   paymentId: string;
 }): Promise<PaymentActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "view_revenue");
   if (!access.ok) return access;
 
   const result = await confirmEftPayment(
@@ -48,7 +48,7 @@ export async function initializeInvoicePaymentAction(input: {
   | { ok: true; paymentId: string; authorizationUrl?: string; instructions?: string }
   | { ok: false; error: string }
 > {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "view_revenue");
   if (!access.ok) return access;
 
   const amountResult = await resolvePaymentAmountForInvoice(

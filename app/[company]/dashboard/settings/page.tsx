@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { companyDashboardPath } from "@/lib/paths/company";
-import { getConnectedWebsiteForCompany } from "@/lib/services/connected-websites";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
 import { createClient } from "@/lib/supabase/server";
@@ -56,13 +55,5 @@ export default async function CompanySettingsPage({ params }: Props) {
   const hasAccess = await userHasCompanySlugAccess(user.id, slug);
   if (!hasAccess) return <AccessDenied slug={slug} />;
 
-  const connectedWebsite = await getConnectedWebsiteForCompany(row.id);
-
-  return (
-    <CompanySettingsClient
-      slug={slug}
-      company={row}
-      connectedWebsite={connectedWebsite}
-    />
-  );
+  return <CompanySettingsClient slug={slug} company={row} />;
 }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { requireCompanyPermission } from "@/lib/services/company-access";
 import { companyHostingPath } from "@/lib/paths/company";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -46,16 +47,8 @@ export async function connectHostingDomainAction(
     return { ok: false, error: "Activate hosting before connecting a domain." };
   }
 
-  const { data: membership } = await supabase
-    .from("memberships")
-    .select("id")
-    .eq("company_id", sub.company_id)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!membership) {
-    return { ok: false, error: "No access to this workspace." };
-  }
+  const access = await requireCompanyPermission(sub.company_id, "view_websites");
+  if (!access.ok) return access;
 
   const { error } = await supabase
     .from("hosting_subscriptions")
@@ -97,16 +90,8 @@ export async function cancelHostingSubscriptionAction(
     return { ok: false, error: "Hosting subscription not found." };
   }
 
-  const { data: membership } = await supabase
-    .from("memberships")
-    .select("id")
-    .eq("company_id", sub.company_id)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!membership) {
-    return { ok: false, error: "No access to this workspace." };
-  }
+  const access = await requireCompanyPermission(sub.company_id, "view_websites");
+  if (!access.ok) return access;
 
   const { error } = await supabase
     .from("hosting_subscriptions")

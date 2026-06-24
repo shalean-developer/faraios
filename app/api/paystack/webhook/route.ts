@@ -17,6 +17,7 @@ import { markPaymentPaid } from "@/lib/services/payments";
 import {
   notifyPaymentReceived,
 } from "@/lib/services/financial-notifications";
+import { triggerWorkflows } from "@/lib/services/workflow-engine";
 
 type PaystackEvent = {
   event?: string;
@@ -279,6 +280,16 @@ async function handleCustomerInvoicePayment(
       amountCents: payment.amount_cents,
     });
   }
+
+  await triggerWorkflows("invoice_paid", {
+    companyId,
+    entityType: "invoice",
+    entityId: invoiceId,
+    payload: {
+      paymentId,
+      amountCents: payment.amount_cents,
+    },
+  });
 
   return NextResponse.json({ ok: true });
 }

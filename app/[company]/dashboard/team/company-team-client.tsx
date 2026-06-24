@@ -15,8 +15,14 @@ import { ClientOnly } from "@/components/client-only";
 import { Button } from "@/components/ui/button";
 import {
   companyDashboardPath,
-  companySettingsPath,
+  companyTeamRolesPath,
+  companyTeamStaffPath,
 } from "@/lib/paths/company";
+import {
+  ASSIGNABLE_MEMBER_ROLES,
+  ROLE_DESCRIPTIONS,
+} from "@/lib/team/assignable-roles";
+import { roleDisplayLabel, type CompanyRoleRecord } from "@/lib/team/role-display";
 import type { CompanyMember, CompanyMemberRole, TeamSummary } from "@/lib/services/team";
 import { cn } from "@/lib/utils";
 import type { CompanyWithIndustry } from "@/types/database";
@@ -57,8 +63,8 @@ function MetricCard({
   );
 }
 
-function roleBadgeClass(role: CompanyMemberRole): string {
-  switch (role) {
+function roleBadgeClass(role: string): string {
+  switch (role as CompanyMemberRole) {
     case "owner":
       return "bg-violet-50 text-violet-700";
     case "admin":
@@ -81,6 +87,7 @@ export function CompanyTeamClient({
   summary,
   currentUserId,
   canManage,
+  customRoles,
 }: {
   slug: string;
   company: CompanyWithIndustry;
@@ -88,13 +95,18 @@ export function CompanyTeamClient({
   summary: TeamSummary;
   currentUserId: string;
   canManage: boolean;
+  customRoles: CompanyRoleRecord[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [rolePending, startRoleTransition] = useTransition();
   const [rows, setRows] = useState(members);
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<CompanyMemberRole>("staff");
+  const [role, setRole] = useState<string>("staff");
+  const assignableRoles = [
+    ...ASSIGNABLE_MEMBER_ROLES,
+    ...customRoles.map((item) => item.roleKey),
+  ];
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -116,8 +128,9 @@ export function CompanyTeamClient({
 
   const quickLinks: { href: string; label: string; icon: ComponentType<{ className?: string }> }[] =
     [
-      { href: companySettingsPath(slug), label: "Business settings", icon: Settings },
-      { href: companyDashboardPath(slug), label: "Dashboard", icon: Users },
+      { href: companyTeamStaffPath(slug), label: "Staff profiles", icon: Users },
+      { href: companyTeamRolesPath(slug), label: "Roles & permissions", icon: Shield },
+      { href: companyDashboardPath(slug), label: "Overview", icon: Settings },
     ];
 
   const onInvite = (e: FormEvent) => {
@@ -142,7 +155,7 @@ export function CompanyTeamClient({
     });
   };
 
-  const onRoleChange = (memberUserId: string, nextRole: CompanyMemberRole) => {
+  const onRoleChange = (memberUserId: string, nextRole: string) => {
     setError(null);
     setSuccess(null);
     startRoleTransition(async () => {
@@ -194,12 +207,12 @@ export function CompanyTeamClient({
           ← Dashboard
         </Link>
         <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-violet-600">
-          Settings
+          Team
         </p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">Team</h1>
+        <h1 className="mt-1 text-2xl font-bold text-slate-900">Members</h1>
         <p className="mt-2 max-w-2xl text-sm text-slate-500">
-          Manage who can access {company.name} on FaraiOS. Invite colleagues who already have a
-          FaraiOS account.
+          Manage who can access {company.name} on FaraiOS. Assign roles for operations,
+          finance, marketing, and administration.
         </p>
       </header>
 
@@ -243,7 +256,9 @@ export function CompanyTeamClient({
                   <div>
                     <h2 className="text-lg font-semibold text-slate-900">Invite member</h2>
                     <p className="mt-1 text-sm text-slate-500">
-                      They must sign up first with the same email you invite.
+                      They must sign up first with the same email you invite. Role:{" "}
+                      {ROLE_DESCRIPTIONS[role as CompanyMemberRole] ??
+                        "Custom role with permissions defined in Roles & permissions."}
                     </p>
                   </div>
                   <UserPlus className="h-5 w-5 shrink-0 text-slate-300" aria-hidden />
@@ -264,8 +279,11 @@ export function CompanyTeamClient({
                     suppressHydrationWarning
                     className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
                   >
-                    <option value="staff">Staff</option>
-                    <option value="admin">Admin</option>
+                    {assignableRoles.map((memberRole) => (
+                      <option key={memberRole} value={memberRole}>
+                        {roleDisplayLabel(memberRole, customRoles)}
+                      </option>
+                    ))}
                   </select>
                   <Button type="submit" className="rounded-xl" disabled={pending}>
                     {pending ? "Inviting..." : "Invite"}
@@ -315,9 +333,7 @@ export function CompanyTeamClient({
                         {canManage && row.role !== "owner" ? (
                           <select
                             value={row.role}
-                            onChange={(e) =>
-                              onRoleChange(row.user_id, e.target.value as CompanyMemberRole)
-                            }
+                            onChange={(e) => onRoleChange(row.user_id, e.target.value)}
                             disabled={rolePending}
                             suppressHydrationWarning
                             className={cn(
@@ -325,8 +341,11 @@ export function CompanyTeamClient({
                               roleBadgeClass(row.role)
                             )}
                           >
-                            <option value="admin">Admin</option>
-                            <option value="staff">Staff</option>
+                            {assignableRoles.map((memberRole) => (
+                              <option key={memberRole} value={memberRole}>
+                                {roleDisplayLabel(memberRole, customRoles)}
+                              </option>
+                            ))}
                           </select>
                         ) : (
                           <span
@@ -335,7 +354,7 @@ export function CompanyTeamClient({
                               roleBadgeClass(row.role)
                             )}
                           >
-                            {ROLE_LABELS[row.role]}
+                            {roleDisplayLabel(row.role, customRoles)}
                           </span>
                         )}
                       </td>

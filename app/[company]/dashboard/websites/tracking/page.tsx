@@ -1,8 +1,7 @@
 import Link from "next/link";
 
 import { WebsiteTrackingClient } from "./company-tracking-client";
-import { WebsiteHubNav } from "@/components/websites/website-hub-nav";
-import { companyDashboardPath } from "@/lib/paths/company";
+import { companyWebsitesPath } from "@/lib/paths/company";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { getConnectedWebsiteForCompany } from "@/lib/services/connected-websites";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
@@ -49,19 +48,19 @@ export default async function CompanyWebsiteTrackingPage({ params }: Props) {
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <Link
-        href={companyDashboardPath(slug)}
+        href={companyWebsitesPath(slug)}
         className="text-sm font-medium text-violet-700 hover:text-violet-900"
       >
-        ← Back to dashboard
+        ← Website overview
       </Link>
-      <h1 className="mt-4 text-2xl font-bold tracking-tight text-slate-900">Tracking</h1>
+      <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-violet-600">Website</p>
+      <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Tracking</h1>
       <p className="mt-2 text-sm text-slate-500">
         Install the FaraiOS tracking script on your external website to capture leads and
         conversions.
       </p>
 
       <div className="mt-6">
-        <WebsiteHubNav slug={slug} />
         <WebsiteTrackingClient
           companyId={row.id}
           trackingEnabled={connected?.tracking_enabled !== false}

@@ -1,6 +1,9 @@
+import type { CSSProperties } from "react";
 import Image from "next/image";
 import { ArrowRight, Star } from "lucide-react";
 
+import { applyWebsiteVariantToSite, applyCompanyBrandingToSite, type CompanyBranding } from "@/lib/website-templates/apply-variant";
+import { resolveWebsiteTemplateVariant } from "@/lib/website-templates/variants";
 import type { WebsiteContent } from "@/types/database";
 import { parseSiteContent } from "@/templates/service-business/content";
 import { ServiceBusinessHome } from "@/templates/service-business/ServiceBusinessHome";
@@ -18,6 +21,8 @@ type Props = {
   bookingUrl?: string | null;
   marketplaceBookingUrl?: string | null;
   previewWebsiteId?: string | null;
+  templateVariant?: string | null;
+  companyBranding?: CompanyBranding | null;
 };
 
 function ServiceImage({ src, alt, className }: { src?: string; alt: string; className?: string }) {
@@ -277,13 +282,31 @@ export default function ServiceBusinessTemplate({
   bookingUrl,
   marketplaceBookingUrl,
   previewWebsiteId,
+  templateVariant,
+  companyBranding,
 }: Props) {
-  const site = parseSiteContent(content);
+  const parsed = parseSiteContent(content);
+  const variant = resolveWebsiteTemplateVariant(templateVariant);
+  const site = applyCompanyBrandingToSite(
+    applyWebsiteVariantToSite(parsed, variant),
+    companyBranding
+  );
   const paths = buildTemplatePaths(previewWebsiteId);
   const resolvedBookingUrl = bookingUrl ?? marketplaceBookingUrl;
 
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-900 antialiased">
+    <div
+      className="min-h-screen bg-white font-sans text-slate-900 antialiased"
+      data-website-variant={site.variant}
+      style={
+        {
+          "--site-primary": site.theme.primary,
+          "--site-accent": site.theme.accent,
+          "--site-hero-from": site.variantTheme.heroGradientFrom,
+          "--site-hero-to": site.variantTheme.heroGradientTo,
+        } as CSSProperties
+      }
+    >
       <SiteChrome site={site} bookingUrl={resolvedBookingUrl} paths={paths} />
       <main>
         {pageSection === "home" ? (

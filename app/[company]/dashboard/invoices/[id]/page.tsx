@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { InvoiceDetailActions } from "@/app/[company]/dashboard/invoices/invoice-detail-actions";
+import { InvoiceDetailActions, CompanyInvoiceDetailClient } from "@/app/[company]/dashboard/invoices/invoice-detail-actions";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { getInvoiceById } from "@/lib/services/invoices";
 import {
@@ -87,6 +87,13 @@ export default async function CompanyInvoiceDetailPage({ params }: Props) {
           status={invoice.status}
         />
       </header>
+
+      <CompanyInvoiceDetailClient
+        slug={slug}
+        companyId={row.id}
+        invoice={invoice}
+        lineItems={detail.lineItems}
+      />
 
       {invoice.notes ? (
         <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { parseCustomerCsv } from "@/lib/customers/csv";
-import { requireCompanyMembership } from "@/lib/services/company-access";
+import { requireCompanyPermission } from "@/lib/services/company-access";
 import {
   findCustomerByEmail,
   findCustomerByPhone,
@@ -84,7 +84,7 @@ export async function createCustomer(
   const name = input.name.trim();
   if (!name) return { ok: false, error: "Customer name is required." };
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "edit_customers");
   if (!access.ok) return access;
 
   const duplicateError = await assertUniqueCustomerContact(input.companyId, input);
@@ -123,7 +123,7 @@ export async function updateCustomer(
   const name = input.name.trim();
   if (!name) return { ok: false, error: "Customer name is required." };
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "edit_customers");
   if (!access.ok) return access;
 
   const duplicateError = await assertUniqueCustomerContact(
@@ -163,7 +163,7 @@ export async function deleteCustomer(
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const access = await requireCompanyMembership(companyId);
+  const access = await requireCompanyPermission(companyId, "edit_customers");
   if (!access.ok) return access;
 
   const blockers = await getCustomerDeleteBlockers(companyId, customerId);
@@ -200,7 +200,7 @@ export async function importCustomers(
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const access = await requireCompanyMembership(companyId);
+  const access = await requireCompanyPermission(companyId, "edit_customers");
   if (!access.ok) return access;
 
   let rows;

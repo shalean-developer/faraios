@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CompanyWorkspaceShell } from "@/components/company/company-workspace-shell";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { listCompaniesForUser } from "@/lib/services/memberships";
+import { getUserPermissionKeys } from "@/lib/services/permissions";
 import { companyHasWebsiteProject } from "@/lib/services/projects";
 import { createClient } from "@/lib/supabase/server";
 
@@ -35,6 +36,8 @@ export default async function CompanyDashboardLayout({ children, params }: Props
       : null) ??
     (user?.email ? user.email.split("@")[0]! : "Account");
 
+  const userPermissions = user ? await getUserPermissionKeys(row.id, user.id) : [];
+
   return (
     <CompanyWorkspaceShell
       slug={slug}
@@ -43,6 +46,7 @@ export default async function CompanyDashboardLayout({ children, params }: Props
       companies={companies}
       userDisplayName={userDisplayName}
       userEmail={user?.email ?? null}
+      userPermissions={userPermissions}
     >
       {children}
     </CompanyWorkspaceShell>

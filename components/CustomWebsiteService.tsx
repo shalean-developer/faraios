@@ -17,14 +17,12 @@ import {
   Briefcase,
   Eye,
   RefreshCw,
-  Zap,
-  Shield,
-  Headphones,
   LogOut,
 } from "lucide-react";
 
 import { createCompanyFromOnboarding } from "@/app/actions/onboarding";
 import { DualHero } from "@/components/marketing/dual-hero";
+import { DashboardPreview } from "@/components/marketing/home/dashboard-preview";
 import { HomeMarketingSections } from "@/components/marketing/home-sections";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
@@ -111,63 +109,13 @@ const stagger = {
 
 const LandingScreen = ({
   onGetStarted,
-  industries,
-  features,
 }: {
   onGetStarted: () => void;
-  industries: Industry[];
-  features: Feature[];
 }) => (
   <div className="min-h-screen bg-white">
     <DualHero onGetStarted={onGetStarted} />
-
-    <section className="bg-gray-50 px-4 py-20 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={stagger}
-          className="grid grid-cols-1 gap-8 md:grid-cols-3"
-        >
-          {[
-            {
-              icon: <Zap className="h-6 w-6 text-violet-600" />,
-              title: "Fast Delivery",
-              desc: "Your website built and launched within 5–7 business days.",
-            },
-            {
-              icon: <Shield className="h-6 w-6 text-violet-600" />,
-              title: "Professional Quality",
-              desc: "Expert designers and developers crafting pixel-perfect sites.",
-            },
-            {
-              icon: <Headphones className="h-6 w-6 text-violet-600" />,
-              title: "Ongoing Support",
-              desc: "We stay with you post-launch for edits and improvements.",
-            },
-          ].map((f) => (
-            <motion.div
-              key={f.title}
-              variants={fadeUp}
-              className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm transition-shadow hover:shadow-md"
-            >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50">
-                {f.icon}
-              </div>
-              <h3 className="mb-2 text-lg font-bold text-gray-900">{f.title}</h3>
-              <p className="text-sm leading-relaxed text-gray-500">{f.desc}</p>
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
-    </section>
-
-    <HomeMarketingSections
-      industries={industries}
-      features={features}
-      onGetStarted={onGetStarted}
-    />
+    <DashboardPreview />
+    <HomeMarketingSections onGetStarted={onGetStarted} />
     <MarketingFooter />
   </div>
 );
@@ -1222,8 +1170,6 @@ export function CustomWebsiteService({
             transition={{ duration: 0.3 }}
           >
             <LandingScreen
-              industries={industries}
-              features={features}
               onGetStarted={() => {
                 router.push("/auth/sign-up");
               }}

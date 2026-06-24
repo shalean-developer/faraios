@@ -469,3 +469,83 @@ export async function markOverdueInvoices(companyId: string): Promise<void> {
     .in("status", ["issued", "partially_paid"])
     .lt("due_date", today);
 }
+
+export async function updateDraftInvoice(input: {
+  companyId: string;
+  invoiceId: string;
+  lineItems: LineItemInput[];
+  discountCents?: number;
+  taxCents?: number;
+  notes?: string;
+  dueDate?: string | null;
+  depositType?: DepositType;
+  depositValue?: number;
+  actorId?: string | null;
+}): Promise<InvoiceMutationResult> {
+  if (!isSupabaseConfigured()) return { ok: false, error: "Supabase is not configured." };
+  if (!input.lineItems.length) return { ok: false, error: "At least one line item is required." };
+
+  const detail = await getInvoiceById(input.companyId, input.invoiceId);
+  if (!detail) return { ok: false, error: "Invoice not found." };
+  if (detail.invoice.status !== "draft") {
+    return { ok: false, error: "Only draft invoices can be edited." };
+  }
+  if (detail.invoice.amount_paid_cents > 0) {
+    return { ok: false, error: "This invoice has payments and cannot be edited." };
+  }
+
+  const supabase = await createClient();
+  const totals = computeLineItemTotals(
+    input.lineItems,
+    input.discountCents ?? detail.invoice.discount_cents,
+    input.taxCents ?? detail.invoice.tax_cents
+  );
+
+  const depositType = input.depositType ?? (detail.invoice.deposit_type as DepositType);
+  const depositValue = input.depositValue ?? detail.invoice.deposit_value;
+  const now = new Date().toISOString();
+
+  const { error: invoiceError } = await supabase
+    .from("invoices")
+    .update({
+      subtotal_cents: totals.subtotalCents,
+      discount_cents: totals.discountCents,
+      tax_cents: totals.taxCents,
+      total_cents: totals.totalCents,
+      balance_due_cents: totals.totalCents,
+      deposit_type: depositType,
+      deposit_value: depositValue,
+      notes: input.notes?.trim() ?? detail.invoice.notes,
+      due_date:
+        input.dueDate !== undefined ? input.dueDate : detail.invoice.due_date,
+      updated_at: now,
+    })
+    .eq("company_id", input.companyId)
+    .eq("id", input.invoiceId)
+    .eq("status", "draft");
+
+  if (invoiceError) return { ok: false, error: invoiceError.message };
+
+  const { error: deleteError } = await supabase
+    .from("invoice_line_items")
+    .delete()
+    .eq("invoice_id", input.invoiceId);
+
+  if (deleteError) return { ok: false, error: deleteError.message };
+
+  const { error: itemsError } = await supabase.from("invoice_line_items").insert(
+    totals.lineItems.map((li) => ({ ...li, invoice_id: input.invoiceId }))
+  );
+  if (itemsError) return { ok: false, error: itemsError.message };
+
+  await logFinancialAudit({
+    companyId: input.companyId,
+    entityType: "invoice",
+    entityId: input.invoiceId,
+    action: "updated",
+    actorId: input.actorId,
+    metadata: { invoice_number: detail.invoice.invoice_number },
+  });
+
+  return { ok: true, id: input.invoiceId };
+}

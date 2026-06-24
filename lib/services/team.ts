@@ -14,7 +14,7 @@ export type CompanyMember = {
   id: string;
   user_id: string;
   company_id: string;
-  role: CompanyMemberRole;
+  role: string;
   created_at: string;
   email: string;
   full_name: string | null;
@@ -88,7 +88,7 @@ async function listCompanyMembersWithAdmin(
       id: row.id,
       user_id: row.user_id,
       company_id: row.company_id,
-      role: (row.role ?? "owner") as CompanyMemberRole,
+      role: (row.role ?? "owner") as string,
       created_at: row.created_at ?? "",
       email: user?.email ?? "",
       full_name: user?.full_name ?? null,

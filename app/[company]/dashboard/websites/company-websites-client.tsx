@@ -13,14 +13,13 @@ import {
   Wrench,
 } from "lucide-react";
 
-import { ConnectedWebsitePanel } from "@/components/company/connected-website-panel";
 import { PreviewWebsiteButton } from "@/components/websites/preview-website-button";
-import { WebsiteHubNav } from "@/components/websites/website-hub-nav";
 import { WebsiteSetupChecklistPanel } from "@/components/websites/website-setup-checklist";
 import {
   companyHostingPath,
   companyProjectPath,
   companyWebsiteApiKeysPath,
+  companyWebsiteConnectionPath,
   companyWebsiteCreatePath,
   companyWebsiteDomainsPath,
   companyWebsiteEditPath,
@@ -71,7 +70,6 @@ function SectionCard({
 
 export function CompanyWebsitesClient({
   slug,
-  companyId,
   websites,
   hasWebsiteProject,
   connectedWebsite,
@@ -83,7 +81,6 @@ export function CompanyWebsitesClient({
   recentEvents,
 }: {
   slug: string;
-  companyId: string;
   websites: Website[];
   hasWebsiteProject: boolean;
   connectedWebsite: ConnectedWebsite | null;
@@ -119,13 +116,14 @@ export function CompanyWebsitesClient({
   ];
 
   const quickLinks = [
+    { href: companyWebsiteConnectionPath(slug), label: "Connection", icon: Link2 },
     { href: companyWebsiteDomainsPath(slug), label: "Domains", icon: Globe },
     { href: companyWebsiteApiKeysPath(slug), label: "API keys", icon: Key },
     { href: companyWebsiteTrackingPath(slug), label: "Tracking", icon: LineChart },
     ...(hasWebsiteProject
-      ? [{ href: companyProjectPath(slug), label: "Build progress", icon: Wrench }]
+      ? [{ href: companyProjectPath(slug), label: "Website build", icon: Wrench }]
       : []),
-    { href: companyHostingPath(slug), label: "Hosting billing", icon: Server },
+    { href: companyHostingPath(slug), label: "Subscription", icon: Server },
   ];
 
   return (
@@ -133,9 +131,9 @@ export function CompanyWebsitesClient({
       <header className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
-            Web presence
+            Website
           </p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Websites</h1>
+          <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Overview</h1>
           <p className="mt-2 text-sm text-slate-500">
             Connect an external site, host on FaraiOS, or track a done-for-you build — domains,
             API keys, and analytics live in one hub.
@@ -157,8 +155,6 @@ export function CompanyWebsitesClient({
           </Link>
         </div>
       </header>
-
-      <WebsiteHubNav slug={slug} />
 
       <div className="mb-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {statCards.map((card) => (
@@ -190,7 +186,7 @@ export function CompanyWebsitesClient({
         </p>
         <div className="grid gap-3 lg:grid-cols-3">
           <a
-            href="#connect-site"
+            href={companyWebsiteConnectionPath(slug)}
             className="group flex items-start gap-4 rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50/70 to-white p-4 shadow-sm transition-shadow hover:shadow-md"
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
@@ -290,13 +286,23 @@ export function CompanyWebsitesClient({
             )}
           </SectionCard>
 
-          <div id="connect-site" className="scroll-mt-24">
-            <ConnectedWebsitePanel
-              companyId={companyId}
-              slug={slug}
-              connectedWebsite={connectedWebsite}
-            />
-          </div>
+          <SectionCard
+            title="External website"
+            description="Connect a custom site with booking widget, tracking, and API integration."
+          >
+            <p className="text-sm text-slate-600">
+              {connectedWebsite?.production_url
+                ? `Connected to ${connectedWebsite.production_url}`
+                : "No external website connected yet."}
+            </p>
+            <Link
+              href={companyWebsiteConnectionPath(slug)}
+              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-violet-700 hover:text-violet-900"
+            >
+              Manage connection
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </SectionCard>
         </div>
 
         <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">

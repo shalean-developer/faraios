@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { GrowthHubNav } from "@/components/growth/growth-hub-nav";
+
 import { companyDashboardPath } from "@/lib/paths/company";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { listContentPosts, summarizeContentPosts } from "@/lib/services/content-posts";
@@ -78,7 +78,6 @@ export default async function CompanyContentPage({ params }: Props) {
         </Link>
       </header>
 
-      <GrowthHubNav slug={slug} active="content" />
       <CompanyContentClient slug={slug} companyId={row.id} posts={posts} summary={summary} />
     </div>
   );

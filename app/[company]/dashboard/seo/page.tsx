@@ -1,13 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { GrowthHubNav } from "@/components/growth/growth-hub-nav";
+
 import { SeoDashboardClient } from "@/components/growth/seo-dashboard-client";
 import { companyDashboardPath } from "@/lib/paths/company";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { getLocalSeoSettings, seedLocalSeoFromCompany } from "@/lib/services/local-seo";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
 import { runSeoAudit } from "@/lib/services/seo-audit";
+import {
+  getSearchConsoleConnection,
+  getSearchConsoleMetricsSummary,
+  isSearchConsoleConfigured,
+} from "@/lib/services/search-console";
 import { listServiceAreaPages } from "@/lib/services/service-area-pages";
 import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
@@ -61,11 +66,14 @@ export default async function CompanySeoPage({ params }: Props) {
 
   await seedLocalSeoFromCompany(row.id, row);
 
-  const [audit, localSeo, serviceAreaPages, websites] = await Promise.all([
+  const [audit, localSeo, serviceAreaPages, websites, searchConsoleConnection, searchConsoleMetrics] =
+    await Promise.all([
     runSeoAudit(row.id),
     getLocalSeoSettings(row.id),
     listServiceAreaPages(row.id),
     fetchWebsites(row.id),
+    getSearchConsoleConnection(row.id),
+    getSearchConsoleMetricsSummary(row.id),
   ]);
 
   return (
@@ -78,8 +86,6 @@ export default async function CompanySeoPage({ params }: Props) {
         </p>
       </header>
 
-      <GrowthHubNav slug={slug} active="seo" />
-
       <SeoDashboardClient
         slug={slug}
         companyId={row.id}
@@ -88,6 +94,9 @@ export default async function CompanySeoPage({ params }: Props) {
         localSeo={localSeo}
         websites={websites}
         serviceAreaPages={serviceAreaPages}
+        searchConsoleConnection={searchConsoleConnection}
+        searchConsoleMetrics={searchConsoleMetrics}
+        searchConsoleConfigured={isSearchConsoleConfigured()}
       />
     </div>
   );

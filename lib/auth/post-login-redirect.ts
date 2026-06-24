@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { claimPendingOwnerWorkspace } from "@/lib/auth/claim-pending-workspace";
 import { isPlatformAdminUser } from "@/lib/auth/platform-admin";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
 
@@ -22,24 +23,11 @@ function companySlugFromMembership(
   return membership.companies.slug ?? null;
 }
 
-export async function resolvePostLoginPath(
+async function resolveWorkspacePath(
   supabase: SupabaseClient,
-  userId: string,
-  preferredNext?: string | null
-): Promise<string> {
-  const next = safeNextPath(preferredNext);
-  const isAdmin = await isPlatformAdminUser(supabase, userId);
-
-  if (isAdmin) {
-    if (next.startsWith("/admin")) return next;
-    return "/admin";
-  }
-
-  if (next !== "/app") {
-    return next;
-  }
-
-  const { data: membership, error: membershipError } = await supabase
+  userId: string
+): Promise<string | null> {
+  const { data: memberships, error: membershipError } = await supabase
     .from("memberships")
     .select(
       `
@@ -48,19 +36,52 @@ export async function resolvePostLoginPath(
     `
     )
     .eq("user_id", userId)
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: true });
 
   if (membershipError) {
     console.error("[auth] resolvePostLoginPath membership", membershipError.message);
-    return "/onboarding";
+    return null;
+  }
+
+  if (!memberships?.length) {
+    return null;
+  }
+
+  if (memberships.length > 1) {
+    return "/app/workspaces";
   }
 
   const companySlug = companySlugFromMembership(
-    membership as MembershipWithCompany | null
+    memberships[0] as MembershipWithCompany | null
   );
   if (companySlug) {
     return `/${encodeURIComponent(companySlug)}/dashboard`;
+  }
+
+  return null;
+}
+
+export async function resolvePostLoginPath(
+  supabase: SupabaseClient,
+  userId: string,
+  preferredNext?: string | null
+): Promise<string> {
+  const next = safeNextPath(preferredNext);
+  const isAdmin = await isPlatformAdminUser(supabase, userId);
+
+  if (next !== "/app" && !next.startsWith("/app?")) {
+    return next;
+  }
+
+  await claimPendingOwnerWorkspace(supabase);
+
+  const workspacePath = await resolveWorkspacePath(supabase, userId);
+  if (workspacePath) {
+    return workspacePath;
+  }
+
+  if (isAdmin) {
+    return "/admin";
   }
 
   return "/onboarding";

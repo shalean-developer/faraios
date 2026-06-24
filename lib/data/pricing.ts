@@ -159,33 +159,45 @@ export type FaqItemRecord = {
 export const faqItems: FaqItemRecord[] = [
   {
     id: "faq-1",
-    question: "What is the setup fee for?",
+    question: "What is FaraiOS?",
     answer:
-      "The setup fee covers the full design, development, and deployment of your website. This is a one-time cost that includes all the custom work done to bring your site to life — from wireframes to the final launch.",
+      "FaraiOS is a business operating system for service businesses. It brings bookings, customers, payments, websites, SEO, marketing, team management, and reporting into one connected workspace — so you run operations, revenue, and growth from a single platform.",
   },
   {
     id: "faq-2",
-    question: "What does the monthly fee include?",
+    question: "Is FaraiOS a website builder?",
     answer:
-      "Your monthly fee covers website hosting, security updates, performance monitoring, and ongoing support for any minor edits or queries. It keeps your site fast, secure, and up-to-date every month.",
+      "Not exactly. FaraiOS is a full business operating system. Your website is one part of it — you can connect an existing site, have one built for you, or host through FaraiOS. The workspace behind it handles bookings, customers, payments, and everything else.",
   },
   {
     id: "faq-3",
-    question: "Can I upgrade my plan later?",
+    question: "Can I connect my existing website?",
+    answer:
+      "Yes. You can connect your current website and add booking forms, lead tracking, and integrations that sync with your FaraiOS workspace. You do not need to rebuild your site to start using FaraiOS.",
+  },
+  {
+    id: "faq-4",
+    question: "Can FaraiOS manage bookings and payments?",
+    answer:
+      "Yes. FaraiOS includes bookings, calendar, quotes, invoices, and payment tracking in the Operations and Revenue modules. Manage the full customer journey from first enquiry to paid invoice in one place.",
+  },
+  {
+    id: "faq-5",
+    question: "Which industries does FaraiOS support?",
+    answer:
+      "FaraiOS is built for local service businesses including cleaning, beauty and spa, technology services, tourism, construction, electrical, fitness, gardening, security, and consulting. Industry-specific defaults help you get started faster.",
+  },
+  {
+    id: "faq-6",
+    question: "Can I upgrade later?",
     answer:
       "Absolutely. You can upgrade from Starter to Business or Business to Premium at any time. We will only charge you the difference in setup costs and adjust your monthly billing accordingly.",
   },
   {
-    id: "faq-4",
-    question: "How long does it take to build my website?",
+    id: "faq-7",
+    question: "Do I own my customer data?",
     answer:
-      "Most websites are completed and live within 10–14 business days from the moment we receive your content and branding assets. Premium projects with e-commerce may take up to 21 days.",
-  },
-  {
-    id: "faq-5",
-    question: "Do I own my website?",
-    answer:
-      "Yes — 100%. Once your project is delivered, you have full ownership of your website, its code, and all associated assets. We simply handle the ongoing maintenance if you choose to keep your plan active.",
+      "Yes. Your customer data, bookings, and business records belong to you. FaraiOS stores and manages your data securely in your workspace, and you retain full ownership and access at all times.",
   },
 ];
 

@@ -1,4 +1,4 @@
-import { isPlatformAdminUser } from "@/lib/auth/platform-admin";
+import { getPlatformAdminUserIds, isPlatformAdminUser } from "@/lib/auth/platform-admin";
 import { ADMIN_DEVELOPER_OPTIONS } from "@/lib/constants/admin-developers";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
@@ -6,16 +6,52 @@ import { createClient } from "@/lib/supabase/server";
 import type { CompanyWithIndustry } from "@/types/database";
 import type {
   AdminActivityItem,
+  AdminActivityGroup,
   AdminAnalyticsActivity,
   AdminAnalyticsData,
   AdminAnalyticsDeveloperPoint,
+  AdminApiLogRow,
+  AdminApiUsageData,
+  AdminAuditLogRow,
+  AdminBusinessDetail,
+  AdminBusinessMember,
+  AdminCronData,
+  AdminCronJobRow,
+  AdminCronRunRow,
+  AdminDomainRow,
+  AdminDomainsData,
+  AdminEmailLogRow,
+  AdminEmailsData,
+  AdminFeatureRequestRow,
+  AdminFeatureRequestsData,
+  AdminFeatureRequestStats,
+  AdminFeatureRequestStatus,
+  AdminFeatureRequestPriority,
+  AdminSupportData,
+  AdminSupportMessageRow,
+  AdminSupportStats,
+  AdminSupportTicketCategory,
+  AdminSupportTicketDetail,
+  AdminSupportTicketPriority,
+  AdminSupportTicketRow,
+  AdminSupportTicketStatus,
   AdminClient,
   AdminClientProject,
   AdminClientStats,
   AdminCompanyNote,
   AdminAssignableProject,
+  AdminHealthStatus,
   AdminNotificationPreferences,
+  AdminOverviewBusinessRow,
+  AdminOverviewFeatureRequestRow,
+  AdminOverviewTicketRow,
+  AdminPlatformOverviewMetrics,
+  AdminPlatformOperationsMetrics,
+  AdminPlatformRevenueData,
   AdminPlatformSettings,
+  AdminPlatformStatus,
+  AdminPlatformUserRow,
+  AdminPlatformUserStats,
   AdminProjectActivity,
   AdminProjectDetails,
   AdminMemberAvailability,
@@ -23,10 +59,11 @@ import type {
   AdminPipelineStatus,
   AdminProject,
   AdminProjectStats,
+  AdminRevenueTransaction,
   AdminTeamMember,
 } from "@/types/admin";
 import type { AppUser } from "@/types/database";
-import { normalizePlanSlug, pricingPlans } from "@/lib/data/pricing";
+import { normalizePlanSlug, planLabelForSlug, pricingPlans } from "@/lib/data/pricing";
 
 async function resolveAdminQueryClient() {
   const adminClient = tryCreateAdminClient();
@@ -296,6 +333,542 @@ export async function isCurrentUserPlatformAdmin(): Promise<boolean> {
     return false;
   }
   return isPlatformAdminUser(supabase, user.id);
+}
+
+export async function getAdminSessionProfile(): Promise<{
+  adminEmail: string | null;
+  adminDisplayName: string;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const adminDisplayName =
+    (typeof user?.user_metadata?.full_name === "string" &&
+    user.user_metadata.full_name.trim()
+      ? user.user_metadata.full_name.trim()
+      : null) ??
+    (user?.email ? user.email.split("@")[0]! : "Super Admin");
+
+  return {
+    adminEmail: user?.email ?? null,
+    adminDisplayName,
+  };
+}
+
+function emptyPlatformOverviewMetrics(): AdminPlatformOverviewMetrics {
+  return {
+    businesses: {
+      total: 0,
+      active: 0,
+      trial: 0,
+      suspended: 0,
+      newThisMonth: 0,
+    },
+    users: {
+      total: 0,
+      active: 0,
+      newThisMonth: 0,
+      growthRatePercent: 0,
+    },
+    revenue: {
+      mrr: 0,
+      arr: 0,
+      totalRevenue: 0,
+      activeSubscriptions: 0,
+      failedPayments: 0,
+    },
+    activity: {
+      totalBookings: 0,
+      totalLeads: 0,
+      totalInvoices: 0,
+      totalPayments: 0,
+      totalEmailsSent: 0,
+    },
+    operations: {
+      openTickets: 0,
+      urgentTickets: 0,
+      pendingFeatureRequests: 0,
+    },
+    systemHealth: {
+      api: "unknown",
+      cron: "unknown",
+      email: "unknown",
+      websites: "unknown",
+      domains: "unknown",
+    },
+    recentBusinesses: [],
+    recentOpenTickets: [],
+    topFeatureRequests: [],
+    pipelineStats: {
+      total: 0,
+      pending: 0,
+      inProgress: 0,
+      inReview: 0,
+      completed: 0,
+    },
+  };
+}
+
+async function countTableRows(
+  supabase: Awaited<ReturnType<typeof resolveAdminQueryClient>>,
+  table: string
+): Promise<number> {
+  const { count, error } = await supabase
+    .from(table)
+    .select("*", { count: "exact", head: true });
+
+  if (error) {
+    console.error(`[admin] count ${table}`, error.message);
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
+function monthKeyFromDate(date: Date): string {
+  return `${date.getFullYear()}-${date.getMonth()}`;
+}
+
+function resolvePlatformStatusLabel(
+  subscriptionStatus: string | null | undefined,
+  hostingStatus: string | null | undefined
+): AdminPlatformStatus {
+  if (hostingStatus === "suspended") return "Suspended";
+  if (hostingStatus === "active" || subscriptionStatus === "active") return "Active";
+  if (subscriptionStatus === "trial") return "Trial";
+  return "Inactive";
+}
+
+/** @deprecated Use resolvePlatformStatusLabel */
+function resolveBusinessStatusLabel(
+  subscriptionStatus: string | null | undefined,
+  hostingStatus: string | null | undefined
+): string {
+  return resolvePlatformStatusLabel(subscriptionStatus, hostingStatus);
+}
+
+function computeApiHealthFromLogs(
+  rows: Array<{ status_code: number }>
+): AdminHealthStatus {
+  if (rows.length === 0) return "unknown";
+  const failed = rows.filter((row) => row.status_code >= 400).length;
+  const failureRate = failed / rows.length;
+  if (failureRate > 0.25) return "critical";
+  if (failureRate > 0.1) return "warning";
+  return "healthy";
+}
+
+function computeCronHealthFromRuns(
+  rows: Array<{ status: string }>
+): AdminHealthStatus {
+  if (rows.length === 0) return "unknown";
+  if (rows[0]?.status === "failed") return "critical";
+  const successes = rows.filter((row) => row.status === "success").length;
+  const successRate = successes / rows.length;
+  if (successRate < 0.8) return "warning";
+  return "healthy";
+}
+
+function computeEmailHealthFromLogs(
+  rows: Array<{ status: string }>
+): AdminHealthStatus {
+  if (rows.length === 0) return "unknown";
+  const failed = rows.filter((row) => row.status === "failed").length;
+  const failureRate = failed / rows.length;
+  if (failureRate > 0.1) return "critical";
+  if (failureRate > 0.03) return "warning";
+  return "healthy";
+}
+
+/**
+ * Platform-wide KPIs for the admin Overview dashboard.
+ */
+export async function getPlatformOverviewMetrics(): Promise<AdminPlatformOverviewMetrics> {
+  const empty = emptyPlatformOverviewMetrics();
+  if (!isSupabaseConfigured()) return empty;
+  if (!(await isCurrentUserPlatformAdmin())) return empty;
+
+  const supabase = await resolveAdminQueryClient();
+  const platformAdminIds = await getPlatformAdminUserIds(supabase);
+  const now = new Date();
+  const thisMonthKey = monthKeyFromDate(now);
+  const lastMonthKey = monthKeyFromDate(
+    new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  );
+
+  const [
+    companiesResult,
+    usersResult,
+    hostingSubsResult,
+    hostingPaymentsResult,
+    bookingsCount,
+    leadsCount,
+    invoicesCount,
+    customerPaymentsCount,
+    emailCampaignsResult,
+    websitesResult,
+    domainsResult,
+    recentCompaniesResult,
+    projects,
+    apiLogsResult,
+    cronRunsResult,
+    emailLogsResult,
+    openTicketsResult,
+    recentOpenTicketsResult,
+    pendingFeatureRequestsResult,
+    topFeatureRequestsResult,
+  ] = await Promise.all([
+    supabase
+      .from("companies")
+      .select("id,created_at,subscription_status,build_status,plan,name,industries(name)"),
+    supabase.from("users").select("id,created_at"),
+    supabase.from("hosting_subscriptions").select("company_id,status,plan_slug"),
+    supabase
+      .from("hosting_payments")
+      .select("amount_cents,status,created_at"),
+    countTableRows(supabase, "bookings"),
+    countTableRows(supabase, "leads"),
+    countTableRows(supabase, "invoices"),
+    countTableRows(supabase, "customer_payments"),
+    supabase.from("email_campaigns").select("sent_count,status"),
+    supabase.from("websites").select("status"),
+    supabase.from("website_domains").select("verification_status,ssl_status"),
+    supabase
+      .from("companies")
+      .select("id,name,created_at,plan,subscription_status,industries(name)")
+      .order("created_at", { ascending: false })
+      .limit(8),
+    getAllProjects(),
+    supabase
+      .from("platform_api_logs")
+      .select("status_code")
+      .order("created_at", { ascending: false })
+      .limit(200),
+    supabase
+      .from("platform_cron_runs")
+      .select("status")
+      .order("started_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("platform_email_logs")
+      .select("status")
+      .order("created_at", { ascending: false })
+      .limit(200),
+    supabase
+      .from("platform_support_tickets")
+      .select("status,priority")
+      .in("status", ["open", "in_progress", "waiting"]),
+    supabase
+      .from("platform_support_tickets")
+      .select("id,ticket_number,subject,status,priority,updated_at")
+      .in("status", ["open", "in_progress", "waiting"])
+      .order("updated_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("platform_feature_requests")
+      .select("status")
+      .in("status", ["submitted", "under_review"]),
+    supabase
+      .from("platform_feature_requests")
+      .select("id,title,vote_count,status")
+      .in("status", ["submitted", "under_review", "planned", "in_progress"])
+      .order("vote_count", { ascending: false })
+      .limit(5),
+  ]);
+
+  if (companiesResult.error) {
+    console.error("[admin] getPlatformOverviewMetrics companies", companiesResult.error.message);
+    return empty;
+  }
+
+  type CompanyOverviewRow = {
+    id: string;
+    created_at: string;
+    subscription_status?: string | null;
+    build_status?: string | null;
+    plan?: string | null;
+    name?: string | null;
+    industries?: { name?: string | null } | null;
+  };
+
+  const companyRows = (companiesResult.data ?? []) as CompanyOverviewRow[];
+  const hostingByCompany = new Map<string, string>();
+  for (const row of (hostingSubsResult.data ?? []) as Array<{
+    company_id: string;
+    status: string;
+  }>) {
+    hostingByCompany.set(row.company_id, row.status);
+  }
+
+  let activeBusinesses = 0;
+  let trialBusinesses = 0;
+  let suspendedBusinesses = 0;
+  let newBusinessesThisMonth = 0;
+
+  for (const company of companyRows) {
+    const created = new Date(company.created_at);
+    if (monthKeyFromDate(created) === thisMonthKey) {
+      newBusinessesThisMonth += 1;
+    }
+
+    const hostingStatus = hostingByCompany.get(company.id) ?? null;
+    const subscriptionStatus = company.subscription_status ?? "inactive";
+
+    if (hostingStatus === "suspended") {
+      suspendedBusinesses += 1;
+      continue;
+    }
+    if (subscriptionStatus === "trial") {
+      trialBusinesses += 1;
+      continue;
+    }
+    if (
+      hostingStatus === "active" ||
+      subscriptionStatus === "active" ||
+      dbBuildStatusToAdmin(company.build_status) !== "pending"
+    ) {
+      activeBusinesses += 1;
+    }
+  }
+
+  const userRows = usersResult.error
+    ? []
+    : ((usersResult.data ?? []) as Array<{ id: string; created_at: string }>).filter(
+        (user) => !platformAdminIds.has(user.id)
+      );
+  if (usersResult.error) {
+    console.error("[admin] getPlatformOverviewMetrics users", usersResult.error.message);
+  }
+
+  let usersThisMonth = 0;
+  let usersLastMonth = 0;
+  for (const user of userRows) {
+    const key = monthKeyFromDate(new Date(user.created_at));
+    if (key === thisMonthKey) usersThisMonth += 1;
+    if (key === lastMonthKey) usersLastMonth += 1;
+  }
+
+  const userGrowthRatePercent =
+    usersLastMonth > 0
+      ? Math.round(((usersThisMonth - usersLastMonth) / usersLastMonth) * 100)
+      : usersThisMonth > 0
+        ? 100
+        : 0;
+
+  const hostingSubs = hostingSubsResult.error
+    ? []
+    : ((hostingSubsResult.data ?? []) as Array<{ status: string; plan_slug: string }>);
+  if (hostingSubsResult.error) {
+    console.error(
+      "[admin] getPlatformOverviewMetrics hosting_subscriptions",
+      hostingSubsResult.error.message
+    );
+  }
+
+  let mrr = 0;
+  let activeSubscriptions = 0;
+  for (const sub of hostingSubs) {
+    if (sub.status !== "active") continue;
+    activeSubscriptions += 1;
+    const plan = pricingPlans.find((p) => p.slug === normalizePlanSlug(sub.plan_slug));
+    mrr += plan?.monthly_price ?? 0;
+  }
+
+  const hostingPayments = hostingPaymentsResult.error
+    ? []
+    : ((hostingPaymentsResult.data ?? []) as Array<{
+        amount_cents: number;
+        status: string;
+        created_at: string;
+      }>);
+  if (hostingPaymentsResult.error) {
+    console.error(
+      "[admin] getPlatformOverviewMetrics hosting_payments",
+      hostingPaymentsResult.error.message
+    );
+  }
+
+  const thirtyDaysAgo = now.getTime() - 30 * 24 * 60 * 60 * 1000;
+  let totalRevenue = 0;
+  let failedPayments = 0;
+  for (const payment of hostingPayments) {
+    if (payment.status === "success") {
+      totalRevenue += payment.amount_cents / 100;
+    }
+    if (
+      payment.status === "failed" &&
+      new Date(payment.created_at).getTime() >= thirtyDaysAgo
+    ) {
+      failedPayments += 1;
+    }
+  }
+
+  let totalEmailsSent = 0;
+  if (!emailCampaignsResult.error) {
+    for (const campaign of (emailCampaignsResult.data ?? []) as Array<{
+      sent_count?: number | null;
+    }>) {
+      totalEmailsSent += campaign.sent_count ?? 0;
+    }
+  }
+
+  const websiteRows = websitesResult.error
+    ? []
+    : ((websitesResult.data ?? []) as Array<{ status: string }>);
+  const domainRows = domainsResult.error
+    ? []
+    : ((domainsResult.data ?? []) as Array<{
+        verification_status: string;
+        ssl_status: string;
+      }>);
+
+  let websiteHealth: AdminHealthStatus = "unknown";
+  if (websiteRows.length > 0) {
+    const published = websiteRows.filter((w) => w.status === "published").length;
+    const ratio = published / websiteRows.length;
+    websiteHealth = ratio >= 0.5 ? "healthy" : "warning";
+  }
+
+  let domainHealth: AdminHealthStatus = "unknown";
+  if (domainRows.length > 0) {
+    const failedSsl = domainRows.filter((d) => d.ssl_status === "failed").length;
+    const pending = domainRows.filter((d) => d.verification_status === "pending").length;
+    if (failedSsl > 0) domainHealth = "critical";
+    else if (pending > 0) domainHealth = "warning";
+    else domainHealth = "healthy";
+  }
+
+  const apiLogRows = apiLogsResult.error
+    ? []
+    : ((apiLogsResult.data ?? []) as Array<{ status_code: number }>);
+  const cronRunRows = cronRunsResult.error
+    ? []
+    : ((cronRunsResult.data ?? []) as Array<{ status: string }>);
+  const emailLogRows = emailLogsResult.error
+    ? []
+    : ((emailLogsResult.data ?? []) as Array<{ status: string }>);
+
+  const apiHealth = computeApiHealthFromLogs(apiLogRows);
+  const cronHealth = computeCronHealthFromRuns(cronRunRows);
+  const emailHealth =
+    emailLogRows.length > 0
+      ? computeEmailHealthFromLogs(emailLogRows)
+      : totalEmailsSent > 0
+        ? "healthy"
+        : "unknown";
+
+  const recentBusinesses: AdminOverviewBusinessRow[] = (
+    (recentCompaniesResult.data ?? []) as CompanyOverviewRow[]
+  ).map((company) => ({
+    id: company.id,
+    name: company.name?.trim() || "Unnamed business",
+    industry: company.industries?.name?.trim() || "—",
+    plan: normalizePlanSlug(company.plan) || "—",
+    status: resolveBusinessStatusLabel(
+      company.subscription_status,
+      hostingByCompany.get(company.id) ?? null
+    ),
+    createdDate: formatCreatedDate(company.created_at),
+  }));
+
+  const openTicketRows = openTicketsResult.error
+    ? []
+    : ((openTicketsResult.data ?? []) as Array<{
+        status: string;
+        priority: string;
+      }>);
+  let openTickets = 0;
+  let urgentTickets = 0;
+  for (const ticket of openTicketRows) {
+    openTickets += 1;
+    if (ticket.priority === "urgent" || ticket.priority === "high") {
+      urgentTickets += 1;
+    }
+  }
+
+  const pendingFeatureRequestRows = pendingFeatureRequestsResult.error
+    ? []
+    : ((pendingFeatureRequestsResult.data ?? []) as Array<{ status: string }>);
+
+  const recentOpenTickets: AdminOverviewTicketRow[] = recentOpenTicketsResult.error
+    ? []
+    : ((recentOpenTicketsResult.data ?? []) as Array<{
+        id: string;
+        ticket_number: number;
+        subject: string;
+        status: string;
+        priority: string;
+        updated_at: string;
+      }>).map((ticket) => ({
+        id: ticket.id,
+        ticketNumber: ticket.ticket_number,
+        subject: ticket.subject,
+        status: ticket.status.replace(/_/g, " "),
+        priority: ticket.priority,
+        updatedAt: shortDateTime(ticket.updated_at),
+      }));
+
+  const topFeatureRequests: AdminOverviewFeatureRequestRow[] = topFeatureRequestsResult.error
+    ? []
+    : ((topFeatureRequestsResult.data ?? []) as Array<{
+        id: string;
+        title: string;
+        vote_count: number;
+        status: string;
+      }>).map((request) => ({
+        id: request.id,
+        title: request.title,
+        voteCount: request.vote_count,
+        status: request.status.replace(/_/g, " "),
+      }));
+
+  return {
+    businesses: {
+      total: companyRows.length,
+      active: activeBusinesses,
+      trial: trialBusinesses,
+      suspended: suspendedBusinesses,
+      newThisMonth: newBusinessesThisMonth,
+    },
+    users: {
+      total: userRows.length,
+      active: userRows.length,
+      newThisMonth: usersThisMonth,
+      growthRatePercent: userGrowthRatePercent,
+    },
+    revenue: {
+      mrr,
+      arr: mrr * 12,
+      totalRevenue,
+      activeSubscriptions,
+      failedPayments,
+    },
+    activity: {
+      totalBookings: bookingsCount,
+      totalLeads: leadsCount,
+      totalInvoices: invoicesCount,
+      totalPayments: customerPaymentsCount,
+      totalEmailsSent,
+    },
+    operations: {
+      openTickets,
+      urgentTickets,
+      pendingFeatureRequests: pendingFeatureRequestRows.length,
+    },
+    systemHealth: {
+      api: apiHealth,
+      cron: cronHealth,
+      email: emailHealth,
+      websites: websiteHealth,
+      domains: domainHealth,
+    },
+    recentBusinesses,
+    recentOpenTickets,
+    topFeatureRequests,
+    pipelineStats: computeProjectStats(projects),
+  };
 }
 
 /**
@@ -853,15 +1426,19 @@ export async function getAdminAnalyticsData(): Promise<AdminAnalyticsData> {
 
 type AdminClientCompanyRow = {
   id: string;
+  slug: string;
   name: string;
   created_at: string;
   build_status: string | null;
+  plan: string | null;
+  subscription_status: string | null;
   primary_contact_name: string | null;
   primary_contact_email: string | null;
   contact_phone: string | null;
   contact_location: string | null;
   admin_client_note: string | null;
   admin_client_note_updated_at: string | null;
+  industries?: { name?: string | null } | null;
 };
 
 type AdminClientProjectRow = {
@@ -885,9 +1462,9 @@ export async function getAdminClients(): Promise<{
 
   const supabase = await resolveAdminQueryClient();
   const extendedCompanySelect =
-    "id,name,created_at,build_status,primary_contact_name,primary_contact_email,contact_phone,contact_location,admin_client_note,admin_client_note_updated_at";
+    "id,slug,name,created_at,build_status,plan,subscription_status,primary_contact_name,primary_contact_email,contact_phone,contact_location,admin_client_note,admin_client_note_updated_at,industries(name)";
   const baseCompanySelect =
-    "id,name,created_at,build_status,primary_contact_name,primary_contact_email";
+    "id,slug,name,created_at,build_status,plan,subscription_status,primary_contact_name,primary_contact_email";
 
   let companyRows: AdminClientCompanyRow[] = [];
   const extendedCompanies = await supabase
@@ -913,16 +1490,40 @@ export async function getAdminClients(): Promise<{
     }
     companyRows = ((baseCompanies.data ?? []) as Omit<
       AdminClientCompanyRow,
-      "contact_phone" | "contact_location" | "admin_client_note" | "admin_client_note_updated_at"
+      | "contact_phone"
+      | "contact_location"
+      | "admin_client_note"
+      | "admin_client_note_updated_at"
+      | "industries"
     >[]).map((row) => ({
       ...row,
       contact_phone: null,
       contact_location: null,
       admin_client_note: null,
       admin_client_note_updated_at: null,
+      industries: null,
     }));
   } else {
     companyRows = (extendedCompanies.data ?? []) as AdminClientCompanyRow[];
+  }
+
+  const { data: hostingRows, error: hostingError } = await supabase
+    .from("hosting_subscriptions")
+    .select("company_id,status,plan_slug,next_billing_date");
+  if (hostingError) {
+    console.error("[admin] getAdminClients hosting", hostingError.message);
+  }
+  const hostingByCompany = new Map<
+    string,
+    { status: string; plan_slug: string; next_billing_date: string | null }
+  >();
+  for (const row of (hostingRows ?? []) as Array<{
+    company_id: string;
+    status: string;
+    plan_slug: string;
+    next_billing_date: string | null;
+  }>) {
+    hostingByCompany.set(row.company_id, row);
   }
 
   let projectRows: AdminClientProjectRow[] = [];
@@ -961,11 +1562,24 @@ export async function getAdminClients(): Promise<{
             : "pending"
     );
 
+    const subscriptionStatus = company.subscription_status ?? "inactive";
+    const hosting = hostingByCompany.get(company.id);
+    const planSlug = normalizePlanSlug(hosting?.plan_slug ?? company.plan);
+    const platformStatus = resolvePlatformStatusLabel(
+      subscriptionStatus,
+      hosting?.status ?? null
+    );
+
     return {
       id: company.id,
+      slug: company.slug,
       name,
       email,
       business: company.name,
+      industry: company.industries?.name?.trim() || "—",
+      plan: planLabelForSlug(planSlug),
+      platformStatus,
+      subscriptionStatus,
       phone: company.contact_phone?.trim() || null,
       location: company.contact_location?.trim() || null,
       joined: joinedDate,
@@ -992,8 +1606,12 @@ export async function getAdminClients(): Promise<{
 
   const stats: AdminClientStats = {
     total: clients.length,
-    active: clients.filter((c) => c.status === "Active").length,
-    inactive: clients.filter((c) => c.status === "Inactive").length,
+    active: clients.filter(
+      (c) => c.platformStatus === "Active" || c.platformStatus === "Trial"
+    ).length,
+    inactive: clients.filter(
+      (c) => c.platformStatus === "Inactive" || c.platformStatus === "Suspended"
+    ).length,
     newThisMonth: companyRows.filter((c) => {
       const d = new Date(c.created_at);
       return `${d.getFullYear()}-${d.getMonth()}` === thisMonthKey;
@@ -1001,6 +1619,1102 @@ export async function getAdminClients(): Promise<{
   };
 
   return { clients, stats };
+}
+
+function paymentRowToTransaction(
+  row: {
+    id: string;
+    company_id: string;
+    plan_slug: string;
+    amount_cents: number;
+    currency: string;
+    status: string;
+    created_at: string;
+    paystack_reference: string | null;
+  },
+  companyName: string
+): AdminRevenueTransaction {
+  const status =
+    row.status === "success" || row.status === "failed" || row.status === "pending"
+      ? row.status
+      : "pending";
+  return {
+    id: row.id,
+    companyId: row.company_id,
+    businessName: companyName,
+    plan: planLabelForSlug(normalizePlanSlug(row.plan_slug)),
+    amount: row.amount_cents / 100,
+    currency: row.currency,
+    status,
+    date: formatCreatedDate(row.created_at),
+    dateIso: row.created_at,
+    reference: row.paystack_reference,
+  };
+}
+
+function weekKey(date: Date): string {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - start.getDay());
+  return start.toISOString().slice(0, 10);
+}
+
+function weekLabel(date: Date): string {
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+export async function getPlatformRevenueData(): Promise<AdminPlatformRevenueData> {
+  const empty: AdminPlatformRevenueData = {
+    mrr: 0,
+    arr: 0,
+    activeSubscriptions: 0,
+    churnRatePercent: 0,
+    arpa: 0,
+    successfulPayments: 0,
+    failedPayments: 0,
+    refunds: 0,
+    monthlyTrend: [],
+    weeklyTrend: [],
+    transactions: [],
+  };
+
+  if (!isSupabaseConfigured()) return empty;
+  if (!(await isCurrentUserPlatformAdmin())) return empty;
+
+  const supabase = await resolveAdminQueryClient();
+  const [{ data: subs, error: subsError }, { data: payments, error: paymentsError }] =
+    await Promise.all([
+      supabase.from("hosting_subscriptions").select("company_id,status,plan_slug"),
+      supabase
+        .from("hosting_payments")
+        .select(
+          "id,company_id,plan_slug,amount_cents,currency,status,created_at,paystack_reference,companies(name)"
+        )
+        .order("created_at", { ascending: false })
+        .limit(100),
+    ]);
+
+  if (subsError) {
+    console.error("[admin] getPlatformRevenueData subs", subsError.message);
+  }
+  if (paymentsError) {
+    console.error("[admin] getPlatformRevenueData payments", paymentsError.message);
+  }
+
+  const subRows = (subs ?? []) as Array<{ status: string; plan_slug: string }>;
+  let mrr = 0;
+  let activeSubscriptions = 0;
+  let cancelledCount = 0;
+  for (const sub of subRows) {
+    if (sub.status === "active") {
+      activeSubscriptions += 1;
+      const plan = pricingPlans.find((p) => p.slug === normalizePlanSlug(sub.plan_slug));
+      mrr += plan?.monthly_price ?? 0;
+    }
+    if (sub.status === "cancelled") cancelledCount += 1;
+  }
+
+  const totalSubs = subRows.length;
+  const churnRatePercent =
+    totalSubs > 0 ? Math.round((cancelledCount / totalSubs) * 100) : 0;
+  const arpa = activeSubscriptions > 0 ? Math.round(mrr / activeSubscriptions) : 0;
+
+  const paymentRows = (payments ?? []) as Array<{
+    id: string;
+    company_id: string;
+    plan_slug: string;
+    amount_cents: number;
+    currency: string;
+    status: string;
+    created_at: string;
+    paystack_reference: string | null;
+    companies?: { name?: string | null } | null;
+  }>;
+
+  let successfulPayments = 0;
+  let failedPayments = 0;
+  const now = new Date();
+  const months: { key: string; label: string; date: Date }[] = [];
+  for (let i = 5; i >= 0; i -= 1) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({
+      key: monthKeyFromDate(d),
+      label: monthLabel(d),
+      date: d,
+    });
+  }
+  const monthKeys = new Set(months.map((m) => m.key));
+  const revenueByMonth = new Map<string, number>();
+  const revenueByWeek = new Map<string, number>();
+  const weekLabels = new Map<string, string>();
+
+  for (let i = 7; i >= 0; i -= 1) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i * 7);
+    const key = weekKey(d);
+    weekLabels.set(key, weekLabel(d));
+    revenueByWeek.set(key, 0);
+  }
+
+  for (const payment of paymentRows) {
+    if (payment.status === "success") {
+      successfulPayments += 1;
+      const amount = payment.amount_cents / 100;
+      const created = new Date(payment.created_at);
+      const monthKey = monthKeyFromDate(created);
+      if (monthKeys.has(monthKey)) {
+        revenueByMonth.set(monthKey, (revenueByMonth.get(monthKey) ?? 0) + amount);
+      }
+      const wKey = weekKey(created);
+      if (revenueByWeek.has(wKey)) {
+        revenueByWeek.set(wKey, (revenueByWeek.get(wKey) ?? 0) + amount);
+      }
+    }
+    if (payment.status === "failed") failedPayments += 1;
+  }
+
+  const transactions = paymentRows.slice(0, 50).map((row) =>
+    paymentRowToTransaction(row, row.companies?.name?.trim() || "Unknown business")
+  );
+
+  return {
+    mrr,
+    arr: mrr * 12,
+    activeSubscriptions,
+    churnRatePercent,
+    arpa,
+    successfulPayments,
+    failedPayments,
+    refunds: 0,
+    monthlyTrend: months.map((m) => ({
+      label: m.label,
+      value: revenueByMonth.get(m.key) ?? 0,
+    })),
+    weeklyTrend: [...revenueByWeek.entries()].map(([key, value]) => ({
+      label: weekLabels.get(key) ?? key,
+      value,
+    })),
+    transactions,
+  };
+}
+
+export async function getAdminPlatformUsers(): Promise<{
+  users: AdminPlatformUserRow[];
+  stats: AdminPlatformUserStats;
+}> {
+  const empty = {
+    users: [] as AdminPlatformUserRow[],
+    stats: { total: 0, active: 0, owners: 0, newThisMonth: 0 },
+  };
+  if (!isSupabaseConfigured()) return empty;
+  if (!(await isCurrentUserPlatformAdmin())) return empty;
+
+  const supabase = await resolveAdminQueryClient();
+  const platformAdminIds = await getPlatformAdminUserIds(supabase);
+  const { data: membershipRows, error } = await supabase
+    .from("memberships")
+    .select("id,user_id,role,created_at,companies(id,name,subscription_status)")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[admin] getAdminPlatformUsers", error.message);
+    return empty;
+  }
+
+  type MembershipRow = {
+    id: string;
+    user_id: string;
+    role: string | null;
+    created_at: string;
+    companies?: {
+      id: string;
+      name: string;
+      subscription_status?: string | null;
+    } | null;
+    user?: {
+      id: string;
+      email: string;
+      full_name: string | null;
+      created_at: string;
+    } | null;
+  };
+
+  const rawRows = (membershipRows ?? []) as unknown as Array<
+    Omit<MembershipRow, "user" | "companies"> & {
+      companies?:
+        | MembershipRow["companies"]
+        | NonNullable<MembershipRow["companies"]>[]
+        | null;
+    }
+  >;
+
+  const userIds = [
+    ...new Set(
+      rawRows.map((row) => row.user_id).filter((id): id is string => Boolean(id))
+    ),
+  ];
+
+  const userById = new Map<
+    string,
+    { id: string; email: string; full_name: string | null; created_at: string }
+  >();
+
+  if (userIds.length) {
+    const { data: usersData, error: usersError } = await supabase
+      .from("users")
+      .select("id,email,full_name,created_at")
+      .in("id", userIds);
+
+    if (usersError) {
+      console.error("[admin] getAdminPlatformUsers users lookup", usersError.message);
+    } else {
+      for (const user of usersData ?? []) {
+        userById.set(user.id as string, user as {
+          id: string;
+          email: string;
+          full_name: string | null;
+          created_at: string;
+        });
+      }
+    }
+  }
+
+  const rows: MembershipRow[] = [];
+  const byUser = new Map<string, MembershipRow[]>();
+  for (const rawRow of rawRows) {
+    const row: MembershipRow = {
+      ...rawRow,
+      user: userById.get(rawRow.user_id) ?? null,
+      companies: Array.isArray(rawRow.companies)
+        ? rawRow.companies[0] ?? null
+        : rawRow.companies,
+    };
+    if (!row.user_id) continue;
+    rows.push(row);
+    const list = byUser.get(row.user_id) ?? [];
+    list.push(row);
+    byUser.set(row.user_id, list);
+  }
+
+  const now = new Date();
+  const thisMonthKey = monthKeyFromDate(now);
+
+  const users: AdminPlatformUserRow[] = [...byUser.entries()]
+    .filter(([userId]) => !platformAdminIds.has(userId))
+    .map(([userId, memberships]) => {
+    const primary = memberships[0]!;
+    const user = primary.user;
+    const company = primary.companies;
+    const email = user?.email?.trim() || "unknown@user.local";
+    const name = user?.full_name?.trim() || email.split("@")[0] || "User";
+    const subscriptionStatus = company?.subscription_status ?? "inactive";
+
+    return {
+      id: userId,
+      name,
+      email,
+      businessId: company?.id ?? null,
+      businessName: company?.name?.trim() || "—",
+      role: primary.role?.trim() || "member",
+      status: subscriptionStatus === "suspended" ? "Inactive" : "Active",
+      joined: formatJoinedDate(user?.created_at ?? primary.created_at),
+      membershipCount: memberships.length,
+    };
+  });
+
+  users.sort((a, b) => a.name.localeCompare(b.name));
+
+  const stats: AdminPlatformUserStats = {
+    total: users.length,
+    active: users.filter((u) => u.status === "Active").length,
+    owners: users.filter((u) => u.role === "owner").length,
+    newThisMonth: users.filter((u) => {
+      const primaryMembership = rows.find((r) => r.user_id === u.id);
+      const created = primaryMembership?.user?.created_at ?? primaryMembership?.created_at;
+      if (!created) return false;
+      return monthKeyFromDate(new Date(created)) === thisMonthKey;
+    }).length,
+  };
+
+  return { users, stats };
+}
+
+export async function getAdminBusinessDetail(
+  companyId: string
+): Promise<AdminBusinessDetail | null> {
+  if (!isSupabaseConfigured()) return null;
+  if (!(await isCurrentUserPlatformAdmin())) return null;
+
+  const supabase = await resolveAdminQueryClient();
+  const { data: company, error: companyError } = await supabase
+    .from("companies")
+    .select(
+      "id,slug,name,created_at,plan,subscription_status,primary_contact_name,primary_contact_email,contact_phone,contact_location,admin_client_note,industries(name)"
+    )
+    .eq("id", companyId)
+    .maybeSingle();
+
+  if (companyError || !company) {
+    if (companyError) {
+      console.error("[admin] getAdminBusinessDetail company", companyError.message);
+    }
+    return null;
+  }
+
+  type CompanyRow = {
+    id: string;
+    slug: string;
+    name: string;
+    created_at: string;
+    plan: string | null;
+    subscription_status: string | null;
+    primary_contact_name: string | null;
+    primary_contact_email: string | null;
+    contact_phone: string | null;
+    contact_location: string | null;
+    admin_client_note: string | null;
+    industries?: { name?: string | null } | null;
+  };
+
+  const row = company as CompanyRow;
+  const [
+    { data: hosting },
+    { data: payments },
+    { data: memberships },
+  ] = await Promise.all([
+    supabase
+      .from("hosting_subscriptions")
+      .select("status,plan_slug,next_billing_date")
+      .eq("company_id", companyId)
+      .maybeSingle(),
+    supabase
+      .from("hosting_payments")
+      .select("id,company_id,plan_slug,amount_cents,currency,status,created_at,paystack_reference")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("memberships")
+      .select("id,user_id,role,created_at")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: true }),
+  ]);
+
+  const membershipRows = (memberships ?? []) as Array<{
+    id: string;
+    user_id: string;
+    role: string | null;
+    created_at: string;
+  }>;
+
+  const memberUserIds = [
+    ...new Set(
+      membershipRows.map((row) => row.user_id).filter((id): id is string => Boolean(id))
+    ),
+  ];
+
+  const memberUserById = new Map<
+    string,
+    { email?: string | null; full_name?: string | null }
+  >();
+
+  if (memberUserIds.length) {
+    const { data: memberUsers, error: memberUsersError } = await supabase
+      .from("users")
+      .select("id,email,full_name")
+      .in("id", memberUserIds);
+
+    if (memberUsersError) {
+      console.error(
+        "[admin] getAdminBusinessDetail users lookup",
+        memberUsersError.message
+      );
+    } else {
+      for (const user of memberUsers ?? []) {
+        memberUserById.set(user.id as string, user as {
+          email?: string | null;
+          full_name?: string | null;
+        });
+      }
+    }
+  }
+
+  const hostingRow = hosting as {
+    status: string;
+    plan_slug: string;
+    next_billing_date: string | null;
+  } | null;
+
+  const subscriptionStatus = row.subscription_status ?? "inactive";
+  const platformStatus = resolvePlatformStatusLabel(
+    subscriptionStatus,
+    hostingRow?.status ?? null
+  );
+  const planSlug = normalizePlanSlug(hostingRow?.plan_slug ?? row.plan);
+  const email = row.primary_contact_email?.trim() || "unknown@client.local";
+  const contactName =
+    row.primary_contact_name?.trim() || email.split("@")[0] || "Unknown contact";
+
+  const members: AdminBusinessMember[] = membershipRows.map((membership) => {
+    const user = memberUserById.get(membership.user_id);
+    const memberEmail = user?.email?.trim() || "unknown@user.local";
+    return {
+      id: membership.id,
+      userId: membership.user_id,
+      name: user?.full_name?.trim() || memberEmail.split("@")[0] || "User",
+      email: memberEmail,
+      role: membership.role?.trim() || "member",
+      joined: formatJoinedDate(membership.created_at),
+    };
+  });
+
+  const recentPayments = ((payments ?? []) as Array<{
+    id: string;
+    company_id: string;
+    plan_slug: string;
+    amount_cents: number;
+    currency: string;
+    status: string;
+    created_at: string;
+    paystack_reference: string | null;
+  }>).map((payment) => paymentRowToTransaction(payment, row.name));
+
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    industry: row.industries?.name?.trim() || "—",
+    plan: planLabelForSlug(planSlug),
+    platformStatus,
+    subscriptionStatus,
+    contactName,
+    contactEmail: email,
+    phone: row.contact_phone?.trim() || null,
+    location: row.contact_location?.trim() || null,
+    joined: formatJoinedDate(row.created_at),
+    hostingStatus: hostingRow?.status ?? null,
+    nextBillingDate: hostingRow?.next_billing_date
+      ? formatCreatedDate(hostingRow.next_billing_date)
+      : null,
+    note: row.admin_client_note?.trim() || null,
+    recentPayments,
+    members,
+  };
+}
+
+function shortDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-ZA", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+async function loadCompanyNameMap(
+  supabase: Awaited<ReturnType<typeof resolveAdminQueryClient>>,
+  companyIds: string[]
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (companyIds.length === 0) return map;
+  const { data } = await supabase
+    .from("companies")
+    .select("id,name")
+    .in("id", [...new Set(companyIds)]);
+  for (const row of (data ?? []) as Array<{ id: string; name: string }>) {
+    map.set(row.id, row.name?.trim() || "Unknown business");
+  }
+  return map;
+}
+
+export async function getAdminDomainsData(): Promise<AdminDomainsData> {
+  const empty: AdminDomainsData = {
+    total: 0,
+    verified: 0,
+    pending: 0,
+    sslActive: 0,
+    sslFailed: 0,
+    domains: [],
+  };
+  if (!isSupabaseConfigured()) return empty;
+  if (!(await isCurrentUserPlatformAdmin())) return empty;
+
+  const supabase = await resolveAdminQueryClient();
+  const { data, error } = await supabase
+    .from("website_domains")
+    .select("id,domain,domain_type,verification_status,ssl_status,last_checked_at,company_id,companies(name)")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[admin] getAdminDomainsData", error.message);
+    return empty;
+  }
+
+  const rows = (data ?? []) as Array<{
+    id: string;
+    domain: string;
+    domain_type: string;
+    verification_status: string;
+    ssl_status: string;
+    last_checked_at: string | null;
+    company_id: string;
+    companies?: { name?: string | null } | null;
+  }>;
+
+  const domains: AdminDomainRow[] = rows.map((row) => ({
+    id: row.id,
+    domain: row.domain,
+    businessName: row.companies?.name?.trim() || "—",
+    companyId: row.company_id,
+    domainType: row.domain_type,
+    verificationStatus: row.verification_status,
+    sslStatus: row.ssl_status,
+    lastChecked: row.last_checked_at ? shortDateTime(row.last_checked_at) : null,
+  }));
+
+  return {
+    total: domains.length,
+    verified: domains.filter((d) => d.verificationStatus === "verified").length,
+    pending: domains.filter((d) => d.verificationStatus === "pending").length,
+    sslActive: domains.filter((d) => d.sslStatus === "active").length,
+    sslFailed: domains.filter((d) => d.sslStatus === "failed").length,
+    domains,
+  };
+}
+
+export async function getAdminCronData(): Promise<AdminCronData> {
+  const empty: AdminCronData = { jobs: [], recentRuns: [], overallSuccessRate: 0 };
+  if (!isSupabaseConfigured()) return empty;
+  if (!(await isCurrentUserPlatformAdmin())) return empty;
+
+  const supabase = await resolveAdminQueryClient();
+  const [{ data: jobs, error: jobsError }, { data: runs, error: runsError }] =
+    await Promise.all([
+      supabase.from("platform_cron_jobs").select("id,name,schedule,description,enabled").order("name"),
+      supabase
+        .from("platform_cron_runs")
+        .select("id,job_id,status,started_at,duration_ms,error_message,platform_cron_jobs(name)")
+        .order("started_at", { ascending: false })
+        .limit(30),
+    ]);
+
+  if (jobsError) console.error("[admin] getAdminCronData jobs", jobsError.message);
+  if (runsError) console.error("[admin] getAdminCronData runs", runsError.message);
+
+  const runRows = (runs ?? []) as unknown as Array<{
+    id: string;
+    job_id: string;
+    status: string;
+    started_at: string;
+    duration_ms: number;
+    error_message: string | null;
+    platform_cron_jobs?: { name?: string | null } | Array<{ name?: string | null }> | null;
+  }>;
+
+  const runsByJob = new Map<string, typeof runRows>();
+  for (const run of runRows) {
+    const list = runsByJob.get(run.job_id) ?? [];
+    list.push(run);
+    runsByJob.set(run.job_id, list);
+  }
+
+  const jobRows: AdminCronJobRow[] = ((jobs ?? []) as Array<{
+    id: string;
+    name: string;
+    schedule: string;
+    description: string | null;
+    enabled: boolean;
+  }>).map((job) => {
+    const jobRuns = runsByJob.get(job.id) ?? [];
+    const last = jobRuns[0];
+    const successes = jobRuns.filter((r) => r.status === "success").length;
+    return {
+      id: job.id,
+      name: job.name,
+      schedule: job.schedule,
+      description: job.description,
+      enabled: job.enabled,
+      lastRun: last ? shortDateTime(last.started_at) : null,
+      lastStatus: last?.status === "success" || last?.status === "failed" ? last.status : null,
+      successRate:
+        jobRuns.length > 0 ? Math.round((successes / jobRuns.length) * 100) : 100,
+    };
+  });
+
+  const recentRuns: AdminCronRunRow[] = runRows.slice(0, 15).map((run) => {
+    const jobMeta = Array.isArray(run.platform_cron_jobs)
+      ? run.platform_cron_jobs[0]
+      : run.platform_cron_jobs;
+    return {
+      id: run.id,
+      jobId: run.job_id,
+      jobName: jobMeta?.name?.trim() || run.job_id,
+      status: run.status,
+      startedAt: shortDateTime(run.started_at),
+      durationMs: run.duration_ms,
+      errorMessage: run.error_message,
+    };
+  });
+
+  const overallSuccessRate =
+    runRows.length > 0
+      ? Math.round(
+          (runRows.filter((run) => run.status === "success").length / runRows.length) * 100
+        )
+      : 100;
+
+  return { jobs: jobRows, recentRuns, overallSuccessRate };
+}
+
+export async function getAdminApiUsageData(): Promise<AdminApiUsageData> {
+  const empty: AdminApiUsageData = {
+    totalRequests: 0,
+    failedRequests: 0,
+    rateLimitEvents: 0,
+    requestsToday: 0,
+    failureRatePercent: 0,
+    topRoutes: [],
+    recentLogs: [],
+  };
+  if (!isSupabaseConfigured()) return empty;
+  if (!(await isCurrentUserPlatformAdmin())) return empty;
+
+  const supabase = await resolveAdminQueryClient();
+  const { data, error } = await supabase
+    .from("platform_api_logs")
+    .select("id,route,method,status_code,company_id,duration_ms,is_public,created_at,error_message")
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  if (error) {
+    console.error("[admin] getAdminApiUsageData", error.message);
+    return empty;
+  }
+
+  const rows = (data ?? []) as Array<{
+    id: string;
+    route: string;
+    method: string;
+    status_code: number;
+    company_id: string | null;
+    duration_ms: number;
+    is_public: boolean;
+    created_at: string;
+    error_message: string | null;
+  }>;
+
+  const companyIds = rows.map((r) => r.company_id).filter(Boolean) as string[];
+  const companyNames = await loadCompanyNameMap(supabase, companyIds);
+
+  const todayKey = new Date().toDateString();
+  let failedRequests = 0;
+  let rateLimitEvents = 0;
+  let requestsToday = 0;
+  const routeCounts = new Map<string, number>();
+
+  for (const row of rows) {
+    if (row.status_code >= 400) failedRequests += 1;
+    if (row.status_code === 429) rateLimitEvents += 1;
+    if (new Date(row.created_at).toDateString() === todayKey) requestsToday += 1;
+    routeCounts.set(row.route, (routeCounts.get(row.route) ?? 0) + 1);
+  }
+
+  const topRoutes = [...routeCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([route, count]) => ({ route, count }));
+
+  const recentLogs: AdminApiLogRow[] = rows.slice(0, 40).map((row) => ({
+    id: row.id,
+    route: row.route,
+    method: row.method,
+    statusCode: row.status_code,
+    businessName: row.company_id ? companyNames.get(row.company_id) ?? null : null,
+    durationMs: row.duration_ms,
+    isPublic: row.is_public,
+    createdAt: shortDateTime(row.created_at),
+    errorMessage: row.error_message,
+  }));
+
+  return {
+    totalRequests: rows.length,
+    failedRequests,
+    rateLimitEvents,
+    requestsToday,
+    failureRatePercent:
+      rows.length > 0 ? Math.round((failedRequests / rows.length) * 100) : 0,
+    topRoutes,
+    recentLogs,
+  };
+}
+
+export async function getAdminEmailsData(): Promise<AdminEmailsData> {
+  const empty: AdminEmailsData = {
+    totalSent: 0,
+    deliveryRate: 0,
+    failedCount: 0,
+    sentToday: 0,
+    recentLogs: [],
+  };
+  if (!isSupabaseConfigured()) return empty;
+  if (!(await isCurrentUserPlatformAdmin())) return empty;
+
+  const supabase = await resolveAdminQueryClient();
+  const { data, error } = await supabase
+    .from("platform_email_logs")
+    .select("id,to_address,subject,template,status,provider,company_id,created_at,error_message")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (error) {
+    console.error("[admin] getAdminEmailsData", error.message);
+    return empty;
+  }
+
+  const rows = (data ?? []) as Array<{
+    id: string;
+    to_address: string;
+    subject: string | null;
+    template: string | null;
+    status: string;
+    provider: string;
+    company_id: string | null;
+    created_at: string;
+    error_message: string | null;
+  }>;
+
+  const companyIds = rows.map((r) => r.company_id).filter(Boolean) as string[];
+  const companyNames = await loadCompanyNameMap(supabase, companyIds);
+  const todayKey = new Date().toDateString();
+
+  const totalSent = rows.filter((r) => r.status === "sent").length;
+  const failedCount = rows.filter((r) => r.status === "failed").length;
+  const sentToday = rows.filter(
+    (r) => r.status === "sent" && new Date(r.created_at).toDateString() === todayKey
+  ).length;
+
+  const recentLogs: AdminEmailLogRow[] = rows.slice(0, 40).map((row) => ({
+    id: row.id,
+    to: row.to_address,
+    subject: row.subject,
+    template: row.template,
+    status: row.status,
+    provider: row.provider,
+    businessName: row.company_id ? companyNames.get(row.company_id) ?? null : null,
+    createdAt: shortDateTime(row.created_at),
+    errorMessage: row.error_message,
+  }));
+
+  return {
+    totalSent,
+    deliveryRate:
+      rows.length > 0 ? Math.round((totalSent / rows.length) * 100) : 0,
+    failedCount,
+    sentToday,
+    recentLogs,
+  };
+}
+
+export async function getPlatformAuditLogs(limit = 50): Promise<AdminAuditLogRow[]> {
+  if (!isSupabaseConfigured()) return [];
+  if (!(await isCurrentUserPlatformAdmin())) return [];
+
+  const supabase = await resolveAdminQueryClient();
+  const { data, error } = await supabase
+    .from("platform_audit_logs")
+    .select("id,actor_email,action,target_type,target_label,created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("[admin] getPlatformAuditLogs", error.message);
+    return [];
+  }
+
+  return ((data ?? []) as Array<{
+    id: string;
+    actor_email: string | null;
+    action: string;
+    target_type: string;
+    target_label: string | null;
+    created_at: string;
+  }>).map((row) => ({
+    id: row.id,
+    actorEmail: row.actor_email,
+    action: row.action,
+    targetType: row.target_type,
+    targetLabel: row.target_label,
+    createdAt: shortDateTime(row.created_at),
+  }));
+}
+
+function emptyAdminSupportData(): AdminSupportData {
+  return {
+    tickets: [],
+    stats: { open: 0, inProgress: 0, waiting: 0, resolvedThisMonth: 0 },
+  };
+}
+
+function emptyAdminFeatureRequestsData(): AdminFeatureRequestsData {
+  return {
+    requests: [],
+    stats: {
+      submitted: 0,
+      underReview: 0,
+      planned: 0,
+      inProgress: 0,
+      shipped: 0,
+    },
+  };
+}
+
+export async function getAdminSupportData(): Promise<AdminSupportData> {
+  const empty = emptyAdminSupportData();
+  if (!isSupabaseConfigured()) return empty;
+  if (!(await isCurrentUserPlatformAdmin())) return empty;
+
+  const supabase = await resolveAdminQueryClient();
+  const { data, error } = await supabase
+    .from("platform_support_tickets")
+    .select(
+      "id,ticket_number,company_id,subject,status,priority,category,requester_name,requester_email,assigned_to,created_at,updated_at,platform_support_messages(count)"
+    )
+    .order("updated_at", { ascending: false })
+    .limit(200);
+
+  if (error) {
+    console.error("[admin] getAdminSupportData", error.message);
+    return empty;
+  }
+
+  type TicketRow = {
+    id: string;
+    ticket_number: number;
+    company_id: string | null;
+    subject: string;
+    status: AdminSupportTicketStatus;
+    priority: AdminSupportTicketPriority;
+    category: AdminSupportTicketCategory;
+    requester_name: string | null;
+    requester_email: string | null;
+    assigned_to: string | null;
+    created_at: string;
+    updated_at: string;
+    platform_support_messages?: Array<{ count: number }> | { count: number } | null;
+  };
+
+  const rows = (data ?? []) as TicketRow[];
+  const companyIds = rows.map((row) => row.company_id).filter(Boolean) as string[];
+  const companyNames = await loadCompanyNameMap(supabase, companyIds);
+
+  const now = new Date();
+  const thisMonthKey = monthKeyFromDate(now);
+  const stats: AdminSupportStats = {
+    open: 0,
+    inProgress: 0,
+    waiting: 0,
+    resolvedThisMonth: 0,
+  };
+
+  const tickets: AdminSupportTicketRow[] = rows.map((row) => {
+    if (row.status === "open") stats.open += 1;
+    if (row.status === "in_progress") stats.inProgress += 1;
+    if (row.status === "waiting") stats.waiting += 1;
+    if (
+      (row.status === "resolved" || row.status === "closed") &&
+      monthKeyFromDate(new Date(row.updated_at)) === thisMonthKey
+    ) {
+      stats.resolvedThisMonth += 1;
+    }
+
+    const messageMeta = Array.isArray(row.platform_support_messages)
+      ? row.platform_support_messages[0]
+      : row.platform_support_messages;
+
+    return {
+      id: row.id,
+      ticketNumber: row.ticket_number,
+      subject: row.subject,
+      status: row.status,
+      priority: row.priority,
+      category: row.category,
+      businessName: row.company_id ? companyNames.get(row.company_id) ?? null : null,
+      companyId: row.company_id,
+      requesterName: row.requester_name,
+      requesterEmail: row.requester_email,
+      assignedTo: row.assigned_to,
+      messageCount: messageMeta?.count ?? 0,
+      updatedAt: shortDateTime(row.updated_at),
+      createdAt: shortDateTime(row.created_at),
+    };
+  });
+
+  return { tickets, stats };
+}
+
+export async function getAdminSupportTicketDetail(
+  ticketId: string
+): Promise<AdminSupportTicketDetail | null> {
+  if (!isSupabaseConfigured()) return null;
+  if (!(await isCurrentUserPlatformAdmin())) return null;
+
+  const supabase = await resolveAdminQueryClient();
+  const { data: ticket, error: ticketError } = await supabase
+    .from("platform_support_tickets")
+    .select("*")
+    .eq("id", ticketId.trim())
+    .maybeSingle();
+
+  if (ticketError) {
+    console.error("[admin] getAdminSupportTicketDetail ticket", ticketError.message);
+    return null;
+  }
+  if (!ticket) return null;
+
+  const { data: messages, error: messagesError } = await supabase
+    .from("platform_support_messages")
+    .select("id,author_name,author_email,body,is_internal,created_at")
+    .eq("ticket_id", ticket.id)
+    .order("created_at", { ascending: true });
+
+  if (messagesError) {
+    console.error("[admin] getAdminSupportTicketDetail messages", messagesError.message);
+  }
+
+  type TicketDbRow = {
+    id: string;
+    ticket_number: number;
+    company_id: string | null;
+    subject: string;
+    description: string;
+    status: AdminSupportTicketStatus;
+    priority: AdminSupportTicketPriority;
+    category: AdminSupportTicketCategory;
+    requester_name: string | null;
+    requester_email: string | null;
+    assigned_to: string | null;
+    created_at: string;
+    updated_at: string;
+    resolved_at: string | null;
+  };
+
+  const row = ticket as TicketDbRow;
+  const companyNames = row.company_id
+    ? await loadCompanyNameMap(supabase, [row.company_id])
+    : new Map<string, string>();
+
+  const messageRows: AdminSupportMessageRow[] = (
+    (messages ?? []) as Array<{
+      id: string;
+      author_name: string;
+      author_email: string | null;
+      body: string;
+      is_internal: boolean;
+      created_at: string;
+    }>
+  ).map((message) => ({
+    id: message.id,
+    authorName: message.author_name,
+    authorEmail: message.author_email,
+    body: message.body,
+    isInternal: message.is_internal,
+    createdAt: shortDateTime(message.created_at),
+  }));
+
+  return {
+    id: row.id,
+    ticketNumber: row.ticket_number,
+    subject: row.subject,
+    description: row.description,
+    status: row.status,
+    priority: row.priority,
+    category: row.category,
+    businessName: row.company_id ? companyNames.get(row.company_id) ?? null : null,
+    companyId: row.company_id,
+    requesterName: row.requester_name,
+    requesterEmail: row.requester_email,
+    assignedTo: row.assigned_to,
+    messageCount: messageRows.length,
+    updatedAt: shortDateTime(row.updated_at),
+    createdAt: shortDateTime(row.created_at),
+    resolvedAt: row.resolved_at ? shortDateTime(row.resolved_at) : null,
+    messages: messageRows,
+  };
+}
+
+export async function getAdminFeatureRequestsData(): Promise<AdminFeatureRequestsData> {
+  const empty = emptyAdminFeatureRequestsData();
+  if (!isSupabaseConfigured()) return empty;
+  if (!(await isCurrentUserPlatformAdmin())) return empty;
+
+  const supabase = await resolveAdminQueryClient();
+  const { data, error } = await supabase
+    .from("platform_feature_requests")
+    .select(
+      "id,company_id,title,description,status,priority,category,vote_count,submitted_by_name,submitted_by_email,admin_notes,created_at,updated_at"
+    )
+    .order("updated_at", { ascending: false })
+    .limit(200);
+
+  if (error) {
+    console.error("[admin] getAdminFeatureRequestsData", error.message);
+    return empty;
+  }
+
+  type RequestRow = {
+    id: string;
+    company_id: string | null;
+    title: string;
+    description: string;
+    status: AdminFeatureRequestStatus;
+    priority: AdminFeatureRequestPriority;
+    category: string | null;
+    vote_count: number;
+    submitted_by_name: string | null;
+    submitted_by_email: string | null;
+    admin_notes: string | null;
+    created_at: string;
+    updated_at: string;
+  };
+
+  const rows = (data ?? []) as RequestRow[];
+  const companyIds = rows.map((row) => row.company_id).filter(Boolean) as string[];
+  const companyNames = await loadCompanyNameMap(supabase, companyIds);
+
+  const stats: AdminFeatureRequestStats = {
+    submitted: 0,
+    underReview: 0,
+    planned: 0,
+    inProgress: 0,
+    shipped: 0,
+  };
+
+  const requests: AdminFeatureRequestRow[] = rows.map((row) => {
+    if (row.status === "submitted") stats.submitted += 1;
+    if (row.status === "under_review") stats.underReview += 1;
+    if (row.status === "planned") stats.planned += 1;
+    if (row.status === "in_progress") stats.inProgress += 1;
+    if (row.status === "shipped") stats.shipped += 1;
+
+    return {
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      status: row.status,
+      priority: row.priority,
+      category: row.category,
+      voteCount: row.vote_count,
+      businessName: row.company_id ? companyNames.get(row.company_id) ?? null : null,
+      companyId: row.company_id,
+      submittedByName: row.submitted_by_name,
+      submittedByEmail: row.submitted_by_email,
+      adminNotes: row.admin_notes,
+      updatedAt: shortDateTime(row.updated_at),
+      createdAt: shortDateTime(row.created_at),
+    };
+  });
+
+  return { requests, stats };
 }
 
 export async function getAdminActivityItems(): Promise<AdminActivityItem[]> {
@@ -1011,6 +2725,9 @@ export async function getAdminActivityItems(): Promise<AdminActivityItem[]> {
   const [
     { data: companies, error: companiesError },
     { data: activities, error: activitiesError },
+    { data: auditLogs, error: auditLogsError },
+    { data: supportTickets, error: supportTicketsError },
+    { data: featureRequests, error: featureRequestsError },
   ] = await Promise.all([
     supabase
       .from("companies")
@@ -1022,6 +2739,21 @@ export async function getAdminActivityItems(): Promise<AdminActivityItem[]> {
       .select("id,project_id,title,stage,created_at")
       .order("created_at", { ascending: false })
       .limit(20),
+    supabase
+      .from("platform_audit_logs")
+      .select("id,actor_email,action,target_type,target_id,target_label,created_at")
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("platform_support_tickets")
+      .select("id,ticket_number,subject,status,priority,created_at")
+      .order("created_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("platform_feature_requests")
+      .select("id,title,status,vote_count,created_at")
+      .order("created_at", { ascending: false })
+      .limit(10),
   ]);
 
   if (companiesError) {
@@ -1029,6 +2761,15 @@ export async function getAdminActivityItems(): Promise<AdminActivityItem[]> {
   }
   if (activitiesError) {
     console.error("[admin] getAdminActivityItems activities", activitiesError.message);
+  }
+  if (auditLogsError) {
+    console.error("[admin] getAdminActivityItems audit", auditLogsError.message);
+  }
+  if (supportTicketsError) {
+    console.error("[admin] getAdminActivityItems support", supportTicketsError.message);
+  }
+  if (featureRequestsError) {
+    console.error("[admin] getAdminActivityItems features", featureRequestsError.message);
   }
 
   const companyRows = (companies ?? []) as Array<{
@@ -1104,6 +2845,108 @@ export async function getAdminActivityItems(): Promise<AdminActivityItem[]> {
 
   const items: AdminActivityItem[] = [];
 
+  function activityGroup(createdAt: string): AdminActivityGroup {
+    const ageHours = Math.floor((now - new Date(createdAt).getTime()) / 3_600_000);
+    return ageHours < 24 ? "today" : "week";
+  }
+
+  function auditHref(
+    targetType: string,
+    targetId: string | null
+  ): string | null {
+    if (!targetId) return null;
+    if (targetType === "support_ticket") return `/admin/support/${targetId}`;
+    if (targetType === "feature_request") return "/admin/feature-requests";
+    if (targetType === "company") return `/admin/businesses/${targetId}`;
+    if (targetType === "user") return "/admin/users";
+    return "/admin/settings?tab=security";
+  }
+
+  function auditTitle(action: string): string {
+    return action
+      .split(".")
+      .map((part) => part.replace(/_/g, " "))
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" · ");
+  }
+
+  for (const log of (auditLogs ?? []) as Array<{
+    id: string;
+    actor_email: string | null;
+    action: string;
+    target_type: string;
+    target_id: string | null;
+    target_label: string | null;
+    created_at: string;
+  }>) {
+    const group = activityGroup(log.created_at);
+    items.push({
+      id: `audit-${log.id}`,
+      title: auditTitle(log.action),
+      description: [
+        log.target_label ?? log.target_type,
+        log.actor_email ? `by ${log.actor_email}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      time: shortRelativeTime(log.created_at),
+      category: "platform",
+      unread: group === "today",
+      group,
+      href: auditHref(log.target_type, log.target_id),
+      iconKey: "shield",
+      iconBg: "bg-slate-100",
+      iconColor: "text-slate-600",
+    });
+  }
+
+  for (const ticket of (supportTickets ?? []) as Array<{
+    id: string;
+    ticket_number: number;
+    subject: string;
+    status: string;
+    priority: string;
+    created_at: string;
+  }>) {
+    const group = activityGroup(ticket.created_at);
+    items.push({
+      id: `support-${ticket.id}`,
+      title: "Support ticket opened",
+      description: `SUP-${String(ticket.ticket_number).padStart(4, "0")}: ${ticket.subject} (${ticket.priority})`,
+      time: shortRelativeTime(ticket.created_at),
+      category: "operations",
+      unread: group === "today" && ticket.status === "open",
+      group,
+      href: `/admin/support/${ticket.id}`,
+      iconKey: "lifeBuoy",
+      iconBg: "bg-sky-50",
+      iconColor: "text-sky-600",
+    });
+  }
+
+  for (const request of (featureRequests ?? []) as Array<{
+    id: string;
+    title: string;
+    status: string;
+    vote_count: number;
+    created_at: string;
+  }>) {
+    const group = activityGroup(request.created_at);
+    items.push({
+      id: `feature-${request.id}`,
+      title: "Feature request logged",
+      description: `${request.title} · ${request.vote_count} votes · ${request.status.replace(/_/g, " ")}`,
+      time: shortRelativeTime(request.created_at),
+      category: "operations",
+      unread: group === "today" && request.status === "submitted",
+      group,
+      href: "/admin/feature-requests",
+      iconKey: "lightbulb",
+      iconBg: "bg-amber-50",
+      iconColor: "text-amber-600",
+    });
+  }
+
   for (const a of activityRows.slice(0, 8)) {
     const project = projectById.get(a.project_id);
     const companyName = project ? companyNameById.get(project.company_id) ?? "Project" : "Project";
@@ -1170,10 +3013,11 @@ export async function getAdminActivityItems(): Promise<AdminActivityItem[]> {
 
   return items
     .sort((a, b) => {
-      const rank = (i: AdminActivityItem) => (i.group === "today" ? 0 : 1);
-      return rank(a) - rank(b);
+      const rank = (item: AdminActivityItem) => (item.group === "today" ? 0 : 1);
+      if (rank(a) !== rank(b)) return rank(a) - rank(b);
+      return 0;
     })
-    .slice(0, 16);
+    .slice(0, 24);
 }
 
 export async function getAdminSettingsUsers(): Promise<

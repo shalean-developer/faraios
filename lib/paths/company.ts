@@ -42,8 +42,36 @@ export function companySettingsPath(slug: string): string {
   return `/${encodeURIComponent(slug)}/dashboard/settings`;
 }
 
+export function companySubscriptionPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/subscription`;
+}
+
+export function companyRetentionCampaignsPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/campaigns/retention`;
+}
+
+export function companySupportPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/support`;
+}
+
+export function companySupportTicketPath(slug: string, ticketId: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/support/${encodeURIComponent(ticketId)}`;
+}
+
+export function companyFeatureRequestsPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/feature-requests`;
+}
+
 export function companyTeamPath(slug: string): string {
   return `/${encodeURIComponent(slug)}/dashboard/team`;
+}
+
+export function companyTeamStaffPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/team/staff`;
+}
+
+export function companyTeamRolesPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/team/roles`;
 }
 
 export function companyBookingPath(slug: string, bookingId: string): string {
@@ -67,7 +95,7 @@ export function companyCustomerSegmentsPath(slug: string): string {
 }
 
 export function companyQuotesPath(slug: string): string {
-  return companyQuoteRequestsPath(slug);
+  return `/${encodeURIComponent(slug)}/dashboard/quotes`;
 }
 
 export function companyQuoteRequestsPath(slug: string): string {
@@ -94,8 +122,48 @@ export function companyRevenuePath(slug: string): string {
   return `/${encodeURIComponent(slug)}/dashboard/revenue`;
 }
 
+export function companyPaymentSettingsPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/revenue/payment-settings`;
+}
+
 export function companyReportsPath(slug: string): string {
   return `/${encodeURIComponent(slug)}/dashboard/reports`;
+}
+
+export function companyMarketingPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/marketing`;
+}
+
+export function companyGrowthPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/growth`;
+}
+
+export function companySeoPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/seo`;
+}
+
+export function companyReviewsPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/reviews`;
+}
+
+export function companyCampaignsPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/campaigns`;
+}
+
+export function companyContentPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/content`;
+}
+
+export function companyAnalyticsPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/analytics`;
+}
+
+export function companyLeadsPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/leads`;
+}
+
+export function companyIntelligencePath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/intelligence`;
 }
 
 export function companyInsightsPath(slug: string): string {
@@ -104,6 +172,10 @@ export function companyInsightsPath(slug: string): string {
 
 export function companyAiInsightsPath(slug: string): string {
   return `/${encodeURIComponent(slug)}/dashboard/ai-insights`;
+}
+
+export function companyBusinessHealthPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/business-health`;
 }
 
 export function companyTasksPath(slug: string): string {
@@ -124,6 +196,10 @@ export function companyProjectPath(slug: string): string {
 
 export function companyWebsiteDomainsPath(slug: string): string {
   return `/${encodeURIComponent(slug)}/dashboard/websites/domains`;
+}
+
+export function companyWebsiteConnectionPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/websites/connection`;
 }
 
 export function companyWebsiteApiKeysPath(slug: string): string {

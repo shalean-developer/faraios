@@ -184,7 +184,7 @@ export function CompanyHostingClient({
             <div>
               <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-indigo-700">
                 <Server className="h-3.5 w-3.5" />
-                Hosting
+                Website · Subscription
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
                 {company.name}

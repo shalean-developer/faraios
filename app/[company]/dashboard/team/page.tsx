@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { companyDashboardPath } from "@/lib/paths/company";
 import { getCompanyBySlug } from "@/lib/services/companies";
+import { listCompanyRoles } from "@/lib/services/company-roles";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
 import {
   getMemberRoleForUser,
@@ -60,9 +61,10 @@ export default async function CompanyTeamPage({ params }: Props) {
   const hasAccess = await userHasCompanySlugAccess(user.id, slug);
   if (!hasAccess) return <AccessDenied slug={slug} />;
 
-  const [members, role] = await Promise.all([
+  const [members, role, customRoles] = await Promise.all([
     listCompanyMembers(row.id),
     getMemberRoleForUser(row.id, user.id),
+    listCompanyRoles(row.id),
   ]);
 
   const summary = summarizeTeamMembers(members);
@@ -75,6 +77,7 @@ export default async function CompanyTeamPage({ params }: Props) {
       summary={summary}
       currentUserId={user.id}
       canManage={role === "owner"}
+      customRoles={customRoles}
     />
   );
 }

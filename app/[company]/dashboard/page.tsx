@@ -2,10 +2,7 @@ import { notFound } from "next/navigation";
 
 import { CompanyOperationsDashboard } from "./company-operations-dashboard";
 import { getCompanyBySlug } from "@/lib/services/companies";
-import {
-  getOperationsMetrics,
-  getRecentActivity,
-} from "@/lib/services/operations-metrics";
+import { getHomeOverviewData } from "@/lib/services/home-overview";
 
 type Props = { params: Promise<{ company: string }> };
 
@@ -20,17 +17,13 @@ export default async function CompanyDashboardPage({ params }: Props) {
     notFound();
   }
 
-  const [metrics, recentActivity] = await Promise.all([
-    getOperationsMetrics(row.id),
-    getRecentActivity(row.id),
-  ]);
+  const overview = await getHomeOverviewData(row.id);
 
   return (
     <CompanyOperationsDashboard
       slug={slug}
       company={row}
-      metrics={metrics}
-      recentActivity={recentActivity}
+      overview={overview}
     />
   );
 }

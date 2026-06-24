@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { GrowthHubNav } from "@/components/growth/growth-hub-nav";
+
 import { companyDashboardPath } from "@/lib/paths/company";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { getLocalSeoSettings, seedLocalSeoFromCompany } from "@/lib/services/local-seo";
@@ -89,7 +89,6 @@ export default async function CompanyReviewsPage({ params }: Props) {
         </Link>
       </header>
 
-      <GrowthHubNav slug={slug} active="reviews" />
       <CompanyReviewsClient
         slug={slug}
         companyId={row.id}

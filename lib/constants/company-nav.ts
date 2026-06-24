@@ -1,32 +1,98 @@
 import type { BookingsView } from "@/lib/bookings/request-type";
+import type { PermissionKey } from "@/lib/permissions/shared";
+import { hasAnyPermission } from "@/lib/permissions/shared";
+import {
+  companyAutomationsPath,
+  companyAnalyticsPath,
+  companyAiInsightsPath,
+  companyBookingFormPath,
+  companyBookingsPath,
+  companyBusinessHealthPath,
+  companyCalendarPath,
+  companyCampaignsPath,
+  companyContentPath,
+  companyCustomerSegmentsPath,
+  companyCustomersPath,
+  companyDashboardPath,
+  companyGrowthPath,
+  companyHostingPath,
+  companyInsightsPath,
+  companyIntelligencePath,
+  companyInvoicesPath,
+  companyLeadsPath,
+  companyMarketingPath,
+  companyPaymentSettingsPath,
+  companyPaymentsPath,
+  companyProjectPath,
+  companyQuotesPath,
+  companyReportsPath,
+  companyRevenuePath,
+  companyReviewsPath,
+  companySeoPath,
+  companyServicesPath,
+  companySettingsPath,
+  companySubscriptionPath,
+  companyRetentionCampaignsPath,
+  companySupportPath,
+  companyFeatureRequestsPath,
+  companyTasksPath,
+  companyTeamPath,
+  companyTeamRolesPath,
+  companyTeamStaffPath,
+  companyWebsiteApiKeysPath,
+  companyWebsiteConnectionPath,
+  companyWebsiteDomainsPath,
+  companyWebsiteHostingPath,
+  companyWebsiteTrackingPath,
+  companyWebsitesPath,
+} from "@/lib/paths/company";
+
+export type CompanyNavSection =
+  | "home"
+  | "operations"
+  | "revenue"
+  | "website"
+  | "growth"
+  | "team"
+  | "intelligence"
+  | "settings";
 
 export type CompanyNavKey =
   | "dashboard"
-  | "insights"
   | "bookings"
   | "calendar"
   | "customers"
   | "services"
-  | "invoices"
-  | "payments"
   | "revenue"
-  | "reports"
   | "websites"
-  | "seo"
-  | "marketing"
-  | "reviews"
-  | "campaigns"
-  | "content"
-  | "analytics"
-  | "settings"
+  | "growth"
   | "team"
   | "tasks"
   | "automations"
-  | "ai-insights"
-  | "business-health"
-  | "notifications"
-  | "project"
-  | "booking-form";
+  | "intelligence"
+  | "support"
+  | "featureRequests"
+  | "settings"
+  | "subscription";
+
+export type CollapsibleNavKey =
+  | "bookings"
+  | "customers"
+  | "revenue"
+  | "websites"
+  | "growth"
+  | "team"
+  | "intelligence";
+
+export const COLLAPSIBLE_NAV_KEYS: CollapsibleNavKey[] = [
+  "bookings",
+  "customers",
+  "revenue",
+  "websites",
+  "growth",
+  "team",
+  "intelligence",
+];
 
 export function companyNavItems(
   slug: string,
@@ -35,60 +101,150 @@ export function companyNavItems(
   key: CompanyNavKey;
   label: string;
   href: string;
-  section?: "operations" | "websites" | "growth" | "intelligence" | "settings";
+  section: CompanyNavSection;
+  collapsible?: CollapsibleNavKey;
+  permissions?: PermissionKey[];
 }[] {
-  const base = `/${encodeURIComponent(slug)}/dashboard`;
   const items: {
     key: CompanyNavKey;
     label: string;
     href: string;
-    section?: "operations" | "websites" | "growth" | "intelligence" | "settings";
+    section: CompanyNavSection;
+    collapsible?: CollapsibleNavKey;
+    permissions?: PermissionKey[];
   }[] = [
-    { key: "dashboard" as const, label: "Dashboard", href: base, section: "operations" as const },
-    { key: "insights" as const, label: "Business Insights", href: `${base}/insights`, section: "intelligence" as const },
-    { key: "business-health" as const, label: "Business Health", href: `${base}/business-health`, section: "intelligence" as const },
-    { key: "ai-insights" as const, label: "AI Assistant", href: `${base}/ai-insights`, section: "intelligence" as const },
-    { key: "reports" as const, label: "Reports", href: `${base}/reports`, section: "intelligence" as const },
-    { key: "bookings" as const, label: "Bookings", href: `${base}/bookings`, section: "operations" as const },
-    { key: "calendar" as const, label: "Calendar", href: `${base}/calendar`, section: "operations" as const },
-    { key: "customers" as const, label: "Customers", href: `${base}/customers`, section: "operations" as const },
-    { key: "services" as const, label: "Services", href: `${base}/services`, section: "operations" as const },
-    { key: "invoices" as const, label: "Invoices", href: `${base}/invoices`, section: "operations" as const },
-    { key: "payments" as const, label: "Payments", href: `${base}/payments`, section: "operations" as const },
-    { key: "revenue" as const, label: "Revenue", href: `${base}/revenue`, section: "operations" as const },
-    { key: "tasks" as const, label: "Tasks", href: `${base}/tasks`, section: "operations" as const },
-    { key: "automations" as const, label: "Automations", href: `${base}/automations`, section: "operations" as const },
-    { key: "notifications" as const, label: "Notifications", href: `${base}/notifications`, section: "operations" as const },
-    { key: "websites" as const, label: "Websites", href: `${base}/websites`, section: "websites" as const },
-    { key: "seo" as const, label: "SEO", href: `${base}/seo`, section: "growth" as const },
-    { key: "marketing" as const, label: "Marketing", href: `${base}/marketing`, section: "growth" as const },
-    { key: "reviews" as const, label: "Reviews", href: `${base}/reviews`, section: "growth" as const },
-    { key: "campaigns" as const, label: "Campaigns", href: `${base}/campaigns`, section: "growth" as const },
-    { key: "content" as const, label: "Content", href: `${base}/content`, section: "growth" as const },
-    { key: "analytics" as const, label: "Analytics", href: `${base}/analytics`, section: "growth" as const },
+    {
+      key: "dashboard",
+      label: "Overview",
+      href: companyDashboardPath(slug),
+      section: "home",
+    },
+    {
+      key: "bookings",
+      label: "Bookings",
+      href: companyBookingsPath(slug),
+      section: "operations",
+      collapsible: "bookings",
+      permissions: ["view_bookings"],
+    },
+    {
+      key: "calendar",
+      label: "Calendar",
+      href: companyCalendarPath(slug),
+      section: "operations",
+      permissions: ["view_bookings"],
+    },
+    {
+      key: "customers",
+      label: "Customers",
+      href: companyCustomersPath(slug),
+      section: "operations",
+      collapsible: "customers",
+      permissions: ["view_customers"],
+    },
+    {
+      key: "services",
+      label: "Services",
+      href: companyServicesPath(slug),
+      section: "operations",
+      permissions: ["view_customers"],
+    },
+    {
+      key: "revenue",
+      label: "Revenue",
+      href: companyRevenuePath(slug),
+      section: "revenue",
+      collapsible: "revenue",
+      permissions: ["view_revenue"],
+    },
+    {
+      key: "websites",
+      label: "Website",
+      href: companyWebsitesPath(slug),
+      section: "website",
+      collapsible: "websites",
+      permissions: ["view_websites"],
+    },
+    {
+      key: "growth",
+      label: "Growth",
+      href: companyGrowthPath(slug),
+      section: "growth",
+      collapsible: "growth",
+      permissions: ["manage_marketing", "view_reports"],
+    },
+    {
+      key: "team",
+      label: "Team",
+      href: companyTeamPath(slug),
+      section: "team",
+      collapsible: "team",
+    },
+    {
+      key: "tasks",
+      label: "Tasks",
+      href: companyTasksPath(slug),
+      section: "team",
+      permissions: ["view_tasks"],
+    },
+    {
+      key: "automations",
+      label: "Automations",
+      href: companyAutomationsPath(slug),
+      section: "team",
+      permissions: ["manage_automations"],
+    },
+    {
+      key: "intelligence",
+      label: "Intelligence",
+      href: companyIntelligencePath(slug),
+      section: "intelligence",
+      collapsible: "intelligence",
+      permissions: ["view_reports", "view_ai_insights"],
+    },
+    {
+      key: "support",
+      label: "Support",
+      href: companySupportPath(slug),
+      section: "settings",
+    },
+    {
+      key: "featureRequests",
+      label: "Feature requests",
+      href: companyFeatureRequestsPath(slug),
+      section: "settings",
+    },
+    {
+      key: "settings",
+      label: "Business",
+      href: companySettingsPath(slug),
+      section: "settings",
+      permissions: ["manage_settings"],
+    },
+    {
+      key: "subscription",
+      label: "Subscription",
+      href: companySubscriptionPath(slug),
+      section: "settings",
+      permissions: ["manage_settings"],
+    },
   ];
 
-  if (options?.hasWebsiteProject) {
-    items.push({
-      key: "project",
-      label: "Website build",
-      href: `${base}/project`,
-      section: "websites",
-    });
-  }
-
-  items.push(
-    {
-      key: "booking-form",
-      label: "Booking form",
-      href: `${base}/booking-form`,
-      section: "operations",
-    },
-    { key: "settings", label: "Business", href: `${base}/settings`, section: "settings" },
-    { key: "team", label: "Team", href: `${base}/team`, section: "settings" }
-  );
-
   return items;
+}
+
+export function filterCompanyNavItems(
+  items: ReturnType<typeof companyNavItems>,
+  userPermissions: PermissionKey[]
+) {
+  return items.filter((item) => hasAnyPermission(userPermissions, item.permissions));
+}
+
+export function filterSubNavItems<T extends { permissions?: PermissionKey[] }>(
+  items: T[],
+  userPermissions: PermissionKey[]
+): T[] {
+  return items.filter((item) => hasAnyPermission(userPermissions, item.permissions));
 }
 
 export function companyNavKeyFromPathname(
@@ -97,66 +253,477 @@ export function companyNavKeyFromPathname(
 ): CompanyNavKey {
   const base = `/${encodeURIComponent(slug)}/dashboard`;
   if (pathname === base || pathname === `${base}/`) return "dashboard";
-  if (pathname.startsWith(`${base}/insights`)) return "insights";
-  if (pathname.startsWith(`${base}/business-health`)) return "business-health";
-  if (pathname.startsWith(`${base}/ai-insights`)) return "ai-insights";
+  if (pathname.startsWith(`${base}/notifications`)) return "dashboard";
   if (pathname.startsWith(`${base}/tasks`)) return "tasks";
   if (pathname.startsWith(`${base}/automations`)) return "automations";
-  if (pathname.startsWith(`${base}/notifications`)) return "notifications";
-  if (pathname.startsWith(`${base}/bookings`)) return "bookings";
-  if (pathname.startsWith(`${base}/quotes`)) return "bookings";
   if (pathname.startsWith(`${base}/calendar`)) return "calendar";
-  if (pathname.startsWith(`${base}/booking-form`)) return "booking-form";
+  if (
+    pathname.startsWith(`${base}/bookings`) ||
+    pathname.startsWith(`${base}/booking-form`)
+  ) {
+    return "bookings";
+  }
   if (pathname.startsWith(`${base}/customers`)) return "customers";
   if (pathname.startsWith(`${base}/services`)) return "services";
-  if (pathname.startsWith(`${base}/invoices`)) return "invoices";
-  if (pathname.startsWith(`${base}/payments`)) return "payments";
-  if (pathname.startsWith(`${base}/revenue`)) return "revenue";
-  if (pathname.startsWith(`${base}/reports`)) return "reports";
-  if (pathname.startsWith(`${base}/project`)) return "project";
+  if (
+    pathname.startsWith(`${base}/quotes`) ||
+    pathname.startsWith(`${base}/invoices`) ||
+    pathname.startsWith(`${base}/payments`) ||
+    pathname.startsWith(`${base}/revenue`)
+  ) {
+    return "revenue";
+  }
   if (
     pathname.startsWith(`${base}/websites`) ||
-    pathname.startsWith(`${base}/hosting`)
+    pathname.startsWith(`${base}/hosting`) ||
+    pathname.startsWith(`${base}/project`)
   ) {
     return "websites";
   }
-  if (pathname.startsWith(`${base}/seo`)) return "seo";
-  if (pathname.startsWith(`${base}/marketing`)) return "marketing";
-  if (pathname.startsWith(`${base}/reviews`)) return "reviews";
-  if (pathname.startsWith(`${base}/campaigns`)) return "campaigns";
-  if (pathname.startsWith(`${base}/content`)) return "content";
-  if (pathname.startsWith(`${base}/analytics`)) return "analytics";
+  if (
+    pathname.startsWith(`${base}/growth`) ||
+    pathname.startsWith(`${base}/leads`) ||
+    pathname.startsWith(`${base}/seo`) ||
+    pathname.startsWith(`${base}/marketing`) ||
+    pathname.startsWith(`${base}/reviews`) ||
+    pathname.startsWith(`${base}/campaigns`) ||
+    pathname.startsWith(`${base}/content`) ||
+    pathname.startsWith(`${base}/analytics`)
+  ) {
+    return "growth";
+  }
+  if (
+    pathname.startsWith(`${base}/intelligence`) ||
+    pathname.startsWith(`${base}/insights`) ||
+    pathname.startsWith(`${base}/business-health`) ||
+    pathname.startsWith(`${base}/ai-insights`) ||
+    pathname.startsWith(`${base}/reports`)
+  ) {
+    return "intelligence";
+  }
+  if (pathname.startsWith(`${base}/subscription`)) return "subscription";
   if (pathname.startsWith(`${base}/settings`)) return "settings";
+  if (pathname.startsWith(`${base}/support`)) return "support";
+  if (pathname.startsWith(`${base}/feature-requests`)) return "featureRequests";
   if (pathname.startsWith(`${base}/team`)) return "team";
   return "dashboard";
 }
 
 export type BookingsSubNavItem = {
-  key: BookingsView;
+  key: BookingsView | "booking-form";
   label: string;
   href: string;
 };
 
 export function bookingsSubNavItems(slug: string): BookingsSubNavItem[] {
-  const base = `/${encodeURIComponent(slug)}/dashboard/bookings`;
+  const base = companyBookingsPath(slug);
   return [
-    { key: "all", label: "All", href: base },
-    { key: "booking-requests", label: "Booking Request", href: `${base}/booking-requests` },
-    { key: "quote-requests", label: "Quote Request", href: `${base}/quote-requests` },
+    { key: "all", label: "All bookings", href: base },
+    {
+      key: "booking-requests",
+      label: "Booking requests",
+      href: `${base}/booking-requests`,
+    },
+    {
+      key: "quote-requests",
+      label: "Quote requests",
+      href: `${base}/quote-requests`,
+    },
+    {
+      key: "booking-form",
+      label: "Form builder",
+      href: companyBookingFormPath(slug),
+    },
   ];
 }
 
 export function bookingsViewFromPathname(
   slug: string,
   pathname: string
-): BookingsView {
-  const base = `/${encodeURIComponent(slug)}/dashboard/bookings`;
+): BookingsView | "booking-form" {
+  const base = companyBookingsPath(slug);
+  if (pathname.startsWith(companyBookingFormPath(slug))) return "booking-form";
   if (pathname === `${base}/booking-requests`) return "booking-requests";
-  if (
-    pathname === `${base}/quote-requests` ||
-    pathname.startsWith(`/${encodeURIComponent(slug)}/dashboard/quotes`)
-  ) {
-    return "quote-requests";
-  }
+  if (pathname === `${base}/quote-requests`) return "quote-requests";
   return "all";
+}
+
+export type CustomersSubNavKey = "all" | "segments";
+
+export type CustomersSubNavItem = {
+  key: CustomersSubNavKey;
+  label: string;
+  href: string;
+};
+
+export function customersSubNavItems(slug: string): CustomersSubNavItem[] {
+  return [
+    { key: "all", label: "All customers", href: companyCustomersPath(slug) },
+    {
+      key: "segments",
+      label: "Segments",
+      href: companyCustomerSegmentsPath(slug),
+    },
+  ];
+}
+
+export function customersSubNavKeyFromPathname(
+  slug: string,
+  pathname: string
+): CustomersSubNavKey {
+  if (pathname.startsWith(companyCustomerSegmentsPath(slug))) return "segments";
+  return "all";
+}
+
+export type RevenueSubNavKey =
+  | "quotes"
+  | "invoices"
+  | "payments"
+  | "overview"
+  | "payment-settings";
+
+export type RevenueSubNavItem = {
+  key: RevenueSubNavKey;
+  label: string;
+  href: string;
+};
+
+export function revenueSubNavItems(slug: string): RevenueSubNavItem[] {
+  return [
+    { key: "quotes", label: "Quotes", href: companyQuotesPath(slug) },
+    { key: "invoices", label: "Invoices", href: companyInvoicesPath(slug) },
+    { key: "payments", label: "Payments", href: companyPaymentsPath(slug) },
+    { key: "overview", label: "Revenue", href: companyRevenuePath(slug) },
+    {
+      key: "payment-settings",
+      label: "Payment settings",
+      href: companyPaymentSettingsPath(slug),
+    },
+  ];
+}
+
+export function revenueSubNavKeyFromPathname(
+  slug: string,
+  pathname: string
+): RevenueSubNavKey {
+  const base = `/${encodeURIComponent(slug)}/dashboard`;
+  if (pathname.startsWith(`${base}/revenue/payment-settings`)) return "payment-settings";
+  if (pathname.startsWith(`${base}/quotes`)) return "quotes";
+  if (pathname.startsWith(`${base}/invoices`)) return "invoices";
+  if (pathname.startsWith(`${base}/payments`)) return "payments";
+  return "overview";
+}
+
+export type WebsiteSubNavKey =
+  | "overview"
+  | "connection"
+  | "domains"
+  | "api-keys"
+  | "tracking"
+  | "hosting"
+  | "billing"
+  | "project";
+
+export type WebsiteSubNavItem = {
+  key: WebsiteSubNavKey;
+  label: string;
+  href: string;
+};
+
+export function websiteSubNavItems(
+  slug: string,
+  options?: { hasWebsiteProject?: boolean }
+): WebsiteSubNavItem[] {
+  const items: WebsiteSubNavItem[] = [
+    { key: "overview", label: "Overview", href: companyWebsitesPath(slug) },
+    {
+      key: "connection",
+      label: "Connection",
+      href: companyWebsiteConnectionPath(slug),
+    },
+    { key: "domains", label: "Domains", href: companyWebsiteDomainsPath(slug) },
+    {
+      key: "api-keys",
+      label: "API keys",
+      href: companyWebsiteApiKeysPath(slug),
+    },
+    {
+      key: "tracking",
+      label: "Tracking",
+      href: companyWebsiteTrackingPath(slug),
+    },
+    {
+      key: "hosting",
+      label: "Deployments",
+      href: companyWebsiteHostingPath(slug),
+    },
+    {
+      key: "billing",
+      label: "Hosting plan",
+      href: companyHostingPath(slug),
+    },
+  ];
+
+  if (options?.hasWebsiteProject) {
+    items.push({
+      key: "project",
+      label: "Website build",
+      href: companyProjectPath(slug),
+    });
+  }
+
+  return items;
+}
+
+export function websiteSubNavKeyFromPathname(
+  slug: string,
+  pathname: string
+): WebsiteSubNavKey {
+  const base = `/${encodeURIComponent(slug)}/dashboard`;
+  if (pathname.startsWith(`${base}/project`)) return "project";
+  if (pathname.startsWith(`${base}/hosting`)) return "billing";
+  if (pathname.startsWith(`${base}/websites/connection`)) return "connection";
+  if (pathname.startsWith(`${base}/websites/domains`)) return "domains";
+  if (pathname.startsWith(`${base}/websites/api-keys`)) return "api-keys";
+  if (pathname.startsWith(`${base}/websites/tracking`)) return "tracking";
+  if (pathname.startsWith(`${base}/websites/hosting`)) return "hosting";
+  if (pathname.startsWith(`${base}/websites`)) return "overview";
+  return "overview";
+}
+
+export type TeamSubNavKey = "members" | "staff" | "roles";
+
+export type TeamSubNavItem = {
+  key: TeamSubNavKey;
+  label: string;
+  href: string;
+  permissions?: PermissionKey[];
+};
+
+export function teamSubNavItems(slug: string): TeamSubNavItem[] {
+  return [
+    { key: "members", label: "Members", href: companyTeamPath(slug) },
+    {
+      key: "staff",
+      label: "Staff",
+      href: companyTeamStaffPath(slug),
+    },
+    {
+      key: "roles",
+      label: "Roles",
+      href: companyTeamRolesPath(slug),
+      permissions: ["manage_staff"],
+    },
+  ];
+}
+
+export function teamSubNavKeyFromPathname(
+  slug: string,
+  pathname: string
+): TeamSubNavKey {
+  if (pathname.startsWith(companyTeamRolesPath(slug))) return "roles";
+  if (pathname.startsWith(companyTeamStaffPath(slug))) return "staff";
+  return "members";
+}
+
+export type GrowthSubNavKey =
+  | "overview"
+  | "leads"
+  | "seo"
+  | "marketing"
+  | "reviews"
+  | "campaigns"
+  | "retention"
+  | "content"
+  | "analytics";
+
+export type GrowthSubNavItem = {
+  key: GrowthSubNavKey;
+  label: string;
+  href: string;
+  permissions?: PermissionKey[];
+};
+
+export function growthSubNavItems(slug: string): GrowthSubNavItem[] {
+  return [
+    { key: "overview", label: "Overview", href: companyGrowthPath(slug) },
+    {
+      key: "leads",
+      label: "Leads",
+      href: companyLeadsPath(slug),
+      permissions: ["manage_marketing"],
+    },
+    {
+      key: "seo",
+      label: "SEO",
+      href: companySeoPath(slug),
+      permissions: ["manage_marketing"],
+    },
+    {
+      key: "marketing",
+      label: "Marketing",
+      href: companyMarketingPath(slug),
+      permissions: ["manage_marketing"],
+    },
+    {
+      key: "reviews",
+      label: "Reviews",
+      href: companyReviewsPath(slug),
+      permissions: ["manage_marketing"],
+    },
+    {
+      key: "campaigns",
+      label: "Campaigns",
+      href: companyCampaignsPath(slug),
+      permissions: ["manage_marketing"],
+    },
+    {
+      key: "retention",
+      label: "Retention",
+      href: companyRetentionCampaignsPath(slug),
+      permissions: ["manage_marketing"],
+    },
+    {
+      key: "content",
+      label: "Content",
+      href: companyContentPath(slug),
+      permissions: ["manage_marketing"],
+    },
+    {
+      key: "analytics",
+      label: "Analytics",
+      href: companyAnalyticsPath(slug),
+      permissions: ["manage_marketing", "view_reports"],
+    },
+  ];
+}
+
+export function growthSubNavKeyFromPathname(
+  slug: string,
+  pathname: string
+): GrowthSubNavKey {
+  const base = `/${encodeURIComponent(slug)}/dashboard`;
+  if (pathname.startsWith(`${base}/growth`)) return "overview";
+  if (pathname.startsWith(`${base}/leads`)) return "leads";
+  if (pathname.startsWith(`${base}/seo`)) return "seo";
+  if (pathname.startsWith(`${base}/marketing`)) return "marketing";
+  if (pathname.startsWith(`${base}/reviews`)) return "reviews";
+  if (pathname.startsWith(`${base}/campaigns/retention`)) return "retention";
+  if (pathname.startsWith(`${base}/campaigns`)) return "campaigns";
+  if (pathname.startsWith(`${base}/content`)) return "content";
+  if (pathname.startsWith(`${base}/analytics`)) return "analytics";
+  return "overview";
+}
+
+export type IntelligenceSubNavKey =
+  | "overview"
+  | "insights"
+  | "business-health"
+  | "ai-insights"
+  | "reports";
+
+export type IntelligenceSubNavItem = {
+  key: IntelligenceSubNavKey;
+  label: string;
+  href: string;
+  permissions?: PermissionKey[];
+};
+
+export function intelligenceSubNavItems(slug: string): IntelligenceSubNavItem[] {
+  return [
+    {
+      key: "overview",
+      label: "Overview",
+      href: companyIntelligencePath(slug),
+    },
+    {
+      key: "insights",
+      label: "Business insights",
+      href: companyInsightsPath(slug),
+      permissions: ["view_reports"],
+    },
+    {
+      key: "business-health",
+      label: "Business health",
+      href: companyBusinessHealthPath(slug),
+      permissions: ["view_reports"],
+    },
+    {
+      key: "ai-insights",
+      label: "Smart Search",
+      href: companyAiInsightsPath(slug),
+      permissions: ["view_ai_insights"],
+    },
+    {
+      key: "reports",
+      label: "Reports",
+      href: companyReportsPath(slug),
+      permissions: ["view_reports"],
+    },
+  ];
+}
+
+export function intelligenceSubNavKeyFromPathname(
+  slug: string,
+  pathname: string
+): IntelligenceSubNavKey {
+  const base = `/${encodeURIComponent(slug)}/dashboard`;
+  if (pathname.startsWith(`${base}/intelligence`)) return "overview";
+  if (pathname.startsWith(`${base}/insights`)) return "insights";
+  if (pathname.startsWith(`${base}/business-health`)) return "business-health";
+  if (pathname.startsWith(`${base}/ai-insights`)) return "ai-insights";
+  if (pathname.startsWith(`${base}/reports`)) return "reports";
+  return "overview";
+}
+
+export function isPathInCollapsibleSection(
+  slug: string,
+  pathname: string,
+  section: CollapsibleNavKey
+): boolean {
+  const base = `/${encodeURIComponent(slug)}/dashboard`;
+  switch (section) {
+    case "bookings":
+      return (
+        pathname.startsWith(`${base}/bookings`) ||
+        pathname.startsWith(`${base}/booking-form`)
+      );
+    case "customers":
+      return pathname.startsWith(`${base}/customers`);
+    case "revenue":
+      return (
+        pathname.startsWith(`${base}/quotes`) ||
+        pathname.startsWith(`${base}/invoices`) ||
+        pathname.startsWith(`${base}/payments`) ||
+        pathname.startsWith(`${base}/revenue`)
+      );
+    case "websites":
+      return (
+        pathname.startsWith(`${base}/websites`) ||
+        pathname.startsWith(`${base}/hosting`) ||
+        pathname.startsWith(`${base}/project`)
+      );
+    case "team":
+      return pathname.startsWith(`${base}/team`);
+    case "growth":
+      return (
+        pathname.startsWith(`${base}/growth`) ||
+        pathname.startsWith(`${base}/seo`) ||
+        pathname.startsWith(`${base}/marketing`) ||
+        pathname.startsWith(`${base}/reviews`) ||
+        pathname.startsWith(`${base}/campaigns`) ||
+        pathname.startsWith(`${base}/content`) ||
+        pathname.startsWith(`${base}/analytics`)
+      );
+    case "intelligence":
+      return (
+        pathname.startsWith(`${base}/intelligence`) ||
+        pathname.startsWith(`${base}/insights`) ||
+        pathname.startsWith(`${base}/business-health`) ||
+        pathname.startsWith(`${base}/ai-insights`) ||
+        pathname.startsWith(`${base}/reports`)
+      );
+    default:
+      return false;
+  }
 }

@@ -1,21 +1,42 @@
 import { NextResponse } from "next/server";
 
+import { logPlatformApiRequest } from "@/lib/platform/api-log";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 
+const ROUTE = "/api/v1/health";
+
 export async function GET(request: Request) {
+  const startedAt = Date.now();
+  let companyId: string | null = null;
+
+  const finish = async (response: NextResponse, errorMessage?: string | null) => {
+    await logPlatformApiRequest({
+      route: ROUTE,
+      method: "GET",
+      statusCode: response.status,
+      companyId,
+      durationMs: Date.now() - startedAt,
+      errorMessage: errorMessage ?? null,
+    });
+    return response;
+  };
+
   const apiKey = request.headers.get("x-faraios-company-key")?.trim();
   if (!apiKey) {
-    return NextResponse.json(
-      { ok: false, error: "Missing X-FaraiOS-Company-Key header." },
-      { status: 401 }
+    return finish(
+      NextResponse.json(
+        { ok: false, error: "Missing X-FaraiOS-Company-Key header." },
+        { status: 401 }
+      ),
+      "Missing API key"
     );
   }
 
   const admin = tryCreateAdminClient();
   if (!admin.ok) {
-    return NextResponse.json(
-      { ok: false, error: "API is not configured." },
-      { status: 503 }
+    return finish(
+      NextResponse.json({ ok: false, error: "API is not configured." }, { status: 503 }),
+      admin.error
     );
   }
 
@@ -27,16 +48,18 @@ export async function GET(request: Request) {
     .maybeSingle();
 
   if (error || !connected?.company_id) {
-    return NextResponse.json(
-      { ok: false, error: "Invalid API key." },
-      { status: 401 }
+    return finish(
+      NextResponse.json({ ok: false, error: "Invalid API key." }, { status: 401 }),
+      "Invalid API key"
     );
   }
 
+  companyId = connected.company_id;
+
   if (connected.api_key_status === "revoked") {
-    return NextResponse.json(
-      { ok: false, error: "API key has been revoked." },
-      { status: 401 }
+    return finish(
+      NextResponse.json({ ok: false, error: "API key has been revoked." }, { status: 401 }),
+      "Revoked API key"
     );
   }
 
@@ -49,13 +72,15 @@ export async function GET(request: Request) {
     company_id: connected.company_id,
     event_type: "used",
     key_prefix: apiKey.slice(0, 8),
-    metadata: { endpoint: "/api/v1/health" },
+    metadata: { endpoint: ROUTE },
   });
 
-  return NextResponse.json({
-    ok: true,
-    companyId: connected.company_id,
-    productionUrl: connected.production_url,
-    type: connected.type,
-  });
+  return finish(
+    NextResponse.json({
+      ok: true,
+      companyId: connected.company_id,
+      productionUrl: connected.production_url,
+      type: connected.type,
+    })
+  );
 }

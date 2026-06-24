@@ -3,9 +3,6 @@
 import Link from "next/link";
 import React, { useEffect, useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { AdminSidebarBrand } from "@/components/admin/admin-sidebar-brand";
-import { AdminSidebarNav } from "@/components/admin/admin-sidebar-nav";
-import { AdminSidebarUser } from "@/components/admin/admin-sidebar-user";
 import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
 import {
   Users,
@@ -38,6 +35,7 @@ import {
   adminUpdateCompanyStatus,
   adminUpdateMarketplaceListing,
 } from "@/app/actions/admin";
+import { ADMIN_BUSINESSES_PATH } from "@/lib/constants/admin-nav";
 import { ADMIN_DEVELOPER_OPTIONS } from "@/lib/constants/admin-developers";
 import type { AdminPipelineStatus, AdminProjectDetails } from "@/types/admin";
 
@@ -117,12 +115,12 @@ const fadeUp = {
 
 export function FaraiAdminProjectDetails({
   project,
-  adminEmail,
   adminDisplayName,
+  embedded = false,
 }: {
   project: AdminProjectDetails;
-  adminEmail: string | null;
   adminDisplayName: string;
+  embedded?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -302,36 +300,33 @@ export function FaraiAdminProjectDetails({
 
   return (
     <div
-      className="flex h-screen w-full overflow-hidden font-sans"
-      style={{ background: "#f8f7ff" }}
+      className="flex min-h-0 flex-1 flex-col overflow-hidden"
       onClick={() => {
         setOpenStatusDropdown(false);
         setOpenDevDropdown(false);
       }}
     >
-      <aside className="flex h-full w-60 flex-shrink-0 flex-col bg-slate-900">
-        <AdminSidebarBrand />
-
-        <AdminSidebarNav activeNav="pipeline" />
-
-        <AdminSidebarUser adminDisplayName={adminDisplayName} adminEmail={adminEmail} />
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 flex-shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
+      {!embedded ? (
+        <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
           <div className="min-w-0 flex-1">
             <nav className="mb-0.5 flex items-center gap-1.5 text-xs text-gray-400">
-              <Link href="/admin/pipeline" className="flex items-center gap-1 font-medium transition-colors hover:text-indigo-600">
+              <Link
+                href={`${ADMIN_BUSINESSES_PATH}/${project.companyId}?tab=pipeline`}
+                className="flex items-center gap-1 font-medium transition-colors hover:text-indigo-600"
+              >
                 <ArrowLeft className="h-3 w-3" />
-                <span>Project Pipeline</span>
+                <span>Business</span>
               </Link>
               <ChevronRight className="h-3 w-3" />
               <span className="font-semibold text-gray-600">{project.businessName}</span>
             </nav>
-            <h1 className="text-base font-extrabold leading-tight tracking-tight text-gray-900">Project Details</h1>
+            <h1 className="text-base font-extrabold leading-tight tracking-tight text-gray-900">
+              Project Details
+            </h1>
           </div>
           <AdminActivityBellLink />
         </header>
+      ) : null}
 
         <main className="flex-1 overflow-y-auto px-6 py-6">
           {isPending ? <p className="mb-2 text-xs font-medium text-indigo-600">Syncing…</p> : null}
@@ -748,7 +743,6 @@ export function FaraiAdminProjectDetails({
             </div>
           </motion.div>
         </main>
-      </div>
     </div>
   );
 }

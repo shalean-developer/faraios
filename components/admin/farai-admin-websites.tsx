@@ -1,9 +1,6 @@
 import Link from "next/link";
 
 import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
-import { AdminSidebarBrand } from "@/components/admin/admin-sidebar-brand";
-import { AdminSidebarNav } from "@/components/admin/admin-sidebar-nav";
-import { AdminSidebarUser } from "@/components/admin/admin-sidebar-user";
 import { PreviewWebsiteButton } from "@/components/websites/preview-website-button";
 import type { Website } from "@/types/database";
 
@@ -11,29 +8,12 @@ type WebsiteWithCompany = Website & { companies?: { name?: string | null } | nul
 
 export function FaraiAdminWebsites({
   websites,
-  adminDisplayName,
-  adminEmail,
 }: {
   websites: WebsiteWithCompany[];
-  adminDisplayName: string;
-  adminEmail: string | null;
 }) {
   return (
-    <div
-      className="flex h-screen w-full overflow-hidden font-sans"
-      style={{ background: "#f8f7ff" }}
-    >
-      <aside className="flex h-full w-60 shrink-0 flex-col bg-slate-900">
-        <AdminSidebarBrand />
-        <AdminSidebarNav activeNav="websites" />
-        <AdminSidebarUser
-          adminDisplayName={adminDisplayName}
-          adminEmail={adminEmail}
-        />
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
+    <>
+      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-extrabold tracking-tight text-gray-900">
               Websites
@@ -96,7 +76,6 @@ export function FaraiAdminWebsites({
             )}
           </div>
         </main>
-      </div>
-    </div>
+    </>
   );
 }

@@ -3,8 +3,8 @@ import { FaraiAuthPage } from "@/components/auth/farai-auth-page";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
 
 export const metadata: Metadata = {
-  title: "Sign in — FaraiOS",
-  description: "Sign in to your FaraiOS account.",
+  title: "Sign In | FaraiOS",
+  description: "Sign in to your FaraiOS workspace.",
 };
 
 export default async function SignInPage({

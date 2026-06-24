@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireCompanyMembership } from "@/lib/services/company-access";
+import { requireCompanyPermission } from "@/lib/services/company-access";
 import { notifyInvoiceIssued } from "@/lib/services/financial-notifications";
 import {
   createInvoice,
@@ -10,6 +10,7 @@ import {
   cancelDraftInvoice,
   getInvoiceById,
   issueInvoice,
+  updateDraftInvoice,
 } from "@/lib/services/invoices";
 import { getOrCreatePortalToken } from "@/lib/services/portal-access";
 import type { DepositType } from "@/lib/financial/status";
@@ -38,7 +39,7 @@ export async function createInvoiceAction(input: {
   depositValue?: number;
   issue?: boolean;
 }): Promise<InvoiceActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "create_invoices");
   if (!access.ok) return access;
 
   const result = await createInvoice({
@@ -64,7 +65,7 @@ export async function createInvoiceFromBookingAction(input: {
   companySlug: string;
   bookingId: string;
 }): Promise<InvoiceActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "create_invoices");
   if (!access.ok) return access;
 
   const result = await createInvoiceFromBooking(
@@ -81,7 +82,7 @@ export async function issueInvoiceAction(input: {
   companySlug: string;
   invoiceId: string;
 }): Promise<InvoiceActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "create_invoices");
   if (!access.ok) return access;
 
   const result = await issueInvoice(input.companyId, input.invoiceId, access.userId);
@@ -112,7 +113,7 @@ export async function cancelDraftInvoiceAction(input: {
   companySlug: string;
   invoiceId: string;
 }): Promise<InvoiceActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "create_invoices");
   if (!access.ok) return access;
 
   const result = await cancelDraftInvoice(
@@ -121,5 +122,40 @@ export async function cancelDraftInvoiceAction(input: {
     access.userId
   );
   if (result.ok) revalidateInvoicePaths(input.companySlug);
+  return result;
+}
+
+export async function updateDraftInvoiceAction(input: {
+  companyId: string;
+  companySlug: string;
+  invoiceId: string;
+  lineItems: LineItemInput[];
+  discountCents?: number;
+  taxCents?: number;
+  notes?: string;
+  dueDate?: string;
+  depositType?: DepositType;
+  depositValue?: number;
+}): Promise<InvoiceActionResult> {
+  const access = await requireCompanyPermission(input.companyId, "create_invoices");
+  if (!access.ok) return access;
+
+  const result = await updateDraftInvoice({
+    companyId: input.companyId,
+    invoiceId: input.invoiceId,
+    lineItems: input.lineItems,
+    discountCents: input.discountCents,
+    taxCents: input.taxCents,
+    notes: input.notes,
+    dueDate: input.dueDate ?? null,
+    depositType: input.depositType,
+    depositValue: input.depositValue,
+    actorId: access.userId,
+  });
+
+  if (result.ok) {
+    revalidateInvoicePaths(input.companySlug);
+    revalidatePath(`/${input.companySlug}/dashboard/invoices/${input.invoiceId}`);
+  }
   return result;
 }

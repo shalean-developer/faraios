@@ -1,41 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
+import {
+  hasAnyPermission,
+  PERMISSION_KEYS,
+  PERMISSION_LABELS,
+  ROLE_DEFAULTS,
+  type PermissionKey,
+} from "@/lib/permissions/shared";
 
-export const PERMISSION_KEYS = [
-  "view_bookings",
-  "edit_bookings",
-  "view_revenue",
-  "create_invoices",
-  "manage_staff",
-  "manage_marketing",
-  "manage_settings",
-  "view_customers",
-  "edit_customers",
-  "view_reports",
-  "manage_automations",
-  "view_tasks",
-  "manage_tasks",
-  "view_ai_insights",
-] as const;
-
-export type PermissionKey = (typeof PERMISSION_KEYS)[number];
-
-const ROLE_DEFAULTS: Record<string, PermissionKey[]> = {
-  owner: [...PERMISSION_KEYS],
-  admin: PERMISSION_KEYS.filter((k) => k !== "manage_settings"),
-  manager: [
-    "view_bookings",
-    "edit_bookings",
-    "view_customers",
-    "edit_customers",
-    "view_tasks",
-    "manage_tasks",
-    "view_reports",
-    "view_ai_insights",
-  ],
-  staff: ["view_bookings", "edit_bookings", "view_customers", "view_tasks"],
-  finance: ["view_revenue", "create_invoices", "view_reports", "view_customers"],
-  marketing: ["manage_marketing", "view_customers", "view_reports", "view_ai_insights"],
+export {
+  hasAnyPermission,
+  PERMISSION_KEYS,
+  PERMISSION_LABELS,
+  type PermissionKey,
 };
 
 export async function getUserRole(
@@ -82,6 +59,16 @@ export async function userHasPermission(
   if (role === "owner") return true;
   const perms = await getRolePermissions(companyId, role);
   return perms.includes(permission);
+}
+
+export async function getUserPermissionKeys(
+  companyId: string,
+  userId: string
+): Promise<PermissionKey[]> {
+  const role = await getUserRole(companyId, userId);
+  if (!role) return [];
+  if (role === "owner") return [...PERMISSION_KEYS];
+  return getRolePermissions(companyId, role);
 }
 
 export async function listPermissionsForCompany(companyId: string): Promise<

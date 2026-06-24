@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireCompanyMembership } from "@/lib/services/company-access";
-import { userHasPermission } from "@/lib/services/permissions";
+import { requireCompanyPermission } from "@/lib/services/company-access";
 import {
   createWorkflow,
   deleteWorkflow,
@@ -31,17 +30,8 @@ export async function createWorkflowAction(input: {
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "manage_automations");
   if (!access.ok) return access;
-
-  const allowed = await userHasPermission(
-    input.companyId,
-    access.userId,
-    "manage_automations"
-  );
-  if (!allowed) {
-    return { ok: false, error: "You do not have permission to manage automations." };
-  }
 
   const result = await createWorkflow({
     companyId: input.companyId,
@@ -62,7 +52,7 @@ export async function toggleWorkflowAction(input: {
   companySlug: string;
   enabled: boolean;
 }): Promise<AutomationActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "manage_automations");
   if (!access.ok) return access;
 
   const result = await updateWorkflow(input.workflowId, input.companyId, {
@@ -78,7 +68,7 @@ export async function deleteWorkflowAction(input: {
   companyId: string;
   companySlug: string;
 }): Promise<AutomationActionResult> {
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "manage_automations");
   if (!access.ok) return access;
 
   const result = await deleteWorkflow(input.workflowId, input.companyId);

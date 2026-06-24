@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { AdminSidebarBrand } from "@/components/admin/admin-sidebar-brand";
-import { AdminSidebarNav } from "@/components/admin/admin-sidebar-nav";
-import { AdminSidebarUser } from "@/components/admin/admin-sidebar-user";
 import {
   Bell,
   FolderPlus,
@@ -13,15 +11,19 @@ import {
   CheckCircle2,
   StickyNote,
   Upload,
-  Filter,
   Check,
   ChevronRight,
+  Shield,
+  LifeBuoy,
+  Lightbulb,
 } from "lucide-react";
 
 import type { AdminActivityCategory, AdminActivityItem } from "@/types/admin";
 
 const FILTER_TABS: { key: AdminActivityCategory; label: string }[] = [
   { key: "all", label: "All" },
+  { key: "platform", label: "Platform" },
+  { key: "operations", label: "Operations" },
   { key: "projects", label: "Projects" },
   { key: "team", label: "Team" },
   { key: "clients", label: "Clients" },
@@ -35,6 +37,9 @@ const ICONS = {
   checkCircle2: CheckCircle2,
   stickyNote: StickyNote,
   upload: Upload,
+  shield: Shield,
+  lifeBuoy: LifeBuoy,
+  lightbulb: Lightbulb,
 } as const;
 
 const fadeUp = {
@@ -54,15 +59,7 @@ const emptyAnim = {
   exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } },
 };
 
-export function FaraiActivityFeed({
-  items,
-  adminEmail,
-  adminDisplayName,
-}: {
-  items: AdminActivityItem[];
-  adminEmail: string | null;
-  adminDisplayName: string;
-}) {
+export function FaraiActivityFeed({ items }: { items: AdminActivityItem[] }) {
   const [activeFilter, setActiveFilter] = useState<AdminActivityCategory>("all");
   const [allRead, setAllRead] = useState(false);
 
@@ -80,34 +77,17 @@ export function FaraiActivityFeed({
   const totalFiltered = filtered.length;
 
   return (
-    <div className="flex h-screen w-full overflow-hidden font-sans" style={{ background: "#f8f7ff" }}>
-      <aside className="flex h-full w-60 flex-shrink-0 flex-col bg-slate-900">
-        <AdminSidebarBrand />
-
-        <AdminSidebarNav activeNav="activity" />
-
-        <AdminSidebarUser adminDisplayName={adminDisplayName} adminEmail={adminEmail} />
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 flex-shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
+    <>
+      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            <span className="text-sm font-medium text-gray-400">Dashboard</span>
+            <span className="text-sm font-medium text-gray-400">System</span>
             <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-300" />
-            <span className="text-sm font-extrabold tracking-tight text-gray-900">Notifications</span>
+            <span className="text-sm font-extrabold tracking-tight text-gray-900">Activity</span>
           </div>
           <div className="flex flex-shrink-0 items-center gap-2">
-            <button type="button" className="flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 transition-all hover:border-gray-300 hover:text-gray-900">
-              <Filter className="h-3.5 w-3.5" />
-              <span>Filter</span>
-            </button>
             <button type="button" onClick={() => setAllRead(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700">
               <Check className="h-3.5 w-3.5" />
               <span>Mark all read</span>
-            </button>
-            <button type="button" className="relative flex h-9 w-9 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-800">
-              <Bell className="h-[18px] w-[18px]" />
-              {unreadCount > 0 ? <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-indigo-500" /> : null}
             </button>
           </div>
         </header>
@@ -118,7 +98,9 @@ export function FaraiActivityFeed({
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <h1 className="text-lg font-extrabold tracking-tight text-gray-900">Activity</h1>
-                  <p className="mt-0.5 text-xs text-gray-400">Real-time updates across your workspace</p>
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    Audit logs, support, feature requests, pipeline, and client events
+                  </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-600">
@@ -174,7 +156,13 @@ export function FaraiActivityFeed({
                                     <div className="min-w-0 flex-1 pb-1">
                                       <div className="flex items-center justify-between gap-2">
                                         <div className="flex min-w-0 items-center gap-2">
-                                          <p className="text-xs font-bold leading-tight text-gray-800">{item.title}</p>
+                                          {item.href ? (
+                                            <Link href={item.href} className="text-xs font-bold leading-tight text-gray-800 hover:text-indigo-700">
+                                              {item.title}
+                                            </Link>
+                                          ) : (
+                                            <p className="text-xs font-bold leading-tight text-gray-800">{item.title}</p>
+                                          )}
                                           {item.unread ? <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-indigo-500" /> : null}
                                         </div>
                                         <span className="flex-shrink-0 text-[10px] font-semibold text-gray-400">{item.time}</span>
@@ -195,7 +183,6 @@ export function FaraiActivityFeed({
             </AnimatePresence>
           </div>
         </main>
-      </div>
-    </div>
+    </>
   );
 }

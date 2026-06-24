@@ -51,6 +51,10 @@ export type Company = {
   business_description?: string | null;
   booking_hours?: Record<string, unknown> | null;
   blocked_booking_dates?: string[];
+  brand_logo_url?: string | null;
+  brand_primary_color?: string | null;
+  brand_accent_color?: string | null;
+  notification_preferences?: Record<string, unknown> | null;
 };
 
 /** Aligns with public.customers */

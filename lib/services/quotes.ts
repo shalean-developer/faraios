@@ -339,3 +339,76 @@ export async function expireStaleQuotes(companyId: string): Promise<void> {
     .in("status", ["sent", "viewed"])
     .lt("valid_until", today);
 }
+
+export async function updateQuote(input: {
+  companyId: string;
+  quoteId: string;
+  lineItems: LineItemInput[];
+  discountCents?: number;
+  taxCents?: number;
+  notes?: string;
+  validUntil?: string | null;
+  actorId?: string | null;
+}): Promise<QuoteMutationResult> {
+  if (!isSupabaseConfigured()) return { ok: false, error: "Supabase is not configured." };
+  if (!input.lineItems.length) return { ok: false, error: "At least one line item is required." };
+
+  const detail = await getQuoteById(input.companyId, input.quoteId);
+  if (!detail) return { ok: false, error: "Quote not found." };
+
+  const editable = ["draft", "sent", "viewed"];
+  if (!editable.includes(detail.quote.status)) {
+    return {
+      ok: false,
+      error: `Quotes with status "${detail.quote.status}" cannot be edited.`,
+    };
+  }
+
+  const supabase = await createClient();
+  const totals = computeLineItemTotals(
+    input.lineItems,
+    input.discountCents ?? detail.quote.discount_cents,
+    input.taxCents ?? detail.quote.tax_cents
+  );
+
+  const now = new Date().toISOString();
+  const { error: quoteError } = await supabase
+    .from("quotes")
+    .update({
+      subtotal_cents: totals.subtotalCents,
+      discount_cents: totals.discountCents,
+      tax_cents: totals.taxCents,
+      total_cents: totals.totalCents,
+      notes: input.notes?.trim() ?? detail.quote.notes,
+      valid_until:
+        input.validUntil !== undefined ? input.validUntil : detail.quote.valid_until,
+      updated_at: now,
+    })
+    .eq("company_id", input.companyId)
+    .eq("id", input.quoteId);
+
+  if (quoteError) return { ok: false, error: quoteError.message };
+
+  const { error: deleteError } = await supabase
+    .from("quote_line_items")
+    .delete()
+    .eq("quote_id", input.quoteId);
+
+  if (deleteError) return { ok: false, error: deleteError.message };
+
+  const { error: itemsError } = await supabase.from("quote_line_items").insert(
+    totals.lineItems.map((li) => ({ ...li, quote_id: input.quoteId }))
+  );
+  if (itemsError) return { ok: false, error: itemsError.message };
+
+  await logFinancialAudit({
+    companyId: input.companyId,
+    entityType: "quote",
+    entityId: input.quoteId,
+    action: "updated",
+    actorId: input.actorId,
+    metadata: { quote_number: detail.quote.quote_number },
+  });
+
+  return { ok: true, id: input.quoteId };
+}

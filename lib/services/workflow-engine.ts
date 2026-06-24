@@ -203,6 +203,7 @@ async function executeStep(
       break;
     case "send_sms":
     case "send_whatsapp":
+      // SMS/WhatsApp providers are not wired yet — hidden from workflow UI until ready.
       break;
   }
 }

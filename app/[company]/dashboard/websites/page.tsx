@@ -107,7 +107,6 @@ export default async function CompanyWebsitesPage({ params }: Props) {
   return (
     <CompanyWebsitesClient
       slug={slug}
-      companyId={companyId}
       websites={hostedWebsites}
       hasWebsiteProject={hasWebsiteProject}
       connectedWebsite={connectedWebsite}

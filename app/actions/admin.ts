@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logPlatformAuditEvent } from "@/lib/platform/audit-log";
 import {
   adminStatusToDb,
   isCurrentUserPlatformAdmin,
@@ -13,8 +14,13 @@ import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import { createClient } from "@/lib/supabase/server";
 import { slugifyBusinessName } from "@/lib/slug";
 import type {
+  AdminFeatureRequestPriority,
+  AdminFeatureRequestStatus,
   AdminNotificationPreferences,
   AdminPipelineStatus,
+  AdminSupportTicketCategory,
+  AdminSupportTicketPriority,
+  AdminSupportTicketStatus,
 } from "@/types/admin";
 
 export type AdminMutationResult =
@@ -31,18 +37,32 @@ async function requirePlatformAdmin(): Promise<AdminMutationResult | null> {
   return null;
 }
 
+async function auditAdminAction(
+  input: Parameters<typeof logPlatformAuditEvent>[0]
+): Promise<void> {
+  try {
+    await logPlatformAuditEvent(input);
+  } catch (error) {
+    console.error("[admin] auditAdminAction", error);
+  }
+}
+
 function revalidateAdminSurfaces(options?: {
   companySlug?: string | null;
   companyId?: string | null;
 }) {
   revalidatePath("/admin");
+  revalidatePath("/admin/businesses");
   revalidatePath("/admin/pipeline");
-  revalidatePath("/admin/dashboard");
   revalidatePath("/admin/team");
   revalidatePath("/admin/clients");
   revalidatePath("/admin/analytics");
   revalidatePath("/admin/activity");
   revalidatePath("/admin/settings");
+  revalidatePath("/admin/revenue");
+  revalidatePath("/admin/businesses");
+  revalidatePath("/admin/support");
+  revalidatePath("/admin/feature-requests");
   revalidatePath("/marketplace");
   if (options?.companySlug) {
     revalidatePath(`/marketplace/${options.companySlug}`);
@@ -132,6 +152,13 @@ export async function adminUpdateCompanyStatus(
     companySlug: company?.slug,
     companyId,
   });
+  await auditAdminAction({
+    action: "pipeline.status_updated",
+    targetType: "company",
+    targetId: companyId,
+    targetLabel: company?.name ?? null,
+    metadata: { status },
+  });
   return { ok: true };
 }
 
@@ -157,6 +184,12 @@ export async function adminUpdateAssignedDeveloper(
   }
 
   revalidateAdminSurfaces();
+  await auditAdminAction({
+    action: "pipeline.developer_assigned",
+    targetType: "company",
+    targetId: companyId,
+    metadata: { developerName },
+  });
   return { ok: true };
 }
 
@@ -193,6 +226,12 @@ export async function adminAssignProjectsToMember(
   }
 
   revalidateAdminSurfaces();
+  await auditAdminAction({
+    action: "pipeline.projects_assigned",
+    targetType: "team_member",
+    targetLabel: normalizedName,
+    metadata: { projectIds: uniqueIds },
+  });
   return { ok: true };
 }
 
@@ -231,6 +270,12 @@ export async function adminUpdateMarketplaceListing(
 
   revalidateAdminSurfaces({ companyId, companySlug: company?.slug });
   revalidatePath("/examples");
+  await auditAdminAction({
+    action: "marketplace.listing_updated",
+    targetType: "company",
+    targetId: companyId,
+    metadata: input,
+  });
   return { ok: true };
 }
 
@@ -273,6 +318,12 @@ export async function adminAddPlatformAdminByEmail(
   }
 
   revalidatePath("/admin/settings");
+  await auditAdminAction({
+    action: "platform_admin.added",
+    targetType: "user",
+    targetId: userRow.id,
+    targetLabel: normalizedEmail,
+  });
   return { ok: true };
 }
 
@@ -305,6 +356,11 @@ export async function adminRemovePlatformAdmin(
   }
 
   revalidatePath("/admin/settings");
+  await auditAdminAction({
+    action: "platform_admin.removed",
+    targetType: "user",
+    targetId: userId,
+  });
   return { ok: true };
 }
 
@@ -373,6 +429,11 @@ export async function adminUpdatePlatformSettings(input: {
   }
 
   revalidatePath("/admin/settings");
+  await auditAdminAction({
+    action: "settings.platform_updated",
+    targetType: "platform_settings",
+    metadata: { companyName, platformName },
+  });
   return { ok: true };
 }
 
@@ -477,6 +538,13 @@ export async function adminCreateClientCompany(input: {
   }
 
   revalidateAdminSurfaces({ companySlug: slug, companyId: data.id });
+  await auditAdminAction({
+    action: "business.created",
+    targetType: "company",
+    targetId: data.id,
+    targetLabel: businessName,
+    metadata: { contactEmail, slug },
+  });
   return { ok: true, companyId: data.id };
 }
 
@@ -538,6 +606,13 @@ export async function adminUpdateClientCompany(
   }
 
   revalidateAdminSurfaces({ companyId, companySlug: company?.slug });
+  await auditAdminAction({
+    action: "business.updated",
+    targetType: "company",
+    targetId: companyId,
+    targetLabel: businessName,
+    metadata: { contactEmail },
+  });
   return { ok: true };
 }
 
@@ -605,6 +680,12 @@ export async function adminSaveClientNote(
   }
 
   revalidateAdminSurfaces({ companyId });
+  await auditAdminAction({
+    action: "business.note_added",
+    targetType: "company",
+    targetId: companyId,
+    metadata: { noteLength: trimmed.length },
+  });
   return { ok: true };
 }
 
@@ -613,4 +694,368 @@ export async function adminAddProjectNote(
   body: string
 ): Promise<AdminMutationResult> {
   return adminSaveClientNote(companyId, body);
+}
+
+export async function adminSuspendBusiness(
+  companyId: string
+): Promise<AdminMutationResult> {
+  return adminSetBusinessPlatformStatus(companyId, "suspend");
+}
+
+export async function adminActivateBusiness(
+  companyId: string
+): Promise<AdminMutationResult> {
+  return adminSetBusinessPlatformStatus(companyId, "activate");
+}
+
+async function adminSetBusinessPlatformStatus(
+  companyId: string,
+  action: "suspend" | "activate"
+): Promise<AdminMutationResult> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const trimmedId = companyId.trim();
+  if (!trimmedId) {
+    return { ok: false, error: "Business id is required." };
+  }
+
+  const adminResult = tryCreateAdminClient();
+  if (!adminResult.ok) return { ok: false, error: adminResult.error };
+  const admin = adminResult.client;
+
+  const subscriptionStatus = action === "suspend" ? "suspended" : "active";
+  const hostingStatus = action === "suspend" ? "suspended" : "active";
+
+  const { error: companyError } = await admin
+    .from("companies")
+    .update({ subscription_status: subscriptionStatus })
+    .eq("id", trimmedId);
+
+  if (companyError) {
+    console.error("[admin] adminSetBusinessPlatformStatus company", companyError.message);
+    return { ok: false, error: companyError.message };
+  }
+
+  const { data: existingSub } = await admin
+    .from("hosting_subscriptions")
+    .select("id")
+    .eq("company_id", trimmedId)
+    .maybeSingle();
+
+  if (existingSub?.id) {
+    const { error: hostingError } = await admin
+      .from("hosting_subscriptions")
+      .update({ status: hostingStatus, updated_at: new Date().toISOString() })
+      .eq("company_id", trimmedId);
+
+    if (hostingError) {
+      console.error("[admin] adminSetBusinessPlatformStatus hosting", hostingError.message);
+      return { ok: false, error: hostingError.message };
+    }
+  }
+
+  const { data: company } = await admin
+    .from("companies")
+    .select("name")
+    .eq("id", trimmedId)
+    .maybeSingle();
+
+  revalidateAdminSurfaces({ companyId: trimmedId });
+  revalidatePath(`/admin/businesses/${trimmedId}`);
+  await auditAdminAction({
+    action: action === "suspend" ? "business.suspended" : "business.activated",
+    targetType: "company",
+    targetId: trimmedId,
+    targetLabel: company?.name ?? null,
+  });
+  return { ok: true };
+}
+
+function revalidateSupportSurfaces(ticketId?: string) {
+  revalidatePath("/admin/support");
+  if (ticketId) {
+    revalidatePath(`/admin/support/${ticketId}`);
+  }
+}
+
+function revalidateFeatureRequestSurfaces() {
+  revalidatePath("/admin/feature-requests");
+}
+
+export async function adminCreateSupportTicket(input: {
+  subject: string;
+  description: string;
+  companyId?: string | null;
+  requesterName?: string | null;
+  requesterEmail?: string | null;
+  priority?: AdminSupportTicketPriority;
+  category?: AdminSupportTicketCategory;
+}): Promise<AdminMutationResult & { ticketId?: string }> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const subject = input.subject.trim();
+  const description = input.description.trim();
+  if (!subject || !description) {
+    return { ok: false, error: "Subject and description are required." };
+  }
+
+  const adminResult = tryCreateAdminClient();
+  if (!adminResult.ok) return { ok: false, error: adminResult.error };
+  const admin = adminResult.client;
+
+  const { data, error } = await admin
+    .from("platform_support_tickets")
+    .insert({
+      company_id: input.companyId?.trim() || null,
+      subject,
+      description,
+      priority: input.priority ?? "medium",
+      category: input.category ?? "general",
+      requester_name: input.requesterName?.trim() || null,
+      requester_email: input.requesterEmail?.trim().toLowerCase() || null,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("[admin] adminCreateSupportTicket", error.message);
+    return { ok: false, error: error.message };
+  }
+
+  revalidateSupportSurfaces(data.id);
+  await auditAdminAction({
+    action: "support.ticket_created",
+    targetType: "support_ticket",
+    targetId: data.id,
+    targetLabel: subject,
+  });
+  return { ok: true, ticketId: data.id };
+}
+
+export async function adminUpdateSupportTicket(
+  ticketId: string,
+  input: {
+    status?: AdminSupportTicketStatus;
+    priority?: AdminSupportTicketPriority;
+    assignedTo?: string | null;
+  }
+): Promise<AdminMutationResult> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const trimmedId = ticketId.trim();
+  if (!trimmedId) {
+    return { ok: false, error: "Ticket id is required." };
+  }
+
+  const adminResult = tryCreateAdminClient();
+  if (!adminResult.ok) return { ok: false, error: adminResult.error };
+  const admin = adminResult.client;
+
+  const now = new Date().toISOString();
+  const updatePayload: Record<string, unknown> = { updated_at: now };
+  if (input.status) {
+    updatePayload.status = input.status;
+    if (input.status === "resolved" || input.status === "closed") {
+      updatePayload.resolved_at = now;
+    }
+  }
+  if (input.priority) updatePayload.priority = input.priority;
+  if (input.assignedTo !== undefined) {
+    updatePayload.assigned_to = input.assignedTo?.trim() || null;
+  }
+
+  const { data, error } = await admin
+    .from("platform_support_tickets")
+    .update(updatePayload)
+    .eq("id", trimmedId)
+    .select("subject")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[admin] adminUpdateSupportTicket", error.message);
+    return { ok: false, error: error.message };
+  }
+
+  revalidateSupportSurfaces(trimmedId);
+  await auditAdminAction({
+    action: "support.ticket_updated",
+    targetType: "support_ticket",
+    targetId: trimmedId,
+    targetLabel: data?.subject ?? null,
+    metadata: input,
+  });
+  return { ok: true };
+}
+
+export async function adminReplySupportTicket(
+  ticketId: string,
+  body: string,
+  options?: { isInternal?: boolean }
+): Promise<AdminMutationResult> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const trimmedId = ticketId.trim();
+  const trimmedBody = body.trim();
+  if (!trimmedId || !trimmedBody) {
+    return { ok: false, error: "Ticket id and message are required." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const authorName =
+    (typeof user?.user_metadata?.full_name === "string" &&
+    user.user_metadata.full_name.trim()
+      ? user.user_metadata.full_name.trim()
+      : null) ??
+    user?.email?.split("@")[0] ??
+    "Admin";
+
+  const adminResult = tryCreateAdminClient();
+  if (!adminResult.ok) return { ok: false, error: adminResult.error };
+  const admin = adminResult.client;
+
+  const { error: messageError } = await admin.from("platform_support_messages").insert({
+    ticket_id: trimmedId,
+    author_user_id: user?.id ?? null,
+    author_name: authorName,
+    author_email: user?.email ?? null,
+    body: trimmedBody,
+    is_internal: options?.isInternal ?? false,
+  });
+
+  if (messageError) {
+    console.error("[admin] adminReplySupportTicket message", messageError.message);
+    return { ok: false, error: messageError.message };
+  }
+
+  const { error: ticketError } = await admin
+    .from("platform_support_tickets")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", trimmedId);
+
+  if (ticketError) {
+    console.error("[admin] adminReplySupportTicket ticket touch", ticketError.message);
+  }
+
+  revalidateSupportSurfaces(trimmedId);
+  await auditAdminAction({
+    action: "support.ticket_replied",
+    targetType: "support_ticket",
+    targetId: trimmedId,
+    metadata: { isInternal: options?.isInternal ?? false },
+  });
+  return { ok: true };
+}
+
+export async function adminCreateFeatureRequest(input: {
+  title: string;
+  description: string;
+  companyId?: string | null;
+  submittedByName?: string | null;
+  submittedByEmail?: string | null;
+  category?: string | null;
+  priority?: AdminFeatureRequestPriority;
+}): Promise<AdminMutationResult & { requestId?: string }> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const title = input.title.trim();
+  const description = input.description.trim();
+  if (!title || !description) {
+    return { ok: false, error: "Title and description are required." };
+  }
+
+  const adminResult = tryCreateAdminClient();
+  if (!adminResult.ok) return { ok: false, error: adminResult.error };
+  const admin = adminResult.client;
+
+  const { data, error } = await admin
+    .from("platform_feature_requests")
+    .insert({
+      company_id: input.companyId?.trim() || null,
+      title,
+      description,
+      category: input.category?.trim() || null,
+      priority: input.priority ?? "medium",
+      submitted_by_name: input.submittedByName?.trim() || null,
+      submitted_by_email: input.submittedByEmail?.trim().toLowerCase() || null,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("[admin] adminCreateFeatureRequest", error.message);
+    return { ok: false, error: error.message };
+  }
+
+  revalidateFeatureRequestSurfaces();
+  await auditAdminAction({
+    action: "feature_request.created",
+    targetType: "feature_request",
+    targetId: data.id,
+    targetLabel: title,
+  });
+  return { ok: true, requestId: data.id };
+}
+
+export async function adminUpdateFeatureRequest(
+  requestId: string,
+  input: {
+    status?: AdminFeatureRequestStatus;
+    priority?: AdminFeatureRequestPriority;
+    adminNotes?: string | null;
+    voteCount?: number;
+  }
+): Promise<AdminMutationResult> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const trimmedId = requestId.trim();
+  if (!trimmedId) {
+    return { ok: false, error: "Request id is required." };
+  }
+
+  const adminResult = tryCreateAdminClient();
+  if (!adminResult.ok) return { ok: false, error: adminResult.error };
+  const admin = adminResult.client;
+
+  const updatePayload: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (input.status) updatePayload.status = input.status;
+  if (input.priority) updatePayload.priority = input.priority;
+  if (input.adminNotes !== undefined) {
+    updatePayload.admin_notes = input.adminNotes?.trim() || null;
+  }
+  if (input.voteCount !== undefined && input.voteCount >= 0) {
+    updatePayload.vote_count = input.voteCount;
+  }
+
+  const { data, error } = await admin
+    .from("platform_feature_requests")
+    .update(updatePayload)
+    .eq("id", trimmedId)
+    .select("title")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[admin] adminUpdateFeatureRequest", error.message);
+    return { ok: false, error: error.message };
+  }
+
+  revalidateFeatureRequestSurfaces();
+  await auditAdminAction({
+    action: "feature_request.updated",
+    targetType: "feature_request",
+    targetId: trimmedId,
+    targetLabel: data?.title ?? null,
+    metadata: input,
+  });
+  return { ok: true };
 }

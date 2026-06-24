@@ -1,3 +1,4 @@
+import { averagePaymentCents } from "@/lib/financial/payment-revenue";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import type { RevenueMetrics } from "@/types/financial";
@@ -40,7 +41,7 @@ export async function getRevenueMetrics(companyId: string): Promise<RevenueMetri
   const monthStart = startOfMonth(now);
   const yearStart = startOfYear(now);
 
-  const [paymentsRes, invoicesRes, quotesRes, bookingsRes] = await Promise.all([
+  const [paymentsRes, invoicesRes, quotesRes] = await Promise.all([
     supabase
       .from("customer_payments")
       .select("amount_cents, status, paid_at, created_at")
@@ -50,17 +51,11 @@ export async function getRevenueMetrics(companyId: string): Promise<RevenueMetri
       .select("status, balance_due_cents, total_cents")
       .eq("company_id", companyId),
     supabase.from("quotes").select("status").eq("company_id", companyId),
-    supabase
-      .from("bookings")
-      .select("price_cents")
-      .eq("company_id", companyId)
-      .eq("status", "completed"),
   ]);
 
   const payments = paymentsRes.data ?? [];
   const invoices = invoicesRes.data ?? [];
   const quotes = quotesRes.data ?? [];
-  const bookings = bookingsRes.data ?? [];
 
   const paidPayments = payments.filter((p) => p.status === "paid");
 
@@ -95,11 +90,7 @@ export async function getRevenueMetrics(companyId: string): Promise<RevenueMetri
 
   const totalPaidCents = paidPayments.reduce((sum, p) => sum + p.amount_cents, 0);
 
-  const bookingValues = bookings.map((b) => b.price_cents ?? 0).filter((v) => v > 0);
-  const averageBookingValueCents =
-    bookingValues.length > 0
-      ? Math.round(bookingValues.reduce((a, b) => a + b, 0) / bookingValues.length)
-      : 0;
+  const averageBookingValueCents = averagePaymentCents(paidPayments);
 
   const quotesSent = quotes.filter((q) =>
     ["sent", "viewed", "accepted", "rejected", "converted"].includes(q.status)

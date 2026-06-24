@@ -1,26 +1,36 @@
 import { NextResponse } from "next/server";
 
+import { withPlatformApiLog } from "@/lib/platform/with-api-log";
 import { markReviewRequestClicked } from "@/lib/services/review-requests";
 
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const requestId = url.searchParams.get("requestId")?.trim();
-  const redirect = url.searchParams.get("redirect")?.trim();
+  const route = "/api/public/review-click";
 
-  if (!requestId || !redirect) {
-    return NextResponse.json({ ok: false, error: "Missing parameters." }, { status: 400 });
-  }
+  return withPlatformApiLog(
+    request,
+    route,
+    async () => {
+      const url = new URL(request.url);
+      const requestId = url.searchParams.get("requestId")?.trim();
+      const redirect = url.searchParams.get("redirect")?.trim();
 
-  try {
-    const parsed = new URL(redirect);
-    if (!["http:", "https:"].includes(parsed.protocol)) {
-      return NextResponse.json({ ok: false, error: "Invalid redirect." }, { status: 400 });
-    }
-  } catch {
-    return NextResponse.json({ ok: false, error: "Invalid redirect." }, { status: 400 });
-  }
+      if (!requestId || !redirect) {
+        return NextResponse.json({ ok: false, error: "Missing parameters." }, { status: 400 });
+      }
 
-  await markReviewRequestClicked(requestId);
+      try {
+        const parsed = new URL(redirect);
+        if (!["http:", "https:"].includes(parsed.protocol)) {
+          return NextResponse.json({ ok: false, error: "Invalid redirect." }, { status: 400 });
+        }
+      } catch {
+        return NextResponse.json({ ok: false, error: "Invalid redirect." }, { status: 400 });
+      }
 
-  return NextResponse.redirect(redirect, 302);
+      await markReviewRequestClicked(requestId);
+
+      return NextResponse.redirect(redirect, 302);
+    },
+    { isPublic: true }
+  );
 }

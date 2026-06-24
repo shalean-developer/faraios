@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 
 import { FaraiLogo } from "@/components/brand/farai-logo";
+import { FOOTER_INDUSTRY_LINKS } from "@/lib/data/home-marketing";
 import { cn } from "@/lib/utils";
 
 type MarketingFooterProps = {
@@ -12,12 +12,6 @@ const linkClass = (dark: boolean) =>
   cn(
     "text-sm transition-colors",
     dark ? "text-slate-400 hover:text-white" : "text-gray-500 hover:text-gray-900"
-  );
-
-const mutedLinkClass = (dark: boolean) =>
-  cn(
-    "text-sm transition-colors",
-    dark ? "text-slate-500 hover:text-slate-300" : "text-gray-400 hover:text-gray-600"
   );
 
 export function MarketingFooter({ variant = "light" }: MarketingFooterProps) {
@@ -31,47 +25,22 @@ export function MarketingFooter({ variant = "light" }: MarketingFooterProps) {
       )}
     >
       <div className="mx-auto max-w-6xl">
-        <div
-          className={cn(
-            "mb-10 rounded-2xl border p-6 sm:p-8",
-            dark
-              ? "border-violet-500/20 bg-gradient-to-br from-violet-500/10 to-indigo-500/10"
-              : "border-violet-100 bg-gradient-to-br from-violet-50 to-indigo-50/80"
-          )}
-        >
-          <p
-            className={cn(
-              "text-xs font-bold uppercase tracking-widest",
-              dark ? "text-violet-300" : "text-violet-700"
-            )}
-          >
-            For businesses
-          </p>
-          <p
-            className={cn(
-              "mt-2 max-w-lg text-base font-semibold sm:text-lg",
-              dark ? "text-white" : "text-gray-900"
-            )}
-          >
-            Run bookings, customers, and services from one workspace — with
-            optional website build and hosting.
-          </p>
-          <Link
-            href="/auth/sign-up"
-            className={cn(
-              "mt-4 inline-flex items-center gap-1.5 text-sm font-semibold",
-              dark ? "text-violet-300 hover:text-white" : "text-violet-700 hover:text-violet-900"
-            )}
-          >
-            Start your workspace
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="sm:col-span-2 lg:col-span-1">
-            <Link href="/" className="inline-flex items-center">
-              <FaraiLogo size="sm" />
+            <Link
+              href="/"
+              aria-label="FaraiOS home"
+              className={cn(
+                "inline-flex items-center rounded-xl",
+                dark
+                  ? "bg-white px-3 py-2 shadow-md shadow-black/20"
+                  : "bg-white px-3 py-2 shadow-sm ring-1 ring-gray-200/70"
+              )}
+            >
+              <FaraiLogo
+                size="md"
+                imageClassName="h-11 w-auto max-w-[160px] object-contain object-left"
+              />
             </Link>
             <p
               className={cn(
@@ -79,8 +48,7 @@ export function MarketingFooter({ variant = "light" }: MarketingFooterProps) {
                 dark ? "text-slate-400" : "text-gray-500"
               )}
             >
-              Business operating system for local service teams. Websites are a
-              frontend — operations run in your workspace.
+              FaraiOS is a business operating system for local service businesses.
             </p>
           </div>
 
@@ -95,8 +63,8 @@ export function MarketingFooter({ variant = "light" }: MarketingFooterProps) {
             </h3>
             <ul className="mt-4 space-y-2">
               <li>
-                <Link href="/auth/sign-up" className={linkClass(dark)}>
-                  Get started
+                <Link href="/features" className={linkClass(dark)}>
+                  Features
                 </Link>
               </li>
               <li>
@@ -105,13 +73,13 @@ export function MarketingFooter({ variant = "light" }: MarketingFooterProps) {
                 </Link>
               </li>
               <li>
-                <Link href="/hosting" className={mutedLinkClass(dark)}>
-                  Hosting add-on
+                <Link href="/marketplace" className={linkClass(dark)}>
+                  Marketplace
                 </Link>
               </li>
               <li>
-                <Link href="/marketplace" className={mutedLinkClass(dark)}>
-                  Marketplace
+                <Link href="/hosting" className={linkClass(dark)}>
+                  Hosting
                 </Link>
               </li>
             </ul>
@@ -124,23 +92,48 @@ export function MarketingFooter({ variant = "light" }: MarketingFooterProps) {
                 dark ? "text-slate-300" : "text-gray-900"
               )}
             >
-              Account
+              Industries
+            </h3>
+            <ul className="mt-4 space-y-2">
+              {FOOTER_INDUSTRY_LINKS.map((ind) => (
+                <li key={ind.slug}>
+                  <Link href={`/industries/${ind.slug}`} className={linkClass(dark)}>
+                    {ind.label}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link href="/industries" className={linkClass(dark)}>
+                  View all industries
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3
+              className={cn(
+                "text-xs font-bold uppercase tracking-widest",
+                dark ? "text-slate-300" : "text-gray-900"
+              )}
+            >
+              Company
             </h3>
             <ul className="mt-4 space-y-2">
               <li>
-                <Link href="/auth/sign-in" className={linkClass(dark)}>
-                  Sign in
+                <Link href="/platform/about" className={linkClass(dark)}>
+                  About
                 </Link>
               </li>
               <li>
-                <Link href="/auth/forgot-password" className={linkClass(dark)}>
-                  Reset password
+                <Link href="/platform/contact" className={linkClass(dark)}>
+                  Contact
                 </Link>
               </li>
               <li>
-                <Link href="/app" className={linkClass(dark)}>
-                  App home
-                </Link>
+                <a href="mailto:support@faraios.com" className={linkClass(dark)}>
+                  Support
+                </a>
               </li>
             </ul>
           </div>
@@ -157,18 +150,13 @@ export function MarketingFooter({ variant = "light" }: MarketingFooterProps) {
             <ul className="mt-4 space-y-2">
               <li>
                 <Link href="/terms" className={linkClass(dark)}>
-                  Terms of Service
+                  Terms
                 </Link>
               </li>
               <li>
                 <Link href="/privacy" className={linkClass(dark)}>
-                  Privacy Policy
+                  Privacy
                 </Link>
-              </li>
-              <li>
-                <a href="mailto:support@faraios.com" className={linkClass(dark)}>
-                  support@faraios.com
-                </a>
               </li>
             </ul>
           </div>

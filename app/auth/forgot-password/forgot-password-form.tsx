@@ -68,7 +68,10 @@ export function ForgotPasswordForm({ initialEmail }: ForgotPasswordFormProps) {
   return (
     <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
       {error ? (
-        <p className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p
+          className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { GrowthHubNav } from "@/components/growth/growth-hub-nav";
+
 import { companyCustomersPath, companyDashboardPath } from "@/lib/paths/company";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import {
@@ -89,7 +89,6 @@ export default async function CompanyCampaignsPage({ params }: Props) {
         </Link>
       </header>
 
-      <GrowthHubNav slug={slug} active="campaigns" />
       <CompanyCampaignsClient
         slug={slug}
         companyId={row.id}

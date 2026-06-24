@@ -38,14 +38,12 @@ export async function Navbar({ activeNav, variant = "default" }: NavbarProps) {
   const isPlatformAdmin = user
     ? await isPlatformAdminUser(supabase, user.id)
     : false;
-  const appHref = isPlatformAdmin ? "/admin" : "/app";
-  const dashboardHref = isPlatformAdmin
-    ? "/admin"
-    : primaryCompanySlug
-      ? `/${encodeURIComponent(primaryCompanySlug)}/dashboard`
-      : appHref;
+  const workspaceHref = primaryCompanySlug
+    ? `/${encodeURIComponent(primaryCompanySlug)}/dashboard`
+    : "/app";
+  const adminHref = "/admin";
   const pipelineHref = "/admin/pipeline";
-  const logoHref = user ? appHref : "/";
+  const logoHref = user ? workspaceHref : "/";
 
   const isWorkspace = variant === "workspace";
 
@@ -81,8 +79,8 @@ export async function Navbar({ activeNav, variant = "default" }: NavbarProps) {
                 isAuthenticated={Boolean(user)}
                 activeNav={activeNav}
                 isPlatformAdmin={isPlatformAdmin}
-                appHref={appHref}
-                dashboardHref={dashboardHref}
+                workspaceHref={workspaceHref}
+                adminHref={adminHref}
                 pipelineHref={pipelineHref}
                 onSignOut={signOutAction}
               />
@@ -96,26 +94,27 @@ export async function Navbar({ activeNav, variant = "default" }: NavbarProps) {
             aria-label="Primary"
           >
             {user ? (
-              isPlatformAdmin ? (
-                <>
-                  <Link href={appHref} className={navLinkClass(activeNav === "app")}>
-                    Admin
-                  </Link>
-                  <Link
-                    href={pipelineHref}
-                    className={navLinkClass(activeNav === "project")}
-                  >
-                    Client projects
-                  </Link>
-                </>
-              ) : (
+              <>
                 <Link
-                  href={dashboardHref}
+                  href={workspaceHref}
                   className={navLinkClass(activeNav === "dashboard")}
                 >
                   Workspace
                 </Link>
-              )
+                {isPlatformAdmin ? (
+                  <>
+                    <Link href={adminHref} className={navLinkClass(activeNav === "app")}>
+                      Platform admin
+                    </Link>
+                    <Link
+                      href={pipelineHref}
+                      className={navLinkClass(activeNav === "project")}
+                    >
+                      Client projects
+                    </Link>
+                  </>
+                ) : null}
+              </>
             ) : (
               <Link href="/pricing" className={navLinkClass(activeNav === "pricing")}>
                 Pricing
@@ -136,8 +135,8 @@ export async function Navbar({ activeNav, variant = "default" }: NavbarProps) {
             isAuthenticated={Boolean(user)}
             activeNav={activeNav}
             isPlatformAdmin={isPlatformAdmin}
-            appHref={appHref}
-            dashboardHref={dashboardHref}
+            workspaceHref={workspaceHref}
+            adminHref={adminHref}
             pipelineHref={pipelineHref}
             onSignOut={signOutAction}
           />
@@ -151,16 +150,16 @@ function Actions({
   isAuthenticated,
   activeNav,
   isPlatformAdmin,
-  appHref,
-  dashboardHref,
+  workspaceHref,
+  adminHref,
   pipelineHref,
   onSignOut,
 }: {
   isAuthenticated: boolean;
   activeNav?: NavbarActiveNav;
   isPlatformAdmin: boolean;
-  appHref: string;
-  dashboardHref: string;
+  workspaceHref: string;
+  adminHref: string;
   pipelineHref: string;
   onSignOut: () => Promise<void>;
 }) {
@@ -203,16 +202,25 @@ function Actions({
           Account
         </summary>
         <div className="absolute right-0 mt-2 w-48 rounded-xl border border-border/80 bg-background p-2 shadow-lg">
+          <Link
+            href={workspaceHref}
+            className={cn(
+              "block rounded-lg px-3 py-2 text-sm transition-colors hover:bg-violet-50 hover:text-[#7C3AED]",
+              activeNav === "dashboard" ? "text-[#7C3AED]" : "text-foreground"
+            )}
+          >
+            Workspace
+          </Link>
           {isPlatformAdmin ? (
             <>
               <Link
-                href={appHref}
+                href={adminHref}
                 className={cn(
                   "block rounded-lg px-3 py-2 text-sm transition-colors hover:bg-violet-50 hover:text-[#7C3AED]",
                   activeNav === "app" ? "text-[#7C3AED]" : "text-foreground"
                 )}
               >
-                Admin
+                Platform admin
               </Link>
               <Link
                 href={pipelineHref}
@@ -226,13 +234,10 @@ function Actions({
             </>
           ) : (
             <Link
-              href={dashboardHref}
-              className={cn(
-                "block rounded-lg px-3 py-2 text-sm transition-colors hover:bg-violet-50 hover:text-[#7C3AED]",
-                activeNav === "dashboard" ? "text-[#7C3AED]" : "text-foreground"
-              )}
+              href="/app"
+              className="block rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-violet-50 hover:text-[#7C3AED]"
             >
-              Workspace
+              App home
             </Link>
           )}
           <Link

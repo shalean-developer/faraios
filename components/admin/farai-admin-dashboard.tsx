@@ -4,9 +4,6 @@ import Link from "next/link";
 import React, { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { AdminSidebarBrand } from "@/components/admin/admin-sidebar-brand";
-import { AdminSidebarNav } from "@/components/admin/admin-sidebar-nav";
-import { AdminSidebarUser } from "@/components/admin/admin-sidebar-user";
 import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
 import {
   LayoutDashboard,
@@ -34,8 +31,7 @@ import {
   adminUpdateAssignedDeveloper,
   adminUpdateCompanyStatus,
 } from "@/app/actions/admin";
-import { ADMIN_PIPELINE_PATH } from "@/lib/constants/admin-nav";
-import type { AdminNavKey } from "@/lib/constants/admin-nav";
+import { ADMIN_BUSINESSES_PATH } from "@/lib/constants/admin-nav";
 import { ADMIN_DEVELOPER_OPTIONS } from "@/lib/constants/admin-developers";
 import type { AdminPipelineStatus, AdminProject, AdminProjectStats } from "@/types/admin";
 
@@ -101,20 +97,14 @@ const stagger = {
 export type FaraiAdminDashboardProps = {
   projects: AdminProject[];
   stats: AdminProjectStats;
-  adminEmail: string | null;
-  adminDisplayName: string;
-  activeNav?: AdminNavKey;
-  /** Overview on `/admin`; full pipeline table on `/admin/pipeline`. */
-  viewMode?: "overview" | "pipeline";
+  /** Full pipeline table on `/admin/pipeline`. */
+  viewMode?: "pipeline";
 };
 
 export function FaraiAdminDashboard({
   projects,
   stats,
-  adminEmail,
-  adminDisplayName,
-  activeNav = "dashboard",
-  viewMode = "overview",
+  viewMode = "pipeline",
 }: FaraiAdminDashboardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -129,8 +119,7 @@ export function FaraiAdminDashboard({
   const [openDevDropdown, setOpenDevDropdown] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
 
-  const isOverview = viewMode === "overview";
-  const recentProjects = useMemo(() => projects.slice(0, 5), [projects]);
+  const isOverview = false;
 
   const filteredProjects = useMemo(() => {
     const q = searchValue.toLowerCase().trim();
@@ -234,40 +223,23 @@ export function FaraiAdminDashboard({
 
   return (
     <div
-      className="flex h-screen w-full overflow-hidden font-sans"
-      style={{ background: "#f8f7ff" }}
+      className="flex min-h-0 flex-1 flex-col overflow-hidden"
       onClick={() => {
         setOpenStatusDropdown(null);
         setOpenDevDropdown(null);
       }}
     >
-      <aside className="flex h-full w-60 flex-shrink-0 flex-col bg-slate-900">
-        <AdminSidebarBrand />
-
-        <AdminSidebarNav activeNav={activeNav} />
-
-        <AdminSidebarUser
-          adminDisplayName={adminDisplayName}
-          adminEmail={adminEmail}
-        />
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-16 flex-shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-extrabold leading-tight tracking-tight text-gray-900">
-              {isOverview ? "Dashboard" : "Project Pipeline"}
+              Build Pipeline
             </h1>
             <p className="mt-0.5 text-xs text-gray-400">
-              {isOverview
-                ? "Overview of client projects and quick actions"
-                : "Manage all client website projects in one place"}
+              Manage all client website projects in one place
             </p>
           </div>
 
-          {!isOverview ? (
-            <>
-          <div className="flex w-40 flex-shrink-0 items-center gap-2">
+          <div className="flex w-40 shrink-0 items-center gap-2">
             <label htmlFor="admin-status-filter" className="sr-only">
               Filter by status
             </label>
@@ -313,15 +285,6 @@ export function FaraiAdminDashboard({
           </Link>
 
           <AdminActivityBellLink />
-            </>
-          ) : (
-            <Link
-              href={ADMIN_PIPELINE_PATH}
-              className="inline-flex h-9 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-3 text-xs font-semibold text-indigo-700 transition-all hover:bg-indigo-100"
-            >
-              Open full pipeline
-            </Link>
-          )}
         </header>
 
         <main className="flex-1 overflow-y-auto px-6 py-6">
@@ -377,101 +340,6 @@ export function FaraiAdminDashboard({
               })}
             </motion.div>
 
-            {isOverview ? (
-              <div className="grid gap-5 lg:grid-cols-3">
-                <motion.div
-                  variants={fadeUp}
-                  className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm lg:col-span-2"
-                >
-                  <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-                    <div>
-                      <h2 className="text-sm font-bold text-gray-900">
-                        Recent projects
-                      </h2>
-                      <p className="mt-0.5 text-xs text-gray-400">
-                        Latest client requests
-                      </p>
-                    </div>
-                    <Link
-                      href={ADMIN_PIPELINE_PATH}
-                      className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                    >
-                      View all
-                    </Link>
-                  </div>
-                  {recentProjects.length === 0 ? (
-                    <div className="py-14 text-center">
-                      <Globe className="mx-auto mb-2 h-8 w-8 text-gray-200" />
-                      <p className="text-sm text-gray-400">No projects yet</p>
-                    </div>
-                  ) : (
-                    <ul className="divide-y divide-gray-50">
-                      {recentProjects.map((project) => {
-                        const st = statusConfig[project.status];
-                        return (
-                          <li
-                            key={project.id}
-                            className="flex items-center justify-between gap-4 px-6 py-4"
-                          >
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-semibold text-gray-900">
-                                {project.businessName}
-                              </p>
-                              <p className="truncate text-xs text-gray-400">
-                                {project.user.name} · {project.createdDate}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span
-                                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold ${st.bg} ${st.color}`}
-                              >
-                                {st.label}
-                              </span>
-                              <Link
-                                href={`/admin/pipeline/${project.id}`}
-                                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                              >
-                                Details
-                              </Link>
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </motion.div>
-
-                <motion.div
-                  variants={fadeUp}
-                  className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm"
-                >
-                  <h2 className="text-sm font-bold text-gray-900">Quick links</h2>
-                  <p className="mt-0.5 text-xs text-gray-400">
-                    Jump to admin tools
-                  </p>
-                  <div className="mt-4 space-y-2">
-                    {[
-                      { href: ADMIN_PIPELINE_PATH, label: "Project pipeline" },
-                      { href: "/admin/team", label: "Team management" },
-                      { href: "/admin/clients", label: "Client directory" },
-                      { href: "/admin/analytics", label: "Analytics" },
-                      { href: "/admin/activity", label: "Activity feed" },
-                      { href: "/admin/settings", label: "Settings" },
-                      { href: "/admin/websites", label: "Websites" },
-                    ].map((link) => (
-                      <Link
-                        key={link.href}
-                        href={link.href}
-                        className="flex items-center justify-between rounded-xl border border-gray-100 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50/60 hover:text-indigo-700"
-                      >
-                        {link.label}
-                        <ChevronRight className="h-4 w-4 text-gray-300" />
-                      </Link>
-                    ))}
-                  </div>
-                </motion.div>
-              </div>
-            ) : (
             <motion.div
               variants={fadeUp}
               className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
@@ -723,7 +591,7 @@ export function FaraiAdminDashboard({
 
                           <td className="px-6 py-4 text-right">
                             <Link
-                              href={`/admin/pipeline/${project.id}`}
+                              href={`${ADMIN_BUSINESSES_PATH}/${project.id}?tab=pipeline`}
                               className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 transition-all hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
                             >
                               <Eye className="h-3.5 w-3.5" />
@@ -774,10 +642,8 @@ export function FaraiAdminDashboard({
                 </div>
               )}
             </motion.div>
-            )}
           </motion.div>
         </main>
-      </div>
     </div>
   );
 }

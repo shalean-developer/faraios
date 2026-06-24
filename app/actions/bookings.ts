@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { validateBookingFormSubmission } from "@/lib/bookings/form-validation";
 import { createEngineBooking } from "@/lib/services/booking-engine";
 import { getBookingFormForCompany } from "@/lib/services/booking-forms";
-import { requireCompanyMembership } from "@/lib/services/company-access";
+import { requireCompanyPermission } from "@/lib/services/company-access";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import type { ServiceAddon } from "@/types/booking-form";
 
@@ -67,7 +67,7 @@ export async function createBookingForCompany(
 
   if (!input.companyId) return { ok: false, error: "Missing company." };
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "edit_bookings");
   if (!access.ok) return access;
 
   const result = await createEngineBooking({
@@ -108,7 +108,7 @@ export async function createBookingFromConfiguredForm(
 
   if (!input.companyId) return { ok: false, error: "Missing company." };
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "edit_bookings");
   if (!access.ok) return access;
 
   const form = await getBookingFormForCompany(input.companyId);

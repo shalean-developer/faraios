@@ -1,3 +1,4 @@
+import { topServiceByPaidRevenue } from "@/lib/financial/payment-revenue";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import { getBiMetrics } from "@/lib/services/bi-metrics";
@@ -9,14 +10,17 @@ export async function generateAiInsights(companyId: string): Promise<AiInsight[]
   if (!isSupabaseConfigured()) return [];
 
   const supabase = await createClient();
-  const [bi, revenue, bookingsRes, invoicesRes, customersRes] = await Promise.all([
+  const [bi, revenue, bookingsRes, paymentsRes, invoicesRes, customersRes] = await Promise.all([
     getBiMetrics(companyId),
     getRevenueMetrics(companyId),
     supabase
       .from("bookings")
-      .select("service, price_cents, status")
-      .eq("company_id", companyId)
-      .eq("status", "completed"),
+      .select("id, service, price_cents, status")
+      .eq("company_id", companyId),
+    supabase
+      .from("customer_payments")
+      .select("amount_cents, status, booking_id")
+      .eq("company_id", companyId),
     supabase
       .from("invoices")
       .select("id, status, balance_due_cents, due_date")
@@ -39,17 +43,19 @@ export async function generateAiInsights(companyId: string): Promise<AiInsight[]
     });
   }
 
-  const serviceRevenue = new Map<string, number>();
-  for (const b of bookingsRes.data ?? []) {
-    const svc = b.service ?? "Other";
-    serviceRevenue.set(svc, (serviceRevenue.get(svc) ?? 0) + (b.price_cents ?? 0));
-  }
-  const topService = [...serviceRevenue.entries()].sort((a, b) => b[1] - a[1])[0];
-  if (topService) {
+  const topService = topServiceByPaidRevenue(
+    (bookingsRes.data ?? []) as { id: string; service: string | null }[],
+    (paymentsRes.data ?? []) as {
+      amount_cents: number;
+      status: string;
+      booking_id: string | null;
+    }[]
+  );
+  if (topService && topService.revenueCents > 0) {
     insights.push({
       type: "insight",
       title: "Top revenue service",
-      body: `${topService[0]} generates the highest revenue at ${formatRevenue(topService[1])}.`,
+      body: `${topService.name} generates the highest paid revenue at ${formatRevenue(topService.revenueCents)}.`,
     });
   }
 

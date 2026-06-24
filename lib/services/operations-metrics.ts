@@ -1,4 +1,5 @@
 import { countCustomersForCompany } from "@/lib/services/customers";
+import { getRevenueMetrics } from "@/lib/services/revenue-metrics";
 import type {
   OperationsMetrics,
   RecentActivityItem,
@@ -28,12 +29,13 @@ export async function getOperationsMetrics(
 
   const supabase = await createClient();
 
-  const [bookingsRes, customersCount] = await Promise.all([
+  const [bookingsRes, customersCount, revenue] = await Promise.all([
     supabase
       .from("bookings")
       .select("status, price_cents")
       .eq("company_id", companyId),
     countCustomersForCompany(companyId),
+    getRevenueMetrics(companyId),
   ]);
 
   if (bookingsRes.error) {
@@ -44,15 +46,12 @@ export async function getOperationsMetrics(
   const rows = bookingsRes.data ?? [];
   const totalBookings = rows.length;
   const pendingBookings = rows.filter((r) => r.status === "pending").length;
-  const revenueCents = rows
-    .filter((r) => r.status === "completed")
-    .reduce((sum, r) => sum + (r.price_cents ?? 0), 0);
 
   return {
     totalBookings,
     pendingBookings,
     customers: customersCount,
-    revenueCents,
+    revenueCents: revenue.revenueMonthCents,
   };
 }
 

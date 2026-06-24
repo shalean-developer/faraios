@@ -4,9 +4,6 @@ import React, { useEffect, useMemo, useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AdminSidebarBrand } from "@/components/admin/admin-sidebar-brand";
-import { AdminSidebarNav } from "@/components/admin/admin-sidebar-nav";
-import { AdminSidebarUser } from "@/components/admin/admin-sidebar-user";
 import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
 import {
   Users2,
@@ -25,14 +22,16 @@ import {
   Pencil,
 } from "lucide-react";
 
-import type { AdminClient, AdminClientStats } from "@/types/admin";
+import type { AdminClient, AdminClientStats, AdminPlatformStatus } from "@/types/admin";
 import { clientProjectStatusStyles } from "@/lib/constants/admin-status";
 import {
+  adminActivateBusiness,
   adminCreateClientCompany,
   adminSaveClientNote,
+  adminSuspendBusiness,
   adminUpdateClientCompany,
 } from "@/app/actions/admin";
-import { ADMIN_PIPELINE_PATH } from "@/lib/constants/admin-nav";
+import { ADMIN_BUSINESSES_PATH } from "@/lib/constants/admin-nav";
 
 type ModalTab = "contact" | "projects" | "notes";
 type ClientFormState = {
@@ -89,16 +88,19 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
+const PLATFORM_STATUS_STYLES: Record<AdminPlatformStatus, string> = {
+  Active: "border-emerald-100 bg-emerald-50 text-emerald-700",
+  Trial: "border-sky-100 bg-sky-50 text-sky-700",
+  Suspended: "border-red-100 bg-red-50 text-red-700",
+  Inactive: "border-gray-100 bg-gray-50 text-gray-500",
+};
+
 export function FaraiClientManagement({
   clients,
   stats,
-  adminEmail,
-  adminDisplayName,
 }: {
   clients: AdminClient[];
   stats: AdminClientStats;
-  adminEmail: string | null;
-  adminDisplayName: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -120,6 +122,7 @@ export function FaraiClientManagement({
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [noteError, setNoteError] = useState<string | null>(null);
   const [noteSuccess, setNoteSuccess] = useState<string | null>(null);
+  const [platformActionError, setPlatformActionError] = useState<string | null>(null);
 
   const filteredClients = useMemo(
     () =>
@@ -136,7 +139,7 @@ export function FaraiClientManagement({
 
   const statsCards = [
     {
-      label: "Total Clients",
+      label: "Total Businesses",
       value: String(stats.total),
       color: "text-indigo-600",
       bg: "bg-indigo-50",
@@ -244,48 +247,66 @@ export function FaraiClientManagement({
     });
   };
 
+  const handlePlatformAction = (client: AdminClient, action: "suspend" | "activate") => {
+    setPlatformActionError(null);
+    startTransition(async () => {
+      const result =
+        action === "suspend"
+          ? await adminSuspendBusiness(client.id)
+          : await adminActivateBusiness(client.id);
+      if (!result.ok) {
+        setPlatformActionError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  };
+
   const inputClass =
     "w-full rounded-xl border border-gray-100 bg-gray-50 px-4 py-2.5 text-xs font-medium text-gray-700 placeholder:text-gray-300 outline-none transition-all focus:border-indigo-300 focus:bg-white";
 
   return (
-    <div className="flex h-screen w-full overflow-hidden font-sans" style={{ background: "#f8f7ff" }}>
-      <aside className="flex h-full w-60 flex-shrink-0 flex-col bg-slate-900">
-        <AdminSidebarBrand />
+    <>
+      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-extrabold leading-tight tracking-tight text-gray-900">
+            Businesses
+          </h1>
+          <p className="mt-0.5 text-xs text-gray-400">Manage all platform businesses</p>
+        </div>
 
-        <AdminSidebarNav activeNav="clients" />
+        <div className="relative w-64 shrink-0">
+          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search businesses..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-xl border border-gray-100 bg-gray-50 py-2 pl-9 pr-4 text-xs font-medium text-gray-700 placeholder:text-gray-400 outline-none transition-all focus:border-indigo-300 focus:bg-white"
+          />
+        </div>
 
-        <AdminSidebarUser adminDisplayName={adminDisplayName} adminEmail={adminEmail} />
-      </aside>
+        <button
+          type="button"
+          onClick={openAddModal}
+          disabled={isPending}
+          className="flex shrink-0 items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700 disabled:opacity-60"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          <span>Add Business</span>
+        </button>
 
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 flex-shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-extrabold leading-tight tracking-tight text-gray-900">Clients</h1>
-            <p className="mt-0.5 text-xs text-gray-400">Manage all platform clients</p>
-          </div>
+        <AdminActivityBellLink />
+      </header>
 
-          <div className="relative w-64 flex-shrink-0">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search clients..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-gray-100 bg-gray-50 py-2 pl-9 pr-4 text-xs font-medium text-gray-700 placeholder:text-gray-400 outline-none transition-all focus:border-indigo-300 focus:bg-white"
-            />
-          </div>
-
-          <button type="button" onClick={openAddModal} disabled={isPending} className="flex flex-shrink-0 items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700 disabled:opacity-60">
-            <Plus className="h-3.5 w-3.5" />
-            <span>Add Client</span>
-          </button>
-
-          <AdminActivityBellLink />
-        </header>
-
-        <main className="flex-1 overflow-y-auto px-6 py-6">
+      <main className="flex-1 overflow-y-auto px-6 py-6">
           {isPending ? (
             <p className="mb-2 text-xs font-medium text-indigo-600">Syncing…</p>
+          ) : null}
+          {platformActionError ? (
+            <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {platformActionError}
+            </p>
           ) : null}
           <motion.div initial="hidden" animate="visible" variants={stagger} className="mx-auto max-w-7xl space-y-5">
             <motion.div variants={fadeUp} className="grid grid-cols-4 gap-4">
@@ -307,8 +328,11 @@ export function FaraiClientManagement({
             <motion.div variants={fadeUp} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-gray-50 px-6 py-4">
                 <div>
-                  <h2 className="text-sm font-bold text-gray-900">All Clients</h2>
-                  <p className="mt-0.5 text-xs text-gray-400">{filteredClients.length} client{filteredClients.length !== 1 ? "s" : ""} found</p>
+                  <h2 className="text-sm font-bold text-gray-900">All Businesses</h2>
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    {filteredClients.length} business
+                    {filteredClients.length !== 1 ? "es" : ""} found
+                  </p>
                 </div>
               </div>
 
@@ -338,9 +362,10 @@ export function FaraiClientManagement({
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-50">
-                      <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">Client</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">Business</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">Projects</th>
+                      <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">Business</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">Contact</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">Industry</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">Plan</th>
                       <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</th>
                       <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">Joined</th>
                       <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">Actions</th>
@@ -350,49 +375,54 @@ export function FaraiClientManagement({
                     {filteredClients.map((client) => (
                     <tr key={client.id} className="border-b border-gray-50 transition-colors duration-100 hover:bg-gray-50">
                       <td className="px-6 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-400 to-violet-500 shadow-sm">
-                            <span className="text-xs font-bold text-white">{getInitials(client.name)}</span>
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold text-gray-900">{client.name}</p>
-                            <p className="truncate text-[10px] text-gray-400">{client.email}</p>
-                          </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-semibold text-gray-900">{client.business}</p>
+                          <p className="truncate text-[10px] text-gray-400">{client.email}</p>
                         </div>
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className="text-xs font-medium text-gray-700">{client.business}</span>
+                        <span className="text-xs font-medium text-gray-700">{client.name}</span>
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className="text-xs font-bold text-gray-900">{client.projectCount}</span>
+                        <span className="text-xs text-gray-600">{client.industry}</span>
                       </td>
                       <td className="px-4 py-3.5">
-                        {client.status === "Active" ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                            <span>Active</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1 text-[10px] font-bold text-gray-500">
-                            <span className="h-1.5 w-1.5 rounded-full bg-gray-300" />
-                            <span>Inactive</span>
-                          </span>
-                        )}
+                        <span className="text-xs font-medium text-gray-700">{client.plan}</span>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className={`inline-flex rounded-lg border px-2.5 py-1 text-[10px] font-bold ${PLATFORM_STATUS_STYLES[client.platformStatus]}`}>
+                          {client.platformStatus}
+                        </span>
                       </td>
                       <td className="px-4 py-3.5">
                         <span className="text-xs font-medium text-gray-500">{client.joined}</span>
                       </td>
                       <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <button type="button" onClick={() => { setManualSelectedClient(client); setActiveTab("contact"); setNoteInput(""); setNoteError(null); setNoteSuccess(null); }} className="flex items-center gap-1 text-xs font-semibold text-indigo-600 transition-colors hover:text-indigo-800">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link href={`${ADMIN_BUSINESSES_PATH}/${client.id}`} className="flex items-center gap-1 text-xs font-semibold text-indigo-600 transition-colors hover:text-indigo-800">
                             <Eye className="h-3 w-3" />
                             <span>View</span>
-                          </button>
+                          </Link>
                           <span className="text-gray-200">|</span>
                           <button type="button" onClick={() => openEditModal(client)} className="flex items-center gap-1 text-xs font-semibold text-gray-400 transition-colors hover:text-gray-700">
                             <Pencil className="h-3 w-3" />
                             <span>Edit</span>
                           </button>
+                          {client.platformStatus === "Suspended" ? (
+                            <>
+                              <span className="text-gray-200">|</span>
+                              <button type="button" disabled={isPending} onClick={() => handlePlatformAction(client, "activate")} className="text-xs font-semibold text-emerald-600 hover:text-emerald-800 disabled:opacity-60">
+                                Activate
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-gray-200">|</span>
+                              <button type="button" disabled={isPending} onClick={() => handlePlatformAction(client, "suspend")} className="text-xs font-semibold text-red-600 hover:text-red-800 disabled:opacity-60">
+                                Suspend
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -403,7 +433,6 @@ export function FaraiClientManagement({
             </motion.div>
           </motion.div>
         </main>
-      </div>
 
       <AnimatePresence>
         {selectedClient ? (
@@ -463,7 +492,7 @@ export function FaraiClientManagement({
                       return (
                         <Link
                           key={proj.id}
-                          href={`${ADMIN_PIPELINE_PATH}/${selectedClient.id}`}
+                          href={`${ADMIN_BUSINESSES_PATH}/${selectedClient.id}?tab=pipeline`}
                           className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 p-3.5 transition-colors hover:border-indigo-200 hover:bg-indigo-50/60"
                         >
                           <div className="min-w-0">
@@ -558,6 +587,6 @@ export function FaraiClientManagement({
           </div>
         ) : null}
       </AnimatePresence>
-    </div>
+    </>
   );
 }

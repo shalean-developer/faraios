@@ -1,11 +1,15 @@
 import { Suspense } from "react";
 import { ChevronRight, Globe } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { OnboardingForm } from "@/components/onboarding/OnboardingForm";
 import { Navbar } from "@/components/Navbar";
+import { claimPendingOwnerWorkspace } from "@/lib/auth/claim-pending-workspace";
+import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
 import { listFeatures } from "@/lib/services/features";
 import { listIndustries } from "@/lib/services/industries";
+import { createClient } from "@/lib/supabase/server";
 import { GetStartedFallback } from "@/app/get-started/get-started-fallback";
 
 export const metadata = {
@@ -18,7 +22,20 @@ type SearchProps = {
 };
 
 export default async function OnboardingPage({ searchParams }: SearchProps) {
-  const { plan, redirect, hostingPlan } = await searchParams;
+  const { plan, redirect: redirectAfter, hostingPlan } = await searchParams;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    await claimPendingOwnerWorkspace(supabase);
+    const destination = await resolvePostLoginPath(supabase, user.id, "/app");
+    if (destination !== "/onboarding") {
+      redirect(destination);
+    }
+  }
+
   const [industries, features] = await Promise.all([
     listIndustries(),
     listFeatures(),
@@ -57,7 +74,7 @@ export default async function OnboardingPage({ searchParams }: SearchProps) {
               industries={industries}
               features={features}
               initialPlan={plan ?? null}
-              redirectAfter={redirect ?? null}
+              redirectAfter={redirectAfter ?? null}
               hostingPlan={hostingPlan ?? null}
             />
           </Suspense>

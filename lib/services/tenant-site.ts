@@ -3,12 +3,33 @@ import type { Metadata } from "next";
 
 import { getDomain } from "@/lib/getDomain";
 import { getMarketplaceBookingUrlForClient } from "@/lib/services/marketplace";
+import type { CompanyBranding } from "@/lib/website-templates/apply-variant";
 import {
   getWebsiteByDomain,
   getWebsiteContentByWebsiteId,
   isMainHost,
 } from "@/lib/services/websites";
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { WebsiteContent } from "@/types/database";
+
+async function getCompanyBranding(companyId: string): Promise<CompanyBranding | null> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return null;
+
+  const { data } = await admin.client
+    .from("companies")
+    .select("brand_logo_url, brand_primary_color, brand_accent_color")
+    .eq("id", companyId)
+    .maybeSingle();
+
+  if (!data) return null;
+
+  return {
+    logoUrl: data.brand_logo_url,
+    primaryColor: data.brand_primary_color,
+    accentColor: data.brand_accent_color,
+  };
+}
 
 export type TenantPageKind = "home" | "services" | "about" | "reviews" | "contact";
 
@@ -25,6 +46,7 @@ export async function getTenantContext() {
       marketplaceBookingUrl: null as string | null,
       publicBookingUrl: null as string | null,
       bookingUrl: null as string | null,
+      companyBranding: null as CompanyBranding | null,
     };
   }
 
@@ -38,12 +60,14 @@ export async function getTenantContext() {
       marketplaceBookingUrl: null as string | null,
       publicBookingUrl: null as string | null,
       bookingUrl: null as string | null,
+      companyBranding: null as CompanyBranding | null,
     };
   }
 
-  const [content, marketplaceBookingUrl] = await Promise.all([
+  const [content, marketplaceBookingUrl, companyBranding] = await Promise.all([
     getWebsiteContentByWebsiteId(website.id),
     getMarketplaceBookingUrlForClient(website.client_id),
+    getCompanyBranding(website.client_id),
   ]);
 
   const publicBookingUrl = `/book/${encodeURIComponent(website.client_id)}`;
@@ -56,6 +80,7 @@ export async function getTenantContext() {
     marketplaceBookingUrl,
     publicBookingUrl,
     bookingUrl: publicBookingUrl,
+    companyBranding,
   };
 }
 

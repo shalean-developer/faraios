@@ -12,6 +12,10 @@ import {
 } from "@/app/actions/growth-engine";
 import type { LocalSeoSettings } from "@/types/growth-engine";
 import type { ServiceAreaPage } from "@/types/growth-engine";
+import type {
+  SearchConsoleConnection,
+  SearchConsoleMetricsSummary,
+} from "@/lib/services/search-console";
 
 type WebsiteSeo = {
   id: string;
@@ -29,6 +33,9 @@ export function SeoDashboardClient({
   localSeo,
   websites,
   serviceAreaPages,
+  searchConsoleConnection,
+  searchConsoleMetrics,
+  searchConsoleConfigured,
 }: {
   slug: string;
   companyId: string;
@@ -48,6 +55,9 @@ export function SeoDashboardClient({
   localSeo: LocalSeoSettings | null;
   websites: WebsiteSeo[];
   serviceAreaPages: ServiceAreaPage[];
+  searchConsoleConnection: SearchConsoleConnection | null;
+  searchConsoleMetrics: SearchConsoleMetricsSummary | null;
+  searchConsoleConfigured: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -204,6 +214,76 @@ export function SeoDashboardClient({
               label="Indexed pages (est.)"
               value={String(audit.indexedPagesPlaceholder)}
             />
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Google Search Console</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Connect your property to import clicks, impressions, and top queries.
+                </p>
+              </div>
+              {searchConsoleConnection ? (
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+                  Connected
+                </span>
+              ) : null}
+            </div>
+
+            {!searchConsoleConfigured ? (
+              <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                OAuth is not configured on this environment. Set GOOGLE_SEARCH_CONSOLE_CLIENT_ID
+                and GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET to enable connection.
+              </p>
+            ) : searchConsoleConnection ? (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <MetricCard
+                  label={`Clicks (${searchConsoleMetrics?.periodDays ?? 28}d)`}
+                  value={String(searchConsoleMetrics?.clicks ?? 0)}
+                />
+                <MetricCard
+                  label="Impressions"
+                  value={String(searchConsoleMetrics?.impressions ?? 0)}
+                />
+                <MetricCard
+                  label="Avg. CTR"
+                  value={
+                    searchConsoleMetrics
+                      ? `${(searchConsoleMetrics.ctr * 100).toFixed(1)}%`
+                      : "—"
+                  }
+                />
+                <MetricCard
+                  label="Avg. position"
+                  value={
+                    searchConsoleMetrics
+                      ? searchConsoleMetrics.position.toFixed(1)
+                      : "—"
+                  }
+                />
+              </div>
+            ) : (
+              <a
+                href={`/api/integrations/google-search-console/connect?companyId=${encodeURIComponent(companyId)}`}
+                className="mt-4 inline-flex rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700"
+              >
+                Connect Google Search Console
+              </a>
+            )}
+
+            {searchConsoleMetrics?.topQueries.length ? (
+              <div className="mt-6">
+                <h3 className="text-sm font-semibold text-slate-900">Top queries</h3>
+                <ul className="mt-2 space-y-1 text-sm text-slate-600">
+                  {searchConsoleMetrics.topQueries.map((item) => (
+                    <li key={item.query}>
+                      {item.query} — {item.clicks} clicks / {item.impressions} impressions
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

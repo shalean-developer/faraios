@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { isPlatformAdminUser } from "@/lib/auth/platform-admin";
+import {
+  getPlatformAdminUserIds,
+  isPlatformAdminUser,
+} from "@/lib/auth/platform-admin";
 
 export type MarketingNavAuthState = {
   isAuthenticated: boolean;
@@ -21,10 +24,6 @@ export async function loadMarketingNavAuth(
 
   const isPlatformAdmin = await isPlatformAdminUser(supabase, user.id);
 
-  if (isPlatformAdmin) {
-    return { isAuthenticated: true, companySlug: null, isPlatformAdmin: true };
-  }
-
   const { data: membership } = await supabase
     .from("memberships")
     .select("company_id")
@@ -34,7 +33,11 @@ export async function loadMarketingNavAuth(
     .maybeSingle();
 
   if (!membership?.company_id) {
-    return { isAuthenticated: true, companySlug: null, isPlatformAdmin: false };
+    return {
+      isAuthenticated: true,
+      companySlug: null,
+      isPlatformAdmin,
+    };
   }
 
   const { data: company } = await supabase
@@ -46,6 +49,8 @@ export async function loadMarketingNavAuth(
   return {
     isAuthenticated: true,
     companySlug: company?.slug ?? null,
-    isPlatformAdmin: false,
+    isPlatformAdmin,
   };
 }
+
+export { getPlatformAdminUserIds };

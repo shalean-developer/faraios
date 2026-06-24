@@ -102,6 +102,10 @@ export async function middleware(request: NextRequest) {
 
     pathname === "/reviews" ||
 
+    pathname === "/blog" ||
+
+    pathname.startsWith("/blog/") ||
+
     pathname === "/sitemap.xml" ||
 
     pathname === "/robots.txt";
@@ -128,13 +132,19 @@ export async function middleware(request: NextRequest) {
 
     pathname.startsWith("/pricing") ||
 
+    pathname.startsWith("/features") ||
+
+    pathname.startsWith("/industries") ||
+
     pathname.startsWith("/hosting") ||
 
     pathname.startsWith("/auth") ||
 
     pathname.startsWith("/terms") ||
 
-    pathname.startsWith("/privacy")
+    pathname.startsWith("/privacy") ||
+
+    pathname.startsWith("/platform")
 
   ) {
 
@@ -202,12 +212,6 @@ export async function middleware(request: NextRequest) {
 
     if (user) {
 
-      if (await isPlatformAdminUser(supabase, user.id)) {
-
-        return NextResponse.redirect(new URL("/admin", request.url));
-
-      }
-
       const { data: membership } = await supabase
 
         .from("memberships")
@@ -268,6 +272,12 @@ export async function middleware(request: NextRequest) {
 
       }
 
+      if (await isPlatformAdminUser(supabase, user.id)) {
+
+        return NextResponse.redirect(new URL("/admin", request.url));
+
+      }
+
     }
 
     return response;
@@ -287,14 +297,6 @@ export async function middleware(request: NextRequest) {
   const isAdmin = user
     ? await isPlatformAdminUser(supabase, user.id)
     : false;
-
-
-
-  if (isAdmin && !pathname.startsWith("/admin")) {
-
-    return NextResponse.redirect(new URL("/admin", request.url));
-
-  }
 
 
 

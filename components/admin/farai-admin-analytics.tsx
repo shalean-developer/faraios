@@ -2,9 +2,6 @@
 
 import React, { useMemo, useTransition } from "react";
 import { motion } from "framer-motion";
-import { AdminSidebarBrand } from "@/components/admin/admin-sidebar-brand";
-import { AdminSidebarNav } from "@/components/admin/admin-sidebar-nav";
-import { AdminSidebarUser } from "@/components/admin/admin-sidebar-user";
 import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
 import {
   Layers,
@@ -175,25 +172,12 @@ const DonutLabel = ({
 
 export function FaraiAdminAnalytics({
   analytics,
-  adminEmail,
-  adminDisplayName,
 }: {
   analytics: AdminAnalyticsData;
-  adminEmail: string | null;
-  adminDisplayName: string;
 }) {
   return (
-    <div className="flex h-screen w-full overflow-hidden font-sans" style={{ background: "#f8f7ff" }}>
-      <aside className="flex h-full w-60 flex-shrink-0 flex-col bg-slate-900">
-        <AdminSidebarBrand />
-
-        <AdminSidebarNav activeNav="analytics" />
-
-        <AdminSidebarUser adminDisplayName={adminDisplayName} adminEmail={adminEmail} />
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 flex-shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
+    <>
+      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-extrabold leading-tight tracking-tight text-gray-900">Analytics</h1>
             <p className="mt-0.5 text-xs text-gray-400">Platform-wide insights and performance metrics</p>
@@ -428,7 +412,6 @@ export function FaraiAdminAnalytics({
             </motion.div>
           </motion.div>
         </main>
-      </div>
-    </div>
+    </>
   );
 }

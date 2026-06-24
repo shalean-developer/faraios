@@ -11,8 +11,8 @@ export type WorkflowTriggerType =
 
 export type WorkflowActionType =
   | "send_email"
-  | "send_sms"
-  | "send_whatsapp"
+  | "send_sms" // reserved — hidden from UI until messaging provider is configured
+  | "send_whatsapp" // reserved — hidden from UI until messaging provider is configured
   | "create_task"
   | "assign_staff"
   | "change_status"

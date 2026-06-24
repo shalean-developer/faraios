@@ -81,8 +81,9 @@ Legacy `/{company}/project` redirects to `/{company}/dashboard/project`.
 
 ### Multi-company access
 
-Users with multiple workspace memberships can switch companies from the sidebar.
+Users with multiple workspace memberships can switch companies from the sidebar or choose a workspace at `/app/workspaces` after login.
 Middleware validates access to the company slug in the URL (not only the first membership).
+See [docs/WORKSPACES.md](docs/WORKSPACES.md) for the full model (multi-company is intentional; onboarding still creates one company per flow).
 
 ### Public booking API (V2)
 
@@ -112,6 +113,8 @@ Header: X-FaraiOS-Company-Key: <key>
 Legacy `/dashboard/*` paths redirect to the signed-in user's company workspace.
 
 ## Deployment (Vercel)
+
+See **[docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md)** for migration order, env template, cron URLs, and smoke tests.
 
 1. Push repository to GitHub.
 2. Import project in Vercel.
