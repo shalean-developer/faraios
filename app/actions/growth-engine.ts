@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireCompanyPermission } from "@/lib/services/company-access";
+import { requireCompanyPermissionAndFeature } from "@/lib/services/company-access";
 import { createContentPost, updateContentPost } from "@/lib/services/content-posts";
 import type { ContentPostInput } from "@/lib/services/content-posts";
 import { createEmailCampaign, sendEmailCampaign } from "@/lib/services/email-campaigns";
@@ -35,7 +35,11 @@ export async function saveLocalSeoSettingsAction(input: {
   companySlug: string;
   settings: LocalSeoInput;
 }): Promise<GrowthActionResult> {
-  const access = await requireCompanyPermission(input.companyId, "manage_marketing");
+  const access = await requireCompanyPermissionAndFeature(
+    input.companyId,
+    "manage_marketing",
+    "seo"
+  );
   if (!access.ok) return access;
 
   const result = await upsertLocalSeoSettings(input.companyId, input.settings);
@@ -51,7 +55,11 @@ export async function saveWebsiteSeoAction(input: {
   websiteId: string;
   seo: Pick<WebsiteSeoInput, "seoTitle" | "seoDescription"> & { seoKeywords?: string };
 }): Promise<GrowthActionResult> {
-  const access = await requireCompanyPermission(input.companyId, "manage_marketing");
+  const access = await requireCompanyPermissionAndFeature(
+    input.companyId,
+    "manage_marketing",
+    "seo"
+  );
   if (!access.ok) return access;
 
   const result = await updateWebsiteSeo(input.websiteId, {
@@ -70,7 +78,11 @@ export async function createServiceAreaPageAction(input: {
   companySlug: string;
   page: ServiceAreaPageInput;
 }): Promise<GrowthActionResult & { id?: string }> {
-  const access = await requireCompanyPermission(input.companyId, "manage_marketing");
+  const access = await requireCompanyPermissionAndFeature(
+    input.companyId,
+    "manage_marketing",
+    "seo"
+  );
   if (!access.ok) return access;
 
   const result = await createServiceAreaPage(input.companyId, input.page);
@@ -86,7 +98,11 @@ export async function updateServiceAreaPageAction(input: {
   pageId: string;
   page: Partial<ServiceAreaPageInput>;
 }): Promise<GrowthActionResult> {
-  const access = await requireCompanyPermission(input.companyId, "manage_marketing");
+  const access = await requireCompanyPermissionAndFeature(
+    input.companyId,
+    "manage_marketing",
+    "seo"
+  );
   if (!access.ok) return access;
 
   const result = await updateServiceAreaPage(input.companyId, input.pageId, input.page);
@@ -103,7 +119,11 @@ export async function bulkGenerateServiceAreasAction(input: {
   serviceNames: string[];
   areaNames: string[];
 }): Promise<GrowthActionResult & { created?: number }> {
-  const access = await requireCompanyPermission(input.companyId, "manage_marketing");
+  const access = await requireCompanyPermissionAndFeature(
+    input.companyId,
+    "manage_marketing",
+    "seo"
+  );
   if (!access.ok) return access;
 
   const result = await bulkGenerateServiceAreaPages(
@@ -123,7 +143,11 @@ export async function createContentPostAction(input: {
   companySlug: string;
   post: ContentPostInput;
 }): Promise<GrowthActionResult & { id?: string }> {
-  const access = await requireCompanyPermission(input.companyId, "manage_marketing");
+  const access = await requireCompanyPermissionAndFeature(
+    input.companyId,
+    "manage_marketing",
+    "campaigns"
+  );
   if (!access.ok) return access;
 
   const result = await createContentPost(input.companyId, input.post);
@@ -139,7 +163,11 @@ export async function updateContentPostAction(input: {
   postId: string;
   post: Partial<ContentPostInput>;
 }): Promise<GrowthActionResult> {
-  const access = await requireCompanyPermission(input.companyId, "manage_marketing");
+  const access = await requireCompanyPermissionAndFeature(
+    input.companyId,
+    "manage_marketing",
+    "campaigns"
+  );
   if (!access.ok) return access;
 
   const result = await updateContentPost(input.companyId, input.postId, input.post);
@@ -157,7 +185,11 @@ export async function sendReviewRequestAction(input: {
   businessName: string;
   bookingId?: string;
 }): Promise<GrowthActionResult> {
-  const access = await requireCompanyPermission(input.companyId, "manage_marketing");
+  const access = await requireCompanyPermissionAndFeature(
+    input.companyId,
+    "manage_marketing",
+    "reviews"
+  );
   if (!access.ok) return access;
 
   const result = await sendReviewRequest({
@@ -178,7 +210,11 @@ export async function createCampaignAction(input: {
   companySlug: string;
   campaign: EmailCampaignInput;
 }): Promise<GrowthActionResult & { id?: string }> {
-  const access = await requireCompanyPermission(input.companyId, "manage_marketing");
+  const access = await requireCompanyPermissionAndFeature(
+    input.companyId,
+    "manage_marketing",
+    "campaigns"
+  );
   if (!access.ok) return access;
 
   const result = await createEmailCampaign(input.companyId, input.campaign);
@@ -193,7 +229,11 @@ export async function sendCampaignAction(input: {
   companySlug: string;
   campaignId: string;
 }): Promise<GrowthActionResult & { sentCount?: number }> {
-  const access = await requireCompanyPermission(input.companyId, "manage_marketing");
+  const access = await requireCompanyPermissionAndFeature(
+    input.companyId,
+    "manage_marketing",
+    "campaigns"
+  );
   if (!access.ok) return access;
 
   const result = await sendEmailCampaign(input.companyId, input.campaignId);

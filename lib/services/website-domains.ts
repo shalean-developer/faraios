@@ -2,6 +2,7 @@ import { promises as dns } from "dns";
 
 import { getHostingProvider } from "@/lib/hosting/providers";
 import type { DnsRecordType } from "@/lib/hosting/providers";
+import { syncHostingSubscriptionFromWebsiteDomain } from "@/lib/services/hosting-domain";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import type {
@@ -141,13 +142,14 @@ export async function verifyWebsiteDomain(
   }
 
   const verificationStatus = allVerified ? "verified" : "pending";
-  const sslStatus = allVerified ? "pending" : domainRow.ssl_status;
+  let sslStatus =
+    allVerified && domainRow.ssl_status === "not_started" ? "pending" : domainRow.ssl_status;
 
   await admin.client
     .from("website_domains")
     .update({
       verification_status: verificationStatus,
-      ssl_status: allVerified && domainRow.ssl_status === "not_started" ? "pending" : domainRow.ssl_status,
+      ssl_status: sslStatus,
       last_checked_at: now,
       updated_at: now,
     })
@@ -160,12 +162,20 @@ export async function verifyWebsiteDomain(
       domain: domainRow.domain,
     });
     if (status.sslStatus === "active") {
+      sslStatus = "active";
       await admin.client
         .from("website_domains")
         .update({ ssl_status: "active", updated_at: now })
         .eq("id", websiteDomainId);
     }
   }
+
+  await syncHostingSubscriptionFromWebsiteDomain(
+    companyId,
+    domainRow.domain,
+    verificationStatus,
+    sslStatus
+  );
 
   return { ok: true, verified: allVerified };
 }

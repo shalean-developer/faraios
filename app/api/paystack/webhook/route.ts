@@ -2,17 +2,13 @@ import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
-  hostingPlanAmountInKobo,
   normalizeHostingBillingPlan,
 } from "@/lib/billing/hosting-paystack";
 import {
   normalizeBillingPlan,
-  planAmountInKobo,
 } from "@/lib/billing/paystack";
-import {
-  deriveHostingSubdomain,
-  hostingPlanEntitlements,
-} from "@/lib/services/hosting";
+import { activateHostingSubscription } from "@/lib/billing/hosting-subscription-payment";
+import { activateWorkspaceSubscription } from "@/lib/billing/workspace-subscription-payment";
 import { markPaymentPaid } from "@/lib/services/payments";
 import {
   notifyPaymentReceived,
@@ -23,6 +19,7 @@ type PaystackEvent = {
   event?: string;
   data?: {
     amount?: number;
+    customer?: { customer_code?: string };
     metadata?: {
       product_type?: string;
       company_id?: string;
@@ -43,169 +40,59 @@ function verifyPaystackSignature(rawBody: string, signature: string, secret: str
 }
 
 async function handleWebsiteSubscriptionPayment(
-  admin: ReturnType<typeof createAdminClient>,
   companyId: string,
   plan: string,
   paidAt: Date,
   reference: string | undefined,
-  paidAmount: number
+  paidAmount: number,
+  paystackCustomerCode?: string
 ) {
-  const expectedAmount = planAmountInKobo(plan);
-  if (paidAmount !== expectedAmount) {
-    console.error("[paystack webhook] website amount mismatch", {
-      companyId,
-      plan,
-      expectedAmount,
-      paidAmount,
-      reference,
-    });
-    return NextResponse.json({ ok: false, error: "Payment amount mismatch." }, { status: 400 });
-  }
+  const result = await activateWorkspaceSubscription({
+    companyId,
+    plan,
+    paidAt,
+    paidAmount,
+    reference,
+    paystackCustomerCode,
+  });
 
-  const nextBillingDate = new Date(paidAt);
-  nextBillingDate.setDate(nextBillingDate.getDate() + 30);
-
-  const { error } = await admin
-    .from("companies")
-    .update({
-      plan,
-      subscription_status: "active",
-      next_billing_date: nextBillingDate.toISOString(),
-    })
-    .eq("id", companyId);
-
-  if (error) {
-    console.error("[paystack webhook] company update failed", error.message);
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  if (!result.ok) {
+    console.error("[paystack webhook] workspace activation failed", result.error);
+    return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   }
 
   console.log("[paystack webhook] company billing updated", {
     companyId,
     plan,
-    nextBillingDate: nextBillingDate.toISOString(),
+    alreadyActive: result.alreadyActive ?? false,
   });
   return NextResponse.json({ ok: true });
 }
 
 async function handleHostingPayment(
-  admin: ReturnType<typeof createAdminClient>,
   companyId: string,
   plan: string,
   paidAt: Date,
   reference: string | undefined,
   paidAmount: number
 ) {
-  const expectedAmount = hostingPlanAmountInKobo(plan);
-  if (paidAmount !== expectedAmount) {
-    console.error("[paystack webhook] hosting amount mismatch", {
-      companyId,
-      plan,
-      expectedAmount,
-      paidAmount,
-      reference,
-    });
-    return NextResponse.json({ ok: false, error: "Payment amount mismatch." }, { status: 400 });
-  }
+  const result = await activateHostingSubscription({
+    companyId,
+    plan,
+    paidAt,
+    paidAmount,
+    reference,
+  });
 
-  const { data: company } = await admin
-    .from("companies")
-    .select("slug")
-    .eq("id", companyId)
-    .maybeSingle();
-
-  const subdomain = company?.slug
-    ? deriveHostingSubdomain(company.slug)
-    : `host-${companyId.slice(0, 8)}`;
-
-  const entitlements = hostingPlanEntitlements(plan);
-  const nextBillingDate = new Date(paidAt);
-  nextBillingDate.setDate(nextBillingDate.getDate() + 30);
-
-  const { data: existing } = await admin
-    .from("hosting_subscriptions")
-    .select("id")
-    .eq("company_id", companyId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  let subscriptionId: string;
-
-  if (existing?.id) {
-    const { error: updateError } = await admin
-      .from("hosting_subscriptions")
-      .update({
-        plan_slug: plan,
-        status: "active",
-        subdomain,
-        bandwidth_limit_gb: entitlements.bandwidth_limit_gb,
-        sites_limit: entitlements.sites_limit,
-        ssl_status: "active",
-        next_billing_date: nextBillingDate.toISOString(),
-        activated_at: paidAt.toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", existing.id);
-
-    if (updateError) {
-      console.error("[paystack webhook] hosting subscription update failed", updateError.message);
-      return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 });
-    }
-    subscriptionId = existing.id;
-  } else {
-    const { data: created, error: insertError } = await admin
-      .from("hosting_subscriptions")
-      .insert({
-        company_id: companyId,
-        plan_slug: plan,
-        status: "active",
-        subdomain,
-        bandwidth_limit_gb: entitlements.bandwidth_limit_gb,
-        sites_limit: entitlements.sites_limit,
-        ssl_status: "active",
-        next_billing_date: nextBillingDate.toISOString(),
-        activated_at: paidAt.toISOString(),
-      })
-      .select("id")
-      .single();
-
-    if (insertError || !created) {
-      console.error("[paystack webhook] hosting subscription insert failed", insertError?.message);
-      return NextResponse.json(
-        { ok: false, error: insertError?.message ?? "Failed to create subscription." },
-        { status: 500 }
-      );
-    }
-    subscriptionId = created.id;
-  }
-
-  if (reference) {
-    const { data: existingPayment } = await admin
-      .from("hosting_payments")
-      .select("id")
-      .eq("paystack_reference", reference)
-      .maybeSingle();
-
-    if (!existingPayment) {
-      await admin.from("hosting_payments").insert({
-        subscription_id: subscriptionId,
-        company_id: companyId,
-        plan_slug: plan,
-        amount_cents: paidAmount,
-        currency: "ZAR",
-        paystack_reference: reference,
-        status: "success",
-        paid_at: paidAt.toISOString(),
-      });
-    }
+  if (!result.ok) {
+    console.error("[paystack webhook] hosting activation failed", result.error);
+    return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   }
 
   console.log("[paystack webhook] hosting subscription activated", {
     companyId,
     plan,
-    subscriptionId,
-    subdomain,
-    nextBillingDate: nextBillingDate.toISOString(),
+    alreadyActive: result.alreadyActive ?? false,
   });
   return NextResponse.json({ ok: true });
 }
@@ -350,16 +237,16 @@ export async function POST(req: Request) {
 
   if (productType === "hosting") {
     const plan = normalizeHostingBillingPlan(payload.data?.metadata?.plan);
-    return handleHostingPayment(admin, companyId, plan, paidAt, reference, paidAmount);
+    return handleHostingPayment(companyId, plan, paidAt, reference, paidAmount);
   }
 
   const plan = normalizeBillingPlan(payload.data?.metadata?.plan);
   return handleWebsiteSubscriptionPayment(
-    admin,
     companyId,
     plan,
     paidAt,
     reference,
-    paidAmount
+    paidAmount,
+    payload.data?.customer?.customer_code
   );
 }

@@ -1,14 +1,21 @@
 import { notFound } from "next/navigation";
 
 import { getCompanyBySlug } from "@/lib/services/companies";
+import { listSubscriptionPayments } from "@/lib/services/subscription";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
+import { confirmWorkspacePaymentForUser } from "@/lib/services/workspace-subscription-verify";
 import { createClient } from "@/lib/supabase/server";
 
 import { CompanySubscriptionClient } from "./company-subscription-client";
+import { SubscriptionPaymentRecovery } from "@/components/subscription/subscription-payment-recovery";
 
 type Props = {
   params: Promise<{ company: string }>;
-  searchParams: Promise<{ payment?: string }>;
+  searchParams: Promise<{
+    payment?: string;
+    reference?: string;
+    trxref?: string;
+  }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -20,7 +27,7 @@ export const metadata = {
 
 export default async function CompanySubscriptionPage({ params, searchParams }: Props) {
   const { company } = await params;
-  const { payment } = await searchParams;
+  const { payment, reference, trxref } = await searchParams;
   const slug = decodeURIComponent(company);
 
   const supabase = await createClient();
@@ -32,6 +39,22 @@ export default async function CompanySubscriptionPage({ params, searchParams }: 
   const row = await getCompanyBySlug(slug);
   if (!row || !(await userHasCompanySlugAccess(user.id, slug))) notFound();
 
+  const paymentConfirmation = await confirmWorkspacePaymentForUser({
+    reference: reference ?? trxref,
+    companyId: row.id,
+    companySlug: slug,
+    userId: user.id,
+    paymentSuccess: payment === "success",
+  });
+
+  const refreshedCompany =
+    paymentConfirmation.status === "activated" ||
+    paymentConfirmation.status === "already_active"
+      ? ((await getCompanyBySlug(slug)) ?? row)
+      : row;
+
+  const payments = await listSubscriptionPayments(refreshedCompany.id);
+
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-8">
       <header className="mb-6">
@@ -42,10 +65,17 @@ export default async function CompanySubscriptionPage({ params, searchParams }: 
         </p>
       </header>
 
+      <SubscriptionPaymentRecovery
+        slug={slug}
+        companyId={refreshedCompany.id}
+        paymentConfirmation={paymentConfirmation}
+      />
       <CompanySubscriptionClient
         slug={slug}
-        company={row}
-        paymentSuccess={payment === "success"}
+        company={refreshedCompany}
+        paymentConfirmation={paymentConfirmation}
+        payments={payments}
+        billingEmail={refreshedCompany.primary_contact_email ?? user.email ?? null}
       />
     </div>
   );

@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { CheckCircle2, CreditCard, XCircle } from "lucide-react";
 
+import { changeWorkspacePlan } from "@/app/actions/subscription";
+import { confirmWorkspacePaymentAction } from "@/app/actions/confirm-workspace-payment";
 import { Button } from "@/components/ui/button";
 import {
   formatZar,
@@ -13,79 +16,187 @@ import {
   type PricingPlanSlug,
 } from "@/lib/data/pricing";
 import { companyDashboardPath, companyHostingPath } from "@/lib/paths/company";
+import {
+  isActiveSubscriptionStatus,
+  normalizeSubscriptionStatus,
+  subscriptionRenewalDate,
+} from "@/lib/subscriptions/access";
+import { startWorkspacePayment } from "@/lib/subscriptions/start-workspace-payment";
+import { rememberWorkspacePaymentReference } from "@/lib/subscriptions/payment-reference-storage";
 import { cn } from "@/lib/utils";
 import type { CompanyWithIndustry } from "@/types/database";
+import type { SubscriptionPaymentRecord } from "@/lib/services/subscription";
+import type { PaymentConfirmationState } from "@/lib/services/workspace-subscription-verify";
 
 type Props = {
   slug: string;
   company: CompanyWithIndustry;
-  paymentSuccess?: boolean;
+  paymentConfirmation: PaymentConfirmationState;
+  payments: SubscriptionPaymentRecord[];
+  billingEmail?: string | null;
 };
 
 function subscriptionBadge(status?: string | null) {
   const map: Record<string, string> = {
     active: "bg-emerald-50 text-emerald-800 ring-emerald-100",
     trialing: "bg-sky-50 text-sky-800 ring-sky-100",
+    pending_payment: "bg-amber-50 text-amber-800 ring-amber-100",
     past_due: "bg-amber-50 text-amber-800 ring-amber-100",
+    expired: "bg-rose-50 text-rose-800 ring-rose-100",
     cancelled: "bg-slate-50 text-slate-600 ring-slate-100",
   };
-  return map[status ?? ""] ?? "bg-slate-50 text-slate-600 ring-slate-100";
+  const normalized = normalizeSubscriptionStatus(status);
+  return map[normalized] ?? "bg-slate-50 text-slate-600 ring-slate-100";
 }
 
 export function CompanySubscriptionClient({
   slug,
   company,
-  paymentSuccess,
+  paymentConfirmation,
+  payments,
+  billingEmail,
 }: Props) {
+  const router = useRouter();
+  const mountedRef = useRef(false);
   const currentPlan = normalizePlanSlug(company.plan);
   const [selectedPlan, setSelectedPlan] = useState<PricingPlanSlug>(currentPlan);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [planMessage, setPlanMessage] = useState<string | null>(null);
+  const [planPending, startPlanTransition] = useTransition();
+  const [confirmReference, setConfirmReference] = useState("");
+  const [confirmPending, startConfirmTransition] = useTransition();
+  const [confirmMessage, setConfirmMessage] = useState<string | null>(null);
 
-  const isActive = company.subscription_status === "active";
+  const status = normalizeSubscriptionStatus(company.subscription_status);
+  const isActive = isActiveSubscriptionStatus(status);
+  const renewalDate = subscriptionRenewalDate(company);
+  const currentPlanRecord = pricingPlans.find((plan) => plan.slug === currentPlan);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const onPay = async () => {
-    const email = company.primary_contact_email?.trim();
+    const email =
+      company.primary_contact_email?.trim() || billingEmail?.trim() || "";
     if (!email) {
       setError("Add a billing email in Business settings first.");
       return;
     }
 
+    if (selectedPlan !== currentPlan) {
+      const planResult = await changeWorkspacePlan({
+        companyId: company.id,
+        companySlug: slug,
+        plan: selectedPlan,
+      });
+      if (!planResult.ok) {
+        setError(planResult.error);
+        return;
+      }
+    }
+
     setError(null);
     setPending(true);
     try {
-      const res = await fetch("/api/paystack/initialize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyId: company.id,
-          plan: selectedPlan,
-          email,
-        }),
+      const result = await startWorkspacePayment({
+        companyId: company.id,
+        plan: selectedPlan,
+        email,
       });
-      const data = (await res.json()) as {
-        ok: boolean;
-        authorizationUrl?: string;
-        error?: string;
-      };
-      if (!res.ok || !data.ok || !data.authorizationUrl) {
-        setError(data.error ?? "Failed to initialize payment.");
+      if (!result.ok) {
+        setError(result.error);
+        setPending(false);
         return;
       }
-      window.location.href = data.authorizationUrl;
+      if (result.reference) {
+        rememberWorkspacePaymentReference(company.id, result.reference);
+      }
+      window.location.assign(result.authorizationUrl);
     } catch {
-      setError("Could not start payment.");
-    } finally {
-      setPending(false);
+      if (mountedRef.current) {
+        setError("Could not start payment.");
+        setPending(false);
+      }
     }
+  };
+
+  const onChangePlanOnly = () => {
+    setPlanMessage(null);
+    setError(null);
+    startPlanTransition(async () => {
+      const result = await changeWorkspacePlan({
+        companyId: company.id,
+        companySlug: slug,
+        plan: selectedPlan,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setPlanMessage(
+        selectedPlan === currentPlan
+          ? "Plan unchanged."
+          : `Plan updated to ${planLabelForSlug(selectedPlan)}. Changes apply immediately.`
+      );
+      router.refresh();
+    });
+  };
+
+  const onConfirmPayment = () => {
+    setConfirmMessage(null);
+    setError(null);
+    startConfirmTransition(async () => {
+      const result = await confirmWorkspacePaymentAction({
+        companyId: company.id,
+        companySlug: slug,
+        reference: confirmReference,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setConfirmMessage(
+        result.activated
+          ? "Payment confirmed. Your workspace is now active."
+          : "Payment confirmed. Your workspace is already active."
+      );
+      router.refresh();
+    });
   };
 
   return (
     <div className="space-y-8">
-      {paymentSuccess ? (
+      {paymentConfirmation.status === "activated" ||
+      paymentConfirmation.status === "already_active" ? (
         <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
-          <p>Payment received. Your workspace subscription will update shortly.</p>
+          <p>
+            {paymentConfirmation.status === "activated"
+              ? "Payment confirmed. Your workspace is now active."
+              : "Payment confirmed. Your workspace subscription is active."}
+          </p>
+        </div>
+      ) : null}
+
+      {paymentConfirmation.status === "pending_webhook" ? (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+          <p>
+            Payment received. Verifying your transaction now — refresh in a moment if
+            your status does not update.
+          </p>
+        </div>
+      ) : null}
+
+      {paymentConfirmation.status === "failed" ? (
+        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+          <XCircle className="mt-0.5 h-5 w-5 shrink-0" />
+          <p>{paymentConfirmation.error}</p>
         </div>
       ) : null}
 
@@ -99,28 +210,40 @@ export function CompanySubscriptionClient({
               {planLabelForSlug(currentPlan)} plan
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              FaraiOS platform subscription — dashboard, bookings, CRM, and growth tools.
+              {currentPlanRecord
+                ? `${formatZar(currentPlanRecord.monthly_price)}/month`
+                : "Monthly workspace subscription"}
             </p>
           </div>
           <span
             className={cn(
-              "inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset",
+              "inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ring-1 ring-inset",
               subscriptionBadge(company.subscription_status)
             )}
           >
-            {(company.subscription_status ?? "inactive").replace(/_/g, " ")}
+            {status.replace(/_/g, " ")}
           </span>
         </div>
 
-        <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+        <dl className="mt-6 grid gap-4 sm:grid-cols-3">
           <div className="rounded-xl bg-slate-50 p-4">
             <dt className="text-xs font-medium uppercase tracking-wider text-slate-500">
-              Next billing date
+              Renewal date
             </dt>
             <dd className="mt-1 text-sm font-semibold text-slate-900">
-              {company.next_billing_date
-                ? new Date(company.next_billing_date).toLocaleDateString("en-ZA")
+              {renewalDate
+                ? new Date(renewalDate).toLocaleDateString("en-ZA")
                 : "Not scheduled"}
+            </dd>
+          </div>
+          <div className="rounded-xl bg-slate-50 p-4">
+            <dt className="text-xs font-medium uppercase tracking-wider text-slate-500">
+              Started
+            </dt>
+            <dd className="mt-1 text-sm font-semibold text-slate-900">
+              {company.subscription_started_at
+                ? new Date(company.subscription_started_at).toLocaleDateString("en-ZA")
+                : "Not started"}
             </dd>
           </div>
           <div className="rounded-xl bg-slate-50 p-4">
@@ -128,16 +251,17 @@ export function CompanySubscriptionClient({
               Billing email
             </dt>
             <dd className="mt-1 text-sm font-semibold text-slate-900">
-              {company.primary_contact_email ?? "Not set"}
+              {company.primary_contact_email ?? billingEmail ?? "Not set"}
             </dd>
           </div>
         </dl>
       </section>
 
       <section>
-        <h3 className="text-lg font-bold text-slate-900">Choose a plan</h3>
+        <h3 className="text-lg font-bold text-slate-900">Upgrade or change plan</h3>
         <p className="mt-1 text-sm text-slate-600">
-          Monthly workspace subscription billed via Paystack. Setup fees are handled during onboarding.
+          Plan changes apply immediately. Payment activates or renews your workspace via
+          Paystack.
         </p>
         <div className="mt-6 grid gap-4 lg:grid-cols-3">
           {pricingPlans.map((plan) => (
@@ -179,6 +303,9 @@ export function CompanySubscriptionClient({
             {error}
           </p>
         ) : null}
+        {planMessage ? (
+          <p className="mt-4 text-sm text-emerald-700">{planMessage}</p>
+        ) : null}
 
         <div className="mt-6 flex flex-wrap gap-3">
           <Button
@@ -194,6 +321,17 @@ export function CompanySubscriptionClient({
                 ? "Renew subscription"
                 : "Pay with Paystack"}
           </Button>
+          {isActive && selectedPlan !== currentPlan ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              disabled={planPending}
+              onClick={onChangePlanOnly}
+            >
+              {planPending ? "Updating…" : "Apply plan change"}
+            </Button>
+          ) : null}
           <Link
             href={companyDashboardPath(slug)}
             className="inline-flex items-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -202,6 +340,74 @@ export function CompanySubscriptionClient({
           </Link>
         </div>
       </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="text-lg font-bold text-slate-900">Payment history</h3>
+        {payments.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-500">No workspace payments recorded yet.</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500">
+                  <th className="py-2 pr-4 font-semibold">Date</th>
+                  <th className="py-2 pr-4 font-semibold">Plan</th>
+                  <th className="py-2 pr-4 font-semibold">Amount</th>
+                  <th className="py-2 font-semibold">Reference</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map((payment) => (
+                  <tr key={payment.id} className="border-b border-slate-100">
+                    <td className="py-3 pr-4 text-slate-700">
+                      {new Date(payment.paid_at).toLocaleDateString("en-ZA")}
+                    </td>
+                    <td className="py-3 pr-4 capitalize text-slate-700">
+                      {payment.plan_slug}
+                    </td>
+                    <td className="py-3 pr-4 text-slate-700">
+                      {formatZar(payment.amount_cents / 100)}
+                    </td>
+                    <td className="py-3 font-mono text-xs text-slate-500">
+                      {payment.paystack_reference ?? "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {!isActive ? (
+        <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-5">
+          <h3 className="text-sm font-semibold text-slate-900">Already paid?</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            Paste your Paystack reference to confirm payment and activate this workspace.
+          </p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <input
+              type="text"
+              value={confirmReference}
+              onChange={(event) => setConfirmReference(event.target.value)}
+              placeholder="Paystack reference"
+              className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              disabled={confirmPending || !confirmReference.trim()}
+              onClick={onConfirmPayment}
+            >
+              {confirmPending ? "Confirming…" : "Confirm payment"}
+            </Button>
+          </div>
+          {confirmMessage ? (
+            <p className="mt-3 text-sm text-emerald-700">{confirmMessage}</p>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-5 text-sm text-slate-600">
         <p className="font-semibold text-slate-900">Website hosting is separate</p>

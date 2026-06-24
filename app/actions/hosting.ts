@@ -1,8 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+
 import { requireCompanyPermission } from "@/lib/services/company-access";
+import { provisionCompanyWebsiteDomain } from "@/lib/services/hosting-domain";
+import { verifyWebsiteDomain } from "@/lib/services/website-domains";
+import { createClient } from "@/lib/supabase/server";
 import { companyHostingPath } from "@/lib/paths/company";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -50,22 +53,44 @@ export async function connectHostingDomainAction(
   const access = await requireCompanyPermission(sub.company_id, "view_websites");
   if (!access.ok) return access;
 
-  const { error } = await supabase
-    .from("hosting_subscriptions")
-    .update({
-      custom_domain: normalized,
-      domain_status: "pending",
-      ssl_status: "pending",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", subscriptionId);
+  const provision = await provisionCompanyWebsiteDomain({
+    companyId: sub.company_id,
+    domain: normalized,
+    syncHostingSubscription: true,
+    isPrimary: true,
+  });
 
-  if (error) {
-    return { ok: false, error: error.message };
+  if (!provision.ok) {
+    return { ok: false, error: provision.error };
   }
 
   revalidatePath(companyHostingPath(companySlug));
   return { ok: true };
+}
+
+export async function verifyHostingDomainAction(input: {
+  companyId: string;
+  companySlug: string;
+  websiteDomainId: string;
+}): Promise<{ ok: true; verified: boolean } | { ok: false; error: string }> {
+  const access = await requireCompanyPermission(input.companyId, "view_websites");
+  if (!access.ok) return access;
+
+  const result = await verifyWebsiteDomain(input.websiteDomainId, input.companyId);
+  if (!result.ok) {
+    return { ok: false, error: result.error ?? "Verification failed." };
+  }
+
+  if (result.verified) {
+    const supabase = await createClient();
+    await supabase
+      .from("connected_websites")
+      .update({ status: "verified", updated_at: new Date().toISOString() })
+      .eq("company_id", input.companyId);
+  }
+
+  revalidatePath(companyHostingPath(input.companySlug));
+  return { ok: true, verified: result.verified };
 }
 
 export async function cancelHostingSubscriptionAction(

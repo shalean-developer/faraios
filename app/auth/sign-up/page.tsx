@@ -11,13 +11,17 @@ export const metadata: Metadata = {
 export default async function SignUpPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; next?: string }>;
+  searchParams: Promise<{ error?: string; next?: string; plan?: string }>;
 }) {
-  const { error, next } = await searchParams;
+  const { error, next, plan } = await searchParams;
+  const redirectTo =
+    safeNextPath(next) ??
+    (plan ? `/onboarding?plan=${encodeURIComponent(plan)}` : undefined);
+
   return (
     <FaraiAuthPage
       initialMode="signup"
-      redirectTo={safeNextPath(next)}
+      redirectTo={redirectTo}
       initialError={
         error === "auth"
           ? "Could not complete sign-up. Try again."

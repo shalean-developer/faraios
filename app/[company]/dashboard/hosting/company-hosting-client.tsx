@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
+  Check,
   CheckCircle2,
   CreditCard,
   Globe,
+  Loader2,
+  RefreshCw,
   Server,
   Shield,
   XCircle,
@@ -16,7 +19,10 @@ import {
 import {
   cancelHostingSubscriptionAction,
   connectHostingDomainAction,
+  verifyHostingDomainAction,
 } from "@/app/actions/hosting";
+import { confirmHostingPaymentAction } from "@/app/actions/confirm-hosting-payment";
+import { rememberHostingPaymentReference } from "@/components/hosting/hosting-payment-recovery";
 import { Button } from "@/components/ui/button";
 import {
   formatZar,
@@ -24,13 +30,16 @@ import {
   hostingPlans,
   normalizeHostingPlanSlug,
 } from "@/lib/data/hosting";
-import { companyDashboardPath } from "@/lib/paths/company";
+import { companyDashboardPath, companyWebsiteDomainsPath } from "@/lib/paths/company";
+import { FARAIOS_CNAME_TARGET } from "@/lib/hosting/constants";
 import { cn } from "@/lib/utils";
 import type {
   CompanyWithIndustry,
   HostingPayment,
   HostingSubscription,
 } from "@/types/database";
+import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
+import type { HostingPaymentConfirmationState } from "@/lib/services/hosting-subscription-verify";
 
 type Props = {
   slug: string;
@@ -38,7 +47,10 @@ type Props = {
   subscription: HostingSubscription | null;
   payments: HostingPayment[];
   initialPlan?: string;
-  paymentSuccess?: boolean;
+  paymentConfirmation: HostingPaymentConfirmationState;
+  billingEmail?: string | null;
+  hostingDomain: WebsiteDomain | null;
+  dnsRecords: WebsiteDnsRecord[];
 };
 
 const fadeUp = {
@@ -66,7 +78,10 @@ export function CompanyHostingClient({
   subscription,
   payments,
   initialPlan,
-  paymentSuccess,
+  paymentConfirmation,
+  billingEmail,
+  hostingDomain,
+  dnsRecords,
 }: Props) {
   const [selectedPlan, setSelectedPlan] = useState(
     normalizeHostingPlanSlug(initialPlan ?? subscription?.plan_slug)
@@ -76,8 +91,21 @@ export function CompanyHostingClient({
   const [domainInput, setDomainInput] = useState(subscription?.custom_domain ?? "");
   const [domainPending, setDomainPending] = useState(false);
   const [domainError, setDomainError] = useState<string | null>(null);
+  const [verifyPending, setVerifyPending] = useState(false);
+  const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
   const [cancelPending, setCancelPending] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [confirmReference, setConfirmReference] = useState("");
+  const [confirmPending, setConfirmPending] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState<string | null>(null);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const isActive = subscription?.status === "active";
   const planLabel = subscription
@@ -85,7 +113,9 @@ export function CompanyHostingClient({
     : null;
 
   const onStartPayment = async () => {
-    if (!company.primary_contact_email) {
+    const email =
+      company.primary_contact_email?.trim() || billingEmail?.trim() || "";
+    if (!email) {
       setBillingError("Missing billing email on your workspace.");
       return;
     }
@@ -98,23 +128,54 @@ export function CompanyHostingClient({
         body: JSON.stringify({
           companyId: company.id,
           plan: selectedPlan,
-          email: company.primary_contact_email,
+          email,
         }),
       });
       const data = (await res.json()) as {
         ok: boolean;
         authorizationUrl?: string;
+        reference?: string;
         error?: string;
       };
       if (!res.ok || !data.ok || !data.authorizationUrl) {
         setBillingError(data.error ?? "Failed to initialize payment.");
+        setBillingPending(false);
         return;
       }
-      window.location.href = data.authorizationUrl;
+      if (data.reference) {
+        rememberHostingPaymentReference(company.id, data.reference);
+      }
+      window.location.assign(data.authorizationUrl);
     } catch {
-      setBillingError("Could not start payment.");
+      if (mountedRef.current) {
+        setBillingError("Could not start payment.");
+        setBillingPending(false);
+      }
+    }
+  };
+
+  const onConfirmPayment = async () => {
+    setConfirmMessage(null);
+    setBillingError(null);
+    setConfirmPending(true);
+    try {
+      const result = await confirmHostingPaymentAction({
+        companyId: company.id,
+        companySlug: slug,
+        reference: confirmReference,
+      });
+      if (!result.ok) {
+        setBillingError(result.error);
+        return;
+      }
+      setConfirmMessage(
+        result.activated
+          ? "Hosting payment confirmed. Your plan is now active."
+          : "Hosting payment confirmed. Your plan is already active."
+      );
+      window.location.reload();
     } finally {
-      setBillingPending(false);
+      setConfirmPending(false);
     }
   };
 
@@ -136,6 +197,32 @@ export function CompanyHostingClient({
       window.location.reload();
     } finally {
       setDomainPending(false);
+    }
+  };
+
+  const onVerifyDns = async () => {
+    if (!hostingDomain?.id) return;
+    setVerifyMessage(null);
+    setDomainError(null);
+    setVerifyPending(true);
+    try {
+      const result = await verifyHostingDomainAction({
+        companyId: company.id,
+        companySlug: slug,
+        websiteDomainId: hostingDomain.id,
+      });
+      if (!result.ok) {
+        setDomainError(result.error);
+        return;
+      }
+      setVerifyMessage(
+        result.verified
+          ? "Domain verified. SSL will activate once your provider finishes provisioning."
+          : "DNS not verified yet. Check the records below and try again in a few minutes."
+      );
+      window.location.reload();
+    } finally {
+      setVerifyPending(false);
     }
   };
 
@@ -178,7 +265,7 @@ export function CompanyHostingClient({
 
         <motion.header
           variants={fadeUp}
-          className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8"
+          className="relative rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8"
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -206,14 +293,37 @@ export function CompanyHostingClient({
           </div>
         </motion.header>
 
-        {paymentSuccess ? (
+        {paymentConfirmation.status === "activated" ||
+        paymentConfirmation.status === "already_active" ? (
           <motion.div
             variants={fadeUp}
             className="mt-6 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
           >
             <CheckCircle2 className="h-5 w-5 shrink-0" />
-            Payment received — your hosting is being activated. Refresh if status
-            hasn&apos;t updated yet.
+            {paymentConfirmation.status === "activated"
+              ? "Hosting payment confirmed. Your plan is now active."
+              : "Hosting payment confirmed. Your hosting plan is active."}
+          </motion.div>
+        ) : null}
+
+        {paymentConfirmation.status === "pending_webhook" ? (
+          <motion.div
+            variants={fadeUp}
+            className="mt-6 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+          >
+            <CheckCircle2 className="h-5 w-5 shrink-0" />
+            Verifying your hosting payment. Refresh in a moment if status has not
+            updated.
+          </motion.div>
+        ) : null}
+
+        {paymentConfirmation.status === "failed" ? (
+          <motion.div
+            variants={fadeUp}
+            className="mt-6 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+          >
+            <XCircle className="h-5 w-5 shrink-0" />
+            {paymentConfirmation.error}
           </motion.div>
         ) : null}
 
@@ -279,8 +389,8 @@ export function CompanyHostingClient({
             <motion.section variants={fadeUp} className="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
               <h2 className="text-lg font-bold text-slate-900">Connect custom domain</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Point your domain&apos;s <strong>CNAME</strong> to{" "}
-                <code className="rounded bg-slate-100 px-1 py-0.5">cname.vercel-dns.com</code>
+                Point your domain&apos;s DNS to FaraiOS hosting. Add the records below at your
+                registrar, then click <strong>Verify DNS</strong>.
               </p>
               <form onSubmit={onConnectDomain} className="mt-4 flex flex-col gap-2 sm:flex-row">
                 <input
@@ -290,11 +400,95 @@ export function CompanyHostingClient({
                   placeholder="www.yourbusiness.com"
                 />
                 <Button type="submit" disabled={domainPending}>
-                  {domainPending ? "Saving..." : "Connect domain"}
+                  {domainPending ? "Connecting..." : "Connect domain"}
                 </Button>
               </form>
               {domainError ? (
                 <p className="mt-2 text-sm font-medium text-red-600">{domainError}</p>
+              ) : null}
+              {verifyMessage ? (
+                <p className="mt-2 text-sm font-medium text-emerald-700">{verifyMessage}</p>
+              ) : null}
+
+              {subscription.custom_domain && hostingDomain ? (
+                <div className="mt-6 rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-slate-900">{hostingDomain.domain}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Domain {hostingDomain.verification_status} · SSL {hostingDomain.ssl_status}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl"
+                      disabled={verifyPending}
+                      onClick={onVerifyDns}
+                    >
+                      {verifyPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                          Verify DNS
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {dnsRecords.length > 0 ? (
+                    <div className="mt-4 overflow-x-auto">
+                      <table className="w-full min-w-[480px] text-left text-sm">
+                        <thead>
+                          <tr className="border-b border-slate-200 text-xs uppercase text-slate-500">
+                            <th className="py-2 pr-4">Type</th>
+                            <th className="py-2 pr-4">Host</th>
+                            <th className="py-2 pr-4">Value</th>
+                            <th className="py-2">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dnsRecords.map((record) => (
+                            <tr key={record.id} className="border-b border-slate-100 last:border-0">
+                              <td className="py-2 pr-4 font-mono text-xs">{record.record_type}</td>
+                              <td className="py-2 pr-4 font-mono text-xs">
+                                {record.host === "@" ? "@" : record.host}
+                              </td>
+                              <td className="max-w-xs truncate py-2 pr-4 font-mono text-xs">
+                                {record.value}
+                              </td>
+                              <td className="py-2">
+                                <DnsStatusPill status={record.status} />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm text-slate-500">
+                      CNAME your domain to{" "}
+                      <code className="rounded bg-white px-1 py-0.5">{FARAIOS_CNAME_TARGET}</code>
+                    </p>
+                  )}
+
+                  <p className="mt-4 text-xs text-slate-500">
+                    Need more domains?{" "}
+                    <Link
+                      href={companyWebsiteDomainsPath(slug)}
+                      className="font-medium text-indigo-600 hover:text-indigo-800"
+                    >
+                      Manage in Website → Domains
+                    </Link>
+                  </p>
+                </div>
+              ) : subscription.custom_domain ? (
+                <p className="mt-4 text-sm text-amber-700">
+                  Provisioning DNS instructions for {subscription.custom_domain}… Refresh if this
+                  message persists.
+                </p>
               ) : null}
             </motion.section>
 
@@ -355,7 +549,7 @@ export function CompanyHostingClient({
             ) : null}
           </>
         ) : (
-          <motion.section variants={fadeUp} className="mt-8">
+          <section className="mt-8">
             <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center">
               <XCircle className="mx-auto h-10 w-10 text-slate-300" />
               <h2 className="mt-4 text-lg font-bold text-slate-900">
@@ -410,10 +604,57 @@ export function CompanyHostingClient({
             {billingError ? (
               <p className="mt-2 text-sm font-medium text-red-600">{billingError}</p>
             ) : null}
-          </motion.section>
+
+            <div className="mt-8 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-5">
+              <h3 className="text-sm font-semibold text-slate-900">Already paid?</h3>
+              <p className="mt-1 text-sm text-slate-600">
+                Paste your Paystack reference to confirm hosting payment.
+              </p>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <input
+                  type="text"
+                  value={confirmReference}
+                  onChange={(event) => setConfirmReference(event.target.value)}
+                  placeholder="Paystack reference"
+                  className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl"
+                  disabled={confirmPending || !confirmReference.trim()}
+                  onClick={onConfirmPayment}
+                >
+                  {confirmPending ? "Confirming…" : "Confirm payment"}
+                </Button>
+              </div>
+              {confirmMessage ? (
+                <p className="mt-3 text-sm text-emerald-700">{confirmMessage}</p>
+              ) : null}
+            </div>
+          </section>
         )}
       </motion.div>
     </div>
+  );
+}
+
+function DnsStatusPill({ status }: { status: WebsiteDnsRecord["status"] }) {
+  const styles: Record<string, string> = {
+    verified: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+    pending: "bg-amber-50 text-amber-800 ring-amber-100",
+    failed: "bg-red-50 text-red-700 ring-red-100",
+  };
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ring-1",
+        styles[status] ?? styles.pending
+      )}
+    >
+      {status === "verified" ? <Check className="h-3 w-3" /> : null}
+      {status}
+    </span>
   );
 }
 

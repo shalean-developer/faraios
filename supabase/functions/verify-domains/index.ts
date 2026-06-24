@@ -122,6 +122,26 @@ async function verifyWebsiteDomain(
       .from("connected_websites")
       .update({ status: "verified", updated_at: now })
       .eq("company_id", companyId);
+
+    const domainStatus = verificationStatus === "verified" ? "verified" : "pending";
+    const sslStatus =
+      domain.ssl_status === "active"
+        ? "active"
+        : domain.ssl_status === "failed"
+          ? "failed"
+          : "pending";
+
+    await supabase
+      .from("hosting_subscriptions")
+      .update({
+        custom_domain: domain.domain,
+        domain_status: domainStatus,
+        ssl_status: sslStatus,
+        updated_at: now,
+      })
+      .eq("company_id", companyId)
+      .eq("status", "active")
+      .ilike("custom_domain", domain.domain);
   }
 
   return allVerified;

@@ -302,10 +302,8 @@ export function OnboardingForm({
       if (redirectAfter === "hosting") {
         const planQuery = hostingPlan ? `?plan=${encodeURIComponent(hostingPlan)}` : "";
         router.push(`/${encodeURIComponent(result.slug)}/dashboard/hosting${planQuery}`);
-      } else if (includeWebsiteBrief) {
-        router.push(`/${encodeURIComponent(result.slug)}/dashboard/project?submitted=1`);
       } else {
-        router.push(`/${encodeURIComponent(result.slug)}/dashboard`);
+        router.push(`/${encodeURIComponent(result.slug)}/dashboard/subscription`);
       }
       router.refresh();
     } finally {

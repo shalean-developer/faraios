@@ -8,10 +8,15 @@ export type PricingPlanRecord = {
   /** URL segment for `?plan=` (e.g. business → /get-started?plan=business) */
   slug: string;
   name: string;
+  /** Legacy website setup tier amount — used for admin revenue; not shown on workspace cards */
   setup_price: number;
   monthly_price: number;
   /** Feature lines shown in the plan card */
   features: string[];
+  /** Short audience labels for marketing cards */
+  best_for: string[];
+  /** Primary CTA label on pricing cards */
+  cta_label: string;
   is_popular: boolean;
   description: string;
 };
@@ -24,15 +29,24 @@ export const pricingPlans: PricingPlanRecord[] = [
     setup_price: 2000,
     monthly_price: 99,
     features: [
-      "Custom Design",
-      "Up to 4 Pages",
-      "Mobile Responsive",
-      "Basic SEO",
-      "1 Month Support",
+      "Business Workspace",
+      "Customers CRM",
+      "Services Management",
+      "Bookings",
+      "Calendar",
+      "Basic Dashboard",
+      "1 Team Member",
+      "Email Support",
     ],
+    best_for: [
+      "Cleaning businesses",
+      "Beauty professionals",
+      "Freelancers",
+      "Small service businesses",
+    ],
+    cta_label: "Start Starter Plan",
     is_popular: false,
-    description:
-      "Perfect for small businesses launching their first professional website.",
+    description: "Perfect for solo operators and small businesses.",
   },
   {
     id: "plan_business",
@@ -41,17 +55,26 @@ export const pricingPlans: PricingPlanRecord[] = [
     setup_price: 3500,
     monthly_price: 199,
     features: [
-      "Custom Design",
-      "Up to 7 Pages",
-      "Mobile Responsive",
-      "Advanced SEO",
-      "Blog / CMS",
-      "3 Months Support",
-      "Google Analytics",
+      "Everything in Starter",
+      "Leads CRM",
+      "Quotes",
+      "Invoices",
+      "Payment Tracking",
+      "SEO Tools",
+      "Reviews Management",
+      "Marketing Campaigns",
+      "Up to 5 Team Members",
+      "Business Reports",
+      "Priority Support",
     ],
+    best_for: [
+      "Growing service businesses",
+      "Small teams",
+      "Businesses handling multiple customers daily",
+    ],
+    cta_label: "Start Business Plan",
     is_popular: true,
-    description:
-      "The sweet spot for growing businesses that need more power and reach.",
+    description: "For growing businesses that need sales and growth tools.",
   },
   {
     id: "plan_premium",
@@ -60,19 +83,24 @@ export const pricingPlans: PricingPlanRecord[] = [
     setup_price: 5000,
     monthly_price: 499,
     features: [
-      "Custom Design",
-      "Unlimited Pages",
-      "Mobile Responsive",
-      "Full SEO Suite",
-      "Blog / CMS",
-      "E-commerce Ready",
-      "6 Months Support",
+      "Everything in Business",
+      "Workflow Automations",
+      "AI Insights",
+      "Business Health Dashboard",
+      "Advanced Reporting",
+      "Unlimited Team Members",
+      "Custom Roles & Permissions",
       "Priority Support",
-      "Google Analytics + Ads Setup",
+      "Early Access Features",
     ],
+    best_for: [
+      "Multi-staff businesses",
+      "Agencies",
+      "Businesses scaling operations",
+    ],
+    cta_label: "Start Premium Plan",
     is_popular: false,
-    description:
-      "Everything you need for a full-scale digital presence with zero compromises.",
+    description: "For established businesses that want automation and insights.",
   },
 ];
 
@@ -110,6 +138,100 @@ export function planPageLimitLabel(slug: PricingPlanSlug): string {
   return limit === null ? "Unlimited pages" : `Up to ${limit} pages`;
 }
 
+export type WebsiteServiceRecord = {
+  id: string;
+  name: string;
+  price: number;
+  price_label?: string;
+  features: string[];
+};
+
+export const websiteServices: WebsiteServiceRecord[] = [
+  {
+    id: "website_basic",
+    name: "Basic Website",
+    price: 2000,
+    features: [
+      "Professional Website",
+      "Mobile Responsive",
+      "Contact Forms",
+      "Domain Connection",
+    ],
+  },
+  {
+    id: "website_business",
+    name: "Business Website",
+    price: 3500,
+    features: [
+      "Multi-Page Website",
+      "Booking Integration",
+      "Basic SEO Setup",
+      "Analytics Setup",
+    ],
+  },
+  {
+    id: "website_custom",
+    name: "Custom Website",
+    price: 5000,
+    price_label: "Starting from R5,000",
+    features: [
+      "Fully Custom Design",
+      "Advanced Features",
+      "Custom Integrations",
+    ],
+  },
+];
+
+export type HostingAddOnRecord = {
+  id: string;
+  name: string;
+  monthly_price: number;
+};
+
+export const hostingAddOns: HostingAddOnRecord[] = [
+  { id: "hosting_starter", name: "Starter Hosting", monthly_price: 49 },
+  { id: "hosting_business", name: "Business Hosting", monthly_price: 99 },
+  { id: "hosting_premium", name: "Premium Hosting", monthly_price: 199 },
+];
+
+export type GrowthServiceRecord = {
+  id: string;
+  name: string;
+  price: number;
+  price_label?: string;
+  billing: "once" | "monthly";
+};
+
+export const growthServices: GrowthServiceRecord[] = [
+  {
+    id: "growth_seo_setup",
+    name: "SEO Setup",
+    price: 1500,
+    billing: "once",
+  },
+  {
+    id: "growth_monthly_seo",
+    name: "Monthly SEO",
+    price: 999,
+    price_label: "Starting from R999/month",
+    billing: "monthly",
+  },
+  {
+    id: "growth_google_ads",
+    name: "Google Ads Management",
+    price: 1500,
+    price_label: "Starting from R1,500/month",
+    billing: "monthly",
+  },
+  {
+    id: "growth_content",
+    name: "Content Marketing",
+    price: 999,
+    price_label: "Starting from R999/month",
+    billing: "monthly",
+  },
+];
+
 export type TrustBadgeRecord = {
   id: string;
   label: string;
@@ -137,15 +259,15 @@ export const trustBadges: TrustBadgeRecord[] = [
     icon: "headphones",
   },
   {
-    id: "delivery",
-    label: "Fast Delivery",
-    sub: "Live within 14 days",
+    id: "workspace",
+    label: "Workspace First",
+    sub: "Run your business from day one",
     icon: "globe",
   },
   {
-    id: "refund",
-    label: "Satisfaction Guarantee",
-    sub: "We revise until you love it",
+    id: "flexible",
+    label: "Pay for What You Need",
+    sub: "Websites and hosting are optional",
     icon: "card",
   },
 ];
@@ -159,49 +281,48 @@ export type FaqItemRecord = {
 export const faqItems: FaqItemRecord[] = [
   {
     id: "faq-1",
-    question: "What is FaraiOS?",
+    question: "Do I need a website?",
     answer:
-      "FaraiOS is a business operating system for service businesses. It brings bookings, customers, payments, websites, SEO, marketing, team management, and reporting into one connected workspace — so you run operations, revenue, and growth from a single platform.",
+      "No. You can use FaraiOS as your business workspace without purchasing a website.",
   },
   {
     id: "faq-2",
-    question: "Is FaraiOS a website builder?",
+    question: "Can I connect my existing website?",
     answer:
-      "Not exactly. FaraiOS is a full business operating system. Your website is one part of it — you can connect an existing site, have one built for you, or host through FaraiOS. The workspace behind it handles bookings, customers, payments, and everything else.",
+      "Yes. FaraiOS can connect to an existing website and manage bookings, customers, leads, and payments.",
   },
   {
     id: "faq-3",
-    question: "Can I connect my existing website?",
+    question: "Can I upgrade later?",
     answer:
-      "Yes. You can connect your current website and add booking forms, lead tracking, and integrations that sync with your FaraiOS workspace. You do not need to rebuild your site to start using FaraiOS.",
+      "Yes. You can upgrade or downgrade your plan at any time.",
   },
   {
     id: "faq-4",
-    question: "Can FaraiOS manage bookings and payments?",
+    question: "Do hosting and websites come included?",
     answer:
-      "Yes. FaraiOS includes bookings, calendar, quotes, invoices, and payment tracking in the Operations and Revenue modules. Manage the full customer journey from first enquiry to paid invoice in one place.",
+      "No. Websites and hosting are optional add-ons so you only pay for what you need.",
   },
   {
     id: "faq-5",
-    question: "Which industries does FaraiOS support?",
+    question: "What is FaraiOS?",
     answer:
-      "FaraiOS is built for local service businesses including cleaning, beauty and spa, technology services, tourism, construction, electrical, fitness, gardening, security, and consulting. Industry-specific defaults help you get started faster.",
-  },
-  {
-    id: "faq-6",
-    question: "Can I upgrade later?",
-    answer:
-      "Absolutely. You can upgrade from Starter to Business or Business to Premium at any time. We will only charge you the difference in setup costs and adjust your monthly billing accordingly.",
-  },
-  {
-    id: "faq-7",
-    question: "Do I own my customer data?",
-    answer:
-      "Yes. Your customer data, bookings, and business records belong to you. FaraiOS stores and manages your data securely in your workspace, and you retain full ownership and access at all times.",
+      "FaraiOS is a Business Operating System for service businesses. It helps you manage bookings, customers, quotes, invoices, payments, websites, SEO, marketing, and your team from one workspace.",
   },
 ];
 
 /** ZAR display for marketing copy */
 export function formatZar(amount: number): string {
   return `R${amount.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}`;
+}
+
+export function formatServicePrice(
+  price: number,
+  billing: "once" | "monthly",
+  priceLabel?: string
+): string {
+  if (priceLabel) return priceLabel;
+  return billing === "once"
+    ? `${formatZar(price)} once-off`
+    : `${formatZar(price)}/month`;
 }

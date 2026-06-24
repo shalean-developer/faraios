@@ -1,3 +1,4 @@
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import {
@@ -36,8 +37,10 @@ export async function getRolePermissions(
 ): Promise<PermissionKey[]> {
   if (!isSupabaseConfigured()) return ROLE_DEFAULTS[role] ?? [];
 
-  const supabase = await createClient();
-  const { data } = await supabase
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return ROLE_DEFAULTS[role] ?? [];
+
+  const { data } = await admin.client
     .from("role_permissions")
     .select("permission_key")
     .eq("company_id", companyId)
@@ -95,15 +98,17 @@ export async function updateRolePermissions(
   if (!isSupabaseConfigured()) return { ok: false, error: "Not configured." };
   if (role === "owner") return { ok: false, error: "Owner permissions cannot be modified." };
 
-  const supabase = await createClient();
-  await supabase
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return { ok: false, error: admin.error };
+
+  await admin.client
     .from("role_permissions")
     .delete()
     .eq("company_id", companyId)
     .eq("role", role);
 
   if (permissions.length > 0) {
-    const { error } = await supabase.from("role_permissions").insert(
+    const { error } = await admin.client.from("role_permissions").insert(
       permissions.map((permission_key) => ({
         company_id: companyId,
         role,

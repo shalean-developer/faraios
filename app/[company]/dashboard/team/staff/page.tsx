@@ -7,10 +7,7 @@ import { listStaffProfiles } from "@/lib/services/staff-profiles";
 import { getMemberRoleForUser, listCompanyMembers } from "@/lib/services/team";
 import { createClient } from "@/lib/supabase/server";
 
-import {
-  buildStaffRows,
-  CompanyTeamStaffClient,
-} from "./company-team-staff-client";
+import { CompanyTeamStaffClient } from "./company-team-staff-client";
 
 type Props = { params: Promise<{ company: string }> };
 
@@ -41,13 +38,12 @@ export default async function CompanyTeamStaffPage({ params }: Props) {
     userHasPermission(row.id, user.id, "manage_staff"),
   ]);
 
-  const staffRows = buildStaffRows(members, profiles);
-
   return (
     <CompanyTeamStaffClient
       slug={slug}
       company={row}
-      staffRows={staffRows}
+      members={members}
+      profiles={profiles}
       canManage={role === "owner" || canManageStaff}
       currentUserId={user.id}
     />

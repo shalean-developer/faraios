@@ -51,6 +51,19 @@ export async function POST(req: Request) {
     );
   }
 
+  const { data: company, error: companyError } = await supabase
+    .from("companies")
+    .select("slug")
+    .eq("id", body.companyId)
+    .maybeSingle();
+
+  if (companyError || !company?.slug) {
+    return NextResponse.json(
+      { ok: false, error: "Company not found." },
+      { status: 404 }
+    );
+  }
+
   const plan = normalizeBillingPlan(body.plan);
   const amount = planAmountInKobo(plan);
 
@@ -62,7 +75,7 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-  const callbackUrl = `${(siteUrl ?? "").replace(/\/$/, "")}/app?payment=success`;
+  const callbackUrl = `${(siteUrl ?? "").replace(/\/$/, "")}/${encodeURIComponent(company.slug)}/dashboard/subscription?payment=success`;
 
   const paystackRes = await fetch(`${PAYSTACK_BASE_URL}/transaction/initialize`, {
     method: "POST",

@@ -1,7 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/supabase/public-env";
+import { requireCompanyMembership } from "@/lib/services/company-access";
 import type { PermissionKey } from "@/lib/permissions/shared";
 import { getRolePermissions, updateRolePermissions } from "@/lib/services/permissions";
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import type { CompanyRoleRecord } from "@/lib/team/role-display";
 
 export type { CompanyRoleRecord };
@@ -19,8 +20,13 @@ function slugifyRoleKey(label: string): string {
 export async function listCompanyRoles(companyId: string): Promise<CompanyRoleRecord[]> {
   if (!isSupabaseConfigured()) return [];
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const access = await requireCompanyMembership(companyId);
+  if (!access.ok) return [];
+
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return [];
+
+  const { data, error } = await admin.client
     .from("company_roles")
     .select("*")
     .eq("company_id", companyId)
@@ -57,9 +63,10 @@ export async function createCompanyRole(input: {
   if (!label) return { ok: false, error: "Role name is required." };
 
   const roleKey = slugifyRoleKey(label);
-  const supabase = await createClient();
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return { ok: false, error: admin.error };
 
-  const { error } = await supabase.from("company_roles").insert({
+  const { error } = await admin.client.from("company_roles").insert({
     company_id: input.companyId,
     role_key: roleKey,
     label,
@@ -98,9 +105,10 @@ export async function deleteCompanyRole(input: {
     return { ok: false, error: "System roles cannot be deleted." };
   }
 
-  const supabase = await createClient();
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return { ok: false, error: admin.error };
 
-  const { count } = await supabase
+  const { count } = await admin.client
     .from("memberships")
     .select("id", { count: "exact", head: true })
     .eq("company_id", input.companyId)
@@ -110,13 +118,13 @@ export async function deleteCompanyRole(input: {
     return { ok: false, error: "Reassign team members before deleting this role." };
   }
 
-  await supabase
+  await admin.client
     .from("role_permissions")
     .delete()
     .eq("company_id", input.companyId)
     .eq("role", input.roleKey);
 
-  const { error } = await supabase
+  const { error } = await admin.client
     .from("company_roles")
     .delete()
     .eq("company_id", input.companyId)

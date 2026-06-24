@@ -2,34 +2,37 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState, useTransition } from "react";
+import { type FormEvent, useMemo, useState, useTransition } from "react";
 
 import { updateStaffProfileAction } from "@/app/actions/v6-engine";
 import { Button } from "@/components/ui/button";
 import { companyTeamPath } from "@/lib/paths/company";
 import type { CompanyMember } from "@/lib/services/team";
 import { systemRoleLabel } from "@/lib/team/role-display";
+import { buildStaffRows } from "@/lib/team/staff-rows";
 import type { CompanyWithIndustry } from "@/types/database";
 import type { StaffProfile } from "@/types/v6-engine";
-
-type StaffRow = CompanyMember & {
-  profile: StaffProfile | null;
-};
 
 export function CompanyTeamStaffClient({
   slug,
   company,
-  staffRows,
+  members,
+  profiles,
   canManage,
   currentUserId,
 }: {
   slug: string;
   company: CompanyWithIndustry;
-  staffRows: StaffRow[];
+  members: CompanyMember[];
+  profiles: StaffProfile[];
   canManage: boolean;
   currentUserId: string;
 }) {
   const router = useRouter();
+  const staffRows = useMemo(
+    () => buildStaffRows(members, profiles),
+    [members, profiles]
+  );
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -227,15 +230,4 @@ export function CompanyTeamStaffClient({
       ) : null}
     </div>
   );
-}
-
-export function buildStaffRows(
-  members: CompanyMember[],
-  profiles: StaffProfile[]
-): StaffRow[] {
-  const profileByUser = new Map(profiles.map((p) => [p.userId, p]));
-  return members.map((member) => ({
-    ...member,
-    profile: profileByUser.get(member.user_id) ?? null,
-  }));
 }

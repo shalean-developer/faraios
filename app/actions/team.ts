@@ -6,8 +6,10 @@ import { requireCompanyOwner } from "@/lib/services/company-access";
 import { listCompanyRoles } from "@/lib/services/company-roles";
 import {
   findUserIdByEmail,
+  listCompanyMembers,
   type CompanyMemberRole,
 } from "@/lib/services/team";
+import { planMemberLimit } from "@/lib/subscriptions/plan-entitlements";
 import { ASSIGNABLE_MEMBER_ROLES } from "@/lib/team/assignable-roles";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
@@ -50,6 +52,26 @@ export async function inviteTeamMember(input: {
   const access = await requireCompanyOwner(input.companyId);
   if (!access.ok) return access;
 
+  const supabase = await createClient();
+  const { data: company, error: companyError } = await supabase
+    .from("companies")
+    .select("plan")
+    .eq("id", input.companyId)
+    .maybeSingle();
+
+  if (companyError || !company) {
+    return { ok: false, error: "Workspace not found." };
+  }
+
+  const members = await listCompanyMembers(input.companyId);
+  const memberLimit = planMemberLimit(company.plan);
+  if (members.length >= memberLimit) {
+    return {
+      ok: false,
+      error: `Your plan allows up to ${memberLimit === Infinity ? "unlimited" : memberLimit} team member${memberLimit === 1 ? "" : "s"}. Upgrade your plan to invite more people.`,
+    };
+  }
+
   const user = await findUserIdByEmail(email);
   if (!user) {
     return {
@@ -63,7 +85,6 @@ export async function inviteTeamMember(input: {
     return { ok: false, error: "You are already a member of this workspace." };
   }
 
-  const supabase = await createClient();
   const { error } = await supabase.rpc("invite_company_member", {
     p_company_id: input.companyId,
     p_user_id: user.id,

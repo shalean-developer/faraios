@@ -28,6 +28,15 @@ import {
 } from "@/lib/constants/company-nav";
 import { companyNotificationsPath } from "@/lib/paths/company";
 import type { PermissionKey } from "@/lib/permissions/shared";
+import {
+  filterGrowthSubNavBySubscription,
+  filterIntelligenceSubNavBySubscription,
+  filterNavBySubscription,
+  filterRevenueSubNavBySubscription,
+  filterTeamSubNavBySubscription,
+  filterWebsiteSubNavBySubscription,
+} from "@/lib/subscriptions/nav-filter";
+import type { SubscriptionCompanyFields } from "@/lib/subscriptions/types";
 import { cn } from "@/lib/utils";
 
 import { useCollapsibleNavSections } from "./use-collapsible-nav-sections";
@@ -58,35 +67,48 @@ function getSubNavItems(
   slug: string,
   collapsible: CollapsibleNavKey,
   hasWebsiteProject: boolean,
-  userPermissions: PermissionKey[]
+  userPermissions: PermissionKey[],
+  subscription?: SubscriptionCompanyFields
 ) {
   switch (collapsible) {
     case "bookings":
       return bookingsSubNavItems(slug);
     case "customers":
       return customersSubNavItems(slug);
-    case "revenue":
-      return filterSubNavItems(
+    case "revenue": {
+      const items = filterSubNavItems(
         revenueSubNavItems(slug).map((item) => ({
           ...item,
           permissions: ["view_revenue"] as PermissionKey[],
         })),
         userPermissions
       );
-    case "websites":
-      return filterSubNavItems(
+      return subscription ? filterRevenueSubNavBySubscription(items, subscription) : items;
+    }
+    case "websites": {
+      const items = filterSubNavItems(
         websiteSubNavItems(slug, { hasWebsiteProject }).map((item) => ({
           ...item,
           permissions: ["view_websites"] as PermissionKey[],
         })),
         userPermissions
       );
-    case "team":
-      return filterSubNavItems(teamSubNavItems(slug), userPermissions);
-    case "growth":
-      return filterSubNavItems(growthSubNavItems(slug), userPermissions);
-    case "intelligence":
-      return filterSubNavItems(intelligenceSubNavItems(slug), userPermissions);
+      return subscription ? filterWebsiteSubNavBySubscription(items, subscription) : items;
+    }
+    case "team": {
+      const items = filterSubNavItems(teamSubNavItems(slug), userPermissions);
+      return subscription ? filterTeamSubNavBySubscription(items, subscription) : items;
+    }
+    case "growth": {
+      const items = filterSubNavItems(growthSubNavItems(slug), userPermissions);
+      return subscription ? filterGrowthSubNavBySubscription(items, subscription) : items;
+    }
+    case "intelligence": {
+      const items = filterSubNavItems(intelligenceSubNavItems(slug), userPermissions);
+      return subscription
+        ? filterIntelligenceSubNavBySubscription(items, subscription)
+        : items;
+    }
     default:
       return [];
   }
@@ -123,19 +145,24 @@ export function CompanyMobileNav({
   companyName,
   hasWebsiteProject = false,
   userPermissions = [],
+  subscription,
 }: {
   slug: string;
   activeNav: CompanyNavKey;
   companyName: string;
   hasWebsiteProject?: boolean;
   userPermissions?: PermissionKey[];
+  subscription?: SubscriptionCompanyFields;
 }) {
   const pathname = usePathname() ?? "";
   const [open, setOpen] = useState(false);
-  const items = filterCompanyNavItems(
+  const permissionFiltered = filterCompanyNavItems(
     companyNavItems(slug, { hasWebsiteProject }),
     userPermissions
   );
+  const items = subscription
+    ? filterNavBySubscription(permissionFiltered, subscription)
+    : permissionFiltered;
   const { expanded, toggleSection, openSection } = useCollapsibleNavSections(
     slug,
     pathname,
@@ -203,7 +230,8 @@ export function CompanyMobileNav({
                           slug,
                           collapsible,
                           hasWebsiteProject,
-                          userPermissions
+                          userPermissions,
+                          subscription
                         )
                       : [];
                     const activeSubNavKey = collapsible

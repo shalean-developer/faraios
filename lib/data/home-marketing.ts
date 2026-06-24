@@ -245,22 +245,22 @@ export const WEBSITE_HOSTING_CARDS: WebsiteHostingCard[] = [
 
 export const HOME_PRICING_HIGHLIGHTS: Record<PricingPlanSlug, string[]> = {
   starter: [
-    "Full workspace platform",
-    "Custom website design included",
-    "Monthly support included",
-    "No hidden fees",
+    "Business Workspace",
+    "Customers CRM & Bookings",
+    "Calendar & Services",
+    "1 Team Member",
   ],
   business: [
-    "Full workspace platform",
-    "Custom website design included",
-    "3 months support included",
-    "No hidden fees",
+    "Everything in Starter",
+    "Leads, Quotes & Invoices",
+    "SEO & Marketing Tools",
+    "Up to 5 Team Members",
   ],
   premium: [
-    "Full workspace platform",
-    "Custom website design included",
-    "Priority support included",
-    "No hidden fees",
+    "Everything in Business",
+    "Workflow Automations",
+    "AI Insights & Advanced Reports",
+    "Unlimited Team Members",
   ],
 };
 
@@ -268,20 +268,88 @@ export const DASHBOARD_PREVIEW_SIDEBAR = [
   "Overview",
   "Operations",
   "Revenue",
-  "Website",
   "Growth",
   "Team",
   "Intelligence",
 ] as const;
 
-export const DASHBOARD_PREVIEW_CARDS = [
-  { label: "Today's bookings", value: "12", trend: "+3 from yesterday" },
-  { label: "New leads", value: "8", trend: "4 qualified" },
-  { label: "Revenue this month", value: "R24,500", trend: "+18% vs last month" },
-  { label: "Customers", value: "156", trend: "12 new this month" },
-  { label: "Pending invoices", value: "5", trend: "R8,200 outstanding" },
-  { label: "Website status", value: "Live", trend: "All systems operational" },
+export type DashboardPreviewCard = {
+  label: string;
+  value: string;
+  trend: string;
+  trendTone: "up" | "neutral" | "alert";
+  icon:
+    | "bookings"
+    | "revenue"
+    | "leads"
+    | "quotes"
+    | "customers"
+    | "health";
+  sparkline: readonly number[];
+};
+
+export const DASHBOARD_PREVIEW_CARDS: DashboardPreviewCard[] = [
+  {
+    label: "Today's bookings",
+    value: "12",
+    trend: "+3 from yesterday",
+    trendTone: "up",
+    icon: "bookings",
+    sparkline: [4, 6, 5, 8, 7, 9, 12],
+  },
+  {
+    label: "Revenue this month",
+    value: "R24,500",
+    trend: "+18% vs last month",
+    trendTone: "up",
+    icon: "revenue",
+    sparkline: [12, 14, 13, 16, 18, 20, 24],
+  },
+  {
+    label: "New leads",
+    value: "8",
+    trend: "4 qualified",
+    trendTone: "neutral",
+    icon: "leads",
+    sparkline: [2, 3, 5, 4, 6, 7, 8],
+  },
+  {
+    label: "Pending quotes",
+    value: "3",
+    trend: "R12,400 pipeline",
+    trendTone: "neutral",
+    icon: "quotes",
+    sparkline: [1, 2, 2, 3, 2, 3, 3],
+  },
+  {
+    label: "Customers",
+    value: "156",
+    trend: "12 new this month",
+    trendTone: "up",
+    icon: "customers",
+    sparkline: [120, 128, 132, 138, 142, 149, 156],
+  },
+  {
+    label: "Business health",
+    value: "87%",
+    trend: "Strong performance",
+    trendTone: "up",
+    icon: "health",
+    sparkline: [72, 74, 78, 80, 83, 85, 87],
+  },
+];
+
+export const DASHBOARD_PREVIEW_ACTIVITY = [
+  { text: "New booking from Sarah M.", time: "2m ago" },
+  { text: "Invoice #1042 paid — R1,800", time: "18m ago" },
+  { text: "Lead qualified: Office cleaning", time: "1h ago" },
+  { text: "Quote sent to Greenview Ltd", time: "2h ago" },
 ] as const;
+
+export const DASHBOARD_PREVIEW_INSIGHT = {
+  title: "Follow up on 3 open quotes",
+  body: "Quotes followed up within 48 hours close 68% more often in businesses like yours.",
+} as const;
 
 /** Footer industry shortcuts → dedicated industry pages */
 export const FOOTER_INDUSTRY_LINKS = [

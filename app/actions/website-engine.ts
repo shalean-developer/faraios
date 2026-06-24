@@ -6,9 +6,9 @@ import { randomBytes } from "crypto";
 import { getHostingProvider } from "@/lib/hosting/providers";
 import { previewSubdomainForSlug } from "@/lib/constants/tenant-domain";
 import { requireCompanyPermission } from "@/lib/services/company-access";
+import { provisionCompanyWebsiteDomain } from "@/lib/services/hosting-domain";
 import {
   normalizeDomain,
-  seedDnsRecordsForDomain,
   verifyWebsiteDomain,
 } from "@/lib/services/website-domains";
 import { recordApiKeyEvent } from "@/lib/services/business-websites";
@@ -46,79 +46,19 @@ export async function addWebsiteDomainAction(input: {
   const access = await requireCompanyPermission(input.companyId, "view_websites");
   if (!access.ok) return access;
 
-  const provider = getHostingProvider(input.hostingProvider ?? "vercel");
-  const connectResult = await provider.connectDomain({
-    providerProjectId: `faraios-${input.companyId.slice(0, 8)}`,
+  const provision = await provisionCompanyWebsiteDomain({
+    companyId: input.companyId,
     domain: normalized,
+    hostingProvider: input.hostingProvider,
+    domainType: input.domainType,
+    websiteId: input.websiteId,
+    connectedWebsiteId: input.connectedWebsiteId,
+    isPrimary: input.isPrimary,
   });
 
-  if (!connectResult.ok) {
-    return { ok: false, error: connectResult.error };
+  if (!provision.ok) {
+    return { ok: false, error: provision.error };
   }
-
-  const admin = tryCreateAdminClient();
-  if (!admin.ok) {
-    return { ok: false, error: admin.error };
-  }
-
-  if (input.isPrimary) {
-    await admin.client
-      .from("website_domains")
-      .update({ is_primary: false, updated_at: new Date().toISOString() })
-      .eq("company_id", input.companyId);
-  }
-
-  const { data: domainRow, error } = await admin.client
-    .from("website_domains")
-    .insert({
-      company_id: input.companyId,
-      website_id: input.websiteId ?? null,
-      connected_website_id: input.connectedWebsiteId ?? null,
-      domain: normalized,
-      domain_type: input.domainType ?? "primary",
-      verification_status: "pending",
-      ssl_status: "not_started",
-      hosting_provider: provider.slug,
-      provider_domain_id: connectResult.providerDomainId,
-      is_primary: input.isPrimary ?? true,
-    })
-    .select("id")
-    .single();
-
-  if (error || !domainRow) {
-    return { ok: false, error: error?.message ?? "Could not add domain." };
-  }
-
-  await seedDnsRecordsForDomain(domainRow.id as string, connectResult.dnsRecords);
-
-  const { data: fullDomain } = await admin.client
-    .from("website_domains")
-    .select("verification_token")
-    .eq("id", domainRow.id)
-    .maybeSingle();
-
-  if (fullDomain?.verification_token) {
-    await admin.client.from("website_dns_records").insert({
-      website_domain_id: domainRow.id,
-      record_type: "TXT",
-      host: "_faraios",
-      value: `faraios-verify=${fullDomain.verification_token}`,
-      status: "pending",
-    });
-  }
-
-  const supabase = await createClient();
-  await supabase
-    .from("connected_websites")
-    .upsert(
-      {
-        company_id: input.companyId,
-        primary_domain: normalized,
-        status: "verification_pending",
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "company_id" }
-    );
 
   revalidatePath(companyWebsiteDomainsPath(input.companySlug));
   revalidatePath(companyWebsitesPath(input.companySlug));

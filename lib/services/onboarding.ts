@@ -146,6 +146,7 @@ export async function createBusinessSystem(
     slug,
     industry_id: input.industryId,
     plan: planSlug,
+    subscription_status: "pending_payment",
     onboarding_data: onboardingData,
   };
 

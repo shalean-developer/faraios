@@ -1,16 +1,15 @@
 "use client";
 
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useSyncExternalStore, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
 import { CompanyMobileNav } from "@/components/company/company-mobile-nav";
 import { CompanySidebarBrand } from "@/components/company/company-sidebar-brand";
 import { CompanySidebarNav } from "@/components/company/company-sidebar-nav";
-import { CompanySidebarUser } from "@/components/company/company-sidebar-user";
-import { CompanyWorkspaceHeader } from "@/components/company/company-workspace-header";
 import { companyNavKeyFromPathname } from "@/lib/constants/company-nav";
 import type { PermissionKey } from "@/lib/permissions/shared";
 import type { UserCompany } from "@/types/database";
+import type { SubscriptionCompanyFields } from "@/lib/subscriptions/types";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "faraios.workspace-sidebar-collapsed";
@@ -44,6 +43,7 @@ export function CompanyWorkspaceShell({
   userDisplayName,
   userEmail,
   userPermissions = [],
+  subscription,
   children,
 }: {
   slug: string;
@@ -53,10 +53,12 @@ export function CompanyWorkspaceShell({
   userDisplayName: string;
   userEmail: string | null;
   userPermissions?: PermissionKey[];
+  subscription?: SubscriptionCompanyFields;
   children: ReactNode;
 }) {
   const pathname = usePathname() ?? "";
   const activeNav = companyNavKeyFromPathname(slug, pathname);
+  const [searchQuery, setSearchQuery] = useState("");
   const collapsed = useSyncExternalStore(
     subscribeSidebarCollapsed,
     readCollapsedFromStorage,
@@ -75,20 +77,23 @@ export function CompanyWorkspaceShell({
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#f4f6fb] font-sans">
+    <div className="flex h-screen w-full overflow-hidden bg-white font-sans">
       <aside
         className={cn(
-          "hidden h-full flex-shrink-0 flex-col overflow-hidden bg-slate-900 lg:flex",
+          "hidden h-full flex-shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-[#fafafa] lg:flex",
           mounted && "transition-[width] duration-200 ease-out",
-          mounted && collapsed ? "w-[3.75rem]" : "w-56"
+          mounted && collapsed ? "w-14" : "w-[240px]"
         )}
       >
         <CompanySidebarBrand
           slug={slug}
           companyName={companyName}
           companies={companies}
+          planSlug={subscription?.plan}
           collapsed={mounted && collapsed}
           onToggle={toggleCollapsed}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
         />
         <CompanySidebarNav
           slug={slug}
@@ -96,23 +101,22 @@ export function CompanyWorkspaceShell({
           hasWebsiteProject={hasWebsiteProject}
           collapsed={mounted && collapsed}
           userPermissions={userPermissions}
-        />
-        <CompanySidebarUser
+          subscription={subscription}
+          searchQuery={searchQuery}
           displayName={userDisplayName}
-          email={userEmail}
-          collapsed={mounted && collapsed}
+          userEmail={userEmail}
         />
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[#fafafa]">
         <CompanyMobileNav
           slug={slug}
           activeNav={activeNav}
           companyName={companyName}
           hasWebsiteProject={hasWebsiteProject}
           userPermissions={userPermissions}
+          subscription={subscription}
         />
-        <CompanyWorkspaceHeader slug={slug} className="hidden lg:flex" />
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>

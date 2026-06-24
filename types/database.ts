@@ -36,7 +36,11 @@ export type Company = {
   /** Pricing tier slug: starter | business | premium */
   plan?: string | null;
   subscription_status?: string;
+  subscription_started_at?: string | null;
+  subscription_expires_at?: string | null;
   next_billing_date?: string | null;
+  paystack_customer_code?: string | null;
+  paystack_subscription_code?: string | null;
   /** Public production URL for launched company website. */
   production_url?: string | null;
   /** Product lifecycle status for company project card/views. */

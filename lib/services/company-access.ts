@@ -2,6 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import type { PermissionKey } from "@/lib/permissions/shared";
 import { userHasPermission } from "@/lib/services/permissions";
+import {
+  canAccessFeature,
+  type AccessFeatureKey,
+} from "@/lib/subscriptions/access";
+import type { SubscriptionCompanyFields } from "@/lib/subscriptions/types";
 
 export type CompanyAccessResult =
   | { ok: true; userId: string }
@@ -117,4 +122,65 @@ export async function requireCompanyOwner(
   }
 
   return { ok: true, userId: access.userId, role };
+}
+
+async function loadCompanySubscriptionFields(
+  companyId: string
+): Promise<SubscriptionCompanyFields | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("companies")
+    .select(
+      "plan, subscription_status, subscription_started_at, subscription_expires_at, next_billing_date"
+    )
+    .eq("id", companyId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data;
+}
+
+export async function requireCompanyFeature(
+  companyId: string,
+  feature: AccessFeatureKey
+): Promise<CompanyAccessResult> {
+  const access = await requireCompanyMembership(companyId);
+  if (!access.ok) return access;
+
+  const company = await loadCompanySubscriptionFields(companyId);
+  if (!company) {
+    return { ok: false, error: "Workspace not found." };
+  }
+
+  if (!canAccessFeature(company, feature)) {
+    return {
+      ok: false,
+      error: "This feature is not available on your current plan or subscription status.",
+    };
+  }
+
+  return access;
+}
+
+export async function requireCompanyPermissionAndFeature(
+  companyId: string,
+  permission: PermissionKey,
+  feature: AccessFeatureKey
+): Promise<CompanyAccessResult> {
+  const access = await requireCompanyPermission(companyId, permission);
+  if (!access.ok) return access;
+
+  const company = await loadCompanySubscriptionFields(companyId);
+  if (!company) {
+    return { ok: false, error: "Workspace not found." };
+  }
+
+  if (!canAccessFeature(company, feature)) {
+    return {
+      ok: false,
+      error: "This feature is not available on your current plan or subscription status.",
+    };
+  }
+
+  return access;
 }

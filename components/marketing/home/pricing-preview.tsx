@@ -23,10 +23,10 @@ export function PricingPreview() {
           className="mb-10 text-center"
         >
           <motion.h2 variants={fadeUp} className="text-2xl font-extrabold text-gray-900 sm:text-3xl">
-            Simple pricing for growing service businesses
+            Simple pricing for service businesses
           </motion.h2>
           <motion.p variants={fadeUp} className="mt-2 text-gray-500">
-            Workspace platform plus optional website design. No hidden fees.
+            Start with the workspace tools you need. Add websites and hosting when you are ready.
           </motion.p>
         </motion.div>
 
@@ -57,9 +57,6 @@ export function PricingPreview() {
                   {formatZar(plan.monthly_price)}
                   <span className="text-base font-medium text-gray-500">/mo</span>
                 </p>
-                <p className="mt-1 text-xs text-gray-400">
-                  {formatZar(plan.setup_price)} setup
-                </p>
                 <ul className="mt-5 flex-1 space-y-2 text-sm text-gray-600">
                   {highlights.map((f) => (
                     <li key={f} className="flex items-start gap-2">
@@ -72,7 +69,7 @@ export function PricingPreview() {
                   href={`/auth/sign-up?next=/onboarding?plan=${plan.slug}`}
                   className="mt-6 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
                 >
-                  Start workspace
+                  {plan.cta_label}
                 </Link>
               </motion.div>
             );

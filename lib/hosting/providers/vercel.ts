@@ -12,8 +12,9 @@ import type {
   RemoveDomainResult,
 } from "./types";
 
-const VERCEL_CNAME_TARGET =
-  process.env.FARAIOS_VERCEL_CNAME_TARGET ?? "cname.vercel-dns.com";
+import { FARAIOS_CNAME_TARGET } from "@/lib/hosting/constants";
+
+const VERCEL_CNAME_TARGET = FARAIOS_CNAME_TARGET;
 
 /**
  * Vercel hosting provider adapter.
