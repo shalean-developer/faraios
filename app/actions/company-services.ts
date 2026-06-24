@@ -8,7 +8,7 @@ import {
   isMissingSortOrderColumn,
   withoutSortOrder,
 } from "@/lib/company-services/sort-order";
-import { requireCompanyMembership } from "@/lib/services/company-access";
+import { requireCompanyPermission } from "@/lib/services/company-access";
 import {
   countBookingsForService,
   findServiceByName,
@@ -135,7 +135,7 @@ export async function createCompanyService(
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "edit_customers");
   if (!access.ok) return access;
 
   const sortOrder =
@@ -162,7 +162,7 @@ export async function updateCompanyService(
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "edit_customers");
   if (!access.ok) return access;
 
   const existing = await getServiceById(input.companyId, serviceId);
@@ -199,7 +199,7 @@ export async function deleteCompanyService(
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const access = await requireCompanyMembership(companyId);
+  const access = await requireCompanyPermission(companyId, "edit_customers");
   if (!access.ok) return access;
 
   const linkedBookings = await countBookingsForService(companyId, serviceId);
@@ -234,7 +234,7 @@ export async function duplicateCompanyService(
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const access = await requireCompanyMembership(companyId);
+  const access = await requireCompanyPermission(companyId, "edit_customers");
   if (!access.ok) return access;
 
   const existing = await getServiceById(companyId, serviceId);
@@ -277,7 +277,7 @@ export async function moveCompanyService(
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const access = await requireCompanyMembership(companyId);
+  const access = await requireCompanyPermission(companyId, "edit_customers");
   if (!access.ok) return access;
 
   const supabase = await createClient();
@@ -338,7 +338,7 @@ export async function importServices(
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const access = await requireCompanyMembership(companyId);
+  const access = await requireCompanyPermission(companyId, "edit_customers");
   if (!access.ok) return access;
 
   let rows;
@@ -395,6 +395,33 @@ export async function importServices(
   return { ok: true, imported, skipped, errors };
 }
 
+export async function importIndustryServiceTemplatesAction(
+  companyId: string,
+  companySlug: string,
+  industrySlug: string | null
+): Promise<
+  { ok: true; created: number; skipped: number } | { ok: false; error: string }
+> {
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: "Supabase is not configured." };
+  }
+
+  const access = await requireCompanyPermission(companyId, "edit_customers");
+  if (!access.ok) return access;
+
+  const { importIndustryServiceTemplates } = await import(
+    "@/lib/industry-modules/seeding"
+  );
+  const result = await importIndustryServiceTemplates({ companyId, industrySlug });
+
+  if (!result.ok) {
+    return { ok: false, error: "Could not import industry service templates." };
+  }
+
+  revalidateServicePaths(companySlug);
+  return { ok: true, created: result.created, skipped: result.skipped };
+}
+
 export async function createServicesFromTemplates(
   companyId: string,
   companySlug: string,
@@ -404,7 +431,7 @@ export async function createServicesFromTemplates(
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const access = await requireCompanyMembership(companyId);
+  const access = await requireCompanyPermission(companyId, "edit_customers");
   if (!access.ok) return access;
 
   let created = 0;

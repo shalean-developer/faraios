@@ -18,18 +18,20 @@ import {
   createServicesFromTemplates,
   deleteCompanyService,
   duplicateCompanyService,
+  importIndustryServiceTemplatesAction,
   importServices,
   moveCompanyService,
 } from "@/app/actions/company-services";
 import { ServiceFormPopover } from "@/components/company/service-form-popover";
 import { Button } from "@/components/ui/button";
-import {
-  CLEANING_SERVICE_TEMPLATES,
-  type ServiceTemplate,
-} from "@/lib/company-services/constants";
+import type { ServiceTemplate } from "@/lib/company-services/constants";
 import { downloadServicesCsv } from "@/lib/company-services/csv";
 import { formatDuration } from "@/lib/calendar/schedule";
 import { formatRevenue } from "@/lib/operations/metrics";
+import {
+  getModuleForCompany,
+  getServiceTemplates,
+} from "@/lib/industry-modules/loader";
 import {
   companyServicePath,
   publicBookPath,
@@ -66,6 +68,13 @@ export function CompanyServicesClient({
   const [importPending, setImportPending] = useState(false);
   const [templatePending, setTemplatePending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const industryModule = useMemo(() => getModuleForCompany(company), [company]);
+  const serviceTemplates = useMemo(
+    () => getServiceTemplates(company.industries?.slug ?? null),
+    [company.industries?.slug]
+  );
+  const quickStart = industryModule.dashboardExtensions?.servicesQuickStart;
 
   useEffect(() => {
     setRows(initialServices);
@@ -211,10 +220,36 @@ export function CompanyServicesClient({
     setError(null);
 
     try {
-      const result = await createServicesFromTemplates(
+      const result = await importIndustryServiceTemplatesAction(
         company.id,
         slug,
-        CLEANING_SERVICE_TEMPLATES.map((item) => ({
+        company.industries?.slug ?? null
+      );
+
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
+      setImportMessage(
+        `Added ${result.created} starter service${result.created === 1 ? "" : "s"}` +
+          (result.skipped > 0
+            ? ` (${result.skipped} skipped — already in catalog).`
+            : ".")
+      );
+      router.refresh();
+    } finally {
+      setTemplatePending(false);
+    }
+  };
+
+  const addTemplateFromPreset = async (item: ServiceTemplate) => {
+    setTemplatePending(true);
+    setError(null);
+
+    try {
+      const result = await createServicesFromTemplates(company.id, slug, [
+        {
           companyId: company.id,
           companySlug: slug,
           name: item.name,
@@ -228,17 +263,19 @@ export function CompanyServicesClient({
             name: addon.name,
             price: addon.price,
           })),
-        }))
-      );
+        },
+      ]);
 
       if (!result.ok) {
         setError(result.error);
         return;
       }
 
-      setImportMessage(
-        `Added ${result.created} starter service${result.created === 1 ? "" : "s"}.`
-      );
+      if (result.created === 0) {
+        setImportMessage(`"${item.name}" is already in your catalog.`);
+      } else {
+        setImportMessage(`Added "${item.name}".`);
+      }
       router.refresh();
     } finally {
       setTemplatePending(false);
@@ -386,17 +423,21 @@ export function CompanyServicesClient({
                     {rows.length === 0 ? (
                       <div className="mt-6 space-y-3">
                         <p className="text-sm font-medium text-slate-700">
-                          Quick start for cleaning businesses
+                          {quickStart?.title ?? "Quick start with industry templates"}
                         </p>
+                        {quickStart?.description ? (
+                          <p className="text-xs text-slate-500">{quickStart.description}</p>
+                        ) : null}
                         <div className="flex flex-wrap justify-center gap-2">
-                          {CLEANING_SERVICE_TEMPLATES.map((item) => (
+                          {serviceTemplates.map((item) => (
                             <Button
                               key={item.name}
                               type="button"
                               variant="outline"
                               size="sm"
                               className="rounded-xl"
-                              onClick={() => openTemplateForm(item)}
+                              disabled={templatePending}
+                              onClick={() => addTemplateFromPreset(item)}
                             >
                               {item.name}
                             </Button>
@@ -405,10 +446,10 @@ export function CompanyServicesClient({
                         <Button
                           type="button"
                           className="rounded-xl"
-                          disabled={templatePending}
+                          disabled={templatePending || serviceTemplates.length === 0}
                           onClick={addAllTemplates}
                         >
-                          {templatePending ? "Adding..." : "Add all starter services"}
+                          {templatePending ? "Importing..." : "Import all industry templates"}
                         </Button>
                       </div>
                     ) : null}

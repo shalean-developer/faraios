@@ -97,7 +97,7 @@ export function PublicBookingForm({ listing }: Props) {
             value={service}
             onChange={(e) => setService(e.target.value)}
             className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-            placeholder="e.g. Deep clean, office cleaning"
+            placeholder="e.g. Standard service, consultation"
           />
         </label>
         <label className="block text-sm font-medium text-gray-700 sm:col-span-2">

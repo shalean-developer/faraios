@@ -7,6 +7,7 @@ import { createWebsiteDraftAsAdminAction } from "@/app/actions/websites";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { listIndustryModuleSlugs, loadIndustryModule } from "@/lib/industry-modules/loader";
 
 type FormState = {
   companyId: string;
@@ -19,10 +20,15 @@ type FormState = {
   domain: string;
 };
 
+const INDUSTRY_OPTIONS = listIndustryModuleSlugs().map((slug) => ({
+  slug,
+  name: loadIndustryModule(slug).name,
+}));
+
 const INITIAL_STATE: FormState = {
   companyId: "",
   businessName: "",
-  industry: "cleaning",
+  industry: INDUSTRY_OPTIONS[0]?.slug ?? "cleaning",
   services: "",
   phone: "",
   email: "",
@@ -130,9 +136,11 @@ export function AdminCreateWebsiteForm({ companies, initialCompanyId = "" }: Pro
           value={state.industry}
           onChange={(e) => setState((prev) => ({ ...prev, industry: e.target.value }))}
         >
-          <option value="cleaning">Cleaning</option>
-          <option value="plumbing">Plumbing</option>
-          <option value="gym">Gym</option>
+          {INDUSTRY_OPTIONS.map((option) => (
+            <option key={option.slug} value={option.slug}>
+              {option.name}
+            </option>
+          ))}
         </select>
       </div>
 

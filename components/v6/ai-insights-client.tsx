@@ -65,7 +65,7 @@ export function AiInsightsClient({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder='Try "Show overdue invoices" or "Find customers who booked deep cleaning"'
+            placeholder='Try "Show overdue invoices" or "Find customers with open bookings"'
             className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm"
           />
           <Button type="submit" disabled={searching}>

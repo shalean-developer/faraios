@@ -159,7 +159,7 @@ export function CompanyContentClient({
               <label className="block">
                 <span className="text-xs font-semibold uppercase text-slate-400">Title</span>
                 <input
-                  placeholder="How to choose a cleaning service"
+                  placeholder="How to choose the right service for your needs"
                   value={form.title}
                   onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                   className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"

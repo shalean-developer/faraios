@@ -2,9 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 
-import { getIndustryBookingPreset } from "@/lib/bookings/industry-presets";
+import { getBookingFormPreset } from "@/lib/industry-modules/loader";
 import { logBookingActivity } from "@/lib/services/booking-activities";
-import { requireCompanyMembership } from "@/lib/services/company-access";
+import { requireCompanyPermission } from "@/lib/services/company-access";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import type { BookingFormField, BookingHours } from "@/types/booking-form";
@@ -21,7 +21,7 @@ export async function saveBookingFormDraft(input: {
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "edit_bookings");
   if (!access.ok) return access;
 
   const supabase = await createClient();
@@ -52,7 +52,7 @@ export async function publishBookingForm(input: {
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "edit_bookings");
   if (!access.ok) return access;
 
   const supabase = await createClient();
@@ -85,7 +85,7 @@ export async function resetBookingFormToIndustryPreset(input: {
   companySlug: string;
   industrySlug: string | null;
 }): Promise<BookingFormActionResult> {
-  const fields = getIndustryBookingPreset(input.industrySlug);
+  const fields = getBookingFormPreset(input.industrySlug);
   return saveBookingFormDraft({
     companyId: input.companyId,
     companySlug: input.companySlug,
@@ -104,7 +104,7 @@ export async function saveBookingAvailability(input: {
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "edit_bookings");
   if (!access.ok) return access;
 
   const supabase = await createClient();
@@ -135,7 +135,7 @@ export async function updateBookingDetails(input: {
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const access = await requireCompanyMembership(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "edit_bookings");
   if (!access.ok) return access;
 
   const supabase = await createClient();

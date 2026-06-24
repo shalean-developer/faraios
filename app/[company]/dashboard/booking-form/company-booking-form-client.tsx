@@ -159,7 +159,7 @@ export function CompanyBookingFormClient({
   };
 
   const onResetPreset = async () => {
-    if (!window.confirm("Reset to industry preset? Unsaved customizations will be replaced.")) {
+    if (!window.confirm("Apply latest industry preset? Unsaved customizations will be replaced.")) {
       return;
     }
     setPending(true);
@@ -299,7 +299,7 @@ export function CompanyBookingFormClient({
             disabled={pending}
             onClick={onResetPreset}
           >
-            Reset preset
+            Apply latest industry preset
           </Button>
         </div>
       </header>

@@ -1,4 +1,6 @@
 import { seedPublishedBookingFormForCompany } from "@/lib/services/booking-forms";
+import { applyIndustryModulePreset } from "@/lib/industry-modules/seeding";
+import { loadIndustryModule } from "@/lib/industry-modules/loader";
 import { slugifyBusinessName } from "@/lib/slug";
 import { normalizePlanSlug } from "@/lib/data/pricing";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
@@ -114,6 +116,16 @@ export async function createBusinessSystem(
 
   const planSlug = normalizePlanSlug(input.plan);
   const slug = slugifyBusinessName(name);
+
+  const { data: industryRowForPreset } = await supabase
+    .from("industries")
+    .select("slug")
+    .eq("id", input.industryId)
+    .maybeSingle();
+
+  const industrySlug = (industryRowForPreset?.slug as string | undefined) ?? null;
+  const industryModule = loadIndustryModule(industrySlug);
+
   const onboardingData = {
     pages: (input.onboardingData?.pages ?? []).filter(Boolean),
     features: (input.onboardingData?.features ?? []).filter(Boolean),
@@ -122,6 +134,8 @@ export async function createBusinessSystem(
     logoFileName: input.onboardingData?.logoFileName?.trim() || null,
     project_goal: input.onboardingData?.projectGoal?.trim() || null,
     contact_phone: input.onboardingData?.contactPhone?.trim() || null,
+    module_slug: industryModule.slug,
+    module_version: industryModule.version,
   };
 
   const insertCompany: Record<string, unknown> = {
@@ -167,15 +181,15 @@ export async function createBusinessSystem(
 
   const companyId = companyRow.id as string;
 
-  const { data: industryRow } = await supabase
-    .from("industries")
-    .select("slug")
-    .eq("id", input.industryId)
-    .maybeSingle();
-
   await seedPublishedBookingFormForCompany({
     companyId,
-    industrySlug: (industryRow?.slug as string | undefined) ?? null,
+    industrySlug,
+  });
+
+  await applyIndustryModulePreset({
+    companyId,
+    industrySlug,
+    businessName: name,
   });
 
   const { data: membershipId, error: membershipError } = await supabase.rpc(

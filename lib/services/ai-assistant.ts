@@ -190,7 +190,7 @@ export async function aiSearch(
     {
       type: "search_result",
       title: "Try a specific search",
-      body: 'Examples: "Show overdue invoices", "Find customers who booked deep cleaning", "Show leads"',
+      body: 'Examples: "Show overdue invoices", "Find customers with open bookings", "Show leads"',
     },
   ];
 }

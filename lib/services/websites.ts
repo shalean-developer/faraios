@@ -1,6 +1,7 @@
 import { slugifyBusinessName } from "@/lib/slug";
 import { industryImagePreset } from "@/lib/data/industry-stock-images";
 import { buildServiceBusinessContentSeed } from "@/lib/data/service-business-content-seed";
+import { loadIndustryModule } from "@/lib/industry-modules/loader";
 import { getAdminQueryClient, isCurrentUserPlatformAdmin } from "@/lib/services/admin";
 import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
@@ -35,38 +36,20 @@ type IndustryContentPreset = {
   defaultServices: string[];
 };
 
-const INDUSTRY_PRESETS: Record<string, IndustryContentPreset> = {
-  cleaning: {
-    heroSubtitle: "Reliable service with clear communication and consistent quality.",
-    aboutBody:
-      "Our team focuses on dependable service, flexible scheduling, and results that match your expectations.",
-    testimonialItems: [
-      "Excellent service and very professional team.",
-      "Great communication from first contact to completion.",
-    ],
-    defaultServices: ["Residential service", "Commercial service", "One-time service"],
-  },
-  plumbing: {
-    heroSubtitle: "Fast response for repairs, installations, and maintenance.",
-    aboutBody:
-      "We deliver practical solutions, transparent pricing, and workmanship designed to last.",
-    testimonialItems: [
-      "Quick response and quality workmanship.",
-      "Solved the issue on the first visit.",
-    ],
-    defaultServices: ["Leak repair", "Drain clearing", "Fixture installation"],
-  },
-  gym: {
-    heroSubtitle: "Structured programs focused on measurable progress.",
-    aboutBody:
-      "Our coaches help members build sustainable habits and hit their fitness goals confidently.",
-    testimonialItems: [
-      "Supportive coaching and great energy.",
-      "I saw real progress in the first month.",
-    ],
-    defaultServices: ["Personal training", "Group classes", "Nutrition guidance"],
-  },
-};
+function resolveWebsiteIndustry(industry: string | null | undefined): string {
+  const slug = industry?.trim().toLowerCase();
+  if (!slug) return "default";
+  return slug;
+}
+
+function industryWebsiteCopy(industry: string) {
+  const module = loadIndustryModule(industry);
+  return {
+    serviceLabel: module.growth.serviceLabel,
+    heroSubtitle: module.growth.heroSubtitle,
+    defaultServices: module.services.templates.slice(0, 3).map((s) => s.name),
+  };
+}
 
 function cleanDomain(value: string): string | null {
   const trimmed = value.trim().toLowerCase();
@@ -148,16 +131,17 @@ export function buildDefaultWebsiteContent(
     return buildServiceBusinessContentSeed(input);
   }
 
-  const normalizedIndustry = input.industry.trim().toLowerCase();
-  const preset = INDUSTRY_PRESETS[normalizedIndustry] ?? {
-    heroSubtitle: "Trusted professional services tailored to your needs.",
+  const normalizedIndustry = resolveWebsiteIndustry(input.industry);
+  const moduleCopy = industryWebsiteCopy(normalizedIndustry);
+  const preset: IndustryContentPreset = {
+    heroSubtitle: moduleCopy.heroSubtitle,
     aboutBody:
-      "We focus on quality delivery, customer-first support, and consistent outcomes.",
+      "Our team focuses on dependable service, flexible scheduling, and results that match your expectations.",
     testimonialItems: [
-      "Professional team and smooth experience.",
-      "Great results and excellent support.",
+      "Excellent service and very professional team.",
+      "Great communication from first contact to completion.",
     ],
-    defaultServices: ["Consultation", "On-site service", "Ongoing support"],
+    defaultServices: moduleCopy.defaultServices,
   };
 
   const services = input.services
@@ -545,9 +529,12 @@ export async function backfillServiceBusinessWebsiteContent(
   const useDefaultServices = isLegacyGenericServices(existingServiceTitles);
   const serviceTitles = useDefaultServices ? "" : existingServiceTitles.join(", ");
 
+  const industrySlug = resolveWebsiteIndustry(website.industry);
+  const moduleCopy = industryWebsiteCopy(industrySlug);
+
   const seedInput: CreateWebsiteInput = {
     businessName: website.name,
-    industry: website.industry || "cleaning",
+    industry: industrySlug,
     template: website.template,
     services: serviceTitles,
     contactInfo: contactDetails || `${parsedContact.phone} ${parsedContact.email}`.trim(),
@@ -558,7 +545,7 @@ export async function backfillServiceBusinessWebsiteContent(
     seedSections.map((section) => [section.section, section.content])
   ) as Record<string, Record<string, unknown>>;
 
-  const mergedContent = mergeStockImagesIntoContent(website.industry || "cleaning", seedMap);
+  const mergedContent = mergeStockImagesIntoContent(industrySlug, seedMap);
 
   const hero = { ...(mergedContent.hero ?? {}) };
   const existingHero = existing.hero ?? {};
@@ -568,9 +555,9 @@ export async function backfillServiceBusinessWebsiteContent(
   hero.businessName = website.name;
   if (options.locationOverride) {
     hero.location = options.locationOverride;
-    hero.headline = `Professional Cleaning in ${options.locationOverride}`;
+    hero.headline = `Professional ${moduleCopy.serviceLabel} in ${options.locationOverride}`;
     const primary = options.locationOverride.split("&")[0].trim();
-    hero.badge = `${primary.toUpperCase()}'S TRUSTED PROFESSIONAL CLEANING`;
+    hero.badge = `${primary.toUpperCase()}'S TRUSTED ${moduleCopy.serviceLabel.toUpperCase()}`;
   }
 
   const topbar = { ...(mergedContent.topbar ?? {}) };
@@ -612,8 +599,8 @@ export async function backfillServiceBusinessWebsiteContent(
   const footer = { ...(mergedContent.footer ?? {}) };
   if (options.locationOverride) {
     serviceAreas.heading = `Services Across ${options.locationOverride}`;
-    serviceAreas.intro = `We proudly serve ${options.locationOverride} and surrounding suburbs with reliable, professional cleaning you can book online.`;
-    footer.description = `Professional cleaning in ${options.locationOverride}. Book online for fast, reliable results.`;
+    serviceAreas.intro = `We proudly serve ${options.locationOverride} and surrounding areas with reliable, professional ${moduleCopy.serviceLabel.toLowerCase()} you can book online.`;
+    footer.description = `Professional ${moduleCopy.serviceLabel.toLowerCase()} in ${options.locationOverride}. Book online for fast, reliable results.`;
     if (options.locationOverride.toLowerCase().includes("cape town")) {
       serviceAreas.popular = ["Cape Town CBD", "Northern Suburbs", "Southern Suburbs"];
       serviceAreas.areas = [
@@ -702,7 +689,7 @@ export async function resetWebsiteContentFromSeed(
 
   const input: CreateWebsiteInput = {
     businessName: overrides.businessName ?? website.name,
-    industry: overrides.industry ?? website.industry ?? "cleaning",
+    industry: overrides.industry ?? website.industry ?? "default",
     template: overrides.template ?? website.template ?? "service-business",
     services: overrides.services ?? "",
     contactInfo: overrides.contactInfo ?? "",
@@ -714,7 +701,7 @@ export async function resetWebsiteContentFromSeed(
   const seedMap = Object.fromEntries(
     seedSections.map((item) => [item.section, item.content])
   ) as Record<string, Record<string, unknown>>;
-  const industry = input.industry.trim().toLowerCase() || "cleaning";
+  const industry = resolveWebsiteIndustry(input.industry);
   const mergedContent = mergeStockImagesIntoContent(industry, seedMap);
 
   const { error: deleteError } = await supabase

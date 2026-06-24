@@ -1,4 +1,4 @@
-import { getIndustryBookingPreset } from "@/lib/bookings/industry-presets";
+import { getBookingFormPreset } from "@/lib/industry-modules/loader";
 import { defaultBookingHours } from "@/lib/bookings/availability";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -67,7 +67,7 @@ export async function ensureBookingFormForCompany(input: {
   const existing = await getBookingFormForCompany(input.companyId);
   if (existing) return existing;
 
-  const fields = getIndustryBookingPreset(input.industrySlug);
+  const fields = getBookingFormPreset(input.industrySlug);
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("booking_forms")
@@ -98,7 +98,7 @@ export async function seedPublishedBookingFormForCompany(input: {
   const admin = tryCreateAdminClient();
   if (!admin.ok) return false;
 
-  const fields = getIndustryBookingPreset(input.industrySlug);
+  const fields = getBookingFormPreset(input.industrySlug);
   const { error: formError } = await admin.client.from("booking_forms").upsert(
     {
       company_id: input.companyId,
