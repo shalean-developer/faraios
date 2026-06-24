@@ -55,5 +55,5 @@ export default async function CompanySettingsPage({ params }: Props) {
   const hasAccess = await userHasCompanySlugAccess(user.id, slug);
   if (!hasAccess) return <AccessDenied slug={slug} />;
 
-  return <CompanySettingsClient slug={slug} company={row} />;
+  return <CompanySettingsClient key={row.id} slug={slug} company={row} />;
 }

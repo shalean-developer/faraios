@@ -23,8 +23,8 @@ export function getModuleForCompany(company: CompanyWithIndustry): IndustryModul
 }
 
 export function getBookingFormPreset(slug: string | null | undefined): BookingFormField[] {
-  const module = loadIndustryModule(slug);
-  return module.booking.formPreset.map((field, index) => ({
+  const industryModule = loadIndustryModule(slug);
+  return industryModule.booking.formPreset.map((field, index) => ({
     ...field,
     sortOrder: field.sortOrder ?? index,
   }));
@@ -42,10 +42,10 @@ export function getOnboardingDefaults(slug: string | null | undefined): {
   pages: string[];
   featureSlugs: string[];
 } {
-  const module = loadIndustryModule(slug);
+  const industryModule = loadIndustryModule(slug);
   return {
-    pages: [...module.onboarding.defaultPages],
-    featureSlugs: [...module.onboarding.defaultFeatures],
+    pages: [...industryModule.onboarding.defaultPages],
+    featureSlugs: [...industryModule.onboarding.defaultFeatures],
   };
 }
 

@@ -35,8 +35,8 @@ export async function seedDefaultServicesForCompany(input: {
   const admin = tryCreateAdminClient();
   if (!admin.ok) return { ok: false, created: 0 };
 
-  const module = loadIndustryModule(input.industrySlug);
-  const templates = module.services.templates;
+  const industryModule = loadIndustryModule(input.industrySlug);
+  const templates = industryModule.services.templates;
   if (templates.length === 0) return { ok: true, created: 0 };
 
   let created = 0;
@@ -67,12 +67,12 @@ export async function importIndustryServiceTemplates(input: {
   const admin = tryCreateAdminClient();
   if (!admin.ok) return { ok: false, created: 0, skipped: 0 };
 
-  const module = loadIndustryModule(input.industrySlug);
+  const industryModule = loadIndustryModule(input.industrySlug);
   let created = 0;
   let skipped = 0;
   let sortOrder = await getNextServiceSortOrder(input.companyId);
 
-  for (const template of module.services.templates) {
+  for (const template of industryModule.services.templates) {
     const existing = await findServiceByName(input.companyId, template.name);
     if (existing) {
       skipped += 1;
@@ -139,11 +139,11 @@ export async function seedGrowthDefaultsForCompany(input: {
   const admin = tryCreateAdminClient();
   if (!admin.ok) return { ok: false };
 
-  const module = loadIndustryModule(input.industrySlug);
+  const industryModule = loadIndustryModule(input.industrySlug);
   const growthMeta = {
-    seo_page_types: module.growth.seoPageTypes,
-    content_seeds: module.growth.contentSeeds ?? [],
-    service_label: module.growth.serviceLabel,
+    seo_page_types: industryModule.growth.seoPageTypes,
+    content_seeds: industryModule.growth.contentSeeds ?? [],
+    service_label: industryModule.growth.serviceLabel,
   };
 
   const { data: company } = await admin.client
@@ -163,10 +163,10 @@ export async function seedGrowthDefaultsForCompany(input: {
       onboarding_data: {
         ...onboardingData,
         growth_defaults: growthMeta,
-        module_slug: module.slug,
-        module_version: module.version,
+        module_slug: industryModule.slug,
+        module_version: industryModule.version,
       },
-      business_description: module.growth.heroSubtitle,
+      business_description: industryModule.growth.heroSubtitle,
       updated_at: new Date().toISOString(),
     })
     .eq("id", input.companyId);
@@ -186,7 +186,7 @@ export async function seedGrowthDefaultsForCompany(input: {
     await admin.client.from("local_seo_settings").insert({
       company_id: input.companyId,
       business_name: input.businessName,
-      main_service: module.growth.serviceLabel,
+      main_service: industryModule.growth.serviceLabel,
     });
   }
 

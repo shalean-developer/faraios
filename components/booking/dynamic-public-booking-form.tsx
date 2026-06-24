@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { formatRevenue } from "@/lib/operations/metrics";
@@ -80,11 +80,11 @@ export function DynamicPublicBookingForm({
     return selectedService.addons as ServiceAddon[];
   }, [selectedService]);
 
-  useEffect(() => {
-    setSelectedAddonIds((current) =>
-      current.filter((id) => availableAddons.some((addon) => addon.id === id))
-    );
-  }, [availableAddons]);
+  const validSelectedAddonIds = useMemo(
+    () =>
+      selectedAddonIds.filter((id) => availableAddons.some((addon) => addon.id === id)),
+    [selectedAddonIds, availableAddons]
+  );
 
   const setValue = (key: string, value: string | boolean) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -118,7 +118,7 @@ export function DynamicPublicBookingForm({
 
     startTransition(async () => {
       const selectedAddons = availableAddons.filter((addon) =>
-        selectedAddonIds.includes(addon.id)
+        validSelectedAddonIds.includes(addon.id)
       );
 
       const result = await onSubmit({
@@ -311,7 +311,7 @@ export function DynamicPublicBookingForm({
               <label key={addon.id} className="flex items-center gap-2 text-sm text-gray-700">
                 <input
                   type="checkbox"
-                  checked={selectedAddonIds.includes(addon.id)}
+                  checked={validSelectedAddonIds.includes(addon.id)}
                   onChange={(e) => {
                     setSelectedAddonIds((current) =>
                       e.target.checked

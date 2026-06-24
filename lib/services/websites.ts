@@ -44,11 +44,11 @@ function resolveWebsiteIndustry(industry: string | null | undefined): string {
 }
 
 function industryWebsiteCopy(industry: string) {
-  const module = loadIndustryModule(industry);
+  const industryModule = loadIndustryModule(industry);
   return {
-    serviceLabel: module.growth.serviceLabel,
-    heroSubtitle: module.growth.heroSubtitle,
-    defaultServices: module.services.templates.slice(0, 3).map((s) => s.name),
+    serviceLabel: industryModule.growth.serviceLabel,
+    heroSubtitle: industryModule.growth.heroSubtitle,
+    defaultServices: industryModule.services.templates.slice(0, 3).map((s) => s.name),
   };
 }
 

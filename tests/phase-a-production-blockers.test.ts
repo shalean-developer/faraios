@@ -102,8 +102,8 @@ describe("Phase A industry onboarding journeys", () => {
   it.each(TARGET_BUSINESSES)(
     "$name ($industrySlug) loads industry module with booking preset and services",
     ({ industrySlug, expectedField, expectedServiceKeyword }) => {
-      const module = loadIndustryModule(industrySlug);
-      expect(module.slug).toBe(industrySlug);
+      const industryModule = loadIndustryModule(industrySlug);
+      expect(industryModule.slug).toBe(industrySlug);
 
       const fields = getBookingFormPreset(industrySlug);
       expect(fields.some((f) => f.key === expectedField)).toBe(true);

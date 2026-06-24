@@ -1,18 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import {
   isPathInCollapsibleSection,
   type CollapsibleNavKey,
 } from "@/lib/constants/company-nav";
 
-export function useCollapsibleNavSections(
-  slug: string,
-  pathname: string,
-  activeNav: CollapsibleNavKey | string
-) {
-  const [expanded, setExpanded] = useState<Record<CollapsibleNavKey, boolean>>({
+function initialExpanded(activeNav: CollapsibleNavKey | string): Record<CollapsibleNavKey, boolean> {
+  return {
     bookings: activeNav === "bookings",
     customers: activeNav === "customers",
     revenue: activeNav === "revenue",
@@ -20,42 +16,56 @@ export function useCollapsibleNavSections(
     growth: activeNav === "growth",
     team: activeNav === "team",
     intelligence: activeNav === "intelligence",
-  });
-  const previousPathnameRef = useRef(pathname);
+  };
+}
 
-  useEffect(() => {
-    const sections: CollapsibleNavKey[] = [
-      "bookings",
-      "customers",
-      "revenue",
-      "websites",
-      "growth",
-      "team",
-      "intelligence",
-    ];
-    const updates: Partial<Record<CollapsibleNavKey, boolean>> = {};
+function sectionUpdatesForPathChange(
+  slug: string,
+  previousPathname: string,
+  pathname: string
+): Partial<Record<CollapsibleNavKey, boolean>> | null {
+  const sections: CollapsibleNavKey[] = [
+    "bookings",
+    "customers",
+    "revenue",
+    "websites",
+    "growth",
+    "team",
+    "intelligence",
+  ];
+  const updates: Partial<Record<CollapsibleNavKey, boolean>> = {};
 
-    for (const section of sections) {
-      const wasInSection = isPathInCollapsibleSection(
-        slug,
-        previousPathnameRef.current,
-        section
-      );
-      const isInSection = isPathInCollapsibleSection(slug, pathname, section);
+  for (const section of sections) {
+    const wasInSection = isPathInCollapsibleSection(slug, previousPathname, section);
+    const isInSection = isPathInCollapsibleSection(slug, pathname, section);
 
-      if (isInSection && !wasInSection) {
-        updates[section] = true;
-      } else if (!isInSection) {
-        updates[section] = false;
-      }
+    if (isInSection && !wasInSection) {
+      updates[section] = true;
+    } else if (!isInSection) {
+      updates[section] = false;
     }
+  }
 
-    if (Object.keys(updates).length > 0) {
+  return Object.keys(updates).length > 0 ? updates : null;
+}
+
+export function useCollapsibleNavSections(
+  slug: string,
+  pathname: string,
+  activeNav: CollapsibleNavKey | string
+) {
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  const [expanded, setExpanded] = useState<Record<CollapsibleNavKey, boolean>>(() =>
+    initialExpanded(activeNav)
+  );
+
+  if (pathname !== prevPathname) {
+    const updates = sectionUpdatesForPathChange(slug, prevPathname, pathname);
+    setPrevPathname(pathname);
+    if (updates) {
       setExpanded((current) => ({ ...current, ...updates }));
     }
-
-    previousPathnameRef.current = pathname;
-  }, [pathname, slug]);
+  }
 
   const toggleSection = (section: CollapsibleNavKey) => {
     setExpanded((current) => ({

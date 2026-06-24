@@ -51,8 +51,8 @@ describe("industry module loader", () => {
   });
 
   it("falls back to default module for unknown slugs", () => {
-    const module = loadIndustryModule("unknown-industry");
-    expect(module.slug).toBe("default");
+    const industryModule = loadIndustryModule("unknown-industry");
+    expect(industryModule.slug).toBe("default");
   });
 
   it("maps legacy gym slug to fitness module", () => {

@@ -3,7 +3,7 @@
 import type { ComponentType } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useState, useTransition } from "react";
+import { type FormEvent, useState, useTransition } from "react";
 import { ArrowRight, Calendar, CreditCard, Search, Settings, Users } from "lucide-react";
 
 import { updateCompanySettings } from "@/app/actions/company";
@@ -101,20 +101,6 @@ export function CompanySettingsClient({
     );
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  useEffect(() => {
-    setName(company.name);
-    setPrimaryContactName(company.primary_contact_name ?? "");
-    setPrimaryContactEmail(company.primary_contact_email ?? "");
-    setContactPhone(company.contact_phone ?? "");
-    setContactLocation(company.contact_location ?? "");
-    setServiceAreas(company.service_areas ?? "");
-    setBusinessDescription(company.business_description ?? "");
-    setBrandLogoUrl(company.brand_logo_url ?? "");
-    setBrandPrimaryColor(company.brand_primary_color ?? "#6366f1");
-    setBrandAccentColor(company.brand_accent_color ?? "#4f46e5");
-    setNotificationPreferences(parseNotificationPreferences(company.notification_preferences));
-  }, [company]);
 
   const completeness = profileCompleteness(company);
   const seoPath = `/${encodeURIComponent(slug)}/dashboard/seo`;

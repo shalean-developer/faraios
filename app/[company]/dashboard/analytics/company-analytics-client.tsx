@@ -183,8 +183,8 @@ export function CompanyAnalyticsClient({
             rows={analytics.topSources.map((row) => ({
               key: row.source,
               cells: [
-                <span className="font-medium text-slate-900">{row.source}</span>,
-                <span className="text-right font-medium">{row.count}</span>,
+                <span key="source" className="font-medium text-slate-900">{row.source}</span>,
+                <span key="count" className="text-right font-medium">{row.count}</span>,
               ],
             }))}
           />
@@ -197,8 +197,8 @@ export function CompanyAnalyticsClient({
             rows={analytics.topServicePages.map((row) => ({
               key: row.page,
               cells: [
-                <span className="font-mono text-xs text-slate-700">{row.page}</span>,
-                <span className="text-right font-medium">{row.count}</span>,
+                <span key="page" className="font-mono text-xs text-slate-700">{row.page}</span>,
+                <span key="visits" className="text-right font-medium">{row.count}</span>,
               ],
             }))}
           />
@@ -211,10 +211,10 @@ export function CompanyAnalyticsClient({
             rows={analytics.campaignPerformance.map((row) => ({
               key: row.name,
               cells: [
-                row.name,
-                <span className="text-right">{row.sentCount}</span>,
-                <span className="text-right">{row.bookingsGenerated}</span>,
-                <span className="text-right font-medium">
+                <span key="name">{row.name}</span>,
+                <span key="sent" className="text-right">{row.sentCount}</span>,
+                <span key="bookings" className="text-right">{row.bookingsGenerated}</span>,
+                <span key="revenue" className="text-right font-medium">
                   R{(row.revenueCents / 100).toFixed(0)}
                 </span>,
               ],

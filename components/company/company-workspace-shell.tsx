@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
 import { CompanyMobileNav } from "@/components/company/company-mobile-nav";
@@ -14,6 +14,27 @@ import type { UserCompany } from "@/types/database";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "faraios.workspace-sidebar-collapsed";
+const COLLAPSE_EVENT = "faraios:workspace-sidebar-collapse";
+
+function readCollapsedFromStorage(): boolean {
+  try {
+    return window.localStorage.getItem(STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function subscribeSidebarCollapsed(onStoreChange: () => void) {
+  const handler = () => onStoreChange();
+  window.addEventListener(COLLAPSE_EVENT, handler);
+  window.addEventListener("storage", handler);
+  return () => {
+    window.removeEventListener(COLLAPSE_EVENT, handler);
+    window.removeEventListener("storage", handler);
+  };
+}
+
+const emptySubscribe = () => () => {};
 
 export function CompanyWorkspaceShell({
   slug,
@@ -36,29 +57,21 @@ export function CompanyWorkspaceShell({
 }) {
   const pathname = usePathname() ?? "";
   const activeNav = companyNavKeyFromPathname(slug, pathname);
-  const [collapsed, setCollapsed] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const collapsed = useSyncExternalStore(
+    subscribeSidebarCollapsed,
+    readCollapsedFromStorage,
+    () => false
+  );
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
-  useEffect(() => {
+  const toggleCollapsed = () => {
+    const next = !readCollapsedFromStorage();
     try {
-      const stored = window.localStorage.getItem(STORAGE_KEY) === "1";
-      setCollapsed(stored);
+      window.localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
     } catch {
       // ignore
     }
-    setMounted(true);
-  }, []);
-
-  const toggleCollapsed = () => {
-    setCollapsed((value) => {
-      const next = !value;
-      try {
-        window.localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
-      } catch {
-        // ignore
-      }
-      return next;
-    });
+    window.dispatchEvent(new Event(COLLAPSE_EVENT));
   };
 
   return (
