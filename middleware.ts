@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 
+import { publicCorsPreflightResponse } from "@/lib/api/public-cors";
 import { isPlatformAdminUser } from "@/lib/auth/post-login-redirect";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -84,6 +85,10 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  if (pathname.startsWith("/api/public/") && request.method === "OPTIONS") {
+    return publicCorsPreflightResponse();
+  }
+
   const isOnboarding =
 
     pathname === "/onboarding" || pathname.startsWith("/onboarding/");
@@ -117,6 +122,26 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/_next") ||
 
     pathname.startsWith("/api") ||
+
+    pathname.startsWith("/embed/") ||
+
+    pathname === "/tracking.js" ||
+
+    pathname === "/site.webmanifest" ||
+
+    pathname === "/favicon.ico" ||
+
+    pathname === "/favicon-16x16.png" ||
+
+    pathname === "/favicon-32x32.png" ||
+
+    pathname === "/favicon-48x48.png" ||
+
+    pathname === "/apple-touch-icon.png" ||
+
+    pathname === "/android-chrome-192x192.png" ||
+
+    pathname === "/android-chrome-512x512.png" ||
 
     isPublicWebsiteRoute ||
 
@@ -420,7 +445,7 @@ export const config = {
 
   matcher: [
 
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|site\\.webmanifest|embed/|tracking\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
 
   ],
 
