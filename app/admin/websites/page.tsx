@@ -3,7 +3,7 @@ import { getAdminQueryClient } from "@/lib/services/admin";
 import type { Website } from "@/types/database";
 
 export const metadata = {
-  title: "Websites — Shalean Admin",
+  title: "Websites — FaraiOS Admin",
   robots: { index: false, follow: false },
 };
 

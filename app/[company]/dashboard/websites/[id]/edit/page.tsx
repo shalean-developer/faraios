@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Website, WebsiteContent } from "@/types/database";
 
 export const metadata = {
-  title: "Edit Website Content — Shalean",
+  title: "Edit Website Content — FaraiOS",
   robots: { index: false, follow: false },
 };
 

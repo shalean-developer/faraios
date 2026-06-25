@@ -8,7 +8,7 @@ export function HomeFallback() {
       </div>
       <div className="h-4 w-48 animate-pulse rounded-full bg-slate-200" />
       <div className="h-3 w-72 max-w-full animate-pulse rounded-full bg-slate-100" />
-      <p className="text-sm text-slate-500">Loading Shalean…</p>
+      <p className="text-sm text-slate-500">Loading FaraiOS…</p>
     </div>
   );
 }

@@ -36,7 +36,7 @@ function walk(dir, files = []) {
 
 function transform(content) {
   let next = content.split("X-FaraiOS-Company-Key").join(PLACEHOLDER);
-  next = next.split("Shalean").join("Shalean");
+  next = next.split("FaraiOS").join("FaraiOS");
   next = next.split(PLACEHOLDER).join("X-FaraiOS-Company-Key");
   return next;
 }
@@ -44,7 +44,7 @@ function transform(content) {
 let changed = 0;
 for (const file of walk(root)) {
   const original = fs.readFileSync(file, "utf8");
-  if (!original.includes("Shalean")) continue;
+  if (!original.includes("FaraiOS")) continue;
   const updated = transform(original);
   if (updated !== original) {
     fs.writeFileSync(file, updated, "utf8");

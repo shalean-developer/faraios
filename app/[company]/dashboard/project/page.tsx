@@ -15,8 +15,8 @@ export async function generateMetadata({ params }: Props) {
   const { company } = await params;
   const slug = decodeURIComponent(company);
   return {
-    title: `Website build — ${slug} — Shalean`,
-    description: "Track your Shalean website build progress.",
+    title: `Website build — ${slug} — FaraiOS`,
+    description: "Track your FaraiOS website build progress.",
   };
 }
 

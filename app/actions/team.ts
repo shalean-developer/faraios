@@ -77,7 +77,7 @@ export async function inviteTeamMember(input: {
     return {
       ok: false,
       error:
-        "No Shalean account found for that email. Ask them to sign up first, then invite again.",
+        "No FaraiOS account found for that email. Ask them to sign up first, then invite again.",
     };
   }
 

@@ -20,7 +20,7 @@ function LogoFallback() {
       >
         F
       </span>
-      <span className="text-base font-bold tracking-tight text-slate-900">Shalean</span>
+      <span className="text-base font-bold tracking-tight text-slate-900">FaraiOS</span>
     </>
   );
 }
@@ -31,7 +31,7 @@ export function AuthBrandLogo({ onDark = false, className }: AuthBrandLogoProps)
   return (
     <Link
       href="/"
-      aria-label="Shalean home"
+      aria-label="FaraiOS home"
       className={cn(
         "inline-flex items-center gap-2.5 transition-opacity hover:opacity-90",
         onDark && "rounded-xl bg-white px-3 py-2 shadow-lg shadow-black/25",

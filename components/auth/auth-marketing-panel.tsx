@@ -37,7 +37,7 @@ export const AUTH_MARKETING_FEATURES: FeatureItem[] = [
     icon: <Globe className="h-4 w-4" aria-hidden />,
     title: "Website, SEO & marketing",
     description:
-      "Connect your existing site or add a Shalean-powered website later.",
+      "Connect your existing site or add a FaraiOS-powered website later.",
   },
   {
     id: "team",
@@ -254,7 +254,7 @@ export function AuthMarketingPanel() {
 
       <div className="relative z-10">
         <p className="text-xs text-violet-200/60">
-          © {new Date().getFullYear()} Shalean —{" "}
+          © {new Date().getFullYear()} FaraiOS —{" "}
           <span className="text-violet-100/80">Business OS for service businesses.</span>
         </p>
       </div>

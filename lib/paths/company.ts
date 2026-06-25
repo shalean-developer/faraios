@@ -38,12 +38,21 @@ export function publicBookPath(companyId: string): string {
   return `/book/${encodeURIComponent(companyId)}`;
 }
 
+/** Public booking page by company slug (preferred share link). */
+export function publicBookSlugPath(companySlug: string): string {
+  return `/book/${encodeURIComponent(companySlug)}`;
+}
+
 export function companySettingsPath(slug: string): string {
   return `/${encodeURIComponent(slug)}/dashboard/settings`;
 }
 
 export function companySubscriptionPath(slug: string): string {
   return `/${encodeURIComponent(slug)}/dashboard/subscription`;
+}
+
+export function companyBillingPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/billing`;
 }
 
 export function companyRetentionCampaignsPath(slug: string): string {
@@ -212,4 +221,35 @@ export function companyWebsiteTrackingPath(slug: string): string {
 
 export function companyWebsiteHostingPath(slug: string): string {
   return `/${encodeURIComponent(slug)}/dashboard/websites/hosting`;
+}
+
+export function companyWebsiteBuilderPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/websites/builder`;
+}
+
+export function companyWebsiteBuilderSectionPath(
+  slug: string,
+  section:
+    | "pages"
+    | "service-pages"
+    | "contact"
+    | "booking"
+    | "seo"
+    | "publish"
+    | "domains"
+    | "enquiries"
+    | "preview"
+): string {
+  return `/${encodeURIComponent(slug)}/dashboard/websites/builder/${section}`;
+}
+
+export function publicSitePath(companySlug: string): string {
+  return `/site/${encodeURIComponent(companySlug)}`;
+}
+
+export function publicSiteServicePath(
+  companySlug: string,
+  serviceSlug: string
+): string {
+  return `/site/${encodeURIComponent(companySlug)}/services/${encodeURIComponent(serviceSlug)}`;
 }

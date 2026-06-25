@@ -77,7 +77,7 @@ export type RemoveDomainInput = {
 
 export type RemoveDomainResult = { ok: true } | { ok: false; error: string };
 
-/** Provider abstraction for Shalean-hosted websites. */
+/** Provider abstraction for FaraiOS-hosted websites. */
 export type HostingProvider = {
   slug: HostingProviderSlug;
   displayName: string;

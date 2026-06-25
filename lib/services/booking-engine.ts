@@ -1,11 +1,18 @@
 import { upsertCustomerForCompany } from "@/lib/services/customers";
 import { validateBookingAvailability } from "@/lib/bookings/availability";
+import { calculateBookingPrice } from "@/lib/bookings/pricing-calculator";
 import {
   combineDateAndTime,
   sanitizeCustomResponses,
   validateBookingFormSubmission,
 } from "@/lib/bookings/form-validation";
 import { logBookingActivity } from "@/lib/services/booking-activities";
+import {
+  getPricingRuleForService,
+  logBookingNotification,
+  saveBookingPriceSnapshot,
+} from "@/lib/services/booking-form-config";
+import { isBookingBuilderSchemaMissing } from "@/lib/supabase/schema-errors";
 import { getPublishedBookingFormForCompany } from "@/lib/services/booking-forms";
 import { notifyBookingCreated } from "@/lib/services/booking-notifications";
 import { triggerWorkflows } from "@/lib/services/workflow-engine";
@@ -70,6 +77,7 @@ export async function createEngineBooking(
   const serviceId: string | null = input.serviceId ?? null;
   let priceCents: number | null = null;
   let durationMinutes: number | null = null;
+  let serviceBasePriceCents = 0;
 
   if (serviceId) {
     const { data: service } = await admin.client
@@ -83,16 +91,45 @@ export async function createEngineBooking(
       return { ok: false, error: "Selected service is not available." };
     }
     serviceName = service.name;
-    priceCents = service.base_price_cents;
+    serviceBasePriceCents = service.base_price_cents ?? 0;
+    priceCents = serviceBasePriceCents;
     durationMinutes = service.duration_minutes ?? null;
   }
 
-  const addonTotal = (input.addons ?? []).reduce(
-    (sum, addon) => sum + (addon.price_cents ?? 0),
-    0
-  );
-  if (addonTotal > 0) {
-    priceCents = (priceCents ?? 0) + addonTotal;
+  let selectedExtras: { id: string; name: string; price_cents: number }[] = [];
+  if (input.extraIds && input.extraIds.length > 0) {
+    const extrasRes = await admin.client
+      .from("booking_form_extras")
+      .select("id, name, price_cents")
+      .eq("company_id", input.companyId)
+      .in("id", input.extraIds)
+      .eq("active", true);
+    if (!extrasRes.error || !isBookingBuilderSchemaMissing(extrasRes.error)) {
+      selectedExtras = (extrasRes.data ?? []) as typeof selectedExtras;
+    }
+  }
+
+  const pricingRule = await getPricingRuleForService(input.companyId, serviceId, {
+    useAdmin: true,
+  });
+
+  const customResponsesRaw = input.customResponses ?? {};
+  const pricing = calculateBookingPrice({
+    serviceBasePriceCents,
+    bedrooms: Number(customResponsesRaw.bedrooms) || 0,
+    bathrooms: Number(customResponsesRaw.bathrooms) || 0,
+    frequency: String(customResponsesRaw.frequency ?? ""),
+    selectedAddons: input.addons,
+    selectedExtras: selectedExtras as { id: string; name: string; price_cents: number }[],
+    pricingRule,
+  });
+
+  if (pricing.requiresCustomQuote) {
+    priceCents = null;
+  } else if (input.calculatedTotalCents != null && input.calculatedTotalCents > 0) {
+    priceCents = input.calculatedTotalCents;
+  } else {
+    priceCents = pricing.totalCents > 0 ? pricing.totalCents : priceCents;
   }
 
   let bookingDateIso: string;
@@ -171,6 +208,20 @@ export async function createEngineBooking(
     return { ok: false, error: error?.message ?? "Could not create booking." };
   }
 
+  if (!pricing.requiresCustomQuote) {
+    await saveBookingPriceSnapshot({
+      companyId: input.companyId,
+      bookingId: data.id,
+      breakdown: pricing.breakdown,
+      subtotalCents: pricing.subtotalCents,
+      discountCents: pricing.discountCents,
+      serviceFeeCents: pricing.serviceFeeCents,
+      vatCents: pricing.vatCents,
+      totalCents: pricing.totalCents,
+      pricingRulesSnapshot: pricingRule ? { ...pricingRule } : {},
+    });
+  }
+
   await notifyBookingCreated({
     companyId: input.companyId,
     bookingId: data.id,
@@ -207,6 +258,15 @@ export async function createEngineBooking(
     body: `${name} — ${serviceName}`,
     entityType: "booking",
     entityId: data.id,
+  });
+
+  await logBookingNotification({
+    companyId: input.companyId,
+    bookingId: data.id,
+    type: "created",
+    channel: "in_app",
+    status: "sent",
+    payload: { customerName: name, serviceName, source: input.source },
   });
 
   return { ok: true, bookingId: data.id };

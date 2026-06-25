@@ -6,9 +6,9 @@ import { AuthPageShell } from "@/components/auth/auth-page-shell";
 import { ForgotPasswordForm } from "./forgot-password-form";
 
 export const metadata: Metadata = {
-  title: "Reset Password | Shalean",
+  title: "Reset Password | FaraiOS",
   description:
-    "Request a secure password reset link for your Shalean workspace.",
+    "Request a secure password reset link for your FaraiOS workspace.",
 };
 
 export default async function ForgotPasswordPage({

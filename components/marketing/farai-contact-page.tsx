@@ -48,7 +48,7 @@ export function FaraiContactPage() {
         <div className="mx-auto max-w-3xl">
           <motion.div initial="hidden" animate="visible" variants={fadeUp}>
             <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
-              Contact Shalean
+              Contact FaraiOS
             </h1>
             <p className="mt-4 text-lg text-gray-600">
               Questions about onboarding, pricing, or your workspace? Our team is here to
@@ -100,7 +100,7 @@ export function FaraiContactPage() {
               <div>
                 <p className="font-semibold text-gray-900">Based in South Africa</p>
                 <p className="mt-1 text-sm text-gray-600">
-                  Shalean is built for local service businesses, with ZAR pricing and
+                  FaraiOS is built for local service businesses, with ZAR pricing and
                   Paystack billing support.
                 </p>
               </div>

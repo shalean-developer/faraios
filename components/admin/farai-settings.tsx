@@ -15,6 +15,7 @@ import {
   Plus,
   Check,
   ChevronRight,
+  Plug,
 } from "lucide-react";
 
 import {
@@ -22,15 +23,17 @@ import {
   adminRemovePlatformAdmin,
   adminUpdateNotificationPreferences,
   adminUpdatePlatformSettings,
+  adminUpdateSearchConsoleIntegration,
 } from "@/app/actions/admin";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type {
   AdminAuditLogRow,
   AdminNotificationPreferences,
   AdminPlatformSettings,
+  AdminSearchConsoleIntegrationSettings,
 } from "@/types/admin";
 
-type SettingsTab = "general" | "users" | "notifications" | "security" | "billing";
+type SettingsTab = "general" | "users" | "notifications" | "security" | "billing" | "integrations";
 
 interface AdminUser {
   id: string;
@@ -50,6 +53,7 @@ const SETTINGS_TABS: {
   { key: "users", label: "User Management", icon: Users },
   { key: "notifications", label: "Notifications", icon: Bell },
   { key: "security", label: "Security", icon: Shield },
+  { key: "integrations", label: "Integrations", icon: Plug },
   { key: "billing", label: "Billing", icon: CreditCard },
 ];
 
@@ -79,6 +83,7 @@ export function FaraiSettings({
   platformSettings,
   notificationPreferences,
   auditLogs,
+  searchConsoleIntegration,
   initialTab = "general",
 }: {
   adminUsers: AdminUser[];
@@ -86,6 +91,7 @@ export function FaraiSettings({
   platformSettings: AdminPlatformSettings;
   notificationPreferences: AdminNotificationPreferences;
   auditLogs: AdminAuditLogRow[];
+  searchConsoleIntegration: AdminSearchConsoleIntegrationSettings;
   initialTab?: SettingsTab;
 }) {
   const router = useRouter();
@@ -115,6 +121,9 @@ export function FaraiSettings({
   const [confirmPw, setConfirmPw] = useState("");
   const [twoFactor, setTwoFactor] = useState(false);
 
+  const [gscClientId, setGscClientId] = useState(searchConsoleIntegration.clientId);
+  const [gscClientSecret, setGscClientSecret] = useState("");
+
   const tabLabel =
     SETTINGS_TABS.find((tab) => tab.key === activeTab)?.label ?? "General";
 
@@ -132,6 +141,11 @@ export function FaraiSettings({
     setProjectUpdates(notificationPreferences.projectUpdates);
     setClientActivity(notificationPreferences.clientActivity);
   }, [notificationPreferences]);
+
+  useEffect(() => {
+    setGscClientId(searchConsoleIntegration.clientId);
+    setGscClientSecret("");
+  }, [searchConsoleIntegration]);
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -208,6 +222,24 @@ export function FaraiSettings({
         return;
       }
       setMessage("Notification preferences saved.");
+    });
+  };
+
+  const handleSaveIntegrations = () => {
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      const result = await adminUpdateSearchConsoleIntegration({
+        clientId: gscClientId,
+        clientSecret: gscClientSecret || undefined,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setGscClientSecret("");
+      setMessage("Google Search Console credentials saved. Customers can now connect.");
+      router.refresh();
     });
   };
 
@@ -491,6 +523,87 @@ export function FaraiSettings({
                         ))}
                       </ul>
                     )}
+                  </section>
+                </motion.div>
+              ) : null}
+
+              {activeTab === "integrations" ? (
+                <motion.div key="integrations" variants={tabAnim} initial="hidden" animate="visible" exit="exit" className="space-y-4">
+                  <section className="space-y-5 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h2 className="text-sm font-extrabold tracking-tight text-gray-900">Google Search Console</h2>
+                        <p className="mt-1 text-xs text-gray-500">
+                          OAuth credentials used when customers connect Search Console from their SEO dashboard.
+                        </p>
+                      </div>
+                      {searchConsoleIntegration.configured ? (
+                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-bold uppercase text-emerald-700">
+                          Ready
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-amber-50 px-3 py-1 text-[10px] font-bold uppercase text-amber-700">
+                          Not configured
+                        </span>
+                      )}
+                    </div>
+
+                    {searchConsoleIntegration.source === "env" ? (
+                      <p className="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-xs text-indigo-800">
+                        Credentials are loaded from server environment variables. Database settings are ignored while env vars are set.
+                      </p>
+                    ) : null}
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold tracking-tight text-gray-500">OAuth redirect URI</label>
+                      <p className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 font-mono text-xs text-gray-700">
+                        {searchConsoleIntegration.redirectUri ?? "Set NEXT_PUBLIC_APP_URL to show redirect URI"}
+                      </p>
+                      <p className="text-[11px] text-gray-400">
+                        Add this exact URI as an authorized redirect URI in your Google Cloud OAuth client.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="text-xs font-semibold tracking-tight text-gray-500">Client ID</label>
+                        <input
+                          type="text"
+                          value={gscClientId}
+                          onChange={(e) => setGscClientId(e.target.value)}
+                          className={inputClass}
+                          placeholder="....apps.googleusercontent.com"
+                          disabled={searchConsoleIntegration.source === "env"}
+                        />
+                      </div>
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="text-xs font-semibold tracking-tight text-gray-500">Client secret</label>
+                        <input
+                          type="password"
+                          value={gscClientSecret}
+                          onChange={(e) => setGscClientSecret(e.target.value)}
+                          className={inputClass}
+                          placeholder={
+                            searchConsoleIntegration.hasClientSecret
+                              ? "Leave blank to keep existing secret"
+                              : "GOCSPX-..."
+                          }
+                          disabled={searchConsoleIntegration.source === "env"}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleSaveIntegrations}
+                        disabled={isPending || searchConsoleIntegration.source === "env"}
+                        className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700 disabled:opacity-60"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                        <span>{isPending ? "Saving…" : "Save credentials"}</span>
+                      </button>
+                    </div>
                   </section>
                 </motion.div>
               ) : null}

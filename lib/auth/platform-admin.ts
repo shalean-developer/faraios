@@ -47,7 +47,7 @@ export async function isPlatformAdminUser(
   return false;
 }
 
-/** User IDs with a row in `platform_admins` (Shalean staff — not business customers). */
+/** User IDs with a row in `platform_admins` (FaraiOS staff — not business customers). */
 export async function getPlatformAdminUserIds(
   supabase: SupabaseClient
 ): Promise<Set<string>> {

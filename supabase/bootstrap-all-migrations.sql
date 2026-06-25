@@ -969,7 +969,7 @@ grant select, update on public.hosting_subscriptions to authenticated;
 grant select on public.hosting_payments to authenticated;
 
 -- =============================================================================
--- 20260623120000_promote_shalean_admin_and_grants.sql
+-- 20260623120000_promote_faraios_admin_and_grants.sql
 -- =============================================================================
 
 -- Restore API access for service_role (required for admin server actions and scripts).
@@ -982,7 +982,7 @@ alter default privileges in schema public grant all on tables to service_role;
 alter default privileges in schema public grant all on sequences to service_role;
 alter default privileges in schema public grant all on routines to service_role;
 
--- Promote admin@shalean.com (auth user id from Supabase Auth).
+-- Promote admin@faraios.com (auth user id from Supabase Auth).
 insert into public.platform_admins (user_id)
 values ('81469321-eaff-4471-aa93-b655c6ff3806')
 on conflict (user_id) do nothing;

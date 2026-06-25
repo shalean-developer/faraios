@@ -37,6 +37,6 @@ describe("V4 tracking helpers", () => {
 
 describe("V4 tenant domain", () => {
   it("builds preview subdomain from slug", () => {
-    expect(previewSubdomainForSlug("shalean")).toMatch(/shalean\./);
+    expect(previewSubdomainForSlug("acme-cleaning")).toMatch(/acme-cleaning\./);
   });
 });

@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BookPageClient } from "./book-page-client";
+import { getBookingFormConfigForCompany } from "@/lib/services/booking-form-config";
 import { getPublishedBookingFormForCompany } from "@/lib/services/booking-forms";
+import { resolveCompanyByBookIdentifier } from "@/lib/bookings/resolve-company";
 import { listPublicServicesForCompany } from "@/lib/services/company-services";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 
@@ -17,17 +19,13 @@ export default async function PublicBookPage({ params, searchParams }: Props) {
   const admin = tryCreateAdminClient();
   if (!admin.ok) notFound();
 
-  const { data: company } = await admin.client
-    .from("companies")
-    .select("id, name")
-    .eq("id", businessId)
-    .maybeSingle();
-
+  const company = await resolveCompanyByBookIdentifier(businessId);
   if (!company) notFound();
 
-  const [form, services] = await Promise.all([
+  const [form, services, config] = await Promise.all([
     getPublishedBookingFormForCompany(company.id),
     listPublicServicesForCompany(company.id, { activeOnly: true }),
+    getBookingFormConfigForCompany(company.id, { useAdmin: true }),
   ]);
 
   if (!form) {
@@ -44,6 +42,18 @@ export default async function PublicBookPage({ params, searchParams }: Props) {
     );
   }
 
+  const settings = form.settings ?? config.settings;
+  const branding = settings.branding ?? {};
+  const displayName =
+    branding.businessName?.trim() ||
+    (branding.useCompanyBranding !== false ? company.name : company.name);
+  const logoUrl =
+    branding.useCompanyBranding !== false ? company.brand_logo_url : branding.logoUrl;
+  const brandColor =
+    branding.useCompanyBranding !== false
+      ? company.brand_primary_color
+      : branding.brandColor;
+
   return (
     <main
       className={
@@ -55,9 +65,14 @@ export default async function PublicBookPage({ params, searchParams }: Props) {
       <div className={embedded ? "mx-auto w-full max-w-none" : "mx-auto max-w-xl"}>
         <BookPageClient
           companyId={company.id}
-          businessName={company.name}
+          businessName={displayName}
+          logoUrl={logoUrl}
+          brandColor={brandColor}
           fields={form.fields}
           services={services}
+          settings={settings}
+          extras={config.extras.filter((e) => e.active)}
+          pricingRule={config.pricingRule}
           embedded={embedded}
         />
       </div>

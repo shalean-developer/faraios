@@ -6,7 +6,7 @@ export const consultingModule: IndustryModule = {
   name: "Consulting",
   description: "Professional consulting and advisory services",
   icon: "briefcase",
-  version: "1.0.0",
+  version: "2.0.0",
 
   onboarding: {
     defaultPages: ["Home", "About", "Services", "Contact"],
@@ -38,18 +38,20 @@ export const consultingModule: IndustryModule = {
       ),
       field(
         {
-          key: "project_scope",
+          key: "business_challenge",
           type: "textarea",
-          label: "Project scope",
+          label: "Business challenge",
+          required: true,
           section: "Consultation",
         },
         13
       ),
       field(
         {
-          key: "budget_range",
-          type: "text",
-          label: "Budget range",
+          key: "session_format",
+          type: "dropdown",
+          label: "Session format",
+          options: ["In person", "Video call", "Phone", "On-site"],
           section: "Consultation",
         },
         14
@@ -61,38 +63,58 @@ export const consultingModule: IndustryModule = {
     categoryPresets: ["Consulting", "Strategy", "Audit", "Workshops", "Retainer"],
     templates: [
       {
-        name: "Discovery call",
-        category: "Consulting",
-        description: "30-minute introductory consultation.",
-        price: "0",
-        durationMinutes: 30,
-        addons: [],
-      },
-      {
-        name: "Strategy session",
+        name: "Strategy Session",
         category: "Strategy",
         description: "Half-day strategy workshop.",
-        price: "4500",
+        price: "750",
         durationMinutes: 240,
         addons: [],
       },
       {
-        name: "Business audit",
-        category: "Audit",
-        description: "Comprehensive business review and recommendations.",
-        price: "8500",
-        durationMinutes: 480,
-        addons: [],
-      },
-      {
-        name: "Monthly retainer",
-        category: "Retainer",
-        description: "Ongoing advisory support.",
-        price: "6500",
+        name: "Business Consultation",
+        category: "Consulting",
+        description: "Comprehensive business advisory session.",
+        price: "1000",
         durationMinutes: 120,
         addons: [],
       },
+      {
+        name: "Financial Consultation",
+        category: "Consulting",
+        description: "Financial planning and review session.",
+        price: "1000",
+        durationMinutes: 90,
+        addons: [],
+      },
+      {
+        name: "Marketing Consultation",
+        category: "Consulting",
+        description: "Marketing strategy and channel review.",
+        price: "850",
+        durationMinutes: 90,
+        addons: [],
+      },
+      {
+        name: "HR Consultation",
+        category: "Consulting",
+        description: "HR policy and people operations advisory.",
+        price: "850",
+        durationMinutes: 90,
+        addons: [],
+      },
+      {
+        name: "Implementation Support",
+        category: "Retainer",
+        description: "Ongoing implementation and advisory support.",
+        price: "2500",
+        durationMinutes: 480,
+        addons: [],
+      },
     ],
+  },
+
+  customers: {
+    extraFieldKeys: ["company_name", "consultation_type", "budget_range"],
   },
 
   growth: {
@@ -110,11 +132,28 @@ export const consultingModule: IndustryModule = {
   },
 
   terminology: {
-    booking: "Consultation",
-    service: "Service",
+    booking: "Sessions",
+    service: "Consulting Services",
     staff: "Consultant",
-    customer: "Client",
+    customer: "Clients",
+    revenue: "Proposals",
   },
+
+  pricingExamples: [
+    { label: "Strategy Session", fromPrice: "R750" },
+    { label: "Business Consultation", fromPrice: "R1,000" },
+    { label: "Implementation Support", fromPrice: "R2,500" },
+  ],
+
+  teamRoles: ["Consultant", "Senior Consultant", "Analyst", "Partner"],
+
+  setupChecklist: [
+    "Import default consulting services",
+    "Set session types and rates",
+    "Publish your booking page",
+    "Connect payments",
+    "Add your first client session",
+  ],
 
   dashboardExtensions: {
     servicesQuickStart: {

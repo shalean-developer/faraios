@@ -153,6 +153,8 @@ export async function middleware(request: NextRequest) {
 
     pathname.startsWith("/book/") ||
 
+    pathname.startsWith("/site/") ||
+
     pathname.startsWith("/portal/") ||
 
     pathname.startsWith("/pricing") ||

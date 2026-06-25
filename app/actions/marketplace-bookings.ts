@@ -69,6 +69,9 @@ export async function createPublicPageBooking(input: {
   customResponses?: Record<string, unknown>;
   consentGiven?: boolean;
   sourceWebsite?: string;
+  addons?: import("@/types/booking-form").ServiceAddon[];
+  extraIds?: string[];
+  calculatedTotalCents?: number;
 }): Promise<PublicBookingResult> {
   if (!isSupabaseConfigured()) {
     return { ok: false, error: "Bookings are not configured yet." };

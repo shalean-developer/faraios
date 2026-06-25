@@ -2,7 +2,7 @@ import { FaraiAdminUsers } from "@/components/admin/farai-admin-users";
 import { getAdminPlatformUsers } from "@/lib/services/admin";
 
 export const metadata = {
-  title: "Users — Shalean Admin",
+  title: "Users — FaraiOS Admin",
   robots: { index: false, follow: false },
 };
 

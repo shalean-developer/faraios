@@ -2,7 +2,7 @@ import { FaraiAdminDashboard } from "@/components/admin/farai-admin-dashboard";
 import { computeProjectStats, getAllProjects } from "@/lib/services/admin";
 
 export const metadata = {
-  title: "Build Pipeline — Shalean Admin",
+  title: "Build Pipeline — FaraiOS Admin",
   robots: { index: false, follow: false },
 };
 

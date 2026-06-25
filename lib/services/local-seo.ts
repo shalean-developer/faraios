@@ -22,6 +22,12 @@ function mapRow(row: Record<string, unknown>): LocalSeoSettings {
     business_categories: (row.business_categories as string[]) ?? [],
     social_links: (row.social_links as Record<string, string>) ?? {},
     auto_review_request_enabled: Boolean(row.auto_review_request_enabled),
+    latitude: (row.latitude as number) ?? null,
+    longitude: (row.longitude as number) ?? null,
+    google_maps_url: (row.google_maps_url as string) ?? null,
+    logo_url: (row.logo_url as string) ?? null,
+    whatsapp: (row.whatsapp as string) ?? null,
+    knowledge_graph_data: (row.knowledge_graph_data as Record<string, unknown>) ?? {},
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };

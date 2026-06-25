@@ -3092,7 +3092,7 @@ export async function getAdminSettingsUsers(): Promise<
 
 const DEFAULT_PLATFORM_SETTINGS: AdminPlatformSettings = {
   companyName: "Farai Creative Studio",
-  platformName: "Shalean",
+  platformName: "FaraiOS",
 };
 
 const DEFAULT_NOTIFICATION_PREFERENCES: AdminNotificationPreferences = {

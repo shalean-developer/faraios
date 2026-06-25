@@ -8,17 +8,18 @@ import { getCompanyBySlug } from "@/lib/services/companies";
 import { getLocalSeoSettings, seedLocalSeoFromCompany } from "@/lib/services/local-seo";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
 import { runSeoAudit } from "@/lib/services/seo-audit";
+import { loadSeoV10Dashboard } from "@/lib/services/seo";
 import {
   getSearchConsoleConnection,
   getSearchConsoleMetricsSummary,
-  isSearchConsoleConfigured,
+  isSearchConsoleOAuthConfigured,
 } from "@/lib/services/search-console";
 import { listServiceAreaPages } from "@/lib/services/service-area-pages";
 import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = {
-  title: "SEO — Shalean",
+  title: "SEO — FaraiOS",
   robots: { index: false, follow: false },
 };
 
@@ -66,7 +67,7 @@ export default async function CompanySeoPage({ params }: Props) {
 
   await seedLocalSeoFromCompany(row.id, row);
 
-  const [audit, localSeo, serviceAreaPages, websites, searchConsoleConnection, searchConsoleMetrics] =
+  const [audit, localSeo, serviceAreaPages, websites, searchConsoleConnection, searchConsoleMetrics, v10] =
     await Promise.all([
     runSeoAudit(row.id),
     getLocalSeoSettings(row.id),
@@ -74,6 +75,7 @@ export default async function CompanySeoPage({ params }: Props) {
     fetchWebsites(row.id),
     getSearchConsoleConnection(row.id),
     getSearchConsoleMetricsSummary(row.id),
+    loadSeoV10Dashboard(row.id, row.name),
   ]);
 
   return (
@@ -82,7 +84,7 @@ export default async function CompanySeoPage({ params }: Props) {
         <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">Growth</p>
         <h1 className="mt-1 text-2xl font-bold text-slate-900">SEO dashboard</h1>
         <p className="mt-2 text-sm text-slate-500">
-          Manage local SEO, meta tags, service area pages, and schema readiness.
+          Manage local SEO, meta tags, service area pages, schema readiness, and V10 enterprise tools.
         </p>
       </header>
 
@@ -96,7 +98,8 @@ export default async function CompanySeoPage({ params }: Props) {
         serviceAreaPages={serviceAreaPages}
         searchConsoleConnection={searchConsoleConnection}
         searchConsoleMetrics={searchConsoleMetrics}
-        searchConsoleConfigured={isSearchConsoleConfigured()}
+        searchConsoleConfigured={await isSearchConsoleOAuthConfigured()}
+        v10={v10}
       />
     </div>
   );

@@ -147,6 +147,9 @@ export async function createBusinessSystem(
     industry_id: input.industryId,
     plan: planSlug,
     subscription_status: "pending_payment",
+    industry_template_applied: true,
+    industry_template_key: industryModule.slug,
+    template_applied_at: new Date().toISOString(),
     onboarding_data: onboardingData,
   };
 

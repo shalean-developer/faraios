@@ -4,11 +4,11 @@ import { resetWebsiteContentFromSeed } from "../lib/services/websites";
 
 config({ path: ".env.local" });
 
-const SHALEAN_WEBSITE_ID = "1b748835-d613-4805-9910-7f822d3f12e2";
+const FARAIOS_WEBSITE_ID = "1b748835-d613-4805-9910-7f822d3f12e2";
 
 async function main() {
-  const result = await resetWebsiteContentFromSeed(SHALEAN_WEBSITE_ID, {
-    businessName: "Shalean Cleaning Services",
+  const result = await resetWebsiteContentFromSeed(FARAIOS_WEBSITE_ID, {
+    businessName: "FaraiOS Cleaning Services",
     industry: "cleaning",
     template: "service-business",
     location: "Cape Town & Surrounding Areas",
@@ -21,7 +21,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`\nPreview: http://localhost:3000/preview/${SHALEAN_WEBSITE_ID}`);
+  console.log(`\nPreview: http://localhost:3000/preview/${FARAIOS_WEBSITE_ID}`);
 }
 
 main().catch((error) => {

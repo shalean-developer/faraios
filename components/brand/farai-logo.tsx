@@ -2,9 +2,9 @@ import Image from "next/image";
 
 import {
   FARAIOS_BRAND_NAME,
-  SHALEAN_LOGO_HEIGHT,
-  SHALEAN_LOGO_SRC,
-  SHALEAN_LOGO_WIDTH,
+  FARAIOS_LOGO_HEIGHT,
+  FARAIOS_LOGO_SRC,
+  FARAIOS_LOGO_WIDTH,
 } from "@/lib/constants/brand";
 import { cn } from "@/lib/utils";
 
@@ -46,10 +46,10 @@ export function FaraiLogo({
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <Image
-        src={SHALEAN_LOGO_SRC}
-        alt="Shalean"
-        width={SHALEAN_LOGO_WIDTH}
-        height={SHALEAN_LOGO_HEIGHT}
+        src={FARAIOS_LOGO_SRC}
+        alt="FaraiOS"
+        width={FARAIOS_LOGO_WIDTH}
+        height={FARAIOS_LOGO_HEIGHT}
         priority={priority}
         onError={onError}
         className={cn(

@@ -92,6 +92,14 @@ export type AdminPlatformSettings = {
   platformName: string;
 };
 
+export type AdminSearchConsoleIntegrationSettings = {
+  clientId: string;
+  hasClientSecret: boolean;
+  redirectUri: string | null;
+  configured: boolean;
+  source: "env" | "database" | "none";
+};
+
 export type AdminNotificationPreferences = {
   emailAlerts: boolean;
   projectUpdates: boolean;

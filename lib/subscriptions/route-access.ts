@@ -3,6 +3,10 @@ import {
   type AccessFeatureKey,
 } from "@/lib/subscriptions/access";
 import type { SubscriptionCompanyFields } from "@/lib/subscriptions/types";
+import {
+  canAccessWebsiteBuilderFeature,
+  canAccessWebsiteSection,
+} from "@/lib/website-builder/access";
 
 export function dashboardPathFeature(
   slug: string,
@@ -20,6 +24,7 @@ export function dashboardPathFeature(
 
   if (!relative) return "overview";
   if (relative.startsWith("subscription")) return "subscription";
+  if (relative.startsWith("billing")) return "billing";
   if (relative.startsWith("settings")) return "settings";
   if (relative.startsWith("support")) return "support";
   if (relative.startsWith("feature-requests")) return "featureRequests";
@@ -68,6 +73,10 @@ export function dashboardPathFeature(
 
   if (relative.startsWith("hosting")) return "hosting";
 
+  if (relative.startsWith("websites/builder")) {
+    return "websiteBuilder";
+  }
+
   if (
     relative.startsWith("websites") ||
     relative.startsWith("project")
@@ -85,5 +94,17 @@ export function canAccessDashboardPath(
 ): boolean {
   const feature = dashboardPathFeature(slug, pathname);
   if (!feature) return true;
+
+  if (feature === "websiteBuilder") {
+    return (
+      canAccessWebsiteBuilderFeature(company, "websiteBuilder") ||
+      canAccessWebsiteBuilderFeature(company, "websiteBuilderPreview")
+    );
+  }
+
+  if (feature === "websites") {
+    return canAccessWebsiteSection(company);
+  }
+
   return canAccessFeature(company, feature);
 }

@@ -4,7 +4,7 @@ import { AdminCreateWebsiteForm } from "@/components/websites/admin-create-websi
 import { getAdminQueryClient, isCurrentUserPlatformAdmin } from "@/lib/services/admin";
 
 export const metadata = {
-  title: "Admin Create Website — Shalean",
+  title: "Admin Create Website — FaraiOS",
   robots: { index: false, follow: false },
 };
 

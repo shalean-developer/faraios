@@ -14,10 +14,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const industry = INDUSTRY_CARDS.find((ind) => ind.slug === slug);
   if (!industry) {
-    return { title: "Industry not found — Shalean" };
+    return { title: "Industry not found — FaraiOS" };
   }
   return {
-    title: `${industry.name} — Shalean Industries`,
+    title: `${industry.name} — FaraiOS Industries`,
     description: industry.description,
   };
 }

@@ -108,7 +108,7 @@ export function FaraiHostingPage() {
             <motion.div variants={fadeUp} className="mb-5">
               <span className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-100 px-4 py-1.5 text-xs font-semibold text-indigo-700">
                 <Server className="h-3.5 w-3.5" />
-                Shalean Cloud Hosting
+                FaraiOS Cloud Hosting
               </span>
             </motion.div>
 
@@ -118,7 +118,7 @@ export function FaraiHostingPage() {
             >
               Host your sites on{" "}
               <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                Shalean
+                FaraiOS
               </span>
             </motion.h1>
 
@@ -255,7 +255,7 @@ export function FaraiHostingPage() {
             className="rounded-3xl bg-gradient-to-br from-indigo-600 to-violet-700 p-10 text-center shadow-2xl shadow-indigo-200 sm:p-12"
           >
             <h3 className="text-2xl font-extrabold text-white sm:text-3xl">
-              Ready to host with Shalean?
+              Ready to host with FaraiOS?
             </h3>
             <p className="mx-auto mt-4 max-w-md text-base text-indigo-100">
               Secure cloud hosting with SSL, backups, and support included.

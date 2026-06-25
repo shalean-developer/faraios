@@ -37,7 +37,7 @@ export function HomeMarketingSections({ onGetStarted }: HomeMarketingSectionsPro
             href="/marketplace"
             className="font-semibold text-emerald-600 transition-colors hover:text-emerald-800"
           >
-            Browse the Shalean marketplace
+            Browse the FaraiOS marketplace
             <ArrowRight className="ml-0.5 inline h-3.5 w-3.5" />
           </Link>
         </p>

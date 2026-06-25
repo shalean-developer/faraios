@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Privacy Policy — Shalean",
-  description: "How Shalean collects, uses, and protects your data.",
+  title: "Privacy Policy — FaraiOS",
+  description: "How FaraiOS collects, uses, and protects your data.",
 };
 
 export default function PrivacyPage() {
@@ -10,7 +10,7 @@ export default function PrivacyPage() {
         Privacy Policy
       </h1>
       <p className="mt-4 text-sm leading-7 text-slate-600">
-        Shalean collects account, project, and operational data needed to
+        FaraiOS collects account, project, and operational data needed to
         provide the platform, including authentication information, onboarding
         details, bookings, and billing metadata.
       </p>

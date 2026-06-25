@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { companyDashboardPath } from "@/lib/paths/company";
 import { getCompanyBySlug } from "@/lib/services/companies";
+import { listIndustries } from "@/lib/services/industries";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
 import { createClient } from "@/lib/supabase/server";
 
@@ -13,7 +14,7 @@ type Props = { params: Promise<{ company: string }> };
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Settings — Shalean",
+  title: "Settings — FaraiOS",
   robots: { index: false, follow: false },
 };
 
@@ -49,11 +50,21 @@ export default async function CompanySettingsPage({ params }: Props) {
 
   if (!user) return <AccessDenied slug={slug} />;
 
-  const row = await getCompanyBySlug(slug);
+  const [row, industries] = await Promise.all([
+    getCompanyBySlug(slug),
+    listIndustries(),
+  ]);
   if (!row) notFound();
 
   const hasAccess = await userHasCompanySlugAccess(user.id, slug);
   if (!hasAccess) return <AccessDenied slug={slug} />;
 
-  return <CompanySettingsClient key={row.id} slug={slug} company={row} />;
+  return (
+    <CompanySettingsClient
+      key={row.id}
+      slug={slug}
+      company={row}
+      industries={industries}
+    />
+  );
 }

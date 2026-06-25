@@ -1,9 +1,9 @@
 import { FaraiHostingPage } from "@/components/hosting/farai-hosting-page";
 
 export const metadata = {
-  title: "Hosting — Shalean",
+  title: "Hosting — FaraiOS",
   description:
-    "Fast, secure cloud hosting for your websites. Buy a Shalean hosting plan with free SSL, daily backups, and global CDN.",
+    "Fast, secure cloud hosting for your websites. Buy a FaraiOS hosting plan with free SSL, daily backups, and global CDN.",
 };
 
 export default function HostingPage() {

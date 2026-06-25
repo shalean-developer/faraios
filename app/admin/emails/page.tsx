@@ -2,7 +2,7 @@ import { FaraiAdminEmails } from "@/components/admin/farai-admin-emails";
 import { getAdminEmailsData } from "@/lib/services/admin";
 
 export const metadata = {
-  title: "Emails — Shalean Admin",
+  title: "Emails — FaraiOS Admin",
   robots: { index: false, follow: false },
 };
 

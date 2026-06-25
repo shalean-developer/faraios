@@ -5,7 +5,7 @@ import {
 } from "@/lib/services/admin";
 
 export const metadata = {
-  title: "Team — Shalean Admin",
+  title: "Team — FaraiOS Admin",
   robots: { index: false, follow: false },
 };
 

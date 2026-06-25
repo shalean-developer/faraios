@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { confirmWorkspacePaymentFromReference } from "@/lib/billing/workspace-subscription-payment";
 import { requireCompanyOwner } from "@/lib/services/company-access";
-import { companySubscriptionPath } from "@/lib/paths/company";
+import { companyBillingPath, companySubscriptionPath } from "@/lib/paths/company";
 
 export type ConfirmPaymentResult =
   | { ok: true; activated: boolean }
@@ -32,6 +32,7 @@ export async function confirmWorkspacePaymentAction(input: {
     return { ok: false, error: result.error };
   }
 
+  revalidatePath(companyBillingPath(input.companySlug));
   revalidatePath(companySubscriptionPath(input.companySlug));
   revalidatePath(`/${input.companySlug}/dashboard`);
 

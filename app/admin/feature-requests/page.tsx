@@ -2,7 +2,7 @@ import { FaraiAdminFeatureRequests } from "@/components/admin/farai-admin-featur
 import { getAdminFeatureRequestsData } from "@/lib/services/admin";
 
 export const metadata = {
-  title: "Feature Requests — Shalean Admin",
+  title: "Feature Requests — FaraiOS Admin",
   robots: { index: false, follow: false },
 };
 

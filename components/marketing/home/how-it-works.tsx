@@ -25,7 +25,7 @@ export function HowItWorks() {
           className="mb-12 text-center"
         >
           <motion.h2 variants={fadeUp} className="text-2xl font-extrabold text-gray-900 sm:text-3xl">
-            How Shalean works
+            How FaraiOS works
           </motion.h2>
           <motion.p variants={fadeUp} className="mt-2 text-gray-500">
             From workspace setup to growth — everything stays connected.

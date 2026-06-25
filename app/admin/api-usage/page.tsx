@@ -2,7 +2,7 @@ import { FaraiAdminApiUsage } from "@/components/admin/farai-admin-api-usage";
 import { getAdminApiUsageData } from "@/lib/services/admin";
 
 export const metadata = {
-  title: "API Usage — Shalean Admin",
+  title: "API Usage — FaraiOS Admin",
   robots: { index: false, follow: false },
 };
 

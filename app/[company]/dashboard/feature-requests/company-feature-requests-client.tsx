@@ -92,7 +92,7 @@ export function CompanyFeatureRequestsClient({
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Feature requests</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Suggest improvements and vote on the Shalean roadmap.
+            Suggest improvements and vote on the FaraiOS roadmap.
           </p>
         </div>
         <button

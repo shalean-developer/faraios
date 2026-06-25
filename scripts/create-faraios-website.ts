@@ -4,11 +4,11 @@ import { createWebsiteForCompanyWithServiceRole } from "../lib/services/websites
 
 config({ path: ".env.local" });
 
-const SHALEAN_COMPANY_ID = "cfb302f2-b6d8-4f5a-980b-4eecda38cb3d";
+const FARAIOS_COMPANY_ID = "cfb302f2-b6d8-4f5a-980b-4eecda38cb3d";
 
 async function main() {
-  const result = await createWebsiteForCompanyWithServiceRole(SHALEAN_COMPANY_ID, {
-    businessName: "Shalean Cleaning Services",
+  const result = await createWebsiteForCompanyWithServiceRole(FARAIOS_COMPANY_ID, {
+    businessName: "FaraiOS Cleaning Services",
     industry: "cleaning",
     template: "service-business",
     location: "Cape Town & Surrounding Areas",

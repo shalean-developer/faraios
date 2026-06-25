@@ -6,6 +6,10 @@ export type Industry = {
   name: string;
   slug: string;
   description: string | null;
+  is_active?: boolean | null;
+  sort_order?: number | null;
+  icon?: string | null;
+  module_version?: string | null;
 };
 
 /** Feature option for onboarding UI (not persisted unless you add a table later). */
@@ -33,7 +37,7 @@ export type Company = {
   primary_contact_email?: string | null;
   contact_phone?: string | null;
   contact_location?: string | null;
-  /** Pricing tier slug: starter | business | premium */
+  /** Pricing tier slug: starter | business | pro | enterprise (legacy: premium → pro) */
   plan?: string | null;
   subscription_status?: string;
   subscription_started_at?: string | null;
@@ -59,6 +63,10 @@ export type Company = {
   brand_primary_color?: string | null;
   brand_accent_color?: string | null;
   notification_preferences?: Record<string, unknown> | null;
+  industry_template_applied?: boolean;
+  industry_template_key?: string | null;
+  template_applied_at?: string | null;
+  updated_at?: string | null;
 };
 
 /** Aligns with public.customers */
@@ -84,6 +92,8 @@ export type CompanyService = {
   active: boolean;
   duration_minutes?: number | null;
   addons?: unknown[] | null;
+  industry_key?: string | null;
+  is_template_service?: boolean;
   sort_order?: number;
   created_at: string;
   updated_at: string;

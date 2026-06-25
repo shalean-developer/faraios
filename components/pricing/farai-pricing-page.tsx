@@ -297,7 +297,7 @@ export function FaraiPricingPage() {
               Need a website too?
             </h2>
             <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-gray-500">
-              Shalean is not just a website builder. You can use the workspace on its own,
+              FaraiOS is not just a website builder. You can use the workspace on its own,
               connect an existing website, or ask us to build one for you.
             </p>
           </motion.div>
@@ -349,7 +349,7 @@ export function FaraiPricingPage() {
               Optional hosting add-ons
             </h2>
             <p className="mt-2 text-sm text-gray-500">
-              Hosting is optional. You can host with Shalean or connect an existing website.
+              Hosting is optional. You can host with FaraiOS or connect an existing website.
             </p>
           </motion.div>
 
@@ -408,7 +408,7 @@ export function FaraiPricingPage() {
               className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-2.5 text-sm font-semibold text-violet-700 shadow-sm ring-1 ring-violet-200 transition-all hover:bg-violet-50"
             >
               <MessageCircle className="h-4 w-4" />
-              Talk to Shalean
+              Talk to FaraiOS
             </Link>
           </motion.div>
         </motion.section>

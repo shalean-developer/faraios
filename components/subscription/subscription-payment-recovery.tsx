@@ -7,7 +7,7 @@ import {
   readWorkspacePaymentReference,
 } from "@/lib/subscriptions/payment-reference-storage";
 import { replaceClientLocation } from "@/lib/navigation/client-location";
-import { companySubscriptionPath } from "@/lib/paths/company";
+import { companyBillingPath } from "@/lib/paths/company";
 import type { PaymentConfirmationState } from "@/lib/services/workspace-subscription-verify";
 
 type Props = {
@@ -46,7 +46,7 @@ export function SubscriptionPaymentRecovery({
     }
 
     recoveredRef.current = true;
-    const target = `${companySubscriptionPath(slug)}?payment=success&reference=${encodeURIComponent(storedReference)}`;
+    const target = `${companyBillingPath(slug)}?payment=success&reference=${encodeURIComponent(storedReference)}`;
     replaceClientLocation(target);
   }, [companyId, paymentConfirmation.status, slug]);
 

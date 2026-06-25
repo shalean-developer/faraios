@@ -2,7 +2,7 @@ import { FaraiAdminCron } from "@/components/admin/farai-admin-cron";
 import { getAdminCronData } from "@/lib/services/admin";
 
 export const metadata = {
-  title: "Cron Jobs — Shalean Admin",
+  title: "Cron Jobs — FaraiOS Admin",
   robots: { index: false, follow: false },
 };
 

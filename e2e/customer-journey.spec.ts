@@ -22,7 +22,7 @@ test.describe("Public marketing", () => {
     await expect(page.getByRole("heading", { name: /business operating system/i })).toBeVisible();
 
     await page.goto("/platform/contact");
-    await expect(page.getByRole("heading", { name: /contact shalean/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /contact faraios/i })).toBeVisible();
   });
 
   test("main-host about redirects to platform about", async ({ page }) => {

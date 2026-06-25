@@ -6,7 +6,7 @@ export const cleaningModule: IndustryModule = {
   name: "Cleaning Services",
   description: "Residential and commercial cleaning businesses",
   icon: "sparkles",
-  version: "1.0.0",
+  version: "2.0.0",
 
   onboarding: {
     defaultPages: ["Home", "Services", "About", "Contact", "FAQ"],
@@ -57,12 +57,13 @@ export const cleaningModule: IndustryModule = {
       ),
       field(
         {
-          key: "access_instructions",
-          type: "textarea",
-          label: "Property notes & access instructions",
-          section: "Location",
+          key: "extras",
+          type: "multiselect",
+          label: "Extras",
+          options: ["Inside oven", "Inside fridge", "Windows", "Laundry", "Inside cupboards"],
+          section: "Service details",
         },
-        31
+        16
       ),
     ]),
     validationRules: [
@@ -83,10 +84,10 @@ export const cleaningModule: IndustryModule = {
     ],
     templates: [
       {
-        name: "Standard home clean",
+        name: "Regular Cleaning",
         category: "Residential",
-        description: "Kitchen, bathrooms, bedrooms, and living areas.",
-        price: "450",
+        description: "Standard home clean for kitchens, bathrooms, and living areas.",
+        price: "350",
         durationMinutes: 120,
         addons: [
           { name: "Inside oven", price: "150" },
@@ -94,10 +95,10 @@ export const cleaningModule: IndustryModule = {
         ],
       },
       {
-        name: "Deep cleaning",
+        name: "Deep Cleaning",
         category: "Deep clean",
         description: "Detailed clean including skirting, fixtures, and hard-to-reach areas.",
-        price: "750",
+        price: "650",
         durationMinutes: 240,
         addons: [
           { name: "Inside cupboards", price: "200" },
@@ -105,7 +106,7 @@ export const cleaningModule: IndustryModule = {
         ],
       },
       {
-        name: "Move-in / move-out clean",
+        name: "Move-In / Move-Out Cleaning",
         category: "Move-in / move-out",
         description: "Empty property clean before handover or occupation.",
         price: "950",
@@ -113,14 +114,34 @@ export const cleaningModule: IndustryModule = {
         addons: [{ name: "Garage clean", price: "200" }],
       },
       {
-        name: "Office clean",
+        name: "Office Cleaning",
         category: "Commercial",
         description: "Desks, floors, kitchenette, and restrooms.",
-        price: "600",
+        price: "500",
         durationMinutes: 180,
         addons: [{ name: "Carpet shampoo", price: "300" }],
       },
+      {
+        name: "Airbnb Cleaning",
+        category: "Commercial",
+        description: "Turnover clean for short-term rental properties.",
+        price: "450",
+        durationMinutes: 150,
+        addons: [{ name: "Linen change", price: "100" }],
+      },
+      {
+        name: "Carpet Cleaning",
+        category: "Maintenance",
+        description: "Professional carpet shampoo and stain treatment.",
+        price: "400",
+        durationMinutes: 120,
+        addons: [],
+      },
     ],
+  },
+
+  customers: {
+    extraFieldKeys: ["property_type", "frequency", "access_instructions"],
   },
 
   workflows: [
@@ -161,11 +182,27 @@ export const cleaningModule: IndustryModule = {
   },
 
   terminology: {
-    booking: "Booking",
-    service: "Cleaning service",
-    staff: "Cleaner",
-    customer: "Customer",
+    booking: "Bookings",
+    service: "Services",
+    staff: "Cleaners",
+    customer: "Customers",
   },
+
+  pricingExamples: [
+    { label: "Regular Cleaning", fromPrice: "R350" },
+    { label: "Deep Cleaning", fromPrice: "R650" },
+    { label: "Office Cleaning", fromPrice: "R500" },
+  ],
+
+  teamRoles: ["Cleaner", "Team Lead", "Supervisor"],
+
+  setupChecklist: [
+    "Import default cleaning services",
+    "Set your service areas and pricing",
+    "Publish your booking page",
+    "Connect payments",
+    "Add your first customer or booking",
+  ],
 
   dashboardExtensions: {
     servicesQuickStart: {

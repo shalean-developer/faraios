@@ -2,7 +2,7 @@ import { FaraiAdminOverview } from "@/components/admin/farai-admin-overview";
 import { getPlatformOverviewMetrics } from "@/lib/services/admin";
 
 export const metadata = {
-  title: "Platform Overview — Shalean Admin",
+  title: "Platform Overview — FaraiOS Admin",
   robots: { index: false, follow: false },
 };
 

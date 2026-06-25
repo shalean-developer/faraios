@@ -61,6 +61,7 @@ export default async function CompanyDashboardLayout({ children, params }: Props
       userEmail={user?.email ?? null}
       userPermissions={userPermissions}
       subscription={subscription}
+      industrySlug={row.industries?.slug ?? null}
     >
       <SubscriptionBanner
         slug={slug}

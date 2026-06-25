@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { normalizePlanSlug, type PricingPlanSlug } from "@/lib/data/pricing";
 import { requireCompanyOwner } from "@/lib/services/company-access";
-import { companySubscriptionPath } from "@/lib/paths/company";
+import { companyBillingPath, companySubscriptionPath } from "@/lib/paths/company";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 
@@ -36,6 +36,7 @@ export async function changeWorkspacePlan(input: {
     return { ok: false, error: error.message };
   }
 
+  revalidatePath(companyBillingPath(input.companySlug));
   revalidatePath(companySubscriptionPath(input.companySlug));
   revalidatePath(`/${input.companySlug}/dashboard`);
   return { ok: true };

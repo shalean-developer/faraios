@@ -21,7 +21,7 @@ type Props = {
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Service — Shalean",
+  title: "Service — FaraiOS",
   robots: { index: false, follow: false },
 };
 

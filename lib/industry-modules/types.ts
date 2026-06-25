@@ -54,6 +54,28 @@ export type IndustryTerminology = {
   service?: string;
   staff?: string;
   customer?: string;
+  /** Nav label for calendar (defaults to Calendar). */
+  calendar?: string;
+  /** Nav label for revenue section when applicable. */
+  revenue?: string;
+};
+
+export type PricingExample = {
+  label: string;
+  fromPrice: string;
+};
+
+export type IndustryTemplateData = {
+  industryKey: string;
+  industryName: string;
+  description: string;
+  defaultServices: ServiceTemplate[];
+  dashboardLabels: IndustryTerminology;
+  bookingFields: BookingFormField[];
+  pricingExamples: PricingExample[];
+  customerFields: string[];
+  teamRoles: string[];
+  setupChecklist: string[];
 };
 
 export type DashboardExtensions = {
@@ -106,6 +128,10 @@ export type IndustryModule = {
   };
 
   terminology: IndustryTerminology;
+
+  pricingExamples?: PricingExample[];
+  teamRoles?: string[];
+  setupChecklist?: string[];
 
   dashboardExtensions?: DashboardExtensions;
 };

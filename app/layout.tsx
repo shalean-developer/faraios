@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shalean — Business OS for Service Businesses",
+  title: "FaraiOS — Business OS for Service Businesses",
   description:
     "Manage bookings, customers, payments, websites, and your team from one connected workspace built for local service businesses.",
   icons: {

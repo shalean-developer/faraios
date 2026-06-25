@@ -14,6 +14,12 @@ export type LocalSeoSettings = {
   business_categories: string[];
   social_links: Record<string, string>;
   auto_review_request_enabled: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
+  google_maps_url?: string | null;
+  logo_url?: string | null;
+  whatsapp?: string | null;
+  knowledge_graph_data?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 };

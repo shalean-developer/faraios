@@ -34,7 +34,7 @@ function blockedFeatureCopy(
   if (workspaceNeedsPayment(company)) {
     return {
       title: "Activate your workspace",
-      description: "Complete payment to unlock Shalean features.",
+      description: "Complete payment to unlock FaraiOS features.",
     };
   }
 
@@ -48,8 +48,8 @@ function blockedFeatureCopy(
   }
 
   return {
-    title: "Upgrade required",
-    description: `This feature is available on the ${planLabelForUpgrade(feature)} plan.`,
+    title: "Upgrade to unlock this feature",
+    description: `This feature requires the ${planLabelForUpgrade(feature)} plan.`,
   };
 }
 
@@ -68,9 +68,15 @@ export function SubscriptionGate({
 
   const feature = dashboardPathFeature(slug, pathname);
   const entitlementFeature =
-    feature && feature !== "overview" && feature !== "subscription" && feature !== "settings"
-      ? (feature as EntitlementFeature)
-      : "leads";
+    feature === "websiteBuilder"
+      ? "websites"
+      : feature &&
+          feature !== "overview" &&
+          feature !== "subscription" &&
+          feature !== "billing" &&
+          feature !== "settings"
+        ? (feature as EntitlementFeature)
+        : "leads";
 
   const copy = blockedFeatureCopy(company, entitlementFeature);
   const needsPayment =

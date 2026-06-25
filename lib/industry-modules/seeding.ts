@@ -6,7 +6,13 @@ import type { ServiceAddon } from "@/types/booking-form";
 import { loadIndustryModule } from "./loader";
 import type { ServiceTemplate } from "./types";
 
-function templatesToRows(companyId: string, templates: ServiceTemplate[], startOrder: number) {
+function templatesToRows(
+  companyId: string,
+  industrySlug: string,
+  templates: ServiceTemplate[],
+  startOrder: number
+) {
+  const industryKey = industrySlug;
   return templates.map((template, index) => ({
     company_id: companyId,
     name: template.name,
@@ -15,6 +21,8 @@ function templatesToRows(companyId: string, templates: ServiceTemplate[], startO
     base_price_cents: parsePriceToCents(template.price) ?? 0,
     duration_minutes: template.durationMinutes,
     active: true,
+    industry_key: industryKey,
+    is_template_service: true,
     addons: template.addons.map(
       (addon): ServiceAddon => ({
         id: crypto.randomUUID(),
@@ -46,7 +54,7 @@ export async function seedDefaultServicesForCompany(input: {
     const existing = await findServiceByName(input.companyId, template.name);
     if (existing) continue;
 
-    const [row] = templatesToRows(input.companyId, [template], sortOrder);
+    const [row] = templatesToRows(input.companyId, industryModule.slug, [template], sortOrder);
     const { error } = await admin.client.from("company_services").insert(row);
     if (!error) {
       created += 1;
@@ -79,7 +87,7 @@ export async function importIndustryServiceTemplates(input: {
       continue;
     }
 
-    const [row] = templatesToRows(input.companyId, [template], sortOrder);
+    const [row] = templatesToRows(input.companyId, industryModule.slug, [template], sortOrder);
     const { error } = await admin.client.from("company_services").insert(row);
     if (!error) {
       created += 1;
@@ -167,7 +175,6 @@ export async function seedGrowthDefaultsForCompany(input: {
         module_version: industryModule.version,
       },
       business_description: industryModule.growth.heroSubtitle,
-      updated_at: new Date().toISOString(),
     })
     .eq("id", input.companyId);
 

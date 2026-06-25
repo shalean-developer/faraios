@@ -27,11 +27,11 @@ describe("plan page limits", () => {
   it("blocks adding pages beyond starter limit", () => {
     const pages = ["Home", "About", "Services", "Contact"];
     expect(canAddPageToPlan(pages, "starter")).toBe(false);
-    expect(canAddPageToPlan(pages, "premium")).toBe(true);
+    expect(canAddPageToPlan(pages, "pro")).toBe(true);
   });
 
-  it("allows unlimited pages on premium", () => {
-    expect(planPageLimit("premium")).toBeNull();
+  it("allows unlimited pages on pro", () => {
+    expect(planPageLimit("pro")).toBeNull();
   });
 });
 

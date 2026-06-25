@@ -39,7 +39,7 @@ export function ComparisonSection() {
             <div className="mb-6 rounded-xl bg-white px-4 py-3">
               <FaraiLogo size="md" />
             </div>
-            <h3 className="text-2xl font-extrabold">Run your business on Shalean</h3>
+            <h3 className="text-2xl font-extrabold">Run your business on FaraiOS</h3>
             <p className="mt-2 text-sm text-blue-100">
               The connected workspace built for local service teams.
             </p>

@@ -2,7 +2,7 @@ import { FaraiActivityFeed } from "@/components/admin/farai-activity-feed";
 import { getAdminActivityItems } from "@/lib/services/admin";
 
 export const metadata = {
-  title: "Activity — Shalean Admin",
+  title: "Activity — FaraiOS Admin",
   robots: { index: false, follow: false },
 };
 

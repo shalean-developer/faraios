@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import {
+  getSearchConsoleOAuthCredentials,
+  getSearchConsoleOAuthRedirectUri,
+} from "@/lib/services/search-console-config";
 import { createClient } from "@/lib/supabase/server";
 
 type OAuthState = { companyId?: string };
@@ -53,11 +57,10 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${appUrl}/app?gsc=denied`);
   }
 
-  const clientId = process.env.GOOGLE_SEARCH_CONSOLE_CLIENT_ID?.trim();
-  const clientSecret = process.env.GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET?.trim();
-  const redirectUri = `${appUrl}/api/integrations/google-search-console/callback`;
+  const creds = await getSearchConsoleOAuthCredentials();
+  const redirectUri = getSearchConsoleOAuthRedirectUri();
 
-  if (!clientId || !clientSecret) {
+  if (!creds || !redirectUri) {
     return NextResponse.redirect(`${appUrl}/app?gsc=not_configured`);
   }
 
@@ -66,8 +69,8 @@ export async function GET(request: Request) {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
-      client_id: clientId,
-      client_secret: clientSecret,
+      client_id: creds.clientId,
+      client_secret: creds.clientSecret,
       redirect_uri: redirectUri,
       grant_type: "authorization_code",
     }),

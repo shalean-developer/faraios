@@ -5,7 +5,7 @@ import sharp from "sharp";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
-const source = path.join(root, "public/image/shalean-logo.png");
+const source = path.join(root, "public/image/faraios-logo.png");
 const publicDir = path.join(root, "public");
 const imageDir = path.join(publicDir, "image");
 const appDir = path.join(root, "app");
@@ -77,7 +77,7 @@ async function writeSquarePng(target, size) {
     .toFile(target);
 }
 
-await writeSquarePng(path.join(imageDir, "shalean-mark.png"), 512);
+await writeSquarePng(path.join(imageDir, "faraios-mark.png"), 512);
 await writeSquarePng(path.join(appDir, "icon.png"), 512);
 await writeSquarePng(path.join(appDir, "apple-icon.png"), 180);
 
@@ -89,5 +89,5 @@ for (const { file, size } of outputs) {
 await writeSquarePng(path.join(publicDir, "favicon.ico"), 32);
 await writeSquarePng(path.join(appDir, "favicon.ico"), 32);
 
-console.log("Generated transparent favicons from public/image/shalean-logo.png");
+console.log("Generated transparent favicons from public/image/faraios-logo.png");
 console.log(`Icon crop: ${iconCrop.width}x${iconCrop.height}px from top-left`);

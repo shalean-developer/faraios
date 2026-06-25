@@ -1,18 +1,23 @@
 import { getBookingFormPreset } from "@/lib/industry-modules/loader";
 import { defaultBookingHours } from "@/lib/bookings/availability";
+import { defaultBookingFormSettings } from "@/lib/services/booking-form-config";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
-import type { BookingForm, BookingFormField } from "@/types/booking-form";
+import type { BookingForm, BookingFormField, BookingFormSettings } from "@/types/booking-form";
 
 function mapRow(row: Record<string, unknown>): BookingForm {
+  const industrySlug = (row.industry_slug as string | null) ?? null;
   return {
     id: row.id as string,
     company_id: row.company_id as string,
-    industry_slug: (row.industry_slug as string | null) ?? null,
+    industry_slug: industrySlug,
     name: row.name as string,
     status: row.status as BookingForm["status"],
     fields: (row.fields as BookingFormField[]) ?? [],
+    settings:
+      (row.settings as BookingFormSettings | null) ??
+      defaultBookingFormSettings(industrySlug),
     version: (row.version as number) ?? 1,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
@@ -68,6 +73,7 @@ export async function ensureBookingFormForCompany(input: {
   if (existing) return existing;
 
   const fields = getBookingFormPreset(input.industrySlug);
+  const settings = defaultBookingFormSettings(input.industrySlug);
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("booking_forms")
@@ -77,6 +83,7 @@ export async function ensureBookingFormForCompany(input: {
       name: "Booking form",
       status: "draft",
       fields,
+      settings,
       version: 1,
     })
     .select("*")
@@ -94,11 +101,22 @@ export async function ensureBookingFormForCompany(input: {
 export async function seedPublishedBookingFormForCompany(input: {
   companyId: string;
   industrySlug: string | null;
+  force?: boolean;
 }): Promise<boolean> {
   const admin = tryCreateAdminClient();
   if (!admin.ok) return false;
 
+  if (!input.force) {
+    const { data: existing } = await admin.client
+      .from("booking_forms")
+      .select("id")
+      .eq("company_id", input.companyId)
+      .maybeSingle();
+    if (existing) return true;
+  }
+
   const fields = getBookingFormPreset(input.industrySlug);
+  const settings = defaultBookingFormSettings(input.industrySlug);
   const { error: formError } = await admin.client.from("booking_forms").upsert(
     {
       company_id: input.companyId,
@@ -106,6 +124,7 @@ export async function seedPublishedBookingFormForCompany(input: {
       name: "Booking form",
       status: "published",
       fields,
+      settings,
       version: 1,
       updated_at: new Date().toISOString(),
     },

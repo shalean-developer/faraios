@@ -13,8 +13,8 @@ import { createClient } from "@/lib/supabase/server";
 import { GetStartedFallback } from "@/app/get-started/get-started-fallback";
 
 export const metadata = {
-  title: "Onboarding — Shalean",
-  description: "Create your business workspace on Shalean.",
+  title: "Onboarding — FaraiOS",
+  description: "Create your business workspace on FaraiOS.",
 };
 
 type SearchProps = {

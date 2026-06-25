@@ -9,7 +9,7 @@ import { getRecentTrackingEvents } from "@/lib/services/website-tracking";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "Tracking — Shalean",
+  title: "Tracking — FaraiOS",
   robots: { index: false, follow: false },
 };
 
@@ -56,7 +56,7 @@ export default async function CompanyWebsiteTrackingPage({ params }: Props) {
       <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-violet-600">Website</p>
       <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Tracking</h1>
       <p className="mt-2 text-sm text-slate-500">
-        Install the Shalean tracking script on your external website to capture leads and
+        Install the FaraiOS tracking script on your external website to capture leads and
         conversions.
       </p>
 

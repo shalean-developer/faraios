@@ -437,6 +437,90 @@ export async function adminUpdatePlatformSettings(input: {
   return { ok: true };
 }
 
+export async function adminUpdateSearchConsoleIntegration(input: {
+  clientId: string;
+  clientSecret?: string;
+}): Promise<AdminMutationResult> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const clientId = input.clientId.trim();
+  if (!clientId) {
+    return { ok: false, error: "Client ID is required." };
+  }
+
+  const adminResult = tryCreateAdminClient();
+  if (!adminResult.ok) return { ok: false, error: adminResult.error };
+  const admin = adminResult.client;
+
+  const { data: existing } = await admin
+    .from("platform_settings")
+    .select("integration_settings")
+    .eq("id", 1)
+    .maybeSingle();
+
+  const currentSettings =
+    (existing?.integration_settings as Record<string, unknown>) ?? {};
+  const currentGsc =
+    (currentSettings.google_search_console as Record<string, unknown>) ?? {};
+
+  const clientSecret = input.clientSecret?.trim() || String(currentGsc.client_secret ?? "").trim();
+  if (!clientSecret) {
+    return { ok: false, error: "Client secret is required." };
+  }
+
+  const integration_settings = {
+    ...currentSettings,
+    google_search_console: {
+      client_id: clientId,
+      client_secret: clientSecret,
+    },
+  };
+
+  const { data: existingRow } = await admin
+    .from("platform_settings")
+    .select("id")
+    .eq("id", 1)
+    .maybeSingle();
+
+  if (existingRow) {
+    const { error } = await admin
+      .from("platform_settings")
+      .update({
+        integration_settings,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", 1);
+
+    if (error) {
+      console.error("[admin] adminUpdateSearchConsoleIntegration", error.message);
+      return { ok: false, error: error.message };
+    }
+  } else {
+    const { error } = await admin.from("platform_settings").insert({
+      id: 1,
+      company_name: "Farai Creative Studio",
+      platform_name: "FaraiOS",
+      integration_settings,
+      updated_at: new Date().toISOString(),
+    });
+
+    if (error) {
+      console.error("[admin] adminUpdateSearchConsoleIntegration insert", error.message);
+      return { ok: false, error: error.message };
+    }
+  }
+
+  revalidatePath("/admin/settings");
+  revalidatePath("/admin/seo");
+  await auditAdminAction({
+    action: "settings.integrations.gsc_updated",
+    targetType: "platform_settings",
+    metadata: { clientId },
+  });
+  return { ok: true };
+}
+
 export async function adminUpdateNotificationPreferences(
   preferences: AdminNotificationPreferences
 ): Promise<AdminMutationResult> {

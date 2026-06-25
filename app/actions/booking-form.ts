@@ -113,7 +113,6 @@ export async function saveBookingAvailability(input: {
     .update({
       booking_hours: input.bookingHours,
       blocked_booking_dates: input.blockedDates,
-      updated_at: new Date().toISOString(),
     })
     .eq("id", input.companyId);
 

@@ -15,6 +15,8 @@ import {
 } from "@/lib/paths/company";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
+import { loadIndustryModule } from "@/lib/industry-modules/loader";
+import { getIndustryNavLabels } from "@/lib/industry-templates/industryTemplates";
 import type { CompanyWithIndustry } from "@/types/database";
 
 export type WorkspaceSetupChecklistItem = {
@@ -131,14 +133,18 @@ export async function getWorkspaceSetupChecklist(
 ): Promise<WorkspaceSetupChecklist> {
   const slug = company.slug;
   const counts = await loadSetupCounts(company.id);
+  const industrySlug = company.industries?.slug ?? company.industry_template_key ?? null;
+  const navLabels = getIndustryNavLabels(industrySlug);
+  const industryModule = loadIndustryModule(industrySlug);
+  const industryChecklist = industryModule.setupChecklist ?? [];
 
   const items: WorkspaceSetupChecklistItem[] = [
     {
       key: "services",
       step: 1,
-      title: "Create Your Services",
+      title: industryChecklist[0] ?? `Create your ${navLabels.services.toLowerCase()}`,
       description: "Add the services you offer and set pricing.",
-      actionLabel: "Manage Services",
+      actionLabel: `Manage ${navLabels.services}`,
       done: counts.services > 0,
       href: companyServicesPath(slug),
     },
@@ -173,7 +179,7 @@ export async function getWorkspaceSetupChecklist(
     {
       key: "booking_page",
       step: 5,
-      title: "Publish Your Booking Page",
+      title: industryChecklist[4] ?? `Publish your ${navLabels.bookings.toLowerCase()} page`,
       description: "Start accepting online bookings from customers.",
       actionLabel: "Publish Page",
       done: counts.publishedForms > 0,

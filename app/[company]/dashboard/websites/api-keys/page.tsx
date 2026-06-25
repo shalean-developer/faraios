@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { BusinessApiKeyEvent } from "@/types/website-engine";
 
 export const metadata = {
-  title: "API keys — Shalean",
+  title: "API keys — FaraiOS",
   robots: { index: false, follow: false },
 };
 

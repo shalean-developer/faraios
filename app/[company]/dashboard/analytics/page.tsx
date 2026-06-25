@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CompanyAnalyticsClient } from "./company-analytics-client";
 
 export const metadata = {
-  title: "Analytics — Shalean",
+  title: "Analytics — FaraiOS",
   robots: { index: false, follow: false },
 };
 

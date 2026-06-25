@@ -10,10 +10,19 @@ export async function listIndustries(): Promise<Industry[]> {
     return [];
   }
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("industries")
     .select("*")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true });
+
+  if (error?.message?.includes("is_active")) {
+    ({ data, error } = await supabase
+      .from("industries")
+      .select("*")
+      .order("name", { ascending: true }));
+  }
 
   if (error) {
     console.error("[industries] listIndustries", error.message);

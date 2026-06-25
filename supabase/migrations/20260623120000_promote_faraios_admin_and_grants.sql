@@ -19,10 +19,10 @@ on conflict (id) do update
   set email = excluded.email,
       full_name = coalesce(excluded.full_name, public.users.full_name);
 
--- Optional: promote admin@shalean.com when that auth user exists in THIS project.
+-- Optional: promote admin@faraios.com when that auth user exists in THIS project.
 -- Does not fail when the email is absent (no hardcoded UUID).
 insert into public.platform_admins (user_id)
 select u.id
 from auth.users u
-where lower(trim(u.email)) = lower('admin@shalean.com')
+where lower(trim(u.email)) = lower('admin@faraios.com')
 on conflict (user_id) do nothing;

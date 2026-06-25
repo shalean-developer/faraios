@@ -28,7 +28,7 @@ export function MarketingFooter({ variant = "light" }: MarketingFooterProps) {
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="sm:col-span-2 lg:col-span-1">
-            <Link href="/" aria-label="Shalean home" className="inline-flex items-center">
+            <Link href="/" aria-label="FaraiOS home" className="inline-flex items-center">
               <FaraiLogo size="md" />
             </Link>
             <p
@@ -37,7 +37,7 @@ export function MarketingFooter({ variant = "light" }: MarketingFooterProps) {
                 dark ? "text-slate-400" : "text-slate-500"
               )}
             >
-              Shalean is the business operating system for local service businesses — bookings,
+              FaraiOS is the business operating system for local service businesses — bookings,
               payments, and growth in one connected workspace.
             </p>
             <FooterSocialLinks dark={dark} />
@@ -164,7 +164,7 @@ export function MarketingFooter({ variant = "light" }: MarketingFooterProps) {
             dark ? "border-white/10 text-slate-500" : "border-slate-200 text-slate-400"
           )}
         >
-          © {new Date().getFullYear()} Shalean. All rights reserved.
+          © {new Date().getFullYear()} FaraiOS. All rights reserved.
         </p>
       </div>
     </footer>

@@ -25,7 +25,7 @@ export function PaymentsSection() {
             Integrated payments and revenue tracking
           </motion.h2>
           <motion.p variants={fadeUp} className="mt-4 text-lg leading-relaxed text-blue-100">
-            Quote, invoice, and track payments without leaving Shalean. See your revenue, pending
+            Quote, invoice, and track payments without leaving FaraiOS. See your revenue, pending
             invoices, and business health in one dashboard.
           </motion.p>
           <motion.ul variants={fadeUp} className="mt-8 space-y-3">

@@ -70,14 +70,14 @@ export function IndustriesSection({ highlightSlug }: { highlightSlug?: string })
           whileInView="visible"
           viewport={{ once: true }}
           variants={stagger}
-          className="grid items-start gap-12 lg:grid-cols-[1fr_auto]"
+          className="grid items-center gap-12 lg:grid-cols-[1fr_auto]"
         >
           <div>
             <motion.h2 variants={fadeUp} className={landingSectionTitle}>
               Built for every type of service business
             </motion.h2>
             <motion.p variants={fadeUp} className={landingSectionSubtitle}>
-              Shalean adapts to your industry with smart defaults for bookings, services, and
+              FaraiOS adapts to your industry with smart defaults for bookings, services, and
               workflows — so you can launch faster.
             </motion.p>
 
@@ -117,9 +117,9 @@ export function IndustriesSection({ highlightSlug }: { highlightSlug?: string })
 
           <motion.div
             variants={fadeUp}
-            className="hidden flex-wrap content-start justify-center gap-3 lg:flex lg:max-w-xs"
+            className="hidden shrink-0 grid-cols-5 gap-3 self-center lg:grid"
           >
-            {INDUSTRY_CARDS.slice(0, 9).map((ind, i) => (
+            {INDUSTRY_CARDS.map((ind, i) => (
               <div
                 key={ind.slug}
                 className={cn(

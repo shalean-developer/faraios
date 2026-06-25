@@ -1,5 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
+import {
+  getSearchConsoleOAuthCredentials,
+  getSearchConsoleOAuthRedirectUri,
+  isSearchConsoleOAuthConfigured,
+} from "@/lib/services/search-console-config";
 
 export type SearchConsoleConnection = {
   id: string;
@@ -19,6 +24,7 @@ export type SearchConsoleMetricsSummary = {
   periodDays: number;
 };
 
+/** Sync check for env vars only (tests / quick client hints). */
 export function isSearchConsoleConfigured(): boolean {
   return Boolean(
     process.env.GOOGLE_SEARCH_CONSOLE_CLIENT_ID?.trim() &&
@@ -26,16 +32,17 @@ export function isSearchConsoleConfigured(): boolean {
   );
 }
 
-export function searchConsoleConnectUrl(companyId: string): string | null {
-  const clientId = process.env.GOOGLE_SEARCH_CONSOLE_CLIENT_ID?.trim();
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
-  if (!clientId || !siteUrl) return null;
+export { isSearchConsoleOAuthConfigured };
 
-  const redirectUri = `${siteUrl}/api/integrations/google-search-console/callback`;
+export async function searchConsoleConnectUrl(companyId: string): Promise<string | null> {
+  const creds = await getSearchConsoleOAuthCredentials();
+  const redirectUri = getSearchConsoleOAuthRedirectUri();
+  if (!creds || !redirectUri) return null;
+
   const state = Buffer.from(JSON.stringify({ companyId })).toString("base64url");
 
   const params = new URLSearchParams({
-    client_id: clientId,
+    client_id: creds.clientId,
     redirect_uri: redirectUri,
     response_type: "code",
     scope: "https://www.googleapis.com/auth/webmasters.readonly",

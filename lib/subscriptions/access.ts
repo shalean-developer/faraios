@@ -8,6 +8,9 @@ import type {
   SubscriptionCompanyFields,
   SubscriptionStatus,
 } from "@/lib/subscriptions/types";
+import {
+  canAccessWebsiteBuilderFeature,
+} from "@/lib/website-builder/access";
 
 const LEGACY_STATUS_MAP: Record<string, SubscriptionStatus> = {
   inactive: "pending_payment",
@@ -66,6 +69,7 @@ export type BaseSubscriptionFeature = (typeof BASE_SUBSCRIPTION_FEATURES)[number
 export const RESTRICTED_ACCESS_FEATURES = [
   "overview",
   "subscription",
+  "billing",
   "settings",
 ] as const;
 
@@ -78,7 +82,8 @@ export type AccessFeatureKey =
   | EntitlementFeature
   | "hosting"
   | "support"
-  | "featureRequests";
+  | "featureRequests"
+  | "websiteBuilder";
 
 function isBaseFeature(feature: AccessFeatureKey): feature is BaseSubscriptionFeature {
   return (BASE_SUBSCRIPTION_FEATURES as readonly string[]).includes(feature as string);
@@ -126,8 +131,15 @@ export function canAccessFeature(
     return true;
   }
 
+  if (feature === "websiteBuilder") {
+    return (
+      canAccessWebsiteBuilderFeature(company, "websiteBuilder") ||
+      canAccessWebsiteBuilderFeature(company, "websiteBuilderPreview")
+    );
+  }
+
   const entitlements = getPlanEntitlements(normalizePlanSlug(company.plan));
-  return entitlementValue(entitlements, feature);
+  return entitlementValue(entitlements, feature as EntitlementFeature);
 }
 
 export function subscriptionRenewalDate(

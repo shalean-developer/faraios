@@ -3,9 +3,9 @@ import { FaraiAuthPage } from "@/components/auth/farai-auth-page";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
 
 export const metadata: Metadata = {
-  title: "Create Account | Shalean",
+  title: "Create Account | FaraiOS",
   description:
-    "Create your Shalean workspace to manage bookings, customers, payments, websites, SEO, marketing, and your team.",
+    "Create your FaraiOS workspace to manage bookings, customers, payments, websites, SEO, marketing, and your team.",
 };
 
 export default async function SignUpPage({

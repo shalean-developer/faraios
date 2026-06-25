@@ -4,6 +4,10 @@ import {
   type AccessFeatureKey,
 } from "@/lib/subscriptions/access";
 import type { SubscriptionCompanyFields } from "@/lib/subscriptions/types";
+import {
+  canAccessWebsiteBuilderFeature,
+  canAccessWebsiteSection,
+} from "@/lib/website-builder/access";
 
 function navKeyToFeature(key: CompanyNavKey): AccessFeatureKey {
   switch (key) {
@@ -39,6 +43,8 @@ function navKeyToFeature(key: CompanyNavKey): AccessFeatureKey {
       return "settings";
     case "subscription":
       return "subscription";
+    case "billing":
+      return "billing";
     default:
       return "overview";
   }
@@ -47,9 +53,12 @@ function navKeyToFeature(key: CompanyNavKey): AccessFeatureKey {
 export function filterNavBySubscription<
   T extends { key: CompanyNavKey },
 >(items: T[], company: SubscriptionCompanyFields): T[] {
-  return items.filter((item) =>
-    canAccessFeature(company, navKeyToFeature(item.key))
-  );
+  return items.filter((item) => {
+    if (item.key === "websites") {
+      return canAccessWebsiteSection(company);
+    }
+    return canAccessFeature(company, navKeyToFeature(item.key));
+  });
 }
 
 export function filterGrowthSubNavBySubscription<
@@ -124,6 +133,30 @@ export function filterWebsiteSubNavBySubscription<
   return items.filter((item) => {
     if (item.key === "billing") {
       return canAccessFeature(company, "hosting");
+    }
+    if (item.key === "overview") {
+      return canAccessWebsiteSection(company);
+    }
+    if (item.key.startsWith("builder")) {
+      if (item.key === "builder-enquiries") {
+        return canAccessWebsiteBuilderFeature(company, "websiteEnquiries");
+      }
+      if (item.key === "builder-service-pages") {
+        return canAccessWebsiteBuilderFeature(company, "websiteServicePages");
+      }
+      if (item.key === "builder-seo") {
+        return canAccessWebsiteBuilderFeature(company, "websiteSeo");
+      }
+      if (item.key === "builder-domains") {
+        return (
+          canAccessWebsiteBuilderFeature(company, "websiteBuilder") ||
+          canAccessWebsiteBuilderFeature(company, "websiteBuilderPreview")
+        );
+      }
+      return (
+        canAccessWebsiteBuilderFeature(company, "websiteBuilder") ||
+        canAccessWebsiteBuilderFeature(company, "websiteBuilderPreview")
+      );
     }
     return canAccessFeature(company, "websites");
   });

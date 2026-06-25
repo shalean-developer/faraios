@@ -37,7 +37,7 @@ export function PhoneMockup({
 
 export function BrowserMockup({
   children,
-  title = "Shalean",
+  title = "FaraiOS",
   className,
 }: {
   children: ReactNode;
@@ -124,7 +124,7 @@ function BookingFlowBrandMark({ className }: { className?: string }) {
       <span className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-white/90 text-[9px] font-bold text-white">
         S
       </span>
-      <span className="text-sm font-bold tracking-tight text-white">Shalean</span>
+      <span className="text-sm font-bold tracking-tight text-white">FaraiOS</span>
     </div>
   );
 }

@@ -27,7 +27,7 @@ export function FinalCta({ onGetStarted }: FinalCtaProps) {
             Ready to get started?
           </motion.h2>
           <motion.p variants={fadeUp} className="mx-auto mt-4 max-w-xl text-lg text-slate-600">
-            Join service businesses running bookings, payments, and growth from one Shalean
+            Join service businesses running bookings, payments, and growth from one FaraiOS
             workspace.
           </motion.p>
           <motion.div variants={fadeUp} className="mt-8 flex justify-center">

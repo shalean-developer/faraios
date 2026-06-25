@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { WebsiteDnsRecord } from "@/types/website-engine";
 
 export const metadata = {
-  title: "Domains — Shalean",
+  title: "Domains — FaraiOS",
   robots: { index: false, follow: false },
 };
 

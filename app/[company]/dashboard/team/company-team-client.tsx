@@ -211,7 +211,7 @@ export function CompanyTeamClient({
         </p>
         <h1 className="mt-1 text-2xl font-bold text-slate-900">Members</h1>
         <p className="mt-2 max-w-2xl text-sm text-slate-500">
-          Manage who can access {company.name} on Shalean. Assign roles for operations,
+          Manage who can access {company.name} on FaraiOS. Assign roles for operations,
           finance, marketing, and administration.
         </p>
       </header>

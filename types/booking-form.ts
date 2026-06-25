@@ -31,6 +31,84 @@ export type BookingFormField = {
 
 export type BookingFormStatus = "draft" | "published";
 
+export type BookingFormTemplate = {
+  key: string;
+  name: string;
+  description?: string;
+  enabled: boolean;
+  serviceId?: string | null;
+};
+
+export type BookingFormBranding = {
+  businessName?: string;
+  logoUrl?: string | null;
+  brandColor?: string | null;
+  useCompanyBranding?: boolean;
+};
+
+export type BookingFormSettings = {
+  templates?: BookingFormTemplate[];
+  branding?: BookingFormBranding;
+  confirmationMessage?: string;
+  paymentRequired?: boolean;
+  multiStep?: boolean;
+  cleanerRequirements?: string;
+  showVatLine?: boolean;
+};
+
+export type BookingFormPricingRule = {
+  id: string;
+  company_id: string;
+  service_id: string | null;
+  base_price_cents: number;
+  price_per_bedroom_cents: number;
+  price_per_bathroom_cents: number;
+  service_fee_cents: number;
+  minimum_price_cents: number;
+  maximum_price_cents: number | null;
+  frequency_discounts: Record<string, number>;
+  vat_rate_percent: number;
+  custom_quote_enabled: boolean;
+  active: boolean;
+};
+
+export type BookingFormExtra = {
+  id: string;
+  company_id: string;
+  name: string;
+  description: string | null;
+  price_cents: number;
+  active: boolean;
+  sort_order: number;
+};
+
+export type BookingFormServiceArea = {
+  id: string;
+  company_id: string;
+  name: string;
+  active: boolean;
+  sort_order: number;
+};
+
+export type PriceBreakdownLine = {
+  label: string;
+  amountCents: number;
+};
+
+export type BookingPriceSnapshot = {
+  id: string;
+  company_id: string;
+  booking_id: string | null;
+  breakdown: PriceBreakdownLine[];
+  subtotal_cents: number;
+  discount_cents: number;
+  service_fee_cents: number;
+  vat_cents: number;
+  total_cents: number;
+  pricing_rules_snapshot: Record<string, unknown>;
+  created_at: string;
+};
+
 export type BookingForm = {
   id: string;
   company_id: string;
@@ -38,6 +116,7 @@ export type BookingForm = {
   name: string;
   status: BookingFormStatus;
   fields: BookingFormField[];
+  settings?: BookingFormSettings;
   version: number;
   created_at: string;
   updated_at: string;
@@ -68,6 +147,7 @@ export type PublicBookingInput = {
   address?: string;
   notes?: string;
   addons?: ServiceAddon[];
+  extraIds?: string[];
   customResponses?: Record<string, unknown>;
   sourceWebsite?: string;
   referrer?: string;
@@ -79,4 +159,5 @@ export type PublicBookingInput = {
   consentGiven?: boolean;
   landingPage?: string;
   conversionPage?: string;
+  calculatedTotalCents?: number;
 };

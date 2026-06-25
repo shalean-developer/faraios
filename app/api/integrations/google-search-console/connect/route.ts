@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { searchConsoleConnectUrl } from "@/lib/services/search-console";
+import { isSearchConsoleOAuthConfigured, searchConsoleConnectUrl } from "@/lib/services/search-console";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -31,13 +31,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "Access denied." }, { status: 403 });
   }
 
-  const connectUrl = searchConsoleConnectUrl(companyId);
+  const connectUrl = await searchConsoleConnectUrl(companyId);
   if (!connectUrl) {
+    const configured = await isSearchConsoleOAuthConfigured();
     return NextResponse.json(
       {
         ok: false,
-        error:
-          "Google Search Console OAuth is not configured. Set GOOGLE_SEARCH_CONSOLE_CLIENT_ID and GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET.",
+        error: configured
+          ? "Could not start Google Search Console OAuth. Check NEXT_PUBLIC_APP_URL."
+          : "Google Search Console OAuth is not configured. Add credentials in Admin → Settings → Integrations.",
       },
       { status: 503 }
     );

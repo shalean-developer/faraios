@@ -5,10 +5,11 @@ import {
   getPlatformAuditLogs,
   getPlatformSettings,
 } from "@/lib/services/admin";
+import { getAdminSearchConsoleIntegrationSettings } from "@/lib/services/search-console-config";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "Platform Settings — Shalean Admin",
+  title: "Platform Settings — FaraiOS Admin",
   robots: { index: false, follow: false },
 };
 
@@ -25,7 +26,7 @@ export default async function AdminSettingsPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [adminUsers, platformSettings, notificationPreferences, auditLogs] =
+  const [adminUsers, platformSettings, notificationPreferences, auditLogs, searchConsoleIntegration] =
     await Promise.all([
     getAdminSettingsUsers(),
     getPlatformSettings(),
@@ -37,13 +38,15 @@ export default async function AdminSettingsPage({
           clientActivity: false,
         }),
     getPlatformAuditLogs(40),
+    getAdminSearchConsoleIntegrationSettings(),
   ]);
 
   const initialTab =
     tab === "users" ||
     tab === "notifications" ||
     tab === "security" ||
-    tab === "billing"
+    tab === "billing" ||
+    tab === "integrations"
       ? tab
       : "general";
 
@@ -54,6 +57,7 @@ export default async function AdminSettingsPage({
       platformSettings={platformSettings}
       notificationPreferences={notificationPreferences}
       auditLogs={auditLogs}
+      searchConsoleIntegration={searchConsoleIntegration}
       initialTab={initialTab}
     />
   );

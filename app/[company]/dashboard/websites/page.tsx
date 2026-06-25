@@ -20,7 +20,7 @@ import type { Website } from "@/types/database";
 import { CompanyWebsitesClient } from "./company-websites-client";
 
 export const metadata = {
-  title: "Websites — Shalean",
+  title: "Websites — FaraiOS",
   robots: { index: false, follow: false },
 };
 

@@ -3,6 +3,12 @@ import {
   PAYSTACK_BASE_URL,
   planAmountInKobo,
 } from "@/lib/billing/paystack";
+import {
+  cancelV7Subscription,
+  recordV7PaymentHistory,
+  upsertV7Subscription,
+} from "@/lib/billing/v7-records";
+import { isSelfServePlan } from "@/lib/data/pricing";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type ActivateWorkspaceSubscriptionInput = {
@@ -12,6 +18,7 @@ export type ActivateWorkspaceSubscriptionInput = {
   paidAmount: number;
   reference?: string;
   paystackCustomerCode?: string;
+  userId?: string | null;
 };
 
 export type ActivateWorkspaceSubscriptionResult =
@@ -118,7 +125,14 @@ export async function activateWorkspaceSubscription(
 ): Promise<ActivateWorkspaceSubscriptionResult> {
   const admin = createAdminClient();
   const plan = normalizeBillingPlan(input.plan);
+  if (!isSelfServePlan(plan)) {
+    return { ok: false, error: "Enterprise plans require a custom quote." };
+  }
   const expectedAmount = planAmountInKobo(plan);
+
+  if (expectedAmount <= 0) {
+    return { ok: false, error: "This plan cannot be purchased online." };
+  }
 
   if (input.paidAmount !== expectedAmount) {
     return { ok: false, error: "Payment amount mismatch." };
@@ -170,7 +184,27 @@ export async function activateWorkspaceSubscription(
       paidAt: input.paidAt,
       reference: input.reference,
     });
+
+    await recordV7PaymentHistory({
+      companyId: input.companyId,
+      userId: input.userId,
+      plan,
+      amountCents: input.paidAmount,
+      status: "success",
+      reference: input.reference,
+      paidAt: input.paidAt,
+    });
   }
+
+  await upsertV7Subscription({
+    companyId: input.companyId,
+    userId: input.userId,
+    plan,
+    status: "active",
+    paystackCustomerId: input.paystackCustomerCode,
+    periodStart: input.paidAt,
+    periodEnd: expiresAt,
+  });
 
   return { ok: true };
 }

@@ -5,7 +5,7 @@ import { companyDashboardPath, companyWebsitesPath } from "@/lib/paths/company";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "Create Website — Shalean",
+  title: "Create Website — FaraiOS",
   robots: { index: false, follow: false },
 };
 

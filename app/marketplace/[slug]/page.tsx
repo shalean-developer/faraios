@@ -15,14 +15,14 @@ export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
   const listing = await getMarketplaceBusinessBySlugPublic(slug);
   if (!listing) {
-    return { title: "Business not found — Shalean Marketplace" };
+    return { title: "Business not found — FaraiOS Marketplace" };
   }
   return {
-    title: `${listing.name} — Shalean Marketplace`,
+    title: `${listing.name} — FaraiOS Marketplace`,
     description:
       listing.summary ??
       listing.seoDescription ??
-      `Book ${listing.name} on the Shalean marketplace.`,
+      `Book ${listing.name} on the FaraiOS marketplace.`,
   };
 }
 

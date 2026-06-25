@@ -14,16 +14,19 @@ describe("industry module loader", () => {
     for (const slug of [
       "cleaning",
       "beauty",
-      "technology",
-      "tourism",
+      "repairs",
       "plumbing",
       "electrical",
+      "freelancers",
+      "consulting",
+      "agencies",
+      "construction",
+      "technology",
+      "tourism",
       "security",
       "gardening",
       "real-estate",
       "fitness",
-      "consulting",
-      "construction",
     ]) {
       expect(slugs).toContain(slug);
     }
@@ -32,7 +35,7 @@ describe("industry module loader", () => {
   it("returns cleaning-specific booking fields", () => {
     const fields = getBookingFormPreset("cleaning");
     expect(fields.some((f) => f.key === "bedrooms")).toBe(true);
-    expect(fields.some((f) => f.key === "cleaning_type")).toBe(true);
+    expect(fields.some((f) => f.key === "extras")).toBe(true);
   });
 
   it("returns beauty-specific booking fields", () => {
@@ -46,7 +49,7 @@ describe("industry module loader", () => {
   });
 
   it("provides service templates per industry", () => {
-    expect(getServiceTemplates("technology").length).toBeGreaterThan(0);
+    expect(getServiceTemplates("repairs").some((s) => s.name === "Emergency Repair")).toBe(true);
     expect(getServiceTemplates("cleaning").some((s) => s.name.includes("Deep"))).toBe(true);
   });
 

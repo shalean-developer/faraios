@@ -5,6 +5,7 @@ import {
   PAYSTACK_BASE_URL,
   planAmountInKobo,
 } from "@/lib/billing/paystack";
+import { isSelfServePlan, normalizePlanSlug, type PricingPlanSlug } from "@/lib/data/pricing";
 
 type InitBody = {
   companyId?: string;
@@ -64,7 +65,13 @@ export async function POST(req: Request) {
     );
   }
 
-  const plan = normalizeBillingPlan(body.plan);
+  const plan = normalizeBillingPlan(body.plan) as PricingPlanSlug;
+  if (!isSelfServePlan(plan)) {
+    return NextResponse.json(
+      { ok: false, error: "Enterprise plans require a custom quote. Contact sales." },
+      { status: 400 }
+    );
+  }
   const amount = planAmountInKobo(plan);
 
   const siteUrl =
@@ -75,7 +82,7 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-  const callbackUrl = `${(siteUrl ?? "").replace(/\/$/, "")}/${encodeURIComponent(company.slug)}/dashboard/subscription?payment=success`;
+  const callbackUrl = `${(siteUrl ?? "").replace(/\/$/, "")}/${encodeURIComponent(company.slug)}/dashboard/billing?payment=success`;
 
   const paystackRes = await fetch(`${PAYSTACK_BASE_URL}/transaction/initialize`, {
     method: "POST",

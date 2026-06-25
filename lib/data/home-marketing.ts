@@ -5,7 +5,7 @@ export const HERO_BADGE = "Business OS for local service teams";
 export const HERO_HEADLINE = "The best booking experience for home service businesses";
 
 export const HERO_SUBHEADLINE =
-  "Shalean helps you take bookings online, manage your team in the field, and get paid — all from one connected workspace built for South African service businesses.";
+  "FaraiOS helps you take bookings online, manage your team in the field, and get paid — all from one connected workspace built for South African service businesses.";
 
 export const HERO_TRUST_LINE = "Free setup. Cancel anytime. No hidden fees.";
 
@@ -34,7 +34,7 @@ export const SOCIAL_PROOF_STATS: SocialProofStat[] = [
 ];
 
 export const CLIENT_EXAMPLES = [
-  "Shalean Cleaning Services",
+  "FaraiOS Cleaning Services",
   "Luxury M Spa",
   "MakTech",
   "Afrika Tour",
@@ -46,7 +46,7 @@ export const SOCIAL_PROOF_TAGLINE =
 export const SOCIAL_PROOF_HEADLINE = "Trusted by service businesses across South Africa";
 
 export const SOCIAL_PROOF_LOGOS = [
-  "Shalean Cleaning Services",
+  "FaraiOS Cleaning Services",
   "Luxury M Spa",
   "MakTech",
   "Afrika Tour",
@@ -108,7 +108,7 @@ export const FEATURE_GRID_ITEMS: FeatureGridItem[] = [
   {
     title: "Payments & invoicing",
     description:
-      "Send invoices, track payments, and reconcile revenue without leaving Shalean.",
+      "Send invoices, track payments, and reconcile revenue without leaving FaraiOS.",
     accent: "cream",
   },
   {
@@ -136,7 +136,7 @@ export const MOBILE_FEATURE_SECTIONS: MobileFeatureSection[] = [
   {
     title: "Online booking that works on all devices",
     description:
-      "Your customers can book from any phone, tablet, or desktop. Shalean booking pages look great and load fast everywhere.",
+      "Your customers can book from any phone, tablet, or desktop. FaraiOS booking pages look great and load fast everywhere.",
     bullets: ["Mobile-first booking pages", "Shareable booking links", "Embed on your website"],
     reversed: true,
   },
@@ -150,9 +150,9 @@ export const MOBILE_FEATURE_SECTIONS: MobileFeatureSection[] = [
 
 export const TESTIMONIAL = {
   quote:
-    "Shalean replaced three different tools we were juggling. Bookings, invoicing, and our team calendar are finally in one place — and our customers love the online booking.",
+    "FaraiOS replaced three different tools we were juggling. Bookings, invoicing, and our team calendar are finally in one place — and our customers love the online booking.",
   name: "Thabo M.",
-  role: "Owner, Shalean Cleaning Services",
+  role: "Owner, FaraiOS Cleaning Services",
   initials: "TM",
 } as const;
 
@@ -346,7 +346,7 @@ export const WEBSITE_HOSTING_TITLE =
   "Already have a website? Connect it. Need one? We can build it.";
 
 export const WEBSITE_HOSTING_DESCRIPTION =
-  "Shalean works behind your website. You can connect an existing website, use a custom website built for your business, or host a website through Shalean.";
+  "FaraiOS works behind your website. You can connect an existing website, use a custom website built for your business, or host a website through FaraiOS.";
 
 export const WEBSITE_HOSTING_CARDS: WebsiteHostingCard[] = [
   {
@@ -359,7 +359,7 @@ export const WEBSITE_HOSTING_CARDS: WebsiteHostingCard[] = [
   },
   {
     title: "Host your business website",
-    description: "Launch a professional site hosted and managed through Shalean.",
+    description: "Launch a professional site hosted and managed through FaraiOS.",
     href: "/hosting",
   },
   {

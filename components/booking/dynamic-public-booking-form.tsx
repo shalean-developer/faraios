@@ -181,7 +181,7 @@ export function DynamicPublicBookingForm({
           >
             <p className="font-medium">No services available to book online yet.</p>
             <p className="mt-1 text-xs text-amber-800">
-              The business has not added active services in Shalean. Please contact them by phone or
+              The business has not added active services in FaraiOS. Please contact them by phone or
               email, or try again later.
             </p>
           </div>
@@ -260,6 +260,38 @@ export function DynamicPublicBookingForm({
             ))}
           </select>
         </label>
+      );
+    }
+
+    if (field.type === "multiselect") {
+      const selected = String(values[field.key] ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      return (
+        <fieldset key={field.key} className="block text-sm font-medium text-gray-700">
+          <legend>
+            {field.label}
+            {field.required ? " *" : ""}
+          </legend>
+          <div className="mt-2 space-y-2">
+            {(field.options ?? []).map((option) => (
+              <label key={option} className="flex items-center gap-2 text-sm font-normal">
+                <input
+                  type="checkbox"
+                  checked={selected.includes(option)}
+                  onChange={(e) => {
+                    const next = e.target.checked
+                      ? [...selected, option]
+                      : selected.filter((v) => v !== option);
+                    setValue(field.key, next.join(", "));
+                  }}
+                />
+                {option}
+              </label>
+            ))}
+          </div>
+        </fieldset>
       );
     }
 

@@ -30,6 +30,7 @@ import type { DesignStyle } from "@/types/company";
 import type { Feature } from "@/types/database";
 import type { Industry } from "@/types/database";
 
+import { IndustryOnboardingPicker } from "@/components/onboarding/industry-onboarding-picker";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -303,7 +304,7 @@ export function OnboardingForm({
         const planQuery = hostingPlan ? `?plan=${encodeURIComponent(hostingPlan)}` : "";
         router.push(`/${encodeURIComponent(result.slug)}/dashboard/hosting${planQuery}`);
       } else {
-        router.push(`/${encodeURIComponent(result.slug)}/dashboard/subscription`);
+        router.push(`/${encodeURIComponent(result.slug)}/dashboard/billing`);
       }
       router.refresh();
     } finally {
@@ -333,7 +334,7 @@ export function OnboardingForm({
           </h2>
           <p className="text-sm text-muted-foreground">
             {step === "business"
-              ? "Create your Shalean workspace. You can add services, customers, and bookings right away."
+              ? "Create your FaraiOS workspace. You can add services, customers, and bookings right away."
               : step === "website"
                 ? "Tell us about a website build if you want Farai to create one. You can skip this and connect your own site later."
                 : "Confirm your details before we create your workspace."}
@@ -519,41 +520,21 @@ export function OnboardingForm({
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="industry" className="text-base font-medium">
-            Industry
-          </Label>
-          <Select
-            value={industryId}
-            onValueChange={handleIndustryChange}
-            disabled={industries.length === 0}
-          >
-            <SelectTrigger
-              id="industry"
-              size="default"
-              className="h-11 w-full min-w-0 justify-between rounded-xl border-border/80 px-4 text-base data-[size=default]:h-11"
-            >
-              <span
-                className={cn(
-                  "flex flex-1 truncate text-left",
-                  !selectedIndustryName && "text-muted-foreground"
-                )}
-              >
-                {selectedIndustryName ??
-                  (industries.length === 0
-                    ? "No industries — add data in Supabase"
-                    : "Select your industry")}
-              </span>
-            </SelectTrigger>
-            <SelectContent>
-              {industries.map((ind) => (
-                <SelectItem key={ind.id} value={ind.id}>
-                  {ind.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <IndustryOnboardingPicker
+          industries={industries}
+          value={industryId}
+          onChange={handleIndustryChange}
+        />
+
+        {selectedIndustryName ? (
+          <p className="rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-900">
+            Your FaraiOS workspace will be configured for{" "}
+            <span className="font-semibold">{selectedIndustryName}</span> after you
+            create your account.
+          </p>
+        ) : null}
+
+        {/* legacy select removed — industry cards above */}
 
         {error ? (
           <p className="text-sm font-medium text-destructive" role="alert">

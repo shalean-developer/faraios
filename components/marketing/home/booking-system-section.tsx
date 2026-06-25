@@ -28,7 +28,7 @@ export function BookingSystemSection() {
           </motion.h2>
           <motion.p variants={fadeUp} className={`mx-auto max-w-2xl ${landingSectionSubtitle}`}>
             Give customers a professional booking experience on desktop and mobile — while your
-            team sees every job in the Shalean dashboard.
+            team sees every job in the FaraiOS dashboard.
           </motion.p>
         </motion.div>
 

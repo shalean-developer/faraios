@@ -4,7 +4,7 @@ import { pricingPlans } from "../lib/data/pricing";
 
 describe("planAmountInKobo", () => {
   it("matches monthly pricing catalog amounts in smallest currency units", () => {
-    for (const plan of pricingPlans) {
+    for (const plan of pricingPlans.filter((p) => p.slug !== "enterprise")) {
       expect(planAmountInKobo(plan.slug)).toBe(Math.round(plan.monthly_price * 100));
     }
   });

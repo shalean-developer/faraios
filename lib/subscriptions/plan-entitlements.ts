@@ -17,9 +17,32 @@ export const PLAN_ENTITLEMENTS = {
     customRoles: false,
     websites: false,
     tasks: false,
+    recurringBookings: false,
+    multiBranch: false,
+    customIntegrations: false,
   },
   business: {
-    maxTeamMembers: 5,
+    maxTeamMembers: 3,
+    leads: false,
+    quotes: true,
+    invoices: true,
+    payments: true,
+    seo: false,
+    campaigns: false,
+    reviews: false,
+    reports: true,
+    automations: false,
+    aiInsights: false,
+    businessHealth: false,
+    customRoles: false,
+    websites: false,
+    tasks: true,
+    recurringBookings: false,
+    multiBranch: false,
+    customIntegrations: false,
+  },
+  pro: {
+    maxTeamMembers: 10,
     leads: true,
     quotes: true,
     invoices: true,
@@ -28,14 +51,17 @@ export const PLAN_ENTITLEMENTS = {
     campaigns: true,
     reviews: true,
     reports: true,
-    automations: false,
-    aiInsights: false,
-    businessHealth: false,
+    automations: true,
+    aiInsights: true,
+    businessHealth: true,
     customRoles: false,
     websites: true,
     tasks: true,
+    recurringBookings: true,
+    multiBranch: false,
+    customIntegrations: false,
   },
-  premium: {
+  enterprise: {
     maxTeamMembers: Infinity,
     leads: true,
     quotes: true,
@@ -51,6 +77,9 @@ export const PLAN_ENTITLEMENTS = {
     customRoles: true,
     websites: true,
     tasks: true,
+    recurringBookings: true,
+    multiBranch: true,
+    customIntegrations: true,
   },
 } as const;
 
@@ -60,6 +89,13 @@ export type EntitlementFeature = Exclude<
   keyof (typeof PLAN_ENTITLEMENTS)["starter"],
   "maxTeamMembers"
 >;
+
+const PLAN_ORDER: SubscriptionPlanSlug[] = [
+  "starter",
+  "business",
+  "pro",
+  "enterprise",
+];
 
 export function getPlanEntitlements(
   plan: string | null | undefined
@@ -75,11 +111,10 @@ export function planMemberLimit(plan: string | null | undefined): number {
 export function minimumPlanForFeature(
   feature: EntitlementFeature
 ): SubscriptionPlanSlug {
-  const order: SubscriptionPlanSlug[] = ["starter", "business", "premium"];
-  for (const slug of order) {
+  for (const slug of PLAN_ORDER) {
     if (PLAN_ENTITLEMENTS[slug][feature]) return slug;
   }
-  return "premium";
+  return "enterprise";
 }
 
 export function planLabelForUpgrade(feature: EntitlementFeature): string {

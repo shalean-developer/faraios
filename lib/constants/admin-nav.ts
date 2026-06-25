@@ -18,6 +18,7 @@ export type AdminPlatformNavKey =
 
 export type AdminInfrastructureNavKey =
   | "websites"
+  | "seo"
   | "domains"
   | "apiUsage"
   | "emails"
@@ -57,6 +58,7 @@ export const ADMIN_INFRASTRUCTURE_NAV: {
   href: string;
 }[] = [
   { key: "websites", label: "Websites", href: "/admin/websites" },
+  { key: "seo", label: "SEO Platform", href: "/admin/seo" },
   { key: "domains", label: "Domains", href: "/admin/domains" },
   { key: "apiUsage", label: "API Usage", href: "/admin/api-usage" },
   { key: "emails", label: "Emails", href: "/admin/emails" },
@@ -110,6 +112,7 @@ export function resolveAdminNavKey(pathname: string): AdminNavKey {
   if (pathname.startsWith("/admin/users")) return "users";
   if (pathname.startsWith("/admin/revenue")) return "revenue";
   if (pathname.startsWith("/admin/websites")) return "websites";
+  if (pathname.startsWith("/admin/seo")) return "seo";
   if (pathname.startsWith("/admin/domains")) return "domains";
   if (pathname.startsWith("/admin/api-usage")) return "apiUsage";
   if (pathname.startsWith("/admin/emails")) return "emails";

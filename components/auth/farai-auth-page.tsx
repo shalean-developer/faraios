@@ -159,7 +159,7 @@ export function FaraiAuthPage({
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         <AuthFormCard
-          title={isLogin ? "Welcome back" : "Create your Shalean account"}
+          title={isLogin ? "Welcome back" : "Create your FaraiOS account"}
           subtitle={
             isLogin
               ? "Sign in to manage your workspace, bookings, customers, and business tools."

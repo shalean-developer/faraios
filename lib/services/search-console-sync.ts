@@ -1,4 +1,5 @@
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import { getSearchConsoleOAuthCredentials } from "@/lib/services/search-console-config";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 
 export type SearchConsoleSyncResult = {
@@ -26,16 +27,15 @@ function daysAgo(days: number): Date {
 }
 
 async function refreshAccessToken(refreshToken: string): Promise<string | null> {
-  const clientId = process.env.GOOGLE_SEARCH_CONSOLE_CLIENT_ID?.trim();
-  const clientSecret = process.env.GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET?.trim();
-  if (!clientId || !clientSecret) return null;
+  const creds = await getSearchConsoleOAuthCredentials();
+  if (!creds) return null;
 
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
+      client_id: creds.clientId,
+      client_secret: creds.clientSecret,
       refresh_token: refreshToken,
       grant_type: "refresh_token",
     }),

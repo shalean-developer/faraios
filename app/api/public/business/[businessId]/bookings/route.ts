@@ -57,6 +57,8 @@ export async function POST(request: Request, context: RouteContext) {
         address?: string;
         notes?: string;
         addons?: ServiceAddon[];
+        extraIds?: string[];
+        calculatedTotalCents?: number;
         customResponses?: Record<string, unknown>;
         sourceWebsite?: string;
         referrer?: string;
@@ -88,6 +90,8 @@ export async function POST(request: Request, context: RouteContext) {
         address: body.address,
         notes: body.notes,
         addons: body.addons,
+        extraIds: body.extraIds,
+        calculatedTotalCents: body.calculatedTotalCents,
         customResponses: body.customResponses,
         sourceWebsite: body.sourceWebsite ?? request.headers.get("referer") ?? undefined,
         referrer: body.referrer ?? request.headers.get("referer") ?? undefined,

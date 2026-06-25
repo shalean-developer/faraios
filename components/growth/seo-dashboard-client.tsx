@@ -12,6 +12,9 @@ import {
 } from "@/app/actions/growth-engine";
 import type { LocalSeoSettings } from "@/types/growth-engine";
 import type { ServiceAreaPage } from "@/types/growth-engine";
+import type { SeoV10DashboardData } from "@/types/seo-v10";
+import { SeoV10Overview } from "@/components/seo/v10/seo-v10-overview";
+import { SeoV10Tools } from "@/components/seo/v10/seo-v10-tools";
 import type {
   SearchConsoleConnection,
   SearchConsoleMetricsSummary,
@@ -36,6 +39,7 @@ export function SeoDashboardClient({
   searchConsoleConnection,
   searchConsoleMetrics,
   searchConsoleConfigured,
+  v10,
 }: {
   slug: string;
   companyId: string;
@@ -58,6 +62,7 @@ export function SeoDashboardClient({
   searchConsoleConnection: SearchConsoleConnection | null;
   searchConsoleMetrics: SearchConsoleMetricsSummary | null;
   searchConsoleConfigured: boolean;
+  v10: SeoV10DashboardData;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -76,6 +81,9 @@ export function SeoDashboardClient({
     googleBusinessProfileUrl: localSeo?.google_business_profile_url ?? "",
     googleReviewLink: localSeo?.google_review_link ?? "",
     autoReviewRequest: localSeo?.auto_review_request_enabled ?? false,
+    whatsapp: (localSeo as { whatsapp?: string | null })?.whatsapp ?? "",
+    googleMapsUrl: localSeo?.google_maps_url ?? "",
+    logoUrl: localSeo?.logo_url ?? "",
   });
 
   const [newPage, setNewPage] = useState({
@@ -105,6 +113,9 @@ export function SeoDashboardClient({
           google_business_profile_url: settings.googleBusinessProfileUrl || null,
           google_review_link: settings.googleReviewLink || null,
           auto_review_request_enabled: settings.autoReviewRequest,
+          whatsapp: settings.whatsapp || null,
+          google_maps_url: settings.googleMapsUrl || null,
+          logo_url: settings.logoUrl || null,
         },
       });
       if (!result.ok) setError(result.error);
@@ -200,6 +211,9 @@ export function SeoDashboardClient({
         <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-800">{error}</p>
       ) : null}
 
+      <SeoV10Overview auditScore={audit.score} v10={v10} />
+      <SeoV10Tools slug={slug} companyId={companyId} companyName={companyName} v10={v10} searchConsoleConfigured={searchConsoleConfigured} />
+
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-8">
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -232,10 +246,19 @@ export function SeoDashboardClient({
             </div>
 
             {!searchConsoleConfigured ? (
-              <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                OAuth is not configured on this environment. Set GOOGLE_SEARCH_CONSOLE_CLIENT_ID
-                and GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET to enable connection.
-              </p>
+              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                <p>
+                  Google Search Console is not set up on this platform yet. A platform administrator
+                  needs to add OAuth credentials before you can connect.
+                </p>
+                <p className="mt-2">
+                  Admin: go to{" "}
+                  <a href="/admin/settings?tab=integrations" className="font-semibold text-violet-700 hover:underline">
+                    Settings → Integrations
+                  </a>{" "}
+                  and add your Google Cloud OAuth Client ID and Secret.
+                </p>
+              </div>
             ) : searchConsoleConnection ? (
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <MetricCard
@@ -302,6 +325,9 @@ export function SeoDashboardClient({
               <Field label="Address" value={settings.address} onChange={(v) => setSettings((s) => ({ ...s, address: v }))} className="sm:col-span-2" />
               <Field label="Google Business Profile URL" value={settings.googleBusinessProfileUrl} onChange={(v) => setSettings((s) => ({ ...s, googleBusinessProfileUrl: v }))} className="sm:col-span-2" />
               <Field label="Google review link" value={settings.googleReviewLink} onChange={(v) => setSettings((s) => ({ ...s, googleReviewLink: v }))} className="sm:col-span-2" />
+              <Field label="WhatsApp" value={settings.whatsapp} onChange={(v) => setSettings((s) => ({ ...s, whatsapp: v }))} />
+              <Field label="Google Maps URL" value={settings.googleMapsUrl} onChange={(v) => setSettings((s) => ({ ...s, googleMapsUrl: v }))} className="sm:col-span-2" />
+              <Field label="Logo URL" value={settings.logoUrl} onChange={(v) => setSettings((s) => ({ ...s, logoUrl: v }))} className="sm:col-span-2" />
             </div>
             <label className="mt-4 flex items-center gap-2 text-sm text-slate-700">
               <input
@@ -334,7 +360,7 @@ export function SeoDashboardClient({
           {websites.length > 0 ? (
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">Website SEO</h2>
-              <p className="mt-1 text-sm text-slate-500">Meta tags for Shalean-hosted websites.</p>
+              <p className="mt-1 text-sm text-slate-500">Meta tags for FaraiOS-hosted websites.</p>
               {websites.map((site) => (
                 <WebsiteSeoForm
                   key={site.id}

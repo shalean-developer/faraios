@@ -20,6 +20,7 @@ import {
   companyHostingPath,
   companyProjectPath,
   companyWebsiteApiKeysPath,
+  companyWebsiteBuilderPath,
   companyWebsiteConnectionPath,
   companyWebsiteCreatePath,
   companyWebsiteDomainsPath,
@@ -103,7 +104,7 @@ export function CompanyWebsitesClient({
     {
       label: "Hosted sites",
       value: String(summary.hostedCount),
-      hint: summary.hostedCount ? "Managed in Shalean" : "Create or connect a site",
+      hint: summary.hostedCount ? "Managed in FaraiOS" : "Create or connect a site",
     },
     {
       label: "Domains",
@@ -138,7 +139,7 @@ export function CompanyWebsitesClient({
           </p>
           <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Overview</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Connect an external site, host on Shalean, or track a done-for-you build — domains,
+            Connect an external site, host on FaraiOS, or track a done-for-you build — domains,
             API keys, and analytics live in one hub.
           </p>
         </div>
@@ -212,7 +213,7 @@ export function CompanyWebsitesClient({
               <Globe className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-slate-900">Hosted on Shalean</p>
+              <p className="font-semibold text-slate-900">Hosted on FaraiOS</p>
               <p className="mt-0.5 text-sm text-slate-500">
                 Launch a template-based site managed in your dashboard.
               </p>
@@ -220,22 +221,21 @@ export function CompanyWebsitesClient({
             <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5" />
           </Link>
 
-          <div className="flex items-start gap-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-4 opacity-75">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-slate-500">
+          <Link
+            href={companyWebsiteBuilderPath(slug)}
+            className="group flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
               <Hammer className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p className="font-semibold text-slate-700">Website builder</p>
-                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600">
-                  Soon
-                </span>
-              </div>
+              <p className="font-semibold text-slate-900">Website builder</p>
               <p className="mt-0.5 text-sm text-slate-500">
-                Drag-and-drop editor for self-serve design changes.
+                Generate a landing page, contact form, and booking button from your profile.
               </p>
             </div>
-          </div>
+            <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-violet-400 transition-transform group-hover:translate-x-0.5" />
+          </Link>
         </div>
       </section>
 
@@ -243,7 +243,7 @@ export function CompanyWebsitesClient({
         <div className="space-y-8">
           <SectionCard
             title="Hosted websites"
-            description="Shalean-managed sites created from your workspace templates."
+            description="FaraiOS-managed sites created from your workspace templates."
           >
             {websites.length ? (
               <div className="-mx-5 -mb-5 overflow-hidden">

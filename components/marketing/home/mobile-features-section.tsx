@@ -41,7 +41,7 @@ function MobileScreenContent({ index }: { index: number }) {
       </div>
       <div className="mt-auto pt-8">
         <div className="rounded-xl bg-emerald-600 py-2 text-center text-xs font-semibold text-white">
-          Open in Shalean
+          Open in FaraiOS
         </div>
       </div>
     </div>

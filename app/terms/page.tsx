@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Terms of Service — Shalean",
-  description: "Terms governing use of the Shalean platform.",
+  title: "Terms of Service — FaraiOS",
+  description: "Terms governing use of the FaraiOS platform.",
 };
 
 export default function TermsPage() {
@@ -10,15 +10,15 @@ export default function TermsPage() {
         Terms of Service
       </h1>
       <p className="mt-4 text-sm leading-7 text-slate-600">
-        By using Shalean, you agree to use the platform lawfully and responsibly.
+        By using FaraiOS, you agree to use the platform lawfully and responsibly.
         Service features, pricing, and availability may change over time. You are
         responsible for safeguarding your account credentials and all activity in
         your workspace.
       </p>
       <p className="mt-4 text-sm leading-7 text-slate-600">
-        Shalean provides software and automation tooling on an as-is basis
+        FaraiOS provides software and automation tooling on an as-is basis
         without guarantees of uninterrupted operation. To the maximum extent
-        permitted by law, Shalean is not liable for indirect or consequential
+        permitted by law, FaraiOS is not liable for indirect or consequential
         damages arising from use of the platform.
       </p>
       <p className="mt-4 text-sm leading-7 text-slate-600">

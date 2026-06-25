@@ -5,7 +5,7 @@ import { getAdminQueryClient, isCurrentUserPlatformAdmin } from "@/lib/services/
 import type { Website, WebsiteContent } from "@/types/database";
 
 export const metadata = {
-  title: "Admin Edit Website Content — Shalean",
+  title: "Admin Edit Website Content — FaraiOS",
   robots: { index: false, follow: false },
 };
 

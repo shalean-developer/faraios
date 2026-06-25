@@ -26,6 +26,7 @@ import {
   type CollapsibleNavKey,
   type CompanyNavKey,
 } from "@/lib/constants/company-nav";
+import { getIndustryNavLabels } from "@/lib/industry-templates/industryTemplates";
 import { companyNotificationsPath } from "@/lib/paths/company";
 import type { PermissionKey } from "@/lib/permissions/shared";
 import {
@@ -146,6 +147,7 @@ export function CompanyMobileNav({
   hasWebsiteProject = false,
   userPermissions = [],
   subscription,
+  industrySlug,
 }: {
   slug: string;
   activeNav: CompanyNavKey;
@@ -153,11 +155,13 @@ export function CompanyMobileNav({
   hasWebsiteProject?: boolean;
   userPermissions?: PermissionKey[];
   subscription?: SubscriptionCompanyFields;
+  industrySlug?: string | null;
 }) {
   const pathname = usePathname() ?? "";
   const [open, setOpen] = useState(false);
+  const navLabels = getIndustryNavLabels(industrySlug);
   const permissionFiltered = filterCompanyNavItems(
-    companyNavItems(slug, { hasWebsiteProject }),
+    companyNavItems(slug, { hasWebsiteProject, navLabels }),
     userPermissions
   );
   const items = subscription

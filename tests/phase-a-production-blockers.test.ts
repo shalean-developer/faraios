@@ -74,7 +74,7 @@ describe("financial document edit rules", () => {
 describe("Phase A industry onboarding journeys", () => {
   const TARGET_BUSINESSES = [
     {
-      name: "Shalean Cleaning Services",
+      name: "FaraiOS Cleaning Services",
       industrySlug: "cleaning",
       expectedField: "cleaning_type",
       expectedServiceKeyword: "Deep",

@@ -56,15 +56,12 @@ export const pricingPlans: PricingPlanRecord[] = [
     monthly_price: 199,
     features: [
       "Everything in Starter",
-      "Leads CRM",
       "Quotes",
       "Invoices",
       "Payment Tracking",
-      "SEO Tools",
-      "Reviews Management",
-      "Marketing Campaigns",
-      "Up to 5 Team Members",
-      "Business Reports",
+      "Team Management",
+      "Basic Analytics",
+      "Up to 3 Team Members",
       "Priority Support",
     ],
     best_for: [
@@ -77,42 +74,82 @@ export const pricingPlans: PricingPlanRecord[] = [
     description: "For growing businesses that need sales and growth tools.",
   },
   {
-    id: "plan_premium",
-    slug: "premium",
-    name: "Premium",
+    id: "plan_pro",
+    slug: "pro",
+    name: "Pro",
     setup_price: 5000,
-    monthly_price: 499,
+    monthly_price: 399,
     features: [
       "Everything in Business",
+      "Website Tools",
+      "SEO Tools",
+      "Marketing Tools",
       "Workflow Automations",
-      "AI Insights",
-      "Business Health Dashboard",
-      "Advanced Reporting",
-      "Unlimited Team Members",
-      "Custom Roles & Permissions",
+      "Recurring Bookings",
+      "Advanced Analytics",
+      "Up to 10 Team Members",
       "Priority Support",
-      "Early Access Features",
     ],
     best_for: [
       "Multi-staff businesses",
       "Agencies",
       "Businesses scaling operations",
     ],
-    cta_label: "Start Premium Plan",
+    cta_label: "Start Pro Plan",
     is_popular: false,
-    description: "For established businesses that want automation and insights.",
+    description: "For established businesses that want automation and growth tools.",
+  },
+  {
+    id: "plan_enterprise",
+    slug: "enterprise",
+    name: "Enterprise",
+    setup_price: 0,
+    monthly_price: 0,
+    features: [
+      "Everything in Pro",
+      "Multi-Branch Support",
+      "Advanced Permissions",
+      "Custom Integrations",
+      "Dedicated Account Manager",
+      "Priority Support",
+      "Custom SLA",
+    ],
+    best_for: [
+      "Franchises",
+      "Multi-location businesses",
+      "Large organisations",
+    ],
+    cta_label: "Contact Sales",
+    is_popular: false,
+    description: "Custom pricing for organisations with advanced needs.",
   },
 ];
 
 /** Slug passed to onboarding (`?plan=`) — single source of truth */
 export type PricingPlanSlug = (typeof pricingPlans)[number]["slug"];
 
+const LEGACY_PLAN_ALIASES: Record<string, PricingPlanSlug> = {
+  premium: "pro",
+};
+
 export function normalizePlanSlug(
   raw: string | null | undefined
 ): PricingPlanSlug {
   const s = (raw ?? "").toLowerCase().trim();
+  if (s in LEGACY_PLAN_ALIASES) {
+    return LEGACY_PLAN_ALIASES[s]!;
+  }
   const found = pricingPlans.find((p) => p.slug === s);
   return found ? found.slug : "starter";
+}
+
+/** Plans that can be purchased via Paystack checkout. */
+export function isSelfServePlan(slug: PricingPlanSlug): boolean {
+  return slug !== "enterprise";
+}
+
+export function planIdForSlug(slug: PricingPlanSlug): string {
+  return pricingPlans.find((p) => p.slug === slug)?.id ?? "plan_starter";
 }
 
 export function planLabelForSlug(slug: PricingPlanSlug): string {
@@ -126,7 +163,8 @@ export function planPageLimit(slug: PricingPlanSlug): number | null {
       return 4;
     case "business":
       return 7;
-    case "premium":
+    case "pro":
+    case "enterprise":
       return null;
     default:
       return 4;
@@ -283,13 +321,13 @@ export const faqItems: FaqItemRecord[] = [
     id: "faq-1",
     question: "Do I need a website?",
     answer:
-      "No. You can use Shalean as your business workspace without purchasing a website.",
+      "No. You can use FaraiOS as your business workspace without purchasing a website.",
   },
   {
     id: "faq-2",
     question: "Can I connect my existing website?",
     answer:
-      "Yes. Shalean can connect to an existing website and manage bookings, customers, leads, and payments.",
+      "Yes. FaraiOS can connect to an existing website and manage bookings, customers, leads, and payments.",
   },
   {
     id: "faq-3",
@@ -305,9 +343,9 @@ export const faqItems: FaqItemRecord[] = [
   },
   {
     id: "faq-5",
-    question: "What is Shalean?",
+    question: "What is FaraiOS?",
     answer:
-      "Shalean is a Business Operating System for service businesses. It helps you manage bookings, customers, quotes, invoices, payments, websites, SEO, marketing, and your team from one workspace.",
+      "FaraiOS is a Business Operating System for service businesses. It helps you manage bookings, customers, quotes, invoices, payments, websites, SEO, marketing, and your team from one workspace.",
   },
 ];
 

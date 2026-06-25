@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CompanyMarketingClient } from "./company-marketing-client";
 
 export const metadata = {
-  title: "Marketing — Shalean",
+  title: "Marketing — FaraiOS",
   robots: { index: false, follow: false },
 };
 

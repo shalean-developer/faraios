@@ -20,7 +20,8 @@ import {
   companyWebsiteConnectionPath,
 } from "@/lib/paths/company";
 import { cn } from "@/lib/utils";
-import type { CompanyWithIndustry } from "@/types/database";
+import { IndustrySettingsPanel } from "@/components/company/industry-settings-panel";
+import type { CompanyWithIndustry, Industry } from "@/types/database";
 
 function MetricCard({
   label,
@@ -66,9 +67,11 @@ function profileCompleteness(company: CompanyWithIndustry): number {
 export function CompanySettingsClient({
   slug,
   company,
+  industries,
 }: {
   slug: string;
   company: CompanyWithIndustry;
+  industries: Industry[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -204,6 +207,9 @@ export function CompanySettingsClient({
       ) : null}
 
       <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
+        <div className="space-y-8">
+          <IndustrySettingsPanel slug={slug} company={company} industries={industries} />
+
         <form
           onSubmit={onSaveBusiness}
           className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
@@ -362,6 +368,7 @@ export function CompanySettingsClient({
             {pending ? "Saving..." : "Save notification preferences"}
           </Button>
         </form>
+        </div>
 
         <aside className="lg:sticky lg:top-6 lg:self-start">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

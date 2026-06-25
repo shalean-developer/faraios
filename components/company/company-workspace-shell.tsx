@@ -44,6 +44,7 @@ export function CompanyWorkspaceShell({
   userEmail,
   userPermissions = [],
   subscription,
+  industrySlug,
   children,
 }: {
   slug: string;
@@ -54,6 +55,7 @@ export function CompanyWorkspaceShell({
   userEmail: string | null;
   userPermissions?: PermissionKey[];
   subscription?: SubscriptionCompanyFields;
+  industrySlug?: string | null;
   children: ReactNode;
 }) {
   const pathname = usePathname() ?? "";
@@ -102,6 +104,7 @@ export function CompanyWorkspaceShell({
           collapsed={mounted && collapsed}
           userPermissions={userPermissions}
           subscription={subscription}
+          industrySlug={industrySlug}
           searchQuery={searchQuery}
           displayName={userDisplayName}
           userEmail={userEmail}
@@ -116,6 +119,7 @@ export function CompanyWorkspaceShell({
           hasWebsiteProject={hasWebsiteProject}
           userPermissions={userPermissions}
           subscription={subscription}
+          industrySlug={industrySlug}
         />
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>

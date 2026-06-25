@@ -2,7 +2,7 @@ import { FaraiAdminDomains } from "@/components/admin/farai-admin-domains";
 import { getAdminDomainsData } from "@/lib/services/admin";
 
 export const metadata = {
-  title: "Domains — Shalean Admin",
+  title: "Domains — FaraiOS Admin",
   robots: { index: false, follow: false },
 };
 

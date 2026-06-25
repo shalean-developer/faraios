@@ -66,6 +66,7 @@ import {
   filterWebsiteSubNavBySubscription,
 } from "@/lib/subscriptions/nav-filter";
 import type { SubscriptionCompanyFields } from "@/lib/subscriptions/types";
+import { getIndustryNavLabels } from "@/lib/industry-templates/industryTemplates";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -88,6 +89,7 @@ const ICONS = {
   featureRequests: Lightbulb,
   settings: Settings,
   subscription: CreditCard,
+  billing: CreditCard,
   usage: Gauge,
 } as const;
 
@@ -110,6 +112,7 @@ const SECONDARY_KEYS = new Set<CompanyNavKey>([
   "support",
   "featureRequests",
   "settings",
+  "billing",
   "subscription",
 ]);
 
@@ -213,6 +216,7 @@ export function CompanySidebarNav({
   collapsed = false,
   userPermissions = [],
   subscription,
+  industrySlug,
   searchQuery = "",
   displayName,
   userEmail,
@@ -223,6 +227,7 @@ export function CompanySidebarNav({
   collapsed?: boolean;
   userPermissions?: PermissionKey[];
   subscription?: SubscriptionCompanyFields;
+  industrySlug?: string | null;
   searchQuery?: string;
   displayName: string;
   userEmail: string | null;
@@ -230,14 +235,16 @@ export function CompanySidebarNav({
   const pathname = usePathname() ?? "";
   const [settingsOpen, setSettingsOpen] = useState(
     pathname.includes("/settings") ||
+      pathname.includes("/billing") ||
       pathname.includes("/subscription") ||
       pathname.includes("/feature-requests")
   );
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  const navLabels = getIndustryNavLabels(industrySlug);
   const permissionFiltered = filterCompanyNavItems(
-    companyNavItems(slug, { hasWebsiteProject }),
+    companyNavItems(slug, { hasWebsiteProject, navLabels }),
     userPermissions
   );
   const items = subscription
@@ -249,7 +256,7 @@ export function CompanySidebarNav({
 
   const showUsage = hasAnyPermission(userPermissions, ["view_reports", "view_revenue"]);
   const settingsChildren = secondaryItems.filter((item) =>
-    ["settings", "subscription", "featureRequests"].includes(item.key)
+    ["settings", "billing", "subscription", "featureRequests"].includes(item.key)
   );
 
   const { expanded, toggleSection, openSection } = useCollapsibleNavSections(
@@ -403,7 +410,8 @@ export function CompanySidebarNav({
                 className={cn(
                   navItemClass(
                     pathname.includes("/settings") ||
-                      pathname.includes("/subscription") ||
+                      pathname.includes("/billing") ||
+      pathname.includes("/subscription") ||
                       pathname.includes("/feature-requests"),
                     false
                   ),

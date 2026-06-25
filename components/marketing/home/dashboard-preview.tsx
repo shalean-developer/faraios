@@ -160,7 +160,7 @@ export function DashboardPreview() {
                   <div className="h-3 w-3 rounded-full bg-amber-400/90" />
                   <div className="h-3 w-3 rounded-full bg-emerald-400/90" />
                   <span className="ml-2 text-xs font-medium text-gray-500">
-                    Shalean Workspace
+                    FaraiOS Workspace
                   </span>
                 </div>
                 <span className="hidden rounded-full border border-violet-200 bg-white px-2.5 py-0.5 text-[10px] font-semibold text-violet-700 sm:inline">
