@@ -13,7 +13,7 @@ type Props = { params: Promise<{ company: string }> };
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Website connection — FaraiOS",
+  title: "Website connection — Shalean",
   robots: { index: false, follow: false },
 };
 
@@ -49,7 +49,7 @@ export default async function CompanyWebsiteConnectionPage({ params }: Props) {
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-slate-500">
           Connect an external website, embed booking and tracking scripts, and follow setup guides
-          for WordPress, Wix, Squarespace, Shopify, and other builders. For FaraiOS-hosted sites,
+          for WordPress, Wix, Squarespace, Shopify, and other builders. For Shalean-hosted sites,
           manage domains and deployments from the website hub.
         </p>
       </header>

@@ -65,13 +65,13 @@ export function FaraiAboutPage() {
           <motion.div initial="hidden" animate="visible" variants={fadeUp}>
             <span className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-1.5 text-xs font-semibold text-violet-700">
               <Sparkles className="h-3.5 w-3.5" />
-              About FaraiOS
+              About Shalean
             </span>
             <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
               The business operating system for local service teams
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-gray-600">
-              FaraiOS helps service businesses run day-to-day operations — bookings,
+              Shalean helps service businesses run day-to-day operations — bookings,
               customers, quotes, invoices, payments, marketing, and reporting — from a
               single workspace. Websites and hosting are optional frontends that plug
               directly into your operations.
@@ -106,7 +106,7 @@ export function FaraiAboutPage() {
           >
             <h2 className="text-xl font-bold text-gray-900">Who we serve</h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-600">
-              FaraiOS is designed for owner-operators and small teams who sell services
+              Shalean is designed for owner-operators and small teams who sell services
               locally — from cleaning companies and spas to IT support and tour operators.
               Industry modules seed your booking forms, services, and growth defaults so
               you can start fast without rebuilding software for every vertical.

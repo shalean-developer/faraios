@@ -1,6 +1,6 @@
-# FaraiOS
+# Shalean
 
-FaraiOS is a **Business Operating System** for service businesses — company
+Shalean is a **Business Operating System** for service businesses — company
 workspaces, customers, services, bookings, team access, websites, and billing.
 
 ## Setup

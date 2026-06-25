@@ -226,7 +226,7 @@ export function FaraiAdminProjectDetails({
       }
       setMarketplaceMessage(
         listedInMarketplace
-          ? "Business listed on the FaraiOS marketplace."
+          ? "Business listed on the Shalean marketplace."
           : "Business removed from the marketplace."
       );
       router.refresh();
@@ -607,7 +607,7 @@ export function FaraiAdminProjectDetails({
                   </div>
                   <div className="space-y-4 px-5 py-5">
                     <p className="text-xs leading-relaxed text-gray-500">
-                      List this business on the public FaraiOS marketplace so consumers can discover and book services.
+                      List this business on the public Shalean marketplace so consumers can discover and book services.
                       {!project.websitePublished ? (
                         <span className="mt-1 block font-medium text-amber-600">
                           Publish the website before listing.

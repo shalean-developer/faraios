@@ -33,10 +33,9 @@ const centerNavLinks: {
   active?: MarketingNavActive;
 }[] = [
   { label: "Features", href: "/features", active: "features" },
-  { label: "Industries", href: "/industries", active: "industries" },
   { label: "Pricing", href: "/pricing", active: "pricing" },
-  { label: "Marketplace", href: "/marketplace", active: "marketplace" },
-  { label: "Contact", href: "/platform/contact" },
+  { label: "About", href: "/platform/about" },
+  { label: "Industries", href: "/industries", active: "industries" },
 ];
 
 export function MarketingNav({
@@ -56,7 +55,7 @@ export function MarketingNav({
   const closeMobile = () => setMobileOpen(false);
 
   const activeClass = (key?: MarketingNavActive) =>
-    key && active === key ? "text-violet-700" : undefined;
+    key && active === key ? "text-emerald-700" : undefined;
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-gray-100 bg-white/90 shadow-sm backdrop-blur-md">
@@ -153,14 +152,13 @@ export function MarketingNav({
                   href="/auth/sign-in"
                   className="hidden items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 sm:flex"
                 >
-                  <LayoutDashboard className="h-4 w-4" />
-                  Sign in
+                  Log in
                 </Link>
                 <Link
                   href="/auth/sign-up"
-                  className="rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-violet-200"
+                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:bg-emerald-700 hover:shadow-md hover:shadow-emerald-600/20"
                 >
-                  Start workspace
+                  Sign up
                 </Link>
               </>
             )}
@@ -249,17 +247,17 @@ export function MarketingNav({
                 <div className="my-2 border-t border-gray-100" />
                 <Link
                   href="/auth/sign-up"
-                  className="rounded-lg px-3 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50"
+                  className="rounded-lg px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
                   onClick={closeMobile}
                 >
-                  Start workspace
+                  Sign up
                 </Link>
                 <Link
                   href="/auth/sign-in"
                   className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                   onClick={closeMobile}
                 >
-                  Sign in
+                  Log in
                 </Link>
               </>
             )}

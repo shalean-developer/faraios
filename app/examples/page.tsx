@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "Website Examples — FaraiOS",
-  description: "Explore sample websites built by FaraiOS.",
+  title: "Website Examples — Shalean",
+  description: "Explore sample websites built by Shalean.",
 };
 
 /** Legacy URL — examples moved to the live marketplace. */

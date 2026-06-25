@@ -58,7 +58,7 @@ export function CompanySupportClient({
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Platform support</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Contact the FaraiOS team about billing, technical issues, or your account.
+            Contact the Shalean team about billing, technical issues, or your account.
           </p>
         </div>
         <button

@@ -34,7 +34,7 @@ function blockedFeatureCopy(
   if (workspaceNeedsPayment(company)) {
     return {
       title: "Activate your workspace",
-      description: "Complete payment to unlock FaraiOS features.",
+      description: "Complete payment to unlock Shalean features.",
     };
   }
 

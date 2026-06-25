@@ -8,6 +8,7 @@ import { X } from "lucide-react";
 import { CompanyQuotesSection, CompanyQuoteCreateForm } from "@/app/[company]/dashboard/bookings/company-quotes-section";
 import { updateBookingStatus } from "@/app/actions/company";
 import { BookingRequestPopover } from "@/components/company/booking-request-popover";
+import { CompanyDashboardHeader } from "@/components/company/company-dashboard-header";
 import { Button } from "@/components/ui/button";
 import {
   BOOKING_STATUSES,
@@ -35,6 +36,7 @@ import type {
   Customer,
 } from "@/types/database";
 import type { QuoteWithCustomer } from "@/types/financial";
+import type { CompanyNotification } from "@/types/v6-engine";
 
 type StatusFilter = "all" | BookingStatus;
 
@@ -88,6 +90,9 @@ export function CompanyBookingsClient({
   customers,
   bookingForm = null,
   view = "all",
+  userDisplayName = "there",
+  notifications = [],
+  unreadCount = 0,
 }: {
   slug: string;
   company: CompanyWithIndustry;
@@ -97,6 +102,9 @@ export function CompanyBookingsClient({
   customers: Customer[];
   bookingForm?: BookingForm | null;
   view?: BookingsView;
+  userDisplayName?: string;
+  notifications?: CompanyNotification[];
+  unreadCount?: number;
 }) {
   const router = useRouter();
   const [rows, setRows] = useState(initialBookings);
@@ -231,7 +239,16 @@ export function CompanyBookingsClient({
   };
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
+    <>
+      <CompanyDashboardHeader
+        slug={slug}
+        companyId={company.id}
+        userDisplayName={userDisplayName}
+        companyName={company.name}
+        notifications={notifications}
+        unreadCount={unreadCount}
+      />
+      <div className="px-4 py-8 sm:px-6 lg:px-8">
       <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
@@ -487,7 +504,8 @@ export function CompanyBookingsClient({
           />
         </>
       ) : null}
-    </div>
+      </div>
+    </>
   );
 }
 

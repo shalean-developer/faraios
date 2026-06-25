@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Briefcase,
@@ -14,82 +15,123 @@ import {
   Zap,
 } from "lucide-react";
 
+import { landingSectionSubtitle, landingSectionTitle } from "@/components/marketing/home/landing-styles";
 import { fadeUp, sectionScrollClass, stagger } from "@/components/marketing/home/motion";
 import { INDUSTRY_CARDS, type IndustryCardIcon } from "@/lib/data/home-marketing";
 import { cn } from "@/lib/utils";
 
-function IndustryIcon({ icon }: { icon: IndustryCardIcon }) {
-  const className = "h-6 w-6 text-violet-600";
+function IndustryIcon({ icon, className }: { icon: IndustryCardIcon; className?: string }) {
+  const props = { className: cn("h-5 w-5", className) };
   switch (icon) {
     case "sparkles":
-      return <Sparkles className={className} />;
+      return <Sparkles {...props} />;
     case "heart":
-      return <Heart className={className} />;
+      return <Heart {...props} />;
     case "cpu":
-      return <Cpu className={className} />;
+      return <Cpu {...props} />;
     case "plane":
-      return <Plane className={className} />;
+      return <Plane {...props} />;
     case "paintbrush":
-      return <Paintbrush className={className} />;
+      return <Paintbrush {...props} />;
     case "zap":
-      return <Zap className={className} />;
+      return <Zap {...props} />;
     case "dumbbell":
-      return <Dumbbell className={className} />;
+      return <Dumbbell {...props} />;
     case "trees":
-      return <Trees className={className} />;
+      return <Trees {...props} />;
     case "shield":
-      return <Shield className={className} />;
+      return <Shield {...props} />;
     case "briefcase":
-      return <Briefcase className={className} />;
+      return <Briefcase {...props} />;
     default:
-      return <Sparkles className={className} />;
+      return <Sparkles {...props} />;
   }
 }
 
+const iconColors = [
+  "bg-emerald-100 text-emerald-600",
+  "bg-pink-100 text-pink-600",
+  "bg-blue-100 text-blue-600",
+  "bg-amber-100 text-amber-600",
+  "bg-orange-100 text-orange-600",
+  "bg-yellow-100 text-yellow-700",
+  "bg-violet-100 text-violet-600",
+  "bg-teal-100 text-teal-600",
+  "bg-slate-100 text-slate-600",
+  "bg-indigo-100 text-indigo-600",
+];
+
 export function IndustriesSection({ highlightSlug }: { highlightSlug?: string }) {
   return (
-    <section className={`border-t border-gray-100 bg-white px-4 py-20 sm:px-6 lg:px-8 ${sectionScrollClass}`}>
+    <section className={`bg-white px-4 py-20 sm:px-6 lg:px-8 ${sectionScrollClass}`}>
       <div className="mx-auto max-w-6xl">
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
           variants={stagger}
+          className="grid items-start gap-12 lg:grid-cols-[1fr_auto]"
         >
-          <motion.h2
-            variants={fadeUp}
-            className="mb-2 text-center text-2xl font-extrabold text-gray-900 sm:text-3xl"
-          >
-            Industries we serve
-          </motion.h2>
-          <motion.p variants={fadeUp} className="mb-10 text-center text-gray-500">
-            Purpose-built defaults for the way your type of business works.
-          </motion.p>
+          <div>
+            <motion.h2 variants={fadeUp} className={landingSectionTitle}>
+              Built for every type of service business
+            </motion.h2>
+            <motion.p variants={fadeUp} className={landingSectionSubtitle}>
+              Shalean adapts to your industry with smart defaults for bookings, services, and
+              workflows — so you can launch faster.
+            </motion.p>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {INDUSTRY_CARDS.map((ind) => {
-              const highlighted = highlightSlug === ind.slug;
-              return (
-              <motion.div
-                key={ind.slug}
-                variants={fadeUp}
-                id={ind.slug}
-                className={cn(
-                  "rounded-2xl border bg-gradient-to-br from-white to-violet-50/40 p-6 shadow-sm transition-shadow hover:shadow-md",
-                  highlighted
-                    ? "border-violet-400 ring-2 ring-violet-200"
-                    : "border-gray-100"
-                )}
+            <motion.div variants={fadeUp} className="mt-8 columns-1 gap-x-8 sm:columns-2">
+              {INDUSTRY_CARDS.map((ind, i) => (
+                <Link
+                  key={ind.slug}
+                  href={`/industries/${ind.slug}`}
+                  id={ind.slug}
+                  className={cn(
+                    "mb-3 flex items-center gap-2 text-sm font-medium text-slate-700 transition-colors hover:text-emerald-700",
+                    highlightSlug === ind.slug && "font-bold text-emerald-700"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+                      iconColors[i % iconColors.length]
+                    )}
+                  >
+                    <IndustryIcon icon={ind.icon} />
+                  </span>
+                  {ind.name}
+                </Link>
+              ))}
+            </motion.div>
+
+            <motion.div variants={fadeUp} className="mt-6">
+              <Link
+                href="/industries"
+                className="text-sm font-semibold text-emerald-600 hover:text-emerald-700"
               >
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50">
-                  <IndustryIcon icon={ind.icon} />
-                </div>
-                <h3 className="font-bold text-gray-900">{ind.name}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-gray-500">{ind.description}</p>
-              </motion.div>
-            );
-            })}
+                View all industries →
+              </Link>
+            </motion.div>
           </div>
+
+          <motion.div
+            variants={fadeUp}
+            className="hidden flex-wrap content-start justify-center gap-3 lg:flex lg:max-w-xs"
+          >
+            {INDUSTRY_CARDS.slice(0, 9).map((ind, i) => (
+              <div
+                key={ind.slug}
+                className={cn(
+                  "flex h-14 w-14 items-center justify-center rounded-full shadow-sm",
+                  iconColors[i % iconColors.length]
+                )}
+                title={ind.name}
+              >
+                <IndustryIcon icon={ind.icon} />
+              </div>
+            ))}
+          </motion.div>
         </motion.div>
       </div>
     </section>

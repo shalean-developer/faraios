@@ -7,16 +7,20 @@ export type OperationsMetrics = {
 
 export type HomeOverviewMetrics = {
   bookingsToday: number;
+  bookingsYesterday: number;
   pendingBookings: number;
   totalBookings: number;
   customers: number;
+  newCustomersThisMonth: number;
   revenueTodayCents: number;
   revenueMonthCents: number;
+  revenueGrowthPercent: number;
   pendingQuotes: number;
   outstandingInvoices: number;
   overdueInvoices: number;
   outstandingInvoicesCents: number;
   newLeads7d: number;
+  qualifiedLeads7d: number;
   businessHealthScore: number;
 };
 
@@ -26,7 +30,8 @@ export type HomeActivityKind =
   | "payment"
   | "invoice"
   | "quote"
-  | "lead";
+  | "lead"
+  | "review";
 
 export type HomeActivityItem = {
   id: string;
@@ -44,8 +49,27 @@ export type HomeOverviewInsight = {
   priority?: "high" | "medium" | "low";
 };
 
+export type UpcomingBookingItem = {
+  id: string;
+  customerName: string;
+  service: string;
+  status: string;
+  timeLabel: string;
+  dayLabel: string;
+};
+
+export type RevenueOverview = {
+  totalCents: number;
+  growthPercent: number;
+  paidCents: number;
+  outstandingCents: number;
+  overdueCents: number;
+};
+
 export type HomeOverviewData = {
   metrics: HomeOverviewMetrics;
+  upcomingBookings: UpcomingBookingItem[];
+  revenueOverview: RevenueOverview;
   recentActivity: HomeActivityItem[];
   topInsight: HomeOverviewInsight | null;
 };

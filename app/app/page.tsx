@@ -4,8 +4,8 @@ import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "App — FaraiOS",
-  description: "Your FaraiOS app home.",
+  title: "App — Shalean",
+  description: "Your Shalean app home.",
 };
 
 export default async function AppHomePage() {

@@ -15,7 +15,7 @@ type Props = { params: Promise<{ company: string }> };
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Revenue — FaraiOS",
+  title: "Revenue — Shalean",
   robots: { index: false, follow: false },
 };
 

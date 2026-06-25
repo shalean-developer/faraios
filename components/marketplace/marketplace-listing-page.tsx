@@ -78,9 +78,9 @@ export function MarketplaceListingPage({ listing, bookingForm }: Props) {
           </div>
 
           <div className="rounded-2xl border border-violet-100 bg-violet-50/70 p-5 text-sm text-violet-900">
-            <p className="font-semibold">Hosted & maintained by FaraiOS</p>
+            <p className="font-semibold">Hosted & maintained by Shalean</p>
             <p className="mt-1 text-violet-800/80">
-              This business site, SEO, and marketplace listing are managed on the FaraiOS platform.
+              This business site, SEO, and marketplace listing are managed on the Shalean platform.
             </p>
           </div>
         </section>

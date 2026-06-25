@@ -181,7 +181,7 @@ export function DynamicPublicBookingForm({
           >
             <p className="font-medium">No services available to book online yet.</p>
             <p className="mt-1 text-xs text-amber-800">
-              The business has not added active services in FaraiOS. Please contact them by phone or
+              The business has not added active services in Shalean. Please contact them by phone or
               email, or try again later.
             </p>
           </div>

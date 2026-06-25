@@ -8,7 +8,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "Platform Settings — FaraiOS Admin",
+  title: "Platform Settings — Shalean Admin",
   robots: { index: false, follow: false },
 };
 

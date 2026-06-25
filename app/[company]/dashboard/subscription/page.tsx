@@ -21,7 +21,7 @@ type Props = {
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Workspace subscription — FaraiOS",
+  title: "Workspace subscription — Shalean",
   robots: { index: false, follow: false },
 };
 
@@ -61,7 +61,7 @@ export default async function CompanySubscriptionPage({ params, searchParams }: 
         <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">Settings</p>
         <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Workspace subscription</h1>
         <p className="mt-2 text-sm text-slate-500">
-          Manage your FaraiOS platform plan and monthly billing.
+          Manage your Shalean platform plan and monthly billing.
         </p>
       </header>
 

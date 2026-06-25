@@ -6,9 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 import { MarketplaceDirectory } from "@/components/marketplace/marketplace-directory";
 
 export const metadata = {
-  title: "Marketplace — FaraiOS",
+  title: "Marketplace — Shalean",
   description:
-    "Discover local service businesses on FaraiOS. View their websites and book services online.",
+    "Discover local service businesses on Shalean. View their websites and book services online.",
 };
 
 export const dynamic = "force-dynamic";

@@ -2,19 +2,24 @@ import type { PricingPlanSlug } from "@/lib/data/pricing";
 
 export const HERO_BADGE = "Business OS for local service teams";
 
-export const HERO_HEADLINE_PREFIX = "The Business Operating System for";
-export const HERO_HEADLINE_EMPHASIS = "Service Businesses";
+export const HERO_HEADLINE = "The best booking experience for home service businesses";
 
 export const HERO_SUBHEADLINE =
-  "Manage bookings, customers, payments, websites, SEO, marketing, and your team from one connected workspace.";
+  "Shalean helps you take bookings online, manage your team in the field, and get paid — all from one connected workspace built for South African service businesses.";
 
+export const HERO_TRUST_LINE = "Free setup. Cancel anytime. No hidden fees.";
+
+/** @deprecated Use HERO_HEADLINE — kept for other pages still on the old hero copy */
+export const HERO_HEADLINE_PREFIX = "The Business Operating System for";
+/** @deprecated Use HERO_HEADLINE */
+export const HERO_HEADLINE_EMPHASIS = "Service Businesses";
+
+/** @deprecated */
 export const HERO_BULLETS = [
   "Booking, CRM, payments, and marketing in one place",
   "Connect an existing website or add one later",
   "Built for cleaning, beauty, tourism, tech, trades, and more",
 ] as const;
-
-export const HERO_TRUST_LINE = "Free setup. Cancel anytime. No hidden fees.";
 
 export type SocialProofStat = {
   value: string;
@@ -37,6 +42,126 @@ export const CLIENT_EXAMPLES = [
 
 export const SOCIAL_PROOF_TAGLINE =
   "Designed to power service businesses across cleaning, beauty, technology, tourism, and more.";
+
+export const SOCIAL_PROOF_HEADLINE = "Trusted by service businesses across South Africa";
+
+export const SOCIAL_PROOF_LOGOS = [
+  "Shalean Cleaning Services",
+  "Luxury M Spa",
+  "MakTech",
+  "Afrika Tour",
+  "Greenview Ltd",
+  "ProFix Electrical",
+] as const;
+
+export type EverythingFeature = {
+  title: string;
+  description: string;
+};
+
+export const EVERYTHING_FEATURES: EverythingFeature[] = [
+  {
+    title: "Online booking",
+    description: "Let customers book 24/7 from your website or a shareable link.",
+  },
+  {
+    title: "Team scheduling",
+    description: "Assign jobs, manage calendars, and keep your crew on the same page.",
+  },
+  {
+    title: "Quotes & invoices",
+    description: "Send professional quotes and collect payments without switching tools.",
+  },
+  {
+    title: "Customer CRM",
+    description: "Track every client, job history, and follow-up in one place.",
+  },
+  {
+    title: "Website & SEO",
+    description: "Connect your site or launch one — with hosting and SEO built in.",
+  },
+  {
+    title: "Reports & insights",
+    description: "See revenue, bookings, and business health at a glance.",
+  },
+];
+
+export type FeatureGridItem = {
+  title: string;
+  description: string;
+  accent: "green" | "blue" | "cream" | "slate";
+};
+
+export const FEATURE_GRID_ITEMS: FeatureGridItem[] = [
+  {
+    title: "Smart booking forms",
+    description:
+      "Customisable forms that capture the right details for every service type — synced straight to your dashboard.",
+    accent: "green",
+  },
+  {
+    title: "Calendar & dispatch",
+    description:
+      "See every job on one calendar. Drag, assign, and notify your team in seconds.",
+    accent: "blue",
+  },
+  {
+    title: "Payments & invoicing",
+    description:
+      "Send invoices, track payments, and reconcile revenue without leaving Shalean.",
+    accent: "cream",
+  },
+  {
+    title: "Growth tools",
+    description:
+      "SEO, reviews, campaigns, and marketing — built in when you're ready to scale.",
+    accent: "slate",
+  },
+];
+
+export type MobileFeatureSection = {
+  title: string;
+  description: string;
+  bullets: readonly string[];
+  reversed?: boolean;
+};
+
+export const MOBILE_FEATURE_SECTIONS: MobileFeatureSection[] = [
+  {
+    title: "Schedule and dispatch with ease",
+    description:
+      "Assign jobs to the right team member, see availability at a glance, and keep everyone aligned — from the office or on the go.",
+    bullets: ["Drag-and-drop calendar", "Staff availability", "Job notifications"],
+  },
+  {
+    title: "Online booking that works on all devices",
+    description:
+      "Your customers can book from any phone, tablet, or desktop. Shalean booking pages look great and load fast everywhere.",
+    bullets: ["Mobile-first booking pages", "Shareable booking links", "Embed on your website"],
+    reversed: true,
+  },
+  {
+    title: "Keep your team connected in the field",
+    description:
+      "Give your crew the information they need — job details, customer notes, and updates — without endless phone calls.",
+    bullets: ["Job details on mobile", "Customer history", "Real-time status updates"],
+  },
+];
+
+export const TESTIMONIAL = {
+  quote:
+    "Shalean replaced three different tools we were juggling. Bookings, invoicing, and our team calendar are finally in one place — and our customers love the online booking.",
+  name: "Thabo M.",
+  role: "Owner, Shalean Cleaning Services",
+  initials: "TM",
+} as const;
+
+export const PAYMENTS_FEATURES = [
+  "Send quotes and invoices in minutes",
+  "Track payments and outstanding balances",
+  "Revenue reports and business health scores",
+  "Connect your existing payment flow",
+] as const;
 
 export type HowItWorksStep = {
   step: string;
@@ -221,7 +346,7 @@ export const WEBSITE_HOSTING_TITLE =
   "Already have a website? Connect it. Need one? We can build it.";
 
 export const WEBSITE_HOSTING_DESCRIPTION =
-  "FaraiOS works behind your website. You can connect an existing website, use a custom website built for your business, or host a website through FaraiOS.";
+  "Shalean works behind your website. You can connect an existing website, use a custom website built for your business, or host a website through Shalean.";
 
 export const WEBSITE_HOSTING_CARDS: WebsiteHostingCard[] = [
   {
@@ -234,7 +359,7 @@ export const WEBSITE_HOSTING_CARDS: WebsiteHostingCard[] = [
   },
   {
     title: "Host your business website",
-    description: "Launch a professional site hosted and managed through FaraiOS.",
+    description: "Launch a professional site hosted and managed through Shalean.",
     href: "/hosting",
   },
   {

@@ -277,7 +277,7 @@ export function CompanyHostingClient({
                 {company.name}
               </h1>
               <p className="mt-2 text-sm text-slate-500">
-                Manage your FaraiOS cloud hosting subscription
+                Manage your Shalean cloud hosting subscription
               </p>
             </div>
             {subscription ? (
@@ -389,7 +389,7 @@ export function CompanyHostingClient({
             <motion.section variants={fadeUp} className="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
               <h2 className="text-lg font-bold text-slate-900">Connect custom domain</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Point your domain&apos;s DNS to FaraiOS hosting. Add the records below at your
+                Point your domain&apos;s DNS to Shalean hosting. Add the records below at your
                 registrar, then click <strong>Verify DNS</strong>.
               </p>
               <form onSubmit={onConnectDomain} className="mt-4 flex flex-col gap-2 sm:flex-row">
@@ -557,7 +557,7 @@ export function CompanyHostingClient({
               </h2>
               <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
                 Choose a hosting plan and pay securely with Paystack to activate
-                your FaraiOS cloud hosting.
+                your Shalean cloud hosting.
               </p>
             </div>
 

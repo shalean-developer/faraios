@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CompanyReviewsClient } from "./company-reviews-client";
 
 export const metadata = {
-  title: "Reviews — FaraiOS",
+  title: "Reviews — Shalean",
   robots: { index: false, follow: false },
 };
 

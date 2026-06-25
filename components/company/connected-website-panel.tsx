@@ -129,7 +129,7 @@ export function ConnectedWebsitePanel({
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h3 className="font-semibold text-slate-900">Connect your existing site</h3>
       <p className="mt-1 text-sm text-slate-500">
-        Option A — connect a custom website built outside FaraiOS using your business ID,
+        Option A — connect a custom website built outside Shalean using your business ID,
         public API, booking widget, and tracking script.
       </p>
 

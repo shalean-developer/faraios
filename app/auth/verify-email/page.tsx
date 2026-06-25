@@ -8,8 +8,8 @@ import { safeNextPath } from "@/lib/auth/safe-next-path";
 import { VerifyEmailActions } from "./verify-email-actions";
 
 export const metadata: Metadata = {
-  title: "Verify Email | FaraiOS",
-  description: "Confirm your email to activate your FaraiOS workspace.",
+  title: "Verify Email | Shalean",
+  description: "Confirm your email to activate your Shalean workspace.",
 };
 
 export default async function VerifyEmailPage({

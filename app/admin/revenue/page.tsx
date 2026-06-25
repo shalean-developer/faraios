@@ -2,7 +2,7 @@ import { FaraiAdminRevenue } from "@/components/admin/farai-admin-revenue";
 import { getPlatformRevenueData } from "@/lib/services/admin";
 
 export const metadata = {
-  title: "Revenue — FaraiOS Admin",
+  title: "Revenue — Shalean Admin",
   robots: { index: false, follow: false },
 };
 

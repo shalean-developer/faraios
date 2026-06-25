@@ -17,7 +17,7 @@ import type { WebsiteDeployment } from "@/types/website-engine";
 import { cn } from "@/lib/utils";
 
 export const metadata = {
-  title: "Deployments — FaraiOS",
+  title: "Deployments — Shalean",
   robots: { index: false, follow: false },
 };
 
@@ -77,7 +77,7 @@ export default async function CompanyWebsiteHostingPage({ params }: Props) {
       <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-violet-600">Website</p>
       <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Deployments</h1>
       <p className="mt-2 text-sm text-slate-500">
-        Deployment status, hosting provider, and environment settings for FaraiOS-hosted websites.
+        Deployment status, hosting provider, and environment settings for Shalean-hosted websites.
       </p>
 
       <div className="mt-6">
@@ -104,7 +104,7 @@ export default async function CompanyWebsiteHostingPage({ params }: Props) {
         </div>
 
         {hostedProperties.length === 0 ? (
-          <p className="text-sm text-slate-500">No FaraiOS-hosted websites yet.</p>
+          <p className="text-sm text-slate-500">No Shalean-hosted websites yet.</p>
         ) : (
           <div className="space-y-4">
             {hostedProperties.map((property) => {

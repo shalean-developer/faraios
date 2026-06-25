@@ -10,8 +10,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const ctx = await getTenantContext();
   if (ctx.mainHost) {
     return {
-      title: "Contact — FaraiOS",
-      description: "Contact the FaraiOS team for onboarding and support.",
+      title: "Contact — Shalean",
+      description: "Contact the Shalean team for onboarding and support.",
     };
   }
   return getTenantMetadata("contact");

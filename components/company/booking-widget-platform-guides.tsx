@@ -40,7 +40,7 @@ export function BookingWidgetPlatformGuides({
       <div>
         <h4 className="text-sm font-semibold text-slate-900">Install on your website builder</h4>
         <p className="mt-1 text-sm text-slate-500">
-          FaraiOS works with popular website builders and custom-coded sites. Copy the embed
+          Shalean works with popular website builders and custom-coded sites. Copy the embed
           snippets above, then follow the guide for your platform.
         </p>
       </div>
@@ -124,7 +124,7 @@ export function BookingWidgetPlatformGuides({
       <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-700">
         <p className="font-medium text-slate-900">Optional: hosted booking page</p>
         <p className="mt-1 text-slate-600">
-          Prefer not to embed? Link a &quot;Book now&quot; button to FaraiOS instead:
+          Prefer not to embed? Link a &quot;Book now&quot; button to Shalean instead:
         </p>
         <a
           href={hostedBookUrl}
@@ -151,7 +151,7 @@ export function BookingWidgetPlatformGuides({
 
       <p className="text-xs text-slate-500">
         After publishing, open your live booking page and submit a test request. It should appear
-        under Bookings in your FaraiOS dashboard within a few seconds.
+        under Bookings in your Shalean dashboard within a few seconds.
       </p>
     </div>
   );

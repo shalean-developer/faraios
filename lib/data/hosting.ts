@@ -29,7 +29,7 @@ export const hostingPlans: HostingPlanRecord[] = [
       "5 GB bandwidth / month",
       "5 GB SSD storage",
       "Free SSL certificate",
-      "FaraiOS subdomain",
+      "Shalean subdomain",
       "Daily backups",
     ],
     is_popular: false,
@@ -132,15 +132,15 @@ export type HostingFaqItem = {
 export const hostingFaqItems: HostingFaqItem[] = [
   {
     id: "hosting-faq-1",
-    question: "What is included with FaraiOS hosting?",
+    question: "What is included with Shalean hosting?",
     answer:
-      "Every hosting plan includes secure cloud infrastructure on Vercel, free SSL certificates, daily backups, and a FaraiOS subdomain. Higher tiers add custom domains, more bandwidth, and priority support.",
+      "Every hosting plan includes secure cloud infrastructure on Vercel, free SSL certificates, daily backups, and a Shalean subdomain. Higher tiers add custom domains, more bandwidth, and priority support.",
   },
   {
     id: "hosting-faq-2",
     question: "Can I use my own domain?",
     answer:
-      "Yes. Shared Pro and above support custom domains. After purchase, connect your domain in the hosting dashboard and point your DNS to FaraiOS — we handle SSL automatically.",
+      "Yes. Shared Pro and above support custom domains. After purchase, connect your domain in the hosting dashboard and point your DNS to Shalean — we handle SSL automatically.",
   },
   {
     id: "hosting-faq-3",
@@ -150,9 +150,9 @@ export const hostingFaqItems: HostingFaqItem[] = [
   },
   {
     id: "hosting-faq-4",
-    question: "Can I host sites built outside FaraiOS?",
+    question: "Can I host sites built outside Shalean?",
     answer:
-      "Hosting plans are optimized for FaraiOS-built websites. You can also host static sites and connect existing domains through the hosting dashboard.",
+      "Hosting plans are optimized for Shalean-built websites. You can also host static sites and connect existing domains through the hosting dashboard.",
   },
   {
     id: "hosting-faq-5",

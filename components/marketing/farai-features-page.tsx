@@ -26,7 +26,7 @@ export function FaraiFeaturesPage() {
               </h1>
               <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-gray-600">
                 Bookings, customers, payments, websites, SEO, marketing, and team
-                tools — connected in one FaraiOS workspace.
+                tools — connected in one Shalean workspace.
               </p>
             </motion.div>
           </div>

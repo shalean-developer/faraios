@@ -81,7 +81,7 @@ export function CompanySupportDetailClient({
           <h2 className="text-sm font-bold text-slate-900">Conversation</h2>
         </div>
         {ticket.messages.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-slate-500">No replies yet. The FaraiOS team will respond here.</p>
+          <p className="px-5 py-8 text-sm text-slate-500">No replies yet. The Shalean team will respond here.</p>
         ) : (
           <ul className="divide-y divide-slate-100">
             {ticket.messages.map((message) => (

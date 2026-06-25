@@ -4,7 +4,7 @@
 
   var businessId = script.getAttribute("data-business-id");
   if (!businessId) {
-    console.error("[FaraiOS] data-business-id is required on tracking script.");
+    console.error("[Shalean] data-business-id is required on tracking script.");
     return;
   }
 
@@ -58,7 +58,9 @@
 
   track("page_visit");
 
-  window.FaraiOS = window.FaraiOS || {};
-  window.FaraiOS.track = track;
-  window.FaraiOS.businessId = businessId;
+  window.Shalean = window.Shalean || {};
+  window.Shalean.track = track;
+  window.Shalean.businessId = businessId;
+  // Legacy embed alias — keep for existing customer sites
+  window.FaraiOS = window.FaraiOS || window.Shalean;
 })();

@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FaraiOS — Done-For-You Websites",
+  title: "Shalean — Business OS for Service Businesses",
   description:
-    "We design, build, and launch your website while you focus on your business. Professional results. Zero technical hassle.",
+    "Manage bookings, customers, payments, websites, and your team from one connected workspace built for local service businesses.",
   icons: {
     icon: [
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },

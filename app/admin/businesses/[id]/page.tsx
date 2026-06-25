@@ -6,7 +6,7 @@ import {
 } from "@/lib/services/admin";
 
 export const metadata = {
-  title: "Business Details — FaraiOS Admin",
+  title: "Business Details — Shalean Admin",
   robots: { index: false, follow: false },
 };
 

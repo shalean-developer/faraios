@@ -333,7 +333,7 @@ export function OnboardingForm({
           </h2>
           <p className="text-sm text-muted-foreground">
             {step === "business"
-              ? "Create your FaraiOS workspace. You can add services, customers, and bookings right away."
+              ? "Create your Shalean workspace. You can add services, customers, and bookings right away."
               : step === "website"
                 ? "Tell us about a website build if you want Farai to create one. You can skip this and connect your own site later."
                 : "Confirm your details before we create your workspace."}

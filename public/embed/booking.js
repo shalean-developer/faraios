@@ -5,13 +5,13 @@
     script = embedScripts.length ? embedScripts[embedScripts.length - 1] : null;
   }
   if (!script) {
-    console.error("[FaraiOS] booking.js could not find its script tag.");
+    console.error("[Shalean] booking.js could not find its script tag.");
     return;
   }
 
   var businessId = script.getAttribute("data-business-id");
   if (!businessId) {
-    console.error("[FaraiOS] data-business-id is required.");
+    console.error("[Shalean] data-business-id is required.");
     return;
   }
 
@@ -264,14 +264,14 @@
       if (!formResult.ok) throw new Error(formResult.error || "Form not available.");
       var services = servicesResult && servicesResult.ok ? servicesResult.services || [] : [];
       if (servicesResult && !servicesResult.ok) {
-        console.warn("[FaraiOS] Services could not be loaded:", servicesResult.error);
+        console.warn("[Shalean] Services could not be loaded:", servicesResult.error);
       }
       renderForm(formResult.form, services);
       trackEvent("booking_form_view");
     })
     .catch(function (err) {
       container.innerHTML =
-        '<p style="color:#dc2626;font-family:system-ui,sans-serif">FaraiOS booking widget: ' +
+        '<p style="color:#dc2626;font-family:system-ui,sans-serif">Shalean booking widget: ' +
         (err.message || "Failed to load") +
         "</p>";
     });

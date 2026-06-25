@@ -29,7 +29,7 @@ export function FaraiIndustriesPage({ highlightSlug }: Props) {
                 Built for how your industry works
               </h1>
               <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-gray-600">
-                FaraiOS ships with presets for cleaning, beauty, tourism, technology,
+                Shalean ships with presets for cleaning, beauty, tourism, technology,
                 trades, and more — so your workspace matches your business from day one.
               </p>
               {highlighted ? (
@@ -50,7 +50,7 @@ export function FaraiIndustriesPage({ highlightSlug }: Props) {
                 Don&apos;t see your industry?
               </h2>
               <p className="mb-8 text-base text-gray-600">
-                FaraiOS is flexible enough for most local service businesses. Start
+                Shalean is flexible enough for most local service businesses. Start
                 your workspace and customize services, pages, and workflows to fit.
               </p>
               <Link

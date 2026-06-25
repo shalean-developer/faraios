@@ -2,7 +2,7 @@ import { FaraiAdminSupport } from "@/components/admin/farai-admin-support";
 import { getAdminSupportData } from "@/lib/services/admin";
 
 export const metadata = {
-  title: "Support — FaraiOS Admin",
+  title: "Support — Shalean Admin",
   robots: { index: false, follow: false },
 };
 

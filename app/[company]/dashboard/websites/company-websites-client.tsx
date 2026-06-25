@@ -103,7 +103,7 @@ export function CompanyWebsitesClient({
     {
       label: "Hosted sites",
       value: String(summary.hostedCount),
-      hint: summary.hostedCount ? "Managed in FaraiOS" : "Create or connect a site",
+      hint: summary.hostedCount ? "Managed in Shalean" : "Create or connect a site",
     },
     {
       label: "Domains",
@@ -138,7 +138,7 @@ export function CompanyWebsitesClient({
           </p>
           <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Overview</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Connect an external site, host on FaraiOS, or track a done-for-you build — domains,
+            Connect an external site, host on Shalean, or track a done-for-you build — domains,
             API keys, and analytics live in one hub.
           </p>
         </div>
@@ -212,7 +212,7 @@ export function CompanyWebsitesClient({
               <Globe className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-slate-900">Hosted on FaraiOS</p>
+              <p className="font-semibold text-slate-900">Hosted on Shalean</p>
               <p className="mt-0.5 text-sm text-slate-500">
                 Launch a template-based site managed in your dashboard.
               </p>
@@ -243,7 +243,7 @@ export function CompanyWebsitesClient({
         <div className="space-y-8">
           <SectionCard
             title="Hosted websites"
-            description="FaraiOS-managed sites created from your workspace templates."
+            description="Shalean-managed sites created from your workspace templates."
           >
             {websites.length ? (
               <div className="-mx-5 -mb-5 overflow-hidden">

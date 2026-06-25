@@ -283,13 +283,13 @@ export const faqItems: FaqItemRecord[] = [
     id: "faq-1",
     question: "Do I need a website?",
     answer:
-      "No. You can use FaraiOS as your business workspace without purchasing a website.",
+      "No. You can use Shalean as your business workspace without purchasing a website.",
   },
   {
     id: "faq-2",
     question: "Can I connect my existing website?",
     answer:
-      "Yes. FaraiOS can connect to an existing website and manage bookings, customers, leads, and payments.",
+      "Yes. Shalean can connect to an existing website and manage bookings, customers, leads, and payments.",
   },
   {
     id: "faq-3",
@@ -305,9 +305,9 @@ export const faqItems: FaqItemRecord[] = [
   },
   {
     id: "faq-5",
-    question: "What is FaraiOS?",
+    question: "What is Shalean?",
     answer:
-      "FaraiOS is a Business Operating System for service businesses. It helps you manage bookings, customers, quotes, invoices, payments, websites, SEO, marketing, and your team from one workspace.",
+      "Shalean is a Business Operating System for service businesses. It helps you manage bookings, customers, quotes, invoices, payments, websites, SEO, marketing, and your team from one workspace.",
   },
 ];
 

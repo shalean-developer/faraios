@@ -416,7 +416,7 @@ export function CompanySubscriptionClient({
           <Link href={companyHostingPath(slug)} className="font-medium text-violet-700 hover:text-violet-900">
             hosting plan
           </Link>
-          . This page covers your FaraiOS workspace subscription only.
+          . This page covers your Shalean workspace subscription only.
         </p>
       </section>
     </div>

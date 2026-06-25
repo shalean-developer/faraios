@@ -34,7 +34,7 @@ export function SubscriptionBanner({
             <div>
               <p className="font-semibold">Activate your workspace</p>
               <p className="text-amber-900/90">
-                Complete payment to unlock FaraiOS features.
+                Complete payment to unlock Shalean features.
               </p>
             </div>
           </div>

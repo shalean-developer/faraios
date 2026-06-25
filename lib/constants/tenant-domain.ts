@@ -1,4 +1,4 @@
-/** Default tenant subdomain suffix for FaraiOS-hosted preview URLs. */
+/** Default tenant subdomain suffix for Shalean-hosted preview URLs. */
 export const FARAIOS_TENANT_DOMAIN_SUFFIX =
   process.env.NEXT_PUBLIC_FARAIOS_TENANT_DOMAIN_SUFFIX ?? "faraios.com";
 

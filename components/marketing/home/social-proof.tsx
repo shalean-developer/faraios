@@ -4,45 +4,34 @@ import { motion } from "framer-motion";
 
 import { fadeUp, sectionScrollClass, stagger } from "@/components/marketing/home/motion";
 import {
-  CLIENT_EXAMPLES,
-  SOCIAL_PROOF_STATS,
-  SOCIAL_PROOF_TAGLINE,
+  SOCIAL_PROOF_HEADLINE,
+  SOCIAL_PROOF_LOGOS,
 } from "@/lib/data/home-marketing";
 
 export function SocialProof() {
   return (
-    <section className={`border-y border-gray-100 bg-white px-4 py-16 sm:px-6 lg:px-8 ${sectionScrollClass}`}>
+    <section
+      className={`border-y border-slate-100 bg-white px-4 py-10 sm:px-6 lg:px-8 ${sectionScrollClass}`}
+    >
       <div className="mx-auto max-w-6xl">
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
           variants={stagger}
+          className="text-center"
         >
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {SOCIAL_PROOF_STATS.map((stat) => (
-              <motion.div key={stat.label} variants={fadeUp} className="text-center">
-                <p className="text-3xl font-extrabold text-violet-600">{stat.value}</p>
-                <p className="mt-1 text-sm text-gray-600">{stat.label}</p>
-              </motion.div>
-            ))}
-          </div>
-
-          <motion.p
-            variants={fadeUp}
-            className="mt-10 text-center text-sm leading-relaxed text-gray-500"
-          >
-            {SOCIAL_PROOF_TAGLINE}
+          <motion.p variants={fadeUp} className="text-sm font-medium text-slate-500">
+            {SOCIAL_PROOF_HEADLINE}
           </motion.p>
-
           <motion.div
             variants={fadeUp}
-            className="mt-6 flex flex-wrap items-center justify-center gap-3"
+            className="mt-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-4"
           >
-            {CLIENT_EXAMPLES.map((name) => (
+            {SOCIAL_PROOF_LOGOS.map((name) => (
               <span
                 key={name}
-                className="rounded-full border border-violet-100 bg-violet-50 px-4 py-1.5 text-sm font-medium text-violet-700"
+                className="text-base font-bold tracking-tight text-slate-300 transition-colors hover:text-slate-400"
               >
                 {name}
               </span>

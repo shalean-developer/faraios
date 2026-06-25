@@ -67,7 +67,7 @@ export function WebsiteTrackingClient({
           </ul>
           <p className="mt-3 text-xs text-slate-500">
             UTM parameters and referrer are captured automatically. Use{" "}
-            <code className="rounded bg-white px-1">window.FaraiOS.track(&apos;event_type&apos;)</code>{" "}
+            <code className="rounded bg-white px-1">window.Shalean.track(&apos;event_type&apos;)</code>{" "}
             for custom events.
           </p>
         </div>

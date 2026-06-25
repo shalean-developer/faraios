@@ -70,14 +70,14 @@ export function MarketplaceDirectory({
       <main className="mx-auto w-full max-w-6xl px-4 pb-8 pt-24 sm:px-6 lg:px-8">
         <motion.section initial="hidden" animate="visible" variants={fadeUp} className="mb-10">
           <p className="text-sm font-semibold uppercase tracking-widest text-violet-600">
-            FaraiOS Marketplace
+            Shalean Marketplace
           </p>
           <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
             Find trusted local services
           </h1>
           <p className="mt-3 max-w-2xl text-base text-gray-500">
-            Browse businesses hosted on FaraiOS, view their sites, and book services directly.
-            Each business has a unique site built and maintained by FaraiOS.
+            Browse businesses hosted on Shalean, view their sites, and book services directly.
+            Each business has a unique site built and maintained by Shalean.
           </p>
         </motion.section>
 
@@ -116,14 +116,14 @@ export function MarketplaceDirectory({
             <h2 className="text-lg font-bold text-gray-900">No listings yet</h2>
             <p className="mt-2 text-sm text-gray-500">
               {listings.length === 0
-                ? "Businesses appear here once FaraiOS publishes them to the marketplace."
+                ? "Businesses appear here once Shalean publishes them to the marketplace."
                 : "Try a different search or industry filter."}
             </p>
             <Link
               href="/pricing"
               className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-violet-700 hover:text-violet-900"
             >
-              List your business on FaraiOS
+              List your business on Shalean
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -164,7 +164,7 @@ export function MarketplaceDirectory({
                     </div>
                   </div>
                   <p className="line-clamp-3 text-sm leading-relaxed text-gray-500">
-                    {listing.summary ?? listing.seoDescription ?? "Professional services on FaraiOS."}
+                    {listing.summary ?? listing.seoDescription ?? "Professional services on Shalean."}
                   </p>
                   <div className="flex flex-wrap gap-2 pt-1">
                     <Link

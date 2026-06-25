@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import { FaraiContactPage } from "@/components/marketing/farai-contact-page";
 
 export const metadata: Metadata = {
-  title: "Contact — FaraiOS",
+  title: "Contact — Shalean",
   description:
-    "Contact the FaraiOS team for onboarding help, pricing questions, and workspace support.",
+    "Contact the Shalean team for onboarding help, pricing questions, and workspace support.",
 };
 
 export default function PlatformContactPage() {

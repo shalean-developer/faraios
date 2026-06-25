@@ -18,7 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = {
-  title: "SEO — FaraiOS",
+  title: "SEO — Shalean",
   robots: { index: false, follow: false },
 };
 

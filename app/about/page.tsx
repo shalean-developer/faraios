@@ -10,9 +10,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const ctx = await getTenantContext();
   if (ctx.mainHost) {
     return {
-      title: "About — FaraiOS",
+      title: "About — Shalean",
       description:
-        "FaraiOS is the business operating system for local service teams.",
+        "Shalean is the business operating system for local service teams.",
     };
   }
   return getTenantMetadata("about");

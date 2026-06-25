@@ -22,7 +22,6 @@ import {
 
 import { createCompanyFromOnboarding } from "@/app/actions/onboarding";
 import { DualHero } from "@/components/marketing/dual-hero";
-import { DashboardPreview } from "@/components/marketing/home/dashboard-preview";
 import { HomeMarketingSections } from "@/components/marketing/home-sections";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
@@ -114,7 +113,6 @@ const LandingScreen = ({
 }) => (
   <div className="min-h-screen bg-white">
     <DualHero onGetStarted={onGetStarted} />
-    <DashboardPreview />
     <HomeMarketingSections onGetStarted={onGetStarted} />
     <MarketingFooter />
   </div>

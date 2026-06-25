@@ -2,7 +2,7 @@ import { FaraiClientManagement } from "@/components/admin/farai-client-managemen
 import { getAdminClients } from "@/lib/services/admin";
 
 export const metadata = {
-  title: "Businesses — FaraiOS Admin",
+  title: "Businesses — Shalean Admin",
   robots: { index: false, follow: false },
 };
 

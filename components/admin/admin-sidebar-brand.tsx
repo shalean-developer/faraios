@@ -8,9 +8,9 @@ export function AdminSidebarBrand() {
       <Link
         href="/admin"
         className="inline-flex rounded-lg border border-slate-700/50 bg-white px-2.5 py-1.5 transition-opacity hover:opacity-90"
-        aria-label="FaraiOS admin home"
+        aria-label="Shalean admin home"
       >
-        <FaraiLogo size="sm" priority imageClassName="max-w-[132px]" />
+        <FaraiLogo size="sm" priority />
       </Link>
     </div>
   );

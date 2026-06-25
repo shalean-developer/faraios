@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-import { DashboardModules } from "@/components/marketing/home/dashboard-modules";
-import { EverythingIncluded } from "@/components/marketing/home/everything-included";
+import { BookingSystemSection } from "@/components/marketing/home/booking-system-section";
+import { ComparisonSection } from "@/components/marketing/home/comparison-section";
+import { EverythingFeatureSection } from "@/components/marketing/home/everything-feature-section";
+import { FeatureGridSection } from "@/components/marketing/home/feature-grid-section";
 import { FinalCta } from "@/components/marketing/home/final-cta";
-import { HomeFaq } from "@/components/marketing/home/home-faq";
-import { HowItWorks } from "@/components/marketing/home/how-it-works";
 import { IndustriesSection } from "@/components/marketing/home/industries-section";
-import { PricingPreview } from "@/components/marketing/home/pricing-preview";
+import { MobileFeaturesSection } from "@/components/marketing/home/mobile-features-section";
+import { PaymentsSection } from "@/components/marketing/home/payments-section";
 import { SocialProof } from "@/components/marketing/home/social-proof";
-import { WebsiteHosting } from "@/components/marketing/home/website-hosting";
+import { TestimonialSection } from "@/components/marketing/home/testimonial-section";
 
 type HomeMarketingSectionsProps = {
   onGetStarted: () => void;
@@ -21,21 +22,22 @@ export function HomeMarketingSections({ onGetStarted }: HomeMarketingSectionsPro
   return (
     <>
       <SocialProof />
-      <HowItWorks />
-      <EverythingIncluded />
-      <DashboardModules />
+      <EverythingFeatureSection />
+      <ComparisonSection />
+      <BookingSystemSection />
+      <FeatureGridSection />
+      <TestimonialSection />
+      <MobileFeaturesSection />
+      <PaymentsSection />
       <IndustriesSection />
-      <WebsiteHosting />
-      <PricingPreview />
-      <HomeFaq />
-      <section className="border-t border-gray-100 bg-white px-4 py-10 sm:px-6 lg:px-8">
-        <p className="mx-auto max-w-xl text-center text-sm text-gray-500">
+      <section className="border-t border-slate-100 bg-white px-4 py-10 sm:px-6 lg:px-8">
+        <p className="mx-auto max-w-xl text-center text-sm text-slate-500">
           Looking to book a local service?{" "}
           <Link
             href="/marketplace"
-            className="font-semibold text-violet-600 transition-colors hover:text-violet-800"
+            className="font-semibold text-emerald-600 transition-colors hover:text-emerald-800"
           >
-            Browse the FaraiOS marketplace
+            Browse the Shalean marketplace
             <ArrowRight className="ml-0.5 inline h-3.5 w-3.5" />
           </Link>
         </p>

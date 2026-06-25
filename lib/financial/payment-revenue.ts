@@ -1,5 +1,5 @@
 /**
- * Canonical revenue source for FaraiOS dashboards: paid customer_payments.
+ * Canonical revenue source for Shalean dashboards: paid customer_payments.
  * Booking price_cents is operational estimate only — not used for financial KPIs.
  */
 

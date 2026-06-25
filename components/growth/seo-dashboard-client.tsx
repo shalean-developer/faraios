@@ -334,7 +334,7 @@ export function SeoDashboardClient({
           {websites.length > 0 ? (
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">Website SEO</h2>
-              <p className="mt-1 text-sm text-slate-500">Meta tags for FaraiOS-hosted websites.</p>
+              <p className="mt-1 text-sm text-slate-500">Meta tags for Shalean-hosted websites.</p>
               {websites.map((site) => (
                 <WebsiteSeoForm
                   key={site.id}

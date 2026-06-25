@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CompanyLeadsClient } from "./company-leads-client";
 
 export const metadata = {
-  title: "Leads — FaraiOS",
+  title: "Leads — Shalean",
   robots: { index: false, follow: false },
 };
 
