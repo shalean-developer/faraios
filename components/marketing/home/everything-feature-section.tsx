@@ -74,11 +74,16 @@ export function EverythingFeatureSection() {
           whileInView="visible"
           viewport={{ once: true }}
           variants={fadeUp}
-          className="relative"
+          className="relative flex w-full items-center justify-center lg:justify-end"
         >
-          <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-blue-100/60 to-emerald-100/40 blur-2xl" />
-          <div className="relative max-w-md lg:ml-auto">
-            <BookingWidgetPreview />
+          <div className="relative w-full max-w-[22rem] px-1 sm:max-w-md sm:px-0">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -inset-3 rounded-3xl bg-gradient-to-br from-blue-100/60 to-emerald-100/40 blur-2xl sm:-inset-4"
+            />
+            <div className="relative">
+              <BookingWidgetPreview />
+            </div>
           </div>
         </motion.div>
       </div>

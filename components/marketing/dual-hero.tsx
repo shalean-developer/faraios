@@ -4,11 +4,7 @@ import { motion } from "framer-motion";
 import { BadgeCheck } from "lucide-react";
 
 import { EmailSignupForm } from "@/components/marketing/home/email-signup-form";
-import {
-  BrowserMockup,
-  MiniBookingScreen,
-  PhoneMockup,
-} from "@/components/marketing/home/ui-mockups";
+import { HeroVisualCollage } from "@/components/marketing/home/hero-visual-collage";
 import {
   HERO_HEADLINE,
   HERO_SUBHEADLINE,
@@ -69,45 +65,7 @@ export function DualHero({ onGetStarted }: Props) {
           transition={{ duration: 0.7, delay: 0.2 }}
           className="relative mx-auto w-full max-w-lg lg:max-w-none"
         >
-          <div className="relative grid grid-cols-2 gap-4">
-            <div className="space-y-4 pt-8">
-              <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-lg">
-                <div className="flex h-36 items-end p-4">
-                  <div className="rounded-lg bg-white/90 px-3 py-2 text-xs font-semibold text-slate-800 shadow">
-                    On-site service
-                  </div>
-                </div>
-              </div>
-              <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 shadow-lg">
-                <div className="flex h-28 items-end p-4">
-                  <div className="rounded-lg bg-white/90 px-3 py-2 text-xs font-semibold text-slate-800 shadow">
-                    Team in the field
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <PhoneMockup className="w-full max-w-[200px]">
-                <MiniBookingScreen />
-              </PhoneMockup>
-              <BrowserMockup title="book.yourbusiness.co.za" className="scale-95">
-                <div className="p-4">
-                  <p className="text-xs font-bold text-slate-900">Book a service</p>
-                  <div className="mt-2 space-y-2">
-                    <div className="h-8 rounded-lg bg-emerald-50 ring-1 ring-emerald-100" />
-                    <div className="h-8 rounded-lg bg-slate-50 ring-1 ring-slate-100" />
-                    <div className="h-8 rounded-lg bg-emerald-600" />
-                  </div>
-                </div>
-              </BrowserMockup>
-            </div>
-          </div>
-
-          <div className="absolute -bottom-4 -left-4 hidden rounded-2xl border border-white/80 bg-white p-3 shadow-xl lg:block">
-            <p className="text-xs font-semibold text-slate-900">12 bookings today</p>
-            <p className="text-[10px] text-emerald-600">+3 from yesterday</p>
-          </div>
+          <HeroVisualCollage />
         </motion.div>
       </div>
     </section>

@@ -27,7 +27,7 @@ function MobileScreenContent({ index }: { index: number }) {
   const screen = screens[index] ?? screens[0];
 
   return (
-    <div className="p-4">
+    <div className="flex h-full flex-col px-4 pb-5">
       <p className="text-xs font-bold text-slate-900">{screen.title}</p>
       <div className="mt-3 space-y-2">
         {screen.items.map((item) => (
@@ -39,8 +39,10 @@ function MobileScreenContent({ index }: { index: number }) {
           </div>
         ))}
       </div>
-      <div className="mt-4 rounded-xl bg-emerald-600 py-2 text-center text-xs font-semibold text-white">
-        Open in Shalean
+      <div className="mt-auto pt-8">
+        <div className="rounded-xl bg-emerald-600 py-2 text-center text-xs font-semibold text-white">
+          Open in Shalean
+        </div>
       </div>
     </div>
   );
