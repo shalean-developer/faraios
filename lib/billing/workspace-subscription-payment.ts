@@ -1,15 +1,25 @@
 import {
   normalizeBillingPlan,
   PAYSTACK_BASE_URL,
-  planAmountInKobo,
 } from "@/lib/billing/paystack";
+import {
+  getWorkspaceCheckoutBreakdown,
+  parsePaystackIncludeSetupFee,
+  resolveWorkspaceCheckoutIncludeSetupFee,
+  workspaceCheckoutAmountOptionsInKobo,
+} from "@/lib/billing/workspace-checkout";
 import {
   cancelV7Subscription,
   recordV7PaymentHistory,
   upsertV7Subscription,
 } from "@/lib/billing/v7-records";
 import { isSelfServePlan } from "@/lib/data/pricing";
+import { getWorkspaceSetupFeeEnabled } from "@/lib/billing/platform-billing-settings";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  isActiveSubscriptionStatus,
+  normalizeSubscriptionStatus,
+} from "@/lib/subscriptions/access";
 
 export type ActivateWorkspaceSubscriptionInput = {
   companyId: string;
@@ -19,6 +29,7 @@ export type ActivateWorkspaceSubscriptionInput = {
   reference?: string;
   paystackCustomerCode?: string;
   userId?: string | null;
+  includeSetupFee?: boolean;
 };
 
 export type ActivateWorkspaceSubscriptionResult =
@@ -38,6 +49,7 @@ type PaystackVerifyResponse = {
       product_type?: string;
       company_id?: string;
       plan?: string;
+      include_setup_fee?: boolean | string;
     };
   };
 };
@@ -62,7 +74,8 @@ async function updateCompanySubscription(
   const missingNewColumns =
     isMissingSchemaColumn(message, "subscription_started_at") ||
     isMissingSchemaColumn(message, "subscription_expires_at") ||
-    isMissingSchemaColumn(message, "paystack_customer_code");
+    isMissingSchemaColumn(message, "paystack_customer_code") ||
+    isMissingSchemaColumn(message, "setup_fee_paid_at");
 
   if (!missingNewColumns) {
     return { ok: false, error: message };
@@ -128,19 +141,12 @@ export async function activateWorkspaceSubscription(
   if (!isSelfServePlan(plan)) {
     return { ok: false, error: "Enterprise plans require a custom quote." };
   }
-  const expectedAmount = planAmountInKobo(plan);
-
-  if (expectedAmount <= 0) {
-    return { ok: false, error: "This plan cannot be purchased online." };
-  }
-
-  if (input.paidAmount !== expectedAmount) {
-    return { ok: false, error: "Payment amount mismatch." };
-  }
 
   const { data: company, error: companyError } = await admin
     .from("companies")
-    .select("subscription_status")
+    .select(
+      "subscription_status, subscription_started_at, subscription_expires_at, next_billing_date, created_at, setup_fee_waived, setup_fee_paid_at"
+    )
     .eq("id", input.companyId)
     .maybeSingle();
 
@@ -148,12 +154,103 @@ export async function activateWorkspaceSubscription(
     return { ok: false, error: companyError?.message ?? "Workspace not found." };
   }
 
-  if (company.subscription_status === "active") {
-    return { ok: true, alreadyActive: true };
+  const subscriptionActive = isActiveSubscriptionStatus(
+    normalizeSubscriptionStatus(company.subscription_status)
+  );
+  const setupFeeEnabled = await getWorkspaceSetupFeeEnabled();
+  const checkoutInput = {
+    plan,
+    setupFeeEnabled,
+    setupFeeWaived: company.setup_fee_waived === true,
+    setupFeePaid: Boolean(company.setup_fee_paid_at),
+    subscriptionActive,
+  };
+  const includeSetupFee = resolveWorkspaceCheckoutIncludeSetupFee({
+    metadataIncludeSetupFee:
+      input.includeSetupFee === true
+        ? true
+        : input.includeSetupFee === false
+          ? false
+          : undefined,
+    paidAmountKobo: input.paidAmount,
+    checkoutInput,
+  });
+  const validAmounts = workspaceCheckoutAmountOptionsInKobo(checkoutInput);
+
+  if (validAmounts.length === 0 || !validAmounts.includes(input.paidAmount)) {
+    return { ok: false, error: "Payment amount mismatch." };
+  }
+
+  const breakdown = getWorkspaceCheckoutBreakdown({
+    ...checkoutInput,
+    includeSetupFee,
+  });
+  if (breakdown.total <= 0) {
+    return { ok: false, error: "This plan cannot be purchased online." };
   }
 
   const expiresAt = new Date(input.paidAt);
   expiresAt.setDate(expiresAt.getDate() + 30);
+  const markSetupFeePaid =
+    breakdown.includeSetupFee && breakdown.setupFeeAmount > 0;
+
+  if (company.subscription_status === "active") {
+    const needsStarted = !company.subscription_started_at;
+    const needsRenewal =
+      !company.subscription_expires_at && !company.next_billing_date;
+
+    if (needsStarted || needsRenewal) {
+      const updatePayload: Record<string, unknown> = {};
+      if (needsStarted) {
+        updatePayload.subscription_started_at = input.paidAt.toISOString();
+      }
+      if (needsRenewal) {
+        updatePayload.subscription_expires_at = expiresAt.toISOString();
+        updatePayload.next_billing_date = expiresAt.toISOString();
+      }
+
+      const updateResult = await updateCompanySubscription(
+        admin,
+        input.companyId,
+        updatePayload
+      );
+      if (!updateResult.ok) {
+        return updateResult;
+      }
+    }
+
+    if (input.reference) {
+      await recordSubscriptionPayment(admin, {
+        companyId: input.companyId,
+        plan,
+        paidAmount: input.paidAmount,
+        paidAt: input.paidAt,
+        reference: input.reference,
+      });
+
+      await recordV7PaymentHistory({
+        companyId: input.companyId,
+        userId: input.userId,
+        plan,
+        amountCents: input.paidAmount,
+        status: "success",
+        reference: input.reference,
+        paidAt: input.paidAt,
+      });
+    }
+
+    await upsertV7Subscription({
+      companyId: input.companyId,
+      userId: input.userId,
+      plan,
+      status: "active",
+      paystackCustomerId: input.paystackCustomerCode,
+      periodStart: input.paidAt,
+      periodEnd: expiresAt,
+    });
+
+    return { ok: true, alreadyActive: true };
+  }
 
   const updatePayload: Record<string, unknown> = {
     plan,
@@ -165,6 +262,9 @@ export async function activateWorkspaceSubscription(
 
   if (input.paystackCustomerCode) {
     updatePayload.paystack_customer_code = input.paystackCustomerCode;
+  }
+  if (markSetupFeePaid) {
+    updatePayload.setup_fee_paid_at = input.paidAt.toISOString();
   }
 
   const updateResult = await updateCompanySubscription(
@@ -219,6 +319,7 @@ export async function verifyPaystackWorkspacePayment(
       paidAt: Date;
       paidAmount: number;
       paystackCustomerCode?: string;
+      includeSetupFee?: boolean;
     }
   | { ok: false; error: string }
 > {
@@ -273,6 +374,9 @@ export async function verifyPaystackWorkspacePayment(
     paidAt,
     paidAmount,
     paystackCustomerCode: payload.data.customer?.customer_code,
+    includeSetupFee: parsePaystackIncludeSetupFee(
+      payload.data.metadata?.include_setup_fee
+    ),
   };
 }
 
@@ -294,5 +398,6 @@ export async function confirmWorkspacePaymentFromReference(input: {
     paidAmount: verified.paidAmount,
     reference: input.reference,
     paystackCustomerCode: verified.paystackCustomerCode,
+    includeSetupFee: verified.includeSetupFee,
   });
 }
