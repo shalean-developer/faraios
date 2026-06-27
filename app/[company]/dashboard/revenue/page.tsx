@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { markOverdueInvoices } from "@/lib/services/invoices";
 import { listPaymentsForCompany } from "@/lib/services/payments";
+import { getRiseRevenuePageExtras } from "@/lib/services/rise-dashboard-data";
 import {
   getRevenueByPeriod,
   getRevenueMetrics,
@@ -27,10 +28,11 @@ export default async function CompanyRevenuePage({ params }: Props) {
 
   await markOverdueInvoices(row.id);
 
-  const [metrics, monthlyTrend, payments] = await Promise.all([
+  const [metrics, monthlyTrend, payments, extras] = await Promise.all([
     getRevenueMetrics(row.id),
     getRevenueByPeriod(row.id, "monthly", 6),
     listPaymentsForCompany(row.id),
+    getRiseRevenuePageExtras(row.id),
   ]);
 
   return (
@@ -39,6 +41,9 @@ export default async function CompanyRevenuePage({ params }: Props) {
       metrics={metrics}
       monthlyTrend={monthlyTrend}
       recentPayments={payments.slice(0, 8)}
+      invoiceBreakdown={extras.invoiceBreakdown}
+      invoiceMonthlyCents={extras.invoiceMonthlyCents}
+      incomeExpense={extras.incomeExpense}
     />
   );
 }
