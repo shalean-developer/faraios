@@ -8,6 +8,7 @@ import {
   normalizeBillingPlan,
 } from "@/lib/billing/paystack";
 import { activateHostingSubscription } from "@/lib/billing/hosting-subscription-payment";
+import { handleHostingOrderWebhook } from "@/lib/billing/hosting-order-payment";
 import { activateWorkspaceSubscription } from "@/lib/billing/workspace-subscription-payment";
 import { markPaymentPaid } from "@/lib/services/payments";
 import {
@@ -25,9 +26,11 @@ type PaystackEvent = {
       company_id?: string;
       plan?: string;
       invoice_id?: string;
+      order_id?: string;
       payment_id?: string;
       customer_id?: string;
       payment_type?: string;
+      include_setup_fee?: boolean | string;
     };
     paid_at?: string;
     reference?: string;
@@ -45,7 +48,8 @@ async function handleWebsiteSubscriptionPayment(
   paidAt: Date,
   reference: string | undefined,
   paidAmount: number,
-  paystackCustomerCode?: string
+  paystackCustomerCode?: string,
+  includeSetupFee?: boolean
 ) {
   const result = await activateWorkspaceSubscription({
     companyId,
@@ -54,6 +58,7 @@ async function handleWebsiteSubscriptionPayment(
     paidAmount,
     reference,
     paystackCustomerCode,
+    includeSetupFee,
   });
 
   if (!result.ok) {
@@ -74,8 +79,33 @@ async function handleHostingPayment(
   plan: string,
   paidAt: Date,
   reference: string | undefined,
-  paidAmount: number
+  paidAmount: number,
+  orderId?: string,
+  invoiceId?: string
 ) {
+  if (orderId || invoiceId) {
+    const orderResult = await handleHostingOrderWebhook({
+      companyId,
+      orderId,
+      invoiceId,
+      reference,
+      paidAt,
+      paidAmount,
+    });
+
+    if (!orderResult.ok) {
+      console.error("[paystack webhook] hosting order payment failed", orderResult.error);
+      return NextResponse.json({ ok: false, error: orderResult.error }, { status: 500 });
+    }
+
+    console.log("[paystack webhook] hosting order paid and provisioned", {
+      companyId,
+      orderId,
+      invoiceId,
+    });
+    return NextResponse.json({ ok: true });
+  }
+
   const result = await activateHostingSubscription({
     companyId,
     plan,
@@ -237,16 +267,33 @@ export async function POST(req: Request) {
 
   if (productType === "hosting") {
     const plan = normalizeHostingBillingPlan(payload.data?.metadata?.plan);
-    return handleHostingPayment(companyId, plan, paidAt, reference, paidAmount);
+    return handleHostingPayment(
+      companyId,
+      plan,
+      paidAt,
+      reference,
+      paidAmount,
+      payload.data?.metadata?.order_id,
+      payload.data?.metadata?.invoice_id
+    );
   }
 
   const plan = normalizeBillingPlan(payload.data?.metadata?.plan);
+  const includeSetupFee =
+    payload.data?.metadata?.include_setup_fee === false ||
+    payload.data?.metadata?.include_setup_fee === "false"
+      ? false
+      : payload.data?.metadata?.include_setup_fee === true ||
+          payload.data?.metadata?.include_setup_fee === "true"
+        ? true
+        : undefined;
   return handleWebsiteSubscriptionPayment(
     companyId,
     plan,
     paidAt,
     reference,
     paidAmount,
-    payload.data?.customer?.customer_code
+    payload.data?.customer?.customer_code,
+    includeSetupFee
   );
 }

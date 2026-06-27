@@ -23,6 +23,7 @@ export function mapWebsite(row: Record<string, unknown>): BuilderWebsite {
     og_description: (row.og_description as string) ?? null,
     og_image_url: (row.og_image_url as string) ?? (row.og_image as string) ?? null,
     booking_button_label: bookingLabel || "Book Now",
+    booking_enabled: row.booking_enabled !== false,
     published_at: (row.published_at as string) ?? null,
     created_at: row.created_at as string,
     updated_at: (row.updated_at as string) ?? (row.created_at as string),

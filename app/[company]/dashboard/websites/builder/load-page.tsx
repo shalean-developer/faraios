@@ -4,8 +4,15 @@ import { WebsiteBuilderClient, type BuilderSection } from "@/components/website-
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
 import { getBuilderDashboardData } from "@/lib/website-builder/service";
+import { getBlogDashboardData } from "@/lib/website-builder/blog";
+import { getBuilderAnalytics } from "@/lib/website-builder/analytics";
+import { listPublishSnapshots } from "@/lib/website-builder/publish-snapshots";
+import { listContentPosts, summarizeContentPosts } from "@/lib/services/content-posts";
 import { createClient } from "@/lib/supabase/server";
-import type { CompanyService } from "@/types/database";
+import type { WebsiteDomainDnsHelp } from "@/components/websites/website-domains-panel";
+import type { CompanyWithIndustry, CompanyService } from "@/types/database";
+import type { PublishSnapshotSummary } from "@/types/website-builder-settings";
+import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +30,7 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
   const hasAccess = await userHasCompanySlugAccess(user.id, decoded);
   if (!hasAccess) return { unauthorized: true as const };
 
-  const [dashboardData, servicesRes] = await Promise.all([
+  const [dashboardData, servicesRes, contentPosts, blogData] = await Promise.all([
     getBuilderDashboardData(company.id),
     supabase
       .from("company_services")
@@ -31,7 +38,24 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
       .eq("company_id", company.id)
       .eq("active", true)
       .order("sort_order", { ascending: true }),
+    listContentPosts(company.id),
+    getBlogDashboardData(company.id),
   ]);
+
+  const builderAnalytics =
+    section === "analytics" && dashboardData?.website
+      ? await getBuilderAnalytics({
+          companyId: company.id,
+          website: dashboardData.website,
+          servicePages: dashboardData.servicePages ?? [],
+          companySlug: decoded,
+        })
+      : null;
+
+  const publishSnapshots: PublishSnapshotSummary[] =
+    section === "settings" && dashboardData?.website
+      ? await listPublishSnapshots(dashboardData.website.id)
+      : [];
 
   return {
     unauthorized: false as const,
@@ -44,7 +68,20 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
     servicePages: dashboardData?.servicePages ?? [],
     enquiries: dashboardData?.enquiries ?? [],
     domainSettings: dashboardData?.domainSettings ?? null,
+    websiteDomains: (dashboardData?.websiteDomains ?? []) as WebsiteDomain[],
+    dnsByDomain: (dashboardData?.dnsByDomain ?? {}) as Record<string, WebsiteDnsRecord[]>,
+    domainDnsHelp: dashboardData?.domainDnsHelp ?? null,
     companyServices: (servicesRes.data ?? []) as CompanyService[],
+    savedComponents: dashboardData?.savedComponents ?? [],
+    mediaItems: dashboardData?.mediaItems ?? [],
+    contentPosts,
+    contentSummary: summarizeContentPosts(contentPosts),
+    blogCategories: blogData.categories,
+    blogTags: blogData.tags,
+    postTagIds: blogData.postTagIds,
+    blogTaxonomyReady: blogData.taxonomyReady,
+    builderAnalytics,
+    publishSnapshots,
   };
 }
 
@@ -63,14 +100,27 @@ export function renderWebsiteBuilderPage(
     <WebsiteBuilderClient
       slug={data.slug}
       companyId={data.companyId}
-      company={data.company}
+      company={data.company as CompanyWithIndustry}
       section={data.section}
       website={data.website}
       landingContent={data.landingContent}
       servicePages={data.servicePages}
       enquiries={data.enquiries}
       domainSettings={data.domainSettings}
+      websiteDomains={data.websiteDomains}
+      dnsByDomain={data.dnsByDomain}
+      domainDnsHelp={data.domainDnsHelp}
       companyServices={data.companyServices}
+      savedComponents={data.savedComponents}
+      mediaItems={data.mediaItems}
+      contentPosts={data.contentPosts}
+      contentSummary={data.contentSummary}
+      blogCategories={data.blogCategories}
+      blogTags={data.blogTags}
+      postTagIds={data.postTagIds}
+      blogTaxonomyReady={data.blogTaxonomyReady}
+      builderAnalytics={data.builderAnalytics}
+      publishSnapshots={data.publishSnapshots}
     />
   );
 }

@@ -1,16 +1,23 @@
 "use client";
 
-import { useState } from "react";
-
 import type {
   BuilderWebsite,
   LandingPageContent,
   WebsiteServicePageRecord,
 } from "@/types/website-builder";
+import type { BuilderViewport, WebsitePageContentV2 } from "@/types/website-builder-sections";
+import { getPageSections } from "@/lib/website-builder/page-sections";
 import { publicBookPath } from "@/lib/paths/company";
 import { cn } from "@/lib/utils";
 
 import { PublicContactForm } from "./public-contact-form";
+import { PublicSiteTracking } from "./public-site-tracking";
+import { PublicSiteChrome, PublicSiteFooter } from "./public-site-chrome";
+import { getContactFormSettings } from "@/lib/website-builder/forms";
+import { getNavigationSettings } from "@/lib/website-builder/navigation";
+import { getBuilderSettings } from "@/lib/website-builder/settings";
+import { WebsiteSectionRenderer } from "./sections/website-section-renderer";
+import type { ContentPost } from "@/types/growth-engine";
 
 type PublicSiteProps = {
   companySlug: string;
@@ -20,7 +27,10 @@ type PublicSiteProps = {
   landing: LandingPageContent | null;
   servicePage?: WebsiteServicePageRecord | null;
   servicePages?: WebsiteServicePageRecord[];
+  contentPosts?: ContentPost[];
   preview?: boolean;
+  chromeViewport?: "desktop" | "mobile";
+  previewViewport?: BuilderViewport;
 };
 
 export function PublicSite({
@@ -31,7 +41,10 @@ export function PublicSite({
   landing,
   servicePage,
   servicePages = [],
+  contentPosts = [],
   preview = false,
+  chromeViewport = "desktop",
+  previewViewport,
 }: PublicSiteProps) {
   const theme = website.theme_settings ?? {};
   const primary =
@@ -47,28 +60,61 @@ export function PublicSite({
     ? `${bookingBase}?service=${encodeURIComponent(servicePage.service_id)}`
     : bookingBase;
 
+  const navigation = getNavigationSettings({
+    website,
+    landing,
+    servicePages,
+    companySlug,
+    companyName,
+  });
+
+  const formSettings = getContactFormSettings({ website, landing });
+  const builderSettings = getBuilderSettings({
+    website,
+    bookingEnabled: website.booking_enabled,
+  });
+  const trackingNode =
+    preview || !builderSettings.integrations.nativeAnalyticsEnabled ? null : (
+      <PublicSiteTracking companyId={companyId} websiteId={website.id} preview={preview} />
+    );
+
   if (servicePage) {
     return (
       <div className="min-h-screen bg-white text-slate-900">
+        {trackingNode}
         {preview ? (
           <div className="bg-amber-50 px-4 py-2 text-center text-xs font-medium text-amber-800">
             Preview mode — this page is not visible to the public until published.
           </div>
         ) : null}
-        <header className="border-b border-slate-100 px-4 py-4 sm:px-8">
-          <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
-            <a href={`/site/${companySlug}`} className="font-semibold text-slate-900">
-              {companyName}
-            </a>
-            <a
-              href={bookingHref}
-              className="rounded-xl px-4 py-2 text-sm font-semibold text-white"
-              style={{ backgroundColor: primary }}
-            >
-              {bookingLabel}
-            </a>
-          </div>
-        </header>
+        {navigation.header.enabled ? (
+          <PublicSiteChrome
+            website={website}
+            companySlug={companySlug}
+            companyId={companyId}
+            companyName={companyName}
+            landing={landing}
+            servicePages={servicePages}
+            navigation={navigation}
+            preview={preview}
+            viewport={chromeViewport}
+          />
+        ) : (
+          <header className="border-b border-slate-100 px-4 py-4 sm:px-8">
+            <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+              <a href={`/site/${companySlug}`} className="font-semibold text-slate-900">
+                {companyName}
+              </a>
+              <a
+                href={bookingHref}
+                className="rounded-xl px-4 py-2 text-sm font-semibold text-white"
+                style={{ backgroundColor: primary }}
+              >
+                {bookingLabel}
+              </a>
+            </div>
+          </header>
+        )}
         <main className="mx-auto max-w-5xl px-4 py-10 sm:px-8">
           {servicePage.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -124,6 +170,17 @@ export function PublicSite({
             </a>
           </div>
         </main>
+        {navigation.footer.enabled ? (
+          <PublicSiteFooter
+            website={website}
+            companySlug={companySlug}
+            companyId={companyId}
+            companyName={companyName}
+            landing={landing}
+            servicePages={servicePages}
+            navigation={navigation}
+          />
+        ) : null}
       </div>
     );
   }
@@ -136,35 +193,92 @@ export function PublicSite({
     );
   }
 
+  const pageContent = landing as WebsitePageContentV2;
+  const sections = getPageSections(pageContent);
+  if (pageContent.schemaVersion === 2 && sections.length > 0) {
+    const placeholderCtx = {
+      company: {
+        id: companyId,
+        name: companyName,
+        slug: companySlug,
+        industry_id: null,
+        created_at: "",
+        primary_contact_email: landing.contact.email,
+        contact_phone: landing.contact.phone,
+        contact_location: landing.contact.location,
+        production_url: null,
+        business_description: landing.about.body,
+        booking_hours: landing.contact.hours ? { hours: landing.contact.hours } : null,
+        industries: null,
+      } as import("@/types/database").CompanyWithIndustry,
+      companyId,
+      primaryServiceName: servicePages[0]?.title ?? null,
+    };
+
+    return (
+      <>
+        {trackingNode}
+        <WebsiteSectionRenderer
+          sections={sections}
+          website={website}
+          companySlug={companySlug}
+          companyId={companyId}
+          companyName={companyName}
+          servicePages={servicePages}
+          placeholderCtx={placeholderCtx}
+          preview={preview}
+          showSiteChrome
+          viewport={previewViewport ?? (chromeViewport === "mobile" ? "mobile" : "desktop")}
+          contentPosts={contentPosts}
+        />
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white text-slate-900">
+      {trackingNode}
       {preview ? (
         <div className="bg-amber-50 px-4 py-2 text-center text-xs font-medium text-amber-800">
           Preview mode — your site is not live until you publish.
         </div>
       ) : null}
 
-      <header
-        className="px-4 py-4 sm:px-8"
-        style={{ background: `linear-gradient(135deg, ${primary}15, white)` }}
-      >
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
-            ) : null}
-            <span className="font-semibold text-slate-900">{companyName}</span>
+      {navigation.header.enabled ? (
+        <PublicSiteChrome
+          website={website}
+          companySlug={companySlug}
+          companyId={companyId}
+          companyName={companyName}
+          landing={landing}
+          servicePages={servicePages}
+          navigation={navigation}
+          preview={preview}
+          viewport={chromeViewport}
+        />
+      ) : (
+        <header
+          className="px-4 py-4 sm:px-8"
+          style={{ background: `linear-gradient(135deg, ${primary}15, white)` }}
+        >
+          <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
+              ) : null}
+              <span className="font-semibold text-slate-900">{companyName}</span>
+            </div>
+            <a
+              href={bookingHref}
+              className="rounded-xl px-4 py-2 text-sm font-semibold text-white"
+              style={{ backgroundColor: primary }}
+            >
+              {bookingLabel}
+            </a>
           </div>
-          <a
-            href={bookingHref}
-            className="rounded-xl px-4 py-2 text-sm font-semibold text-white"
-            style={{ backgroundColor: primary }}
-          >
-            {bookingLabel}
-          </a>
-        </div>
-      </header>
+        </header>
+      )}
 
       <section className="px-4 py-16 sm:px-8" style={{ backgroundColor: `${primary}08` }}>
         <div className="mx-auto max-w-5xl text-center">
@@ -244,7 +358,12 @@ export function PublicSite({
       <section className="bg-slate-50 px-4 py-16 sm:px-8" id="contact">
         <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-2">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">{landing.contact.heading}</h2>
+            <h2 className="text-2xl font-bold text-slate-900">
+              {formSettings.sectionHeading || landing.contact.heading}
+            </h2>
+            {formSettings.sectionDescription ? (
+              <p className="mt-2 text-sm text-slate-600">{formSettings.sectionDescription}</p>
+            ) : null}
             <dl className="mt-6 space-y-3 text-sm text-slate-600">
               {landing.contact.phone ? (
                 <div>
@@ -268,17 +387,32 @@ export function PublicSite({
           </div>
           <PublicContactForm
             companySlug={companySlug}
+            companyId={companyId}
+            websiteId={website.id}
             services={landing.services.items.map((s) => s.title)}
             primaryColor={primary}
+            formSettings={formSettings}
           />
         </div>
       </section>
 
-      <footer className="border-t border-slate-100 px-4 py-8 text-center text-sm text-slate-500">
-        <p className="font-medium text-slate-700">{landing.footer.businessName}</p>
-        {landing.footer.tagline ? <p className="mt-1">{landing.footer.tagline}</p> : null}
-        <p className="mt-4 text-xs">Powered by FaraiOS</p>
-      </footer>
+      {navigation.footer.enabled ? (
+        <PublicSiteFooter
+          website={website}
+          companySlug={companySlug}
+          companyId={companyId}
+          companyName={companyName}
+          landing={landing}
+          servicePages={servicePages}
+          navigation={navigation}
+        />
+      ) : (
+        <footer className="border-t border-slate-100 px-4 py-8 text-center text-sm text-slate-500">
+          <p className="font-medium text-slate-700">{landing.footer.businessName}</p>
+          {landing.footer.tagline ? <p className="mt-1">{landing.footer.tagline}</p> : null}
+          <p className="mt-4 text-xs">Powered by FaraiOS</p>
+        </footer>
+      )}
     </div>
   );
 }

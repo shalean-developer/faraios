@@ -160,6 +160,7 @@ export async function verifyWebsiteDomain(
     const status = await provider.checkStatus({
       providerDomainId: domainRow.provider_domain_id ?? undefined,
       domain: domainRow.domain,
+      companyId,
     });
     if (status.sslStatus === "active") {
       sslStatus = "active";

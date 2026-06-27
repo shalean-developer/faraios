@@ -50,7 +50,9 @@ export type WebsiteTrackingEventType =
   | "booking_form_view"
   | "booking_submission"
   | "quote_request"
-  | "contact_submission";
+  | "contact_submission"
+  | "web_vital"
+  | "click";
 
 export type WebsiteTrackingEvent = {
   id: string;

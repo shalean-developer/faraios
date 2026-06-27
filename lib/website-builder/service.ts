@@ -13,9 +13,22 @@ import type {
   WebsitePageRecord,
   WebsiteServicePageRecord,
 } from "@/types/website-builder";
+import type { WebsiteComponentRecord } from "@/types/website-builder-components";
+import type { WebsiteMediaRecord } from "@/types/website-builder-media";
+
+import {
+  getDnsRecordsForDomain,
+  getWebsiteDomainsForCompany,
+} from "@/lib/services/website-domains";
+import { getPleskHostingTarget } from "@/lib/hosting/plesk/target";
+import { buildWebsiteDomainDnsHelp } from "@/lib/hosting/website-domain-dns-help";
+import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 
 import { publicSiteUrl } from "./access";
+import { getWebsiteMediaForCompany } from "./media";
 import { mapWebsite } from "./map-website";
+import { getBuilderSettings, isPreviewTokenValid } from "./settings";
+import { listPublishedContentPosts } from "@/lib/services/content-posts";
 
 export function buildLandingContentFromCompany(
   company: CompanyWithIndustry,
@@ -138,16 +151,40 @@ export async function getPublishedBuilderWebsiteByCompanySlug(
   };
 }
 
+export async function listWebsiteComponents(websiteId: string): Promise<WebsiteComponentRecord[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("website_components")
+    .select("*")
+    .eq("website_id", websiteId)
+    .order("updated_at", { ascending: false });
+  return (data ?? []) as WebsiteComponentRecord[];
+}
+
 export async function getBuilderDashboardData(companyId: string) {
   const website = await getBuilderWebsiteForCompany(companyId);
   if (!website) return null;
 
-  const [pages, servicePages, enquiries, domainSettings] = await Promise.all([
+  const [pages, servicePages, enquiries, domainSettings, savedComponents, mediaItems, websiteDomains] =
+    await Promise.all([
     listWebsitePages(website.id),
     listServicePages(website.id),
     listWebsiteEnquiries(companyId),
     getDomainSettings(website.id),
+    listWebsiteComponents(website.id),
+    getWebsiteMediaForCompany(website.id, companyId),
+    getWebsiteDomainsForCompany(companyId),
   ]);
+
+  const dnsByDomain: Record<string, WebsiteDnsRecord[]> = {};
+  await Promise.all(
+    websiteDomains.map(async (domain) => {
+      dnsByDomain[domain.id] = await getDnsRecordsForDomain(domain.id);
+    })
+  );
+
+  const pleskDnsTarget = await getPleskHostingTarget({ companyId });
+  const domainDnsHelp = buildWebsiteDomainDnsHelp(pleskDnsTarget);
 
   const landingPage = pages.find((p) => p.page_type === "landing") ?? null;
 
@@ -159,6 +196,11 @@ export async function getBuilderDashboardData(companyId: string) {
     servicePages,
     enquiries,
     domainSettings,
+    websiteDomains,
+    dnsByDomain,
+    domainDnsHelp,
+    savedComponents,
+    mediaItems,
   };
 }
 
@@ -245,7 +287,7 @@ export async function ensureBuilderWebsite(
     company_id: company.id,
     default_url: defaultUrl,
     requested_subdomain: siteSlug,
-    custom_domain_status: "coming_soon",
+    custom_domain_status: "not_connected",
   });
 
   return { ok: true, website: mapWebsite(website as Record<string, unknown>) };
@@ -300,6 +342,39 @@ export async function getDomainSettings(
   return (data as DomainSettingsRecord) ?? null;
 }
 
+export async function syncDomainSettingsCustomDomain(input: {
+  websiteId: string;
+  companyId: string;
+  customDomain: string | null;
+  customDomainStatus: string;
+}): Promise<void> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return;
+
+  const { data: existing } = await admin.client
+    .from("domain_settings")
+    .select("id")
+    .eq("website_id", input.websiteId)
+    .maybeSingle();
+
+  const patch = {
+    custom_domain: input.customDomain,
+    custom_domain_status: input.customDomainStatus,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (existing) {
+    await admin.client.from("domain_settings").update(patch).eq("website_id", input.websiteId);
+    return;
+  }
+
+  await admin.client.from("domain_settings").insert({
+    website_id: input.websiteId,
+    company_id: input.companyId,
+    ...patch,
+  });
+}
+
 export function bookingUrlForCompany(
   companyId: string,
   serviceId?: string | null
@@ -309,36 +384,74 @@ export function bookingUrlForCompany(
   return `${base}?service=${encodeURIComponent(serviceId)}`;
 }
 
-export async function getPublicBuilderSiteData(companySlug: string) {
-  const resolved = await getPublishedBuilderWebsiteByCompanySlug(companySlug);
-  if (!resolved) return null;
-
+export async function getPublicBuilderSiteData(
+  companySlug: string,
+  options?: { previewToken?: string }
+) {
   const admin = tryCreateAdminClient();
   const client = admin.ok ? admin.client : await createClient();
 
-  const [pagesRes, servicePagesRes, companyRes] = await Promise.all([
-    client
-      .from("website_pages")
+  const { data: company } = await client
+    .from("companies")
+    .select("id, slug, name, brand_logo_url, brand_primary_color, brand_accent_color")
+    .eq("slug", companySlug)
+    .maybeSingle();
+
+  if (!company?.id) return null;
+
+  let website: BuilderWebsite | null = null;
+  let draftMode = false;
+
+  if (options?.previewToken) {
+    const { data } = await client
+      .from("websites")
       .select("*")
-      .eq("website_id", resolved.website.id)
-      .eq("status", "published"),
-    client
-      .from("website_service_pages")
-      .select("*")
-      .eq("website_id", resolved.website.id)
-      .eq("status", "published"),
-    client
-      .from("companies")
-      .select("id, name, slug, brand_logo_url, brand_primary_color, brand_accent_color")
-      .eq("id", resolved.companyId)
-      .maybeSingle(),
+      .eq("client_id", company.id)
+      .eq("builder_mode", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!data) return null;
+
+    const mapped = mapWebsite(data as Record<string, unknown>);
+    const settings = getBuilderSettings({
+      website: mapped,
+      bookingEnabled: mapped.booking_enabled,
+    });
+
+    if (!isPreviewTokenValid(settings, options.previewToken)) return null;
+
+    website = mapped;
+    draftMode = true;
+  } else {
+    const resolved = await getPublishedBuilderWebsiteByCompanySlug(companySlug);
+    if (!resolved) return null;
+    website = resolved.website;
+  }
+
+  const pageStatus = draftMode ? undefined : "published";
+  const serviceStatus = draftMode ? undefined : "published";
+
+  const pagesQuery = client.from("website_pages").select("*").eq("website_id", website.id);
+  const servicePagesQuery = client
+    .from("website_service_pages")
+    .select("*")
+    .eq("website_id", website.id);
+
+  const [pagesRes, servicePagesRes, contentPosts] = await Promise.all([
+    pageStatus ? pagesQuery.eq("status", pageStatus) : pagesQuery,
+    serviceStatus ? servicePagesQuery.eq("status", serviceStatus) : servicePagesQuery,
+    draftMode ? Promise.resolve([]) : listPublishedContentPosts(company.id as string),
   ]);
 
   return {
-    website: resolved.website,
-    company: companyRes.data,
+    website,
+    company,
     pages: (pagesRes.data ?? []) as WebsitePageRecord[],
     servicePages: (servicePagesRes.data ?? []) as WebsiteServicePageRecord[],
-    bookingUrl: bookingUrlForCompany(resolved.companyId),
+    contentPosts,
+    bookingUrl: bookingUrlForCompany(company.id as string),
+    preview: draftMode,
   };
 }

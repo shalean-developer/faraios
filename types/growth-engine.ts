@@ -62,6 +62,7 @@ export type ContentPost = {
   content_body: string | null;
   cta_text: string | null;
   cta_link: string | null;
+  blog_category_id: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -3,14 +3,20 @@ import { createClient } from "@/lib/supabase/server";
 import {
   normalizeBillingPlan,
   PAYSTACK_BASE_URL,
-  planAmountInKobo,
 } from "@/lib/billing/paystack";
+import { workspaceCheckoutAmountInKobo } from "@/lib/billing/workspace-checkout";
+import { getWorkspaceSetupFeeEnabled } from "@/lib/billing/platform-billing-settings";
+import {
+  isActiveSubscriptionStatus,
+  normalizeSubscriptionStatus,
+} from "@/lib/subscriptions/access";
 import { isSelfServePlan, normalizePlanSlug, type PricingPlanSlug } from "@/lib/data/pricing";
 
 type InitBody = {
   companyId?: string;
   plan?: string;
   email?: string;
+  includeSetupFee?: boolean;
 };
 
 export async function POST(req: Request) {
@@ -54,7 +60,7 @@ export async function POST(req: Request) {
 
   const { data: company, error: companyError } = await supabase
     .from("companies")
-    .select("slug")
+    .select("slug, subscription_status, setup_fee_waived, setup_fee_paid_at")
     .eq("id", body.companyId)
     .maybeSingle();
 
@@ -72,7 +78,26 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
-  const amount = planAmountInKobo(plan);
+
+  const subscriptionActive = isActiveSubscriptionStatus(
+    normalizeSubscriptionStatus(company.subscription_status)
+  );
+  const setupFeeEnabled = await getWorkspaceSetupFeeEnabled();
+  const amount = workspaceCheckoutAmountInKobo({
+    plan,
+    setupFeeEnabled,
+    setupFeeWaived: company.setup_fee_waived === true,
+    setupFeePaid: Boolean(company.setup_fee_paid_at),
+    subscriptionActive,
+    includeSetupFee: body.includeSetupFee,
+  });
+
+  if (amount <= 0) {
+    return NextResponse.json(
+      { ok: false, error: "This plan cannot be purchased online." },
+      { status: 400 }
+    );
+  }
 
   const siteUrl =
     process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
@@ -98,6 +123,7 @@ export async function POST(req: Request) {
         company_id: body.companyId,
         plan,
         product_type: "website",
+        include_setup_fee: body.includeSetupFee !== false,
       },
     }),
   });

@@ -16,6 +16,7 @@ export type BuilderWebsite = {
   og_description: string | null;
   og_image_url: string | null;
   booking_button_label: string;
+  booking_enabled: boolean;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -72,6 +73,8 @@ export type WebsiteEnquiryRecord = {
   created_at: string;
 };
 
+export type WwwRedirectMode = "none" | "www_to_apex" | "apex_to_www";
+
 export type DomainSettingsRecord = {
   id: string;
   website_id: string;
@@ -80,6 +83,7 @@ export type DomainSettingsRecord = {
   requested_subdomain: string | null;
   custom_domain: string | null;
   custom_domain_status: string;
+  www_redirect: WwwRedirectMode;
   created_at: string;
   updated_at: string;
 };

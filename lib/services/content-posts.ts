@@ -8,6 +8,7 @@ export type ContentPostInput = {
   metaDescription?: string;
   featuredImage?: string;
   category?: ContentPostCategory;
+  blogCategoryId?: string | null;
   author?: string;
   status?: "draft" | "published";
   contentBody?: string;
@@ -38,6 +39,7 @@ function mapRow(row: Record<string, unknown>): ContentPost {
     content_body: (row.content_body as string) ?? null,
     cta_text: (row.cta_text as string) ?? null,
     cta_link: (row.cta_link as string) ?? null,
+    blog_category_id: (row.blog_category_id as string) ?? null,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };
@@ -131,6 +133,7 @@ export async function createContentPost(
       meta_description: input.metaDescription ?? null,
       featured_image: input.featuredImage ?? null,
       category: input.category ?? "blog",
+      blog_category_id: input.blogCategoryId ?? null,
       author: input.author ?? null,
       status: input.status ?? "draft",
       published_at: isPublished ? new Date().toISOString() : null,
@@ -178,6 +181,7 @@ export async function updateContentPost(
   if (input.metaDescription !== undefined) payload.meta_description = input.metaDescription;
   if (input.featuredImage !== undefined) payload.featured_image = input.featuredImage;
   if (input.category !== undefined) payload.category = input.category;
+  if (input.blogCategoryId !== undefined) payload.blog_category_id = input.blogCategoryId;
   if (input.author !== undefined) payload.author = input.author;
   if (input.contentBody !== undefined) payload.content_body = input.contentBody;
   if (input.ctaText !== undefined) payload.cta_text = input.ctaText;
@@ -197,6 +201,26 @@ export async function updateContentPost(
 
   if (error) {
     console.error("[content_posts] updateContentPost", error.message);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
+}
+
+export async function deleteContentPost(
+  companyId: string,
+  postId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return { ok: false, error: admin.error };
+
+  const { error } = await admin.client
+    .from("content_posts")
+    .delete()
+    .eq("id", postId)
+    .eq("company_id", companyId);
+
+  if (error) {
+    console.error("[content_posts] deleteContentPost", error.message);
     return { ok: false, error: error.message };
   }
   return { ok: true };
