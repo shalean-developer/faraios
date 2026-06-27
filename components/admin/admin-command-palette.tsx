@@ -47,19 +47,22 @@ function groupResults(results: AdminGlobalSearchResult[]) {
 export function AdminCommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<AdminGlobalSearchResult[]>(() =>
-    getAdminNavigationSearchResults("")
-  );
+  const [asyncResults, setAsyncResults] = useState<AdminGlobalSearchResult[] | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const flatResults = results;
+  const flatResults = useMemo(() => {
+    if (open && query.trim().length >= 2 && asyncResults !== null) {
+      return asyncResults;
+    }
+    return getAdminNavigationSearchResults(query);
+  }, [open, query, asyncResults]);
 
   const openPalette = useCallback(() => {
     setQuery("");
-    setResults(getAdminNavigationSearchResults(""));
+    setAsyncResults(null);
     setActiveIndex(0);
     setOpen(true);
   }, []);
@@ -114,20 +117,15 @@ export function AdminCommandPalette() {
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || query.trim().length < 2) return;
 
     const handle = window.setTimeout(() => {
       startTransition(async () => {
         const response = await searchAdminGlobalAction(query);
-        setResults(response.results);
+        setAsyncResults(response.results);
         setActiveIndex(0);
       });
-    }, query.trim().length >= 2 ? 180 : 0);
-
-    if (query.trim().length < 2) {
-      setResults(getAdminNavigationSearchResults(query));
-      setActiveIndex(0);
-    }
+    }, 180);
 
     return () => window.clearTimeout(handle);
   }, [open, query]);
@@ -172,7 +170,11 @@ export function AdminCommandPalette() {
             id="admin-command-palette-title"
             type="search"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setAsyncResults(null);
+              setActiveIndex(0);
+            }}
             placeholder="Search navigation, businesses, users, tickets, domains…"
             className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100"
             autoComplete="off"

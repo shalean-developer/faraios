@@ -46,20 +46,22 @@ export function RiseCalendarDropdown<T extends string>({
     return options.filter((option) => option.label.toLowerCase().includes(needle));
   }, [options, query, searchable]);
 
+  const closeDropdown = () => {
+    setOpen(false);
+    setQuery("");
+  };
+
   useEffect(() => {
-    if (!open) {
-      setQuery("");
-      return;
-    }
+    if (!open) return;
 
     const onPointerDown = (event: MouseEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
+        closeDropdown();
       }
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") closeDropdown();
     };
 
     window.addEventListener("mousedown", onPointerDown);
@@ -78,7 +80,10 @@ export function RiseCalendarDropdown<T extends string>({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listboxId}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => setOpen((current) => {
+          if (current) setQuery("");
+          return !current;
+        })}
         className={cn(
           "inline-flex h-9 min-w-[9.5rem] items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-600 transition hover:border-slate-300",
           open && "border-slate-300 ring-2 ring-[#608af5]/15"
@@ -131,7 +136,7 @@ export function RiseCalendarDropdown<T extends string>({
                     aria-selected={isSelected}
                     onClick={() => {
                       onChange(option.value);
-                      setOpen(false);
+                      closeDropdown();
                     }}
                     className={cn(
                       "flex w-full items-center px-3 py-2 text-left text-sm transition",

@@ -1198,15 +1198,22 @@ export function RiseDashboard({ slug, overview, extras, userDisplayName }: Props
   const [storageReady, setStorageReady] = useState(false);
 
   useEffect(() => {
-    try {
-      const storedTodos = localStorage.getItem(`${TODO_STORAGE_KEY}.${slug}`);
-      if (storedTodos) setTodos(JSON.parse(storedTodos));
-      const storedNote = localStorage.getItem(`${NOTE_STORAGE_KEY}.${slug}`);
-      if (storedNote) setStickyNote(storedNote);
-    } catch {
-      // ignore
-    }
-    setStorageReady(true);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      try {
+        const storedTodos = localStorage.getItem(`${TODO_STORAGE_KEY}.${slug}`);
+        if (storedTodos) setTodos(JSON.parse(storedTodos));
+        const storedNote = localStorage.getItem(`${NOTE_STORAGE_KEY}.${slug}`);
+        if (storedNote) setStickyNote(storedNote);
+      } catch {
+        // ignore
+      }
+      setStorageReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [slug]);
 
   useEffect(() => {

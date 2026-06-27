@@ -39,10 +39,12 @@ export function ManageLabelsModal({
 
   useEffect(() => {
     if (!open) return;
-    const stored = readLabels(slug);
-    setLabels(stored);
-    setDraftName("");
-    setSelectedColor(LABEL_COLOR_SWATCHES[2]!);
+
+    queueMicrotask(() => {
+      setLabels(readLabels(slug));
+      setDraftName("");
+      setSelectedColor(LABEL_COLOR_SWATCHES[2]!);
+    });
   }, [open, slug, readLabels]);
 
   useEffect(() => {

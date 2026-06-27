@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Building2, Shield } from "lucide-react";
 
 import { fetchWorkspaceEntryOptions } from "@/app/actions/platform-admin-roles";
@@ -32,15 +32,13 @@ export function OpenWorkspaceDialog({
   const [selectedGrants, setSelectedGrants] = useState<WorkspaceGrantKey[]>([]);
   const [fullAccess, setFullAccess] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-
-    let cancelled = false;
-    setLoadingOptions(true);
+  const handleOpen = () => {
     setError(null);
-
+    setReason("");
+    setOpen(true);
+    setLoadingOptions(true);
+    setEntryOptions(null);
     void fetchWorkspaceEntryOptions().then((options) => {
-      if (cancelled) return;
       setEntryOptions(options);
       if (options) {
         setSelectedGrants(options.defaultGrants);
@@ -48,16 +46,6 @@ export function OpenWorkspaceDialog({
       }
       setLoadingOptions(false);
     });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open]);
-
-  const handleOpen = () => {
-    setError(null);
-    setReason("");
-    setOpen(true);
   };
 
   const handleSubmit = () => {
