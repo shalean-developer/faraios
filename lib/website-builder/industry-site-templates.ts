@@ -269,16 +269,16 @@ export function getWebsiteBuilderIndustryTemplate(
   const key = V8_INDUSTRY_TEMPLATE_KEYS.includes(industryKey as V8IndustryTemplateKey)
     ? (industryKey as V8IndustryTemplateKey)
     : "cleaning";
-  const module = loadIndustryModule(key);
+  const industryModule = loadIndustryModule(key);
   const copy = INDUSTRY_COPY[key];
   const colors = themeColorsForIndustry(key);
   const images = industryImagePreset(key);
 
   return {
     industryKey: key,
-    name: module.name,
-    description: module.description,
-    icon: module.icon,
+    name: industryModule.name,
+    description: industryModule.description,
+    icon: industryModule.icon,
     primaryColor: colors.primary,
     accentColor: colors.accent,
     tagline: colors.tagline,
@@ -311,10 +311,10 @@ export function buildLandingFromIndustryTemplate(
   companyServices: ServiceInput[] = []
 ): LandingPageContent {
   const template = getWebsiteBuilderIndustryTemplate(industryKey);
-  const module = loadIndustryModule(industryKey);
+  const industryModule = loadIndustryModule(industryKey);
   const location = formatLocation(company);
-  const serviceHeading = module.terminology.service
-    ? `Our ${module.terminology.service}`
+  const serviceHeading = industryModule.terminology.service
+    ? `Our ${industryModule.terminology.service}`
     : "Our Services";
 
   const serviceItems =
@@ -327,7 +327,7 @@ export function buildLandingFromIndustryTemplate(
               ? `From R${Math.round(s.base_price_cents / 100)}`
               : undefined,
         }))
-      : module.services.templates.slice(0, 6).map((s) => ({
+      : industryModule.services.templates.slice(0, 6).map((s) => ({
           title: s.name,
           description: s.description,
           priceFrom: s.price && s.price !== "0" ? `From R${s.price}` : undefined,
@@ -336,7 +336,7 @@ export function buildLandingFromIndustryTemplate(
   return {
     hero: {
       headline: company.name,
-      subheadline: module.growth.heroSubtitle,
+      subheadline: industryModule.growth.heroSubtitle,
       ctaLabel: "Book Now",
       imageUrl: company.brand_logo_url ?? null,
     },
@@ -363,7 +363,7 @@ export function buildLandingFromIndustryTemplate(
     },
     footer: {
       businessName: company.name,
-      tagline: module.growth.serviceLabel,
+      tagline: industryModule.growth.serviceLabel,
     },
   };
 }
