@@ -3,12 +3,20 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
+import {
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  Filter,
+  RefreshCw,
+  Search,
+} from "lucide-react";
 
 import {
   markAllNotificationsReadAction,
   markNotificationReadAction,
 } from "@/app/actions/notifications";
-import { Button } from "@/components/ui/button";
 import {
   notificationEntityPath,
   notificationTypeLabel,
@@ -22,16 +30,66 @@ import { cn } from "@/lib/utils";
 import type { CompanyWithIndustry } from "@/types/database";
 import type { CompanyNotification } from "@/types/v6-engine";
 
+const riseCardClassName = "rounded-xl border border-slate-200 bg-white shadow-sm";
+const riseOutlineButtonClassName =
+  "inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50";
+
 type ReadFilter = "all" | "unread" | "read";
 
-function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString("en-ZA", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
+
+function formatRiseDateTime(value: string): string {
+  const date = new Date(value);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  const hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const ampm = hours >= 12 ? "pm" : "am";
+  const hour12 = hours % 12 || 12;
+  return `${day}-${month}-${year} ${hour12}:${minutes} ${ampm}`;
+}
+
+function ToolbarButton({
+  children,
+  onClick,
+  active,
+  className,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  active?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50",
+        active && "border-[#5c86f2] bg-[#eef2ff] text-[#4a6fd8]",
+        className
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function typeBadgeClass(type: string): string {
+  if (type.includes("payment") || type.includes("invoice")) {
+    return "bg-emerald-50 text-emerald-700 ring-emerald-200/80";
+  }
+  if (type.includes("booking")) {
+    return "bg-sky-50 text-sky-700 ring-sky-200/80";
+  }
+  if (type.includes("lead")) {
+    return "bg-amber-50 text-amber-700 ring-amber-200/80";
+  }
+  if (type.includes("task")) {
+    return "bg-violet-50 text-violet-700 ring-violet-200/80";
+  }
+  return "bg-slate-100 text-slate-600 ring-slate-200/80";
 }
 
 export function CompanyNotificationsClient({
@@ -50,6 +108,9 @@ export function CompanyNotificationsClient({
   const [search, setSearch] = useState("");
   const [readFilter, setReadFilter] = useState<ReadFilter>("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(10);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -79,6 +140,16 @@ export function CompanyNotificationsClient({
       );
     });
   }, [rows, search, readFilter, typeFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageRows = filteredRows.slice(pageStart, pageStart + pageSize);
+  const pageEnd = Math.min(pageStart + pageRows.length, filteredRows.length);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   const onMarkRead = (notificationId: string) => {
     setError(null);
@@ -111,166 +182,274 @@ export function CompanyNotificationsClient({
     });
   };
 
-  const statCards = [
-    { label: "Total", value: String(summary.total) },
-    { label: "Unread", value: String(summary.unread) },
-    { label: "Read", value: String(summary.total - summary.unread) },
+  const readTabs: { id: ReadFilter; label: string; count: number }[] = [
+    { id: "all", label: "All", count: summary.total },
+    { id: "unread", label: "Unread", count: summary.unread },
+    { id: "read", label: "Read", count: summary.total - summary.unread },
   ];
 
   return (
-    <div>
-      <header className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
-            Operations
-          </p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900">Notifications</h1>
-          <p className="mt-2 max-w-2xl text-sm text-slate-500">
-            Bookings, payments, leads, reviews, tasks, and automations in one place.
-          </p>
-        </div>
-        {summary.unread > 0 ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-xl"
-            disabled={pending}
-            onClick={onMarkAll}
-          >
-            Mark all read
-          </Button>
-        ) : null}
-      </header>
-
-      <div className="mb-6 grid gap-3 sm:grid-cols-3">
-        {statCards.map((card) => (
-          <div
-            key={card.label}
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-          >
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              {card.label}
+    <div className="px-4 py-4 sm:px-5 sm:py-5">
+      <div className={riseCardClassName}>
+        <div className="flex flex-col gap-4 border-b border-slate-100 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-lg font-medium text-slate-800">Notifications</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Bookings, payments, leads, reviews, tasks, and automations in one place.
             </p>
-            <p className="mt-2 text-2xl font-bold text-slate-900">{card.value}</p>
+            <div className="mt-3 flex flex-wrap gap-6">
+              {readTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setReadFilter(tab.id);
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "border-b-2 pb-2 text-sm font-medium transition",
+                    readFilter === tab.id
+                      ? "border-[#5a8dee] text-[#4a6fd8]"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  {tab.label}
+                  <span className="ml-1.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-500">
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
 
-      <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm sm:w-72"
-            placeholder="Search notifications..."
-          />
-          <select
-            value={readFilter}
-            onChange={(e) => setReadFilter(e.target.value as ReadFilter)}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-          >
-            <option value="all">All</option>
-            <option value="unread">Unread</option>
-            <option value="read">Read</option>
-          </select>
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-          >
-            <option value="all">All types</option>
-            {types.map((type) => (
-              <option key={type} value={type}>
-                {notificationTypeLabel(type)}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href={companyAutomationsPath(slug)} className={riseOutlineButtonClassName}>
+              Automations
+            </Link>
+            <Link href={companyTasksPath(slug)} className={riseOutlineButtonClassName}>
+              Tasks
+            </Link>
+            {summary.unread > 0 ? (
+              <button
+                type="button"
+                className={riseOutlineButtonClassName}
+                disabled={pending}
+                onClick={onMarkAll}
+              >
+                <Bell className="h-4 w-4 text-[#5a8dee]" strokeWidth={1.75} />
+                Mark all read
+              </button>
+            ) : null}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-3 text-sm">
-          <Link
-            href={companyAutomationsPath(slug)}
-            className="font-medium text-violet-700 hover:text-violet-900"
-          >
-            Automations →
-          </Link>
-          <Link
-            href={companyTasksPath(slug)}
-            className="font-medium text-violet-700 hover:text-violet-900"
-          >
-            Tasks →
-          </Link>
+
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-4 py-2.5 sm:px-5">
+          <ToolbarButton onClick={() => router.refresh()}>
+            <RefreshCw className="h-3.5 w-3.5" />
+          </ToolbarButton>
+          <ToolbarButton active={showFilters} onClick={() => setShowFilters((value) => !value)}>
+            <Filter className="h-3.5 w-3.5" />
+            Filters
+          </ToolbarButton>
+          {showFilters ? (
+            <select
+              value={typeFilter}
+              onChange={(event) => {
+                setTypeFilter(event.target.value);
+                setPage(1);
+              }}
+              className="h-8 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-700"
+            >
+              <option value="all">All types</option>
+              {types.map((type) => (
+                <option key={type} value={type}>
+                  {notificationTypeLabel(type)}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          <div className="ml-auto flex min-w-[180px] items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5">
+            <Search className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} />
+            <input
+              type="search"
+              placeholder="Search"
+              className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
         </div>
-      </div>
 
-      {error ? <p className="mb-3 text-sm font-medium text-red-600">{error}</p> : null}
+        {error ? <p className="px-5 pt-3 text-sm font-medium text-red-600">{error}</p> : null}
 
-      <ul className="space-y-2">
-        {filteredRows.length === 0 ? (
-          <li className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
-            {rows.length === 0
-              ? "No notifications yet. Activity from bookings, payments, and automations will appear here."
-              : "No notifications match your filters."}
-          </li>
-        ) : (
-          filteredRows.map((notification) => {
-            const entityHref = notificationEntityPath(
-              slug,
-              notification.entityType,
-              notification.entityId
-            );
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-xs font-medium text-slate-500">
+                <th className="px-4 py-3 sm:px-5">Type</th>
+                <th className="px-4 py-3">Title</th>
+                <th className="px-4 py-3">Message</th>
+                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">Related</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 sm:pr-5" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {pageRows.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-16 text-center text-slate-500">
+                    {rows.length === 0
+                      ? "No notifications yet. Activity from bookings, payments, and automations will appear here."
+                      : "No notifications match your filters."}
+                  </td>
+                </tr>
+              ) : (
+                pageRows.map((notification) => {
+                  const entityHref = notificationEntityPath(
+                    slug,
+                    notification.entityType,
+                    notification.entityId
+                  );
+                  const isUnread = !notification.readAt;
 
-            return (
-              <li
-                key={notification.id}
+                  return (
+                    <tr
+                      key={notification.id}
+                      className={cn(
+                        "transition hover:bg-slate-50/80",
+                        isUnread && "border-l-4 border-l-[#5a8dee] bg-[#f8faff]/60"
+                      )}
+                    >
+                      <td className="px-4 py-3 sm:px-5">
+                        <span
+                          className={cn(
+                            "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset",
+                            typeBadgeClass(notification.type)
+                          )}
+                        >
+                          {notificationTypeLabel(notification.type)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p
+                          className={cn(
+                            "text-slate-800",
+                            isUnread ? "font-semibold" : "font-medium"
+                          )}
+                        >
+                          {notification.title}
+                        </p>
+                      </td>
+                      <td className="max-w-xs px-4 py-3 text-slate-600">
+                        <p className="line-clamp-2">{notification.body ?? "—"}</p>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                        {formatRiseDateTime(notification.createdAt)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {entityHref ? (
+                          <Link
+                            href={entityHref}
+                            className="inline-flex items-center gap-1 text-[#4a6fd8] hover:underline"
+                          >
+                            View record
+                            <ExternalLink className="h-3 w-3" strokeWidth={1.75} />
+                          </Link>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {isUnread ? (
+                          <span className="inline-flex rounded-full bg-[#eef2ff] px-2 py-0.5 text-[11px] font-medium text-[#4a6fd8]">
+                            Unread
+                          </span>
+                        ) : (
+                          <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+                            Read
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 sm:pr-5">
+                        {isUnread ? (
+                          <button
+                            type="button"
+                            className="text-xs font-medium text-[#4a6fd8] hover:underline disabled:opacity-50"
+                            disabled={pending}
+                            onClick={() => onMarkRead(notification.id)}
+                          >
+                            Mark read
+                          </button>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <select
+              value={pageSize}
+              onChange={(event) => {
+                setPageSize(Number(event.target.value));
+                setPage(1);
+              }}
+              className="h-8 rounded-md border border-slate-200 bg-white px-2 text-sm"
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+            <span>
+              {filteredRows.length === 0 ? "0" : `${pageStart + 1}-${pageEnd}`} /{" "}
+              {filteredRows.length}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setPage(currentPage - 1)}
+              disabled={currentPage <= 1}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 disabled:opacity-40"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, index) => index + 1).map((num) => (
+              <button
+                key={num}
+                type="button"
+                onClick={() => setPage(num)}
                 className={cn(
-                  "flex flex-col gap-3 rounded-2xl border px-4 py-4 shadow-sm sm:flex-row sm:items-start sm:justify-between",
-                  notification.readAt
-                    ? "border-slate-100 bg-slate-50/80"
-                    : "border-violet-200 bg-white"
+                  "inline-flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-sm",
+                  currentPage === num
+                    ? "border-[#5a8dee] bg-[#5a8dee] text-white"
+                    : "border-slate-200 text-slate-600 hover:bg-slate-50"
                 )}
               >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-violet-700">
-                      {notificationTypeLabel(notification.type)}
-                    </span>
-                    {!notification.readAt ? (
-                      <span className="text-xs font-medium text-violet-600">Unread</span>
-                    ) : null}
-                  </div>
-                  <p className="mt-2 font-medium text-slate-900">{notification.title}</p>
-                  {notification.body ? (
-                    <p className="mt-1 text-sm text-slate-600">{notification.body}</p>
-                  ) : null}
-                  <p className="mt-2 text-xs text-slate-400">
-                    {formatDateTime(notification.createdAt)}
-                  </p>
-                  {entityHref ? (
-                    <Link
-                      href={entityHref}
-                      className="mt-2 inline-block text-sm font-medium text-violet-700 hover:text-violet-900"
-                    >
-                      View related record →
-                    </Link>
-                  ) : null}
-                </div>
-                {!notification.readAt ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0 rounded-lg"
-                    disabled={pending}
-                    onClick={() => onMarkRead(notification.id)}
-                  >
-                    Mark read
-                  </Button>
-                ) : null}
-              </li>
-            );
-          })
-        )}
-      </ul>
+                {num}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setPage(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 disabled:opacity-40"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

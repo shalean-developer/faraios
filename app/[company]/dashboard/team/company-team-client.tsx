@@ -12,7 +12,6 @@ import {
   updateTeamMemberRole,
 } from "@/app/actions/team";
 import { ClientOnly } from "@/components/client-only";
-import { Button } from "@/components/ui/button";
 import {
   companyDashboardPath,
   companyTeamRolesPath,
@@ -24,6 +23,11 @@ import {
 } from "@/lib/team/assignable-roles";
 import { roleDisplayLabel, type CompanyRoleRecord } from "@/lib/team/role-display";
 import type { CompanyMember, CompanyMemberRole, TeamSummary } from "@/lib/services/team";
+import {
+  riseCardClassName,
+  risePageClassName,
+  risePrimaryButtonClassName,
+} from "@/lib/ui/rise-dashboard-styles";
 import { cn } from "@/lib/utils";
 import type { CompanyWithIndustry } from "@/types/database";
 
@@ -35,33 +39,6 @@ const ROLE_LABELS: Record<CompanyMemberRole, string> = {
   finance: "Finance",
   marketing: "Marketing",
 };
-
-function MetricCard({
-  label,
-  value,
-  hint,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-2xl border p-4 shadow-sm",
-        highlight
-          ? "border-2 border-violet-200 bg-gradient-to-br from-violet-50/70 to-white"
-          : "border-slate-200 bg-white"
-      )}
-    >
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
-      {hint ? <p className="mt-1 text-xs text-slate-400">{hint}</p> : null}
-    </div>
-  );
-}
 
 function roleBadgeClass(role: string): string {
   switch (role as CompanyMemberRole) {
@@ -115,15 +92,10 @@ export function CompanyTeamClient({
   }, [members]);
 
   const statCards = [
-    { label: "Team members", value: String(summary.total), hint: "With workspace access" },
-    { label: "Admins", value: String(summary.admins), hint: "Can manage operations" },
-    { label: "Staff", value: String(summary.staff), hint: "Day-to-day access" },
-    {
-      label: "Your access",
-      value: canManage ? "Owner" : "Member",
-      hint: canManage ? "Can invite & remove" : "View only",
-      highlight: canManage,
-    },
+    { label: "Team members", value: String(summary.total) },
+    { label: "Admins", value: String(summary.admins) },
+    { label: "Staff", value: String(summary.staff) },
+    { label: "Your access", value: canManage ? "Owner" : "Member" },
   ];
 
   const quickLinks: { href: string; label: string; icon: ComponentType<{ className?: string }> }[] =
@@ -198,28 +170,31 @@ export function CompanyTeamClient({
   };
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-6">
-        <Link
-          href={companyDashboardPath(slug)}
-          className="text-sm font-medium text-slate-500 hover:text-slate-800"
-        >
-          ← Dashboard
-        </Link>
-        <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-violet-600">
-          Team
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">Members</h1>
-        <p className="mt-2 max-w-2xl text-sm text-slate-500">
-          Manage who can access {company.name} on FaraiOS. Assign roles for operations,
-          finance, marketing, and administration.
-        </p>
-      </header>
-
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {statCards.map((card) => (
-          <MetricCard key={card.label} {...card} />
-        ))}
+    <div className={risePageClassName}>
+      <div className={cn(riseCardClassName, "mb-4")}>
+        <div className="border-b border-slate-100 px-4 py-4">
+          <Link
+            href={companyDashboardPath(slug)}
+            className="text-sm font-medium text-slate-500 hover:text-slate-800"
+          >
+            ← Dashboard
+          </Link>
+          <h1 className="mt-2 text-lg font-medium text-slate-800">Members</h1>
+          <p className="mt-1 max-w-2xl text-sm text-slate-500">
+            Manage who can access {company.name} on FaraiOS. Assign roles for operations,
+            finance, marketing, and administration.
+          </p>
+        </div>
+        <div className="grid gap-3 bg-slate-50/60 px-4 py-3 sm:grid-cols-2 lg:grid-cols-4">
+          {statCards.map((card) => (
+            <div key={card.label} className="text-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                {card.label}
+              </p>
+              <p className="mt-0.5 font-semibold text-slate-800">{card.value}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {error ? (
@@ -233,12 +208,12 @@ export function CompanyTeamClient({
         </p>
       ) : null}
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
-        <div className="space-y-8">
+      <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
+        <div className="space-y-4">
           {canManage ? (
             <ClientOnly
               fallback={
-                <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className={cn(riseCardClassName, "space-y-3 p-6")}>
                   <div className="h-6 w-40 animate-pulse rounded bg-slate-100" />
                   <div className="grid gap-3 sm:grid-cols-[1fr_160px_auto]">
                     <div className="h-10 animate-pulse rounded-xl bg-slate-100" />
@@ -250,7 +225,7 @@ export function CompanyTeamClient({
             >
               <form
                 onSubmit={onInvite}
-                className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+                className={cn(riseCardClassName, "space-y-3 p-6")}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -285,14 +260,14 @@ export function CompanyTeamClient({
                       </option>
                     ))}
                   </select>
-                  <Button type="submit" className="rounded-xl" disabled={pending}>
+                  <button type="submit" className={risePrimaryButtonClassName} disabled={pending}>
                     {pending ? "Inviting..." : "Invite"}
-                  </Button>
+                  </button>
                 </div>
               </form>
             </ClientOnly>
           ) : (
-            <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className={cn(riseCardClassName, "flex items-start gap-3 p-5")}>
               <Shield className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
               <p className="text-sm text-slate-500">
                 Only the workspace owner can invite or remove team members. Contact your owner if
@@ -301,16 +276,16 @@ export function CompanyTeamClient({
             </div>
           )}
 
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className={cn(riseCardClassName, "overflow-hidden")}>
             <div className="border-b border-slate-100 px-4 py-3">
-              <h2 className="text-sm font-semibold text-slate-900">Members</h2>
+              <h2 className="text-sm font-medium text-slate-700">Members</h2>
             </div>
             {rows.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-slate-500">No team members yet.</p>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <tr className="border-b border-slate-100 text-left text-xs font-medium text-slate-500">
                     <th className="px-4 py-3">Member</th>
                     <th className="px-4 py-3">Email</th>
                     <th className="px-4 py-3">Role</th>
@@ -382,10 +357,8 @@ export function CompanyTeamClient({
         </div>
 
         <aside className="lg:sticky lg:top-6 lg:self-start">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Quick links
-            </p>
+          <div className={cn(riseCardClassName, "p-5")}>
+            <p className="text-sm font-medium text-slate-700">Quick links</p>
             <ul className="mt-3 space-y-1">
               {quickLinks.map(({ href, label, icon: Icon }) => (
                 <li key={href}>

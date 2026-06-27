@@ -22,6 +22,7 @@ import {
   requireWebsiteCompanyPermission,
 } from "@/lib/services/company-access";
 import { createClient } from "@/lib/supabase/server";
+import { getDefaultHostingProviderSlug } from "@/lib/hosting/constants";
 
 export type WebsiteMutationResult =
   | { ok: true; websiteId?: string }
@@ -306,12 +307,13 @@ export async function publishWebsiteAction(
   if (!access.ok) return access;
 
   const supabase = await createClient();
+  const hostingProvider = getDefaultHostingProviderSlug();
   const { error } = await supabase
     .from("websites")
     .update({
       status: "published",
       connection_status: "live",
-      hosting_provider: "vercel",
+      hosting_provider: hostingProvider,
     })
     .eq("id", websiteId);
 
@@ -324,7 +326,7 @@ export async function publishWebsiteAction(
     website_id: websiteId,
     environment: "production",
     status: "live",
-    hosting_provider: "vercel",
+    hosting_provider: hostingProvider,
     url: null,
   });
 

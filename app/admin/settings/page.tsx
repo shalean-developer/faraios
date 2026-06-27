@@ -5,6 +5,11 @@ import {
   getPlatformAuditLogs,
   getPlatformSettings,
 } from "@/lib/services/admin";
+import {
+  currentUserCanManagePlatformRoles,
+  listPlatformAdminRoles,
+} from "@/lib/services/platform-admin-roles";
+import { getAdminBillingSettings } from "@/lib/services/billing-config";
 import { getAdminSearchConsoleIntegrationSettings } from "@/lib/services/search-console-config";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,9 +31,11 @@ export default async function AdminSettingsPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [adminUsers, platformSettings, notificationPreferences, auditLogs, searchConsoleIntegration] =
+  const [adminUsers, platformRoles, canManagePlatformRoles, platformSettings, notificationPreferences, auditLogs, searchConsoleIntegration, billingSettings] =
     await Promise.all([
     getAdminSettingsUsers(),
+    listPlatformAdminRoles(),
+    currentUserCanManagePlatformRoles(),
     getPlatformSettings(),
     user
       ? getAdminNotificationPreferences(user.id)
@@ -39,6 +46,7 @@ export default async function AdminSettingsPage({
         }),
     getPlatformAuditLogs(40),
     getAdminSearchConsoleIntegrationSettings(),
+    getAdminBillingSettings(),
   ]);
 
   const initialTab =
@@ -53,11 +61,14 @@ export default async function AdminSettingsPage({
   return (
     <FaraiSettings
       adminUsers={adminUsers}
+      platformRoles={platformRoles}
+      canManagePlatformRoles={canManagePlatformRoles}
       adminEmail={user?.email ?? null}
       platformSettings={platformSettings}
       notificationPreferences={notificationPreferences}
       auditLogs={auditLogs}
       searchConsoleIntegration={searchConsoleIntegration}
+      billingSettings={billingSettings}
       initialTab={initialTab}
     />
   );

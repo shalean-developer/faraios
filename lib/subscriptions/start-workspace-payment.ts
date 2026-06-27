@@ -4,6 +4,7 @@ export type StartWorkspacePaymentInput = {
   companyId: string;
   plan?: string | null;
   email: string;
+  includeSetupFee?: boolean;
 };
 
 export type StartWorkspacePaymentResult =
@@ -25,6 +26,7 @@ export async function startWorkspacePayment(
       companyId: input.companyId,
       plan: normalizePlanSlug(input.plan),
       email,
+      includeSetupFee: input.includeSetupFee,
     }),
   });
 

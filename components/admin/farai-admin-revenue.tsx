@@ -22,8 +22,14 @@ import {
 } from "recharts";
 
 import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
 import { ADMIN_BUSINESSES_PATH } from "@/lib/constants/admin-nav";
 import { formatZar } from "@/lib/data/pricing";
+import {
+  riseStatCardClassName,
+  riseTableClassName,
+  riseTableHeadRowClassName,
+} from "@/lib/ui/rise-dashboard-styles";
 import type { AdminPlatformRevenueData } from "@/types/admin";
 
 const fadeUp = {
@@ -67,7 +73,7 @@ function StatCard({
   accent: string;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+    <div className={riseStatCardClassName}>
       <div className="mb-3 flex items-center justify-between">
         <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${iconBg}`}>
           <Icon className={`h-4 w-4 ${iconColor}`} />
@@ -89,23 +95,16 @@ const STATUS_STYLES = {
 
 export function FaraiAdminRevenue({ data }: { data: AdminPlatformRevenueData }) {
   return (
-    <>
-      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-lg font-extrabold tracking-tight text-gray-900">Revenue</h1>
-          <p className="mt-0.5 text-xs text-gray-400">
-            Platform subscriptions and hosting payments
-          </p>
-        </div>
-        <AdminActivityBellLink />
-      </header>
-
-      <main className="flex-1 overflow-y-auto px-6 py-6">
+    <AdminPageShell
+      title="Revenue"
+      description="Platform subscriptions and hosting payments"
+      actions={<AdminActivityBellLink />}
+    >
         <motion.div
           initial="hidden"
           animate="visible"
           variants={stagger}
-          className="mx-auto max-w-7xl space-y-5"
+          className="space-y-5"
         >
           <motion.div variants={fadeUp} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <StatCard
@@ -172,7 +171,7 @@ export function FaraiAdminRevenue({ data }: { data: AdminPlatformRevenueData }) 
           <div className="grid gap-5 lg:grid-cols-2">
             <motion.div
               variants={fadeUp}
-              className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm"
+              className={riseStatCardClassName}
             >
               <h2 className="text-sm font-bold text-gray-900">Monthly revenue</h2>
               <p className="mt-0.5 text-xs text-gray-400">Successful hosting payments</p>
@@ -191,7 +190,7 @@ export function FaraiAdminRevenue({ data }: { data: AdminPlatformRevenueData }) 
 
             <motion.div
               variants={fadeUp}
-              className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm"
+              className={riseStatCardClassName}
             >
               <h2 className="text-sm font-bold text-gray-900">Weekly revenue</h2>
               <p className="mt-0.5 text-xs text-gray-400">Last 8 weeks</p>
@@ -211,9 +210,9 @@ export function FaraiAdminRevenue({ data }: { data: AdminPlatformRevenueData }) 
 
           <motion.div
             variants={fadeUp}
-            className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+            className={riseTableClassName}
           >
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
               <div>
                 <h2 className="text-sm font-bold text-gray-900">Recent transactions</h2>
                 <p className="mt-0.5 text-xs text-gray-400">Hosting payments across all businesses</p>
@@ -225,7 +224,7 @@ export function FaraiAdminRevenue({ data }: { data: AdminPlatformRevenueData }) 
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[720px]">
                   <thead>
-                    <tr className="border-b border-gray-50 bg-gray-50/80">
+                    <tr className={riseTableHeadRowClassName}>
                       <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">
                         Business
                       </th>
@@ -281,7 +280,6 @@ export function FaraiAdminRevenue({ data }: { data: AdminPlatformRevenueData }) 
             )}
           </motion.div>
         </motion.div>
-      </main>
-    </>
+    </AdminPageShell>
   );
 }

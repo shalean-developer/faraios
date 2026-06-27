@@ -9,13 +9,13 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-type WebsiteWithCompany = Website & { companies?: { name?: string | null } | null };
+type WebsiteWithCompany = Website & { companies?: { name?: string | null; slug?: string | null } | null };
 
 export default async function AdminWebsitesPage() {
   const adminClient = await getAdminQueryClient();
   const { data } = await adminClient
     .from("websites")
-    .select("*, companies(name)")
+    .select("*, companies(id, name, slug)")
     .order("created_at", { ascending: false });
 
   const websites = (data as WebsiteWithCompany[] | null) ?? [];

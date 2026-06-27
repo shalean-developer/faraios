@@ -7,7 +7,7 @@ import type { LandingPageContent } from "@/types/website-builder";
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ businessSlug: string }> };
+type Props = { params: Promise<{ businessSlug: string }>; searchParams: Promise<{ preview?: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { businessSlug } = await params;
@@ -27,10 +27,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function PublicBusinessSitePage({ params }: Props) {
+export default async function PublicBusinessSitePage({ params, searchParams }: Props) {
   const { businessSlug } = await params;
+  const { preview } = await searchParams;
   const slug = decodeURIComponent(businessSlug);
-  const data = await getPublicBuilderSiteData(slug);
+  const data = await getPublicBuilderSiteData(slug, preview ? { previewToken: preview } : undefined);
 
   if (!data?.company || !data.website) {
     notFound();
@@ -47,6 +48,8 @@ export default async function PublicBusinessSitePage({ params }: Props) {
       website={data.website}
       landing={landing}
       servicePages={data.servicePages}
+      contentPosts={data.contentPosts}
+      preview={data.preview}
     />
   );
 }

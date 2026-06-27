@@ -7,15 +7,22 @@ import {
   WEBSITE_IMAGE_MIME_TYPES,
 } from "@/lib/constants/website-assets";
 import { getAdminQueryClient, isCurrentUserPlatformAdmin } from "@/lib/services/admin";
+import { registerWebsiteMediaRecord } from "@/lib/website-builder/media";
 import { createClient } from "@/lib/supabase/server";
 
 export type WebsiteImageUploadInput = {
   websiteId: string;
   file: File;
+  companyId?: string;
+  filename?: string;
+  altText?: string | null;
+  folder?: string;
+  tags?: string[];
+  replaceStoragePath?: string | null;
 };
 
 export type WebsiteImageUploadResult =
-  | { ok: true; url: string; path: string }
+  | { ok: true; url: string; path: string; mediaId?: string }
   | { ok: false; error: string };
 
 function extensionForFile(file: File): string | null {
@@ -104,7 +111,8 @@ export async function uploadWebsiteImage(
     return { ok: false, error: "Unsupported image type." };
   }
 
-  const path = `${websiteId}/${randomUUID()}.${extension}`;
+  const replacePath = input.replaceStoragePath?.trim();
+  const path = replacePath || `${websiteId}/${randomUUID()}.${extension}`;
   const bytes = Buffer.from(await file.arrayBuffer());
   const supabase = access.isAdmin ? await getAdminQueryClient() : await createClient();
 
@@ -113,7 +121,7 @@ export async function uploadWebsiteImage(
     .upload(path, bytes, {
       contentType: file.type,
       cacheControl: "3600",
-      upsert: false,
+      upsert: Boolean(replacePath),
     });
 
   if (uploadError) {
@@ -125,5 +133,31 @@ export async function uploadWebsiteImage(
     return { ok: false, error: "Upload succeeded but the public URL could not be generated." };
   }
 
-  return { ok: true, url: data.publicUrl, path };
+  let mediaId: string | undefined;
+  if (input.companyId) {
+    const displayName =
+      input.filename?.trim() ||
+      file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim() ||
+      path.split("/").pop() ||
+      "image";
+
+    const registered = await registerWebsiteMediaRecord({
+      websiteId,
+      companyId: input.companyId,
+      storagePath: path,
+      url: data.publicUrl,
+      filename: displayName,
+      mimeType: file.type,
+      sizeBytes: file.size,
+      altText: input.altText,
+      folder: input.folder,
+      tags: input.tags,
+    });
+
+    if (registered.ok) {
+      mediaId = registered.record.id;
+    }
+  }
+
+  return { ok: true, url: data.publicUrl, path, mediaId };
 }

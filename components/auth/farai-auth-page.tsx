@@ -249,6 +249,7 @@ export function FaraiAuthPage({
             type="button"
             onClick={() => void handleGoogle()}
             disabled={busy}
+            suppressHydrationWarning
             className="mb-5 flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-50/40 hover:shadow-md disabled:opacity-60"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
@@ -317,6 +318,7 @@ export function FaraiAuthPage({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
+                    suppressHydrationWarning
                     className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-2.5 text-sm text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                     required
                     autoComplete="email"
@@ -351,6 +353,7 @@ export function FaraiAuthPage({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
+                      suppressHydrationWarning
                       className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-2.5 pr-11 text-sm text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                       required
                       autoComplete={isLogin ? "current-password" : "new-password"}
@@ -358,6 +361,7 @@ export function FaraiAuthPage({
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
+                      suppressHydrationWarning
                       className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
                       aria-label={showPassword ? "Hide password" : "Show password"}
                     >
@@ -385,6 +389,7 @@ export function FaraiAuthPage({
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="••••••••"
+                        suppressHydrationWarning
                         className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-2.5 pr-11 text-sm text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                         required
                         autoComplete="new-password"
@@ -392,6 +397,7 @@ export function FaraiAuthPage({
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        suppressHydrationWarning
                         className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
                         aria-label={
                           showConfirmPassword
@@ -412,6 +418,7 @@ export function FaraiAuthPage({
                 <button
                   type="submit"
                   disabled={busy}
+                  suppressHydrationWarning
                   className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white shadow-md shadow-indigo-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-200 disabled:opacity-60"
                   style={{
                     background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)",

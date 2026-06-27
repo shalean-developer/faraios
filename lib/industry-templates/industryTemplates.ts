@@ -85,7 +85,7 @@ export function getIndustryNavLabels(
     calendar: t.calendar ?? DEFAULT_NAV_LABELS.calendar,
     customers: t.customer ?? DEFAULT_NAV_LABELS.customers,
     services: t.service ?? DEFAULT_NAV_LABELS.services,
-    team: t.staff ? `${t.staff}` : DEFAULT_NAV_LABELS.team,
+    team: DEFAULT_NAV_LABELS.team,
     revenue: t.revenue ?? DEFAULT_NAV_LABELS.revenue,
   };
 }

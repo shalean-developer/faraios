@@ -3,6 +3,8 @@
 import React, { useMemo, useTransition } from "react";
 import { motion } from "framer-motion";
 import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
+import { riseStatCardClassName } from "@/lib/ui/rise-dashboard-styles";
 import {
   Layers,
   CheckCircle2,
@@ -176,21 +178,20 @@ export function FaraiAdminAnalytics({
   analytics: AdminAnalyticsData;
 }) {
   return (
-    <>
-      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-extrabold leading-tight tracking-tight text-gray-900">Analytics</h1>
-            <p className="mt-0.5 text-xs text-gray-400">Platform-wide insights and performance metrics</p>
-          </div>
-          <div className="flex flex-shrink-0 items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600">
+    <AdminPageShell
+      title="Analytics"
+      description="Platform-wide insights and performance metrics"
+      actions={
+        <>
+          <div className="flex flex-shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-[#5a8dee]">
             <TrendingUp className="h-3.5 w-3.5" />
             <span>{analytics.monthLabel}</span>
           </div>
           <AdminActivityBellLink />
-        </header>
-
-        <main className="flex-1 overflow-y-auto px-6 py-6">
-          <motion.div initial="hidden" animate="visible" variants={stagger} className="mx-auto max-w-7xl space-y-5">
+        </>
+      }
+    >
+          <motion.div initial="hidden" animate="visible" variants={stagger} className="space-y-5">
             <motion.div variants={fadeUp} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {[
                 { label: "Total Projects", value: String(analytics.totalProjects), icon: Layers, iconBg: "bg-indigo-50", iconColor: "text-indigo-600", accent: "from-indigo-500 to-violet-500", sub: "All-time projects" },
@@ -200,7 +201,7 @@ export function FaraiAdminAnalytics({
               ].map((stat) => {
                 const Icon = stat.icon;
                 return (
-                  <div key={stat.label} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md">
+                  <div key={stat.label} className={riseStatCardClassName}>
                     <div className="mb-3 flex items-center justify-between">
                       <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${stat.iconBg}`}>
                         <Icon className={`h-4 w-4 ${stat.iconColor}`} />
@@ -220,7 +221,7 @@ export function FaraiAdminAnalytics({
             </motion.div>
 
             <motion.div variants={fadeUp} className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-              <div className="col-span-1 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:col-span-2">
+              <div className={`col-span-1 ${riseStatCardClassName} lg:col-span-2`}>
                 <div className="mb-5 flex items-center justify-between">
                   <div>
                     <h2 className="text-sm font-bold text-gray-900">Projects Over Time</h2>
@@ -248,7 +249,7 @@ export function FaraiAdminAnalytics({
                 </ResponsiveContainer>
               </div>
 
-              <div className="flex flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+              <div className={`flex flex-col ${riseStatCardClassName}`}>
                 <div className="mb-4">
                   <h2 className="text-sm font-bold text-gray-900">Status Breakdown</h2>
                   <p className="mt-0.5 text-xs text-gray-400">All projects by current status</p>
@@ -411,7 +412,6 @@ export function FaraiAdminAnalytics({
               </div>
             </motion.div>
           </motion.div>
-        </main>
-    </>
+    </AdminPageShell>
   );
 }

@@ -59,33 +59,5 @@ export default async function CompanyMarketingPage({ params }: Props) {
 
   const analytics = await getMarketingAnalytics(row.id);
 
-  return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">Growth</p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Marketing overview</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Track leads, conversions, campaign performance, and where your bookings come from.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href={`/${encodeURIComponent(slug)}/dashboard/campaigns`}
-            className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            New campaign
-          </Link>
-          <Link
-            href={`/${encodeURIComponent(slug)}/dashboard/analytics`}
-            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Full analytics
-          </Link>
-        </div>
-      </header>
-
-      <CompanyMarketingClient slug={slug} analytics={analytics} />
-    </div>
-  );
+  return <CompanyMarketingClient slug={slug} analytics={analytics} />;
 }

@@ -28,6 +28,11 @@ import {
   companyQuotePath,
 } from "@/lib/paths/company";
 import { cn } from "@/lib/utils";
+import {
+  riseCardClassName,
+  risePageClassName,
+  risePrimaryButtonClassName,
+} from "@/lib/ui/rise-dashboard-styles";
 import type { BookingForm } from "@/types/booking-form";
 import type {
   Booking,
@@ -248,20 +253,18 @@ export function CompanyBookingsClient({
         notifications={notifications}
         unreadCount={unreadCount}
       />
-      <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className={risePageClassName}>
+      <div className={riseCardClassName}>
+      <div className="flex flex-col gap-4 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
-            Operations
-          </p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900">{copy.title}</h1>
-          <p className="mt-2 text-sm text-slate-500">{copy.description}</p>
+          <h1 className="text-lg font-medium text-slate-800">{copy.title}</h1>
+          <p className="mt-1 text-sm text-slate-500">{copy.description}</p>
         </div>
         {view === "booking-requests" ? (
           bookingForm ? (
             <Button
               type="button"
-              className="shrink-0 rounded-xl"
+              className="shrink-0 rounded-md bg-[#5a8dee] hover:bg-[#4a6fd8]"
               variant={showBookingForm ? "outline" : "default"}
               aria-expanded={showBookingForm}
               aria-haspopup="dialog"
@@ -270,10 +273,7 @@ export function CompanyBookingsClient({
               Booking Request
             </Button>
           ) : (
-            <Link
-              href={companyBookingFormPath(slug)}
-              className="inline-flex h-9 shrink-0 items-center justify-center rounded-xl bg-violet-600 px-4 text-sm font-medium text-white hover:bg-violet-700"
-            >
+            <Link href={companyBookingFormPath(slug)} className={risePrimaryButtonClassName}>
               Set up booking form
             </Link>
           )
@@ -281,7 +281,7 @@ export function CompanyBookingsClient({
         {view === "quote-requests" ? (
           <Button
             type="button"
-            className="shrink-0 rounded-xl"
+            className="shrink-0 rounded-md bg-[#5a8dee] hover:bg-[#4a6fd8]"
             variant={showQuoteForm ? "outline" : "default"}
             aria-expanded={showQuoteForm}
             aria-haspopup="dialog"
@@ -290,7 +290,7 @@ export function CompanyBookingsClient({
             Quote Request
           </Button>
         ) : null}
-      </header>
+      </div>
 
       {view === "booking-requests" && bookingForm ? (
         <BookingRequestPopover
@@ -353,7 +353,7 @@ export function CompanyBookingsClient({
       ) : null}
 
       {error ? (
-        <p className="mb-4 text-sm font-medium text-red-600">{error}</p>
+        <p className="mx-4 mb-4 text-sm font-medium text-red-600 sm:mx-5">{error}</p>
       ) : null}
 
       {view === "booking-requests" ? (
@@ -390,7 +390,7 @@ export function CompanyBookingsClient({
             dateFrom={dateFrom}
             onDateFromChange={setDateFrom}
           />
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-hidden border-t border-slate-100">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -420,7 +420,7 @@ export function CompanyBookingsClient({
                         <td className="px-4 py-3">
                           <Link
                             href={companyBookingPath(slug, item.booking.id)}
-                            className="font-medium text-violet-700 hover:text-violet-900"
+                            className="font-medium text-[#4a6fd8] hover:text-[#3a5fc8]"
                           >
                             {item.booking.customer_name ?? "—"}
                           </Link>
@@ -448,14 +448,14 @@ export function CompanyBookingsClient({
                     ) : (
                       <tr key={`quote-${item.quote.id}`} className="hover:bg-slate-50/50">
                         <td className="px-4 py-3">
-                          <span className="rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
+                          <span className="rounded-full bg-[#eef2ff] px-2.5 py-0.5 text-xs font-semibold text-[#4a6fd8]">
                             Quote
                           </span>
                         </td>
                         <td className="px-4 py-3">
                           <Link
                             href={companyQuotePath(slug, item.quote.id)}
-                            className="font-medium text-violet-700 hover:text-violet-900"
+                            className="font-medium text-[#4a6fd8] hover:text-[#3a5fc8]"
                           >
                             {item.quote.customers?.name ?? "—"}
                           </Link>
@@ -505,6 +505,7 @@ export function CompanyBookingsClient({
         </>
       ) : null}
       </div>
+      </div>
     </>
   );
 }
@@ -529,7 +530,7 @@ function BookingFilters({
   return (
     <>
       {showStatusFilters && statusFilter != null && onStatusFilterChange ? (
-        <div className="mb-4 flex flex-wrap gap-2">
+        <div className="mb-4 flex flex-wrap gap-2 px-4 sm:px-5">
           {(["all", ...BOOKING_STATUSES] as StatusFilter[]).map((filter) => (
             <button
               key={filter}
@@ -538,7 +539,7 @@ function BookingFilters({
               className={cn(
                 "rounded-full px-3 py-1 text-xs font-semibold capitalize transition-colors",
                 statusFilter === filter
-                  ? "bg-violet-600 text-white"
+                  ? "bg-[#5a8dee] text-white"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               )}
             >
@@ -547,7 +548,7 @@ function BookingFilters({
           ))}
         </div>
       ) : null}
-      <div className="mb-4 flex flex-wrap gap-3">
+      <div className="mb-4 flex flex-wrap gap-3 px-4 sm:px-5">
         <input
           value={searchQuery}
           onChange={(e) => onSearchQueryChange(e.target.value)}
@@ -582,7 +583,7 @@ function BookingsTable({
   onStatusChange: (bookingId: string, status: BookingStatus) => void;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-hidden border-t border-slate-100">
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -606,14 +607,14 @@ function BookingsTable({
                 <td className="px-4 py-3">
                   <Link
                     href={companyBookingPath(slug, row.id)}
-                    className="font-medium text-violet-700 hover:text-violet-900"
+                    className="font-medium text-[#4a6fd8] hover:text-[#3a5fc8]"
                   >
                     {row.customer_name ?? "—"}
                   </Link>
                   {row.customer_id ? (
                     <Link
                       href={companyCustomerPath(slug, row.customer_id)}
-                      className="block text-xs text-slate-500 hover:text-violet-700"
+                      className="block text-xs text-slate-500 hover:text-[#4a6fd8]"
                     >
                       View customer
                     </Link>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
 
 import { getHostingProvider } from "@/lib/hosting/providers";
+import { getDefaultHostingProviderSlug } from "@/lib/hosting/constants";
 import { previewSubdomainForSlug } from "@/lib/constants/tenant-domain";
 import { requireCompanyPermission } from "@/lib/services/company-access";
 import { provisionCompanyWebsiteDomain } from "@/lib/services/hosting-domain";
@@ -17,9 +18,14 @@ import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import {
   companyWebsiteApiKeysPath,
+  companyWebsiteBuilderSectionPath,
   companyWebsiteDomainsPath,
   companyWebsitesPath,
 } from "@/lib/paths/company";
+import {
+  getBuilderWebsiteForCompany,
+  syncDomainSettingsCustomDomain,
+} from "@/lib/website-builder/service";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 type ActionResultWithKey = { ok: true; apiKey: string } | { ok: false; error: string };
@@ -60,7 +66,22 @@ export async function addWebsiteDomainAction(input: {
     return { ok: false, error: provision.error };
   }
 
+  const builderWebsite =
+    input.websiteId != null
+      ? { id: input.websiteId }
+      : await getBuilderWebsiteForCompany(input.companyId);
+
+  if (builderWebsite) {
+    await syncDomainSettingsCustomDomain({
+      websiteId: builderWebsite.id,
+      companyId: input.companyId,
+      customDomain: normalized,
+      customDomainStatus: "pending",
+    });
+  }
+
   revalidatePath(companyWebsiteDomainsPath(input.companySlug));
+  revalidatePath(companyWebsiteBuilderSectionPath(input.companySlug, "domains"));
   revalidatePath(companyWebsitesPath(input.companySlug));
   return { ok: true };
 }
@@ -86,7 +107,35 @@ export async function verifyWebsiteDomainAction(input: {
       .eq("company_id", input.companyId);
   }
 
+  const admin = tryCreateAdminClient();
+  if (admin.ok) {
+    const { data: domainRow } = await admin.client
+      .from("website_domains")
+      .select("domain, verification_status, website_id, connected_website_id")
+      .eq("id", input.websiteDomainId)
+      .eq("company_id", input.companyId)
+      .maybeSingle();
+
+    const websiteId =
+      (domainRow?.website_id as string | null) ??
+      (domainRow?.connected_website_id as string | null) ??
+      (await getBuilderWebsiteForCompany(input.companyId))?.id ??
+      null;
+
+    if (websiteId && domainRow?.domain) {
+      await syncDomainSettingsCustomDomain({
+        websiteId,
+        companyId: input.companyId,
+        customDomain: domainRow.domain as string,
+        customDomainStatus: result.verified
+          ? "verified"
+          : ((domainRow.verification_status as string) ?? "pending"),
+      });
+    }
+  }
+
   revalidatePath(companyWebsiteDomainsPath(input.companySlug));
+  revalidatePath(companyWebsiteBuilderSectionPath(input.companySlug, "domains"));
   return { ok: true, verified: result.verified };
 }
 
@@ -255,7 +304,7 @@ export async function triggerWebsiteDeploymentAction(input: {
   const access = await requireCompanyPermission(input.companyId, "view_websites");
   if (!access.ok) return access;
 
-  const provider = getHostingProvider(input.hostingProvider ?? "vercel");
+  const provider = getHostingProvider(input.hostingProvider ?? getDefaultHostingProviderSlug());
   const projectResult = await provider.createProject({
     name: `faraios-${input.companySlug}`,
     companyId: input.companyId,

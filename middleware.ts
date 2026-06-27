@@ -1,8 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { publicCorsPreflightResponse } from "@/lib/api/public-cors";
 import { isPlatformAdminUser } from "@/lib/auth/post-login-redirect";
-import { NextResponse, type NextRequest } from "next/server";
+import { PLATFORM_WORKSPACE_COOKIE } from "@/lib/constants/workspace-session";
+import { tryWwwRedirectResponse } from "@/lib/website-builder/www-redirect-middleware";
 
 
 
@@ -65,6 +67,32 @@ async function userHasCompanySlugAccess(
   return Boolean(data);
 }
 
+async function userHasActivePlatformWorkspaceSession(
+  supabase: ReturnType<typeof createServerClient>,
+  userId: string,
+  sessionId: string,
+  expectedSlug: string
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("platform_workspace_sessions")
+    .select("company_slug, platform_user_id, ended_at")
+    .eq("id", sessionId)
+    .maybeSingle();
+
+  if (error || !data) {
+    if (error) {
+      console.error("[middleware] userHasActivePlatformWorkspaceSession", error.message);
+    }
+    return false;
+  }
+
+  return (
+    !data.ended_at &&
+    data.platform_user_id === userId &&
+    data.company_slug === expectedSlug
+  );
+}
+
 
 
 function signInRedirect(request: NextRequest) {
@@ -88,6 +116,9 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/api/public/") && request.method === "OPTIONS") {
     return publicCorsPreflightResponse();
   }
+
+  const wwwRedirect = await tryWwwRedirectResponse(request);
+  if (wwwRedirect) return wwwRedirect;
 
   const isOnboarding =
 
@@ -279,11 +310,11 @@ export async function middleware(request: NextRequest) {
 
         if (redirectParam === "hosting") {
 
-          const hostingPath = `/${encodeURIComponent(companySlug)}/dashboard/hosting`;
+          const hostingPath = `/${encodeURIComponent(companySlug)}/dashboard/billing?tab=hosting`;
 
           const target = hostingPlan
 
-            ? `${hostingPath}?plan=${encodeURIComponent(hostingPlan)}`
+            ? `${hostingPath}&plan=${encodeURIComponent(hostingPlan)}`
 
             : hostingPath;
 
@@ -335,6 +366,52 @@ export async function middleware(request: NextRequest) {
 
     }
 
+    if (pathname.startsWith("/admin/workspace/")) {
+      const workspaceMatch = pathname.match(/^\/admin\/workspace\/([^/]+)(\/.*)?$/);
+      if (!workspaceMatch) {
+        return NextResponse.redirect(new URL("/admin/businesses", request.url));
+      }
+
+      const workspaceSlug = decodeURIComponent(workspaceMatch[1]);
+      let suffix = workspaceMatch[2] ?? "/dashboard";
+
+      if (suffix === "" || suffix === "/") {
+        suffix = "/dashboard";
+      }
+
+      if (!suffix.startsWith("/dashboard")) {
+        return NextResponse.redirect(
+          new URL(
+            `/admin/workspace/${encodeURIComponent(workspaceSlug)}/dashboard${suffix.startsWith("/") ? suffix : `/${suffix}`}`,
+            request.url
+          )
+        );
+      }
+
+      const sessionId = request.cookies.get(PLATFORM_WORKSPACE_COOKIE)?.value?.trim();
+      if (!sessionId) {
+        return NextResponse.redirect(new URL("/admin/businesses", request.url));
+      }
+
+      const hasSession = await userHasActivePlatformWorkspaceSession(
+        supabase,
+        user.id,
+        sessionId,
+        workspaceSlug
+      );
+
+      if (!hasSession) {
+        return NextResponse.redirect(new URL("/admin/businesses", request.url));
+      }
+
+      const rewriteUrl = new URL(
+        `/${encodeURIComponent(workspaceSlug)}${suffix}${request.nextUrl.search}`,
+        request.url
+      );
+
+      return NextResponse.rewrite(rewriteUrl);
+    }
+
     return response;
 
   }
@@ -376,6 +453,9 @@ export async function middleware(request: NextRequest) {
 
 
   if (!companySlug) {
+    if (isAdmin) {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
 
     return NextResponse.redirect(new URL("/onboarding", request.url));
 

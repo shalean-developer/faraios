@@ -26,25 +26,26 @@ export function SeoV10Overview({
   }));
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">SEO Platform V10</h2>
-          <p className="text-sm text-slate-500">
+          <h2 className="text-sm font-medium text-slate-700">SEO Platform V10</h2>
+          <p className="mt-0.5 text-xs text-slate-500">
             Enterprise SEO health, crawl history, and issue tracking.
           </p>
         </div>
         {v10.latestCrawl ? (
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
             Last crawl: {new Date(v10.latestCrawl.completed_at ?? v10.latestCrawl.started_at).toLocaleDateString()}
           </span>
         ) : (
-          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
-            No crawl yet — run your first scan
+          <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+            No crawl yet
           </span>
         )}
       </div>
 
+      <div className="p-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
         <V10Card label="SEO score" value={`${auditScore}/100`} highlight />
         <V10Card label="Website health" value={`${v10.healthScore}/100`} />
@@ -61,8 +62,8 @@ export function SeoV10Overview({
       </div>
 
       {chartData.length > 1 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-900">SEO trend history</h3>
+        <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50/50 p-4">
+          <h3 className="text-sm font-medium text-slate-700">SEO trend history</h3>
           <div className="mt-3 h-48">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
@@ -70,13 +71,14 @@ export function SeoV10Overview({
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#94a3b8" />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} stroke="#94a3b8" />
                 <Tooltip />
-                <Line type="monotone" dataKey="score" stroke="#7c3aed" strokeWidth={2} dot={false} name="SEO score" />
+                <Line type="monotone" dataKey="score" stroke="#5a8dee" strokeWidth={2} dot={false} name="SEO score" />
                 <Line type="monotone" dataKey="health" stroke="#10b981" strokeWidth={2} dot={false} name="Health" />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
       ) : null}
+      </div>
     </section>
   );
 }
@@ -100,15 +102,15 @@ function V10Card({
     <div
       className={
         highlight
-          ? "rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50/70 to-white p-4 shadow-sm"
+          ? "rounded-lg border border-[#5a8dee]/30 bg-[#eef2ff]/60 p-3"
           : warn
-            ? "rounded-2xl border border-red-200 bg-red-50/50 p-4 shadow-sm"
+            ? "rounded-lg border border-red-200 bg-red-50/50 p-3"
             : good
-              ? "rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-sm"
-              : "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              ? "rounded-lg border border-emerald-200 bg-emerald-50/50 p-3"
+              : "rounded-lg border border-slate-100 bg-slate-50/80 p-3"
       }
     >
-      <p className="text-xs font-semibold uppercase text-slate-400">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
       <p className={`mt-1 text-lg font-bold text-slate-900 ${capitalize ? "capitalize" : ""}`}>
         {value}
       </p>

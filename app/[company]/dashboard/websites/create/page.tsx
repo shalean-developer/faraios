@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CreateWebsiteForm } from "@/components/websites/create-website-form";
 import { companyDashboardPath, companyWebsitesPath } from "@/lib/paths/company";
 import { createClient } from "@/lib/supabase/server";
+import { riseCardClassName, risePageClassName } from "@/lib/ui/rise-dashboard-styles";
 
 export const metadata = {
   title: "Create Website — FaraiOS",
@@ -26,7 +27,7 @@ export default async function CompanyCreateWebsitePage({ params }: Props) {
     return (
       <main className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
         <p className="text-sm text-slate-500">Please sign in to create a website.</p>
-        <Link href="/auth/sign-in" className="mt-4 inline-block text-sm font-medium text-violet-700">
+        <Link href="/auth/sign-in" className="mt-4 inline-block text-sm font-medium text-[#5a8dee]">
           Sign in
         </Link>
       </main>
@@ -34,24 +35,27 @@ export default async function CompanyCreateWebsitePage({ params }: Props) {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-      <div className="mb-6 flex flex-wrap gap-4 text-sm font-medium">
-        <Link href={companyDashboardPath(slug)} className="text-violet-700 hover:text-violet-900">
-          ← Dashboard
-        </Link>
-        <Link href={companyWebsitesPath(slug)} className="text-slate-600 hover:text-slate-900">
-          Websites
-        </Link>
+    <div className={risePageClassName}>
+      <div className={riseCardClassName}>
+        <div className="px-4 py-4 sm:px-5">
+          <div className="flex flex-wrap gap-4 text-sm font-medium">
+            <Link href={companyDashboardPath(slug)} className="text-[#5a8dee] hover:text-[#4a6fd8]">
+              ← Dashboard
+            </Link>
+            <Link href={companyWebsitesPath(slug)} className="text-slate-600 hover:text-slate-900">
+              Websites
+            </Link>
+          </div>
+          <h1 className="mt-4 text-lg font-medium text-slate-800">Create website</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Start a new draft website. You can connect a domain and publish later.
+          </p>
+        </div>
       </div>
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-        Create website
-      </h1>
-      <p className="mt-2 text-sm text-slate-500">
-        Start a new draft website. You can connect a domain and publish later.
-      </p>
-      <div className="mt-6">
+
+      <div className={`mt-4 ${riseCardClassName} p-4 sm:p-5`}>
         <CreateWebsiteForm companySlug={slug} />
       </div>
-    </main>
+    </div>
   );
 }

@@ -11,8 +11,17 @@ import {
   unpublishWebsiteAsAdminAction,
   updateWebsiteSeoAsAdminAction,
 } from "@/app/actions/websites";
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
+import { WorkspaceModeCallout } from "@/components/admin/workspace-mode-callout";
 import { Button } from "@/components/ui/button";
 import { WebsiteContentEditor } from "@/components/websites/website-content-editor";
+import {
+  riseCardClassName,
+  riseOutlineButtonClassName,
+} from "@/lib/ui/rise-dashboard-styles";
+import { agencyWorkspaceHref } from "@/lib/platform/agency-workspace";
+import { companyWebsiteBuilderPath } from "@/lib/paths/company";
+import { cn } from "@/lib/utils";
 import type { WebsiteContent } from "@/types/database";
 
 type WebsiteSummary = {
@@ -88,6 +97,10 @@ export function AdminWebsiteEditPage({
 
   const companySlug = company?.slug ?? "admin";
   const companyId = company?.id ?? "";
+  const workspaceBuilderHref =
+    company?.slug && company.slug !== "admin"
+      ? agencyWorkspaceHref(company.slug, companyWebsiteBuilderPath(company.slug))
+      : null;
   const previewPath = `/preview/${website.id}`;
   const liveHost = domain.trim() || `${website.subdomain}.faraios.com`;
   const liveUrl = `https://${liveHost}`;
@@ -195,71 +208,52 @@ export function AdminWebsiteEditPage({
   };
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-      <div className="mb-6 flex flex-wrap items-center gap-3 text-sm">
-        <Link
-          href="/admin/websites"
-          className="font-medium text-violet-700 transition-colors hover:text-violet-900"
-        >
-          ← Back to websites
-        </Link>
-        {company ? (
-          <Link
-            href={`/admin/pipeline/${company.id}`}
-            className="font-medium text-slate-600 transition-colors hover:text-slate-900"
-          >
-            View project
+    <AdminPageShell
+      title={website.name}
+      description={
+        company
+          ? `Client: ${company.name} · Fallback host: ${website.subdomain}.faraios.com`
+          : `Fallback host: ${website.subdomain}.faraios.com`
+      }
+      actions={
+        <>
+          {statusBadge(status)}
+          <Link href="/admin/websites" className={riseOutlineButtonClassName}>
+            Back to websites
           </Link>
-        ) : null}
-      </div>
-
-      <header className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                {website.name}
-              </h1>
-              {statusBadge(status)}
-            </div>
-            {company ? (
-              <p className="mt-2 text-sm text-slate-500">
-                Client:{" "}
-                <span className="font-medium text-slate-700">{company.name}</span>
-              </p>
-            ) : (
-              <p className="mt-2 text-sm text-amber-600">No client company linked.</p>
-            )}
-            <p className="mt-1 text-xs text-slate-400">
-              Fallback host: {website.subdomain}.faraios.com
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
+          {company ? (
             <Link
-              href={previewPath}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+              href={`/admin/businesses/${company.id}?tab=pipeline`}
+              className={riseOutlineButtonClassName}
             >
-              <Eye className="h-4 w-4" />
-              Preview
+              View project
             </Link>
-            {status === "published" ? (
-              <a
-                href={liveUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Live site
-              </a>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-5">
+          ) : null}
+          <Link href={previewPath} target="_blank" rel="noreferrer" className={riseOutlineButtonClassName}>
+            <Eye className="h-4 w-4" />
+            Preview
+          </Link>
+          {status === "published" ? (
+            <a href={liveUrl} target="_blank" rel="noreferrer" className={riseOutlineButtonClassName}>
+              <ExternalLink className="h-4 w-4" />
+              Live site
+            </a>
+          ) : null}
+        </>
+      }
+    >
+      {company ? (
+        <WorkspaceModeCallout
+          featureLabel="website editing"
+          companyId={company.id}
+          companySlug={company.slug}
+          companyName={company.name}
+          workspaceHref={workspaceBuilderHref}
+          className="mb-4"
+        />
+      ) : null}
+      <div className={cn(riseCardClassName, "p-5 sm:p-6")}>
+        <div className="flex flex-wrap items-center gap-3">
           {status === "draft" ? (
             <Button type="button" onClick={onPublish} disabled={publishPending || !companyId}>
               {publishPending ? "Publishing..." : "Publish website"}
@@ -280,13 +274,12 @@ export function AdminWebsiteEditPage({
               : "Unpublish returns the site to draft — visitors will see “coming soon”."}
           </p>
         </div>
-
         {publishError ? (
           <p className="mt-3 text-sm font-medium text-red-600">{publishError}</p>
         ) : null}
-      </header>
+      </div>
 
-      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <section className={cn(riseCardClassName, "p-5 sm:p-6")}>
         <h2 className="text-lg font-semibold text-slate-900">Domain &amp; SEO</h2>
         <p className="mt-1 text-sm text-slate-500">
           Connect a custom domain and tune search metadata before launch.
@@ -295,8 +288,8 @@ export function AdminWebsiteEditPage({
         <form onSubmit={onConnectDomain} className="mt-5 space-y-2 border-b border-slate-100 pb-5">
           <p className="text-sm font-medium text-slate-800">Custom domain</p>
           <p className="text-xs text-slate-500">
-            Point an <strong>A</strong> record to your Vercel IP or a <strong>CNAME</strong> to{" "}
-            <code className="rounded bg-slate-100 px-1 py-0.5">cname.vercel-dns.com</code>
+            After saving, point <strong>A</strong> records for <strong>@</strong> and{" "}
+            <strong>www</strong> to your FaraiOS Plesk server IP in Website → Domains or Hosting.
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <input
@@ -352,7 +345,7 @@ export function AdminWebsiteEditPage({
         </form>
       </section>
 
-      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <section className={cn(riseCardClassName, "p-5 sm:p-6")}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50">
@@ -446,6 +439,6 @@ export function AdminWebsiteEditPage({
         contentRows={contentRows}
         embedded
       />
-    </main>
+    </AdminPageShell>
   );
 }

@@ -1,9 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { companyWebsitesPath } from "@/lib/paths/company";
+import {
+  riseCardClassName,
+  riseOutlineButtonClassName,
+  risePageClassName,
+} from "@/lib/ui/rise-dashboard-styles";
+import { cn } from "@/lib/utils";
 
 function appOrigin(): string {
   if (typeof window !== "undefined") return window.location.origin;
@@ -11,10 +18,12 @@ function appOrigin(): string {
 }
 
 export function WebsiteTrackingClient({
+  slug,
   companyId,
   trackingEnabled,
   recentEvents,
 }: {
+  slug: string;
   companyId: string;
   trackingEnabled: boolean;
   recentEvents: {
@@ -37,9 +46,26 @@ export function WebsiteTrackingClient({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h3 className="font-semibold text-slate-900">Tracking script</h3>
+    <div className={risePageClassName}>
+      <Link
+        href={companyWebsitesPath(slug)}
+        className="text-sm font-medium text-slate-600 hover:text-slate-900"
+      >
+        ← Website overview
+      </Link>
+
+      <div className={cn(riseCardClassName, "mt-4")}>
+        <div className="px-4 py-4 sm:px-5">
+          <h1 className="text-lg font-medium text-slate-800">Tracking</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Install the FaraiOS tracking script on your external website to capture leads and
+            conversions.
+          </p>
+        </div>
+      </div>
+
+      <div className={cn(riseCardClassName, "mt-4 p-5")}>
+        <h3 className="font-medium text-slate-800">Tracking script</h3>
         <p className="mt-1 text-sm text-slate-500">
           Add this script to your external website to track page visits, booking form views, and
           conversions. Tracking is {trackingEnabled ? "enabled" : "disabled"} for your connection.
@@ -47,23 +73,25 @@ export function WebsiteTrackingClient({
 
         <div className="mt-4">
           <div className="mb-1 flex justify-end">
-            <Button type="button" variant="ghost" size="sm" className="rounded-lg" onClick={onCopy}>
+            <button type="button" className={riseOutlineButtonClassName} onClick={onCopy}>
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            </Button>
+            </button>
           </div>
-          <pre className="overflow-x-auto rounded-xl bg-slate-900 p-3 text-xs text-slate-100">
+          <pre className="overflow-x-auto rounded-lg bg-slate-900 p-3 text-xs text-slate-100">
             {snippet}
           </pre>
         </div>
 
-        <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-3 text-sm text-slate-600">
+        <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm text-slate-600">
           <p className="font-medium text-slate-900">Tracked events</p>
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm">
             <li>Page visits</li>
+            <li>Link and button clicks</li>
             <li>Booking form views</li>
             <li>Booking submissions</li>
             <li>Quote requests</li>
             <li>Contact form submissions</li>
+            <li>Core Web Vitals (LCP, CLS)</li>
           </ul>
           <p className="mt-3 text-xs text-slate-500">
             UTM parameters and referrer are captured automatically. Use{" "}
@@ -73,8 +101,8 @@ export function WebsiteTrackingClient({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h3 className="font-semibold text-slate-900">Recent activity</h3>
+      <div className={cn(riseCardClassName, "mt-4 p-5")}>
+        <h3 className="font-medium text-slate-800">Recent activity</h3>
         {recentEvents.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">No tracking events yet.</p>
         ) : (

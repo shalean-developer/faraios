@@ -5,6 +5,7 @@ import React, { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
 import {
   LayoutDashboard,
   GitBranch,
@@ -33,6 +34,13 @@ import {
 } from "@/app/actions/admin";
 import { ADMIN_BUSINESSES_PATH } from "@/lib/constants/admin-nav";
 import { ADMIN_DEVELOPER_OPTIONS } from "@/lib/constants/admin-developers";
+import {
+  riseInputClassName,
+  risePrimaryButtonClassName,
+  riseSelectClassName,
+  riseStatCardClassName,
+  riseTableClassName,
+} from "@/lib/ui/rise-dashboard-styles";
 import type { AdminPipelineStatus, AdminProject, AdminProjectStats } from "@/types/admin";
 
 const PAGE_SIZE = 10;
@@ -229,41 +237,35 @@ export function FaraiAdminDashboard({
         setOpenDevDropdown(null);
       }}
     >
-        <header className="flex h-16 flex-shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-extrabold leading-tight tracking-tight text-gray-900">
-              Build Pipeline
-            </h1>
-            <p className="mt-0.5 text-xs text-gray-400">
-              Manage all client website projects in one place
-            </p>
-          </div>
+      <AdminPageShell
+        title="Build Pipeline"
+        description="Manage all client website projects in one place"
+        actions={
+          <>
+            <div className="flex w-40 shrink-0 items-center gap-2">
+              <label htmlFor="admin-status-filter" className="sr-only">
+                Filter by status
+              </label>
+              <select
+                id="admin-status-filter"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as typeof statusFilter);
+                  setPage(1);
+                }}
+                className={`${riseSelectClassName} w-full py-2 pl-2 pr-2 text-xs`}
+              >
+                <option value="all">All statuses</option>
+                {STATUS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="flex w-40 shrink-0 items-center gap-2">
-            <label htmlFor="admin-status-filter" className="sr-only">
-              Filter by status
-            </label>
-            <select
-              id="admin-status-filter"
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as typeof statusFilter);
-                setPage(1);
-              }}
-              className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-2 pr-2 text-xs text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="all">All statuses</option>
-              {STATUS_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="w-56 flex-shrink-0">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+            <div className="relative w-56 shrink-0">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
               <input
                 type="search"
                 placeholder="Search projects or clients..."
@@ -272,22 +274,18 @@ export function FaraiAdminDashboard({
                   setSearchValue(e.target.value);
                   setPage(1);
                 }}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-8 pr-4 text-xs text-gray-900 placeholder:text-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={`${riseInputClassName} w-full py-2 pl-8 pr-4 text-xs`}
               />
             </div>
-          </div>
 
-          <Link
-            href="/admin/websites"
-            className="inline-flex h-9 items-center justify-center rounded-xl bg-indigo-600 px-3 text-xs font-semibold text-white transition-all hover:bg-indigo-700"
-          >
-            + Create Website
-          </Link>
+            <Link href="/admin/websites" className={risePrimaryButtonClassName}>
+              + Create Website
+            </Link>
 
-          <AdminActivityBellLink />
-        </header>
-
-        <main className="flex-1 overflow-y-auto px-6 py-6">
+            <AdminActivityBellLink />
+          </>
+        }
+      >
           {isPending && (
             <p className="mb-2 text-xs font-medium text-indigo-600">
               Syncing…
@@ -305,7 +303,7 @@ export function FaraiAdminDashboard({
             initial="hidden"
             animate="visible"
             variants={stagger}
-            className="mx-auto max-w-7xl space-y-5"
+            className="space-y-5"
           >
             <motion.div
               variants={fadeUp}
@@ -316,7 +314,7 @@ export function FaraiAdminDashboard({
                 return (
                   <div
                     key={stat.label}
-                    className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md"
+                    className={riseStatCardClassName}
                   >
                     <div className="mb-3 flex items-center justify-between">
                       <div
@@ -342,9 +340,9 @@ export function FaraiAdminDashboard({
 
             <motion.div
               variants={fadeUp}
-              className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+              className={riseTableClassName}
             >
-              <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
                 <div>
                   <h2 className="text-sm font-bold text-gray-900">
                     All Projects
@@ -643,7 +641,7 @@ export function FaraiAdminDashboard({
               )}
             </motion.div>
           </motion.div>
-        </main>
+      </AdminPageShell>
     </div>
   );
 }

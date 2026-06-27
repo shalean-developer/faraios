@@ -43,7 +43,7 @@ export function AuthBrandLogo({ onDark = false, className }: AuthBrandLogoProps)
       ) : (
         <FaraiLogo
           priority
-          size={onDark ? "header" : "md"}
+          size="header"
           onError={() => setImgError(true)}
         />
       )}

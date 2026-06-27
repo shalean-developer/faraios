@@ -4,7 +4,6 @@ import Link from "next/link";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft,
   Check,
   CheckCircle2,
   CreditCard,
@@ -23,6 +22,7 @@ import {
 } from "@/app/actions/hosting";
 import { confirmHostingPaymentAction } from "@/app/actions/confirm-hosting-payment";
 import { rememberHostingPaymentReference } from "@/components/hosting/hosting-payment-recovery";
+import { ClientOnly } from "@/components/client-only";
 import { Button } from "@/components/ui/button";
 import {
   formatZar,
@@ -30,14 +30,21 @@ import {
   hostingPlans,
   normalizeHostingPlanSlug,
 } from "@/lib/data/hosting";
-import { companyDashboardPath, companyWebsiteDomainsPath } from "@/lib/paths/company";
-import { FARAIOS_CNAME_TARGET } from "@/lib/hosting/constants";
+import { companyWebsiteDomainsPath, companyHostingInvoicesPath, companyHostingServicesPath } from "@/lib/paths/company";
+import type { WebsiteDomainDnsHelp } from "@/components/websites/website-domains-panel";
+import { formatDateEnZA } from "@/lib/format/dates";
 import { cn } from "@/lib/utils";
+import {
+  riseCardClassName,
+  risePageClassName,
+  risePrimaryButtonClassName,
+} from "@/lib/ui/rise-dashboard-styles";
 import type {
   CompanyWithIndustry,
   HostingPayment,
   HostingSubscription,
 } from "@/types/database";
+import type { HostingInvoiceRow, HostingServiceRow } from "@/types/hosting-automation";
 import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 import type { HostingPaymentConfirmationState } from "@/lib/services/hosting-subscription-verify";
 
@@ -51,6 +58,10 @@ type Props = {
   billingEmail?: string | null;
   hostingDomain: WebsiteDomain | null;
   dnsRecords: WebsiteDnsRecord[];
+  domainDnsHelp?: WebsiteDomainDnsHelp | null;
+  automationServices?: HostingServiceRow[];
+  automationInvoices?: HostingInvoiceRow[];
+  embedded?: boolean;
 };
 
 const fadeUp = {
@@ -61,6 +72,14 @@ const fadeUp = {
     transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const },
   },
 };
+
+function WidgetHeader({ title }: { title: string }) {
+  return (
+    <div className="border-b border-slate-100 px-4 py-3 sm:px-5">
+      <h2 className="text-sm font-medium text-slate-700">{title}</h2>
+    </div>
+  );
+}
 
 function statusBadge(status: HostingSubscription["status"]) {
   const map: Record<string, string> = {
@@ -82,6 +101,10 @@ export function CompanyHostingClient({
   billingEmail,
   hostingDomain,
   dnsRecords,
+  domainDnsHelp,
+  automationServices = [],
+  automationInvoices = [],
+  embedded = false,
 }: Props) {
   const [selectedPlan, setSelectedPlan] = useState(
     normalizeHostingPlanSlug(initialPlan ?? subscription?.plan_slug)
@@ -245,38 +268,19 @@ export function CompanyHostingClient({
     }
   };
 
-  return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#f4f6fb]">
-      <motion.div
-        className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:py-10"
-        initial="hidden"
-        animate="visible"
-        variants={{ visible: { transition: { staggerChildren: 0.06 } } }}
-      >
-        <motion.div variants={fadeUp} className="mb-6">
-          <Link
-            href={companyDashboardPath(slug)}
-            className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to dashboard
-          </Link>
-        </motion.div>
-
-        <motion.header
-          variants={fadeUp}
-          className="relative rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8"
-        >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+  const content = (
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={{ visible: { transition: { staggerChildren: 0.06 } } }}
+    >
+      {!embedded ? (
+        <motion.div variants={fadeUp} className={riseCardClassName}>
+          <div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div>
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-indigo-700">
-                <Server className="h-3.5 w-3.5" />
-                Website · Subscription
-              </div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                {company.name}
-              </h1>
-              <p className="mt-2 text-sm text-slate-500">
+              <h1 className="text-lg font-medium text-slate-800">Website hosting</h1>
+              <p className="mt-1 text-sm text-slate-500">{company.name}</p>
+              <p className="mt-1 text-sm text-slate-500">
                 Manage your FaraiOS cloud hosting subscription
               </p>
             </div>
@@ -291,13 +295,33 @@ export function CompanyHostingClient({
               </span>
             ) : null}
           </div>
-        </motion.header>
+        </motion.div>
+      ) : null}
+
+        {(automationServices.length > 0 || automationInvoices.length > 0) && (
+          <motion.section variants={fadeUp} className={cn(embedded ? "" : "mt-4", "grid gap-4 sm:grid-cols-2")}>
+            <div className={cn(riseCardClassName, "p-5")}>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Provisioned services</p>
+              <p className="mt-1 text-2xl font-extrabold text-slate-900">{automationServices.length}</p>
+              <Link href={companyHostingServicesPath(slug)} className="mt-2 inline-block text-sm font-semibold text-[#4a6fd8]">
+                Manage services
+              </Link>
+            </div>
+            <div className={cn(riseCardClassName, "p-5")}>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Hosting invoices</p>
+              <p className="mt-1 text-2xl font-extrabold text-slate-900">{automationInvoices.length}</p>
+              <Link href={companyHostingInvoicesPath(slug)} className="mt-2 inline-block text-sm font-semibold text-[#4a6fd8]">
+                View invoices
+              </Link>
+            </div>
+          </motion.section>
+        )}
 
         {paymentConfirmation.status === "activated" ||
         paymentConfirmation.status === "already_active" ? (
           <motion.div
             variants={fadeUp}
-            className="mt-6 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
+            className="mt-4 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
           >
             <CheckCircle2 className="h-5 w-5 shrink-0" />
             {paymentConfirmation.status === "activated"
@@ -309,7 +333,7 @@ export function CompanyHostingClient({
         {paymentConfirmation.status === "pending_webhook" ? (
           <motion.div
             variants={fadeUp}
-            className="mt-6 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+            className="mt-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
           >
             <CheckCircle2 className="h-5 w-5 shrink-0" />
             Verifying your hosting payment. Refresh in a moment if status has not
@@ -320,7 +344,7 @@ export function CompanyHostingClient({
         {paymentConfirmation.status === "failed" ? (
           <motion.div
             variants={fadeUp}
-            className="mt-6 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+            className="mt-4 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
           >
             <XCircle className="h-5 w-5 shrink-0" />
             {paymentConfirmation.error}
@@ -331,15 +355,15 @@ export function CompanyHostingClient({
           <>
             <motion.div
               variants={fadeUp}
-              className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+              className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
             >
               <InfoCard
-                icon={<Server className="h-5 w-5 text-indigo-600" />}
+                icon={<Server className="h-5 w-5 text-[#5a8dee]" />}
                 label="Plan"
                 value={planLabel ?? "—"}
               />
               <InfoCard
-                icon={<Globe className="h-5 w-5 text-violet-600" />}
+                icon={<Globe className="h-5 w-5 text-[#4a6fd8]" />}
                 label="Subdomain"
                 value={`${subscription.subdomain ?? slug}.faraios.com`}
               />
@@ -353,15 +377,15 @@ export function CompanyHostingClient({
                 label="Renews"
                 value={
                   subscription.next_billing_date
-                    ? new Date(subscription.next_billing_date).toLocaleDateString("en-ZA")
+                    ? formatDateEnZA(subscription.next_billing_date)
                     : "—"
                 }
               />
             </motion.div>
 
-            <motion.section variants={fadeUp} className="mt-10 rounded-2xl border border-slate-200 bg-white p-6">
-              <h2 className="text-lg font-bold text-slate-900">Usage & limits</h2>
-              <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <motion.section variants={fadeUp} className={cn("mt-4", riseCardClassName)}>
+              <WidgetHeader title="Usage & limits" />
+              <div className="grid gap-4 p-4 sm:grid-cols-3 sm:p-5">
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-semibold uppercase text-slate-400">Sites</p>
                   <p className="mt-1 text-xl font-bold text-slate-900">
@@ -386,23 +410,41 @@ export function CompanyHostingClient({
               </div>
             </motion.section>
 
-            <motion.section variants={fadeUp} className="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
-              <h2 className="text-lg font-bold text-slate-900">Connect custom domain</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Point your domain&apos;s DNS to FaraiOS hosting. Add the records below at your
+            <motion.section variants={fadeUp} className={cn("mt-4", riseCardClassName)}>
+              <WidgetHeader title="Connect custom domain" />
+              <div className="p-4 sm:p-5">
+              <p className="text-sm text-slate-500">
+                Point your domain&apos;s DNS to FaraiOS Plesk hosting. Add the records below at your
                 registrar, then click <strong>Verify DNS</strong>.
               </p>
-              <form onSubmit={onConnectDomain} className="mt-4 flex flex-col gap-2 sm:flex-row">
-                <input
-                  value={domainInput}
-                  onChange={(e) => setDomainInput(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                  placeholder="www.yourbusiness.com"
-                />
-                <Button type="submit" disabled={domainPending}>
-                  {domainPending ? "Connecting..." : "Connect domain"}
-                </Button>
-              </form>
+              {domainDnsHelp?.serverIp ? (
+                <p className="mt-2 text-xs text-slate-500">
+                  Plesk server IP:{" "}
+                  <code className="rounded bg-white px-1 py-0.5">{domainDnsHelp.serverIp}</code>
+                </p>
+              ) : null}
+              <ClientOnly
+                fallback={
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <div className="h-10 w-full animate-pulse rounded-xl bg-slate-100" />
+                    <div className="h-10 w-36 animate-pulse rounded-xl bg-slate-100" />
+                  </div>
+                }
+              >
+                <form onSubmit={onConnectDomain} className="mt-4 flex flex-col gap-2 sm:flex-row">
+                  <input
+                    value={domainInput}
+                    onChange={(e) => setDomainInput(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                    placeholder="www.yourbusiness.com"
+                    autoComplete="off"
+                    suppressHydrationWarning
+                  />
+                  <Button type="submit" disabled={domainPending}>
+                    {domainPending ? "Connecting..." : "Connect domain"}
+                  </Button>
+                </form>
+              </ClientOnly>
               {domainError ? (
                 <p className="mt-2 text-sm font-medium text-red-600">{domainError}</p>
               ) : null}
@@ -469,8 +511,8 @@ export function CompanyHostingClient({
                     </div>
                   ) : (
                     <p className="mt-4 text-sm text-slate-500">
-                      CNAME your domain to{" "}
-                      <code className="rounded bg-white px-1 py-0.5">{FARAIOS_CNAME_TARGET}</code>
+                      {domainDnsHelp?.helpText ??
+                        "Connect a domain to load A record instructions for your Plesk server."}
                     </p>
                   )}
 
@@ -478,7 +520,7 @@ export function CompanyHostingClient({
                     Need more domains?{" "}
                     <Link
                       href={companyWebsiteDomainsPath(slug)}
-                      className="font-medium text-indigo-600 hover:text-indigo-800"
+                      className="font-medium text-[#4a6fd8] hover:text-[#3a5fc8]"
                     >
                       Manage in Website → Domains
                     </Link>
@@ -490,10 +532,12 @@ export function CompanyHostingClient({
                   message persists.
                 </p>
               ) : null}
+              </div>
             </motion.section>
 
-            <motion.section variants={fadeUp} className="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
-              <h2 className="text-lg font-bold text-slate-900">Payment history</h2>
+            <motion.section variants={fadeUp} className={cn("mt-4", riseCardClassName)}>
+              <WidgetHeader title="Payment history" />
+              <div className="p-4 sm:p-5">
               {payments.length === 0 ? (
                 <p className="mt-2 text-sm text-slate-500">No payments recorded yet.</p>
               ) : (
@@ -511,7 +555,7 @@ export function CompanyHostingClient({
                       {payments.map((p) => (
                         <tr key={p.id}>
                           <td className="px-4 py-3 text-slate-700">
-                            {new Date(p.paid_at ?? p.created_at).toLocaleDateString("en-ZA")}
+                            {formatDateEnZA(p.paid_at ?? p.created_at)}
                           </td>
                           <td className="px-4 py-3 text-slate-700">
                             {hostingPlanLabelForSlug(normalizeHostingPlanSlug(p.plan_slug))}
@@ -530,10 +574,11 @@ export function CompanyHostingClient({
                   </table>
                 </div>
               )}
+              </div>
             </motion.section>
 
             {subscription.status !== "cancelled" ? (
-              <motion.section variants={fadeUp} className="mt-8">
+              <motion.section variants={fadeUp} className="mt-4">
                 <Button
                   variant="outline"
                   className="rounded-xl border-red-200 text-red-600 hover:bg-red-50"
@@ -549,8 +594,8 @@ export function CompanyHostingClient({
             ) : null}
           </>
         ) : (
-          <section className="mt-8">
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center">
+          <section className="mt-4">
+            <div className={cn(riseCardClassName, "p-8 text-center")}>
               <XCircle className="mx-auto h-10 w-10 text-slate-300" />
               <h2 className="mt-4 text-lg font-bold text-slate-900">
                 No active hosting
@@ -568,10 +613,10 @@ export function CompanyHostingClient({
                   type="button"
                   onClick={() => setSelectedPlan(plan.slug)}
                   className={cn(
-                    "rounded-2xl border p-5 text-left transition-all",
+                    "rounded-xl border p-5 text-left transition-all",
                     selectedPlan === plan.slug
-                      ? "border-indigo-300 bg-indigo-50/50 ring-2 ring-indigo-200"
-                      : "border-slate-200 bg-white hover:border-indigo-200"
+                      ? "border-[#5a8dee] bg-[#eef2ff]/60 ring-2 ring-[#5a8dee]/30"
+                      : "border-slate-200 bg-white hover:border-slate-300"
                   )}
                 >
                   <div className="flex items-center justify-between">
@@ -590,13 +635,13 @@ export function CompanyHostingClient({
               <Button
                 onClick={onStartPayment}
                 disabled={billingPending}
-                className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600"
+                className={risePrimaryButtonClassName}
               >
                 {billingPending ? "Redirecting to Paystack..." : "Pay with Paystack"}
               </Button>
               <Link
                 href="/hosting"
-                className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                className="text-sm font-medium text-[#4a6fd8] hover:text-[#3a5fc8]"
               >
                 Compare all plans →
               </Link>
@@ -605,29 +650,40 @@ export function CompanyHostingClient({
               <p className="mt-2 text-sm font-medium text-red-600">{billingError}</p>
             ) : null}
 
-            <div className="mt-8 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-5">
+            <div className="mt-8 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-5">
               <h3 className="text-sm font-semibold text-slate-900">Already paid?</h3>
               <p className="mt-1 text-sm text-slate-600">
                 Paste your Paystack reference to confirm hosting payment.
               </p>
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                <input
-                  type="text"
-                  value={confirmReference}
-                  onChange={(event) => setConfirmReference(event.target.value)}
-                  placeholder="Paystack reference"
-                  className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-xl"
-                  disabled={confirmPending || !confirmReference.trim()}
-                  onClick={onConfirmPayment}
-                >
-                  {confirmPending ? "Confirming…" : "Confirm payment"}
-                </Button>
-              </div>
+              <ClientOnly
+                fallback={
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                    <div className="h-10 flex-1 animate-pulse rounded-xl bg-slate-100" />
+                    <div className="h-10 w-40 animate-pulse rounded-xl bg-slate-100" />
+                  </div>
+                }
+              >
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                  <input
+                    type="text"
+                    value={confirmReference}
+                    onChange={(event) => setConfirmReference(event.target.value)}
+                    placeholder="Paystack reference"
+                    autoComplete="off"
+                    suppressHydrationWarning
+                    className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-xl"
+                    disabled={confirmPending || !confirmReference.trim()}
+                    onClick={onConfirmPayment}
+                  >
+                    {confirmPending ? "Confirming…" : "Confirm payment"}
+                  </Button>
+                </div>
+              </ClientOnly>
               {confirmMessage ? (
                 <p className="mt-3 text-sm text-emerald-700">{confirmMessage}</p>
               ) : null}
@@ -635,8 +691,13 @@ export function CompanyHostingClient({
           </section>
         )}
       </motion.div>
-    </div>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <div className={risePageClassName}>{content}</div>;
 }
 
 function DnsStatusPill({ status }: { status: WebsiteDnsRecord["status"] }) {
@@ -668,7 +729,7 @@ function InfoCard({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+    <div className={cn(riseCardClassName, "p-5")}>
       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 ring-1 ring-slate-100">
         {icon}
       </div>

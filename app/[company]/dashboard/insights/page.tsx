@@ -26,9 +26,5 @@ export default async function CompanyInsightsPage({ params }: Props) {
     getBusinessHealthScore(row.id),
   ]);
 
-  return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <CompanyInsightsClient slug={slug} metrics={metrics} health={health} />
-    </div>
-  );
+  return <CompanyInsightsClient slug={slug} metrics={metrics} health={health} />;
 }

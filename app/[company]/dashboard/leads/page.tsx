@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { companyGrowthPath } from "@/lib/paths/company";
 import { getCompanyBySlug } from "@/lib/services/companies";
-import { listLeadsForCompany, summarizeLeads } from "@/lib/services/leads";
+import { listLeadsForCompany } from "@/lib/services/leads";
+import { listCompanyMembers } from "@/lib/services/team";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
 import { createClient } from "@/lib/supabase/server";
 
@@ -56,29 +56,17 @@ export default async function CompanyLeadsPage({ params }: Props) {
   const hasAccess = await userHasCompanySlugAccess(user.id, slug);
   if (!hasAccess) return <AccessDenied slug={slug} />;
 
-  const leads = await listLeadsForCompany(row.id);
-  const summary = summarizeLeads(leads);
+  const [leads, members] = await Promise.all([
+    listLeadsForCompany(row.id),
+    listCompanyMembers(row.id),
+  ]);
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">Growth</p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Leads</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Manage inbound leads from your website, booking forms, and connected channels. Track
-            status, add notes, and convert qualified leads to customers.
-          </p>
-        </div>
-        <Link
-          href={companyGrowthPath(slug)}
-          className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          Growth overview
-        </Link>
-      </header>
-
-      <CompanyLeadsClient slug={slug} companyId={row.id} leads={leads} summary={summary} />
-    </div>
+    <CompanyLeadsClient
+      slug={slug}
+      companyId={row.id}
+      leads={leads}
+      members={members}
+    />
   );
 }

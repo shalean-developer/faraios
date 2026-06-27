@@ -1,3 +1,7 @@
+import {
+  getMainAppDomain as getMainAppDomainFromConfig,
+  isMainHost as isMainHostFromConfig,
+} from "@/lib/hosting/main-host";
 import { slugifyBusinessName } from "@/lib/slug";
 import { industryImagePreset } from "@/lib/data/industry-stock-images";
 import { buildServiceBusinessContentSeed } from "@/lib/data/service-business-content-seed";
@@ -766,25 +770,11 @@ export async function updateWebsiteSeo(
 }
 
 export function getMainAppDomain(): string {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!appUrl) return "";
-  try {
-    return new URL(appUrl).host.replace(/^www\./i, "").toLowerCase();
-  } catch {
-    return "";
-  }
+  return getMainAppDomainFromConfig();
 }
 
 export function isMainHost(host: string): boolean {
-  const normalized = host.toLowerCase();
-  const appHost = getMainAppDomain();
-  return (
-    !normalized ||
-    normalized.startsWith("localhost") ||
-    normalized.startsWith("127.0.0.1") ||
-    normalized.endsWith(".vercel.app") ||
-    Boolean(appHost && normalized === appHost)
-  );
+  return isMainHostFromConfig(host);
 }
 
 export async function getWebsiteContentByWebsiteId(

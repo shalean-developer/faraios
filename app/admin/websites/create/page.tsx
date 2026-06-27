@@ -1,6 +1,8 @@
 import Link from "next/link";
 
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
 import { AdminCreateWebsiteForm } from "@/components/websites/admin-create-website-form";
+import { risePrimaryButtonClassName } from "@/lib/ui/rise-dashboard-styles";
 import { getAdminQueryClient, isCurrentUserPlatformAdmin } from "@/lib/services/admin";
 
 export const metadata = {
@@ -12,12 +14,11 @@ export const dynamic = "force-dynamic";
 
 function AccessDenied() {
   return (
-    <main className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Admin access required</h1>
-      <Link href="/admin" className="mt-6 inline-block text-sm font-medium text-violet-700 hover:text-violet-900">
-        ← Back to admin
+    <AdminPageShell title="Admin access required">
+      <Link href="/admin" className={risePrimaryButtonClassName}>
+        Back to admin
       </Link>
-    </main>
+    </AdminPageShell>
   );
 }
 
@@ -35,20 +36,20 @@ export default async function AdminCreateWebsitePage({
     .order("name", { ascending: true });
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-      <div className="mb-6">
-        <Link href="/admin/websites" className="text-sm font-medium text-violet-700 transition-colors hover:text-violet-900">
-          ← Back to websites
+    <AdminPageShell
+      title="Create Website"
+      description="Generate a new website for a selected client."
+      actions={
+        <Link href="/admin/websites" className={risePrimaryButtonClassName}>
+          Back to websites
         </Link>
-      </div>
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Create Website</h1>
-      <p className="mt-2 text-sm text-slate-500">Generate a new website for a selected client.</p>
-      <div className="mt-6">
-        <AdminCreateWebsiteForm
-          companies={((data ?? []) as { id: string; name: string }[])}
-          initialCompanyId={companyId ?? ""}
-        />
-      </div>
-    </main>
+      }
+      maxWidthClassName="max-w-3xl"
+    >
+      <AdminCreateWebsiteForm
+        companies={((data ?? []) as { id: string; name: string }[])}
+        initialCompanyId={companyId ?? ""}
+      />
+    </AdminPageShell>
   );
 }

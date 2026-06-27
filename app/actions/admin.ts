@@ -310,7 +310,7 @@ export async function adminAddPlatformAdminByEmail(
 
   const { error } = await admin
     .from("platform_admins")
-    .upsert({ user_id: userRow.id }, { onConflict: "user_id" });
+    .upsert({ user_id: userRow.id, role_id: "platform_admin" }, { onConflict: "user_id" });
 
   if (error) {
     console.error("[admin] adminAddPlatformAdminByEmail upsert", error.message);
@@ -790,6 +790,89 @@ export async function adminActivateBusiness(
   companyId: string
 ): Promise<AdminMutationResult> {
   return adminSetBusinessPlatformStatus(companyId, "activate");
+}
+
+export async function adminSetSetupFeeWaived(
+  companyId: string,
+  waived: boolean
+): Promise<AdminMutationResult> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const trimmedId = companyId.trim();
+  if (!trimmedId) {
+    return { ok: false, error: "Business id is required." };
+  }
+
+  const adminResult = tryCreateAdminClient();
+  if (!adminResult.ok) return { ok: false, error: adminResult.error };
+  const admin = adminResult.client;
+
+  const { data: company, error: companyError } = await admin
+    .from("companies")
+    .select("name, setup_fee_paid_at")
+    .eq("id", trimmedId)
+    .maybeSingle();
+
+  if (companyError) {
+    console.error("[admin] adminSetSetupFeeWaived company", companyError.message);
+    return { ok: false, error: companyError.message };
+  }
+
+  if (!company) {
+    return { ok: false, error: "Business not found." };
+  }
+
+  if (waived && company.setup_fee_paid_at) {
+    return { ok: false, error: "Setup fee has already been collected for this business." };
+  }
+
+  const { error } = await admin
+    .from("companies")
+    .update({ setup_fee_waived: waived })
+    .eq("id", trimmedId);
+
+  if (error) {
+    console.error("[admin] adminSetSetupFeeWaived update", error.message);
+    return { ok: false, error: error.message };
+  }
+
+  revalidateAdminSurfaces({ companyId: trimmedId });
+  revalidatePath(`/admin/businesses/${trimmedId}`);
+  await auditAdminAction({
+    action: waived ? "business.setup_fee_waived" : "business.setup_fee_restored",
+    targetType: "company",
+    targetId: trimmedId,
+    targetLabel: company.name ?? null,
+  });
+  return { ok: true };
+}
+
+export async function adminUpdateWorkspaceSetupFeeEnabled(
+  enabled: boolean
+): Promise<AdminMutationResult> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const { setWorkspaceSetupFeeEnabled } = await import(
+    "@/lib/billing/platform-billing-settings"
+  );
+  const result = await setWorkspaceSetupFeeEnabled(enabled);
+  if (!result.ok) {
+    return result;
+  }
+
+  revalidatePath("/admin/settings");
+  revalidatePath("/admin/settings?tab=billing");
+  await auditAdminAction({
+    action: enabled
+      ? "billing.workspace_setup_fee_enabled"
+      : "billing.workspace_setup_fee_disabled",
+    targetType: "platform_settings",
+    targetId: "1",
+    targetLabel: "Workspace setup fee",
+  });
+  return { ok: true };
 }
 
 async function adminSetBusinessPlatformStatus(

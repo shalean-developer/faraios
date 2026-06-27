@@ -1,7 +1,6 @@
 import Image from "next/image";
 
 import {
-  FARAIOS_BRAND_NAME,
   FARAIOS_LOGO_HEIGHT,
   FARAIOS_LOGO_SRC,
   FARAIOS_LOGO_WIDTH,
@@ -13,25 +12,17 @@ type FaraiLogoProps = {
   imageClassName?: string;
   priority?: boolean;
   size?: "sm" | "header" | "md" | "lg";
-  /** Show a separate text wordmark beside the logo image. Off by default — the image includes the wordmark. */
-  showWordmark?: boolean;
   /** Invert colors for dark backgrounds (e.g. auth panel). */
   onDark?: boolean;
   onError?: () => void;
 };
 
+/** Height-led sizing for the full wordmark in `public/image/faraios-logo.png`. */
 const logoSizeClasses = {
-  sm: "h-8 w-auto max-w-[160px]",
-  header: "h-11 w-auto max-h-11 max-w-[220px]",
-  md: "h-10 w-auto max-w-[200px]",
-  lg: "h-12 w-auto max-w-[240px]",
-} as const;
-
-const wordmarkSizeClasses = {
-  sm: "text-base",
-  header: "text-xl",
-  md: "text-lg",
-  lg: "text-2xl",
+  sm: "h-9 w-auto max-w-[200px]",
+  header: "h-10 w-auto max-w-[220px]",
+  md: "h-11 w-auto max-w-[260px]",
+  lg: "h-12 w-auto max-w-[320px]",
 } as const;
 
 export function FaraiLogo({
@@ -39,37 +30,26 @@ export function FaraiLogo({
   imageClassName,
   priority = false,
   size = "md",
-  showWordmark = false,
   onDark = false,
   onError,
 }: FaraiLogoProps) {
   return (
-    <span className={cn("inline-flex items-center gap-2.5", className)}>
+    <span className={cn("inline-flex items-center", className)}>
       <Image
         src={FARAIOS_LOGO_SRC}
         alt="FaraiOS"
         width={FARAIOS_LOGO_WIDTH}
         height={FARAIOS_LOGO_HEIGHT}
         priority={priority}
+        unoptimized
         onError={onError}
         className={cn(
           logoSizeClasses[size],
-          "shrink-0 object-contain object-left",
+          "block shrink-0 object-contain object-left",
           onDark && "brightness-0 invert",
           imageClassName
         )}
       />
-      {showWordmark ? (
-        <span
-          className={cn(
-            "font-bold tracking-tight",
-            wordmarkSizeClasses[size],
-            onDark ? "text-white" : "text-slate-900"
-          )}
-        >
-          {FARAIOS_BRAND_NAME}
-        </span>
-      ) : null}
     </span>
   );
 }

@@ -1,6 +1,16 @@
 import { getPlatformAdminUserIds, isPlatformAdminUser } from "@/lib/auth/platform-admin";
 import { ADMIN_DEVELOPER_OPTIONS } from "@/lib/constants/admin-developers";
+import { getPlatformRoleDefinition } from "@/lib/platform/platform-role-definitions";
+import {
+  getCachedPlatformOverviewMetrics,
+  setCachedPlatformOverviewMetrics,
+} from "@/lib/services/platform-overview-cache";
+import {
+  getLatestPlatformOverviewSnapshot,
+  savePlatformOverviewSnapshot,
+} from "@/lib/services/platform-overview-snapshots";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
+import { isSupabaseSchemaMissingError } from "@/lib/supabase/schema-errors";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { CompanyWithIndustry } from "@/types/database";
@@ -52,6 +62,7 @@ import type {
   AdminPlatformStatus,
   AdminPlatformUserRow,
   AdminPlatformUserStats,
+  AdminAnalyticsPoint,
   AdminProjectActivity,
   AdminProjectDetails,
   AdminMemberAvailability,
@@ -378,13 +389,7 @@ function emptyPlatformOverviewMetrics(): AdminPlatformOverviewMetrics {
       totalRevenue: 0,
       activeSubscriptions: 0,
       failedPayments: 0,
-    },
-    activity: {
-      totalBookings: 0,
-      totalLeads: 0,
-      totalInvoices: 0,
-      totalPayments: 0,
-      totalEmailsSent: 0,
+      churnRatePercent: 0,
     },
     operations: {
       openTickets: 0,
@@ -395,12 +400,31 @@ function emptyPlatformOverviewMetrics(): AdminPlatformOverviewMetrics {
       api: "unknown",
       cron: "unknown",
       email: "unknown",
+      queue: "unknown",
+      hosting: "unknown",
       websites: "unknown",
       domains: "unknown",
+      ssl: "unknown",
     },
+    infrastructure: {
+      pipelineInProgress: 0,
+      pipelineInReview: 0,
+      pipelinePending: 0,
+      pendingHostingOrders: 0,
+      failedHostingOrders: 0,
+      pendingAutomationJobs: 0,
+      failedAutomationJobs: 0,
+    },
+    marketplace: {
+      activeListings: 0,
+      featuredListings: 0,
+      marketplaceBookings30d: 0,
+    },
+    businessGrowthTrend: [],
     recentBusinesses: [],
     recentOpenTickets: [],
     topFeatureRequests: [],
+    recentAuditEvents: [],
     pipelineStats: {
       total: 0,
       pending: 0,
@@ -482,10 +506,109 @@ function computeEmailHealthFromLogs(
   return "healthy";
 }
 
+function computeQueueHealthFromJobs(
+  rows: Array<{ status: string }>
+): AdminHealthStatus {
+  if (rows.length === 0) return "healthy";
+  const failed = rows.filter((row) => row.status === "failed").length;
+  const pending = rows.filter((row) => row.status === "pending").length;
+  if (failed > 0) return "critical";
+  if (pending > 25) return "warning";
+  return "healthy";
+}
+
+function computeHostingHealthFromOrders(
+  rows: Array<{ status: string }>
+): AdminHealthStatus {
+  if (rows.length === 0) return "healthy";
+  const failed = rows.filter((row) => row.status === "failed").length;
+  const stuck = rows.filter(
+    (row) => row.status === "pending" || row.status === "provisioning"
+  ).length;
+  if (failed > 0) return "critical";
+  if (stuck > 10) return "warning";
+  return "healthy";
+}
+
+function computeSslHealthFromDomains(
+  rows: Array<{ ssl_status: string }>
+): AdminHealthStatus {
+  if (rows.length === 0) return "unknown";
+  const failed = rows.filter((row) => row.ssl_status === "failed").length;
+  const pending = rows.filter(
+    (row) => row.ssl_status === "pending" || row.ssl_status === "provisioning"
+  ).length;
+  if (failed > 0) return "critical";
+  if (pending > 0) return "warning";
+  return "healthy";
+}
+
+function computePipelineStatsFromCompanies(
+  rows: Array<{ build_status?: string | null }>
+): AdminProjectStats {
+  const stats: AdminProjectStats = {
+    total: rows.length,
+    pending: 0,
+    inProgress: 0,
+    inReview: 0,
+    completed: 0,
+  };
+
+  for (const row of rows) {
+    const status = dbBuildStatusToAdmin(row.build_status);
+    if (status === "pending") stats.pending += 1;
+    else if (status === "in_progress") stats.inProgress += 1;
+    else if (status === "in_review") stats.inReview += 1;
+    else if (status === "completed") stats.completed += 1;
+  }
+
+  return stats;
+}
+
+function buildBusinessGrowthTrend(
+  companyRows: Array<{ created_at: string }>,
+  now: Date
+): AdminAnalyticsPoint[] {
+  const months: AdminAnalyticsPoint[] = [];
+  const monthIndexByKey = new Map<string, number>();
+
+  for (let i = 5; i >= 0; i -= 1) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    monthIndexByKey.set(monthKeyFromDate(date), months.length);
+    months.push({ label: monthLabel(date), value: 0 });
+  }
+
+  for (const company of companyRows) {
+    const key = monthKeyFromDate(new Date(company.created_at));
+    const index = monthIndexByKey.get(key);
+    if (index !== undefined) {
+      months[index]!.value += 1;
+    }
+  }
+
+  return months;
+}
+
 /**
  * Platform-wide KPIs for the admin Overview dashboard.
  */
 export async function getPlatformOverviewMetrics(): Promise<AdminPlatformOverviewMetrics> {
+  const cached = getCachedPlatformOverviewMetrics();
+  if (cached) return cached;
+
+  const snapshot = await getLatestPlatformOverviewSnapshot();
+  if (snapshot) {
+    setCachedPlatformOverviewMetrics(snapshot);
+    return snapshot;
+  }
+
+  const metrics = await fetchPlatformOverviewMetricsUncached();
+  setCachedPlatformOverviewMetrics(metrics);
+  void savePlatformOverviewSnapshot(metrics);
+  return metrics;
+}
+
+async function fetchPlatformOverviewMetricsUncached(): Promise<AdminPlatformOverviewMetrics> {
   const empty = emptyPlatformOverviewMetrics();
   if (!isSupabaseConfigured()) return empty;
   if (!(await isCurrentUserPlatformAdmin())) return empty;
@@ -497,24 +620,23 @@ export async function getPlatformOverviewMetrics(): Promise<AdminPlatformOvervie
   const lastMonthKey = monthKeyFromDate(
     new Date(now.getFullYear(), now.getMonth() - 1, 1)
   );
+  const thirtyDaysAgoIso = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   const [
     companiesResult,
     usersResult,
     hostingSubsResult,
     hostingPaymentsResult,
-    bookingsCount,
-    leadsCount,
-    invoicesCount,
-    customerPaymentsCount,
-    emailCampaignsResult,
     websitesResult,
     domainsResult,
     recentCompaniesResult,
-    projects,
     apiLogsResult,
     cronRunsResult,
     emailLogsResult,
+    automationJobsResult,
+    hostingOrdersResult,
+    marketplaceBookingsResult,
+    auditLogsResult,
     openTicketsResult,
     recentOpenTicketsResult,
     pendingFeatureRequestsResult,
@@ -522,17 +644,14 @@ export async function getPlatformOverviewMetrics(): Promise<AdminPlatformOvervie
   ] = await Promise.all([
     supabase
       .from("companies")
-      .select("id,created_at,subscription_status,build_status,plan,name,industries(name)"),
+      .select(
+        "id,created_at,subscription_status,build_status,plan,name,listed_in_marketplace,marketplace_featured,industries(name)"
+      ),
     supabase.from("users").select("id,created_at"),
     supabase.from("hosting_subscriptions").select("company_id,status,plan_slug"),
     supabase
       .from("hosting_payments")
       .select("amount_cents,status,created_at"),
-    countTableRows(supabase, "bookings"),
-    countTableRows(supabase, "leads"),
-    countTableRows(supabase, "invoices"),
-    countTableRows(supabase, "customer_payments"),
-    supabase.from("email_campaigns").select("sent_count,status"),
     supabase.from("websites").select("status"),
     supabase.from("website_domains").select("verification_status,ssl_status"),
     supabase
@@ -540,7 +659,6 @@ export async function getPlatformOverviewMetrics(): Promise<AdminPlatformOvervie
       .select("id,name,created_at,plan,subscription_status,industries(name)")
       .order("created_at", { ascending: false })
       .limit(8),
-    getAllProjects(),
     supabase
       .from("platform_api_logs")
       .select("status_code")
@@ -556,6 +674,18 @@ export async function getPlatformOverviewMetrics(): Promise<AdminPlatformOvervie
       .select("status")
       .order("created_at", { ascending: false })
       .limit(200),
+    supabase.from("automation_jobs").select("status"),
+    supabase.from("hosting_orders").select("status"),
+    supabase
+      .from("bookings")
+      .select("id", { count: "exact", head: true })
+      .eq("source", "marketplace")
+      .gte("created_at", thirtyDaysAgoIso),
+    supabase
+      .from("platform_audit_logs")
+      .select("id,actor_email,action,target_type,target_label,created_at")
+      .order("created_at", { ascending: false })
+      .limit(8),
     supabase
       .from("platform_support_tickets")
       .select("status,priority")
@@ -590,6 +720,8 @@ export async function getPlatformOverviewMetrics(): Promise<AdminPlatformOvervie
     build_status?: string | null;
     plan?: string | null;
     name?: string | null;
+    listed_in_marketplace?: boolean | null;
+    marketplace_featured?: boolean | null;
     industries?: { name?: string | null } | null;
   };
 
@@ -669,12 +801,18 @@ export async function getPlatformOverviewMetrics(): Promise<AdminPlatformOvervie
 
   let mrr = 0;
   let activeSubscriptions = 0;
+  let cancelledCount = 0;
   for (const sub of hostingSubs) {
-    if (sub.status !== "active") continue;
-    activeSubscriptions += 1;
-    const plan = pricingPlans.find((p) => p.slug === normalizePlanSlug(sub.plan_slug));
-    mrr += plan?.monthly_price ?? 0;
+    if (sub.status === "active") {
+      activeSubscriptions += 1;
+      const plan = pricingPlans.find((p) => p.slug === normalizePlanSlug(sub.plan_slug));
+      mrr += plan?.monthly_price ?? 0;
+    }
+    if (sub.status === "cancelled") cancelledCount += 1;
   }
+
+  const churnRatePercent =
+    hostingSubs.length > 0 ? Math.round((cancelledCount / hostingSubs.length) * 100) : 0;
 
   const hostingPayments = hostingPaymentsResult.error
     ? []
@@ -705,13 +843,11 @@ export async function getPlatformOverviewMetrics(): Promise<AdminPlatformOvervie
     }
   }
 
-  let totalEmailsSent = 0;
-  if (!emailCampaignsResult.error) {
-    for (const campaign of (emailCampaignsResult.data ?? []) as Array<{
-      sent_count?: number | null;
-    }>) {
-      totalEmailsSent += campaign.sent_count ?? 0;
-    }
+  let activeListings = 0;
+  let featuredListings = 0;
+  for (const company of companyRows) {
+    if (company.listed_in_marketplace) activeListings += 1;
+    if (company.marketplace_featured) featuredListings += 1;
   }
 
   const websiteRows = websitesResult.error
@@ -749,15 +885,73 @@ export async function getPlatformOverviewMetrics(): Promise<AdminPlatformOvervie
   const emailLogRows = emailLogsResult.error
     ? []
     : ((emailLogsResult.data ?? []) as Array<{ status: string }>);
+  const automationJobRows = automationJobsResult.error
+    ? []
+    : ((automationJobsResult.data ?? []) as Array<{ status: string }>);
+  const hostingOrderRows = hostingOrdersResult.error
+    ? []
+    : ((hostingOrdersResult.data ?? []) as Array<{ status: string }>);
 
   const apiHealth = computeApiHealthFromLogs(apiLogRows);
   const cronHealth = computeCronHealthFromRuns(cronRunRows);
   const emailHealth =
-    emailLogRows.length > 0
-      ? computeEmailHealthFromLogs(emailLogRows)
-      : totalEmailsSent > 0
-        ? "healthy"
-        : "unknown";
+    emailLogRows.length > 0 ? computeEmailHealthFromLogs(emailLogRows) : "unknown";
+  const queueHealth = computeQueueHealthFromJobs(automationJobRows);
+  const hostingHealth = computeHostingHealthFromOrders(hostingOrderRows);
+  const sslHealth = computeSslHealthFromDomains(domainRows);
+
+  let pendingAutomationJobs = 0;
+  let failedAutomationJobs = 0;
+  for (const job of automationJobRows) {
+    if (job.status === "pending") pendingAutomationJobs += 1;
+    if (job.status === "failed") failedAutomationJobs += 1;
+  }
+
+  let pendingHostingOrders = 0;
+  let failedHostingOrders = 0;
+  for (const order of hostingOrderRows) {
+    if (order.status === "pending" || order.status === "provisioning") {
+      pendingHostingOrders += 1;
+    }
+    if (order.status === "failed") failedHostingOrders += 1;
+  }
+
+  const pipelineStats = computePipelineStatsFromCompanies(companyRows);
+  const businessGrowthTrend = buildBusinessGrowthTrend(companyRows, now);
+
+  const marketplaceBookings30d = marketplaceBookingsResult.error
+    ? 0
+    : (marketplaceBookingsResult.count ?? 0);
+  if (marketplaceBookingsResult.error) {
+    console.error(
+      "[admin] getPlatformOverviewMetrics marketplace bookings",
+      marketplaceBookingsResult.error.message
+    );
+  }
+
+  const recentAuditEvents: AdminAuditLogRow[] = auditLogsResult.error
+    ? []
+    : ((auditLogsResult.data ?? []) as Array<{
+        id: string;
+        actor_email: string | null;
+        action: string;
+        target_type: string;
+        target_label: string | null;
+        created_at: string;
+      }>).map((row) => ({
+        id: row.id,
+        actorEmail: row.actor_email,
+        action: row.action,
+        targetType: row.target_type,
+        targetLabel: row.target_label,
+        createdAt: shortDateTime(row.created_at),
+      }));
+  if (auditLogsResult.error) {
+    console.error(
+      "[admin] getPlatformOverviewMetrics audit logs",
+      auditLogsResult.error.message
+    );
+  }
 
   const recentBusinesses: AdminOverviewBusinessRow[] = (
     (recentCompaniesResult.data ?? []) as CompanyOverviewRow[]
@@ -844,13 +1038,7 @@ export async function getPlatformOverviewMetrics(): Promise<AdminPlatformOvervie
       totalRevenue,
       activeSubscriptions,
       failedPayments,
-    },
-    activity: {
-      totalBookings: bookingsCount,
-      totalLeads: leadsCount,
-      totalInvoices: invoicesCount,
-      totalPayments: customerPaymentsCount,
-      totalEmailsSent,
+      churnRatePercent,
     },
     operations: {
       openTickets,
@@ -861,13 +1049,32 @@ export async function getPlatformOverviewMetrics(): Promise<AdminPlatformOvervie
       api: apiHealth,
       cron: cronHealth,
       email: emailHealth,
+      queue: queueHealth,
+      hosting: hostingHealth,
       websites: websiteHealth,
       domains: domainHealth,
+      ssl: sslHealth,
     },
+    infrastructure: {
+      pipelineInProgress: pipelineStats.inProgress,
+      pipelineInReview: pipelineStats.inReview,
+      pipelinePending: pipelineStats.pending,
+      pendingHostingOrders,
+      failedHostingOrders,
+      pendingAutomationJobs,
+      failedAutomationJobs,
+    },
+    marketplace: {
+      activeListings,
+      featuredListings,
+      marketplaceBookings30d,
+    },
+    businessGrowthTrend,
     recentBusinesses,
     recentOpenTickets,
     topFeatureRequests,
-    pipelineStats: computeProjectStats(projects),
+    recentAuditEvents,
+    pipelineStats,
   };
 }
 
@@ -1949,7 +2156,7 @@ export async function getAdminBusinessDetail(
   const { data: company, error: companyError } = await supabase
     .from("companies")
     .select(
-      "id,slug,name,created_at,plan,subscription_status,primary_contact_name,primary_contact_email,contact_phone,contact_location,admin_client_note,industries(name)"
+      "id,slug,name,created_at,plan,subscription_status,primary_contact_name,primary_contact_email,contact_phone,contact_location,admin_client_note,setup_fee_waived,setup_fee_paid_at,industries(name)"
     )
     .eq("id", companyId)
     .maybeSingle();
@@ -1973,6 +2180,8 @@ export async function getAdminBusinessDetail(
     contact_phone: string | null;
     contact_location: string | null;
     admin_client_note: string | null;
+    setup_fee_waived: boolean | null;
+    setup_fee_paid_at: string | null;
     industries?: { name?: string | null } | null;
   };
 
@@ -2050,6 +2259,7 @@ export async function getAdminBusinessDetail(
     subscriptionStatus,
     hostingRow?.status ?? null
   );
+  const workspacePlanSlug = normalizePlanSlug(row.plan);
   const planSlug = normalizePlanSlug(hostingRow?.plan_slug ?? row.plan);
   const email = row.primary_contact_email?.trim() || "unknown@client.local";
   const contactName =
@@ -2085,6 +2295,7 @@ export async function getAdminBusinessDetail(
     name: row.name,
     industry: row.industries?.name?.trim() || "—",
     plan: planLabelForSlug(planSlug),
+    workspacePlanSlug,
     platformStatus,
     subscriptionStatus,
     contactName,
@@ -2097,6 +2308,8 @@ export async function getAdminBusinessDetail(
       ? formatCreatedDate(hostingRow.next_billing_date)
       : null,
     note: row.admin_client_note?.trim() || null,
+    setupFeeWaived: row.setup_fee_waived === true,
+    setupFeePaidAt: row.setup_fee_paid_at,
     recentPayments,
     members,
   };
@@ -3026,6 +3239,8 @@ export async function getAdminSettingsUsers(): Promise<
     name: string;
     email: string;
     role: string;
+    platformRoleId: string;
+    platformRoleLabel: string;
     initials: string;
     color: string;
   }[]
@@ -3034,18 +3249,37 @@ export async function getAdminSettingsUsers(): Promise<
   if (!(await isCurrentUserPlatformAdmin())) return [];
 
   const supabase = await resolveAdminQueryClient();
+  let adminRows: Array<{ user_id: string; role_id?: string | null }> = [];
+
   const { data: admins, error: adminError } = await supabase
     .from("platform_admins")
-    .select("user_id");
+    .select("user_id, role_id");
 
   if (adminError) {
-    console.error("[admin] getAdminSettingsUsers admins", adminError.message);
-    return [];
+    if (isSupabaseSchemaMissingError(adminError)) {
+      const { data: legacyAdmins, error: legacyError } = await supabase
+        .from("platform_admins")
+        .select("user_id");
+
+      if (legacyError) {
+        if (!isSupabaseSchemaMissingError(legacyError)) {
+          console.error("[admin] getAdminSettingsUsers admins", legacyError.message);
+        }
+        return [];
+      }
+
+      adminRows = ((legacyAdmins ?? []) as Array<{ user_id: string }>).map((row) => ({
+        user_id: row.user_id,
+      }));
+    } else {
+      console.error("[admin] getAdminSettingsUsers admins", adminError.message);
+      return [];
+    }
+  } else {
+    adminRows = (admins ?? []) as Array<{ user_id: string; role_id?: string | null }>;
   }
 
-  const adminIds = Array.from(
-    new Set((admins ?? []).map((a) => (a as { user_id: string }).user_id))
-  );
+  const adminIds = Array.from(new Set(adminRows.map((a) => a.user_id)));
   if (adminIds.length === 0) return [];
 
   const { data: users, error: usersError } = await supabase
@@ -3078,11 +3312,16 @@ export async function getAdminSettingsUsers(): Promise<
   return ((users ?? []) as AppUser[])
     .map((u, idx) => {
       const name = u.full_name?.trim() || u.email.split("@")[0] || "Admin";
+      const adminRow = adminRows.find((row) => row.user_id === u.id);
+      const platformRoleId = adminRow?.role_id ?? "platform_admin";
+      const platformRole = getPlatformRoleDefinition(platformRoleId);
       return {
         id: u.id,
         name,
         email: u.email,
-        role: "Admin",
+        role: platformRole.label,
+        platformRoleId,
+        platformRoleLabel: platformRole.label,
         initials: initials(name),
         color: gradients[idx % gradients.length]!,
       };

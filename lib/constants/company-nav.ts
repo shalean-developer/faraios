@@ -2,6 +2,9 @@ import type { BookingsView } from "@/lib/bookings/request-type";
 import type { PermissionKey } from "@/lib/permissions/shared";
 import { hasAnyPermission } from "@/lib/permissions/shared";
 import {
+  dashboardBaseFromPathname,
+} from "@/lib/paths/workspace";
+import {
   companyAutomationsPath,
   companyAnalyticsPath,
   companyAiInsightsPath,
@@ -10,7 +13,6 @@ import {
   companyBusinessHealthPath,
   companyCalendarPath,
   companyCampaignsPath,
-  companyContentPath,
   companyCustomerSegmentsPath,
   companyCustomersPath,
   companyDashboardPath,
@@ -268,7 +270,7 @@ export function companyNavKeyFromPathname(
   slug: string,
   pathname: string
 ): CompanyNavKey {
-  const base = `/${encodeURIComponent(slug)}/dashboard`;
+  const base = dashboardBaseFromPathname(slug, pathname);
   if (pathname === base || pathname === `${base}/`) return "dashboard";
   if (pathname.startsWith(`${base}/notifications`)) return "dashboard";
   if (pathname.startsWith(`${base}/tasks`)) return "tasks";
@@ -359,10 +361,10 @@ export function bookingsViewFromPathname(
   slug: string,
   pathname: string
 ): BookingsView | "booking-form" {
-  const base = companyBookingsPath(slug);
-  if (pathname.startsWith(companyBookingFormPath(slug))) return "booking-form";
-  if (pathname === `${base}/booking-requests`) return "booking-requests";
-  if (pathname === `${base}/quote-requests`) return "quote-requests";
+  const base = dashboardBaseFromPathname(slug, pathname);
+  if (pathname.startsWith(`${base}/booking-form`)) return "booking-form";
+  if (pathname.startsWith(`${base}/bookings/booking-requests`)) return "booking-requests";
+  if (pathname.startsWith(`${base}/bookings/quote-requests`)) return "quote-requests";
   return "all";
 }
 
@@ -389,7 +391,8 @@ export function customersSubNavKeyFromPathname(
   slug: string,
   pathname: string
 ): CustomersSubNavKey {
-  if (pathname.startsWith(companyCustomerSegmentsPath(slug))) return "segments";
+  const base = dashboardBaseFromPathname(slug, pathname);
+  if (pathname.startsWith(`${base}/customers/segments`)) return "segments";
   return "all";
 }
 
@@ -424,7 +427,7 @@ export function revenueSubNavKeyFromPathname(
   slug: string,
   pathname: string
 ): RevenueSubNavKey {
-  const base = `/${encodeURIComponent(slug)}/dashboard`;
+  const base = dashboardBaseFromPathname(slug, pathname);
   if (pathname.startsWith(`${base}/revenue/payment-settings`)) return "payment-settings";
   if (pathname.startsWith(`${base}/quotes`)) return "quotes";
   if (pathname.startsWith(`${base}/invoices`)) return "invoices";
@@ -436,13 +439,22 @@ export type WebsiteSubNavKey =
   | "overview"
   | "builder"
   | "builder-pages"
+  | "builder-page-builder"
+  | "builder-templates"
+  | "builder-components"
+  | "builder-theme"
+  | "builder-media"
+  | "builder-navigation"
   | "builder-service-pages"
   | "builder-contact"
   | "builder-booking"
   | "builder-seo"
+  | "builder-blog"
+  | "builder-analytics"
   | "builder-publish"
   | "builder-domains"
   | "builder-enquiries"
+  | "builder-settings"
   | "connection"
   | "domains"
   | "api-keys"
@@ -455,49 +467,97 @@ export type WebsiteSubNavItem = {
   key: WebsiteSubNavKey;
   label: string;
   href: string;
+  description?: string;
 };
 
-export function websiteSubNavItems(
+/** Hub-level links shown on the websites overview instead of the sidebar. */
+const WEBSITE_OVERVIEW_HUB_KEYS = new Set<WebsiteSubNavKey>([
+  "connection",
+  "domains",
+  "api-keys",
+  "tracking",
+  "hosting",
+  "billing",
+]);
+
+/** Builder sidebar keys (V2 navigation). */
+const WEBSITE_BUILDER_SIDEBAR_KEYS = new Set<WebsiteSubNavKey>([
+  "builder",
+  "builder-pages",
+  "builder-page-builder",
+  "builder-templates",
+  "builder-components",
+  "builder-theme",
+  "builder-media",
+  "builder-navigation",
+  "builder-contact",
+  "builder-booking",
+  "builder-seo",
+  "builder-blog",
+  "builder-analytics",
+  "builder-domains",
+  "builder-publish",
+  "builder-settings",
+]);
+
+function websiteSubNavCatalog(
   slug: string,
   options?: { hasWebsiteProject?: boolean }
 ): WebsiteSubNavItem[] {
   const items: WebsiteSubNavItem[] = [
     { key: "overview", label: "Overview", href: companyWebsitesPath(slug) },
-    { key: "builder", label: "Website builder", href: companyWebsiteBuilderPath(slug) },
+    { key: "builder", label: "Dashboard", href: companyWebsiteBuilderPath(slug) },
+    { key: "builder-pages", label: "Pages", href: companyWebsiteBuilderSectionPath(slug, "pages") },
     {
-      key: "builder-pages",
-      label: "Pages",
-      href: companyWebsiteBuilderSectionPath(slug, "pages"),
+      key: "builder-page-builder",
+      label: "Page Builder",
+      href: companyWebsiteBuilderSectionPath(slug, "page-builder"),
+    },
+    {
+      key: "builder-templates",
+      label: "Templates",
+      href: companyWebsiteBuilderSectionPath(slug, "templates"),
+    },
+    {
+      key: "builder-components",
+      label: "Components",
+      href: companyWebsiteBuilderSectionPath(slug, "components"),
+    },
+    { key: "builder-theme", label: "Theme", href: companyWebsiteBuilderSectionPath(slug, "theme") },
+    {
+      key: "builder-media",
+      label: "Media Library",
+      href: companyWebsiteBuilderSectionPath(slug, "media"),
+    },
+    {
+      key: "builder-navigation",
+      label: "Navigation",
+      href: companyWebsiteBuilderSectionPath(slug, "navigation"),
     },
     {
       key: "builder-service-pages",
       label: "Service pages",
       href: companyWebsiteBuilderSectionPath(slug, "service-pages"),
     },
+    { key: "builder-contact", label: "Forms", href: companyWebsiteBuilderSectionPath(slug, "contact") },
+    { key: "builder-booking", label: "Booking", href: companyWebsiteBuilderSectionPath(slug, "booking") },
+    { key: "builder-seo", label: "Site SEO", href: companyWebsiteBuilderSectionPath(slug, "seo") },
+    { key: "builder-blog", label: "Blog", href: companyWebsiteBuilderSectionPath(slug, "blog") },
     {
-      key: "builder-contact",
-      label: "Contact form",
-      href: companyWebsiteBuilderSectionPath(slug, "contact"),
+      key: "builder-analytics",
+      label: "Analytics",
+      href: companyWebsiteBuilderSectionPath(slug, "analytics"),
     },
-    {
-      key: "builder-booking",
-      label: "Booking button",
-      href: companyWebsiteBuilderSectionPath(slug, "booking"),
-    },
-    {
-      key: "builder-seo",
-      label: "SEO settings",
-      href: companyWebsiteBuilderSectionPath(slug, "seo"),
-    },
+    { key: "builder-domains", label: "Domains", href: companyWebsiteBuilderSectionPath(slug, "domains") },
     {
       key: "builder-publish",
-      label: "Publish",
+      label: "Publishing",
       href: companyWebsiteBuilderSectionPath(slug, "publish"),
     },
     {
-      key: "builder-domains",
-      label: "Domain settings",
-      href: companyWebsiteBuilderSectionPath(slug, "domains"),
+      key: "builder-settings",
+      label: "Settings",
+      href: companyWebsiteBuilderSectionPath(slug, "settings"),
     },
     {
       key: "builder-enquiries",
@@ -508,27 +568,37 @@ export function websiteSubNavItems(
       key: "connection",
       label: "Connection",
       href: companyWebsiteConnectionPath(slug),
+      description: "Connect an external site and install widgets",
     },
-    { key: "domains", label: "Domains", href: companyWebsiteDomainsPath(slug) },
+    {
+      key: "domains",
+      label: "Domains",
+      href: companyWebsiteDomainsPath(slug),
+      description: "Custom domain verification and SSL",
+    },
     {
       key: "api-keys",
       label: "API keys",
       href: companyWebsiteApiKeysPath(slug),
+      description: "Integration keys and webhook access",
     },
     {
       key: "tracking",
       label: "Tracking",
       href: companyWebsiteTrackingPath(slug),
+      description: "Analytics and UTM event tracking",
     },
     {
       key: "hosting",
       label: "Deployments",
       href: companyWebsiteHostingPath(slug),
+      description: "Publish history and deployment logs",
     },
     {
       key: "billing",
       label: "Hosting plan",
       href: companyHostingPath(slug),
+      description: "Hosting subscription and billing",
     },
   ];
 
@@ -543,14 +613,54 @@ export function websiteSubNavItems(
   return items;
 }
 
+export function websiteSubNavItems(
+  slug: string,
+  options?: { hasWebsiteProject?: boolean }
+): WebsiteSubNavItem[] {
+  return websiteSubNavCatalog(slug, options).filter(
+    (item) =>
+      item.key === "overview" ||
+      WEBSITE_BUILDER_SIDEBAR_KEYS.has(item.key) ||
+      item.key === "builder-service-pages" ||
+      item.key === "builder-enquiries"
+  );
+}
+
+export function websiteOverviewHubItems(
+  slug: string,
+  options?: { hasWebsiteProject?: boolean }
+): WebsiteSubNavItem[] {
+  const hub = websiteSubNavCatalog(slug, options).filter((item) =>
+    WEBSITE_OVERVIEW_HUB_KEYS.has(item.key)
+  );
+  return [
+    {
+      key: "builder",
+      label: "Website builder",
+      href: companyWebsiteBuilderPath(slug),
+      description: "Visual page builder, theme, and publishing",
+    },
+    ...hub,
+  ];
+}
+
 export function websiteSubNavKeyFromPathname(
   slug: string,
   pathname: string
 ): WebsiteSubNavKey {
-  const base = `/${encodeURIComponent(slug)}/dashboard`;
+  const base = dashboardBaseFromPathname(slug, pathname);
   if (pathname.startsWith(`${base}/project`)) return "project";
   if (pathname.startsWith(`${base}/hosting`)) return "billing";
   if (pathname.startsWith(`${base}/websites/builder/enquiries`)) return "builder-enquiries";
+  if (pathname.startsWith(`${base}/websites/builder/settings`)) return "builder-settings";
+  if (pathname.startsWith(`${base}/websites/builder/analytics`)) return "builder-analytics";
+  if (pathname.startsWith(`${base}/websites/builder/blog`)) return "builder-blog";
+  if (pathname.startsWith(`${base}/websites/builder/navigation`)) return "builder-navigation";
+  if (pathname.startsWith(`${base}/websites/builder/media`)) return "builder-media";
+  if (pathname.startsWith(`${base}/websites/builder/theme`)) return "builder-theme";
+  if (pathname.startsWith(`${base}/websites/builder/components`)) return "builder-components";
+  if (pathname.startsWith(`${base}/websites/builder/templates`)) return "builder-templates";
+  if (pathname.startsWith(`${base}/websites/builder/page-builder`)) return "builder-page-builder";
   if (pathname.startsWith(`${base}/websites/builder/domains`)) return "builder-domains";
   if (pathname.startsWith(`${base}/websites/builder/publish`)) return "builder-publish";
   if (pathname.startsWith(`${base}/websites/builder/seo`)) return "builder-seo";
@@ -611,7 +721,6 @@ export type GrowthSubNavKey =
   | "reviews"
   | "campaigns"
   | "retention"
-  | "content"
   | "analytics";
 
 export type GrowthSubNavItem = {
@@ -632,7 +741,7 @@ export function growthSubNavItems(slug: string): GrowthSubNavItem[] {
     },
     {
       key: "seo",
-      label: "SEO",
+      label: "SEO dashboard",
       href: companySeoPath(slug),
       permissions: ["manage_marketing"],
     },
@@ -661,12 +770,6 @@ export function growthSubNavItems(slug: string): GrowthSubNavItem[] {
       permissions: ["manage_marketing"],
     },
     {
-      key: "content",
-      label: "Content",
-      href: companyContentPath(slug),
-      permissions: ["manage_marketing"],
-    },
-    {
       key: "analytics",
       label: "Analytics",
       href: companyAnalyticsPath(slug),
@@ -679,7 +782,7 @@ export function growthSubNavKeyFromPathname(
   slug: string,
   pathname: string
 ): GrowthSubNavKey {
-  const base = `/${encodeURIComponent(slug)}/dashboard`;
+  const base = dashboardBaseFromPathname(slug, pathname);
   if (pathname.startsWith(`${base}/growth`)) return "overview";
   if (pathname.startsWith(`${base}/leads`)) return "leads";
   if (pathname.startsWith(`${base}/seo`)) return "seo";
@@ -687,7 +790,6 @@ export function growthSubNavKeyFromPathname(
   if (pathname.startsWith(`${base}/reviews`)) return "reviews";
   if (pathname.startsWith(`${base}/campaigns/retention`)) return "retention";
   if (pathname.startsWith(`${base}/campaigns`)) return "campaigns";
-  if (pathname.startsWith(`${base}/content`)) return "content";
   if (pathname.startsWith(`${base}/analytics`)) return "analytics";
   return "overview";
 }
@@ -744,7 +846,7 @@ export function intelligenceSubNavKeyFromPathname(
   slug: string,
   pathname: string
 ): IntelligenceSubNavKey {
-  const base = `/${encodeURIComponent(slug)}/dashboard`;
+  const base = dashboardBaseFromPathname(slug, pathname);
   if (pathname.startsWith(`${base}/intelligence`)) return "overview";
   if (pathname.startsWith(`${base}/insights`)) return "insights";
   if (pathname.startsWith(`${base}/business-health`)) return "business-health";
@@ -758,7 +860,7 @@ export function isPathInCollapsibleSection(
   pathname: string,
   section: CollapsibleNavKey
 ): boolean {
-  const base = `/${encodeURIComponent(slug)}/dashboard`;
+  const base = dashboardBaseFromPathname(slug, pathname);
   switch (section) {
     case "bookings":
       return (
@@ -789,7 +891,6 @@ export function isPathInCollapsibleSection(
         pathname.startsWith(`${base}/marketing`) ||
         pathname.startsWith(`${base}/reviews`) ||
         pathname.startsWith(`${base}/campaigns`) ||
-        pathname.startsWith(`${base}/content`) ||
         pathname.startsWith(`${base}/analytics`)
       );
     case "intelligence":

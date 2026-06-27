@@ -4,6 +4,7 @@ import Link from "next/link";
 import React, { useEffect, useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
 import {
   Users,
   BarChart3,
@@ -37,6 +38,8 @@ import {
 } from "@/app/actions/admin";
 import { ADMIN_BUSINESSES_PATH } from "@/lib/constants/admin-nav";
 import { ADMIN_DEVELOPER_OPTIONS } from "@/lib/constants/admin-developers";
+import { agencyWorkspaceHref } from "@/lib/platform/agency-workspace";
+import { companyWebsiteBuilderPath } from "@/lib/paths/company";
 import type { AdminPipelineStatus, AdminProjectDetails } from "@/types/admin";
 
 type NoteEntry = {
@@ -169,10 +172,12 @@ export function FaraiAdminProjectDetails({
   ]);
 
   const clientHref = `/admin/clients?companyId=${project.id}`;
-  const websiteHref = project.websiteId
-    ? `/admin/websites/${project.websiteId}/edit`
-    : `/admin/websites/create?companyId=${project.id}`;
-  const websiteLabel = project.websiteId ? "Edit Website" : "Create Website";
+  const workspaceBuilderHref = agencyWorkspaceHref(
+    project.slug,
+    companyWebsiteBuilderPath(project.slug)
+  );
+  const websiteHref = workspaceBuilderHref;
+  const websiteLabel = project.websiteId ? "Open Website Builder" : "Create in Workspace";
   const marketplaceHref = `/marketplace/${project.slug}`;
   const clientEmailValid = isValidClientEmail(project.user.email);
 
@@ -298,44 +303,15 @@ export function FaraiAdminProjectDetails({
     [project.activities]
   );
 
-  return (
-    <div
-      className="flex min-h-0 flex-1 flex-col overflow-hidden"
-      onClick={() => {
-        setOpenStatusDropdown(false);
-        setOpenDevDropdown(false);
-      }}
-    >
-      {!embedded ? (
-        <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
-          <div className="min-w-0 flex-1">
-            <nav className="mb-0.5 flex items-center gap-1.5 text-xs text-gray-400">
-              <Link
-                href={`${ADMIN_BUSINESSES_PATH}/${project.companyId}?tab=pipeline`}
-                className="flex items-center gap-1 font-medium transition-colors hover:text-indigo-600"
-              >
-                <ArrowLeft className="h-3 w-3" />
-                <span>Business</span>
-              </Link>
-              <ChevronRight className="h-3 w-3" />
-              <span className="font-semibold text-gray-600">{project.businessName}</span>
-            </nav>
-            <h1 className="text-base font-extrabold leading-tight tracking-tight text-gray-900">
-              Project Details
-            </h1>
-          </div>
-          <AdminActivityBellLink />
-        </header>
-      ) : null}
-
-        <main className="flex-1 overflow-y-auto px-6 py-6">
-          {isPending ? <p className="mb-2 text-xs font-medium text-indigo-600">Syncing…</p> : null}
+  const pageBody = (
+    <>
+          {isPending ? <p className="mb-2 text-xs font-medium text-[#5a8dee]">Syncing…</p> : null}
           {mutationError ? (
             <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
               {mutationError}
             </p>
           ) : null}
-          <motion.div initial="hidden" animate="visible" variants={stagger} className="mx-auto max-w-7xl space-y-5">
+          <motion.div initial="hidden" animate="visible" variants={stagger} className="space-y-5">
             <motion.div variants={fadeUp} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
               <div className="bg-gradient-to-br from-indigo-600 to-violet-700 px-6 py-5">
                 <div className="flex items-start justify-between gap-4">
@@ -742,7 +718,35 @@ export function FaraiAdminProjectDetails({
               </div>
             </div>
           </motion.div>
-        </main>
+    </>
+  );
+
+  return (
+    <div
+      className="flex min-h-0 flex-1 flex-col overflow-hidden"
+      onClick={() => {
+        setOpenStatusDropdown(false);
+        setOpenDevDropdown(false);
+      }}
+    >
+      {embedded ? (
+        pageBody
+      ) : (
+        <AdminPageShell title="Project Details" actions={<AdminActivityBellLink />}>
+          <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500">
+            <Link
+              href={`${ADMIN_BUSINESSES_PATH}/${project.companyId}?tab=pipeline`}
+              className="flex items-center gap-1 font-medium transition-colors hover:text-[#5a8dee]"
+            >
+              <ArrowLeft className="h-3 w-3" />
+              <span>Business</span>
+            </Link>
+            <ChevronRight className="h-3 w-3" />
+            <span className="font-semibold text-slate-600">{project.businessName}</span>
+          </nav>
+          {pageBody}
+        </AdminPageShell>
+      )}
     </div>
   );
 }

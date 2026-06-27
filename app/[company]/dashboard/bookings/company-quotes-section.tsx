@@ -9,6 +9,7 @@ import { quoteStatusBadgeClass } from "@/lib/financial/status";
 import { formatRevenue } from "@/lib/operations/metrics";
 import { companyQuotePath } from "@/lib/paths/company";
 import { cn } from "@/lib/utils";
+import { riseCardClassName } from "@/lib/ui/rise-dashboard-styles";
 import type { Customer } from "@/types/database";
 import type { QuoteWithCustomer } from "@/types/financial";
 
@@ -67,7 +68,7 @@ export function CompanyQuoteCreateForm({
     <form
       onSubmit={onCreate}
       className={cn(
-        embedded ? "space-y-4" : "mt-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        embedded ? "space-y-4" : cn("mt-4", riseCardClassName, "p-6")
       )}
     >
       {!embedded ? (
@@ -131,7 +132,7 @@ export function CompanyQuoteCreateForm({
         </label>
       </div>
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      <Button type="submit" className="rounded-xl" disabled={pending}>
+      <Button type="submit" className="rounded-md bg-[#5a8dee] text-white hover:bg-[#4a6fd8]" disabled={pending}>
         {pending ? "Creating..." : "Create quote"}
       </Button>
     </form>
@@ -146,7 +147,7 @@ export function CompanyQuotesSection({
   showCreateForm = true,
   showActions = true,
   showHeader = true,
-  title = "Quotes & estimates",
+  title = "Quotes",
   sectionDescription = "Create quotes, send to customers, and convert to bookings or invoices.",
   onQuoteCreated,
 }: {
@@ -197,7 +198,7 @@ export function CompanyQuotesSection({
 
       <div
         className={cn(
-          "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm",
+          "overflow-hidden border-t border-slate-100",
           showCreateForm || showHeader ? "mt-6" : ""
         )}
       >
@@ -224,7 +225,7 @@ export function CompanyQuotesSection({
                   <td className="px-4 py-3 font-medium">
                     <Link
                       href={companyQuotePath(slug, quote.id)}
-                      className="text-violet-700 hover:text-violet-900"
+                      className="text-[#4a6fd8] hover:text-[#3a5fc8]"
                     >
                       {quote.quote_number}
                     </Link>

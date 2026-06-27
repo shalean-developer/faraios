@@ -4,15 +4,18 @@ import { Search } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 import { cn } from "@/lib/utils";
+import { WORKSPACE_SEARCH_FOCUS_EVENT } from "@/lib/constants/workspace-events";
 
 export function CompanySidebarSearch({
   value,
   onChange,
   collapsed = false,
+  focusEventName = WORKSPACE_SEARCH_FOCUS_EVENT,
 }: {
   value: string;
   onChange: (value: string) => void;
   collapsed?: boolean;
+  focusEventName?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -33,9 +36,17 @@ export function CompanySidebarSearch({
       inputRef.current?.focus();
     };
 
+    const onSearchFocus = () => {
+      inputRef.current?.focus();
+    };
+
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+    window.addEventListener(focusEventName, onSearchFocus);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener(focusEventName, onSearchFocus);
+    };
+  }, [focusEventName]);
 
   if (collapsed) {
     return (
@@ -57,6 +68,7 @@ export function CompanySidebarSearch({
           className="sr-only"
           tabIndex={-1}
           aria-hidden
+          suppressHydrationWarning
         />
       </div>
     );
@@ -72,6 +84,7 @@ export function CompanySidebarSearch({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder="Find..."
+          suppressHydrationWarning
           className={cn(
             "w-full rounded-md border border-slate-200 bg-white py-1.5 pl-8 pr-10 text-sm text-slate-800",
             "placeholder:text-slate-400 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"

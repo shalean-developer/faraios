@@ -33,6 +33,12 @@ import {
 } from "@/lib/paths/company";
 import { formatRevenue } from "@/lib/operations/metrics";
 import { cn } from "@/lib/utils";
+import {
+  riseCardClassName,
+  riseOutlineButtonClassName,
+  risePageClassName,
+  risePrimaryButtonClassName,
+} from "@/lib/ui/rise-dashboard-styles";
 import type {
   BookingForm,
   BookingFormExtra,
@@ -164,32 +170,32 @@ export function CompanyBookingFormClient({
     return { ...defaults, id: "" };
   };
 
+  const riseButtonClassName = cn(risePrimaryButtonClassName, "rounded-md");
+
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
-            Booking form builder
-          </p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900">Booking form</h1>
-          <p className="mt-2 max-w-2xl text-sm text-slate-500">
-            Configure services, pricing, branding, and publish a public booking link for customers.
-          </p>
+    <div className={risePageClassName}>
+      <div className={riseCardClassName}>
+        <div className="flex flex-col gap-4 border-b border-slate-100 px-4 py-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h1 className="text-lg font-medium text-slate-800">Booking form</h1>
+            <p className="mt-1 max-w-2xl text-sm text-slate-500">
+              Configure services, pricing, branding, and publish a public booking link for customers.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button className={riseOutlineButtonClassName} variant="outline" disabled={pending} onClick={() => run(() => saveBookingFormDraft({ companyId: company.id, companySlug: slug, fields, name: initialForm.name }))}>
+              Save draft
+            </Button>
+            <Button className={riseButtonClassName} disabled={pending} onClick={() => run(() => publishBookingForm({ companyId: company.id, companySlug: slug, fields, name: initialForm.name }))}>
+              Publish
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button className="rounded-xl" disabled={pending} onClick={() => run(() => saveBookingFormDraft({ companyId: company.id, companySlug: slug, fields, name: initialForm.name }))}>
-            Save draft
-          </Button>
-          <Button className="rounded-xl" disabled={pending} onClick={() => run(() => publishBookingForm({ companyId: company.id, companySlug: slug, fields, name: initialForm.name }))}>
-            Publish
-          </Button>
-        </div>
-      </header>
 
-      {error ? <p className="mb-4 text-sm text-red-600">{error}</p> : null}
-      {success ? <p className="mb-4 text-sm text-emerald-700">{success}</p> : null}
+      {error ? <p className="mx-4 mb-4 text-sm text-red-600 sm:mx-5">{error}</p> : null}
+      {success ? <p className="mx-4 mb-4 text-sm text-emerald-700 sm:mx-5">{success}</p> : null}
 
-      <Tabs value={tab} onValueChange={setTab} defaultValue="overview" className="space-y-6">
+      <Tabs value={tab} onValueChange={setTab} defaultValue="overview" className="space-y-6 px-4 py-4 sm:px-5">
         <TabsList className="w-full justify-start">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="services">Services</TabsTrigger>
@@ -210,7 +216,7 @@ export function CompanyBookingFormClient({
               { label: "Active services", value: String(previewServices.length) },
               { label: "Recent bookings", value: String(recentBookings.length) },
             ].map((card) => (
-              <div key={card.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div key={card.label} className={cn(riseCardClassName, "p-4")}>
                 <p className="text-xs font-semibold uppercase text-slate-500">{card.label}</p>
                 <p className="mt-2 text-2xl font-bold capitalize text-slate-900">{card.value}</p>
               </div>
@@ -218,7 +224,7 @@ export function CompanyBookingFormClient({
           </div>
 
           {settings.templates && settings.templates.length > 0 ? (
-            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-sm font-semibold text-slate-900">Service templates</h2>
               <p className="mt-1 text-sm text-slate-500">Enable templates your customers can book.</p>
               <ul className="mt-4 space-y-2">
@@ -250,7 +256,7 @@ export function CompanyBookingFormClient({
               </ul>
               <div className="mt-4 flex justify-end">
                 <Button
-                  className="rounded-xl"
+                  className={riseButtonClassName}
                   disabled={pending}
                   onClick={() =>
                     run(() =>
@@ -268,7 +274,7 @@ export function CompanyBookingFormClient({
             </div>
           ) : null}
 
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-slate-900">Recent bookings</h2>
             {recentBookings.length === 0 ? (
               <p className="mt-3 text-sm text-slate-500">No bookings yet.</p>
@@ -280,21 +286,21 @@ export function CompanyBookingFormClient({
                       <p className="font-medium text-slate-900">{booking.customer_name}</p>
                       <p className="text-xs text-slate-500">{booking.service}</p>
                     </div>
-                    <Link href={companyBookingPath(slug, booking.id)} className="text-violet-700 hover:underline">
+                    <Link href={companyBookingPath(slug, booking.id)} className="text-[#4a6fd8] hover:underline">
                       View
                     </Link>
                   </li>
                 ))}
               </ul>
             )}
-            <Link href={companyBookingsPath(slug)} className="mt-3 inline-block text-sm font-medium text-violet-700">
+            <Link href={companyBookingsPath(slug)} className="mt-3 inline-block text-sm font-medium text-[#4a6fd8]">
               All bookings →
             </Link>
           </div>
         </TabsContent>
 
         <TabsContent value="services">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-600">
               Services are managed in your service catalog. Active services appear on the public booking form.
             </p>
@@ -310,12 +316,12 @@ export function CompanyBookingFormClient({
                 </li>
               ))}
             </ul>
-            <Link href={companyServicesPath(slug)} className="mt-4 inline-block text-sm font-medium text-violet-700">
+            <Link href={companyServicesPath(slug)} className="mt-4 inline-block text-sm font-medium text-[#4a6fd8]">
               Manage services →
             </Link>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-slate-900">Form fields</h2>
             <ul className="mt-3 space-y-2">
               {[...fields].sort((a, b) => a.sortOrder - b.sortOrder).map((field) => (
@@ -334,7 +340,7 @@ export function CompanyBookingFormClient({
             <div className="mt-4 flex gap-2">
               <Button
                 variant="outline"
-                className="rounded-xl"
+                className={riseOutlineButtonClassName}
                 disabled={pending}
                 onClick={() =>
                   run(() =>
@@ -353,7 +359,7 @@ export function CompanyBookingFormClient({
         </TabsContent>
 
         <TabsContent value="pricing">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-slate-900">Dynamic pricing</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               {(
@@ -405,7 +411,7 @@ export function CompanyBookingFormClient({
             </label>
             <div className="mt-4 flex justify-end">
               <Button
-                className="rounded-xl"
+                className={riseButtonClassName}
                 disabled={pending}
                 onClick={() => {
                   const rule = ensurePricingRule();
@@ -425,13 +431,13 @@ export function CompanyBookingFormClient({
         </TabsContent>
 
         <TabsContent value="extras">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-slate-900">Booking extras</h2>
               <Button
                 variant="outline"
                 size="sm"
-                className="rounded-xl"
+                className={riseOutlineButtonClassName}
                 onClick={() =>
                   setExtras((prev) => [
                     ...prev,
@@ -497,7 +503,7 @@ export function CompanyBookingFormClient({
             </ul>
             <div className="mt-4 flex justify-end">
               <Button
-                className="rounded-xl"
+                className={riseButtonClassName}
                 disabled={pending}
                 onClick={() =>
                   run(() =>
@@ -512,7 +518,7 @@ export function CompanyBookingFormClient({
         </TabsContent>
 
         <TabsContent value="availability">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="grid gap-3 sm:grid-cols-2">
               {DAY_LABELS.map(({ key, label }) => {
                 const day = bookingHours[key] ?? { open: "09:00", close: "17:00" };
@@ -574,7 +580,7 @@ export function CompanyBookingFormClient({
             </label>
             <div className="mt-4 flex justify-end">
               <Button
-                className="rounded-xl"
+                className={riseButtonClassName}
                 disabled={pending}
                 onClick={() =>
                   run(() =>
@@ -597,13 +603,13 @@ export function CompanyBookingFormClient({
         </TabsContent>
 
         <TabsContent value="areas">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-slate-900">Service areas</h2>
               <Button
                 variant="outline"
                 size="sm"
-                className="rounded-xl"
+                className={riseOutlineButtonClassName}
                 onClick={() =>
                   setServiceAreas((prev) => [
                     ...prev,
@@ -649,7 +655,7 @@ export function CompanyBookingFormClient({
             </ul>
             <div className="mt-4 flex justify-end">
               <Button
-                className="rounded-xl"
+                className={riseButtonClassName}
                 disabled={pending}
                 onClick={() =>
                   run(() =>
@@ -668,7 +674,7 @@ export function CompanyBookingFormClient({
         </TabsContent>
 
         <TabsContent value="branding">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -737,7 +743,7 @@ export function CompanyBookingFormClient({
             </label>
             <div className="flex justify-end">
               <Button
-                className="rounded-xl"
+                className={riseButtonClassName}
                 disabled={pending}
                 onClick={() =>
                   run(() =>
@@ -756,7 +762,7 @@ export function CompanyBookingFormClient({
         </TabsContent>
 
         <TabsContent value="preview">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             {settings.multiStep !== false ? (
               <SteppedPublicBookingForm
                 businessName={branding.businessName ?? company.name}
@@ -786,14 +792,14 @@ export function CompanyBookingFormClient({
 
         <TabsContent value="publish">
           <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <p className="text-sm font-semibold text-slate-900">Public booking link</p>
               <p className="mt-1 text-sm text-slate-500">Share this link with customers.</p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <code className="flex-1 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-700">
                   {publicLink}
                 </code>
-                <Button variant="outline" className="rounded-xl" onClick={copyLink}>
+                <Button variant="outline" className={riseOutlineButtonClassName} onClick={copyLink}>
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   {copied ? "Copied" : "Copy"}
                 </Button>
@@ -801,7 +807,7 @@ export function CompanyBookingFormClient({
                   href={publicBookSlugPath(slug)}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-sm font-medium text-violet-700"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-[#4a6fd8]"
                 >
                   Open <ExternalLink className="h-4 w-4" />
                 </a>
@@ -820,7 +826,7 @@ export function CompanyBookingFormClient({
 
             <div className="flex flex-wrap gap-2">
               <Button
-                className="rounded-xl"
+                className={riseButtonClassName}
                 disabled={pending}
                 onClick={() =>
                   run(() =>
@@ -838,7 +844,7 @@ export function CompanyBookingFormClient({
               {initialForm.status === "published" ? (
                 <Button
                   variant="outline"
-                  className="rounded-xl"
+                  className={riseOutlineButtonClassName}
                   disabled={pending}
                   onClick={() =>
                     run(() => unpublishBookingForm({ companyId: company.id, companySlug: slug }))
@@ -851,6 +857,7 @@ export function CompanyBookingFormClient({
           </div>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

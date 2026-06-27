@@ -4,12 +4,16 @@ import {
   hostingPlanAmountInKobo,
   normalizeHostingBillingPlan,
 } from "@/lib/billing/hosting-paystack";
+import { getHostingOrderPaymentAmount } from "@/lib/billing/hosting-order-payment";
 import { PAYSTACK_BASE_URL } from "@/lib/billing/paystack";
+import { companyBillingPath } from "@/lib/paths/company";
 
 type InitBody = {
   companyId?: string;
   plan?: string;
   email?: string;
+  orderId?: string;
+  invoiceId?: string;
 };
 
 export async function POST(req: Request) {
@@ -52,7 +56,17 @@ export async function POST(req: Request) {
   }
 
   const plan = normalizeHostingBillingPlan(body.plan);
-  const amount = hostingPlanAmountInKobo(plan);
+  let amount: number;
+
+  if (body.invoiceId) {
+    const invoiceAmount = await getHostingOrderPaymentAmount(body.invoiceId);
+    if (invoiceAmount == null) {
+      return NextResponse.json({ ok: false, error: "Invoice not found." }, { status: 404 });
+    }
+    amount = invoiceAmount;
+  } else {
+    amount = hostingPlanAmountInKobo(plan);
+  }
 
   const siteUrl =
     process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
@@ -70,7 +84,9 @@ export async function POST(req: Request) {
     .maybeSingle();
 
   const callbackPath = company?.slug
-    ? `/${encodeURIComponent(company.slug)}/dashboard/hosting?payment=success`
+    ? body.orderId
+      ? `/${encodeURIComponent(company.slug)}/dashboard/hosting/services?payment=success`
+      : companyBillingPath(company.slug, { tab: "hosting", payment: "success" })
     : "/app";
   const callbackUrl = `${(siteUrl ?? "").replace(/\/$/, "")}${callbackPath}`;
 
@@ -88,6 +104,8 @@ export async function POST(req: Request) {
         product_type: "hosting",
         company_id: body.companyId,
         plan,
+        order_id: body.orderId,
+        invoice_id: body.invoiceId,
       },
     }),
   });

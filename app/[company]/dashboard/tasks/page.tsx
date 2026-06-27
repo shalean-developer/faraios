@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { listCompanyMembers } from "@/lib/services/team";
 import { listTasks, summarizeTasks } from "@/lib/services/tasks";
+import { createClient } from "@/lib/supabase/server";
 
 import { CompanyTasksClient } from "./company-tasks-client";
 
@@ -21,20 +22,24 @@ export default async function TasksPage({ params }: Props) {
   const row = await getCompanyBySlug(slug);
   if (!row) notFound();
 
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const [tasks, members] = await Promise.all([
     listTasks(row.id),
     listCompanyMembers(row.id),
   ]);
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <CompanyTasksClient
-        slug={slug}
-        company={row}
-        tasks={tasks}
-        summary={summarizeTasks(tasks)}
-        members={members}
-      />
-    </div>
+    <CompanyTasksClient
+      slug={slug}
+      company={row}
+      tasks={tasks}
+      summary={summarizeTasks(tasks)}
+      members={members}
+      currentUserId={user?.id ?? null}
+    />
   );
 }

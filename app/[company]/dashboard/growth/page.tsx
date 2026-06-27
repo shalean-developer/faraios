@@ -22,9 +22,5 @@ export default async function CompanyGrowthPage({ params }: Props) {
 
   const overview = await getGrowthOverviewData(row.id);
 
-  return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <CompanyGrowthDashboard slug={slug} overview={overview} />
-    </div>
-  );
+  return <CompanyGrowthDashboard slug={slug} overview={overview} />;
 }

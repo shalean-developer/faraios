@@ -36,11 +36,11 @@ export function BookingWidgetInstallSummary({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm",
+        "rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5",
         className
       )}
     >
-      <h3 className="font-semibold text-slate-900">Add booking widget to your site</h3>
+      <h3 className="text-sm font-medium text-slate-700">Add booking widget to your site</h3>
       <p className="mt-1 text-sm text-slate-500">
         After publishing your form, embed it on WordPress, Wix, Squarespace, Shopify, and other
         builders — or link to a hosted booking page.
@@ -54,7 +54,7 @@ export function BookingWidgetInstallSummary({
         </li>
         <li>
           Open{" "}
-          <Link href={connectionPath} className="font-medium text-violet-700 hover:text-violet-900">
+          <Link href={connectionPath} className="font-medium text-[#4a6fd8] hover:underline">
             Website → Connection
           </Link>{" "}
           and copy your booking widget snippet.
@@ -82,7 +82,7 @@ export function BookingWidgetInstallSummary({
       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Link
           href={connectionPath}
-          className="inline-flex items-center gap-1 text-sm font-medium text-violet-700 hover:text-violet-900"
+          className="inline-flex items-center gap-1 text-sm font-medium text-[#4a6fd8] hover:underline"
         >
           View full setup guides
           <ArrowRight className="h-4 w-4" />

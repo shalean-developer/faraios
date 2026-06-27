@@ -36,13 +36,11 @@ export default async function NotificationsPage({ params }: Props) {
   const notifications = await listNotifications(row.id, user.id);
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <CompanyNotificationsClient
-        slug={slug}
-        company={row}
-        notifications={notifications}
-        summary={summarizeNotifications(notifications)}
-      />
-    </div>
+    <CompanyNotificationsClient
+      slug={slug}
+      company={row}
+      notifications={notifications}
+      summary={summarizeNotifications(notifications)}
+    />
   );
 }

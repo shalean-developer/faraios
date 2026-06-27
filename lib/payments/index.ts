@@ -12,10 +12,12 @@ const handlers: Record<PaymentProvider, PaymentProviderHandler | undefined> = {
     provider: "paystack",
     initialize: initializePaystackCustomerPayment,
   },
+  payfast: undefined,
   eft: {
     provider: "eft",
     initialize: initializeEftPayment,
   },
+  cash: undefined,
   stripe: undefined,
   ozow: undefined,
   peach: undefined,

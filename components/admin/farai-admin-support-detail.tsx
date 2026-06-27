@@ -10,7 +10,12 @@ import {
   adminUpdateSupportTicket,
 } from "@/app/actions/admin";
 import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
 import { ADMIN_BUSINESSES_PATH } from "@/lib/constants/admin-nav";
+import {
+  riseStatCardClassName,
+  riseTableClassName,
+} from "@/lib/ui/rise-dashboard-styles";
 import { ADMIN_DEVELOPER_OPTIONS } from "@/lib/constants/admin-developers";
 import { formatTicketNumber } from "@/lib/format/admin-tickets";
 import type {
@@ -75,26 +80,23 @@ export function FaraiAdminSupportDetail({ ticket }: { ticket: AdminSupportTicket
   };
 
   return (
-    <>
-      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
-        <Link
-          href="/admin/support"
-          className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-indigo-600"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Support
-        </Link>
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600">
-            {formatTicketNumber(ticket.ticketNumber)}
-          </p>
-          <h1 className="truncate text-lg font-extrabold tracking-tight text-gray-900">{ticket.subject}</h1>
-        </div>
-        <AdminActivityBellLink />
-      </header>
-
-      <main className="flex-1 overflow-y-auto px-6 py-6">
-        <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <AdminPageShell
+      title={ticket.subject}
+      description={formatTicketNumber(ticket.ticketNumber)}
+      actions={
+        <>
+          <Link
+            href="/admin/support"
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#5a8dee]"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to Support
+          </Link>
+          <AdminActivityBellLink />
+        </>
+      }
+    >
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-5">
             {error ? (
               <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
@@ -102,7 +104,7 @@ export function FaraiAdminSupportDetail({ ticket }: { ticket: AdminSupportTicket
               </p>
             ) : null}
 
-            <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+            <section className={riseStatCardClassName}>
               <h2 className="text-sm font-bold text-gray-900">Issue description</h2>
               <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">{ticket.description}</p>
               <div className="mt-4 flex flex-wrap gap-3 text-xs text-gray-500">
@@ -117,7 +119,7 @@ export function FaraiAdminSupportDetail({ ticket }: { ticket: AdminSupportTicket
               </div>
             </section>
 
-            <section className="rounded-2xl border border-gray-100 bg-white shadow-sm">
+            <section className={riseTableClassName}>
               <div className="border-b border-gray-50 px-6 py-4">
                 <h2 className="text-sm font-bold text-gray-900">Conversation</h2>
               </div>
@@ -175,7 +177,7 @@ export function FaraiAdminSupportDetail({ ticket }: { ticket: AdminSupportTicket
           </div>
 
           <aside className="space-y-4">
-            <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <section className={riseStatCardClassName}>
               <h2 className="text-sm font-bold text-gray-900">Ticket controls</h2>
               <div className="mt-4 space-y-3">
                 <label className="block space-y-1">
@@ -243,7 +245,6 @@ export function FaraiAdminSupportDetail({ ticket }: { ticket: AdminSupportTicket
             </section>
           </aside>
         </div>
-      </main>
-    </>
+    </AdminPageShell>
   );
 }

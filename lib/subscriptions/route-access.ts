@@ -2,6 +2,7 @@ import {
   canAccessFeature,
   type AccessFeatureKey,
 } from "@/lib/subscriptions/access";
+import { dashboardBaseFromPathname } from "@/lib/paths/workspace";
 import type { SubscriptionCompanyFields } from "@/lib/subscriptions/types";
 import {
   canAccessWebsiteBuilderFeature,
@@ -12,7 +13,7 @@ export function dashboardPathFeature(
   slug: string,
   pathname: string
 ): AccessFeatureKey | null {
-  const base = `/${encodeURIComponent(slug)}/dashboard`;
+  const base = dashboardBaseFromPathname(slug, pathname);
   const relative =
     pathname === base || pathname === `${base}/`
       ? ""

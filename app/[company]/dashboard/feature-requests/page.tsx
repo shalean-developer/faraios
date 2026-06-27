@@ -48,8 +48,6 @@ export default async function CompanyFeatureRequestsPage({ params }: Props) {
   const requests = await listCompanyFeatureRequests(row.id, user.id);
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <CompanyFeatureRequestsClient slug={slug} company={row} requests={requests} />
-    </div>
+    <CompanyFeatureRequestsClient slug={slug} company={row} requests={requests} />
   );
 }

@@ -9,6 +9,9 @@ export type PlatformAuditInput = {
   metadata?: Record<string, unknown>;
   actorUserId?: string | null;
   actorEmail?: string | null;
+  companyId?: string | null;
+  sessionId?: string | null;
+  ipAddress?: string | null;
 };
 
 export async function logPlatformAuditEvent(input: PlatformAuditInput): Promise<void> {
@@ -39,5 +42,8 @@ export async function logPlatformAuditEvent(input: PlatformAuditInput): Promise<
     target_id: input.targetId ?? null,
     target_label: input.targetLabel ?? null,
     metadata: input.metadata ?? {},
+    company_id: input.companyId ?? null,
+    session_id: input.sessionId ?? null,
+    ip_address: input.ipAddress ?? null,
   });
 }

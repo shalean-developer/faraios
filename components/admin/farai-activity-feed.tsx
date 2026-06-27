@@ -12,12 +12,18 @@ import {
   StickyNote,
   Upload,
   Check,
-  ChevronRight,
   Shield,
   LifeBuoy,
   Lightbulb,
 } from "lucide-react";
 
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
+import {
+  riseOutlineButtonClassName,
+  risePrimaryButtonClassName,
+  riseStatCardClassName,
+  riseTableClassName,
+} from "@/lib/ui/rise-dashboard-styles";
 import type { AdminActivityCategory, AdminActivityItem } from "@/types/admin";
 
 const FILTER_TABS: { key: AdminActivityCategory; label: string }[] = [
@@ -77,112 +83,144 @@ export function FaraiActivityFeed({ items }: { items: AdminActivityItem[] }) {
   const totalFiltered = filtered.length;
 
   return (
-    <>
-      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <span className="text-sm font-medium text-gray-400">System</span>
-            <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-300" />
-            <span className="text-sm font-extrabold tracking-tight text-gray-900">Activity</span>
-          </div>
-          <div className="flex flex-shrink-0 items-center gap-2">
-            <button type="button" onClick={() => setAllRead(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700">
-              <Check className="h-3.5 w-3.5" />
-              <span>Mark all read</span>
+    <AdminPageShell
+      title="Activity"
+      description="Audit logs, support, feature requests, pipeline, and client events"
+      maxWidthClassName="max-w-4xl"
+      actions={
+        <button
+          type="button"
+          onClick={() => setAllRead(true)}
+          className={risePrimaryButtonClassName}
+        >
+          <Check className="h-3.5 w-3.5" />
+          <span>Mark all read</span>
+        </button>
+      }
+    >
+      <div className={`${riseStatCardClassName} px-6 py-5`}>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600">
+            <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+            <span>{items.length} Total</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-[#5a8dee]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#5a8dee]" />
+            <span>{unreadCount} Unread</span>
+          </span>
+        </div>
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          {FILTER_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveFilter(tab.key)}
+              className={
+                activeFilter === tab.key
+                  ? risePrimaryButtonClassName
+                  : riseOutlineButtonClassName
+              }
+            >
+              {tab.label}
             </button>
-          </div>
-        </header>
+          ))}
+        </div>
+      </div>
 
-        <main className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="mx-auto max-w-4xl space-y-5">
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-lg font-extrabold tracking-tight text-gray-900">Activity</h1>
-                  <p className="mt-0.5 text-xs text-gray-400">
-                    Audit logs, support, feature requests, pipeline, and client events
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-600">
-                    <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
-                    <span>{items.length} Total</span>
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700">
-                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
-                    <span>{unreadCount} Unread</span>
-                  </span>
-                </div>
-              </div>
-              <div className="mt-5 flex flex-wrap items-center gap-2">
-                {FILTER_TABS.map((tab) => (
-                  <button key={tab.key} type="button" onClick={() => setActiveFilter(tab.key)} className={`rounded-xl px-4 py-2 text-xs font-bold transition-all duration-150 ${activeFilter === tab.key ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200" : "border border-gray-100 bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700"}`}>
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-
-            <AnimatePresence mode="wait">
-              {totalFiltered === 0 ? (
-                <motion.div key="empty" variants={emptyAnim} initial="hidden" animate="visible" exit="exit" className="flex flex-col items-center justify-center rounded-2xl border border-gray-100 bg-white px-6 py-16 shadow-sm">
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50">
-                    <Bell className="h-6 w-6 text-indigo-400" />
+      <AnimatePresence mode="wait">
+        {totalFiltered === 0 ? (
+          <motion.div
+            key="empty"
+            variants={emptyAnim}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className={`flex flex-col items-center justify-center ${riseStatCardClassName} px-6 py-16`}
+          >
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100">
+              <Bell className="h-6 w-6 text-[#5a8dee]" />
+            </div>
+            <p className="text-sm font-extrabold tracking-tight text-slate-800">No activity found</p>
+            <p className="mt-1.5 max-w-xs text-center text-xs text-slate-500">
+              There are no notifications matching this filter. Try switching to All.
+            </p>
+          </motion.div>
+        ) : (
+          <motion.div key="feed" className="space-y-4">
+            {[
+              { label: "Today", rows: todayItems },
+              { label: "This Week", rows: weekItems },
+            ].map((group, gi) =>
+              group.rows.length > 0 ? (
+                <motion.div
+                  key={group.label}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.38, delay: gi * 0.08 }}
+                  className={riseTableClassName}
+                >
+                  <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-4">
+                    <h2 className="text-sm font-extrabold tracking-tight text-slate-900">{group.label}</h2>
+                    <span className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-500">
+                      {group.rows.length} items
+                    </span>
                   </div>
-                  <p className="text-sm font-extrabold tracking-tight text-gray-800">No activity found</p>
-                  <p className="mt-1.5 max-w-xs text-center text-xs text-gray-400">There are no notifications matching this filter. Try switching to All.</p>
-                </motion.div>
-              ) : (
-                <motion.div key="feed" className="space-y-4">
-                  {[{ label: "Today", rows: todayItems }, { label: "This Week", rows: weekItems }].map((group, gi) =>
-                    group.rows.length > 0 ? (
-                      <motion.div key={group.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.38, delay: gi * 0.08 }} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                        <div className="flex items-center gap-3 border-b border-gray-50 px-6 py-4">
-                          <h2 className="text-sm font-extrabold tracking-tight text-gray-900">{group.label}</h2>
-                          <span className="rounded-lg border border-gray-100 bg-gray-50 px-2 py-0.5 text-[10px] font-bold text-gray-500">{group.rows.length} items</span>
-                        </div>
-                        <div className="px-6 py-4">
-                          <div className="relative">
-                            <div className="absolute bottom-2 left-3.5 top-2 w-px bg-gray-100" />
-                            <motion.div variants={stagger} initial="hidden" animate="visible" className="space-y-5">
-                              {group.rows.map((item) => {
-                                const Icon = ICONS[item.iconKey];
-                                return (
-                                  <motion.div key={item.id} variants={fadeUp} className={`flex gap-4 rounded-xl transition-all ${item.unread ? "border border-indigo-100/80 bg-indigo-50/60 -mx-2 px-2 py-2" : ""}`}>
-                                    <div className="flex flex-shrink-0 flex-col items-center">
-                                      <div className={`z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white shadow-sm ${item.iconBg}`}>
-                                        <Icon className={`h-3.5 w-3.5 ${item.iconColor}`} />
-                                      </div>
-                                    </div>
-                                    <div className="min-w-0 flex-1 pb-1">
-                                      <div className="flex items-center justify-between gap-2">
-                                        <div className="flex min-w-0 items-center gap-2">
-                                          {item.href ? (
-                                            <Link href={item.href} className="text-xs font-bold leading-tight text-gray-800 hover:text-indigo-700">
-                                              {item.title}
-                                            </Link>
-                                          ) : (
-                                            <p className="text-xs font-bold leading-tight text-gray-800">{item.title}</p>
-                                          )}
-                                          {item.unread ? <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-indigo-500" /> : null}
-                                        </div>
-                                        <span className="flex-shrink-0 text-[10px] font-semibold text-gray-400">{item.time}</span>
-                                      </div>
-                                      <p className="mt-0.5 text-[11px] leading-relaxed text-gray-500">{item.description}</p>
-                                    </div>
-                                  </motion.div>
-                                );
-                              })}
+                  <div className="px-6 py-4">
+                    <div className="relative">
+                      <div className="absolute bottom-2 left-3.5 top-2 w-px bg-slate-100" />
+                      <motion.div variants={stagger} initial="hidden" animate="visible" className="space-y-5">
+                        {group.rows.map((item) => {
+                          const Icon = ICONS[item.iconKey];
+                          return (
+                            <motion.div
+                              key={item.id}
+                              variants={fadeUp}
+                              className={`flex gap-4 rounded-xl transition-all ${item.unread ? "-mx-2 border border-slate-200 bg-slate-50 px-2 py-2" : ""}`}
+                            >
+                              <div className="flex flex-shrink-0 flex-col items-center">
+                                <div
+                                  className={`z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white shadow-sm ${item.iconBg}`}
+                                >
+                                  <Icon className={`h-3.5 w-3.5 ${item.iconColor}`} />
+                                </div>
+                              </div>
+                              <div className="min-w-0 flex-1 pb-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex min-w-0 items-center gap-2">
+                                    {item.href ? (
+                                      <Link
+                                        href={item.href}
+                                        className="text-xs font-bold leading-tight text-slate-800 hover:text-[#5a8dee]"
+                                      >
+                                        {item.title}
+                                      </Link>
+                                    ) : (
+                                      <p className="text-xs font-bold leading-tight text-slate-800">{item.title}</p>
+                                    )}
+                                    {item.unread ? (
+                                      <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5a8dee]" />
+                                    ) : null}
+                                  </div>
+                                  <span className="flex-shrink-0 text-[10px] font-semibold text-slate-400">
+                                    {item.time}
+                                  </span>
+                                </div>
+                                <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">
+                                  {item.description}
+                                </p>
+                              </div>
                             </motion.div>
-                          </div>
-                        </div>
+                          );
+                        })}
                       </motion.div>
-                    ) : null
-                  )}
+                    </div>
+                  </div>
                 </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </main>
-    </>
+              ) : null
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </AdminPageShell>
   );
 }

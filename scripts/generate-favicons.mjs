@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -5,10 +6,11 @@ import sharp from "sharp";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
-const source = path.join(root, "public/image/faraios-logo.png");
 const publicDir = path.join(root, "public");
 const imageDir = path.join(publicDir, "image");
 const appDir = path.join(root, "app");
+
+const logoPath = path.join(imageDir, "faraios-logo.png");
 
 /** Turn near-white pixels transparent (logo exports often include a white matte). */
 async function knockOutWhiteMatte(buffer) {
@@ -37,21 +39,28 @@ async function knockOutWhiteMatte(buffer) {
 }
 
 async function buildIconBuffer() {
-  const metadata = await sharp(source).metadata();
-  const height = metadata.height ?? 395;
+  if (!fs.existsSync(logoPath)) {
+    throw new Error(
+      "Missing public/image/faraios-logo.png — add the logo asset there."
+    );
+  }
+
+  const trimmedFull = await sharp(logoPath).trim({ threshold: 12 }).png().toBuffer();
+  const trimmedMeta = await sharp(trimmedFull).metadata();
+  const height = trimmedMeta.height ?? 494;
+  const width = trimmedMeta.width ?? height;
+  const iconSide = Math.min(height, width);
+
   const iconCrop = {
     left: 0,
     top: 0,
-    width: Math.min(height, metadata.width ?? height),
+    width: iconSide,
     height,
   };
 
-  const cropped = await sharp(source).extract(iconCrop).png().toBuffer();
-  const trimmed = await sharp(cropped).trim({ threshold: 12 }).png().toBuffer();
-  const matteFree = await knockOutWhiteMatte(trimmed);
-  const transparent = await matteFree.png().toBuffer();
-
-  return { iconBuffer: transparent, iconCrop };
+  const cropped = await sharp(trimmedFull).extract(iconCrop).png().toBuffer();
+  const matteFree = await knockOutWhiteMatte(cropped);
+  return matteFree.png().toBuffer();
 }
 
 const transparentBg = { r: 0, g: 0, b: 0, alpha: 0 };
@@ -65,7 +74,7 @@ const outputs = [
   { file: "android-chrome-512x512.png", size: 512 },
 ];
 
-const { iconBuffer, iconCrop } = await buildIconBuffer();
+const iconBuffer = await buildIconBuffer();
 
 async function writeSquarePng(target, size) {
   await sharp(iconBuffer)
@@ -77,7 +86,6 @@ async function writeSquarePng(target, size) {
     .toFile(target);
 }
 
-await writeSquarePng(path.join(imageDir, "faraios-mark.png"), 512);
 await writeSquarePng(path.join(appDir, "icon.png"), 512);
 await writeSquarePng(path.join(appDir, "apple-icon.png"), 180);
 
@@ -85,9 +93,9 @@ for (const { file, size } of outputs) {
   await writeSquarePng(path.join(publicDir, file), size);
 }
 
-// PNG payload in .ico — supported by modern browsers and Next.js.
 await writeSquarePng(path.join(publicDir, "favicon.ico"), 32);
 await writeSquarePng(path.join(appDir, "favicon.ico"), 32);
 
-console.log("Generated transparent favicons from public/image/faraios-logo.png");
-console.log(`Icon crop: ${iconCrop.width}x${iconCrop.height}px from top-left`);
+const logoMeta = await sharp(logoPath).metadata();
+console.log("Favicons generated from public/image/faraios-logo.png");
+console.log(`Logo asset: faraios-logo.png (${logoMeta.width}x${logoMeta.height})`);

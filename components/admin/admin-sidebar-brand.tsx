@@ -1,17 +1,63 @@
-import Link from "next/link";
+"use client";
 
-import { FaraiLogo } from "@/components/brand/farai-logo";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
-export function AdminSidebarBrand() {
+import { CompanySidebarSearch } from "@/components/company/company-sidebar-search";
+import { ADMIN_SEARCH_FOCUS_EVENT } from "@/lib/constants/workspace-events";
+import { cn } from "@/lib/utils";
+
+export function AdminSidebarBrand({
+  collapsed = false,
+  onToggle,
+  searchQuery,
+  onSearchChange,
+}: {
+  collapsed?: boolean;
+  onToggle?: () => void;
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
+}) {
+  const toggleButton = onToggle ? (
+    <button
+      type="button"
+      onClick={onToggle}
+      suppressHydrationWarning
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+    >
+      {collapsed ? (
+        <PanelLeftOpen className="h-4 w-4" />
+      ) : (
+        <PanelLeftClose className="h-4 w-4" />
+      )}
+    </button>
+  ) : null;
+
+  if (collapsed) {
+    return (
+      <div className="flex shrink-0 flex-col items-center gap-1 border-b border-slate-200 px-2 py-2 dark:border-slate-800">
+        {toggleButton}
+        <CompanySidebarSearch
+          value={searchQuery}
+          onChange={onSearchChange}
+          collapsed
+          focusEventName={ADMIN_SEARCH_FOCUS_EVENT}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-16 flex-shrink-0 items-center border-b border-slate-800 px-4">
-      <Link
-        href="/admin"
-        className="inline-flex rounded-lg border border-slate-700/50 bg-white px-2.5 py-1.5 transition-opacity hover:opacity-90"
-        aria-label="FaraiOS admin home"
-      >
-        <FaraiLogo size="sm" priority />
-      </Link>
+    <div className="shrink-0 border-b border-slate-200 dark:border-slate-800">
+      {toggleButton ? (
+        <div className="flex justify-end px-2 pt-2">{toggleButton}</div>
+      ) : null}
+      <CompanySidebarSearch
+        value={searchQuery}
+        onChange={onSearchChange}
+        focusEventName={ADMIN_SEARCH_FOCUS_EVENT}
+      />
     </div>
   );
 }

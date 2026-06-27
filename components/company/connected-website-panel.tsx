@@ -126,7 +126,7 @@ export function ConnectedWebsitePanel({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <h3 className="font-semibold text-slate-900">Connect your existing site</h3>
       <p className="mt-1 text-sm text-slate-500">
         Option A — connect a custom website built outside FaraiOS using your business ID,
@@ -264,7 +264,7 @@ export function ConnectedWebsitePanel({
               href={connectedWebsite.production_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm font-medium text-violet-700 hover:text-violet-900"
+              className="inline-flex items-center gap-1 text-sm font-medium text-[#5a8dee] hover:text-[#4a6fd8]"
             >
               Visit connected site <ExternalLink className="h-3.5 w-3.5" />
             </a>

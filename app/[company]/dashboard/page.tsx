@@ -3,11 +3,7 @@ import { notFound } from "next/navigation";
 import { CompanyOperationsDashboard } from "./company-operations-dashboard";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { getHomeOverviewData } from "@/lib/services/home-overview";
-import {
-  listNotifications,
-  summarizeNotifications,
-} from "@/lib/services/notifications";
-import { getWorkspaceSetupChecklist } from "@/lib/services/workspace-setup";
+import { getRiseDashboardExtras } from "@/lib/services/rise-dashboard-data";
 import { createClient } from "@/lib/supabase/server";
 
 type Props = { params: Promise<{ company: string }> };
@@ -23,12 +19,15 @@ export default async function CompanyDashboardPage({ params }: Props) {
     notFound();
   }
 
-  const overview = await getHomeOverviewData(row.id);
-
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const [overview, extras] = await Promise.all([
+    getHomeOverviewData(row.id),
+    getRiseDashboardExtras(row.id, user?.id ?? null),
+  ]);
 
   const userDisplayName =
     (typeof user?.user_metadata?.full_name === "string" &&
@@ -37,21 +36,12 @@ export default async function CompanyDashboardPage({ params }: Props) {
       : null) ??
     (user?.email ? user.email.split("@")[0]! : "there");
 
-  const notifications = user
-    ? await listNotifications(row.id, user.id, 8)
-    : [];
-  const { unread: unreadCount } = summarizeNotifications(notifications);
-  const workspaceSetup = await getWorkspaceSetupChecklist(row);
-
   return (
     <CompanyOperationsDashboard
       slug={slug}
-      company={row}
       overview={overview}
+      extras={extras}
       userDisplayName={userDisplayName}
-      notifications={notifications}
-      unreadCount={unreadCount}
-      workspaceSetup={workspaceSetup}
     />
   );
 }

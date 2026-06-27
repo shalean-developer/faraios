@@ -127,7 +127,13 @@ export type CompanyPaymentSettings = {
   eft_branch_code: string | null;
   eft_reference_prefix: string | null;
   paystack_enabled: boolean;
+  payfast_enabled: boolean;
+  yoco_enabled: boolean;
+  ozow_enabled: boolean;
+  peach_enabled: boolean;
+  stripe_enabled: boolean;
   eft_enabled: boolean;
+  cash_enabled: boolean;
   created_at: string;
   updated_at: string;
 };

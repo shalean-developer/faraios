@@ -35,10 +35,36 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  const result = await uploadWebsiteImage({ websiteId, file });
+  const companyId = String(formData.get("companyId") ?? "").trim() || undefined;
+  const folder = String(formData.get("folder") ?? "").trim() || undefined;
+  const altText = String(formData.get("altText") ?? "").trim() || undefined;
+  const replaceStoragePath =
+    String(formData.get("replaceStoragePath") ?? "").trim() || undefined;
+  const tagsRaw = String(formData.get("tags") ?? "").trim();
+  const tags = tagsRaw
+    ? tagsRaw
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+    : undefined;
+
+  const result = await uploadWebsiteImage({
+    websiteId,
+    file,
+    companyId,
+    folder,
+    altText,
+    tags,
+    replaceStoragePath,
+  });
   if (!result.ok) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true, url: result.url });
+  return NextResponse.json({
+    ok: true,
+    url: result.url,
+    path: result.path,
+    mediaId: result.mediaId,
+  });
 }

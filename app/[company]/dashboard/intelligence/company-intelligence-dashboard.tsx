@@ -22,6 +22,12 @@ import {
   formatRevenue,
   type IntelligenceOverviewData,
 } from "@/lib/operations/metrics";
+import {
+  riseCardClassName,
+  riseOutlineButtonClassName,
+  risePageClassName,
+  risePrimaryButtonClassName,
+} from "@/lib/ui/rise-dashboard-styles";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -52,7 +58,7 @@ function MetricCard({
   trend?: number;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className={cn(riseCardClassName, "p-4")}>
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         {label}
       </p>
@@ -118,23 +124,20 @@ export function CompanyIntelligenceDashboard({
       initial="hidden"
       animate="visible"
       variants={stagger}
-      className="space-y-8"
+      className={risePageClassName}
     >
-      <motion.header variants={fadeUp}>
-        <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
-          Intelligence
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">
-          Intelligence overview
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-slate-500">
-          Business health, revenue trends, AI recommendations, and reporting at a glance.
-        </p>
-      </motion.header>
+      <motion.div variants={fadeUp} className={riseCardClassName}>
+        <div className="px-4 py-4 sm:px-5">
+          <h1 className="text-lg font-medium text-slate-800">Intelligence overview</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Business health, revenue trends, AI recommendations, and reporting at a glance.
+          </p>
+        </div>
+      </motion.div>
 
       <motion.div
         variants={fadeUp}
-        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+        className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
       >
         <MetricCard
           label="Business health"
@@ -160,10 +163,7 @@ export function CompanyIntelligenceDashboard({
         />
       </motion.div>
 
-      <motion.div
-        variants={fadeUp}
-        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-      >
+      <motion.div variants={fadeUp} className={cn(riseCardClassName, "mt-4 p-5")}>
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Health score
         </p>
@@ -186,7 +186,7 @@ export function CompanyIntelligenceDashboard({
         ) : null}
         <Link
           href={companyBusinessHealthPath(slug)}
-          className="mt-4 inline-flex h-8 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          className={cn(riseOutlineButtonClassName, "mt-4")}
         >
           View business health
         </Link>
@@ -195,31 +195,27 @@ export function CompanyIntelligenceDashboard({
       {topInsight ? (
         <motion.div
           variants={fadeUp}
-          className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white p-5 shadow-sm"
+          className={cn(riseCardClassName, "mt-4 border-[#c7d7f7] bg-gradient-to-br from-[#eef2ff] to-white p-5")}
         >
           <div className="flex items-start gap-3">
-            <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-violet-600" />
+            <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-[#5a8dee]" />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-violet-900">
-                {topInsight.title}
-              </p>
-              <p className="mt-1 text-sm text-violet-800">{topInsight.body}</p>
+              <p className="text-sm font-semibold text-slate-900">{topInsight.title}</p>
+              <p className="mt-1 text-sm text-slate-600">{topInsight.body}</p>
               <Link
                 href={companyAiInsightsPath(slug)}
-                className="mt-3 inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                className={cn(risePrimaryButtonClassName, "mt-3")}
               >
                 Open AI assistant
-                <ArrowRight className="ml-1 h-4 w-4" />
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
         </motion.div>
       ) : null}
 
-      <motion.section variants={fadeUp}>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Intelligence tools
-        </h2>
+      <motion.section variants={fadeUp} className="mt-4">
+        <h2 className="mb-3 text-sm font-medium text-slate-700">Intelligence tools</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {QUICK_LINKS.map((link) => {
             const Icon = link.icon;
@@ -228,17 +224,17 @@ export function CompanyIntelligenceDashboard({
                 key={link.label}
                 href={link.href(slug)}
                 className={cn(
-                  "group flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all",
-                  "hover:border-violet-300 hover:shadow-md"
+                  riseCardClassName,
+                  "group flex items-center gap-3 p-4 transition-all hover:border-slate-300 hover:bg-slate-50"
                 )}
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50 text-violet-600 group-hover:bg-violet-100">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600 group-hover:bg-[#eef2ff] group-hover:text-[#5a8dee]">
                   <Icon className="h-5 w-5" />
                 </span>
                 <span className="flex-1 text-sm font-medium text-slate-900">
                   {link.label}
                 </span>
-                <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-violet-600" />
+                <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-[#5a8dee]" />
               </Link>
             );
           })}

@@ -89,6 +89,7 @@ export function ForgotPasswordForm({ initialEmail }: ForgotPasswordFormProps) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
+          suppressHydrationWarning
           className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-sm text-slate-800 outline-none transition-all focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
           required
           autoComplete="email"
@@ -98,6 +99,7 @@ export function ForgotPasswordForm({ initialEmail }: ForgotPasswordFormProps) {
       <button
         type="submit"
         disabled={pending}
+        suppressHydrationWarning
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-sm font-semibold text-white transition-all hover:brightness-110 disabled:opacity-60"
       >
         <KeyRound className="h-4 w-4" aria-hidden />
@@ -107,6 +109,7 @@ export function ForgotPasswordForm({ initialEmail }: ForgotPasswordFormProps) {
       <button
         type="button"
         onClick={() => router.push("/auth/sign-in")}
+        suppressHydrationWarning
         className="inline-flex w-full items-center justify-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />

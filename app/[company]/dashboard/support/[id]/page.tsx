@@ -48,9 +48,5 @@ export default async function CompanySupportTicketPage({ params }: Props) {
   const ticket = await getCompanySupportTicketDetail(row.id, id);
   if (!ticket) notFound();
 
-  return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <CompanySupportDetailClient slug={slug} company={row} ticket={ticket} />
-    </div>
-  );
+  return <CompanySupportDetailClient slug={slug} company={row} ticket={ticket} />;
 }

@@ -9,6 +9,8 @@ revoke insert on table public.companies from anon;
 
 drop policy if exists "companies_select_public" on public.companies;
 drop policy if exists "companies_insert_public" on public.companies;
+drop policy if exists "companies_select_scoped" on public.companies;
+drop policy if exists "companies_insert_authenticated" on public.companies;
 
 create policy "companies_select_scoped" on public.companies
   for select to authenticated
@@ -40,6 +42,7 @@ create policy "companies_insert_authenticated" on public.companies
 -- Memberships: first owner only, tied to company primary contact email.
 -- ---------------------------------------------------------------------------
 drop policy if exists "memberships_insert_own" on public.memberships;
+drop policy if exists "memberships_insert_first_owner" on public.memberships;
 
 create policy "memberships_insert_first_owner" on public.memberships
   for insert to authenticated
@@ -66,6 +69,8 @@ create policy "memberships_insert_first_owner" on public.memberships
 -- Websites: public read for published sites only; members read their drafts.
 -- ---------------------------------------------------------------------------
 drop policy if exists "websites_select_public" on public.websites;
+drop policy if exists "websites_select_published" on public.websites;
+drop policy if exists "websites_select_member" on public.websites;
 
 create policy "websites_select_published" on public.websites
   for select

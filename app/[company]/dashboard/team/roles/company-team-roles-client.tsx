@@ -10,7 +10,6 @@ import {
   deleteCompanyRoleAction,
   updateCustomRolePermissionsAction,
 } from "@/app/actions/phase-c";
-import { Button } from "@/components/ui/button";
 import { companyTeamPath } from "@/lib/paths/company";
 import {
   PERMISSION_KEYS,
@@ -21,6 +20,12 @@ import { ROLE_DESCRIPTIONS } from "@/lib/team/assignable-roles";
 import type { CompanyRoleRecord } from "@/lib/team/role-display";
 import { systemRoleLabel } from "@/lib/team/role-display";
 import type { CompanyMemberRole } from "@/lib/services/team";
+import {
+  riseCardClassName,
+  riseOutlineButtonClassName,
+  risePageClassName,
+  risePrimaryButtonClassName,
+} from "@/lib/ui/rise-dashboard-styles";
 import { cn } from "@/lib/utils";
 import type { CompanyWithIndustry } from "@/types/database";
 
@@ -171,23 +176,22 @@ export function CompanyTeamRolesClient({
   }, {});
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-8">
-        <Link
-          href={companyTeamPath(slug)}
-          className="text-sm font-medium text-slate-500 hover:text-slate-800"
-        >
-          ← Team members
-        </Link>
-        <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-violet-600">
-          Team
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">Roles & permissions</h1>
-        <p className="mt-2 max-w-2xl text-sm text-slate-500">
-          Control what each role can access across Operations, Revenue, Growth, and
-          Intelligence. Owner always has full access.
-        </p>
-      </header>
+    <div className={risePageClassName}>
+      <div className={cn(riseCardClassName, "mb-4")}>
+        <div className="px-4 py-4">
+          <Link
+            href={companyTeamPath(slug)}
+            className="text-sm font-medium text-slate-500 hover:text-slate-800"
+          >
+            ← Team members
+          </Link>
+          <h1 className="mt-2 text-lg font-medium text-slate-800">Roles & permissions</h1>
+          <p className="mt-1 max-w-2xl text-sm text-slate-500">
+            Control what each role can access across Operations, Revenue, Growth, and
+            Intelligence. Owner always has full access.
+          </p>
+        </div>
+      </div>
 
       {error ? (
         <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -201,13 +205,13 @@ export function CompanyTeamRolesClient({
       ) : null}
 
       {!canEdit ? (
-        <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+        <div className={cn(riseCardClassName, "mb-4 p-4 text-sm text-slate-600")}>
           Only the workspace owner can edit role permissions. You can review the matrix
           below.
         </div>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
         <nav className="flex flex-row gap-2 overflow-x-auto lg:flex-col lg:overflow-visible">
           {(["owner", ...EDITABLE_ROLES] as CompanyMemberRole[]).map((role) => (
             <button
@@ -215,10 +219,10 @@ export function CompanyTeamRolesClient({
               type="button"
               onClick={() => setActiveRole(role)}
               className={cn(
-                "rounded-xl px-4 py-2.5 text-left text-sm font-medium transition-colors",
+                "rounded-md px-4 py-2.5 text-left text-sm font-medium transition-colors",
                 activeRole === role
-                  ? "bg-violet-600 text-white"
-                  : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
+                  ? "bg-[#5a8dee] text-white"
+                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
               )}
             >
               {ROLE_LABELS[role]}
@@ -226,7 +230,7 @@ export function CompanyTeamRolesClient({
           ))}
         </nav>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className={cn(riseCardClassName, "p-6")}>
           <h2 className="text-lg font-semibold text-slate-900">
             {systemRoleLabel(activeRole)}
           </h2>
@@ -243,9 +247,7 @@ export function CompanyTeamRolesClient({
             <div className="mt-6 space-y-6">
               {Object.entries(groupedPermissions).map(([category, keys]) => (
                 <section key={category}>
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {category}
-                  </h3>
+                  <h3 className="text-xs font-medium text-slate-500">{category}</h3>
                   <ul className="mt-3 space-y-2">
                     {keys.map((permission) => {
                       const checked = activePermissions.includes(permission);
@@ -255,7 +257,7 @@ export function CompanyTeamRolesClient({
                             className={cn(
                               "flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 text-sm",
                               checked
-                                ? "border-violet-200 bg-violet-50/60"
+                                ? "border-[#5a8dee]/30 bg-[#eef2ff]/60"
                                 : "border-slate-200 bg-white",
                               !canEdit && "cursor-default opacity-80"
                             )}
@@ -278,21 +280,21 @@ export function CompanyTeamRolesClient({
               ))}
 
               {canEdit ? (
-                <Button
+                <button
                   type="button"
-                  className="rounded-xl"
+                  className={risePrimaryButtonClassName}
                   disabled={pending}
                   onClick={onSave}
                 >
                   {pending ? "Saving..." : `Save ${systemRoleLabel(activeRole)} permissions`}
-                </Button>
+                </button>
               ) : null}
             </div>
           )}
         </div>
       </div>
 
-      <section className="mt-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className={cn(riseCardClassName, "mt-4 p-6")}>
         <h2 className="text-lg font-semibold text-slate-900">Custom roles</h2>
         <p className="mt-1 text-sm text-slate-500">
           Create company-specific roles and assign them to team members from the team page.
@@ -306,9 +308,14 @@ export function CompanyTeamRolesClient({
               placeholder="e.g. Dispatcher"
               className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm"
             />
-            <Button type="button" className="rounded-xl" disabled={pending} onClick={onCreateCustomRole}>
+            <button
+              type="button"
+              className={risePrimaryButtonClassName}
+              disabled={pending}
+              onClick={onCreateCustomRole}
+            >
               Add custom role
-            </Button>
+            </button>
           </div>
         ) : null}
 
@@ -323,10 +330,10 @@ export function CompanyTeamRolesClient({
                   type="button"
                   onClick={() => setActiveCustomRole(role.roleKey)}
                   className={cn(
-                    "rounded-xl px-4 py-2.5 text-left text-sm font-medium",
+                    "rounded-md px-4 py-2.5 text-left text-sm font-medium",
                     activeCustomRole === role.roleKey
-                      ? "bg-violet-600 text-white"
-                      : "bg-slate-50 text-slate-700 ring-1 ring-slate-200"
+                      ? "bg-[#5a8dee] text-white"
+                      : "border border-slate-200 bg-slate-50 text-slate-700"
                   )}
                 >
                   {role.label}
@@ -367,18 +374,22 @@ export function CompanyTeamRolesClient({
                 </div>
                 {canEdit ? (
                   <div className="mt-6 flex flex-wrap gap-2">
-                    <Button type="button" className="rounded-xl" disabled={pending} onClick={onSaveCustomRole}>
-                      Save custom role permissions
-                    </Button>
-                    <Button
+                    <button
                       type="button"
-                      variant="outline"
-                      className="rounded-xl"
+                      className={risePrimaryButtonClassName}
+                      disabled={pending}
+                      onClick={onSaveCustomRole}
+                    >
+                      Save custom role permissions
+                    </button>
+                    <button
+                      type="button"
+                      className={riseOutlineButtonClassName}
                       disabled={pending}
                       onClick={() => onDeleteCustomRole(activeCustomRole)}
                     >
                       Delete role
-                    </Button>
+                    </button>
                   </div>
                 ) : null}
               </div>

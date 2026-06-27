@@ -14,8 +14,79 @@ export function companyWebsiteEditPath(slug: string, websiteId: string): string 
   return `/${encodeURIComponent(slug)}/dashboard/websites/${encodeURIComponent(websiteId)}/edit`;
 }
 
-export function companyHostingPath(slug: string): string {
-  return `/${encodeURIComponent(slug)}/dashboard/hosting`;
+export type CompanyBillingTab = "subscription" | "plans" | "payments" | "hosting";
+
+type CompanyBillingPathOptions = {
+  tab?: CompanyBillingTab;
+  plan?: string;
+  payment?: string;
+  reference?: string;
+};
+
+export function companyBillingPath(
+  slug: string,
+  options?: CompanyBillingTab | CompanyBillingPathOptions
+): string {
+  const normalized =
+    typeof options === "string" ? { tab: options } : (options ?? {});
+
+  const base = `/${encodeURIComponent(slug)}/dashboard/billing`;
+  const params = new URLSearchParams();
+
+  if (normalized.tab && normalized.tab !== "subscription") {
+    params.set("tab", normalized.tab);
+  }
+  if (normalized.plan) {
+    params.set("plan", normalized.plan);
+  }
+  if (normalized.payment) {
+    params.set("payment", normalized.payment);
+  }
+  if (normalized.reference) {
+    params.set("reference", normalized.reference);
+  }
+
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
+}
+
+export function companyHostingPath(
+  slug: string,
+  options?: { plan?: string; payment?: string; reference?: string }
+): string {
+  return companyBillingPath(slug, { tab: "hosting", ...options });
+}
+
+export function companyHostingOrderPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/hosting/order`;
+}
+
+export function companyHostingServicesPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/hosting/services`;
+}
+
+export function companyHostingInvoicesPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/hosting/invoices`;
+}
+
+export function companyHostingSupportPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/hosting/support`;
+}
+
+export function companyHostingDomainsPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/hosting/domains`;
+}
+
+export function companyHostingMailboxesPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/hosting/mailboxes`;
+}
+
+export function companyHostingFtpPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/hosting/ftp`;
+}
+
+export function companyHostingDatabasesPath(slug: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/hosting/databases`;
 }
 
 export function companyBookingsPath(slug: string): string {
@@ -49,10 +120,6 @@ export function companySettingsPath(slug: string): string {
 
 export function companySubscriptionPath(slug: string): string {
   return `/${encodeURIComponent(slug)}/dashboard/subscription`;
-}
-
-export function companyBillingPath(slug: string): string {
-  return `/${encodeURIComponent(slug)}/dashboard/billing`;
 }
 
 export function companyRetentionCampaignsPath(slug: string): string {
@@ -231,14 +298,23 @@ export function companyWebsiteBuilderSectionPath(
   slug: string,
   section:
     | "pages"
+    | "page-builder"
+    | "templates"
+    | "components"
+    | "theme"
+    | "media"
+    | "navigation"
     | "service-pages"
     | "contact"
     | "booking"
     | "seo"
+    | "blog"
+    | "analytics"
     | "publish"
     | "domains"
     | "enquiries"
     | "preview"
+    | "settings"
 ): string {
   return `/${encodeURIComponent(slug)}/dashboard/websites/builder/${section}`;
 }
@@ -252,4 +328,12 @@ export function publicSiteServicePath(
   serviceSlug: string
 ): string {
   return `/site/${encodeURIComponent(companySlug)}/services/${encodeURIComponent(serviceSlug)}`;
+}
+
+export function publicSiteBlogPath(companySlug: string): string {
+  return `/site/${encodeURIComponent(companySlug)}/blog`;
+}
+
+export function publicSiteBlogPostPath(companySlug: string, postSlug: string): string {
+  return `/site/${encodeURIComponent(companySlug)}/blog/${encodeURIComponent(postSlug)}`;
 }

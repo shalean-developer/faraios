@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ContentBody } from "@/components/content/content-body";
 import { getPublishedContentPost } from "@/lib/services/content-posts";
 import { getTenantContext } from "@/lib/services/tenant-site";
 
@@ -70,11 +71,7 @@ export default async function BlogPostPage({ params }: Props) {
         />
       ) : null}
 
-      {post.content_body ? (
-        <article className="prose prose-slate mt-8 max-w-none whitespace-pre-wrap">
-          {post.content_body}
-        </article>
-      ) : null}
+      {post.content_body ? <ContentBody content={post.content_body} className="mt-8" /> : null}
 
       {post.cta_text && post.cta_link ? (
         <div className="mt-10">

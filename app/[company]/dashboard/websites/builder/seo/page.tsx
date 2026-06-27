@@ -1,7 +1,7 @@
 import { loadWebsiteBuilderPage, renderWebsiteBuilderPage } from "../load-page";
 
 export const metadata = {
-  title: "SEO — Website builder",
+  title: "Site SEO — Website builder",
   robots: { index: false, follow: false },
 };
 

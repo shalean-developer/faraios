@@ -19,12 +19,16 @@ import {
 
 import {
   adminActivateBusiness,
+  adminSetSetupFeeWaived,
   adminSuspendBusiness,
 } from "@/app/actions/admin";
 import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
+import { OpenWorkspaceDialog } from "@/components/admin/open-workspace-dialog";
 import { FaraiAdminProjectDetails } from "@/components/admin/farai-admin-project-details";
 import { ADMIN_BUSINESSES_PATH } from "@/lib/constants/admin-nav";
-import { formatZar } from "@/lib/data/pricing";
+import { riseStatCardClassName } from "@/lib/ui/rise-dashboard-styles";
+import { formatZar, pricingPlans } from "@/lib/data/pricing";
 import type {
   AdminBusinessDetail,
   AdminPlatformStatus,
@@ -87,33 +91,53 @@ export function FaraiAdminBusinessDetails({
     });
   };
 
+  const planSlug = business.workspacePlanSlug;
+  const planRecord = pricingPlans.find((plan) => plan.slug === planSlug);
+  const setupFeeAmount = planRecord?.setup_price ?? 0;
+
+  const handleSetupFeeWaivedChange = (waived: boolean) => {
+    setActionError(null);
+    startTransition(async () => {
+      const result = await adminSetSetupFeeWaived(business.id, waived);
+      if (!result.ok) {
+        setActionError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
-        <div className="min-w-0 flex-1">
-          <nav className="mb-0.5 flex items-center gap-1.5 text-xs text-gray-400">
-            <Link
-              href={ADMIN_BUSINESSES_PATH}
-              className="inline-flex items-center gap-1 font-medium transition-colors hover:text-indigo-600"
+      <AdminPageShell
+        title={business.name}
+        maxWidthClassName="max-w-5xl"
+        actions={
+          <>
+            <OpenWorkspaceDialog
+              companyId={business.id}
+              companySlug={business.slug}
+              companyName={business.name}
+              triggerClassName="px-3 py-1.5 text-xs"
+            />
+            <span
+              className={`rounded-lg border px-2.5 py-1 text-xs font-bold ${PLATFORM_STATUS_STYLES[business.platformStatus]}`}
             >
-              <ArrowLeft className="h-3 w-3" />
-              Businesses
-            </Link>
-          </nav>
-          <h1 className="truncate text-lg font-extrabold tracking-tight text-gray-900">
-            {business.name}
-          </h1>
-        </div>
-        <span
-          className={`rounded-lg border px-2.5 py-1 text-xs font-bold ${PLATFORM_STATUS_STYLES[business.platformStatus]}`}
+              {business.platformStatus}
+            </span>
+            <AdminActivityBellLink />
+          </>
+        }
+      >
+        <Link
+          href={ADMIN_BUSINESSES_PATH}
+          className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition-colors hover:text-[#5a8dee]"
         >
-          {business.platformStatus}
-        </span>
-        <AdminActivityBellLink />
-      </header>
+          <ArrowLeft className="h-3 w-3" />
+          Businesses
+        </Link>
 
-      <div className="border-b border-gray-100 bg-white px-6">
-        <div className="flex gap-1 overflow-x-auto py-2">
+        <div className="mb-4 flex gap-1 overflow-x-auto border-b border-slate-200 pb-2">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
@@ -134,7 +158,6 @@ export function FaraiAdminBusinessDetails({
             );
           })}
         </div>
-      </div>
 
       {activeTab === "pipeline" ? (
         <FaraiAdminProjectDetails
@@ -143,7 +166,7 @@ export function FaraiAdminBusinessDetails({
           embedded
         />
       ) : (
-        <main className="flex-1 overflow-y-auto px-6 py-6">
+        <>
           {actionError ? (
             <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
               {actionError}
@@ -157,7 +180,7 @@ export function FaraiAdminBusinessDetails({
               className="mx-auto grid max-w-5xl gap-5 lg:grid-cols-3"
             >
               <div className="space-y-5 lg:col-span-2">
-                <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                <div className={riseStatCardClassName}>
                   <h2 className="text-sm font-bold text-gray-900">Business profile</h2>
                   <dl className="mt-4 grid gap-4 sm:grid-cols-2">
                     {[
@@ -178,7 +201,7 @@ export function FaraiAdminBusinessDetails({
                   </dl>
                 </div>
 
-                <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                <div className={riseStatCardClassName}>
                   <h2 className="text-sm font-bold text-gray-900">Primary contact</h2>
                   <div className="mt-4 space-y-3">
                     <p className="text-sm font-semibold text-gray-900">{business.contactName}</p>
@@ -204,7 +227,7 @@ export function FaraiAdminBusinessDetails({
               </div>
 
               <div className="space-y-5">
-                <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                <div className={riseStatCardClassName}>
                   <h2 className="text-sm font-bold text-gray-900">Platform actions</h2>
                   <p className="mt-1 text-xs text-gray-400">
                     Suspend or reactivate this business on the platform
@@ -234,7 +257,73 @@ export function FaraiAdminBusinessDetails({
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                <div className={riseStatCardClassName}>
+                  <h2 className="text-sm font-bold text-gray-900">Workspace</h2>
+                  <p className="mt-1 text-xs text-gray-400">
+                    Enter this business workspace with platform administrator access
+                  </p>
+                  <div className="mt-4">
+                    <OpenWorkspaceDialog
+                      companyId={business.id}
+                      companySlug={business.slug}
+                      companyName={business.name}
+                      triggerClassName="w-full justify-center"
+                    />
+                  </div>
+                </div>
+
+                <div className={riseStatCardClassName}>
+                  <h2 className="text-sm font-bold text-gray-900">Setup fee</h2>
+                  <p className="mt-1 text-xs text-gray-400">
+                    Control whether this business pays the one-time workspace setup fee at checkout.
+                  </p>
+                  <dl className="mt-4 space-y-2 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-gray-500">Plan setup fee</dt>
+                      <dd className="font-semibold text-gray-900">
+                        {setupFeeAmount > 0 ? formatZar(setupFeeAmount) : "—"}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-gray-500">Status</dt>
+                      <dd className="font-semibold text-gray-900">
+                        {business.setupFeePaidAt
+                          ? "Paid"
+                          : business.setupFeeWaived
+                            ? "Waived"
+                            : "Due at checkout"}
+                      </dd>
+                    </div>
+                  </dl>
+                  <div className="mt-4 space-y-2">
+                    {business.setupFeePaidAt ? (
+                      <p className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs text-emerald-800">
+                        Setup fee collected on{" "}
+                        {new Date(business.setupFeePaidAt).toLocaleDateString("en-ZA")}.
+                      </p>
+                    ) : business.setupFeeWaived ? (
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => handleSetupFeeWaivedChange(false)}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                      >
+                        Restore setup fee
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={isPending || setupFeeAmount <= 0}
+                        onClick={() => handleSetupFeeWaivedChange(true)}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+                      >
+                        Waive setup fee
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className={riseStatCardClassName}>
                   <h2 className="text-sm font-bold text-gray-900">Quick links</h2>
                   <div className="mt-3 space-y-2">
                     <button
@@ -356,8 +445,9 @@ export function FaraiAdminBusinessDetails({
               )}
             </div>
           ) : null}
-        </main>
+        </>
       )}
+      </AdminPageShell>
     </div>
   );
 }

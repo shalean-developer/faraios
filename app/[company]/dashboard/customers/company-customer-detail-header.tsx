@@ -3,7 +3,11 @@
 import { useState } from "react";
 
 import { CustomerFormPopover } from "@/components/company/customer-form-popover";
-import { Button } from "@/components/ui/button";
+import {
+  riseCardClassName,
+  risePrimaryButtonClassName,
+} from "@/lib/ui/rise-dashboard-styles";
+import { cn } from "@/lib/utils";
 import type { Customer } from "@/types/database";
 
 export function CompanyCustomerDetailHeader({
@@ -19,20 +23,19 @@ export function CompanyCustomerDetailHeader({
 
   return (
     <>
-      <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
-            Customer
-          </p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900">{customer.name}</h1>
+      <div className={cn(riseCardClassName, "mt-4")}>
+        <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-4 sm:px-5">
+          <div>
+            <h1 className="text-lg font-medium text-slate-800">{customer.name}</h1>
+          </div>
+          <button
+            type="button"
+            className={risePrimaryButtonClassName}
+            onClick={() => setShowCustomerForm(true)}
+          >
+            Edit customer
+          </button>
         </div>
-        <Button
-          type="button"
-          className="rounded-xl"
-          onClick={() => setShowCustomerForm(true)}
-        >
-          Edit customer
-        </Button>
       </div>
 
       <CustomerFormPopover

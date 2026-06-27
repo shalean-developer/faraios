@@ -7,6 +7,7 @@ import { getConnectedWebsiteForCompany } from "@/lib/services/connected-websites
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
 import { createClient } from "@/lib/supabase/server";
+import { riseCardClassName, risePageClassName } from "@/lib/ui/rise-dashboard-styles";
 
 type Props = { params: Promise<{ company: string }> };
 
@@ -33,32 +34,31 @@ export default async function CompanyWebsiteConnectionPage({ params }: Props) {
   const connectedWebsite = await getConnectedWebsiteForCompany(row.id);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      <header className="mb-8">
-        <Link
-          href={companyWebsitesPath(slug)}
-          className="text-sm font-medium text-slate-500 hover:text-slate-800"
-        >
-          ← Website overview
-        </Link>
-        <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-violet-600">
-          Website
-        </p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-          Connection
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-slate-500">
-          Connect an external website, embed booking and tracking scripts, and follow setup guides
-          for WordPress, Wix, Squarespace, Shopify, and other builders. For FaraiOS-hosted sites,
-          manage domains and deployments from the website hub.
-        </p>
-      </header>
+    <div className={risePageClassName}>
+      <div className={riseCardClassName}>
+        <div className="px-4 py-4 sm:px-5">
+          <Link
+            href={companyWebsitesPath(slug)}
+            className="text-sm font-medium text-[#5a8dee] hover:text-[#4a6fd8]"
+          >
+            ← Website overview
+          </Link>
+          <h1 className="mt-3 text-lg font-medium text-slate-800">Connection</h1>
+          <p className="mt-1 max-w-2xl text-sm text-slate-500">
+            Connect an external website, embed booking and tracking scripts, and follow setup guides
+            for WordPress, Wix, Squarespace, Shopify, and other builders. For FaraiOS-hosted sites,
+            manage domains and deployments from the website hub.
+          </p>
+        </div>
+      </div>
 
-      <ConnectedWebsitePanel
-        companyId={row.id}
-        slug={slug}
-        connectedWebsite={connectedWebsite}
-      />
+      <div className="mt-4">
+        <ConnectedWebsitePanel
+          companyId={row.id}
+          slug={slug}
+          connectedWebsite={connectedWebsite}
+        />
+      </div>
     </div>
   );
 }

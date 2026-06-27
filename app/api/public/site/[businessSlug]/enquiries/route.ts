@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { withPlatformApiLog } from "@/lib/platform/with-api-log";
 import { createNotification } from "@/lib/services/notifications";
+import { trackWebsiteEvent, detectDeviceType } from "@/lib/services/website-tracking";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 
@@ -109,6 +110,17 @@ export async function POST(request: Request, context: RouteContext) {
         body: `${name}${body.serviceInterest ? ` · ${body.serviceInterest}` : ""}`,
         entityType: "website_enquiry",
         entityId: enquiry.id as string,
+      });
+
+      const userAgent = request.headers.get("user-agent");
+      await trackWebsiteEvent({
+        companyId: company.id as string,
+        websiteId: website.id as string,
+        eventType: "contact_submission",
+        sourceUrl: request.headers.get("referer"),
+        referrer: request.headers.get("referer"),
+        deviceType: detectDeviceType(userAgent),
+        metadata: { enquiryId: enquiry.id },
       });
 
       return NextResponse.json({ ok: true, enquiryId: enquiry.id });

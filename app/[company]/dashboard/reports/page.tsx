@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { getAdvancedReports } from "@/lib/services/advanced-reports";
+import { riseCardClassName, risePageClassName } from "@/lib/ui/rise-dashboard-styles";
+import { cn } from "@/lib/utils";
 
 type Props = { params: Promise<{ company: string }> };
 
@@ -16,14 +18,15 @@ export default async function CompanyReportsPage({ params }: Props) {
   const reports = await getAdvancedReports(row.id);
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">Reports</p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">Advanced reporting</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Revenue, booking, customer, and marketing reports across your business.
-        </p>
-      </header>
+    <div className={risePageClassName}>
+      <div className={riseCardClassName}>
+        <div className="px-4 py-4 sm:px-5">
+          <h1 className="text-lg font-medium text-slate-800">Advanced reporting</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Revenue, booking, customer, and marketing reports across your business.
+          </p>
+        </div>
+      </div>
 
       <ReportCategory title="Revenue reports" sections={reports.revenue} />
       <ReportCategory title="Booking reports" sections={reports.bookings} />
@@ -42,15 +45,12 @@ function ReportCategory({
 }) {
   if (sections.length === 0) return null;
   return (
-    <section className="mb-10">
-      <h2 className="mb-4 text-lg font-bold text-slate-900">{title}</h2>
-      <div className="grid gap-6 lg:grid-cols-2">
+    <section className="mt-4">
+      <h2 className="mb-3 text-sm font-medium text-slate-700">{title}</h2>
+      <div className="grid gap-4 lg:grid-cols-2">
         {sections.map((section) => (
-          <div
-            key={section.title}
-            className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-          >
-            <h3 className="border-b border-slate-100 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+          <div key={section.title} className={cn(riseCardClassName, "overflow-hidden")}>
+            <h3 className="border-b border-slate-100 bg-slate-50/80 px-4 py-3 text-sm font-medium text-slate-700">
               {section.title}
             </h3>
             <table className="w-full text-sm">

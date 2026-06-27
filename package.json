@@ -14,10 +14,20 @@
     "generate:favicons": "node scripts/generate-favicons.mjs",
     "faraios:connect": "node scripts/connect-faraios-website.mjs",
     "db:apply-booking-builder": "node scripts/apply-v11-booking-form-builder.mjs",
-    "db:print-booking-builder-sql": "node scripts/print-booking-builder-sql.mjs"
+    "db:print-booking-builder-sql": "node scripts/print-booking-builder-sql.mjs",
+    "db:apply-all-migrations": "node scripts/apply-all-migrations.mjs",
+    "db:print-full-schema-sql": "node scripts/print-full-schema-sql.mjs",
+    "db:apply-website-components": "node scripts/apply-website-components.mjs",
+    "db:print-website-components-sql": "node scripts/print-website-components-sql.mjs",
+    "db:apply-website-media": "node scripts/apply-website-media.mjs",
+    "db:apply-content-blog-taxonomy": "node scripts/apply-content-blog-taxonomy.mjs",
+    "db:print-content-blog-taxonomy-sql": "node scripts/print-content-blog-taxonomy-sql.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.0",
     "@vercel/analytics": "^2.0.1",

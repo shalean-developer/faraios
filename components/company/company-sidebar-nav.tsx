@@ -2,37 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useTransition } from "react";
-import {
-  Bell,
-  CalendarDays,
-  CheckSquare,
-  ChevronRight,
-  CreditCard,
-  Gauge,
-  Globe,
-  LifeBuoy,
-  Lightbulb,
-  LayoutDashboard,
-  LogOut,
-  Megaphone,
-  MoreHorizontal,
-  Settings,
-  Sparkles,
-  TrendingUp,
-  Users,
-  Users2,
-  Wrench,
-  Zap,
-} from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import {
   bookingsSubNavItems,
   bookingsViewFromPathname,
-  companyNavItems,
   customersSubNavItems,
   customersSubNavKeyFromPathname,
-  filterCompanyNavItems,
   filterSubNavItems,
   growthSubNavItems,
   growthSubNavKeyFromPathname,
@@ -47,74 +23,52 @@ import {
   type CollapsibleNavKey,
   type CompanyNavKey,
 } from "@/lib/constants/company-nav";
-import { workspaceAvatarGradient, workspaceInitial } from "@/lib/company/workspace-avatar";
 import {
-  companyNotificationsPath,
-  companyReportsPath,
-  companySettingsPath,
-  companySubscriptionPath,
-  companySupportPath,
-} from "@/lib/paths/company";
+  getFilteredRiseSidebarItems,
+  type RiseSidebarItem,
+} from "@/lib/constants/company-sidebar-nav";
+import { toPlatformWorkspacePath } from "@/lib/paths/workspace";
+import { AgencyWorkspaceNavSection } from "@/components/company/agency-workspace-nav-section";
+import { usePlatformWorkspace } from "@/components/platform/platform-workspace-context";
 import type { PermissionKey } from "@/lib/permissions/shared";
-import { hasAnyPermission } from "@/lib/permissions/shared";
 import {
   filterGrowthSubNavBySubscription,
   filterIntelligenceSubNavBySubscription,
-  filterNavBySubscription,
   filterRevenueSubNavBySubscription,
   filterTeamSubNavBySubscription,
   filterWebsiteSubNavBySubscription,
 } from "@/lib/subscriptions/nav-filter";
 import type { SubscriptionCompanyFields } from "@/lib/subscriptions/types";
-import { getIndustryNavLabels } from "@/lib/industry-templates/industryTemplates";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 import { useCollapsibleNavSections } from "./use-collapsible-nav-sections";
 
-const ICONS = {
-  dashboard: LayoutDashboard,
-  bookings: CalendarDays,
-  calendar: CalendarDays,
-  customers: Users,
-  services: Wrench,
-  revenue: TrendingUp,
-  websites: Globe,
-  growth: Megaphone,
-  team: Users2,
-  tasks: CheckSquare,
-  automations: Zap,
-  intelligence: Sparkles,
-  support: LifeBuoy,
-  featureRequests: Lightbulb,
-  settings: Settings,
-  subscription: CreditCard,
-  billing: CreditCard,
-  usage: Gauge,
-} as const;
+function navItemClass(isActive: boolean, collapsed: boolean) {
+  return cn(
+    "group flex w-full items-center transition-colors",
+    collapsed ? "h-9 w-9 justify-center rounded-md" : "gap-3 rounded-md px-3 py-2 text-[13px]",
+    isActive
+      ? "bg-[#5a8dee] font-medium text-white"
+      : "text-[#717d96] hover:bg-[#f5f7fb] hover:text-[#4b5563]"
+  );
+}
 
-const PRIMARY_KEYS = new Set<CompanyNavKey>([
-  "dashboard",
-  "bookings",
-  "calendar",
-  "customers",
-  "services",
-  "revenue",
-  "websites",
-  "growth",
-  "team",
-  "tasks",
-  "automations",
-  "intelligence",
-]);
+function iconClass(isActive: boolean) {
+  return cn(
+    "h-[18px] w-[18px] shrink-0",
+    isActive ? "text-white" : "text-[#717d96] group-hover:text-[#4b5563]"
+  );
+}
 
-const SECONDARY_KEYS = new Set<CompanyNavKey>([
-  "support",
-  "featureRequests",
-  "settings",
-  "billing",
-  "subscription",
-]);
+function isItemActive(
+  item: RiseSidebarItem,
+  pathname: string,
+  slug: string,
+  activeNav: CompanyNavKey
+): boolean {
+  if (item.isActive) return item.isActive(pathname, slug, activeNav);
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
 
 function getSubNavItems(
   slug: string,
@@ -130,8 +84,8 @@ function getSubNavItems(
       return customersSubNavItems(slug);
     case "revenue": {
       const items = filterSubNavItems(
-        revenueSubNavItems(slug).map((item) => ({
-          ...item,
+        revenueSubNavItems(slug).map((sub) => ({
+          ...sub,
           permissions: ["view_revenue"] as PermissionKey[],
         })),
         userPermissions
@@ -140,8 +94,8 @@ function getSubNavItems(
     }
     case "websites": {
       const items = filterSubNavItems(
-        websiteSubNavItems(slug, { hasWebsiteProject }).map((item) => ({
-          ...item,
+        websiteSubNavItems(slug, { hasWebsiteProject }).map((sub) => ({
+          ...sub,
           permissions: ["view_websites"] as PermissionKey[],
         })),
         userPermissions
@@ -192,23 +146,6 @@ function getActiveSubNavKey(
   }
 }
 
-function navItemClass(isActive: boolean, collapsed: boolean) {
-  return cn(
-    "group flex items-center text-sm transition-colors",
-    collapsed
-      ? "h-8 w-8 justify-center rounded-md"
-      : "gap-2.5 rounded-md px-2 py-1.5",
-    isActive
-      ? "bg-slate-100 font-medium text-slate-900"
-      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-  );
-}
-
-function matchesSearch(label: string, query: string) {
-  if (!query.trim()) return true;
-  return label.toLowerCase().includes(query.trim().toLowerCase());
-}
-
 export function CompanySidebarNav({
   slug,
   activeNav,
@@ -218,8 +155,8 @@ export function CompanySidebarNav({
   subscription,
   industrySlug,
   searchQuery = "",
-  displayName,
-  userEmail,
+  supportTicketCount = null,
+  onNavigate,
 }: {
   slug: string;
   activeNav: CompanyNavKey;
@@ -229,35 +166,24 @@ export function CompanySidebarNav({
   subscription?: SubscriptionCompanyFields;
   industrySlug?: string | null;
   searchQuery?: string;
-  displayName: string;
-  userEmail: string | null;
+  supportTicketCount?: number | null;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname() ?? "";
-  const [settingsOpen, setSettingsOpen] = useState(
-    pathname.includes("/settings") ||
-      pathname.includes("/billing") ||
-      pathname.includes("/subscription") ||
-      pathname.includes("/feature-requests")
-  );
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const platformWorkspace = usePlatformWorkspace();
 
-  const navLabels = getIndustryNavLabels(industrySlug);
-  const permissionFiltered = filterCompanyNavItems(
-    companyNavItems(slug, { hasWebsiteProject, navLabels }),
-    userPermissions
-  );
-  const items = subscription
-    ? filterNavBySubscription(permissionFiltered, subscription)
-    : permissionFiltered;
+  const hrefFor = (href: string) =>
+    platformWorkspace.active ? toPlatformWorkspacePath(slug, href) : href;
 
-  const primaryItems = items.filter((item) => PRIMARY_KEYS.has(item.key));
-  const secondaryItems = items.filter((item) => SECONDARY_KEYS.has(item.key));
-
-  const showUsage = hasAnyPermission(userPermissions, ["view_reports", "view_revenue"]);
-  const settingsChildren = secondaryItems.filter((item) =>
-    ["settings", "billing", "subscription", "featureRequests"].includes(item.key)
-  );
+  const { top: topItems, bottom: bottomItems } = getFilteredRiseSidebarItems({
+    slug,
+    userPermissions,
+    subscription,
+    industrySlug,
+    searchQuery,
+    supportTicketCount,
+    workspaceMode: platformWorkspace.active,
+  });
 
   const { expanded, toggleSection, openSection } = useCollapsibleNavSections(
     slug,
@@ -265,20 +191,9 @@ export function CompanySidebarNav({
     activeNav
   );
 
-  const handleLogout = () => {
-    startTransition(async () => {
-      const supabase = getSupabaseBrowserClient();
-      await supabase.auth.signOut();
-      window.location.href = "/";
-    });
-  };
-
-  const renderNavItem = (
-    item: (typeof items)[number],
-    options?: { forceChevron?: boolean }
-  ) => {
-    const Icon = ICONS[item.key];
-    const isActive = activeNav === item.key;
+  const renderNavItem = (item: RiseSidebarItem) => {
+    const Icon = item.icon;
+    const isActive = isItemActive(item, pathname, slug, activeNav);
     const collapsible = item.collapsible;
     const showSubNav = collapsible && !collapsed && expanded[collapsible];
     const subNavItems = collapsible
@@ -288,15 +203,11 @@ export function CompanySidebarNav({
           hasWebsiteProject,
           userPermissions,
           subscription
-        ).filter((sub) => matchesSearch(sub.label, searchQuery))
+        )
       : [];
     const activeSubNavKey = collapsible
       ? getActiveSubNavKey(slug, pathname, collapsible)
       : null;
-
-    if (!matchesSearch(item.label, searchQuery) && subNavItems.length === 0) {
-      return null;
-    }
 
     return (
       <li key={item.key}>
@@ -315,25 +226,23 @@ export function CompanySidebarNav({
                 }
               : undefined
           }
-          aria-expanded={
-            collapsible && !collapsed ? expanded[collapsible] : undefined
-          }
+          aria-expanded={collapsible && !collapsed ? expanded[collapsible] : undefined}
           className={navItemClass(isActive, collapsed)}
         >
-          <Icon
-            className={cn(
-              "h-4 w-4 shrink-0",
-              isActive ? "text-slate-900" : "text-slate-500 group-hover:text-slate-700"
-            )}
-          />
+          <Icon className={iconClass(isActive)} strokeWidth={1.75} />
           {!collapsed ? (
             <>
               <span className="truncate">{item.label}</span>
-              {collapsible || options?.forceChevron ? (
-                <ChevronRight
+              {item.badge != null && item.badge > 0 ? (
+                <span className="ml-auto rounded bg-[#5a8dee] px-1.5 py-0.5 text-[11px] font-medium leading-none text-white">
+                  {item.badge}
+                </span>
+              ) : collapsible ? (
+                <ChevronDown
                   className={cn(
-                    "ml-auto h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-200",
-                    collapsible && expanded[collapsible] && "rotate-90"
+                    "ml-auto h-3.5 w-3.5 shrink-0 transition-transform duration-200",
+                    isActive ? "text-white/80" : "text-[#a0aec0]",
+                    expanded[collapsible] && "rotate-180"
                   )}
                 />
               ) : null}
@@ -341,18 +250,18 @@ export function CompanySidebarNav({
           ) : null}
         </Link>
         {showSubNav && subNavItems.length > 0 ? (
-          <ul className="ml-6 mt-0.5 space-y-0.5 border-l border-slate-200 pl-2">
+          <ul className="mt-0.5 space-y-0.5 py-1 pl-9 pr-2">
             {subNavItems.map((subItem) => {
               const isSubActive = activeSubNavKey === subItem.key;
               return (
                 <li key={subItem.key}>
                   <Link
-                    href={subItem.href}
+                    href={hrefFor(subItem.href)}
                     className={cn(
-                      "block rounded-md px-2 py-1 text-[13px] transition-colors",
+                      "block rounded-md px-2 py-1.5 text-[12px] transition-colors",
                       isSubActive
-                        ? "bg-slate-100 font-medium text-slate-900"
-                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                        ? "bg-[#eef2ff] font-medium text-[#5a8dee]"
+                        : "text-[#717d96] hover:bg-[#f5f7fb] hover:text-[#4b5563]"
                     )}
                   >
                     {subItem.label}
@@ -366,201 +275,45 @@ export function CompanySidebarNav({
     );
   };
 
-  const userInitial = workspaceInitial(displayName);
-  const userGradient = workspaceAvatarGradient(displayName || userEmail || "user");
-  const notificationsActive = pathname.includes("/notifications");
-
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <nav
+    <nav
+      className={cn(
+        "flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto bg-white py-2",
+        collapsed ? "px-1.5" : "px-2"
+      )}
+    >
+      <ul className={cn("space-y-0.5", collapsed && "flex flex-col items-center")}>
+        {topItems.map((item) => renderNavItem(item))}
+      </ul>
+
+      {platformWorkspace.active && platformWorkspace.session ? (
+        <>
+          {!collapsed && topItems.length > 0 ? (
+            <div className="my-3 border-t border-violet-100" />
+          ) : null}
+          <AgencyWorkspaceNavSection
+            slug={slug}
+            session={platformWorkspace.session}
+            pathname={pathname}
+            collapsed={collapsed}
+            searchQuery={searchQuery}
+            onNavigate={onNavigate}
+          />
+        </>
+      ) : null}
+
+      {!collapsed && bottomItems.length > 0 ? (
+        <div className="my-3 border-t border-slate-100" />
+      ) : null}
+
+      <ul
         className={cn(
-          "min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 py-1",
-          !collapsed && "px-2.5"
+          "mt-auto space-y-0.5",
+          collapsed && "flex flex-col items-center"
         )}
       >
-        <ul className={cn("space-y-0.5", collapsed && "flex flex-col items-center")}>
-          {primaryItems.map((item) => renderNavItem(item))}
-        </ul>
-
-        {!collapsed && (secondaryItems.length > 0 || showUsage) ? (
-          <div className="my-3 border-t border-slate-200" />
-        ) : null}
-
-        <ul className={cn("space-y-0.5", collapsed && "flex flex-col items-center")}>
-          {showUsage && matchesSearch("Usage", searchQuery) ? (
-            <li>
-              <Link
-                href={companyReportsPath(slug)}
-                title={collapsed ? "Usage" : undefined}
-                className={navItemClass(pathname.includes("/reports"), collapsed)}
-              >
-                <Gauge className="h-4 w-4 shrink-0 text-slate-500" />
-                {!collapsed ? <span className="truncate">Usage</span> : null}
-              </Link>
-            </li>
-          ) : null}
-          {secondaryItems
-            .filter((item) => item.key === "support")
-            .map((item) => renderNavItem(item))}
-          {!collapsed && settingsChildren.length > 0 ? (
-            <li>
-              <button
-                type="button"
-                onClick={() => setSettingsOpen((open) => !open)}
-                className={cn(
-                  navItemClass(
-                    pathname.includes("/settings") ||
-                      pathname.includes("/billing") ||
-      pathname.includes("/subscription") ||
-                      pathname.includes("/feature-requests"),
-                    false
-                  ),
-                  "w-full"
-                )}
-              >
-                <Settings className="h-4 w-4 shrink-0 text-slate-500" />
-                <span className="truncate">Settings</span>
-                <ChevronRight
-                  className={cn(
-                    "ml-auto h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-200",
-                    settingsOpen && "rotate-90"
-                  )}
-                />
-              </button>
-              {settingsOpen ? (
-                <ul className="ml-6 mt-0.5 space-y-0.5 border-l border-slate-200 pl-2">
-                  {settingsChildren.map((item) => {
-                      const isSubActive = activeNav === item.key;
-                      return (
-                        <li key={item.key}>
-                          <Link
-                            href={item.href}
-                            className={cn(
-                              "block rounded-md px-2 py-1 text-[13px] transition-colors",
-                              isSubActive
-                                ? "bg-slate-100 font-medium text-slate-900"
-                                : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
-                            )}
-                          >
-                            {item.label}
-                          </Link>
-                        </li>
-                      );
-                    })}
-                </ul>
-              ) : null}
-            </li>
-          ) : collapsed ? (
-            <>
-              <li>
-                <Link
-                  href={companySettingsPath(slug)}
-                  title="Settings"
-                  className={navItemClass(pathname.includes("/settings"), true)}
-                >
-                  <Settings className="h-4 w-4 shrink-0 text-slate-500" />
-                </Link>
-              </li>
-            </>
-          ) : null}
-        </ul>
-      </nav>
-
-      <div
-        className={cn(
-          "shrink-0 border-t border-slate-200 p-2",
-          collapsed && "flex flex-col items-center gap-1"
-        )}
-      >
-        {collapsed ? (
-          <>
-            <Link
-              href={companyNotificationsPath(slug)}
-              title="Notifications"
-              className={cn(
-                "relative flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800",
-                notificationsActive && "bg-slate-100 text-slate-900"
-              )}
-            >
-              <Bell className="h-4 w-4" />
-            </Link>
-            <div
-              className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br text-xs font-semibold text-white",
-                userGradient
-              )}
-              title={displayName}
-            >
-              {userInitial}
-            </div>
-          </>
-        ) : (
-          <div className="flex items-center gap-2 rounded-md px-1 py-1">
-            <div
-              className={cn(
-                "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[11px] font-semibold text-white",
-                userGradient
-              )}
-            >
-              {userInitial}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-slate-900">{displayName}</p>
-              {userEmail ? (
-                <p className="truncate text-[11px] text-slate-500">{userEmail}</p>
-              ) : null}
-            </div>
-            <div className="relative flex shrink-0 items-center gap-0.5">
-              <button
-                type="button"
-                onClick={() => setUserMenuOpen((open) => !open)}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
-                aria-label="Account menu"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
-              <Link
-                href={companyNotificationsPath(slug)}
-                className={cn(
-                  "relative flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800",
-                  notificationsActive && "bg-slate-100 text-slate-900"
-                )}
-                aria-label="Notifications"
-              >
-                <Bell className="h-4 w-4" />
-                <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-sky-500 ring-2 ring-white" />
-              </Link>
-              {userMenuOpen ? (
-                <div className="absolute bottom-full right-0 z-30 mb-1 min-w-[160px] rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-                  <Link
-                    href={companySupportPath(slug)}
-                    className="block px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                    onClick={() => setUserMenuOpen(false)}
-                  >
-                    Support
-                  </Link>
-                  <Link
-                    href={companySubscriptionPath(slug)}
-                    className="block px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                    onClick={() => setUserMenuOpen(false)}
-                  >
-                    Subscription
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    disabled={isPending}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-60"
-                  >
-                    <LogOut className="h-3.5 w-3.5" />
-                    Log out
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+        {bottomItems.map((item) => renderNavItem(item))}
+      </ul>
+    </nav>
   );
 }

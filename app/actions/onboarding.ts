@@ -67,6 +67,7 @@ export async function createCompanyFromOnboarding(
   revalidatePath("/");
   revalidatePath("/app");
   revalidatePath(`/${slug}/dashboard`);
+  revalidatePath(`/${slug}/dashboard/billing`);
   revalidatePath(`/${slug}/dashboard/hosting`);
   revalidatePath(`/${slug}/dashboard/project`);
 

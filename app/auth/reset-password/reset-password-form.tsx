@@ -138,6 +138,7 @@ export function ResetPasswordForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="At least 8 characters"
+            suppressHydrationWarning
             className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 pr-11 text-sm text-slate-800 outline-none transition-all focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
             required
             minLength={8}
@@ -146,6 +147,7 @@ export function ResetPasswordForm() {
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
+            suppressHydrationWarning
             className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500"
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
@@ -168,6 +170,7 @@ export function ResetPasswordForm() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Repeat new password"
+            suppressHydrationWarning
             className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 pr-11 text-sm text-slate-800 outline-none transition-all focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
             required
             minLength={8}
@@ -176,6 +179,7 @@ export function ResetPasswordForm() {
           <button
             type="button"
             onClick={() => setShowConfirm((v) => !v)}
+            suppressHydrationWarning
             className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500"
             aria-label={showConfirm ? "Hide confirm password" : "Show confirm password"}
           >
@@ -187,6 +191,7 @@ export function ResetPasswordForm() {
       <button
         type="submit"
         disabled={pending}
+        suppressHydrationWarning
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-sm font-semibold text-white transition-all hover:brightness-110 disabled:opacity-60"
       >
         <Lock className="h-4 w-4" aria-hidden />

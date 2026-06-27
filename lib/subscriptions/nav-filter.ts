@@ -72,7 +72,6 @@ export function filterGrowthSubNavBySubscription<
     reviews: "reviews",
     campaigns: "campaigns",
     retention: "campaigns",
-    content: "campaigns",
     analytics: "reports",
   };
 
@@ -124,6 +123,50 @@ export function filterTeamSubNavBySubscription<
       return canAccessFeature(company, "customRoles");
     }
     return canAccessFeature(company, "team");
+  });
+}
+
+const RISE_KEY_TO_NAV_KEY: Record<string, CompanyNavKey> = {
+  dashboard: "dashboard",
+  bookings: "bookings",
+  calendar: "calendar",
+  customers: "customers",
+  services: "services",
+  projects: "websites",
+  tasks: "tasks",
+  subscription: "subscription",
+  revenue: "revenue",
+  content: "growth",
+  messages: "dashboard",
+  websites: "websites",
+  growth: "growth",
+  automations: "automations",
+  intelligence: "intelligence",
+  team: "team",
+  support: "support",
+  knowledge: "featureRequests",
+  files: "websites",
+  reports: "intelligence",
+  billing: "billing",
+  settings: "settings",
+};
+
+export function filterRiseSidebarBySubscription<
+  T extends { key: string },
+>(items: T[], company: SubscriptionCompanyFields): T[] {
+  return items.filter((item) => {
+    const navKey = RISE_KEY_TO_NAV_KEY[item.key];
+    if (!navKey) return true;
+
+    if (item.key === "files") {
+      return canAccessFeature(company, "hosting");
+    }
+
+    if (navKey === "websites") {
+      return canAccessWebsiteSection(company);
+    }
+
+    return canAccessFeature(company, navKeyToFeature(navKey));
   });
 }
 

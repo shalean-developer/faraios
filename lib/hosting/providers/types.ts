@@ -1,4 +1,4 @@
-export type HostingProviderSlug = "vercel" | "cloudflare_pages" | "netlify" | "aws";
+export type HostingProviderSlug = "plesk" | "vercel" | "cloudflare_pages" | "netlify" | "aws";
 
 export type DeploymentEnvironment = "preview" | "production";
 
@@ -34,6 +34,8 @@ export type CreateProjectResult = {
 export type ConnectDomainInput = {
   providerProjectId: string;
   domain: string;
+  companyId?: string;
+  serverId?: string | null;
 };
 
 export type ConnectDomainResult = {
@@ -60,6 +62,7 @@ export type CheckStatusInput = {
   providerDeploymentId?: string;
   providerDomainId?: string;
   domain?: string;
+  companyId?: string;
 };
 
 export type CheckStatusResult = {

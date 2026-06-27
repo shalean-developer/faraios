@@ -7,7 +7,6 @@ import { type FormEvent, useState, useTransition } from "react";
 import { ArrowRight, Calendar, CreditCard, Search, Settings, Users } from "lucide-react";
 
 import { updateCompanySettings } from "@/app/actions/company";
-import { Button } from "@/components/ui/button";
 import {
   parseNotificationPreferences,
   type CompanyNotificationPreferences,
@@ -19,36 +18,14 @@ import {
   companyTeamPath,
   companyWebsiteConnectionPath,
 } from "@/lib/paths/company";
+import {
+  riseCardClassName,
+  risePageClassName,
+  risePrimaryButtonClassName,
+} from "@/lib/ui/rise-dashboard-styles";
 import { cn } from "@/lib/utils";
 import { IndustrySettingsPanel } from "@/components/company/industry-settings-panel";
 import type { CompanyWithIndustry, Industry } from "@/types/database";
-
-function MetricCard({
-  label,
-  value,
-  hint,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-2xl border p-4 shadow-sm",
-        highlight
-          ? "border-2 border-violet-200 bg-gradient-to-br from-violet-50/70 to-white"
-          : "border-slate-200 bg-white"
-      )}
-    >
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
-      {hint ? <p className="mt-1 text-xs text-slate-400">{hint}</p> : null}
-    </div>
-  );
-}
 
 function profileCompleteness(company: CompanyWithIndustry): number {
   const fields = [
@@ -109,27 +86,10 @@ export function CompanySettingsClient({
   const seoPath = `/${encodeURIComponent(slug)}/dashboard/seo`;
 
   const statCards = [
-    {
-      label: "Profile complete",
-      value: `${completeness}%`,
-      hint: "7 profile fields",
-      highlight: completeness < 100,
-    },
-    {
-      label: "Industry",
-      value: company.industries?.name ?? "—",
-      hint: "Used across growth tools",
-    },
-    {
-      label: "Plan",
-      value: company.plan ?? "Standard",
-      hint: "Workspace subscription",
-    },
-    {
-      label: "Location",
-      value: company.contact_location?.trim() || "Not set",
-      hint: "Primary business location",
-    },
+    { label: "Profile complete", value: `${completeness}%` },
+    { label: "Industry", value: company.industries?.name ?? "—" },
+    { label: "Plan", value: company.plan ?? "Standard" },
+    { label: "Location", value: company.contact_location?.trim() || "Not set" },
   ];
 
   const quickLinks: { href: string; label: string; icon: ComponentType<{ className?: string }> }[] =
@@ -171,28 +131,31 @@ export function CompanySettingsClient({
   };
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-6">
-        <Link
-          href={companyDashboardPath(slug)}
-          className="text-sm font-medium text-slate-500 hover:text-slate-800"
-        >
-          ← Overview
-        </Link>
-        <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-violet-600">
-          Settings
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">Business profile</h1>
-        <p className="mt-2 max-w-2xl text-sm text-slate-500">
-          Company profile and contact details. Profile changes sync to your SEO dashboard
-          automatically. Website, payment, and team settings live in their dedicated sections.
-        </p>
-      </header>
-
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {statCards.map((card) => (
-          <MetricCard key={card.label} {...card} />
-        ))}
+    <div className={risePageClassName}>
+      <div className={cn(riseCardClassName, "mb-4")}>
+        <div className="border-b border-slate-100 px-4 py-4">
+          <Link
+            href={companyDashboardPath(slug)}
+            className="text-sm font-medium text-slate-500 hover:text-slate-800"
+          >
+            ← Overview
+          </Link>
+          <h1 className="mt-2 text-lg font-medium text-slate-800">Business profile</h1>
+          <p className="mt-1 max-w-2xl text-sm text-slate-500">
+            Company profile and contact details. Profile changes sync to your SEO dashboard
+            automatically. Website, payment, and team settings live in their dedicated sections.
+          </p>
+        </div>
+        <div className="grid gap-3 bg-slate-50/60 px-4 py-3 sm:grid-cols-2 lg:grid-cols-4">
+          {statCards.map((card) => (
+            <div key={card.label} className="text-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                {card.label}
+              </p>
+              <p className="mt-0.5 font-semibold text-slate-800">{card.value}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {error ? (
@@ -212,7 +175,7 @@ export function CompanySettingsClient({
 
         <form
           onSubmit={onSaveBusiness}
-          className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          className={cn(riseCardClassName, "space-y-4 p-6")}
         >
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -277,14 +240,14 @@ export function CompanySettingsClient({
               />
             </Field>
           </div>
-          <Button type="submit" className="rounded-xl" disabled={pending}>
+          <button type="submit" className={risePrimaryButtonClassName} disabled={pending}>
             {pending ? "Saving..." : "Save business settings"}
-          </Button>
+          </button>
         </form>
 
         <form
           onSubmit={onSaveBusiness}
-          className="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          className={cn(riseCardClassName, "mt-6 space-y-4 p-6")}
         >
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Branding</h2>
@@ -318,14 +281,14 @@ export function CompanySettingsClient({
               />
             </Field>
           </div>
-          <Button type="submit" className="rounded-xl" disabled={pending}>
+          <button type="submit" className={risePrimaryButtonClassName} disabled={pending}>
             {pending ? "Saving..." : "Save branding"}
-          </Button>
+          </button>
         </form>
 
         <form
           onSubmit={onSaveBusiness}
-          className="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          className={cn(riseCardClassName, "mt-6 space-y-4 p-6")}
         >
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Email notifications</h2>
@@ -364,17 +327,15 @@ export function CompanySettingsClient({
               </label>
             ))}
           </div>
-          <Button type="submit" className="rounded-xl" disabled={pending}>
+          <button type="submit" className={risePrimaryButtonClassName} disabled={pending}>
             {pending ? "Saving..." : "Save notification preferences"}
-          </Button>
+          </button>
         </form>
         </div>
 
         <aside className="lg:sticky lg:top-6 lg:self-start">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Related settings
-            </p>
+          <div className={cn(riseCardClassName, "p-5")}>
+            <p className="text-sm font-medium text-slate-700">Related settings</p>
             <ul className="mt-3 space-y-1">
               {quickLinks.map(({ href, label, icon: Icon }) => (
                 <li key={href}>
@@ -409,9 +370,7 @@ function Field({
 }) {
   return (
     <label className={className}>
-      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {label}
-      </span>
+      <span className="mb-1 block text-xs font-medium text-slate-500">{label}</span>
       {children}
     </label>
   );

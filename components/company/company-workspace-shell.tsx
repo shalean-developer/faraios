@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { CompanyMobileNav } from "@/components/company/company-mobile-nav";
 import { CompanySidebarBrand } from "@/components/company/company-sidebar-brand";
 import { CompanySidebarNav } from "@/components/company/company-sidebar-nav";
+import { CompanyWorkspaceHeader } from "@/components/company/company-workspace-header";
+import { PlatformWorkspaceBanner } from "@/components/admin/platform-workspace-banner";
 import { companyNavKeyFromPathname } from "@/lib/constants/company-nav";
 import type { PermissionKey } from "@/lib/permissions/shared";
 import type { UserCompany } from "@/types/database";
@@ -45,6 +47,7 @@ export function CompanyWorkspaceShell({
   userPermissions = [],
   subscription,
   industrySlug,
+  platformWorkspaceMode = false,
   children,
 }: {
   slug: string;
@@ -56,10 +59,12 @@ export function CompanyWorkspaceShell({
   userPermissions?: PermissionKey[];
   subscription?: SubscriptionCompanyFields;
   industrySlug?: string | null;
+  platformWorkspaceMode?: boolean;
   children: ReactNode;
 }) {
   const pathname = usePathname() ?? "";
   const activeNav = companyNavKeyFromPathname(slug, pathname);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const collapsed = useSyncExternalStore(
     subscribeSidebarCollapsed,
@@ -79,49 +84,64 @@ export function CompanyWorkspaceShell({
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-white font-sans">
-      <aside
-        className={cn(
-          "hidden h-full flex-shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-[#fafafa] lg:flex",
-          mounted && "transition-[width] duration-200 ease-out",
-          mounted && collapsed ? "w-14" : "w-[240px]"
-        )}
-      >
-        <CompanySidebarBrand
-          slug={slug}
-          companyName={companyName}
-          companies={companies}
-          planSlug={subscription?.plan}
-          collapsed={mounted && collapsed}
-          onToggle={toggleCollapsed}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-        />
-        <CompanySidebarNav
-          slug={slug}
-          activeNav={activeNav}
-          hasWebsiteProject={hasWebsiteProject}
-          collapsed={mounted && collapsed}
-          userPermissions={userPermissions}
-          subscription={subscription}
-          industrySlug={industrySlug}
-          searchQuery={searchQuery}
-          displayName={userDisplayName}
-          userEmail={userEmail}
-        />
-      </aside>
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-white font-sans">
+      {platformWorkspaceMode ? <PlatformWorkspaceBanner /> : null}
+      <CompanyWorkspaceHeader
+        slug={slug}
+        userDisplayName={userDisplayName}
+        userEmail={userEmail}
+        onToggleSidebar={toggleCollapsed}
+        onToggleMobileNav={() => setMobileNavOpen((open) => !open)}
+        mobileNavOpen={mobileNavOpen}
+      />
 
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[#fafafa]">
-        <CompanyMobileNav
-          slug={slug}
-          activeNav={activeNav}
-          companyName={companyName}
-          hasWebsiteProject={hasWebsiteProject}
-          userPermissions={userPermissions}
-          subscription={subscription}
-          industrySlug={industrySlug}
-        />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <aside
+          className={cn(
+            "hidden h-full flex-shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white lg:flex",
+            mounted && "transition-[width] duration-200 ease-out",
+            mounted && collapsed ? "w-14" : "w-[220px]"
+          )}
+        >
+          <CompanySidebarBrand
+            slug={slug}
+            companyName={companyName}
+            companies={companies}
+            planSlug={subscription?.plan}
+            collapsed={mounted && collapsed}
+            onToggle={toggleCollapsed}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            hideBrand
+          />
+          <CompanySidebarNav
+            slug={slug}
+            activeNav={activeNav}
+            hasWebsiteProject={hasWebsiteProject}
+            collapsed={mounted && collapsed}
+            userPermissions={userPermissions}
+            subscription={subscription}
+            industrySlug={industrySlug}
+            searchQuery={searchQuery}
+          />
+        </aside>
+
+        <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-[#fafafa]">
+          <CompanyMobileNav
+            slug={slug}
+            activeNav={activeNav}
+            companyName={companyName}
+            hasWebsiteProject={hasWebsiteProject}
+            userPermissions={userPermissions}
+            subscription={subscription}
+            industrySlug={industrySlug}
+            searchQuery={searchQuery}
+            open={mobileNavOpen}
+            onOpenChange={setMobileNavOpen}
+            panelOnly
+          />
+          <main className="flex-1 overflow-y-auto">{children}</main>
+        </div>
       </div>
     </div>
   );

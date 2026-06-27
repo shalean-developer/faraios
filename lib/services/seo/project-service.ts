@@ -121,19 +121,20 @@ export async function updateSeoProject(
 }
 
 export async function listSeoProjectsAdmin(): Promise<
-  (SeoProject & { company_name?: string })[]
+  (SeoProject & { company_name?: string; company_slug?: string })[]
 > {
   const admin = tryCreateAdminClient();
   if (!admin.ok) return [];
 
   const { data } = await admin.client
     .from("seo_projects")
-    .select("*, companies(name)")
+    .select("*, companies(name, slug)")
     .order("updated_at", { ascending: false });
 
   return (data ?? []).map((row) => ({
     ...mapProject(row),
-    company_name: (row.companies as { name?: string } | null)?.name,
+    company_name: (row.companies as { name?: string; slug?: string } | null)?.name,
+    company_slug: (row.companies as { name?: string; slug?: string } | null)?.slug,
   }));
 }
 

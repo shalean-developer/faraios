@@ -35,7 +35,9 @@ export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 export const PAYMENT_PROVIDERS = [
   "paystack",
+  "payfast",
   "eft",
+  "cash",
   "stripe",
   "ozow",
   "peach",

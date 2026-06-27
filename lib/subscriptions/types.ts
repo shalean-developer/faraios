@@ -15,6 +15,8 @@ export type CompanySubscription = {
   subscription_started_at?: string | null;
   subscription_expires_at?: string | null;
   next_billing_date?: string | null;
+  setup_fee_waived?: boolean;
+  setup_fee_paid_at?: string | null;
   paystack_customer_code?: string | null;
   paystack_subscription_code?: string | null;
 };
@@ -25,6 +27,8 @@ export type SubscriptionCompanyFields = {
   subscription_started_at?: string | null;
   subscription_expires_at?: string | null;
   next_billing_date?: string | null;
+  setup_fee_waived?: boolean;
+  setup_fee_paid_at?: string | null;
   paystack_customer_code?: string | null;
   paystack_subscription_code?: string | null;
 };

@@ -1,7 +1,4 @@
-import Link from "next/link";
-
 import { WebsiteApiKeysClient } from "./company-api-keys-client";
-import { companyWebsitesPath } from "@/lib/paths/company";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { getConnectedWebsiteForCompany } from "@/lib/services/connected-websites";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
@@ -52,28 +49,12 @@ export default async function CompanyWebsiteApiKeysPage({ params }: Props) {
     .limit(10);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-      <Link
-        href={companyWebsitesPath(slug)}
-        className="text-sm font-medium text-violet-700 hover:text-violet-900"
-      >
-        ← Website overview
-      </Link>
-      <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-violet-600">Website</p>
-      <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">API keys</h1>
-      <p className="mt-2 text-sm text-slate-500">
-        Generate, rotate, and revoke public API keys for external website integrations.
-      </p>
-
-      <div className="mt-6">
-        <WebsiteApiKeysClient
-          companyId={row.id}
-          slug={slug}
-          apiKey={connected?.api_key ?? null}
-          apiKeyStatus={connected?.api_key_status ?? "active"}
-          keyEvents={(keyEvents ?? []) as BusinessApiKeyEvent[]}
-        />
-      </div>
-    </main>
+    <WebsiteApiKeysClient
+      companyId={row.id}
+      slug={slug}
+      apiKey={connected?.api_key ?? null}
+      apiKeyStatus={connected?.api_key_status ?? "active"}
+      keyEvents={(keyEvents ?? []) as BusinessApiKeyEvent[]}
+    />
   );
 }

@@ -23,7 +23,6 @@ import {
   moveCompanyService,
 } from "@/app/actions/company-services";
 import { ServiceFormPopover } from "@/components/company/service-form-popover";
-import { Button } from "@/components/ui/button";
 import type { ServiceTemplate } from "@/lib/company-services/constants";
 import { downloadServicesCsv } from "@/lib/company-services/csv";
 import { formatDuration } from "@/lib/calendar/schedule";
@@ -37,6 +36,12 @@ import {
   publicBookPath,
 } from "@/lib/paths/company";
 import type { CompanyServiceStats } from "@/lib/services/company-services";
+import {
+  riseCardClassName,
+  riseOutlineButtonClassName,
+  risePageClassName,
+  risePrimaryButtonClassName,
+} from "@/lib/ui/rise-dashboard-styles";
 import { cn } from "@/lib/utils";
 import type { CompanyService, CompanyWithIndustry } from "@/types/database";
 
@@ -283,124 +288,125 @@ export function CompanyServicesClient({
   };
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
-            Operations
+    <div className={risePageClassName}>
+      <div className={riseCardClassName}>
+        <div className="flex flex-col gap-4 border-b border-slate-100 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-lg font-medium text-slate-800">Services</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Define your catalog, pricing, duration, and add-ons for bookings.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className={riseOutlineButtonClassName}
+              onClick={onExport}
+              disabled={rows.length === 0}
+            >
+              <Download className="h-4 w-4" strokeWidth={1.75} />
+              Export CSV
+            </button>
+            <button
+              type="button"
+              className={riseOutlineButtonClassName}
+              onClick={onImportClick}
+              disabled={importPending}
+            >
+              <Upload className="h-4 w-4" strokeWidth={1.75} />
+              {importPending ? "Importing..." : "Import CSV"}
+            </button>
+            <button
+              type="button"
+              className={
+                showServiceForm && !editingService
+                  ? riseOutlineButtonClassName
+                  : risePrimaryButtonClassName
+              }
+              aria-expanded={showServiceForm && !editingService}
+              aria-haspopup="dialog"
+              onClick={() =>
+                showServiceForm && !editingService ? closeServiceForm() : openCreateForm()
+              }
+            >
+              Add service
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={onImportFile}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-1 flex-col gap-2 sm:flex-row">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm sm:max-w-xs"
+              placeholder="Search services..."
+            />
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="rounded-md border border-slate-200 px-3 py-2 text-sm"
+            >
+              <option value="all">All categories</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              className="rounded-md border border-slate-200 px-3 py-2 text-sm"
+            >
+              <option value="all">All statuses</option>
+              <option value="active">Active only</option>
+              <option value="inactive">Inactive only</option>
+            </select>
+          </div>
+          <a
+            href={publicBookPath(company.id)}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center text-sm font-medium text-[#4a6fd8] hover:text-[#3a5fc8]"
+          >
+            Preview booking page
+            <ExternalLink className="ml-1.5 h-4 w-4" />
+          </a>
+        </div>
+
+        <ServiceFormPopover
+          open={showServiceForm}
+          onClose={closeServiceForm}
+          slug={slug}
+          companyId={company.id}
+          service={editingService}
+          template={template}
+        />
+
+        {importMessage ? (
+          <p className="border-b border-slate-100 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700">
+            {importMessage}
           </p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900">Services</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Define your catalog, pricing, duration, and add-ons for bookings.
+        ) : null}
+
+        {error ? (
+          <p className="border-b border-slate-100 px-4 py-2.5 text-sm font-medium text-red-600">
+            {error}
           </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-xl"
-            onClick={onExport}
-            disabled={rows.length === 0}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Export CSV
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-xl"
-            onClick={onImportClick}
-            disabled={importPending}
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            {importPending ? "Importing..." : "Import CSV"}
-          </Button>
-          <Button
-            type="button"
-            className="shrink-0 rounded-xl"
-            variant={showServiceForm && !editingService ? "outline" : "default"}
-            aria-expanded={showServiceForm && !editingService}
-            aria-haspopup="dialog"
-            onClick={() =>
-              showServiceForm && !editingService
-                ? closeServiceForm()
-                : openCreateForm()
-            }
-          >
-            Add service
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,text/csv"
-            className="hidden"
-            onChange={onImportFile}
-          />
-        </div>
-      </header>
+        ) : null}
 
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-1 flex-col gap-2 sm:flex-row">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm sm:max-w-xs"
-            placeholder="Search services..."
-          />
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-          >
-            <option value="all">All categories</option>
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-          >
-            <option value="all">All statuses</option>
-            <option value="active">Active only</option>
-            <option value="inactive">Inactive only</option>
-          </select>
-        </div>
-        <a
-          href={publicBookPath(company.id)}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center text-sm font-medium text-violet-700 hover:text-violet-900"
-        >
-          Preview booking page
-          <ExternalLink className="ml-1.5 h-4 w-4" />
-        </a>
-      </div>
-
-      <ServiceFormPopover
-        open={showServiceForm}
-        onClose={closeServiceForm}
-        slug={slug}
-        companyId={company.id}
-        service={editingService}
-        template={template}
-      />
-
-      {importMessage ? (
-        <p className="mb-3 text-sm font-medium text-emerald-700">{importMessage}</p>
-      ) : null}
-
-      {error ? (
-        <p className="mb-3 text-sm font-medium text-red-600">{error}</p>
-      ) : null}
-
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 text-left text-xs font-medium text-slate-500">
               <th className="px-4 py-3">Service</th>
               <th className="hidden px-4 py-3 md:table-cell">Category</th>
               <th className="px-4 py-3">Price</th>
@@ -430,27 +436,25 @@ export function CompanyServicesClient({
                         ) : null}
                         <div className="flex flex-wrap justify-center gap-2">
                           {serviceTemplates.map((item) => (
-                            <Button
+                            <button
                               key={item.name}
                               type="button"
-                              variant="outline"
-                              size="sm"
-                              className="rounded-xl"
+                              className={riseOutlineButtonClassName}
                               disabled={templatePending}
                               onClick={() => addTemplateFromPreset(item)}
                             >
                               {item.name}
-                            </Button>
+                            </button>
                           ))}
                         </div>
-                        <Button
+                        <button
                           type="button"
-                          className="rounded-xl"
+                          className={risePrimaryButtonClassName}
                           disabled={templatePending || serviceTemplates.length === 0}
                           onClick={addAllTemplates}
                         >
                           {templatePending ? "Importing..." : "Import all industry templates"}
-                        </Button>
+                        </button>
                       </div>
                     ) : null}
                   </div>
@@ -467,7 +471,7 @@ export function CompanyServicesClient({
                     <td className="px-4 py-3">
                       <Link
                         href={companyServicePath(slug, row.id)}
-                        className="font-medium text-violet-700 hover:text-violet-900"
+                        className="font-medium text-[#4a6fd8] hover:text-[#3a5fc8]"
                       >
                         {row.name}
                       </Link>
@@ -517,7 +521,7 @@ export function CompanyServicesClient({
                               type="button"
                               onClick={() => onMove(row.id, "up")}
                               disabled={fullIndex <= 0}
-                              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-violet-700 disabled:opacity-30"
+                              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-[#4a6fd8] disabled:opacity-30"
                               aria-label="Move up"
                             >
                               <ArrowUp className="h-4 w-4" />
@@ -526,7 +530,7 @@ export function CompanyServicesClient({
                               type="button"
                               onClick={() => onMove(row.id, "down")}
                               disabled={fullIndex < 0 || fullIndex >= rows.length - 1}
-                              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-violet-700 disabled:opacity-30"
+                              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-[#4a6fd8] disabled:opacity-30"
                               aria-label="Move down"
                             >
                               <ArrowDown className="h-4 w-4" />
@@ -536,7 +540,7 @@ export function CompanyServicesClient({
                         <button
                           type="button"
                           onClick={() => onDuplicate(row.id)}
-                          className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-violet-700"
+                          className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-[#4a6fd8]"
                           aria-label="Duplicate service"
                         >
                           <Copy className="h-4 w-4" />
@@ -544,7 +548,7 @@ export function CompanyServicesClient({
                         <button
                           type="button"
                           onClick={() => openEditForm(row)}
-                          className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-violet-700"
+                          className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-[#4a6fd8]"
                           aria-label="Edit service"
                         >
                           <Pencil className="h-4 w-4" />
@@ -565,6 +569,7 @@ export function CompanyServicesClient({
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

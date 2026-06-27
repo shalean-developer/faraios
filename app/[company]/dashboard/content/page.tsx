@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-
 import { companyDashboardPath } from "@/lib/paths/company";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { listContentPosts, summarizeContentPosts } from "@/lib/services/content-posts";
@@ -61,24 +60,6 @@ export default async function CompanyContentPage({ params }: Props) {
   const summary = summarizeContentPosts(posts);
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">Growth</p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Content</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Publish blog posts, guides, and service articles to improve organic visibility.
-          </p>
-        </div>
-        <Link
-          href={`/${encodeURIComponent(slug)}/dashboard/seo`}
-          className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          SEO settings
-        </Link>
-      </header>
-
-      <CompanyContentClient slug={slug} companyId={row.id} posts={posts} summary={summary} />
-    </div>
+    <CompanyContentClient slug={slug} companyId={row.id} posts={posts} summary={summary} />
   );
 }

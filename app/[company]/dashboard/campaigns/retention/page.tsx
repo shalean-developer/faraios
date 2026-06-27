@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { companyCampaignsPath, companyDashboardPath } from "@/lib/paths/company";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { listCustomerSegments } from "@/lib/services/customer-segments";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
@@ -42,30 +40,12 @@ export default async function RetentionCampaignsPage({ params }: Props) {
   );
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">Growth</p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Retention campaigns</h1>
-        <p className="mt-2 text-sm text-slate-500">
-          Win back inactive customers and send targeted reactivation emails by segment.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-3 text-sm">
-          <Link href={companyCampaignsPath(slug)} className="font-medium text-violet-700">
-            Email campaigns
-          </Link>
-          <Link href={companyDashboardPath(slug)} className="text-slate-600">
-            Dashboard
-          </Link>
-        </div>
-      </header>
-
-      <RetentionCampaignsClient
-        slug={slug}
-        companyId={row.id}
-        campaigns={campaigns}
-        segments={segments}
-        emailConfigured={emailConfigured}
-      />
-    </div>
+    <RetentionCampaignsClient
+      slug={slug}
+      companyId={row.id}
+      campaigns={campaigns}
+      segments={segments}
+      emailConfigured={emailConfigured}
+    />
   );
 }

@@ -1,5 +1,6 @@
 import { AdminAccessDenied } from "@/components/admin/admin-access-denied";
 import { AdminLayoutShell } from "@/components/admin/admin-layout-shell";
+import { AdminThemeProvider } from "@/components/admin/admin-theme-provider";
 import {
   getAdminSessionProfile,
   isCurrentUserPlatformAdmin,
@@ -27,12 +28,14 @@ export default async function AdminLayout({
   const workspaceSlug = user ? await getPrimaryCompanySlugForUser(user.id) : null;
 
   return (
-    <AdminLayoutShell
-      adminDisplayName={profile.adminDisplayName}
-      adminEmail={profile.adminEmail}
-      workspaceSlug={workspaceSlug}
-    >
-      {children}
-    </AdminLayoutShell>
+    <AdminThemeProvider>
+      <AdminLayoutShell
+        adminDisplayName={profile.adminDisplayName}
+        adminEmail={profile.adminEmail}
+        workspaceSlug={workspaceSlug}
+      >
+        {children}
+      </AdminLayoutShell>
+    </AdminThemeProvider>
   );
 }

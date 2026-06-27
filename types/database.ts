@@ -43,6 +43,10 @@ export type Company = {
   subscription_started_at?: string | null;
   subscription_expires_at?: string | null;
   next_billing_date?: string | null;
+  /** Admin can waive the one-time workspace setup fee for this company. */
+  setup_fee_waived?: boolean;
+  /** Set when the workspace setup fee has been collected. */
+  setup_fee_paid_at?: string | null;
   paystack_customer_code?: string | null;
   paystack_subscription_code?: string | null;
   /** Public production URL for launched company website. */

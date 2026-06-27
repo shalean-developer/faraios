@@ -23,13 +23,11 @@ export default async function AutomationsPage({ params }: Props) {
   const workflows = await listWorkflows(row.id);
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <CompanyAutomationsClient
-        slug={slug}
-        company={row}
-        workflows={workflows}
-        summary={summarizeWorkflows(workflows)}
-      />
-    </div>
+    <CompanyAutomationsClient
+      slug={slug}
+      company={row}
+      workflows={workflows}
+      summary={summarizeWorkflows(workflows)}
+    />
   );
 }

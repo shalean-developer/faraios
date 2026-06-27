@@ -1,3 +1,5 @@
+import { ADMIN_CROSS_TENANT_AGENCY_PATH_PREFIXES } from "@/lib/constants/agency-workspace-nav";
+
 /** Primary admin landing page. */
 export const ADMIN_HOME_PATH = "/admin";
 
@@ -20,6 +22,7 @@ export type AdminInfrastructureNavKey =
   | "websites"
   | "seo"
   | "domains"
+  | "hosting"
   | "apiUsage"
   | "emails"
   | "cron";
@@ -60,6 +63,7 @@ export const ADMIN_INFRASTRUCTURE_NAV: {
   { key: "websites", label: "Websites", href: "/admin/websites" },
   { key: "seo", label: "SEO Platform", href: "/admin/seo" },
   { key: "domains", label: "Domains", href: "/admin/domains" },
+  { key: "hosting", label: "Hosting", href: "/admin/hosting" },
   { key: "apiUsage", label: "API Usage", href: "/admin/api-usage" },
   { key: "emails", label: "Emails", href: "/admin/emails" },
   { key: "cron", label: "Cron Jobs", href: "/admin/cron" },
@@ -97,6 +101,25 @@ export const ADMIN_SYSTEM_NAV: {
   { key: "settings", label: "Platform Settings", href: "/admin/settings" },
 ];
 
+export type AdminNavMode = "platform" | "workspace";
+
+/** Admin routes that remain platform-scoped (not workspace alternatives). */
+export const ADMIN_PLATFORM_ONLY_NAV_GROUPS = [
+  ADMIN_PLATFORM_NAV,
+  ADMIN_INFRASTRUCTURE_NAV,
+  ADMIN_OPERATIONS_NAV,
+  ADMIN_INTERNAL_NAV,
+  ADMIN_SYSTEM_NAV,
+] as const;
+
+export { ADMIN_CROSS_TENANT_AGENCY_PATH_PREFIXES };
+
+export function isAdminCrossTenantAgencyPath(pathname: string): boolean {
+  return ADMIN_CROSS_TENANT_AGENCY_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
 /** @deprecated Legacy primary nav — use sectioned nav constants above. */
 export const ADMIN_PRIMARY_NAV = [
   { key: "dashboard" as const, label: "Dashboard", href: ADMIN_HOME_PATH },
@@ -114,6 +137,7 @@ export function resolveAdminNavKey(pathname: string): AdminNavKey {
   if (pathname.startsWith("/admin/websites")) return "websites";
   if (pathname.startsWith("/admin/seo")) return "seo";
   if (pathname.startsWith("/admin/domains")) return "domains";
+  if (pathname.startsWith("/admin/hosting")) return "hosting";
   if (pathname.startsWith("/admin/api-usage")) return "apiUsage";
   if (pathname.startsWith("/admin/emails")) return "emails";
   if (pathname.startsWith("/admin/cron")) return "cron";

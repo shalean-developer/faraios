@@ -1,4 +1,6 @@
+import { getDefaultHostingProviderSlug } from "@/lib/hosting/constants";
 import { cloudflarePagesHostingProvider } from "./cloudflare-pages";
+import { pleskHostingProvider } from "./plesk";
 import type { HostingProvider, HostingProviderSlug } from "./types";
 import { vercelHostingProvider } from "./vercel";
 
@@ -15,6 +17,7 @@ export type {
 } from "./types";
 
 const providers: Record<HostingProviderSlug, HostingProvider> = {
+  plesk: pleskHostingProvider,
   vercel: vercelHostingProvider,
   cloudflare_pages: cloudflarePagesHostingProvider,
   netlify: vercelHostingProvider, // placeholder
@@ -25,9 +28,9 @@ export function getHostingProvider(slug: HostingProviderSlug | string | null): H
   if (slug && slug in providers) {
     return providers[slug as HostingProviderSlug];
   }
-  return vercelHostingProvider;
+  return providers[getDefaultHostingProviderSlug()];
 }
 
 export function listHostingProviders(): HostingProvider[] {
-  return [vercelHostingProvider, cloudflarePagesHostingProvider];
+  return [pleskHostingProvider, vercelHostingProvider, cloudflarePagesHostingProvider];
 }

@@ -9,23 +9,20 @@ import {
   LineChart,
   Link2,
   Plus,
+  Rocket,
   Server,
-  Wrench,
 } from "lucide-react";
 
 import { PreviewWebsiteButton } from "@/components/websites/preview-website-button";
 import { BookingWidgetInstallSummary } from "@/components/company/booking-widget-install-summary";
 import { WebsiteSetupChecklistPanel } from "@/components/websites/website-setup-checklist";
+import { websiteOverviewHubItems, type WebsiteSubNavKey } from "@/lib/constants/company-nav";
 import {
-  companyHostingPath,
-  companyProjectPath,
-  companyWebsiteApiKeysPath,
   companyWebsiteBuilderPath,
   companyWebsiteConnectionPath,
   companyWebsiteCreatePath,
   companyWebsiteDomainsPath,
   companyWebsiteEditPath,
-  companyWebsiteTrackingPath,
 } from "@/lib/paths/company";
 import type { BusinessWebProperty, WebsiteHubSummary } from "@/lib/services/business-websites";
 import type { WebsiteSetupChecklist } from "@/lib/services/website-checklist";
@@ -37,6 +34,44 @@ import { cn } from "@/lib/utils";
 import type { ConnectedWebsite, HostingSubscription, Website } from "@/types/database";
 import type { WebsiteDomain } from "@/types/website-engine";
 
+const riseCardClassName = "rounded-xl border border-slate-200 bg-white shadow-sm";
+const riseOutlineButtonClassName =
+  "inline-flex h-9 shrink-0 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50";
+const risePrimaryButtonClassName =
+  "inline-flex h-9 shrink-0 items-center gap-2 rounded-md bg-[#5a8dee] px-3 text-sm font-medium text-white transition hover:bg-[#4a7de0]";
+
+const HUB_LINK_ICONS: Record<
+  WebsiteSubNavKey,
+  React.ComponentType<{ className?: string; strokeWidth?: number }>
+> = {
+  overview: Globe,
+  builder: Hammer,
+  "builder-pages": Globe,
+  "builder-page-builder": Hammer,
+  "builder-templates": Globe,
+  "builder-components": Globe,
+  "builder-theme": Globe,
+  "builder-media": Globe,
+  "builder-navigation": Globe,
+  "builder-service-pages": Globe,
+  "builder-contact": Globe,
+  "builder-booking": Globe,
+  "builder-seo": Globe,
+  "builder-blog": Globe,
+  "builder-analytics": LineChart,
+  "builder-settings": Globe,
+  "builder-publish": Globe,
+  "builder-domains": Globe,
+  "builder-enquiries": Globe,
+  connection: Link2,
+  domains: Globe,
+  "api-keys": Key,
+  tracking: LineChart,
+  hosting: Rocket,
+  billing: Server,
+  project: Hammer,
+};
+
 type TrackingEvent = {
   id: string;
   event_type: string;
@@ -46,27 +81,118 @@ type TrackingEvent = {
   created_at: string;
 };
 
-function SectionCard({
+function WidgetHeader({
   title,
   description,
-  children,
-  className,
+  action,
 }: {
   title: string;
   description?: string;
-  children: React.ReactNode;
-  className?: string;
+  action?: React.ReactNode;
 }) {
   return (
-    <section
-      className={cn("overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm", className)}
-    >
-      <div className="border-b border-slate-100 px-5 py-4">
-        <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
-        {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
+    <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <div>
+        <h2 className="text-sm font-medium text-slate-700">{title}</h2>
+        {description ? <p className="mt-0.5 text-sm text-slate-500">{description}</p> : null}
       </div>
-      <div className="p-5">{children}</div>
-    </section>
+      {action}
+    </div>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  hint,
+  capitalize,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  capitalize?: boolean;
+}) {
+  return (
+    <div className="min-w-[10.5rem] flex-1 rounded-xl border border-slate-200 bg-white p-4 sm:min-w-[11rem] lg:min-w-0">
+      <p className="text-xs font-semibold leading-tight text-slate-500">{label}</p>
+      <p
+        className={cn(
+          "mt-3 truncate text-2xl font-bold tracking-tight text-slate-900",
+          capitalize && "text-lg capitalize"
+        )}
+      >
+        {value}
+      </p>
+      {hint ? <p className="mt-1 truncate text-xs font-medium text-slate-400">{hint}</p> : null}
+    </div>
+  );
+}
+
+function HubLinkTile({
+  href,
+  icon: Icon,
+  label,
+  description,
+}: {
+  href: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  label: string;
+  description?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-slate-300 hover:shadow-md"
+    >
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 group-hover:bg-[#eef2ff] group-hover:text-[#4a6fd8]">
+        <Icon className="h-4 w-4" strokeWidth={1.75} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="line-clamp-2 text-sm font-medium leading-snug text-slate-800">{label}</p>
+        {description ? (
+          <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-slate-500">{description}</p>
+        ) : null}
+      </div>
+      <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300 group-hover:text-[#4a6fd8]" />
+    </Link>
+  );
+}
+
+function PathCard({
+  href,
+  icon: Icon,
+  title,
+  description,
+  featured,
+}: {
+  href: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  title: string;
+  description: string;
+  featured?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "group flex items-start gap-4 rounded-xl border bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-md",
+        featured ? "border-[#5a8dee]/40 ring-1 ring-[#5a8dee]/10" : "border-slate-200"
+      )}
+    >
+      <div
+        className={cn(
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+          featured ? "bg-[#eef2ff] text-[#4a6fd8]" : "bg-slate-100 text-slate-600"
+        )}
+      >
+        <Icon className="h-5 w-5" strokeWidth={1.75} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="line-clamp-2 font-medium leading-snug text-slate-800">{title}</p>
+        <p className="mt-0.5 line-clamp-2 text-sm leading-snug text-slate-500">{description}</p>
+      </div>
+      <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-[#4a6fd8]" />
+    </Link>
   );
 }
 
@@ -119,206 +245,168 @@ export function CompanyWebsitesClient({
     },
   ];
 
-  const quickLinks = [
-    { href: companyWebsiteConnectionPath(slug), label: "Connection", icon: Link2 },
-    { href: companyWebsiteDomainsPath(slug), label: "Domains", icon: Globe },
-    { href: companyWebsiteApiKeysPath(slug), label: "API keys", icon: Key },
-    { href: companyWebsiteTrackingPath(slug), label: "Tracking", icon: LineChart },
-    ...(hasWebsiteProject
-      ? [{ href: companyProjectPath(slug), label: "Website build", icon: Wrench }]
-      : []),
-    { href: companyHostingPath(slug), label: "Subscription", icon: Server },
-  ];
+  const hubLinks = websiteOverviewHubItems(slug, { hasWebsiteProject });
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
-            Website
-          </p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Overview</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Connect an external site, host on FaraiOS, or track a done-for-you build — domains,
-            API keys, and analytics live in one hub.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href={companyWebsiteCreatePath(slug)}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="h-4 w-4" />
-            Create website
-          </Link>
-          <Link
-            href={companyWebsiteDomainsPath(slug)}
-            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Manage domains
-          </Link>
-        </div>
-      </header>
-
-      <div className="mb-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {statCards.map((card) => (
-          <div
-            key={card.label}
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-          >
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              {card.label}
+    <div className="bg-[#f0f2f5] px-4 py-4 sm:px-5 sm:py-5">
+      <div className={riseCardClassName}>
+        <div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg font-medium text-slate-800">Websites</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Connect an external site, host on FaraiOS, or track a done-for-you build — domains,
+              API keys, and analytics live in one hub.
             </p>
-            <p
-              className={cn(
-                "mt-2 text-2xl font-bold text-slate-900",
-                card.capitalize && "text-lg capitalize"
-              )}
-            >
-              {card.value}
-            </p>
-            {card.hint ? (
-              <p className="mt-1 truncate text-xs text-slate-400">{card.hint}</p>
-            ) : null}
           </div>
+          <div className="flex shrink-0 flex-row flex-nowrap items-center gap-2">
+            <Link href={companyWebsiteDomainsPath(slug)} className={riseOutlineButtonClassName}>
+              Manage domains
+            </Link>
+            <Link href={companyWebsiteCreatePath(slug)} className={risePrimaryButtonClassName}>
+              <Plus className="h-4 w-4" strokeWidth={1.75} />
+              Create website
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-nowrap gap-4 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {statCards.map((card) => (
+          <MetricCard key={card.label} {...card} />
         ))}
       </div>
 
-      <section className="mb-8">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Choose your path
-        </p>
-        <div className="grid gap-3 lg:grid-cols-3">
-          <a
-            href={companyWebsiteConnectionPath(slug)}
-            className="group flex items-start gap-4 rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50/70 to-white p-4 shadow-sm transition-shadow hover:shadow-md"
-          >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
-              <Link2 className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-slate-900">Custom site</p>
-              <p className="mt-0.5 text-sm text-slate-500">
-                Connect your existing website with booking widget and tracking.
-              </p>
-            </div>
-            <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-violet-400 transition-transform group-hover:translate-x-0.5" />
-          </a>
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <PathCard
+          href={companyWebsiteConnectionPath(slug)}
+          icon={Link2}
+          title="Custom site"
+          description="Connect your existing website with booking widget and tracking."
+          featured
+        />
+        <PathCard
+          href={companyWebsiteCreatePath(slug)}
+          icon={Globe}
+          title="Hosted on FaraiOS"
+          description="Launch a template-based site managed in your dashboard."
+        />
+        <PathCard
+          href={companyWebsiteBuilderPath(slug)}
+          icon={Hammer}
+          title="Website builder"
+          description="Generate a landing page, contact form, and booking button from your profile."
+        />
+      </div>
 
-          <Link
-            href={companyWebsiteCreatePath(slug)}
-            className="group flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
-          >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-              <Globe className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-slate-900">Hosted on FaraiOS</p>
-              <p className="mt-0.5 text-sm text-slate-500">
-                Launch a template-based site managed in your dashboard.
-              </p>
-            </div>
-            <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5" />
-          </Link>
-
-          <Link
-            href={companyWebsiteBuilderPath(slug)}
-            className="group flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
-          >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
-              <Hammer className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-slate-900">Website builder</p>
-              <p className="mt-0.5 text-sm text-slate-500">
-                Generate a landing page, contact form, and booking button from your profile.
-              </p>
-            </div>
-            <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-violet-400 transition-transform group-hover:translate-x-0.5" />
-          </Link>
+      <section className={cn("mt-4", riseCardClassName)}>
+        <WidgetHeader
+          title="Website hub"
+          description="Connection, domains, API keys, tracking, deployments, and hosting."
+        />
+        <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-3">
+          {hubLinks.map((item) => {
+            const Icon = HUB_LINK_ICONS[item.key] ?? Globe;
+            return (
+              <HubLinkTile
+                key={item.key}
+                href={item.href}
+                icon={Icon}
+                label={item.label}
+                description={item.description}
+              />
+            );
+          })}
         </div>
       </section>
 
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-8">
-          <SectionCard
-            title="Hosted websites"
-            description="FaraiOS-managed sites created from your workspace templates."
-          >
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-stretch">
+        <div className="flex h-full flex-col gap-4">
+          <section className={riseCardClassName}>
+            <WidgetHeader
+              title="Hosted websites"
+              description="FaraiOS-managed sites created from your workspace templates."
+            />
             {websites.length ? (
-              <div className="-mx-5 -mb-5 overflow-hidden">
-                <div className="hidden gap-3 border-b border-slate-100 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid md:grid-cols-[1.2fr_0.8fr_1fr_auto_auto]">
-                  <span>Name</span>
-                  <span>Industry</span>
-                  <span>Status</span>
-                  <span className="text-right">Edit</span>
-                  <span className="text-right">Preview</span>
-                </div>
-                {websites.map((website) => (
-                  <div
-                    key={website.id}
-                    className="border-b border-slate-100 px-5 py-3 text-sm last:border-b-0 md:grid md:grid-cols-[1.2fr_0.8fr_1fr_auto_auto] md:items-center md:gap-3"
-                  >
-                    <span className="font-medium text-slate-900">{website.name}</span>
-                    <span className="text-slate-600">{website.industry}</span>
-                    <span className="capitalize text-slate-600">{website.status}</span>
-                    <span className="mt-2 text-right md:mt-0">
-                      <Link
-                        href={companyWebsiteEditPath(slug, website.id)}
-                        className="font-medium text-violet-700 hover:text-violet-900"
-                      >
-                        Edit
-                      </Link>
-                    </span>
-                    <span className="mt-2 flex justify-end md:mt-0">
-                      <PreviewWebsiteButton websiteId={website.id} domain={website.domain} />
-                    </span>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-left text-xs font-medium text-slate-500">
+                      <th className="px-4 py-3 sm:px-5">Name</th>
+                      <th className="px-4 py-3">Industry</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3 text-right">Edit</th>
+                      <th className="px-4 py-3 text-right sm:pr-5">Preview</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {websites.map((website) => (
+                      <tr key={website.id} className="transition hover:bg-slate-50/80">
+                        <td className="px-4 py-3 font-medium text-slate-800 sm:px-5">
+                          {website.name}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">{website.industry}</td>
+                        <td className="px-4 py-3 capitalize text-slate-600">{website.status}</td>
+                        <td className="px-4 py-3 text-right">
+                          <Link
+                            href={companyWebsiteEditPath(slug, website.id)}
+                            className="font-medium text-[#4a6fd8] hover:underline"
+                          >
+                            Edit
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-right sm:pr-5">
+                          <PreviewWebsiteButton websiteId={website.id} domain={website.domain} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-8 text-center">
-                <p className="text-sm text-slate-600">No hosted websites yet.</p>
-                <Link
-                  href={companyWebsiteCreatePath(slug)}
-                  className="mt-4 inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-                >
+              <div className="px-4 py-10 text-center sm:px-5">
+                <p className="text-sm text-slate-500">No hosted websites yet.</p>
+                <Link href={companyWebsiteCreatePath(slug)} className={cn(risePrimaryButtonClassName, "mt-4")}>
+                  <Plus className="h-4 w-4" strokeWidth={1.75} />
                   Create your first site
                 </Link>
               </div>
             )}
-          </SectionCard>
+          </section>
 
-          <SectionCard
-            title="External website"
-            description="Connect a custom site with booking widget, tracking, and API integration."
-          >
-            <p className="text-sm text-slate-600">
-              {connectedWebsite?.production_url
-                ? `Connected to ${connectedWebsite.production_url}`
-                : "No external website connected yet."}
-            </p>
-            <Link
-              href={companyWebsiteConnectionPath(slug)}
-              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-violet-700 hover:text-violet-900"
-            >
-              Manage connection
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </SectionCard>
+          <section className={cn(riseCardClassName, "flex flex-1 flex-col")}>
+            <WidgetHeader
+              title="External website"
+              description="Connect a custom site with booking widget, tracking, and API integration."
+            />
+            <div className="flex flex-1 flex-col px-4 py-4 sm:px-5">
+              <p className="text-sm text-slate-600">
+                {connectedWebsite?.production_url
+                  ? `Connected to ${connectedWebsite.production_url}`
+                  : "No external website connected yet."}
+              </p>
+              <Link
+                href={companyWebsiteConnectionPath(slug)}
+                className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#4a6fd8] hover:underline"
+              >
+                Manage connection
+                <ArrowRight className="h-4 w-4" strokeWidth={1.75} />
+              </Link>
+            </div>
+          </section>
         </div>
 
-        <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 className="font-semibold text-slate-900">Connection status</h3>
-            <dl className="mt-4 space-y-3 text-sm">
+        <aside className="flex min-h-0 flex-col xl:h-full">
+          <section className={cn(riseCardClassName, "flex h-full min-h-0 flex-1 flex-col")}>
+            <WidgetHeader title="Connection status" />
+            <div className="flex flex-1 flex-col px-4 py-4 sm:px-5">
+              <dl className="space-y-3 text-sm">
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-slate-500">Website</dt>
                 <dd>
                   {properties[0] ? (
                     <span
                       className={cn(
-                        "rounded-full px-2 py-0.5 text-xs font-semibold capitalize",
+                        "rounded-full px-2 py-0.5 text-xs font-semibold capitalize ring-1 ring-inset",
                         connectionStatusColor(properties[0].status)
                       )}
                     >
@@ -353,13 +441,11 @@ export function CompanyWebsitesClient({
                   {connectedWebsite?.tracking_enabled !== false ? "On" : "Off"}
                 </dd>
               </div>
-            </dl>
+              </dl>
 
             {recentEvents.length > 0 ? (
-              <div className="mt-4 border-t border-slate-100 pt-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Recent activity
-                </p>
+              <div className="mt-auto border-t border-slate-100 pt-4">
+                <p className="text-xs font-medium text-slate-500">Recent activity</p>
                 <ul className="mt-2 space-y-1.5 text-xs text-slate-600">
                   {recentEvents.map((event) => (
                     <li key={event.id} className="flex justify-between gap-2">
@@ -372,37 +458,21 @@ export function CompanyWebsitesClient({
                 </ul>
               </div>
             ) : null}
-          </div>
-
-          <WebsiteSetupChecklistPanel checklist={checklist} />
-
-          {!checklist.items.find((item) => item.key === "booking_widget")?.done ? (
-            <BookingWidgetInstallSummary
-              companySlug={slug}
-              businessId={companyId}
-              formPublished={checklist.items.find((item) => item.key === "booking_form")?.done}
-            />
-          ) : null}
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-900">Quick links</h3>
-            <ul className="mt-3 space-y-1">
-              {quickLinks.map(({ href, label, icon: Icon }) => (
-                <li key={href}>
-                  <Link
-                    href={href}
-                    className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-violet-800"
-                  >
-                    <Icon className="h-4 w-4 shrink-0 text-slate-400" />
-                    {label}
-                    <ArrowRight className="ml-auto h-3.5 w-3.5 text-slate-300" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+            </div>
+          </section>
         </aside>
       </div>
+
+      <WebsiteSetupChecklistPanel checklist={checklist} layout="horizontal" className="mt-4" />
+
+      {!checklist.items.find((item) => item.key === "booking_widget")?.done ? (
+        <BookingWidgetInstallSummary
+          companySlug={slug}
+          businessId={companyId}
+          formPublished={checklist.items.find((item) => item.key === "booking_form")?.done}
+          className="mt-4"
+        />
+      ) : null}
     </div>
   );
 }

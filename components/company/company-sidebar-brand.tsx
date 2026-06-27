@@ -20,6 +20,7 @@ export function CompanySidebarBrand({
   onToggle,
   searchQuery,
   onSearchChange,
+  hideBrand = false,
 }: {
   slug: string;
   companyName: string;
@@ -29,6 +30,7 @@ export function CompanySidebarBrand({
   onToggle?: () => void;
   searchQuery: string;
   onSearchChange: (value: string) => void;
+  hideBrand?: boolean;
 }) {
   const planLabel = planLabelForSlug(normalizePlanSlug(planSlug));
   const avatarGradient = workspaceAvatarGradient(slug);
@@ -54,23 +56,33 @@ export function CompanySidebarBrand({
   if (collapsed) {
     return (
       <div className="flex shrink-0 flex-col items-center gap-1 border-b border-slate-200 px-2 py-2">
-        <Link
-          href={companyDashboardPath(slug)}
-          className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br text-xs font-semibold text-white shadow-sm",
-            avatarGradient
-          )}
-          aria-label="Workspace home"
-          title={companyName}
-        >
-          {initial}
-        </Link>
+        {!hideBrand ? (
+          <Link
+            href={companyDashboardPath(slug)}
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br text-xs font-semibold text-white shadow-sm",
+              avatarGradient
+            )}
+            aria-label="Workspace home"
+            title={companyName}
+          >
+            {initial}
+          </Link>
+        ) : null}
         {toggleButton}
         <CompanySidebarSearch
           value={searchQuery}
           onChange={onSearchChange}
           collapsed
         />
+      </div>
+    );
+  }
+
+  if (hideBrand) {
+    return (
+      <div className="shrink-0 border-b border-slate-200">
+        <CompanySidebarSearch value={searchQuery} onChange={onSearchChange} />
       </div>
     );
   }

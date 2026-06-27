@@ -19,7 +19,7 @@ import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = {
-  title: "SEO — FaraiOS",
+  title: "SEO dashboard — FaraiOS",
   robots: { index: false, follow: false },
 };
 
@@ -79,29 +79,19 @@ export default async function CompanySeoPage({ params }: Props) {
   ]);
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">Growth</p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">SEO dashboard</h1>
-        <p className="mt-2 text-sm text-slate-500">
-          Manage local SEO, meta tags, service area pages, schema readiness, and V10 enterprise tools.
-        </p>
-      </header>
-
-      <SeoDashboardClient
-        slug={slug}
-        companyId={row.id}
-        companyName={row.name}
-        audit={audit}
-        localSeo={localSeo}
-        websites={websites}
-        serviceAreaPages={serviceAreaPages}
-        searchConsoleConnection={searchConsoleConnection}
-        searchConsoleMetrics={searchConsoleMetrics}
-        searchConsoleConfigured={await isSearchConsoleOAuthConfigured()}
-        v10={v10}
-      />
-    </div>
+    <SeoDashboardClient
+      slug={slug}
+      companyId={row.id}
+      companyName={row.name}
+      audit={audit}
+      localSeo={localSeo}
+      websites={websites}
+      serviceAreaPages={serviceAreaPages}
+      searchConsoleConnection={searchConsoleConnection}
+      searchConsoleMetrics={searchConsoleMetrics}
+      searchConsoleConfigured={await isSearchConsoleOAuthConfigured()}
+      v10={v10}
+    />
   );
 }
 

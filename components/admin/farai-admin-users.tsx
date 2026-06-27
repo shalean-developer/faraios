@@ -2,11 +2,20 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Search, Shield, Sparkles, UserCheck, Users } from "lucide-react";
 
 import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
 import { ADMIN_BUSINESSES_PATH } from "@/lib/constants/admin-nav";
+import {
+  riseInputClassName,
+  riseSelectClassName,
+  riseStatCardClassName,
+  riseTableClassName,
+  riseTableHeadRowClassName,
+} from "@/lib/ui/rise-dashboard-styles";
 import type { AdminPlatformUserRow, AdminPlatformUserStats } from "@/types/admin";
 
 const fadeUp = {
@@ -32,7 +41,9 @@ export function FaraiAdminUsers({
   users: AdminPlatformUserRow[];
   stats: AdminPlatformUserStats;
 }) {
-  const [search, setSearch] = useState("");
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get("q") ?? "";
+  const [search, setSearch] = useState(initialSearch);
   const [roleFilter, setRoleFilter] = useState<"all" | "owner" | "member">("all");
 
   const filtered = useMemo(() => {
@@ -85,40 +96,39 @@ export function FaraiAdminUsers({
   ];
 
   return (
-    <>
-      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white px-6 shadow-sm">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-lg font-extrabold tracking-tight text-gray-900">Users</h1>
-          <p className="mt-0.5 text-xs text-gray-400">Platform users across all businesses</p>
-        </div>
-        <div className="relative w-56 shrink-0">
-          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search users..."
-            className="w-full rounded-xl border border-gray-100 bg-gray-50 py-2 pl-9 pr-4 text-xs font-medium text-gray-700 outline-none focus:border-indigo-300 focus:bg-white"
-          />
-        </div>
-        <select
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value as typeof roleFilter)}
-          className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs font-medium text-gray-700 outline-none focus:border-indigo-300"
-        >
-          <option value="all">All roles</option>
-          <option value="owner">Owners</option>
-          <option value="member">Members</option>
-        </select>
-        <AdminActivityBellLink />
-      </header>
-
-      <main className="flex-1 overflow-y-auto px-6 py-6">
+    <AdminPageShell
+      title="Users"
+      description="Platform users across all businesses"
+      actions={
+        <>
+          <div className="relative w-56 shrink-0">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search users..."
+              className={`${riseInputClassName} w-full py-2 pl-9 pr-4`}
+            />
+          </div>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value as typeof roleFilter)}
+            className={riseSelectClassName}
+          >
+            <option value="all">All roles</option>
+            <option value="owner">Owners</option>
+            <option value="member">Members</option>
+          </select>
+          <AdminActivityBellLink />
+        </>
+      }
+    >
         <motion.div
           initial="hidden"
           animate="visible"
           variants={stagger}
-          className="mx-auto max-w-7xl space-y-5"
+          className="space-y-5"
         >
           <motion.div variants={fadeUp} className="grid grid-cols-2 gap-4 xl:grid-cols-4">
             {statCards.map((stat) => {
@@ -126,7 +136,7 @@ export function FaraiAdminUsers({
               return (
                 <div
                   key={stat.label}
-                  className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm"
+                  className={riseStatCardClassName}
                 >
                   <div className="mb-3 flex items-center justify-between">
                     <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${stat.bg}`}>
@@ -144,9 +154,9 @@ export function FaraiAdminUsers({
 
           <motion.div
             variants={fadeUp}
-            className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+            className={riseTableClassName}
           >
-            <div className="border-b border-gray-50 px-6 py-4">
+            <div className="border-b border-slate-100 px-6 py-4">
               <h2 className="text-sm font-bold text-gray-900">All users</h2>
               <p className="mt-0.5 text-xs text-gray-400">
                 {filtered.length} user{filtered.length === 1 ? "" : "s"} found
@@ -158,7 +168,7 @@ export function FaraiAdminUsers({
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[760px]">
                   <thead>
-                    <tr className="border-b border-gray-50 bg-gray-50/80">
+                    <tr className={riseTableHeadRowClassName}>
                       <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">
                         User
                       </th>
@@ -236,7 +246,6 @@ export function FaraiAdminUsers({
             )}
           </motion.div>
         </motion.div>
-      </main>
-    </>
+    </AdminPageShell>
   );
 }

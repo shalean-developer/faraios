@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import type { PaymentMethodSettingKey } from "@/lib/financial/payment-methods";
 import { requireCompanyPermission } from "@/lib/services/company-access";
 import { upsertPaymentSettings } from "@/lib/services/payment-settings";
 import type { DepositType } from "@/lib/financial/status";
@@ -25,14 +26,18 @@ export async function updatePaymentSettingsAction(input: {
   eftAccountNumber?: string;
   eftBranchCode?: string;
   eftReferencePrefix?: string;
-  paystackEnabled: boolean;
-  eftEnabled: boolean;
+  paymentMethods: Record<PaymentMethodSettingKey, boolean>;
 }): Promise<PaymentSettingsActionResult> {
   const access = await requireCompanyPermission(input.companyId, "manage_settings");
   if (!access.ok) return access;
 
   if (input.defaultDepositValue < 0) {
     return { ok: false, error: "Deposit value cannot be negative." };
+  }
+
+  const enabledCount = Object.values(input.paymentMethods).filter(Boolean).length;
+  if (enabledCount === 0) {
+    return { ok: false, error: "Enable at least one payment method." };
   }
 
   const result = await upsertPaymentSettings({
@@ -44,8 +49,7 @@ export async function updatePaymentSettingsAction(input: {
     eftAccountNumber: input.eftAccountNumber,
     eftBranchCode: input.eftBranchCode,
     eftReferencePrefix: input.eftReferencePrefix,
-    paystackEnabled: input.paystackEnabled,
-    eftEnabled: input.eftEnabled,
+    paymentMethods: input.paymentMethods,
   });
 
   if (!result.ok) {

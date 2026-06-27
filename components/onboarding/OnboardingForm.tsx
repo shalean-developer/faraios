@@ -20,6 +20,7 @@ import {
   type PricingPlanSlug,
 } from "@/lib/data/pricing";
 import { getSmartDefaultsForIndustrySlug } from "@/lib/constants/industry-defaults";
+import { companyBillingPath } from "@/lib/paths/company";
 import { PAGE_OPTIONS_VISIBLE, syncBlogPageWithFeatures } from "@/lib/constants/onboarding-pages";
 import {
   canAddPageToPlan,
@@ -301,8 +302,12 @@ export function OnboardingForm({
         return;
       }
       if (redirectAfter === "hosting") {
-        const planQuery = hostingPlan ? `?plan=${encodeURIComponent(hostingPlan)}` : "";
-        router.push(`/${encodeURIComponent(result.slug)}/dashboard/hosting${planQuery}`);
+        router.push(
+          companyBillingPath(result.slug, {
+            tab: "hosting",
+            plan: hostingPlan ?? undefined,
+          })
+        );
       } else {
         router.push(`/${encodeURIComponent(result.slug)}/dashboard/billing`);
       }

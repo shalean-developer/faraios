@@ -23,7 +23,7 @@ function AccessDenied({ slug }: { slug: string }) {
     <main className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Access denied</h1>
       <p className="mt-2 text-sm text-slate-500">Please sign in to view support tickets.</p>
-      <Link href="/auth/sign-in" className="mt-6 inline-block text-sm font-medium text-violet-700">
+      <Link href="/auth/sign-in" className="mt-6 inline-block text-sm font-medium text-[#4a6fd8]">
         Go to sign in
       </Link>
       <Link href={companyDashboardPath(slug)} className="mt-3 block text-sm font-medium text-slate-600">
@@ -51,9 +51,5 @@ export default async function CompanySupportPage({ params }: Props) {
 
   const tickets = await listCompanySupportTickets(row.id);
 
-  return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <CompanySupportClient slug={slug} company={row} tickets={tickets} />
-    </div>
-  );
+  return <CompanySupportClient slug={slug} company={row} tickets={tickets} />;
 }

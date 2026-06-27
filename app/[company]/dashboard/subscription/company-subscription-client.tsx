@@ -8,6 +8,7 @@ import { CheckCircle2, CreditCard, XCircle } from "lucide-react";
 import { changeWorkspacePlan } from "@/app/actions/subscription";
 import { confirmWorkspacePaymentAction } from "@/app/actions/confirm-workspace-payment";
 import { Button } from "@/components/ui/button";
+import { WorkspaceCheckoutSummary } from "@/components/billing/workspace-checkout-summary";
 import {
   formatZar,
   normalizePlanSlug,
@@ -24,6 +25,12 @@ import {
 import { startWorkspacePayment } from "@/lib/subscriptions/start-workspace-payment";
 import { rememberWorkspacePaymentReference } from "@/lib/subscriptions/payment-reference-storage";
 import { cn } from "@/lib/utils";
+import {
+  riseCardClassName,
+  riseOutlineButtonClassName,
+  risePageClassName,
+  risePrimaryButtonClassName,
+} from "@/lib/ui/rise-dashboard-styles";
 import type { CompanyWithIndustry } from "@/types/database";
 import type { SubscriptionPaymentRecord } from "@/lib/services/subscription";
 import type { PaymentConfirmationState } from "@/lib/services/workspace-subscription-verify";
@@ -67,6 +74,7 @@ export function CompanySubscriptionClient({
   const [confirmReference, setConfirmReference] = useState("");
   const [confirmPending, startConfirmTransition] = useTransition();
   const [confirmMessage, setConfirmMessage] = useState<string | null>(null);
+  const [includeSetupFee, setIncludeSetupFee] = useState(true);
 
   const status = normalizeSubscriptionStatus(company.subscription_status);
   const isActive = isActiveSubscriptionStatus(status);
@@ -107,6 +115,7 @@ export function CompanySubscriptionClient({
         companyId: company.id,
         plan: selectedPlan,
         email,
+        includeSetupFee,
       });
       if (!result.ok) {
         setError(result.error);
@@ -170,7 +179,8 @@ export function CompanySubscriptionClient({
   };
 
   return (
-    <div className="space-y-8">
+    <div className={risePageClassName}>
+      <div className="space-y-4">
       {paymentConfirmation.status === "activated" ||
       paymentConfirmation.status === "already_active" ? (
         <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
@@ -200,32 +210,32 @@ export function CompanySubscriptionClient({
         </div>
       ) : null}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
-              Workspace plan
-            </p>
-            <h2 className="mt-1 text-xl font-bold text-slate-900">
-              {planLabelForSlug(currentPlan)} plan
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              {currentPlanRecord
-                ? `${formatZar(currentPlanRecord.monthly_price)}/month`
-                : "Monthly workspace subscription"}
-            </p>
+      <div className={riseCardClassName}>
+        <div className="border-b border-slate-100 px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h1 className="text-lg font-medium text-slate-800">Workspace subscription</h1>
+              <h2 className="mt-1 text-base font-semibold text-slate-900">
+                {planLabelForSlug(currentPlan)} plan
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                {currentPlanRecord
+                  ? `${formatZar(currentPlanRecord.monthly_price)}/month`
+                  : "Monthly workspace subscription"}
+              </p>
+            </div>
+            <span
+              className={cn(
+                "inline-flex self-start rounded-full px-3 py-1 text-xs font-semibold capitalize ring-1 ring-inset",
+                subscriptionBadge(company.subscription_status)
+              )}
+            >
+              {status.replace(/_/g, " ")}
+            </span>
           </div>
-          <span
-            className={cn(
-              "inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ring-1 ring-inset",
-              subscriptionBadge(company.subscription_status)
-            )}
-          >
-            {status.replace(/_/g, " ")}
-          </span>
         </div>
 
-        <dl className="mt-6 grid gap-4 sm:grid-cols-3">
+        <dl className="grid gap-4 p-4 sm:grid-cols-3 sm:p-5">
           <div className="rounded-xl bg-slate-50 p-4">
             <dt className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Renewal date
@@ -255,31 +265,33 @@ export function CompanySubscriptionClient({
             </dd>
           </div>
         </dl>
-      </section>
+      </div>
 
-      <section>
-        <h3 className="text-lg font-bold text-slate-900">Upgrade or change plan</h3>
-        <p className="mt-1 text-sm text-slate-600">
-          Plan changes apply immediately. Payment activates or renews your workspace via
-          Paystack.
-        </p>
-        <div className="mt-6 grid gap-4 lg:grid-cols-3">
+      <section className={riseCardClassName}>
+        <div className="border-b border-slate-100 px-4 py-3 sm:px-5">
+          <h3 className="text-sm font-medium text-slate-700">Upgrade or change plan</h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Plan changes apply immediately. Payment activates or renews your workspace via Paystack.
+          </p>
+        </div>
+        <div className="p-4 sm:p-5">
+        <div className="grid gap-4 lg:grid-cols-3">
           {pricingPlans.map((plan) => (
             <button
               key={plan.id}
               type="button"
               onClick={() => setSelectedPlan(plan.slug)}
               className={cn(
-                "rounded-2xl border p-5 text-left transition",
+                "rounded-xl border p-5 text-left transition",
                 selectedPlan === plan.slug
-                  ? "border-violet-500 bg-violet-50/40 ring-2 ring-violet-200"
+                  ? "border-[#5a8dee] bg-[#eef2ff]/60 ring-2 ring-[#5a8dee]/30"
                   : "border-slate-200 bg-white hover:border-slate-300"
               )}
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="font-bold text-slate-900">{plan.name}</p>
                 {plan.is_popular ? (
-                  <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-violet-700">
+                  <span className="rounded-full bg-[#eef2ff] px-2 py-0.5 text-[10px] font-semibold uppercase text-[#4a6fd8]">
                     Popular
                   </span>
                 ) : null}
@@ -307,10 +319,18 @@ export function CompanySubscriptionClient({
           <p className="mt-4 text-sm text-emerald-700">{planMessage}</p>
         ) : null}
 
+        <WorkspaceCheckoutSummary
+          plan={selectedPlan}
+          company={company}
+          includeSetupFee={includeSetupFee}
+          onIncludeSetupFeeChange={setIncludeSetupFee}
+          className="mt-4"
+        />
+
         <div className="mt-6 flex flex-wrap gap-3">
           <Button
             type="button"
-            className="rounded-xl"
+            className="rounded-md bg-[#5a8dee] hover:bg-[#4a6fd8]"
             disabled={pending}
             onClick={onPay}
           >
@@ -325,24 +345,25 @@ export function CompanySubscriptionClient({
             <Button
               type="button"
               variant="outline"
-              className="rounded-xl"
+              className="rounded-md"
               disabled={planPending}
               onClick={onChangePlanOnly}
             >
               {planPending ? "Updating…" : "Apply plan change"}
             </Button>
           ) : null}
-          <Link
-            href={companyDashboardPath(slug)}
-            className="inline-flex items-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
+          <Link href={companyDashboardPath(slug)} className={riseOutlineButtonClassName}>
             Back to dashboard
           </Link>
         </div>
+        </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-900">Payment history</h3>
+      <section className={riseCardClassName}>
+        <div className="border-b border-slate-100 px-4 py-3 sm:px-5">
+          <h3 className="text-sm font-medium text-slate-700">Payment history</h3>
+        </div>
+        <div className="p-4 sm:p-5">
         {payments.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">No workspace payments recorded yet.</p>
         ) : (
@@ -377,10 +398,11 @@ export function CompanySubscriptionClient({
             </table>
           </div>
         )}
+        </div>
       </section>
 
       {!isActive ? (
-        <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-5">
+        <section className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-5">
           <h3 className="text-sm font-semibold text-slate-900">Already paid?</h3>
           <p className="mt-1 text-sm text-slate-600">
             Paste your Paystack reference to confirm payment and activate this workspace.
@@ -409,16 +431,17 @@ export function CompanySubscriptionClient({
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-5 text-sm text-slate-600">
+      <section className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-5 text-sm text-slate-600">
         <p className="font-semibold text-slate-900">Website hosting is separate</p>
         <p className="mt-1">
-          Custom domain hosting and deployments are billed on the{" "}
-          <Link href={companyHostingPath(slug)} className="font-medium text-violet-700 hover:text-violet-900">
-            hosting plan
+          Custom domain hosting and deployments are billed under{" "}
+          <Link href={companyHostingPath(slug)} className="font-medium text-[#4a6fd8] hover:text-[#3a5fc8]">
+            Billing → Hosting plan
           </Link>
           . This page covers your FaraiOS workspace subscription only.
         </p>
       </section>
+      </div>
     </div>
   );
 }

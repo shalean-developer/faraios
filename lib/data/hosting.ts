@@ -20,7 +20,7 @@ export const hostingPlans: HostingPlanRecord[] = [
     id: "hosting_shared_basic",
     slug: "shared-basic",
     name: "Shared Basic",
-    monthly_price: 49,
+    monthly_price: 69,
     sites_limit: 1,
     bandwidth_limit_gb: 5,
     storage_gb: 5,

@@ -15,6 +15,8 @@ type Props = {
   companyId: string;
   company: SubscriptionCompanyFields;
   billingEmail?: string | null;
+  workspaceSetupFeeEnabled?: boolean;
+  bypass?: boolean;
 };
 
 export function SubscriptionBanner({
@@ -22,7 +24,10 @@ export function SubscriptionBanner({
   companyId,
   company,
   billingEmail,
+  workspaceSetupFeeEnabled = true,
+  bypass = false,
 }: Props) {
+  if (bypass) return null;
   const status = normalizeSubscriptionStatus(company.subscription_status);
 
   if (workspaceNeedsPayment(company)) {
@@ -42,7 +47,10 @@ export function SubscriptionBanner({
             slug={slug}
             companyId={companyId}
             plan={company.plan}
+            company={company}
             billingEmail={billingEmail}
+            setupFeeEnabled={workspaceSetupFeeEnabled}
+            showCheckoutSummary={false}
             className="rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:cursor-not-allowed"
           >
             Complete payment
@@ -69,7 +77,10 @@ export function SubscriptionBanner({
             slug={slug}
             companyId={companyId}
             plan={company.plan}
+            company={company}
             billingEmail={billingEmail}
+            setupFeeEnabled={workspaceSetupFeeEnabled}
+            showCheckoutSummary={false}
             className="rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed"
             pendingLabel="Redirecting…"
           >

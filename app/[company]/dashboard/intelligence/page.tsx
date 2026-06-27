@@ -22,9 +22,5 @@ export default async function CompanyIntelligencePage({ params }: Props) {
 
   const overview = await getIntelligenceOverviewData(row.id);
 
-  return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <CompanyIntelligenceDashboard slug={slug} overview={overview} />
-    </div>
-  );
+  return <CompanyIntelligenceDashboard slug={slug} overview={overview} />;
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-import { companyHostingPath } from "@/lib/paths/company";
+import { companyBillingPath } from "@/lib/paths/company";
 import { replaceClientLocation } from "@/lib/navigation/client-location";
 import {
   clearWorkspacePaymentReference,
@@ -70,7 +70,11 @@ export function HostingPaymentRecovery({
     }
 
     recoveredRef.current = true;
-    const target = `${companyHostingPath(slug)}?payment=success&reference=${encodeURIComponent(storedReference)}`;
+    const target = `${companyBillingPath(slug, {
+      tab: "hosting",
+      payment: "success",
+      reference: storedReference,
+    })}`;
     replaceClientLocation(target);
   }, [companyId, paymentConfirmation.status, slug]);
 

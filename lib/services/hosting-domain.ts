@@ -1,4 +1,5 @@
 import { getHostingProvider } from "@/lib/hosting/providers";
+import { getDefaultHostingProviderSlug } from "@/lib/hosting/constants";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import type { WebsiteDnsRecord, WebsiteDomain, WebsiteDomainType } from "@/types/website-engine";
@@ -131,10 +132,11 @@ export async function provisionCompanyWebsiteDomain(
     return { ok: false, error: "Enter a valid domain." };
   }
 
-  const provider = getHostingProvider(input.hostingProvider ?? "vercel");
+  const provider = getHostingProvider(input.hostingProvider ?? getDefaultHostingProviderSlug());
   const connectResult = await provider.connectDomain({
     providerProjectId: `faraios-${input.companyId.slice(0, 8)}`,
     domain: normalized,
+    companyId: input.companyId,
   });
 
   if (!connectResult.ok) {

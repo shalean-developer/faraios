@@ -100,6 +100,38 @@ export type AdminSearchConsoleIntegrationSettings = {
   source: "env" | "database" | "none";
 };
 
+export type AdminBillingCheckoutMode = "paystack" | "contact-sales" | "managed";
+
+export type AdminBillingServiceRow = {
+  id: string;
+  name: string;
+  priceLabel: string;
+  billingLabel: string;
+  checkout: AdminBillingCheckoutMode;
+};
+
+export type AdminBillingServiceCategory = {
+  key: string;
+  title: string;
+  description: string;
+  rows: AdminBillingServiceRow[];
+};
+
+export type AdminBillingSettings = {
+  paystackConfigured: boolean;
+  paystackSource: "env" | "none";
+  appUrl: string | null;
+  webhookUrl: string | null;
+  hostingWebhookUrl: string | null;
+  workspaceSetupFeeEnabled: boolean;
+  serviceCategories: AdminBillingServiceCategory[];
+  revenue: {
+    mrr: number;
+    activeSubscriptions: number;
+    successfulPayments: number;
+  };
+};
+
 export type AdminNotificationPreferences = {
   emailAlerts: boolean;
   projectUpdates: boolean;
@@ -225,8 +257,11 @@ export type AdminSystemHealth = {
   api: AdminHealthStatus;
   cron: AdminHealthStatus;
   email: AdminHealthStatus;
+  queue: AdminHealthStatus;
+  hosting: AdminHealthStatus;
   websites: AdminHealthStatus;
   domains: AdminHealthStatus;
+  ssl: AdminHealthStatus;
 };
 
 export type AdminPlatformBusinessMetrics = {
@@ -250,14 +285,23 @@ export type AdminPlatformRevenueMetrics = {
   totalRevenue: number;
   activeSubscriptions: number;
   failedPayments: number;
+  churnRatePercent: number;
 };
 
-export type AdminPlatformActivityMetrics = {
-  totalBookings: number;
-  totalLeads: number;
-  totalInvoices: number;
-  totalPayments: number;
-  totalEmailsSent: number;
+export type AdminPlatformInfrastructureMetrics = {
+  pipelineInProgress: number;
+  pipelineInReview: number;
+  pipelinePending: number;
+  pendingHostingOrders: number;
+  failedHostingOrders: number;
+  pendingAutomationJobs: number;
+  failedAutomationJobs: number;
+};
+
+export type AdminPlatformMarketplaceMetrics = {
+  activeListings: number;
+  featuredListings: number;
+  marketplaceBookings30d: number;
 };
 
 export type AdminOverviewBusinessRow = {
@@ -295,12 +339,15 @@ export type AdminPlatformOverviewMetrics = {
   businesses: AdminPlatformBusinessMetrics;
   users: AdminPlatformUserMetrics;
   revenue: AdminPlatformRevenueMetrics;
-  activity: AdminPlatformActivityMetrics;
   operations: AdminPlatformOperationsMetrics;
   systemHealth: AdminSystemHealth;
+  infrastructure: AdminPlatformInfrastructureMetrics;
+  marketplace: AdminPlatformMarketplaceMetrics;
+  businessGrowthTrend: AdminAnalyticsPoint[];
   recentBusinesses: AdminOverviewBusinessRow[];
   recentOpenTickets: AdminOverviewTicketRow[];
   topFeatureRequests: AdminOverviewFeatureRequestRow[];
+  recentAuditEvents: AdminAuditLogRow[];
   pipelineStats: AdminProjectStats;
 };
 
@@ -365,6 +412,7 @@ export type AdminBusinessDetail = {
   name: string;
   industry: string;
   plan: string;
+  workspacePlanSlug: string;
   platformStatus: AdminPlatformStatus;
   subscriptionStatus: string;
   contactName: string;
@@ -374,6 +422,8 @@ export type AdminBusinessDetail = {
   joined: string;
   hostingStatus: string | null;
   nextBillingDate: string | null;
+  setupFeeWaived: boolean;
+  setupFeePaidAt: string | null;
   note: string | null;
   recentPayments: AdminRevenueTransaction[];
   members: AdminBusinessMember[];

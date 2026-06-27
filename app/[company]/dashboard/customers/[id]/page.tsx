@@ -11,6 +11,7 @@ import { CompanyCustomerDetailHeader } from "../company-customer-detail-header";
 import { companyCustomersPath } from "@/lib/paths/company";
 import { formatRevenue } from "@/lib/operations/metrics";
 import { invoiceStatusBadgeClass, quoteStatusBadgeClass } from "@/lib/financial/status";
+import { riseCardClassName, risePageClassName } from "@/lib/ui/rise-dashboard-styles";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -57,10 +58,10 @@ export default async function CompanyCustomerDetailPage({ params }: Props) {
   ]);
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
+    <div className={risePageClassName}>
       <Link
         href={companyCustomersPath(slug)}
-        className="text-sm font-medium text-violet-700 hover:text-violet-900"
+        className="text-sm font-medium text-slate-600 hover:text-slate-900"
       >
         ← Back to customers
       </Link>
@@ -71,7 +72,7 @@ export default async function CompanyCustomerDetailPage({ params }: Props) {
         customer={customer}
       />
 
-      <div className="mb-8">
+      <div className={cn(riseCardClassName, "mt-4 p-4")}>
         <div className="flex flex-wrap gap-4 text-sm text-slate-600">
           {customer.email ? <span>{customer.email}</span> : null}
           {customer.phone ? <span>{customer.phone}</span> : null}
@@ -94,9 +95,9 @@ export default async function CompanyCustomerDetailPage({ params }: Props) {
         </div>
       </div>
 
-      <section className="mb-10">
-        <h2 className="text-lg font-bold text-slate-900">Quotes</h2>
-        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="mt-4">
+        <h2 className="mb-3 text-sm font-medium text-slate-700">Quotes</h2>
+        <div className={cn(riseCardClassName, "overflow-hidden")}>
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
@@ -135,9 +136,9 @@ export default async function CompanyCustomerDetailPage({ params }: Props) {
         </div>
       </section>
 
-      <section className="mb-10">
-        <h2 className="text-lg font-bold text-slate-900">Invoices</h2>
-        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="mt-4">
+        <h2 className="mb-3 text-sm font-medium text-slate-700">Invoices</h2>
+        <div className={cn(riseCardClassName, "overflow-hidden")}>
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
@@ -176,9 +177,9 @@ export default async function CompanyCustomerDetailPage({ params }: Props) {
         </div>
       </section>
 
-      <section className="mb-10">
-        <h2 className="text-lg font-bold text-slate-900">Payments</h2>
-        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="mt-4">
+        <h2 className="mb-3 text-sm font-medium text-slate-700">Payments</h2>
+        <div className={cn(riseCardClassName, "overflow-hidden")}>
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
@@ -212,9 +213,9 @@ export default async function CompanyCustomerDetailPage({ params }: Props) {
         </div>
       </section>
 
-      <section>
-        <h2 className="text-lg font-bold text-slate-900">Booking history</h2>
-        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="mt-4">
+        <h2 className="mb-3 text-sm font-medium text-slate-700">Booking history</h2>
+        <div className={cn(riseCardClassName, "overflow-hidden")}>
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">

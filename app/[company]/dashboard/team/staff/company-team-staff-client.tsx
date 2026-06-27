@@ -5,11 +5,17 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useMemo, useState, useTransition } from "react";
 
 import { updateStaffProfileAction } from "@/app/actions/v6-engine";
-import { Button } from "@/components/ui/button";
 import { companyTeamPath } from "@/lib/paths/company";
 import type { CompanyMember } from "@/lib/services/team";
 import { systemRoleLabel } from "@/lib/team/role-display";
 import { buildStaffRows } from "@/lib/team/staff-rows";
+import {
+  riseCardClassName,
+  riseOutlineButtonClassName,
+  risePageClassName,
+  risePrimaryButtonClassName,
+} from "@/lib/ui/rise-dashboard-styles";
+import { cn } from "@/lib/utils";
 import type { CompanyWithIndustry } from "@/types/database";
 import type { StaffProfile } from "@/types/v6-engine";
 
@@ -76,23 +82,22 @@ export function CompanyTeamStaffClient({
   };
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-8">
-        <Link
-          href={companyTeamPath(slug)}
-          className="text-sm font-medium text-slate-500 hover:text-slate-800"
-        >
-          ← Team members
-        </Link>
-        <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-violet-600">
-          Team
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">Staff profiles</h1>
-        <p className="mt-2 max-w-2xl text-sm text-slate-500">
-          Skills, contact details, and availability notes for people who deliver work on
-          bookings and tasks.
-        </p>
-      </header>
+    <div className={risePageClassName}>
+      <div className={cn(riseCardClassName, "mb-4")}>
+        <div className="px-4 py-4">
+          <Link
+            href={companyTeamPath(slug)}
+            className="text-sm font-medium text-slate-500 hover:text-slate-800"
+          >
+            ← Team members
+          </Link>
+          <h1 className="mt-2 text-lg font-medium text-slate-800">Staff profiles</h1>
+          <p className="mt-1 max-w-2xl text-sm text-slate-500">
+            Skills, contact details, and availability notes for people who deliver work on
+            bookings and tasks.
+          </p>
+        </div>
+      </div>
 
       {error ? (
         <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -105,10 +110,10 @@ export function CompanyTeamStaffClient({
         </p>
       ) : null}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className={cn(riseCardClassName, "overflow-hidden")}>
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <tr className="border-b border-slate-100 text-left text-xs font-medium text-slate-500">
               <th className="px-4 py-3">Staff member</th>
               <th className="px-4 py-3">Role</th>
               <th className="px-4 py-3">Skills</th>
@@ -147,11 +152,9 @@ export function CompanyTeamStaffClient({
                   </td>
                   <td className="px-4 py-3 text-right">
                     {(canManage || row.user_id === currentUserId) && (
-                      <Button
+                      <button
                         type="button"
-                        size="sm"
-                        variant="outline"
-                        className="rounded-lg"
+                        className={riseOutlineButtonClassName}
                         onClick={() =>
                           setEditingUserId(
                             editingUserId === row.user_id ? null : row.user_id
@@ -159,7 +162,7 @@ export function CompanyTeamStaffClient({
                         }
                       >
                         {editingUserId === row.user_id ? "Close" : "Edit"}
-                      </Button>
+                      </button>
                     )}
                   </td>
                 </tr>
@@ -172,7 +175,7 @@ export function CompanyTeamStaffClient({
       {editingRow ? (
         <form
           onSubmit={onSaveProfile}
-          className="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          className={cn(riseCardClassName, "mt-4 space-y-4 p-6")}
         >
           <h2 className="text-lg font-semibold text-slate-900">
             Edit profile — {editingRow.full_name ?? editingRow.email}
@@ -216,9 +219,9 @@ export function CompanyTeamStaffClient({
               />
             </label>
           </div>
-          <Button type="submit" className="rounded-xl" disabled={pending}>
+          <button type="submit" className={risePrimaryButtonClassName} disabled={pending}>
             {pending ? "Saving..." : "Save profile"}
-          </Button>
+          </button>
         </form>
       ) : null}
 

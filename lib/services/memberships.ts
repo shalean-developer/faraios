@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
+import { userHasActivePlatformWorkspaceAccess } from "@/lib/platform/workspace-session";
 import type { UserCompany } from "@/types/database";
 
 export type { UserCompany };
@@ -73,5 +74,7 @@ export async function userHasCompanySlugAccess(
     return false;
   }
 
-  return Boolean(data);
+  if (data) return true;
+
+  return userHasActivePlatformWorkspaceAccess(userId, companySlug);
 }

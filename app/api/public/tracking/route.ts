@@ -11,6 +11,7 @@ import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { WebsiteTrackingEventType } from "@/types/website-engine";
 
 const TRACKING_LIMIT = 60;
+const CLICK_TRACKING_LIMIT = 200;
 const TRACKING_WINDOW_MS = 60 * 1000;
 
 const VALID_EVENTS: WebsiteTrackingEventType[] = [
@@ -19,6 +20,8 @@ const VALID_EVENTS: WebsiteTrackingEventType[] = [
   "booking_submission",
   "quote_request",
   "contact_submission",
+  "web_vital",
+  "click",
 ];
 
 export async function POST(request: Request) {
@@ -30,6 +33,7 @@ export async function POST(request: Request) {
     async () => {
       let body: {
         businessId?: string;
+        websiteId?: string;
         eventType?: string;
         sourceUrl?: string;
         referrer?: string;
@@ -56,8 +60,8 @@ export async function POST(request: Request) {
       }
 
       const limited = rateLimit(
-        `tracking:${getClientIp(request)}:${businessId}`,
-        TRACKING_LIMIT,
+        `tracking${eventType === "click" ? "-click" : ""}:${getClientIp(request)}:${businessId}`,
+        eventType === "click" ? CLICK_TRACKING_LIMIT : TRACKING_LIMIT,
         TRACKING_WINDOW_MS
       );
       if (!limited.ok) {
@@ -105,6 +109,7 @@ export async function POST(request: Request) {
 
       const result = await trackWebsiteEvent({
         companyId: businessId,
+        websiteId: body.websiteId?.trim() || null,
         eventType,
         sourceUrl,
         referrer: body.referrer ?? request.headers.get("referer"),

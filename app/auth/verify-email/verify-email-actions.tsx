@@ -64,6 +64,7 @@ export function VerifyEmailActions({ email, redirectTo }: VerifyEmailActionsProp
           void resendEmail();
         }}
         disabled={isResending}
+        suppressHydrationWarning
         className="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isResending ? "Resending..." : "Resend email"}
