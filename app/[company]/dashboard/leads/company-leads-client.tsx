@@ -618,7 +618,7 @@ export function CompanyLeadsClient({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-4 py-2.5 sm:px-6 print:hidden">
+        <div className="flex flex-wrap items-center gap-2 overflow-x-auto border-b border-slate-200 px-4 py-2.5 sm:px-6 print:hidden">
           <ToolbarButton>
             <Columns3 className="h-3.5 w-3.5" />
           </ToolbarButton>
@@ -676,7 +676,7 @@ export function CompanyLeadsClient({
             <Printer className="h-3.5 w-3.5" />
             Print
           </ToolbarButton>
-          <div className="ml-auto flex min-w-[180px] items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5">
+          <div className="ml-auto flex w-full min-w-0 items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 sm:w-auto sm:min-w-[180px]">
             <Search className="h-3.5 w-3.5 text-slate-400" />
             <input
               type="search"
@@ -693,7 +693,83 @@ export function CompanyLeadsClient({
 
         {view === "list" ? (
           <>
-          <div className="flex-1 overflow-x-auto">
+          <div className="md:hidden">
+            {pageRows.length === 0 ? (
+              <p className="px-4 py-16 text-center text-sm text-slate-500 sm:px-6">
+                No leads match your filters. Leads from your website and booking forms appear here
+                automatically.
+              </p>
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {pageRows.map((lead) => {
+                  const label = getLeadLabel(lead);
+                  const displayStatus = getDisplayStatus(lead);
+                  const owner = getOwner(lead.id);
+
+                  return (
+                    <li key={lead.id} className="px-4 py-4 sm:px-6">
+                      <div className="flex items-start justify-between gap-3">
+                        <button
+                          type="button"
+                          onClick={() => openLead(lead)}
+                          className="min-w-0 flex-1 text-left"
+                        >
+                          <p className="truncate font-medium text-[#4a6fd8]">
+                            {lead.name ?? "Unknown"}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {lead.email ?? lead.phone ?? "No contact info"}
+                          </p>
+                        </button>
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
+                            displayStatusClass(displayStatus)
+                          )}
+                        >
+                          {displayStatus}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                        {lead.phone ? <span>{lead.phone}</span> : null}
+                        <span>{owner.name}</span>
+                        {label ? (
+                          <span className="rounded-full bg-violet-50 px-2 py-0.5 text-violet-700">
+                            {label}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <span className="text-xs text-slate-400">
+                          {formatLeadDateTime(lead.created_at)}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openLead(lead)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                            aria-label="View lead"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openEditForm(lead)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                            aria-label="Edit lead"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          <div className="hidden flex-1 overflow-x-auto md:block">
             <table className="w-full min-w-[960px] text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs font-medium text-slate-500">

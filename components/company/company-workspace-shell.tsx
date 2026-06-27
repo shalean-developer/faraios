@@ -84,7 +84,7 @@ export function CompanyWorkspaceShell({
   };
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-white font-sans">
+    <div className="flex h-dvh w-full flex-col overflow-hidden bg-white font-sans">
       {platformWorkspaceMode ? <PlatformWorkspaceBanner /> : null}
       <CompanyWorkspaceHeader
         slug={slug}
@@ -92,6 +92,7 @@ export function CompanyWorkspaceShell({
         userEmail={userEmail}
         onToggleSidebar={toggleCollapsed}
         onToggleMobileNav={() => setMobileNavOpen((open) => !open)}
+        onOpenMobileNav={() => setMobileNavOpen(true)}
         mobileNavOpen={mobileNavOpen}
       />
 
@@ -136,9 +137,9 @@ export function CompanyWorkspaceShell({
             subscription={subscription}
             industrySlug={industrySlug}
             searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
             open={mobileNavOpen}
             onOpenChange={setMobileNavOpen}
-            panelOnly
           />
           <main className="flex-1 overflow-y-auto">{children}</main>
         </div>

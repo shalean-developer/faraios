@@ -17,6 +17,7 @@ import {
   Mail,
   Menu,
   Monitor,
+  X,
   Plus,
   Receipt,
   Search,
@@ -62,7 +63,7 @@ function HeaderIconButton({
   className?: string;
 }) {
   const classes = cn(
-    "inline-flex h-9 w-9 items-center justify-center rounded-md text-[#5f6b7a] transition-colors hover:bg-slate-100 hover:text-slate-800",
+    "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#5f6b7a] transition-colors hover:bg-slate-100 hover:text-slate-800 sm:h-9 sm:w-9",
     active && "bg-slate-100 text-slate-900",
     className
   );
@@ -101,6 +102,7 @@ export function CompanyWorkspaceHeader({
   userEmail,
   onToggleSidebar,
   onToggleMobileNav,
+  onOpenMobileNav,
   mobileNavOpen = false,
 }: {
   slug: string;
@@ -108,6 +110,7 @@ export function CompanyWorkspaceHeader({
   userEmail: string | null;
   onToggleSidebar?: () => void;
   onToggleMobileNav?: () => void;
+  onOpenMobileNav?: () => void;
   mobileNavOpen?: boolean;
 }) {
   const pathname = usePathname() ?? "";
@@ -156,24 +159,33 @@ export function CompanyWorkspaceHeader({
   ];
 
   return (
-    <header className="relative z-30 flex h-[52px] shrink-0 items-center border-b border-[#ece8e1] bg-white px-3 sm:px-4">
-      <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+    <header className="relative z-30 flex h-12 shrink-0 items-center border-b border-[#ece8e1] bg-white px-2 sm:h-[52px] sm:px-4">
+      <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-3 md:gap-4">
+        <HeaderIconButton
+          label={mobileNavOpen ? "Close menu" : "Open menu"}
+          onClick={onToggleMobileNav ?? onToggleSidebar}
+          className="lg:hidden"
+        >
+          {mobileNavOpen ? (
+            <X className="h-[18px] w-[18px]" strokeWidth={1.75} />
+          ) : (
+            <Menu className="h-[18px] w-[18px]" strokeWidth={1.75} />
+          )}
+        </HeaderIconButton>
+
         <Link
           href={companyDashboardPath(slug)}
-          className="flex shrink-0 items-center transition-opacity hover:opacity-90"
+          className="flex min-w-0 shrink items-center transition-opacity hover:opacity-90"
           aria-label="FaraiOS home"
         >
-          <FaraiLogo size="header" priority />
+          <FaraiLogo
+            size="header"
+            priority
+            imageClassName="h-7 max-w-[7.5rem] sm:h-9 sm:max-w-[11rem] md:h-10 md:max-w-[13.75rem]"
+          />
         </Link>
 
-        <div className="flex items-center">
-          <HeaderIconButton
-            label={mobileNavOpen ? "Close menu" : "Open menu"}
-            onClick={onToggleMobileNav ?? onToggleSidebar}
-            className="lg:hidden"
-          >
-            <Menu className="h-[18px] w-[18px]" strokeWidth={1.75} />
-          </HeaderIconButton>
+        <div className="hidden items-center md:flex">
           <HeaderIconButton
             label="Toggle sidebar"
             onClick={onToggleSidebar}
@@ -206,19 +218,35 @@ export function CompanyWorkspaceHeader({
             label="Website"
             href={companyWebsitesPath(slug)}
             active={isActive(companyWebsitesPath(slug))}
-            className="hidden sm:inline-flex"
+            className="hidden lg:inline-flex"
           >
             <Monitor className="h-[18px] w-[18px]" strokeWidth={1.75} />
           </HeaderIconButton>
         </div>
       </div>
 
-      <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
-        <HeaderIconButton label="Search" onClick={focusSidebarSearch}>
+      <div className="ml-1 flex shrink-0 items-center gap-0 sm:ml-2 sm:gap-0.5 md:gap-1">
+        <HeaderIconButton
+          label="Search"
+          onClick={() => {
+            onOpenMobileNav?.();
+            window.setTimeout(() => {
+              window.dispatchEvent(new Event(WORKSPACE_SEARCH_FOCUS_EVENT));
+            }, 200);
+          }}
+          className="lg:hidden"
+        >
+          <Search className="h-[18px] w-[18px]" strokeWidth={1.75} />
+        </HeaderIconButton>
+        <HeaderIconButton
+          label="Search"
+          onClick={focusSidebarSearch}
+          className="hidden lg:inline-flex"
+        >
           <Search className="h-[18px] w-[18px]" strokeWidth={1.75} />
         </HeaderIconButton>
 
-        <div className="relative" ref={newMenuRef}>
+        <div className="relative hidden sm:block" ref={newMenuRef}>
           <HeaderIconButton
             label="Create new"
             onClick={() => setNewMenuOpen((open) => !open)}
@@ -271,23 +299,23 @@ export function CompanyWorkspaceHeader({
           label="Messages"
           href={companySupportPath(slug)}
           active={isActive(companySupportPath(slug))}
-          className="hidden sm:inline-flex"
+          className="hidden md:inline-flex"
         >
           <Mail className="h-[18px] w-[18px]" strokeWidth={1.75} />
         </HeaderIconButton>
 
-        <div className="relative ml-1 sm:ml-2" ref={userMenuRef}>
+        <div className="relative ml-0.5 sm:ml-1 md:ml-2" ref={userMenuRef}>
           <button
             type="button"
             onClick={() => setUserMenuOpen((open) => !open)}
-            className="flex items-center gap-2 rounded-md py-1 pl-1 pr-1.5 transition-colors hover:bg-slate-50"
+            className="flex items-center gap-2 rounded-md p-0.5 transition-colors hover:bg-slate-50 sm:py-1 sm:pl-1 sm:pr-1.5"
             aria-expanded={userMenuOpen}
             aria-haspopup="menu"
             suppressHydrationWarning
           >
             <span
               className={cn(
-                "flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br text-xs font-semibold text-white",
+                "flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br text-[11px] font-semibold text-white sm:h-8 sm:w-8 sm:text-xs",
                 userGradient
               )}
             >
@@ -311,6 +339,22 @@ export function CompanyWorkspaceHeader({
                 {userEmail ? (
                   <p className="truncate text-xs text-slate-500">{userEmail}</p>
                 ) : null}
+              </div>
+              <div className="border-b border-slate-100 py-1 sm:hidden">
+                <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  Create new
+                </p>
+                {newMenuItems.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    <item.icon className="h-4 w-4 text-slate-500" />
+                    {item.label}
+                  </Link>
+                ))}
               </div>
               <Link
                 href={companySettingsPath(slug)}

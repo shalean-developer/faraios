@@ -1069,14 +1069,15 @@ function Widget({
     <section
       className={cn(
         riseCardClassName,
+        "min-w-0 overflow-hidden",
         className
       )}
     >
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-slate-100 px-3 py-3 sm:px-4">
         <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
         {action}
       </div>
-      <div className="p-4">{children}</div>
+      <div className="p-3 sm:p-4">{children}</div>
     </section>
   );
 }
@@ -1246,7 +1247,7 @@ export function RiseDashboard({ slug, overview, extras, userDisplayName }: Props
   const expenseCents = incomeExpense.expenseThisYearCents;
 
   return (
-    <div className="bg-[#f0f2f5] px-4 py-4 sm:px-5 sm:py-5">
+    <div className="min-w-0 bg-[#f0f2f5] px-3 py-4 sm:px-5 sm:py-5">
       <DashboardOverviewMetrics slug={slug} metrics={metrics} />
 
       <div className="mt-4 grid gap-4 lg:grid-cols-12 lg:items-stretch">
@@ -1342,18 +1343,48 @@ export function RiseDashboard({ slug, overview, extras, userDisplayName }: Props
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+      <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-3">
         <Widget
           title="My tasks"
-          className="lg:col-span-2"
+          className="min-w-0 lg:col-span-2"
           action={
             <Link href={companyTasksPath(slug)} className="text-xs text-[#5a8dee] hover:underline">
               View all
             </Link>
           }
         >
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[520px] text-sm">
+          <div className="md:hidden">
+            {openTaskRows.length === 0 ? (
+              <p className="py-4 text-center text-sm text-slate-500">No open tasks.</p>
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {openTaskRows.map((task, index) => (
+                  <li key={task.id} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-slate-800">{task.title}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          #{index + 1}
+                          {task.dueDate ? ` · Due ${formatShortDate(task.dueDate)}` : null}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium capitalize",
+                          taskStatusPill(task.status)
+                        )}
+                      >
+                        {task.status.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-left text-xs text-slate-500">
                   <th className="pb-2 font-medium">ID</th>
@@ -1395,13 +1426,13 @@ export function RiseDashboard({ slug, overview, extras, userDisplayName }: Props
           </div>
         </Widget>
 
-        <Widget title="Sticky note (Private)">
+        <Widget title="Sticky note (Private)" className="min-w-0">
           <textarea
             value={stickyNote}
             onChange={(e) => setStickyNote(e.target.value)}
             placeholder="My quick notes here..."
             suppressHydrationWarning
-            className="min-h-[180px] w-full resize-none rounded border border-amber-200 bg-amber-50 p-3 text-sm text-slate-800 outline-none placeholder:text-amber-700/40"
+            className="min-h-[140px] w-full resize-none rounded border border-amber-200 bg-amber-50 p-3 text-sm text-slate-800 outline-none placeholder:text-amber-700/40 sm:min-h-[180px]"
           />
         </Widget>
       </div>

@@ -23,6 +23,7 @@ import { isSavableSectionType, propsFromSection } from "@/lib/website-builder/sa
 import type { WebsiteComponentRecord } from "@/types/website-builder-components";
 import { builderAutosaveDelayMs, getBuilderSettings } from "@/lib/website-builder/settings";
 import { useBuilderHistory } from "@/lib/website-builder/use-builder-history";
+import { useIsBelowLg } from "@/lib/hooks/use-media-query";
 import type { CompanyWithIndustry } from "@/types/database";
 import type { BuilderWebsite, LandingPageContent, WebsiteServicePageRecord } from "@/types/website-builder";
 import type { BuilderViewport, WebsiteSection } from "@/types/website-builder-sections";
@@ -79,10 +80,17 @@ export function PageBuilderEditor({
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [pending, startTransition] = useTransition();
+  const isBelowLg = useIsBelowLg();
   const dirtyRef = useRef(false);
   const skipAutosaveRef = useRef(true);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const landingRef = useRef(landingContent);
+
+  useEffect(() => {
+    if (isBelowLg) {
+      setSectionsLayout("horizontal");
+    }
+  }, [isBelowLg]);
 
   const selected = sections.find((s) => s.id === selectedId) ?? null;
 
@@ -361,7 +369,7 @@ export function PageBuilderEditor({
         {editorPanel}
       </div>
     ) : (
-      <div className="flex min-h-0 flex-1 gap-2">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 lg:flex-row">
         <SectionsDock
           sections={sections}
           selectedId={selectedId}
@@ -387,7 +395,7 @@ export function PageBuilderEditor({
         <div className="flex flex-wrap items-center gap-2">
           {!previewOpen ? (
             <>
-              <div className="flex items-center gap-1 rounded-lg border border-slate-200 p-0.5">
+              <div className="hidden items-center gap-1 rounded-lg border border-slate-200 p-0.5 lg:flex">
                 <button
                   type="button"
                   onClick={() => setSectionsLayout("vertical")}

@@ -507,7 +507,44 @@ export function CompanyPaymentsClient({
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="md:hidden">
+              {sortedRows.length === 0 ? (
+                <p className="px-4 py-16 text-center text-sm text-slate-500 sm:px-6">
+                  {receivedRows.length === 0
+                    ? "No payments received yet. Payments appear when customers pay invoices."
+                    : "No payments match your filters."}
+                </p>
+              ) : (
+                <ul className="divide-y divide-slate-100">
+                  {sortedRows.map((payment) => (
+                    <li key={payment.id} className="px-4 py-4 sm:px-6">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <Link
+                            href={companyInvoicePath(slug, payment.invoice_id)}
+                            className="font-medium text-[#4a6fd8] hover:underline"
+                          >
+                            {payment.invoices?.invoice_number ?? "Invoice"}
+                          </Link>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {formatRiseDate(payment.paid_at ?? payment.created_at)} ·{" "}
+                            {paymentMethodLabel(payment.provider)}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-sm font-medium text-slate-800">
+                          {formatRevenue(payment.amount_cents, payment.currency || "ZAR")}
+                        </span>
+                      </div>
+                      {payment.notes?.trim() ? (
+                        <p className="mt-2 line-clamp-2 text-xs text-slate-600">{payment.notes}</p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[760px] text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-xs font-medium text-slate-500">

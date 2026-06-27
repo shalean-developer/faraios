@@ -459,6 +459,12 @@ export function RiseEventCalendar({
   const [showBookingForm, setShowBookingForm] = useState(false);
 
   useEffect(() => {
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      setView("list");
+    }
+  }, []);
+
+  useEffect(() => {
     setLabels(readCalendarLabels(slug));
   }, [slug]);
 
@@ -584,11 +590,11 @@ export function RiseEventCalendar({
             </button>
           </div>
 
-          <h2 className="text-xl font-normal text-slate-700">
+          <h2 className="text-center text-lg font-normal text-slate-700 sm:text-xl">
             {formatViewTitle(focusDate, view)}
           </h2>
 
-          <div className="inline-flex overflow-hidden rounded-md border border-slate-200 bg-white">
+          <div className="inline-flex max-w-full overflow-x-auto rounded-md border border-slate-200 bg-white">
             {CALENDAR_VIEWS.map((item) => (
               <button
                 key={item.value}

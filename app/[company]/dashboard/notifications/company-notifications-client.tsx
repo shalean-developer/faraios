@@ -285,7 +285,79 @@ export function CompanyNotificationsClient({
 
         {error ? <p className="px-5 pt-3 text-sm font-medium text-red-600">{error}</p> : null}
 
-        <div className="overflow-x-auto">
+        <div className="md:hidden">
+          {pageRows.length === 0 ? (
+            <p className="px-4 py-16 text-center text-sm text-slate-500 sm:px-6">
+              {rows.length === 0
+                ? "No notifications yet. Activity from bookings, payments, and automations will appear here."
+                : "No notifications match your filters."}
+            </p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {pageRows.map((notification) => {
+                const entityHref = notificationEntityPath(
+                  slug,
+                  notification.entityType,
+                  notification.entityId
+                );
+                const isUnread = !notification.readAt;
+
+                return (
+                  <li
+                    key={notification.id}
+                    className={cn(
+                      "px-4 py-4 sm:px-6",
+                      isUnread && "border-l-4 border-l-[#5a8dee] bg-[#f8faff]/60"
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span
+                        className={cn(
+                          "inline-flex shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset",
+                          typeBadgeClass(notification.type)
+                        )}
+                      >
+                        {notificationTypeLabel(notification.type)}
+                      </span>
+                      {isUnread ? (
+                        <span className="shrink-0 rounded-full bg-[#eef2ff] px-2 py-0.5 text-[11px] font-medium text-[#4a6fd8]">
+                          Unread
+                        </span>
+                      ) : (
+                        <span className="shrink-0 text-[11px] text-slate-400">Read</span>
+                      )}
+                    </div>
+                    <p
+                      className={cn(
+                        "mt-2 text-sm text-slate-800",
+                        isUnread ? "font-semibold" : "font-medium"
+                      )}
+                    >
+                      {notification.title}
+                    </p>
+                    {notification.body ? (
+                      <p className="mt-1 line-clamp-2 text-sm text-slate-600">{notification.body}</p>
+                    ) : null}
+                    <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-500">
+                      <span>{formatRiseDateTime(notification.createdAt)}</span>
+                      {entityHref ? (
+                        <Link
+                          href={entityHref}
+                          className="inline-flex items-center gap-1 text-[#4a6fd8] hover:underline"
+                        >
+                          View
+                          <ExternalLink className="h-3 w-3" strokeWidth={1.75} />
+                        </Link>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-left text-xs font-medium text-slate-500">

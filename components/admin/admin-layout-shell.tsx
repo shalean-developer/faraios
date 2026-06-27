@@ -73,7 +73,7 @@ export function AdminLayoutShell({
   return (
     <div
       className={cn(
-        "flex h-screen w-full flex-col overflow-hidden bg-white font-sans dark:bg-slate-950",
+        "flex h-dvh w-full flex-col overflow-hidden bg-white font-sans dark:bg-slate-950",
         applyDarkClass && "dark"
       )}
     >

@@ -13,7 +13,7 @@ type AuthPageShellProps = {
 
 export function AuthPageShell({ children, showSupport = false }: AuthPageShellProps) {
   return (
-    <div className="flex min-h-0 w-full overflow-x-hidden font-sans lg:min-h-screen">
+    <div className="flex min-h-dvh w-full overflow-x-hidden font-sans lg:min-h-screen">
       <AuthMarketingPanel />
 
       <div

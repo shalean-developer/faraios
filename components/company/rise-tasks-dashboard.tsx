@@ -618,7 +618,64 @@ export function RiseTasksDashboard({
 
         {view === "list" ? (
           <>
-            <div className="overflow-x-auto">
+            <div className="md:hidden">
+              {pageRows.length === 0 ? (
+                <p className="px-4 py-16 text-center text-sm text-slate-500 sm:px-6">
+                  No tasks match your filters.
+                </p>
+              ) : (
+                <ul className="divide-y divide-slate-100">
+                  {pageRows.map((task) => {
+                    const label = getTaskLabel(task, labels);
+                    const assignee = task.assignedTo
+                      ? memberNames.get(task.assignedTo) ?? "Team member"
+                      : "Unassigned";
+                    const overdue = isTaskOverdue(task);
+
+                    return (
+                      <li
+                        key={task.id}
+                        className={cn("border-l-4 px-4 py-4 sm:px-6", rowAccentClass(task))}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <button
+                            type="button"
+                            onClick={() => openEditForm(task)}
+                            className="min-w-0 flex-1 text-left"
+                          >
+                            <p className="font-medium text-[#4a6fd8]">{task.title}</p>
+                            <p className="mt-1 text-xs text-slate-500">{assignee}</p>
+                          </button>
+                          <span
+                            className={cn(
+                              "shrink-0 rounded px-2 py-1 text-xs font-medium",
+                              statusBadgeClass(task.status)
+                            )}
+                          >
+                            {displayStatusLabel(task.status)}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <TaskLabelBadge label={label} />
+                          {task.dueDate ? (
+                            <span
+                              className={cn(
+                                "text-xs text-slate-500",
+                                overdue && "font-medium text-red-600"
+                              )}
+                            >
+                              Due {formatTaskDeadline(task.dueDate)}
+                            </span>
+                          ) : null}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[1200px] text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-xs font-medium text-slate-500">
@@ -755,11 +812,11 @@ export function RiseTasksDashboard({
         ) : null}
 
         {view === "kanban" ? (
-          <div className="grid gap-4 overflow-x-auto p-4 sm:grid-cols-3 sm:p-5">
+          <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-3 md:p-5">
             {KANBAN_COLUMNS.map((column) => {
               const items = kanbanGroups[column.key];
               return (
-                <div key={column.key} className="min-w-[280px]">
+                <div key={column.key} className="min-w-0">
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="text-sm font-medium text-slate-700">
                       {column.label}{" "}

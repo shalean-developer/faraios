@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { AdminSidebarBrand } from "@/components/admin/admin-sidebar-brand";
 import { AdminSidebarNav } from "@/components/admin/admin-sidebar-nav";
 import type { AdminNavKey } from "@/lib/constants/admin-nav";
+import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
 import { cn } from "@/lib/utils";
 
 export function AdminMobileNav({
@@ -20,6 +21,8 @@ export function AdminMobileNav({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  useBodyScrollLock(open);
+
   return (
     <>
       <div

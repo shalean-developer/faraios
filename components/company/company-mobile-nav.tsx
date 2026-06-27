@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, ChevronDown, Menu, X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 
+import { CompanySidebarSearch } from "@/components/company/company-sidebar-search";
 import {
   bookingsSubNavItems,
   bookingsViewFromPathname,
@@ -28,7 +28,7 @@ import {
   getFilteredRiseSidebarItems,
   type RiseSidebarItem,
 } from "@/lib/constants/company-sidebar-nav";
-import { companyNotificationsPath } from "@/lib/paths/company";
+import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
 import { toPlatformWorkspacePath } from "@/lib/paths/workspace";
 import { usePlatformWorkspace } from "@/components/platform/platform-workspace-context";
 import type { PermissionKey } from "@/lib/permissions/shared";
@@ -139,9 +139,9 @@ export function CompanyMobileNav({
   subscription,
   industrySlug,
   searchQuery = "",
-  open: controlledOpen,
+  onSearchChange,
+  open,
   onOpenChange,
-  panelOnly = false,
 }: {
   slug: string;
   activeNav: CompanyNavKey;
@@ -151,15 +151,14 @@ export function CompanyMobileNav({
   subscription?: SubscriptionCompanyFields;
   industrySlug?: string | null;
   searchQuery?: string;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  panelOnly?: boolean;
+  onSearchChange?: (value: string) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
   const pathname = usePathname() ?? "";
-  const [internalOpen, setInternalOpen] = useState(false);
-  const open = controlledOpen ?? internalOpen;
-  const setOpen = onOpenChange ?? setInternalOpen;
   const platformWorkspace = usePlatformWorkspace();
+
+  useBodyScrollLock(open);
 
   const hrefFor = (href: string) =>
     platformWorkspace.active ? toPlatformWorkspacePath(slug, href) : href;
@@ -190,7 +189,7 @@ export function CompanyMobileNav({
       return;
     }
     openSection(collapsible);
-    setOpen(false);
+    onOpenChange(false);
   };
 
   const renderNavItem = (item: RiseSidebarItem) => {
@@ -216,7 +215,7 @@ export function CompanyMobileNav({
           onClick={
             collapsible
               ? (event) => handleCollapsibleClick(event, collapsible, isActive)
-              : () => setOpen(false)
+              : () => onOpenChange(false)
           }
           aria-expanded={collapsible ? expanded[collapsible] : undefined}
           className={cn(
@@ -249,7 +248,7 @@ export function CompanyMobileNav({
                 <li key={subItem.key}>
                   <Link
                     href={hrefFor(subItem.href)}
-                    onClick={() => setOpen(false)}
+                    onClick={() => onOpenChange(false)}
                     className={cn(
                       "block rounded-md px-3 py-2 text-xs font-medium",
                       isSubActive
@@ -270,68 +269,51 @@ export function CompanyMobileNav({
 
   return (
     <>
-      {!panelOnly ? (
-        <div className="border-b border-slate-200 bg-white lg:hidden">
-          <div className="flex items-center justify-between gap-3 px-4 py-3">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-900">{companyName}</p>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-600">
-                Workspace
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link
-                href={hrefFor(companyNotificationsPath(slug))}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700"
-                aria-label="Notifications"
-              >
-                <Bell className="h-5 w-5" />
-              </Link>
-              <button
-                type="button"
-                onClick={() => setOpen(!open)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700"
-                aria-label={open ? "Close menu" : "Open menu"}
-              >
-                {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
-            </div>
+      <div
+        className={cn(
+          "fixed inset-0 z-40 bg-slate-900/40 transition-opacity lg:hidden",
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+        onClick={() => onOpenChange(false)}
+        aria-hidden={!open}
+      />
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-[min(280px,88vw)] flex-col border-r border-slate-200 bg-white transition-transform duration-200 lg:hidden",
+          open ? "translate-x-0" : "-translate-x-full"
+        )}
+        aria-hidden={!open}
+        aria-label="Workspace navigation"
+      >
+        <div className="flex h-[52px] shrink-0 items-center justify-between border-b border-slate-200 px-3">
+          <div className="min-w-0 pr-2">
+            <p className="truncate text-sm font-semibold text-slate-900">{companyName}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-600">
+              Workspace
+            </p>
           </div>
-        </div>
-      ) : null}
-      {open ? (
-        <>
-          {panelOnly ? (
-            <button
-              type="button"
-              className="absolute inset-0 z-10 bg-slate-900/20 lg:hidden"
-              aria-label="Close menu"
-              onClick={() => setOpen(false)}
-            />
-          ) : null}
-          <div
-            className={cn(
-              "border-b border-slate-200 bg-white lg:hidden",
-              panelOnly && "absolute inset-x-0 top-0 z-20 max-h-[calc(100vh-52px)] shadow-lg"
-            )}
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+            aria-label="Close menu"
           >
-            <nav
-              className={cn(
-                "overflow-y-auto px-3 py-3",
-                panelOnly ? "max-h-[calc(100vh-52px)]" : "max-h-[70vh] border-t border-slate-100"
-              )}
-            >
-              <ul className="grid gap-1">
-                {topItems.map((item) => renderNavItem(item))}
-              </ul>
-              {bottomItems.length > 0 ? (
-                <div className="my-3 border-t border-slate-100" />
-              ) : null}
-              <ul className="grid gap-1">{bottomItems.map((item) => renderNavItem(item))}</ul>
-            </nav>
+            <X className="h-[18px] w-[18px]" />
+          </button>
+        </div>
+
+        {onSearchChange ? (
+          <div className="shrink-0 border-b border-slate-100 px-3 py-2">
+            <CompanySidebarSearch value={searchQuery} onChange={onSearchChange} />
           </div>
-        </>
-      ) : null}
+        ) : null}
+
+        <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-3" aria-label="Main">
+          <ul className="grid gap-1">{topItems.map((item) => renderNavItem(item))}</ul>
+          {bottomItems.length > 0 ? <div className="my-3 border-t border-slate-100" /> : null}
+          <ul className="grid gap-1">{bottomItems.map((item) => renderNavItem(item))}</ul>
+        </nav>
+      </aside>
     </>
   );
 }

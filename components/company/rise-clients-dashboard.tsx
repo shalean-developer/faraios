@@ -696,7 +696,67 @@ export function RiseClientsDashboard({
             ) : null}
             {error ? <p className="px-5 pt-3 text-sm font-medium text-red-600">{error}</p> : null}
 
-            <div className="overflow-x-auto">
+            <div className="md:hidden">
+              {pageRows.length === 0 ? (
+                <p className="px-4 py-16 text-center text-sm text-slate-500 sm:px-6">
+                  No {tab === "clients" ? "clients" : "contacts"} match your filters.
+                </p>
+              ) : tab === "clients" ? (
+                <ul className="divide-y divide-slate-100">
+                  {pageRows.map((row) => {
+                    const rowFinancials = financials[row.id];
+                    const label = getClientLabelForCustomer(row.id, labels);
+
+                    return (
+                      <li key={row.id} className="px-4 py-4 sm:px-6">
+                        <Link
+                          href={companyCustomerPath(slug, row.id)}
+                          className="font-medium text-[#4a6fd8] hover:underline"
+                        >
+                          {row.name}
+                        </Link>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                          {row.email ? <span>{row.email}</span> : null}
+                          {row.phone ? <span>{row.phone}</span> : null}
+                          {label ? (
+                            <span className="rounded-full bg-violet-50 px-2 py-0.5 text-violet-700">
+                              {label.name}
+                            </span>
+                          ) : null}
+                        </div>
+                        {rowFinancials ? (
+                          <p className="mt-2 text-xs text-slate-500">
+                            Due {formatRevenue(rowFinancials.dueCents)}
+                          </p>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <ul className="divide-y divide-slate-100">
+                  {pageRows.map((row) => (
+                    <li key={row.id} className="px-4 py-4 sm:px-6">
+                      <div className="flex items-center gap-2">
+                        <Avatar name={row.name} className="h-8 w-8" />
+                        <Link
+                          href={companyCustomerPath(slug, row.id)}
+                          className="font-medium text-[#4a6fd8] hover:underline"
+                        >
+                          {row.name}
+                        </Link>
+                      </div>
+                      <div className="mt-2 space-y-0.5 text-xs text-slate-500">
+                        {row.email ? <p>{row.email}</p> : null}
+                        {row.phone ? <p>{row.phone}</p> : null}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
               {tab === "clients" ? (
                 <table className="w-full min-w-[1100px] text-sm">
                   <thead>

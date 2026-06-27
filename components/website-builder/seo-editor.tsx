@@ -307,8 +307,41 @@ export function SeoEditor({
         />
       </div>
 
-      <div className="flex min-h-0 flex-1 gap-2">
-        <aside className={cn(riseCardClassName, "flex w-[220px] shrink-0 flex-col overflow-hidden")}>
+      <div className="flex min-h-0 flex-1 flex-col gap-2 lg:flex-row">
+        <nav
+          className={cn(
+            riseCardClassName,
+            "flex shrink-0 flex-row gap-1 overflow-x-auto p-2 lg:hidden"
+          )}
+          aria-label="SEO sections"
+        >
+          {filteredNav.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setSection(item.key)}
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors",
+                  section === item.key
+                    ? "bg-[#eef2ff] text-[#4a6fd8]"
+                    : "text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                )}
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0" />
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        <aside
+          className={cn(
+            riseCardClassName,
+            "hidden w-[220px] shrink-0 flex-col overflow-hidden lg:flex"
+          )}
+        >
           <div className="border-b border-slate-100 px-2.5 py-2 dark:border-slate-800">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">SEO</p>
           </div>
