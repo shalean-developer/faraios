@@ -61,8 +61,8 @@ export function IndustryOnboardingPicker({ industries, value, onChange }: Props)
 
       <div className="grid gap-3 sm:grid-cols-2">
         {v8Industries.map((industry) => {
-          const module = loadIndustryModule(industry.slug);
-          const Icon = ICONS[module.icon] ?? Briefcase;
+          const industryModule = loadIndustryModule(industry.slug);
+          const Icon = ICONS[industryModule.icon] ?? Briefcase;
           const selected = value === industry.id;
           return (
             <button
@@ -83,7 +83,7 @@ export function IndustryOnboardingPicker({ industries, value, onChange }: Props)
                 <div>
                   <p className="font-semibold text-foreground">{industry.name}</p>
                   <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                    {industry.description ?? module.description}
+                    {industry.description ?? industryModule.description}
                   </p>
                 </div>
               </div>

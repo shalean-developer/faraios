@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Briefcase,
@@ -55,9 +55,9 @@ export function IndustrySettingsPanel({ slug, company, industries }: Props) {
   const [success, setSuccess] = useState<string | null>(null);
 
   const selectedIndustry = industries.find((i) => i.id === selectedIndustryId);
-  const previewSlug = normalizeIndustrySlug(selectedIndustry?.slug);
-  const preview = useMemo(() => getIndustryTemplate(previewSlug), [previewSlug]);
-  const previewModule = useMemo(() => loadIndustryModule(previewSlug), [previewSlug]);
+  const normalizedPreviewSlug = normalizeIndustrySlug(selectedIndustry?.slug);
+  const preview = getIndustryTemplate(normalizedPreviewSlug);
+  const previewModule = loadIndustryModule(normalizedPreviewSlug);
   const PreviewIcon = ICONS[previewModule.icon] ?? Briefcase;
 
   const currentSlug = company.industries?.slug ?? company.industry_template_key;

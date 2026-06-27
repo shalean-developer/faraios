@@ -46,11 +46,13 @@ export function DashboardNotificationsPopover({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
+  const [syncedNotifications, setSyncedNotifications] = useState(initialNotifications);
 
-  useEffect(() => {
+  if (initialNotifications !== syncedNotifications) {
+    setSyncedNotifications(initialNotifications);
     setRows(initialNotifications);
     setUnreadCount(initialUnread);
-  }, [initialNotifications, initialUnread]);
+  }
 
   useEffect(() => {
     if (!open) return;

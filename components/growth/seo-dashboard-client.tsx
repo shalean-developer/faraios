@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -253,9 +254,9 @@ export function SeoDashboardClient({
                 </p>
                 <p className="mt-2">
                   Admin: go to{" "}
-                  <a href="/admin/settings?tab=integrations" className="font-semibold text-violet-700 hover:underline">
+                  <Link href="/admin/settings?tab=integrations" className="font-semibold text-violet-700 hover:underline">
                     Settings → Integrations
-                  </a>{" "}
+                  </Link>{" "}
                   and add your Google Cloud OAuth Client ID and Secret.
                 </p>
               </div>
