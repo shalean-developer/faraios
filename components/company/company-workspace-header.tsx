@@ -29,7 +29,6 @@ import {
 import { FaraiLogo } from "@/components/brand/farai-logo";
 import { WORKSPACE_SEARCH_FOCUS_EVENT } from "@/lib/constants/workspace-events";
 import {
-  companyBookingsPath,
   companyCalendarPath,
   companyCustomersPath,
   companyDashboardPath,

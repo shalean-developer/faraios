@@ -86,11 +86,7 @@ export function PageBuilderEditor({
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const landingRef = useRef(landingContent);
 
-  useEffect(() => {
-    if (isBelowLg) {
-      setSectionsLayout("horizontal");
-    }
-  }, [isBelowLg]);
+  const effectiveSectionsLayout: SectionsListLayout = isBelowLg ? "horizontal" : sectionsLayout;
 
   const selected = sections.find((s) => s.id === selectedId) ?? null;
 
@@ -350,7 +346,7 @@ export function PageBuilderEditor({
   ) : null;
 
   const builderWorkspace = !previewOpen ? (
-    sectionsLayout === "horizontal" ? (
+    effectiveSectionsLayout === "horizontal" ? (
       <div className="flex min-h-0 flex-1 flex-col gap-2">
         <SectionsDock
           sections={sections}
