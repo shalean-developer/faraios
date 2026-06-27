@@ -13,6 +13,9 @@ import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import { createClient } from "@/lib/supabase/server";
 import { slugifyBusinessName } from "@/lib/slug";
+import { syncHostingSubscriptionFromWebsiteDomain } from "@/lib/services/hosting-domain";
+import { normalizeDomain } from "@/lib/services/website-domains";
+import { syncDomainSettingsCustomDomain } from "@/lib/website-builder/service";
 import type {
   AdminFeatureRequestPriority,
   AdminFeatureRequestStatus,
@@ -63,6 +66,7 @@ function revalidateAdminSurfaces(options?: {
   revalidatePath("/admin/businesses");
   revalidatePath("/admin/support");
   revalidatePath("/admin/feature-requests");
+  revalidatePath("/admin/domains");
   revalidatePath("/marketplace");
   if (options?.companySlug) {
     revalidatePath(`/marketplace/${options.companySlug}`);
@@ -1224,5 +1228,216 @@ export async function adminUpdateFeatureRequest(
     targetLabel: data?.title ?? null,
     metadata: input,
   });
+  return { ok: true };
+}
+
+export async function adminUpdateWebsiteDomainAction(input: {
+  domainId: string;
+  domain: string;
+  domainType: "primary" | "subdomain" | "preview";
+  verificationStatus: "pending" | "verified" | "failed";
+  sslStatus: "not_started" | "pending" | "active" | "failed";
+}): Promise<AdminMutationResult> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const domainId = input.domainId.trim();
+  const normalized = normalizeDomain(input.domain);
+  if (!domainId) return { ok: false, error: "Domain id is required." };
+  if (!normalized || !normalized.includes(".")) {
+    return { ok: false, error: "Enter a valid domain." };
+  }
+
+  const adminResult = tryCreateAdminClient();
+  if (!adminResult.ok) return { ok: false, error: adminResult.error };
+  const admin = adminResult.client;
+
+  const { data: existing, error: fetchError } = await admin
+    .from("website_domains")
+    .select("id, company_id, website_id, domain, verification_status, ssl_status")
+    .eq("id", domainId)
+    .maybeSingle();
+
+  if (fetchError) {
+    return { ok: false, error: fetchError.message };
+  }
+  if (!existing) {
+    return { ok: false, error: "Domain not found." };
+  }
+
+  const { data: conflict } = await admin
+    .from("website_domains")
+    .select("id")
+    .ilike("domain", normalized)
+    .neq("id", domainId)
+    .maybeSingle();
+
+  if (conflict) {
+    return { ok: false, error: "This domain is already connected to another workspace." };
+  }
+
+  const now = new Date().toISOString();
+  const previousDomain = existing.domain as string;
+  const companyId = existing.company_id as string;
+  const websiteId = (existing.website_id as string | null) ?? null;
+
+  const { error: updateError } = await admin
+    .from("website_domains")
+    .update({
+      domain: normalized,
+      domain_type: input.domainType,
+      verification_status: input.verificationStatus,
+      ssl_status: input.sslStatus,
+      updated_at: now,
+    })
+    .eq("id", domainId);
+
+  if (updateError) {
+    return { ok: false, error: updateError.message };
+  }
+
+  if (websiteId) {
+    await admin
+      .from("websites")
+      .update({ domain: normalized })
+      .eq("id", websiteId)
+      .eq("client_id", companyId);
+
+    await syncDomainSettingsCustomDomain({
+      websiteId,
+      companyId,
+      customDomain: normalized,
+      customDomainStatus: input.verificationStatus,
+    });
+  }
+
+  if (previousDomain !== normalized) {
+    await admin
+      .from("connected_websites")
+      .update({
+        primary_domain: normalized,
+        updated_at: now,
+      })
+      .eq("company_id", companyId)
+      .ilike("primary_domain", previousDomain);
+  }
+
+  await syncHostingSubscriptionFromWebsiteDomain(
+    companyId,
+    normalized,
+    input.verificationStatus,
+    input.sslStatus
+  );
+
+  revalidatePath("/admin/domains");
+  await auditAdminAction({
+    action: "website_domain.updated",
+    targetType: "website_domain",
+    targetId: domainId,
+    targetLabel: normalized,
+    metadata: {
+      domainType: input.domainType,
+      verificationStatus: input.verificationStatus,
+      sslStatus: input.sslStatus,
+    },
+  });
+
+  return { ok: true };
+}
+
+export async function adminDeleteWebsiteDomainAction(
+  domainId: string
+): Promise<AdminMutationResult> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const trimmedId = domainId.trim();
+  if (!trimmedId) return { ok: false, error: "Domain id is required." };
+
+  const adminResult = tryCreateAdminClient();
+  if (!adminResult.ok) return { ok: false, error: adminResult.error };
+  const admin = adminResult.client;
+
+  const { data: existing, error: fetchError } = await admin
+    .from("website_domains")
+    .select("id, company_id, website_id, domain")
+    .eq("id", trimmedId)
+    .maybeSingle();
+
+  if (fetchError) {
+    return { ok: false, error: fetchError.message };
+  }
+  if (!existing) {
+    return { ok: false, error: "Domain not found." };
+  }
+
+  const companyId = existing.company_id as string;
+  const websiteId = (existing.website_id as string | null) ?? null;
+  const domain = existing.domain as string;
+  const now = new Date().toISOString();
+
+  const { error: deleteError } = await admin
+    .from("website_domains")
+    .delete()
+    .eq("id", trimmedId);
+
+  if (deleteError) {
+    return { ok: false, error: deleteError.message };
+  }
+
+  if (websiteId) {
+    const { data: website } = await admin
+      .from("websites")
+      .select("domain, subdomain")
+      .eq("id", websiteId)
+      .eq("client_id", companyId)
+      .maybeSingle();
+
+    if (website && normalizeDomain((website.domain as string | null) ?? "") === normalizeDomain(domain)) {
+      await admin
+        .from("websites")
+        .update({ domain: null })
+        .eq("id", websiteId)
+        .eq("client_id", companyId);
+
+      await syncDomainSettingsCustomDomain({
+        websiteId,
+        companyId,
+        customDomain: null,
+        customDomainStatus: "not_connected",
+      });
+    }
+  }
+
+  await admin
+    .from("connected_websites")
+    .update({
+      primary_domain: null,
+      status: "connected",
+      updated_at: now,
+    })
+    .eq("company_id", companyId)
+    .ilike("primary_domain", domain);
+
+  await admin
+    .from("hosting_subscriptions")
+    .update({
+      custom_domain: null,
+      domain_status: "pending",
+      ssl_status: "pending",
+      updated_at: now,
+    })
+    .eq("company_id", companyId)
+    .eq("status", "active")
+    .ilike("custom_domain", domain);
+
+  revalidatePath("/admin/domains");
+  await auditAdminAction({
+    action: "website_domain.deleted",
+    targetType: "website_domain",
+    targetId: trimmedId,
+    targetLabel: domain,
+  });
+
   return { ok: true };
 }
