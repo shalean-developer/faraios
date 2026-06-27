@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { isCurrentUserPlatformAdmin } from "@/lib/services/admin";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import {
+  deleteHostingServerRecord,
   runImportPleskServicePlans,
   runPleskTestConnection,
   runSyncPleskSubscriptions,
@@ -284,6 +285,18 @@ export async function adminSaveHostingServerAction(input: {
 
   revalidatePath("/admin/hosting/servers");
   return { ok: true, id: result.id };
+}
+
+export async function adminDeleteHostingServerAction(serverId: string): Promise<AdminResult> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const result = await deleteHostingServerRecord(serverId);
+  if (!result.ok) return result;
+
+  revalidatePath("/admin/hosting/servers");
+  revalidatePath("/admin/hosting/settings");
+  return { ok: true };
 }
 
 export async function adminTestPleskConnectionAction(serverId: string): Promise<

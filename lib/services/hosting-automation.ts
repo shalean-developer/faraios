@@ -56,7 +56,7 @@ export async function listActiveHostingPlans(): Promise<HostingPlanRow[]> {
       domain_limit: p.sites_limit,
       ssl_included: true,
       backup_option: "daily",
-      plesk_service_plan: p.slug,
+      plesk_service_plan: p.name,
       plesk_plan_id: null,
       subdomain_limit: 10,
       ftp_account_limit: 5,

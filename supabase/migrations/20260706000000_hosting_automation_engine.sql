@@ -307,10 +307,10 @@ insert into public.hosting_plans (
   storage_limit_gb, bandwidth_limit_gb, email_account_limit, database_limit,
   domain_limit, ssl_included, backup_option, plesk_service_plan, is_active, is_popular, sort_order
 ) values
-  ('shared-basic', 'Shared Basic', 'Affordable hosting for a single site.', 4900, 49000, 5, 5, 1, 1, 1, true, 'daily', 'shared-basic', true, false, 1),
-  ('shared-pro', 'Shared Pro', 'Best value for growing businesses.', 9900, 99000, 20, 20, 5, 5, 3, true, 'daily', 'shared-pro', true, true, 2),
-  ('business-hosting', 'Business Hosting', 'Powerful hosting for agencies.', 19900, 199000, 50, 50, 25, 25, 10, true, 'daily', 'business', true, false, 3),
-  ('enterprise-hosting', 'Enterprise', 'Enterprise-grade infrastructure.', 49900, 499000, 200, 200, 999, 999, 999, true, 'daily', 'enterprise', true, false, 4)
+  ('shared-basic', 'Shared Basic', 'Affordable hosting for a single site.', 4900, 49000, 5, 5, 1, 1, 1, true, 'daily', 'Shared Basic', true, false, 1),
+  ('shared-pro', 'Shared Pro', 'Best value for growing businesses.', 9900, 99000, 20, 20, 5, 5, 3, true, 'daily', 'Shared Pro', true, true, 2),
+  ('business-hosting', 'Business Hosting', 'Powerful hosting for agencies.', 19900, 199000, 50, 50, 25, 25, 10, true, 'daily', 'Business Hosting', true, false, 3),
+  ('enterprise-hosting', 'Enterprise', 'Enterprise-grade infrastructure.', 49900, 499000, 200, 200, 999, 999, 999, true, 'daily', 'Enterprise', true, false, 4)
 on conflict (slug) do nothing;
 
 -- ---------------------------------------------------------------------------

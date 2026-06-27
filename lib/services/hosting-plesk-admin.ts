@@ -100,8 +100,12 @@ export async function runImportPleskServicePlans(serverId: string) {
   const admin = createAdminClient();
   const now = new Date().toISOString();
 
+  if (result.plans.length === 0) {
+    return { ok: false as const, error: "Plesk returned no service plans to import." };
+  }
+
   for (const plan of result.plans) {
-    await admin.from("hosting_service_plans").upsert(
+    const { error } = await admin.from("hosting_service_plans").upsert(
       {
         server_id: serverId,
         plesk_plan_id: plan.id,
@@ -119,6 +123,13 @@ export async function runImportPleskServicePlans(serverId: string) {
       },
       { onConflict: "server_id,plesk_plan_id" }
     );
+
+    if (error) {
+      return {
+        ok: false as const,
+        error: `Failed to save plan "${plan.name}": ${error.message}`,
+      };
+    }
   }
 
   return { ok: true as const, count: result.plans.length };
@@ -241,4 +252,13 @@ export async function saveHostingServerRecord(input: {
   const { data, error } = await admin.from("hosting_servers").insert(row).select("id").single();
   if (error || !data) return { ok: false, error: error?.message ?? "Insert failed." };
   return { ok: true, id: data.id };
+}
+
+export async function deleteHostingServerRecord(
+  serverId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = createAdminClient();
+  const { error } = await admin.from("hosting_servers").delete().eq("id", serverId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }

@@ -76,17 +76,30 @@ export async function testPleskConnection(
   };
 }
 
+const BYTE_LIMIT_NAMES = new Set(["disk_space", "max_traffic"]);
+const BYTES_PER_GB = 1024 ** 3;
+
+function parseLimitValue(raw: string, limitName: string): number | undefined {
+  if (!raw || raw === "-1") return undefined;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed)) return undefined;
+  if (BYTE_LIMIT_NAMES.has(limitName.toLowerCase())) {
+    return Math.max(1, Math.ceil(parsed / BYTES_PER_GB));
+  }
+  return parsed;
+}
+
 function parseServicePlanBlock(block: string): PleskServicePlan | null {
   const id = getXmlText(block, "id");
   const name = getXmlText(block, "name");
   if (!id || !name) return null;
 
-  const parseLimit = (name: string): number | undefined => {
+  const parseLimit = (limitName: string): number | undefined => {
     const limitBlocks = getAllXmlBlocks(block, "limit");
     for (const lb of limitBlocks) {
-      if (getXmlText(lb, "name")?.toLowerCase() === name.toLowerCase()) {
+      if (getXmlText(lb, "name")?.toLowerCase() === limitName.toLowerCase()) {
         const val = getXmlText(lb, "value");
-        if (val && val !== "-1") return parseInt(val, 10);
+        if (val) return parseLimitValue(val, limitName);
       }
     }
     return undefined;
@@ -97,7 +110,7 @@ function parseServicePlanBlock(block: string): PleskServicePlan | null {
     name,
     storageLimitGb: parseLimit("disk_space"),
     bandwidthLimitGb: parseLimit("max_traffic"),
-    domainLimit: parseLimit("max_dom"),
+    domainLimit: parseLimit("max_site") ?? parseLimit("max_dom"),
     subdomainLimit: parseLimit("max_subdom"),
     mailboxLimit: parseLimit("max_box"),
     ftpAccountLimit: parseLimit("max_subftp_users"),

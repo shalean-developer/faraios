@@ -269,6 +269,7 @@ create policy "companies_select_scoped" on public.companies
 drop policy if exists "memberships_select_own" on public.memberships;
 drop policy if exists "memberships_select_company" on public.memberships;
 drop policy if exists "memberships_select_platform_admin" on public.memberships;
+drop policy if exists "memberships_select_self" on public.memberships;
 
 create policy "memberships_select_self" on public.memberships
   for select to authenticated
@@ -287,6 +288,7 @@ drop policy if exists "memberships_insert_team" on public.memberships;
 drop policy if exists "memberships_update_owner" on public.memberships;
 drop policy if exists "memberships_delete_own" on public.memberships;
 drop policy if exists "memberships_delete_team" on public.memberships;
+drop policy if exists "memberships_delete_self" on public.memberships;
 
 create policy "memberships_delete_self" on public.memberships
   for delete to authenticated

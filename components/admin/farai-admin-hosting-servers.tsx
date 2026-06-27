@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
 import { AdminPageShell } from "@/components/admin/admin-page-shell";
@@ -11,6 +12,7 @@ import {
   riseStatCardClassName,
 } from "@/lib/ui/rise-dashboard-styles";
 import {
+  adminDeleteHostingServerAction,
   adminImportPleskServicePlansAction,
   adminSaveHostingServerAction,
   adminSyncPleskSubscriptionsAction,
@@ -21,6 +23,7 @@ import type { HostingServerRow } from "@/types/hosting-automation";
 const DEFAULT_XML_ENDPOINT = "https://so1.cloud-wex.com:8443/enterprise/control/agent.php";
 
 export function FaraiAdminHostingServers({ servers }: { servers: HostingServerRow[] }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -109,6 +112,7 @@ export function FaraiAdminHostingServers({ servers }: { servers: HostingServerRo
       void (async () => {
         const result = await adminImportPleskServicePlansAction(serverId);
         setMessage(result.ok ? `Imported ${result.count ?? 0} plans.` : result.error ?? "Failed.");
+        if (result.ok) router.refresh();
       })();
     });
   };
@@ -122,6 +126,19 @@ export function FaraiAdminHostingServers({ servers }: { servers: HostingServerRo
             ? `Synced ${result.synced ?? 0} of ${result.count ?? 0} subscriptions.`
             : result.error ?? "Failed."
         );
+      })();
+    });
+  };
+
+  const deleteServer = (serverId: string) => {
+    startTransition(() => {
+      void (async () => {
+        const result = await adminDeleteHostingServerAction(serverId);
+        setMessage(result.ok ? "Server deleted." : result.error ?? "Failed.");
+        if (result.ok) {
+          if (editingId === serverId) resetForm();
+          router.refresh();
+        }
       })();
     });
   };
@@ -219,6 +236,7 @@ export function FaraiAdminHostingServers({ servers }: { servers: HostingServerRo
                     <Button size="sm" variant="outline" disabled={pending} onClick={() => importPlans(server.id)}>Import service plans</Button>
                     <Button size="sm" variant="outline" disabled={pending} onClick={() => syncSubscriptions(server.id)}>Sync subscriptions</Button>
                     <Button size="sm" variant="outline" disabled={pending} onClick={() => editServer(server)}>Edit</Button>
+                    <Button size="sm" variant="outline" disabled={pending} onClick={() => deleteServer(server.id)}>Delete</Button>
                   </div>
                 </div>
               ))
