@@ -16,31 +16,62 @@ export async function testPleskConnection(
   creds: PleskCredentials,
   serverId?: string
 ): Promise<TestConnectionResult> {
-  const inner = `<server><get><stat/></get></server>`;
-  const result = await pleskXmlRequest(creds, inner, {
+  const adminInner = `<server><get><stat/></get></server>`;
+  const adminResult = await pleskXmlRequest(creds, adminInner, {
     serverId,
     action: "test_connection",
   });
 
-  if (!result.ok) {
+  if (adminResult.ok) {
+    const protocolVersion =
+      getXmlText(adminResult.rawXml, "version") ??
+      getXmlText(adminResult.rawXml, "plesk_version") ??
+      undefined;
+
     return {
-      status: result.connectionStatus ?? "network_error",
-      message: result.error,
+      status: "connected",
+      message: protocolVersion
+        ? `Connected. Plesk version: ${protocolVersion}`
+        : "Connected. Remote XML API is active.",
+      protocolVersion,
       apiType: "xml",
     };
   }
 
-  const protocolVersion =
-    getXmlText(result.rawXml, "version") ??
-    getXmlText(result.rawXml, "plesk_version") ??
-    undefined;
+  // Reseller logins cannot call server.get — verify with webspace API instead.
+  if (adminResult.connectionStatus === "permission_denied") {
+    const resellerInner =
+      `<webspace><get><filter/><dataset><gen_info/></dataset></get></webspace>`;
+    const resellerResult = await pleskXmlRequest(creds, resellerInner, {
+      serverId,
+      action: "test_connection_reseller",
+    });
+
+    if (resellerResult.ok) {
+      const subscriptions = getAllXmlBlocks(resellerResult.rawXml, "result").filter(
+        (block) => getXmlText(block, "status") === "ok"
+      );
+      const count = subscriptions.length;
+      return {
+        status: "connected",
+        message:
+          count > 0
+            ? `Connected (reseller API). ${count} subscription${count === 1 ? "" : "s"} visible.`
+            : "Connected (reseller API). No subscriptions found yet.",
+        apiType: "xml",
+      };
+    }
+
+    return {
+      status: resellerResult.connectionStatus ?? "network_error",
+      message: resellerResult.error,
+      apiType: "xml",
+    };
+  }
 
   return {
-    status: "connected",
-    message: protocolVersion
-      ? `Connected. Plesk version: ${protocolVersion}`
-      : "Connected. Remote XML API is active.",
-    protocolVersion,
+    status: adminResult.connectionStatus ?? "network_error",
+    message: adminResult.error,
     apiType: "xml",
   };
 }
