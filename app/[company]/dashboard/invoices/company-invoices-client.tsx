@@ -2,129 +2,35 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import {
-  Columns3,
-  Filter,
-  MoreHorizontal,
-  Plus,
-  Printer,
-  RefreshCw,
-  Search,
-  Tag,
-} from "lucide-react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { Download } from "lucide-react";
 
 import {
   cancelDraftInvoiceAction,
   issueInvoiceAction,
 } from "@/app/actions/invoices";
 import { InvoiceFormPopover } from "@/components/company/invoice-form-popover";
+import { Button } from "@/components/ui/button";
 import { downloadInvoicesCsv } from "@/lib/financial/invoices-csv";
-import { INVOICE_STATUSES, type InvoiceStatus } from "@/lib/financial/status";
+import { INVOICE_STATUSES, invoiceStatusBadgeClass } from "@/lib/financial/status";
+import type { InvoiceStatus } from "@/lib/financial/status";
 import { formatRevenue } from "@/lib/operations/metrics";
 import {
   companyCustomerPath,
   companyInvoicePath,
   companyPaymentsPath,
+  companyRevenuePath,
 } from "@/lib/paths/company";
 import type { InvoiceListSummary } from "@/lib/services/invoices";
 import { cn } from "@/lib/utils";
 import type { CompanyService, CompanyWithIndustry, Customer } from "@/types/database";
 import type { InvoiceWithCustomer } from "@/types/financial";
 
-const riseCardClassName = "rounded-xl border border-slate-200 bg-white shadow-sm";
-const riseOutlineButtonClassName =
-  "inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50";
-
 type StatusFilter = "all" | InvoiceStatus;
-type InvoiceTab = "invoices" | "recurring";
-type ListMode = "invoices" | "credit_notes";
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
-
-function formatRiseDate(value: string | null): string {
+function formatShortDate(value: string | null): string {
   if (!value) return "—";
-  const date = new Date(value);
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}-${month}-${year}`;
-}
-
-function invoiceStatusDisplay(status: InvoiceStatus): { label: string; className: string } {
-  switch (status) {
-    case "paid":
-      return {
-        label: "Fully paid",
-        className: "bg-sky-50 text-sky-700 ring-sky-200/80",
-      };
-    case "overdue":
-      return {
-        label: "Overdue",
-        className: "bg-red-50 text-red-700 ring-red-200/80",
-      };
-    case "partially_paid":
-      return {
-        label: "Partially paid",
-        className: "bg-amber-50 text-amber-700 ring-amber-200/80",
-      };
-    case "issued":
-      return {
-        label: "Not paid",
-        className: "bg-amber-50 text-amber-700 ring-amber-200/80",
-      };
-    case "draft":
-      return {
-        label: "Draft",
-        className: "bg-slate-100 text-slate-600 ring-slate-200/80",
-      };
-    case "cancelled":
-      return {
-        label: "Cancelled",
-        className: "bg-slate-100 text-slate-600 ring-slate-200/80",
-      };
-    case "refunded":
-      return {
-        label: "Refunded",
-        className: "bg-slate-100 text-slate-600 ring-slate-200/80",
-      };
-  }
-}
-
-function projectLabel(invoice: InvoiceWithCustomer): string {
-  if (invoice.notes?.trim()) {
-    const line = invoice.notes.trim().split("\n")[0] ?? "";
-    return line.length > 42 ? `${line.slice(0, 42)}…` : line;
-  }
-  if (invoice.booking_id) return "Linked booking";
-  if (invoice.quote_id) return "From quote";
-  return "—";
-}
-
-function ToolbarButton({
-  children,
-  onClick,
-  active,
-  className,
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  active?: boolean;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50",
-        active && "border-[#5c86f2] bg-[#eef2ff] text-[#4a6fd8]",
-        className
-      )}
-    >
-      {children}
-    </button>
-  );
+  return new Date(value).toLocaleDateString("en-ZA");
 }
 
 export function CompanyInvoicesClient({
@@ -146,39 +52,18 @@ export function CompanyInvoicesClient({
   const [rows, setRows] = useState(initialInvoices);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [activeTab, setActiveTab] = useState<InvoiceTab>("invoices");
-  const [listMode, setListMode] = useState<ListMode>("invoices");
-  const [showFilters, setShowFilters] = useState(false);
-  const [showLabelsPanel, setShowLabelsPanel] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(25);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setRows(initialInvoices);
   }, [initialInvoices]);
 
-  useEffect(() => {
-    if (!openMenuId) return;
-    const onPointerDown = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setOpenMenuId(null);
-      }
-    };
-    document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [openMenuId]);
-
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return rows.filter((invoice) => {
-      if (listMode === "credit_notes" && invoice.total_cents >= 0) return false;
-      if (listMode === "invoices" && invoice.total_cents < 0) return false;
       if (statusFilter !== "all" && invoice.status !== statusFilter) return false;
       if (!query) return true;
 
@@ -186,24 +71,12 @@ export function CompanyInvoicesClient({
         invoice.invoice_number.toLowerCase().includes(query) ||
         (invoice.customers?.name ?? "").toLowerCase().includes(query) ||
         (invoice.customers?.email ?? "").toLowerCase().includes(query) ||
-        projectLabel(invoice).toLowerCase().includes(query) ||
         invoice.status.replace(/_/g, " ").toLowerCase().includes(query)
       );
     });
-  }, [rows, search, statusFilter, listMode]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
-  const pageRows = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredRows.slice(start, start + pageSize);
-  }, [filteredRows, page, pageSize]);
-
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+  }, [rows, search, statusFilter]);
 
   const onIssue = (invoiceId: string) => {
-    setOpenMenuId(null);
     setError(null);
     startTransition(async () => {
       const result = await issueInvoiceAction({
@@ -220,7 +93,6 @@ export function CompanyInvoicesClient({
   };
 
   const onCancelDraft = (invoiceId: string) => {
-    setOpenMenuId(null);
     if (!window.confirm("Cancel this draft invoice?")) return;
     setError(null);
     startTransition(async () => {
@@ -241,376 +113,98 @@ export function CompanyInvoicesClient({
     downloadInvoicesCsv(filteredRows, `${slug}-invoices.csv`);
   };
 
-  const onPrint = () => {
-    window.print();
-  };
-
-  const onRefresh = () => {
-    router.refresh();
-  };
+  const statCards = [
+    { label: "Total invoices", value: String(summary.total) },
+    { label: "Outstanding", value: formatRevenue(summary.outstandingCents) },
+    { label: "Overdue", value: formatRevenue(summary.overdueCents) },
+    { label: "Collected", value: formatRevenue(summary.paidCents) },
+  ];
 
   return (
-    <div className="px-4 py-4 sm:px-5 sm:py-5">
-      <div className={riseCardClassName}>
-        <div className="flex flex-col gap-4 border-b border-slate-100 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-6">
-            {(
-              [
-                { id: "invoices", label: "Invoices" },
-                { id: "recurring", label: "Recurring invoices" },
-              ] as const
-            ).map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setPage(1);
-                }}
-                className={cn(
-                  "border-b-2 pb-2 text-sm font-medium transition",
-                  activeTab === tab.id
-                    ? "border-[#5a8dee] text-[#4a6fd8]"
-                    : "border-transparent text-slate-500 hover:text-slate-700"
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {activeTab === "invoices" ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                className={riseOutlineButtonClassName}
-                onClick={() => setShowLabelsPanel((value) => !value)}
-              >
-                <Tag className="h-4 w-4 text-slate-500" strokeWidth={1.75} />
-                Manage labels
-              </button>
-              <Link href={companyPaymentsPath(slug)} className={riseOutlineButtonClassName}>
-                Add payment
-              </Link>
-              <button
-                type="button"
-                className={riseOutlineButtonClassName}
-                aria-expanded={showInvoiceForm}
-                aria-haspopup="dialog"
-                onClick={() => setShowInvoiceForm((open) => !open)}
-              >
-                <Plus className="h-4 w-4 text-[#5a8dee]" strokeWidth={1.75} />
-                Add invoice
-              </button>
-            </div>
-          ) : null}
+    <div className="px-4 py-8 sm:px-6 lg:px-8">
+      <header className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
+            Finance
+          </p>
+          <h1 className="mt-1 text-2xl font-bold text-slate-900">Invoices</h1>
+          <p className="mt-2 max-w-2xl text-sm text-slate-500">
+            Create invoices, track balances, and follow up on overdue payments.
+          </p>
         </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-xl"
+            onClick={onExport}
+            disabled={filteredRows.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+          <Button
+            type="button"
+            className="rounded-xl"
+            variant={showInvoiceForm ? "outline" : "default"}
+            aria-expanded={showInvoiceForm}
+            aria-haspopup="dialog"
+            onClick={() => setShowInvoiceForm((open) => !open)}
+          >
+            New invoice
+          </Button>
+        </div>
+      </header>
 
-        {showLabelsPanel ? (
-          <div className="border-b border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            Invoice labels will be available in a future update. Use status filters below to
-            organize your list.
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {statCards.map((card) => (
+          <div
+            key={card.label}
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {card.label}
+            </p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{card.value}</p>
           </div>
-        ) : null}
+        ))}
+      </div>
 
-        {activeTab === "recurring" ? (
-          <div className="px-4 py-16 text-center text-sm text-slate-500 sm:px-6">
-            Recurring invoices are coming soon. Create one-off invoices from the Invoices tab.
-          </div>
-        ) : (
-          <>
-            <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-4 py-2.5 sm:px-5">
-              <ToolbarButton>
-                <Columns3 className="h-3.5 w-3.5" />
-              </ToolbarButton>
-              <div className="relative">
-                <ToolbarButton active={showFilters} onClick={() => setShowFilters((v) => !v)}>
-                  <Filter className="h-3.5 w-3.5" />
-                  Filters
-                </ToolbarButton>
-                {showFilters ? (
-                  <div className="absolute left-0 top-full z-20 mt-1 w-48 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStatusFilter("all");
-                        setPage(1);
-                      }}
-                      className={cn(
-                        "flex w-full rounded-md px-2 py-1.5 text-left text-sm transition hover:bg-slate-50",
-                        statusFilter === "all" && "bg-[#eef2ff] text-[#4a6fd8]"
-                      )}
-                    >
-                      All statuses
-                    </button>
-                    {INVOICE_STATUSES.map((status) => (
-                      <button
-                        key={status}
-                        type="button"
-                        onClick={() => {
-                          setStatusFilter(status);
-                          setPage(1);
-                        }}
-                        className={cn(
-                          "flex w-full rounded-md px-2 py-1.5 text-left text-sm capitalize transition hover:bg-slate-50",
-                          statusFilter === status && "bg-[#eef2ff] text-[#4a6fd8]"
-                        )}
-                      >
-                        {status.replace(/_/g, " ")}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-              <ToolbarButton>
-                <Plus className="h-3.5 w-3.5" />
-              </ToolbarButton>
-              <ToolbarButton
-                active={listMode === "credit_notes"}
-                onClick={() => {
-                  setListMode("credit_notes");
-                  setPage(1);
-                }}
-              >
-                Credit notes
-              </ToolbarButton>
-              <ToolbarButton
-                active={listMode === "invoices"}
-                onClick={() => {
-                  setListMode("invoices");
-                  setPage(1);
-                }}
-              >
-                Invoices
-              </ToolbarButton>
-              <ToolbarButton onClick={onRefresh}>
-                <RefreshCw className="h-3.5 w-3.5" />
-              </ToolbarButton>
-              <ToolbarButton onClick={onExport} className="px-3">
-                Excel
-              </ToolbarButton>
-              <ToolbarButton onClick={onPrint} className="px-3">
-                <Printer className="h-3.5 w-3.5" />
-                Print
-              </ToolbarButton>
-              <div className="ml-auto flex min-w-[180px] items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5">
-                <Search className="h-3.5 w-3.5 text-slate-400" />
-                <input
-                  type="search"
-                  placeholder="Search"
-                  className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-3 sm:grid-cols-4 sm:px-5">
-              {[
-                { label: "Total invoices", value: String(summary.total) },
-                { label: "Outstanding", value: formatRevenue(summary.outstandingCents) },
-                { label: "Overdue", value: formatRevenue(summary.overdueCents) },
-                { label: "Collected", value: formatRevenue(summary.paidCents) },
-              ].map((card) => (
-                <div key={card.label} className="text-sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    {card.label}
-                  </p>
-                  <p className="mt-0.5 font-semibold text-slate-800">{card.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {error ? (
-              <p className="px-4 py-3 text-sm font-medium text-red-600 sm:px-5">{error}</p>
-            ) : null}
-
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1100px] text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs font-medium text-slate-500">
-                    <th className="px-4 py-3 font-medium sm:px-5">Invoice ID</th>
-                    <th className="px-4 py-3 font-medium">Client</th>
-                    <th className="px-4 py-3 font-medium">Project</th>
-                    <th className="px-4 py-3 font-medium">Bill date</th>
-                    <th className="px-4 py-3 font-medium">Due date</th>
-                    <th className="px-4 py-3 font-medium">Total invoiced</th>
-                    <th className="px-4 py-3 font-medium">Payment received</th>
-                    <th className="px-4 py-3 font-medium">Due</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium sm:pr-5" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {pageRows.length === 0 ? (
-                    <tr>
-                      <td colSpan={10} className="px-6 py-16 text-center text-slate-500">
-                        {rows.length === 0
-                          ? "No invoices yet. Use Add invoice to create your first invoice."
-                          : listMode === "credit_notes"
-                            ? "No credit notes found."
-                            : "No invoices match your filters."}
-                      </td>
-                    </tr>
-                  ) : (
-                    pageRows.map((invoice) => {
-                      const statusMeta = invoiceStatusDisplay(invoice.status);
-                      const isCredit = invoice.total_cents < 0;
-
-                      return (
-                        <tr key={invoice.id} className="transition hover:bg-slate-50/80">
-                          <td className="px-4 py-3 sm:px-5">
-                            <Link
-                              href={companyInvoicePath(slug, invoice.id)}
-                              className={cn(
-                                "font-medium hover:underline",
-                                isCredit ? "text-red-600" : "text-[#4a6fd8]"
-                              )}
-                            >
-                              {invoice.invoice_number}
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3">
-                            <Link
-                              href={companyCustomerPath(slug, invoice.customer_id)}
-                              className="text-slate-800 hover:text-[#4a6fd8]"
-                            >
-                              {invoice.customers?.name ?? "—"}
-                            </Link>
-                          </td>
-                          <td className="max-w-[180px] truncate px-4 py-3 text-slate-600">
-                            {projectLabel(invoice)}
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">
-                            {formatRiseDate(invoice.issued_at ?? invoice.created_at)}
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">
-                            {formatRiseDate(invoice.due_date)}
-                          </td>
-                          <td className="px-4 py-3 text-slate-800">
-                            {formatRevenue(invoice.total_cents)}
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">
-                            {formatRevenue(invoice.amount_paid_cents)}
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">
-                            {formatRevenue(invoice.balance_due_cents)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={cn(
-                                "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset",
-                                statusMeta.className
-                              )}
-                            >
-                              {statusMeta.label}
-                            </span>
-                          </td>
-                          <td className="relative px-4 py-3 sm:pr-5">
-                            <button
-                              type="button"
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
-                              aria-label="Invoice actions"
-                              onClick={() =>
-                                setOpenMenuId((current) =>
-                                  current === invoice.id ? null : invoice.id
-                                )
-                              }
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </button>
-                            {openMenuId === invoice.id ? (
-                              <div
-                                ref={menuRef}
-                                className="absolute right-4 top-full z-20 mt-1 w-40 rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
-                              >
-                                <Link
-                                  href={companyInvoicePath(slug, invoice.id)}
-                                  className="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                                  onClick={() => setOpenMenuId(null)}
-                                >
-                                  View invoice
-                                </Link>
-                                {invoice.status === "draft" ? (
-                                  <>
-                                    <button
-                                      type="button"
-                                      className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                                      disabled={pending}
-                                      onClick={() => onIssue(invoice.id)}
-                                    >
-                                      Issue invoice
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-                                      disabled={pending}
-                                      onClick={() => onCancelDraft(invoice.id)}
-                                    >
-                                      Cancel draft
-                                    </button>
-                                  </>
-                                ) : null}
-                              </div>
-                            ) : null}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex flex-col gap-3 border-t border-slate-100 px-4 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-              <p>
-                Showing {pageRows.length} of {filteredRows.length} invoice
-                {filteredRows.length === 1 ? "" : "s"}
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="flex items-center gap-2 text-xs">
-                  Rows
-                  <select
-                    value={pageSize}
-                    onChange={(e) => {
-                      setPageSize(Number(e.target.value) as (typeof PAGE_SIZE_OPTIONS)[number]);
-                      setPage(1);
-                    }}
-                    className="rounded-md border border-slate-200 px-2 py-1 text-sm"
-                  >
-                    {PAGE_SIZE_OPTIONS.map((size) => (
-                      <option key={size} value={size}>
-                        {size}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  type="button"
-                  className="rounded-md border border-slate-200 px-2 py-1 text-xs disabled:opacity-40"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  Previous
-                </button>
-                <span className="text-xs">
-                  Page {page} of {totalPages}
-                </span>
-                <button
-                  type="button"
-                  className="rounded-md border border-slate-200 px-2 py-1 text-xs disabled:opacity-40"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </>
-        )}
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm sm:w-72"
+            placeholder="Search invoices..."
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          >
+            <option value="all">All statuses</option>
+            {INVOICE_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {status.replace(/_/g, " ")}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-wrap gap-3 text-sm">
+          <Link
+            href={companyPaymentsPath(slug)}
+            className="font-medium text-violet-700 hover:text-violet-900"
+          >
+            Payments →
+          </Link>
+          <Link
+            href={companyRevenuePath(slug)}
+            className="font-medium text-violet-700 hover:text-violet-900"
+          >
+            Revenue →
+          </Link>
+        </div>
       </div>
 
       <InvoiceFormPopover
@@ -621,6 +215,114 @@ export function CompanyInvoicesClient({
         customers={customers}
         services={services}
       />
+
+      {error ? <p className="mb-3 text-sm font-medium text-red-600">{error}</p> : null}
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3">Invoice</th>
+              <th className="px-4 py-3">Customer</th>
+              <th className="hidden px-4 py-3 md:table-cell">Due</th>
+              <th className="px-4 py-3">Total</th>
+              <th className="hidden px-4 py-3 sm:table-cell">Balance</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filteredRows.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
+                  {rows.length === 0
+                    ? "No invoices yet. Create your first invoice to start tracking payments."
+                    : "No invoices match your filters."}
+                </td>
+              </tr>
+            ) : (
+              filteredRows.map((invoice) => (
+                <tr key={invoice.id}>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={companyInvoicePath(slug, invoice.id)}
+                      className="font-medium text-violet-700 hover:text-violet-900"
+                    >
+                      {invoice.invoice_number}
+                    </Link>
+                    <p className="text-xs text-slate-400">
+                      {formatShortDate(invoice.issued_at ?? invoice.created_at)}
+                    </p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={companyCustomerPath(slug, invoice.customer_id)}
+                      className="text-slate-900 hover:text-violet-800"
+                    >
+                      {invoice.customers?.name ?? "—"}
+                    </Link>
+                    {invoice.customers?.email ? (
+                      <p className="text-xs text-slate-400">{invoice.customers.email}</p>
+                    ) : null}
+                  </td>
+                  <td className="hidden px-4 py-3 text-slate-600 md:table-cell">
+                    {formatShortDate(invoice.due_date)}
+                  </td>
+                  <td className="px-4 py-3 text-slate-900">
+                    {formatRevenue(invoice.total_cents)}
+                  </td>
+                  <td className="hidden px-4 py-3 text-slate-600 sm:table-cell">
+                    {formatRevenue(invoice.balance_due_cents)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={cn(
+                        "rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize",
+                        invoiceStatusBadgeClass(invoice.status)
+                      )}
+                    >
+                      {invoice.status.replace(/_/g, " ")}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end gap-2">
+                      {invoice.status === "draft" ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="rounded-lg"
+                            disabled={pending}
+                            onClick={() => onIssue(invoice.id)}
+                          >
+                            Issue
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="rounded-lg text-red-600 hover:text-red-700"
+                            disabled={pending}
+                            onClick={() => onCancelDraft(invoice.id)}
+                          >
+                            Cancel
+                          </Button>
+                        </>
+                      ) : (
+                        <Link
+                          href={companyInvoicePath(slug, invoice.id)}
+                          className="inline-flex h-8 items-center rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          View
+                        </Link>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -22,21 +22,10 @@ import {
   toggleServicePageVisibilityAction,
   updateBookingButtonAction,
   updateDomainSettingsAction,
-  updateWwwRedirectAction,
   updateLandingPageAction,
+  updateWebsiteSeoAction,
 } from "@/app/actions/website-builder";
 import { BuilderLockedCard } from "@/components/website-builder/builder-locked-card";
-import { PageBuilderEditor } from "@/components/website-builder/page-builder/page-builder-editor";
-import { TemplatesSection } from "@/components/website-builder/templates-section";
-import { ComponentsSection } from "@/components/website-builder/components-section";
-import { MediaLibrarySection } from "@/components/website-builder/media-library-section";
-import { BlogSection } from "@/components/website-builder/blog-section";
-import { FormsEditor } from "@/components/website-builder/forms-editor";
-import { SeoEditor } from "@/components/website-builder/seo-editor";
-import { AnalyticsSection } from "@/components/website-builder/analytics-section";
-import { NavigationEditor } from "@/components/website-builder/navigation-editor";
-import { SettingsEditor } from "@/components/website-builder/settings-editor";
-import { ThemeEditor } from "@/components/website-builder/theme-editor";
 import {
   PublicSite,
   PublicSitePreviewFrame,
@@ -46,20 +35,9 @@ import {
   publicSiteUrl,
   type WebsiteBuilderFeature,
 } from "@/lib/website-builder/access";
-import {
-  formatCustomDomainStatus,
-  primaryWebsiteDomain,
-} from "@/lib/website-builder/domains";
-import {
-  describeWwwRedirect,
-  normalizeWwwRedirectMode,
-  WWW_REDIRECT_OPTIONS,
-  type WwwRedirectMode,
-} from "@/lib/website-builder/www-redirect";
-import { WebsiteDomainsPanel, type WebsiteDomainDnsHelp } from "@/components/websites/website-domains-panel";
-import { publicSitePath, companyWebsiteBuilderSectionPath } from "@/lib/paths/company";
+import { publicSitePath } from "@/lib/paths/company";
 import { cn } from "@/lib/utils";
-import type { CompanyService, CompanyWithIndustry } from "@/types/database";
+import type { CompanyService } from "@/types/database";
 import type { SubscriptionCompanyFields } from "@/lib/subscriptions/types";
 import type {
   BuilderWebsite,
@@ -68,60 +46,30 @@ import type {
   WebsiteEnquiryRecord,
   WebsiteServicePageRecord,
 } from "@/types/website-builder";
-import type { WebsiteComponentRecord } from "@/types/website-builder-components";
-import type { WebsiteMediaRecord } from "@/types/website-builder-media";
-import type { ContentPost } from "@/types/growth-engine";
-import type { ContentPostSummary } from "@/lib/services/content-posts";
-import type { BlogCategory, BlogTag } from "@/types/website-builder-blog";
-import type { BuilderAnalytics } from "@/types/website-builder-analytics";
-import type { PublishSnapshotSummary } from "@/types/website-builder-settings";
-import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 
 export type BuilderSection =
   | "overview"
   | "pages"
-  | "page-builder"
-  | "templates"
-  | "components"
-  | "theme"
-  | "media"
-  | "navigation"
   | "service-pages"
   | "contact"
   | "booking"
   | "seo"
-  | "blog"
-  | "analytics"
   | "publish"
   | "domains"
   | "enquiries"
-  | "preview"
-  | "settings";
+  | "preview";
 
 type Props = {
   slug: string;
   companyId: string;
-  company: SubscriptionCompanyFields & CompanyWithIndustry;
+  company: SubscriptionCompanyFields;
   section: BuilderSection;
   website: BuilderWebsite | null;
   landingContent: LandingPageContent | null;
   servicePages: WebsiteServicePageRecord[];
   enquiries: WebsiteEnquiryRecord[];
   domainSettings: DomainSettingsRecord | null;
-  websiteDomains: WebsiteDomain[];
-  dnsByDomain: Record<string, WebsiteDnsRecord[]>;
-  domainDnsHelp: WebsiteDomainDnsHelp | null;
   companyServices: CompanyService[];
-  savedComponents?: WebsiteComponentRecord[];
-  mediaItems?: WebsiteMediaRecord[];
-  contentPosts?: ContentPost[];
-  contentSummary?: ContentPostSummary;
-  blogCategories?: BlogCategory[];
-  blogTags?: BlogTag[];
-  postTagIds?: Record<string, string[]>;
-  blogTaxonomyReady?: boolean;
-  builderAnalytics?: BuilderAnalytics | null;
-  publishSnapshots?: PublishSnapshotSummary[];
 };
 
 function SectionCard({
@@ -170,120 +118,51 @@ const SECTION_TITLES: Record<BuilderSection, { title: string; description: strin
     title: "Website builder",
     description: "Generate a public business website from your profile.",
   },
-  pages: { title: "Pages", description: "Manage site pages and open the visual page builder." },
-  "page-builder": {
-    title: "Page Builder",
-    description: "Drag-and-drop sections with live split-screen preview.",
-  },
-  templates: { title: "Templates", description: "Industry templates library." },
-  components: { title: "Components", description: "Reusable blocks saved across pages." },
-  theme: { title: "Theme", description: "Site-wide colors, fonts, and layout." },
-  media: { title: "Media Library", description: "Upload and organize images and files." },
-  navigation: { title: "Navigation", description: "Header, footer, and menu structure." },
+  pages: { title: "Pages", description: "Edit your landing page content." },
   "service-pages": {
     title: "Service pages",
     description: "Create dedicated pages for each service.",
   },
   contact: {
-    title: "Forms",
+    title: "Contact form",
     description: "Public visitors can send enquiries from your site.",
   },
   booking: {
-    title: "Booking",
+    title: "Booking button",
     description: "Customize the CTA that links to your booking flow.",
   },
-  seo: { title: "Site SEO", description: "Page titles, meta tags, and social previews for your website." },
-  blog: { title: "Blog", description: "Blog posts and categories." },
-  analytics: { title: "Analytics", description: "Page views, conversions, and performance." },
-  publish: { title: "Publishing", description: "Save draft, preview, or go live." },
+  seo: { title: "SEO settings", description: "Search and social metadata." },
+  publish: { title: "Publish settings", description: "Save draft, preview, or go live." },
   domains: {
-    title: "Domains",
-    description: "Your FaraiOS URL and custom domain options.",
+    title: "Domain settings",
+    description: "Your FaraiOS URL and future custom domain options.",
   },
   enquiries: { title: "Website enquiries", description: "Messages from your contact form." },
   preview: { title: "Preview", description: "See your site before publishing." },
-  settings: { title: "Settings", description: "Builder preferences and advanced options." },
 };
 
 export function WebsiteBuilderClient(props: Props) {
-  const {
-    slug,
-    company,
-    section,
-    savedComponents = [],
-    mediaItems = [],
-    contentPosts = [],
-    contentSummary = { total: 0, drafts: 0, published: 0, byCategory: { blog: 0, guide: 0, service_article: 0, faq: 0 } },
-    blogCategories = [],
-    blogTags = [],
-    postTagIds = {},
-    blogTaxonomyReady = true,
-  } = props;
+  const { slug, company, section } = props;
   const meta = SECTION_TITLES[section];
   const previewOnly =
     canAccessWebsiteBuilderFeature(company, "websiteBuilderPreview") &&
     !canAccessWebsiteBuilderFeature(company, "websiteBuilder");
 
-  const isCompactBuilder =
-    section === "page-builder" ||
-    section === "navigation" ||
-    section === "contact" ||
-    section === "seo";
-
   return (
-    <div
-      className={cn(
-        "bg-[#f0f2f5]",
-        isCompactBuilder ? "px-2 py-2 sm:px-3" : "px-4 py-4 sm:px-5 sm:py-5"
-      )}
-    >
-      {isCompactBuilder ? (
-        <div className="mb-2 px-1">
-          <h1 className="text-base font-medium text-slate-800">{meta.title}</h1>
-        </div>
-      ) : (
-        <div className="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-5">
-          <h1 className="text-lg font-medium text-slate-800">{meta.title}</h1>
-          <p className="mt-1 text-sm text-slate-500">{meta.description}</p>
-          {previewOnly && section !== "preview" ? (
-            <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              Starter plan: preview only. Upgrade to Business to edit and publish your website.
-            </p>
-          ) : null}
-        </div>
-      )}
+    <div className="px-4 py-8 sm:px-6 lg:px-8">
+      <header className="mb-6">
+        <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">Website</p>
+        <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">{meta.title}</h1>
+        <p className="mt-2 max-w-2xl text-sm text-slate-500">{meta.description}</p>
+        {previewOnly && section !== "preview" ? (
+          <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+            Starter plan: preview only. Upgrade to Business to edit and publish your website.
+          </p>
+        ) : null}
+      </header>
 
       {section === "overview" ? <OverviewSection {...props} /> : null}
       {section === "pages" ? <PagesSection {...props} /> : null}
-      {section === "page-builder" ? <PageBuilderSection {...props} /> : null}
-      {section === "theme" ? <ThemeSection {...props} /> : null}
-      {section === "templates" ? (
-        <TemplatesSection {...props} companyServices={props.companyServices} />
-      ) : null}
-      {section === "components" ? (
-        <ComponentsSection {...props} savedComponents={savedComponents} />
-      ) : null}
-      {section === "media" ? (
-        <MediaLibrarySection {...props} mediaItems={mediaItems} />
-      ) : null}
-      {section === "navigation" ? <NavigationSection {...props} /> : null}
-      {section === "blog" ? (
-        <BlogSection
-          slug={slug}
-          companyId={props.companyId}
-          company={company}
-          website={props.website}
-          mediaItems={mediaItems}
-          posts={contentPosts}
-          summary={contentSummary}
-          categories={blogCategories}
-          tags={blogTags}
-          postTagIds={postTagIds}
-          taxonomyReady={blogTaxonomyReady}
-        />
-      ) : null}
-      {section === "analytics" ? <AnalyticsSectionWrapper {...props} /> : null}
-      {section === "settings" ? <SettingsSection {...props} /> : null}
       {section === "service-pages" ? <ServicePagesSection {...props} /> : null}
       {section === "contact" ? <ContactSection {...props} /> : null}
       {section === "booking" ? <BookingSection {...props} /> : null}
@@ -388,96 +267,6 @@ function OverviewSection({
   );
 }
 
-function BuilderPlaceholderSection({ section }: { section: BuilderSection }) {
-  const copy: Record<string, string> = {
-    templates: "Browse and apply industry templates (cleaning, plumbing, salon, and more).",
-    components: "Save hero, footer, FAQ, and CTA blocks to reuse across pages.",
-    media: "Upload, crop, tag, and organize images and files.",
-    navigation: "Edit header, footer, dropdowns, and mobile menus.",
-  };
-  return (
-    <section className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
-      <p className="text-sm font-medium text-slate-800">{SECTION_TITLES[section].title}</p>
-      <p className="mx-auto mt-2 max-w-lg text-sm text-slate-500">{copy[section]}</p>
-      <p className="mt-4 text-xs text-slate-400">Phase 3 of Website Builder V2 — see docs/website-builder-v2-upgrade.md</p>
-    </section>
-  );
-}
-
-function PageBuilderSection(props: Props) {
-  const {
-    slug,
-    companyId,
-    company,
-    website,
-    landingContent,
-    servicePages,
-    savedComponents = [],
-  } = props;
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
-  if (!landingContent) {
-    return (
-      <p className="text-sm text-slate-600">Create your website first, then open the page builder.</p>
-    );
-  }
-  return (
-    <Gate slug={slug} company={company} feature="websiteBuilder">
-      <PageBuilderEditor
-        slug={slug}
-        companyId={companyId}
-        company={company}
-        website={website}
-        landingContent={landingContent}
-        servicePages={servicePages}
-        savedComponents={savedComponents}
-      />
-    </Gate>
-  );
-}
-
-function ThemeSection(props: Props) {
-  const { slug, companyId, company, website } = props;
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
-  return (
-    <Gate slug={slug} company={company} feature="websiteBuilder">
-      <ThemeEditor slug={slug} companyId={companyId} website={website} />
-    </Gate>
-  );
-}
-
-function NavigationSection(props: Props) {
-  const { slug, companyId, company, website, landingContent, servicePages } = props;
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
-  return (
-    <Gate slug={slug} company={company} feature="websiteBuilder">
-      <NavigationEditor
-        slug={slug}
-        companyId={companyId}
-        website={website}
-        companyName={website.title}
-        landingContent={landingContent}
-        servicePages={servicePages}
-      />
-    </Gate>
-  );
-}
-
-function SettingsSection(props: Props) {
-  const { slug, companyId, company, website, domainSettings, publishSnapshots = [] } = props;
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
-  return (
-    <Gate slug={slug} company={company} feature="websiteBuilder">
-      <SettingsEditor
-        slug={slug}
-        companyId={companyId}
-        website={website}
-        domainSettings={domainSettings}
-        publishSnapshots={publishSnapshots}
-      />
-    </Gate>
-  );
-}
-
 function PagesSection(props: Props) {
   const { slug, companyId, company, website, landingContent } = props;
   const router = useRouter();
@@ -490,18 +279,7 @@ function PagesSection(props: Props) {
   return (
     <Gate slug={slug} company={company} feature="websiteBuilder">
       <div className="space-y-6">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-slate-600">
-            Use the visual page builder for drag-and-drop sections, hero settings, and live preview.
-          </p>
-          <Link
-            href={companyWebsiteBuilderSectionPath(slug, "page-builder")}
-            className="mt-3 inline-flex rounded-md bg-[#5a8dee] px-4 py-2 text-sm font-medium text-white hover:bg-[#4a7de0]"
-          >
-            Open Page Builder
-          </Link>
-        </div>
-        <SectionCard title="Landing page" description="Quick text edits (legacy).">
+        <SectionCard title="Landing page" description="Generated from your business profile.">
           <div className="mb-4 flex flex-wrap gap-2">
             <button
               type="button"
@@ -715,18 +493,21 @@ function ServicePagesSection({
   );
 }
 
-function ContactSection(props: Props) {
-  const { slug, companyId, company, website, landingContent, servicePages } = props;
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
+function ContactSection({ slug, company }: Props) {
   return (
     <Gate slug={slug} company={company} feature="websiteBuilder">
-      <FormsEditor
-        slug={slug}
-        companyId={companyId}
-        website={website}
-        landingContent={landingContent}
-        servicePages={servicePages}
-      />
+      <SectionCard title="Contact form fields">
+        <ul className="list-inside list-disc text-sm text-slate-600">
+          <li>Name (required)</li>
+          <li>Email</li>
+          <li>Phone</li>
+          <li>Service interested in</li>
+          <li>Message (required)</li>
+        </ul>
+        <p className="mt-4 text-sm text-slate-500">
+          Enquiries are saved to your dashboard and can trigger notifications on Pro plans.
+        </p>
+      </SectionCard>
     </Gate>
   );
 }
@@ -796,50 +577,63 @@ function BookingSection({ slug, companyId, company, website }: Props) {
   );
 }
 
-function AnalyticsSectionWrapper(props: Props) {
-  const { slug, companyId, company, website, builderAnalytics } = props;
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
-  if (!builderAnalytics) {
-    return (
-      <p className="text-sm text-slate-600">Loading analytics…</p>
-    );
-  }
-  return (
-    <Gate slug={slug} company={company} feature="websiteBuilder">
-      <AnalyticsSection
-        slug={slug}
-        company={company}
-        website={website}
-        analytics={builderAnalytics}
-      />
-    </Gate>
-  );
-}
+function SeoSection({ slug, companyId, company, website }: Props) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [seoTitle, setSeoTitle] = useState(website?.seo_title ?? "");
+  const [seoDescription, setSeoDescription] = useState(website?.seo_description ?? "");
+  const [seoKeywords, setSeoKeywords] = useState(website?.seo_keywords ?? "");
+  const [ogTitle, setOgTitle] = useState(website?.og_title ?? "");
+  const [ogDescription, setOgDescription] = useState(website?.og_description ?? "");
+  const [message, setMessage] = useState<string | null>(null);
 
-function SeoSection(props: Props) {
-  const {
-    slug,
-    companyId,
-    company,
-    website,
-    landingContent,
-    servicePages,
-    mediaItems = [],
-    domainSettings,
-  } = props;
   if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
+
   return (
     <Gate slug={slug} company={company} feature="websiteSeo">
-      <SeoEditor
-        slug={slug}
-        companyId={companyId}
-        company={company as CompanyWithIndustry}
-        website={website}
-        landingContent={landingContent}
-        servicePages={servicePages}
-        mediaItems={mediaItems}
-        domainSettings={domainSettings}
-      />
+      <SectionCard title="Main website SEO">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[
+            ["SEO title", seoTitle, setSeoTitle],
+            ["SEO description", seoDescription, setSeoDescription],
+            ["Keywords", seoKeywords, setSeoKeywords],
+            ["Open Graph title", ogTitle, setOgTitle],
+            ["Open Graph description", ogDescription, setOgDescription],
+          ].map(([label, value, setter]) => (
+            <label key={label as string} className="block text-sm sm:col-span-2">
+              <span className="font-medium text-slate-900">{label as string}</span>
+              <input
+                value={value as string}
+                onChange={(e) => (setter as (v: string) => void)(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+              />
+            </label>
+          ))}
+        </div>
+        {message ? <p className="mt-3 text-sm text-slate-600">{message}</p> : null}
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() =>
+            startTransition(async () => {
+              const result = await updateWebsiteSeoAction({
+                companyId,
+                companySlug: slug,
+                seoTitle,
+                seoDescription,
+                seoKeywords,
+                ogTitle,
+                ogDescription,
+              });
+              setMessage(result.ok ? "SEO settings saved." : result.error);
+              if (result.ok) router.refresh();
+            })
+          }
+          className="mt-4 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white"
+        >
+          Save SEO
+        </button>
+      </SectionCard>
     </Gate>
   );
 }
@@ -899,39 +693,12 @@ function PublishSection({ slug, companyId, company, website }: Props) {
   );
 }
 
-function DomainsSection({
-  slug,
-  companyId,
-  company,
-  website,
-  domainSettings,
-  websiteDomains,
-  dnsByDomain,
-  domainDnsHelp,
-}: Props) {
+function DomainsSection({ slug, companyId, company, website, domainSettings }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [subdomain, setSubdomain] = useState(domainSettings?.requested_subdomain ?? slug);
-  const [wwwRedirect, setWwwRedirect] = useState<WwwRedirectMode>(
-    normalizeWwwRedirectMode(domainSettings?.www_redirect)
-  );
   const [message, setMessage] = useState<string | null>(null);
-  const [redirectMessage, setRedirectMessage] = useState<string | null>(null);
   const canReserve = canAccessWebsiteBuilderFeature(company, "websiteDomains");
-  const primaryDomain = primaryWebsiteDomain(websiteDomains);
-  const customDomainLabel =
-    primaryDomain?.domain ??
-    (domainSettings?.custom_domain &&
-    domainSettings.custom_domain_status !== "coming_soon"
-      ? domainSettings.custom_domain
-      : null);
-  const customDomainStatus = primaryDomain
-    ? primaryDomain.verification_status
-    : domainSettings?.custom_domain_status;
-  const showCustomDomainStatus =
-    customDomainStatus &&
-    customDomainStatus !== "not_connected" &&
-    customDomainStatus !== "coming_soon";
 
   if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
 
@@ -941,104 +708,21 @@ function DomainsSection({
         <dl className="space-y-3 text-sm">
           <div>
             <dt className="font-medium text-slate-900">Default FaraiOS URL</dt>
-            <dd className="text-slate-600">
-              <a
-                href={domainSettings?.default_url ?? publicSiteUrl(slug)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-violet-700 hover:text-violet-900"
-              >
-                {domainSettings?.default_url ?? publicSiteUrl(slug)}
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
-            </dd>
+            <dd className="text-slate-600">{domainSettings?.default_url ?? publicSiteUrl(slug)}</dd>
           </div>
           <div>
             <dt className="font-medium text-slate-900">Custom domain</dt>
             <dd className="text-slate-600">
-              {customDomainLabel ? (
-                <>
-                  {customDomainLabel}
-                  {showCustomDomainStatus ? (
-                    <span className="text-slate-500">
-                      {" "}
-                      ({formatCustomDomainStatus(customDomainStatus)})
-                    </span>
-                  ) : null}
-                </>
-              ) : (
-                "Not connected"
-              )}
+              Coming soon
+              {domainSettings?.custom_domain_status
+                ? ` (${domainSettings.custom_domain_status.replace(/_/g, " ")})`
+                : ""}
             </dd>
           </div>
         </dl>
-
-        <div className="mt-6 border-t border-slate-100 pt-6">
-          <WebsiteDomainsPanel
-            companyId={companyId}
-            slug={slug}
-            domains={websiteDomains}
-            dnsByDomain={dnsByDomain}
-            websiteId={website.id}
-            variant="embedded"
-            dnsHelp={domainDnsHelp}
-          />
-        </div>
-
-        {customDomainLabel ? (
-          <div className="mt-6 border-t border-slate-100 pt-6">
-            <h3 className="text-sm font-semibold text-slate-900">WWW redirect</h3>
-            <p className="mt-1 text-sm text-slate-500">
-              {describeWwwRedirect(wwwRedirect, customDomainLabel)}
-            </p>
-            <div className="mt-3 space-y-2">
-              {WWW_REDIRECT_OPTIONS.map((option) => (
-                <label
-                  key={option.value}
-                  className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 px-3 py-3 hover:bg-slate-50"
-                >
-                  <input
-                    type="radio"
-                    name="www-redirect"
-                    value={option.value}
-                    checked={wwwRedirect === option.value}
-                    onChange={() => setWwwRedirect(option.value)}
-                    className="mt-1"
-                  />
-                  <span>
-                    <span className="block text-sm font-medium text-slate-900">{option.label}</span>
-                    <span className="block text-xs text-slate-500">{option.description}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
-            {redirectMessage ? (
-              <p className="mt-3 text-sm text-slate-600">{redirectMessage}</p>
-            ) : null}
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() =>
-                startTransition(async () => {
-                  const result = await updateWwwRedirectAction({
-                    companyId,
-                    companySlug: slug,
-                    wwwRedirect,
-                  });
-                  setRedirectMessage(result.ok ? "WWW redirect saved." : result.error);
-                  if (result.ok) router.refresh();
-                })
-              }
-              className="mt-4 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white"
-            >
-              Save WWW redirect
-            </button>
-          </div>
-        ) : null}
-
         {canReserve ? (
           <>
-            <label className="mt-6 block border-t border-slate-100 pt-6 text-sm">
+            <label className="mt-4 block text-sm">
               <span className="font-medium text-slate-900">Reserve preferred subdomain</span>
               <input
                 value={subdomain}
@@ -1071,7 +755,7 @@ function DomainsSection({
             </button>
           </>
         ) : (
-          <p className="mt-6 border-t border-slate-100 pt-6 text-sm text-slate-500">
+          <p className="mt-4 text-sm text-slate-500">
             Subdomain reservation is available on Enterprise. Your public URL is ready to use today.
           </p>
         )}
