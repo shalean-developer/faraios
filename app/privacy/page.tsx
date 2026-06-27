@@ -1,7 +1,10 @@
-export const metadata = {
+import { platformPageMetadata } from "@/lib/seo/platform-metadata";
+
+export const metadata = platformPageMetadata({
   title: "Privacy Policy — FaraiOS",
   description: "How FaraiOS collects, uses, and protects your data.",
-};
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (

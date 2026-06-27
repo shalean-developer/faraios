@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 
+import { PLATFORM_NOINDEX_METADATA } from "@/lib/seo/platform-metadata";
+
 export const metadata: Metadata = {
+  ...PLATFORM_NOINDEX_METADATA,
   icons: {
     icon: [
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },

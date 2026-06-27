@@ -1,7 +1,10 @@
-export const metadata = {
+import { platformPageMetadata } from "@/lib/seo/platform-metadata";
+
+export const metadata = platformPageMetadata({
   title: "Terms of Service — FaraiOS",
   description: "Terms governing use of the FaraiOS platform.",
-};
+  path: "/terms",
+});
 
 export default function TermsPage() {
   return (

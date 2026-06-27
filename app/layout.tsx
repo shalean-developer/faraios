@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
+import { PLATFORM_ROOT_METADATA } from "@/lib/seo/platform-metadata";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,9 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FaraiOS — Business OS for Service Businesses",
-  description:
-    "Manage bookings, customers, payments, websites, and your team from one connected workspace built for local service businesses.",
+  ...PLATFORM_ROOT_METADATA,
   icons: {
     icon: [
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },

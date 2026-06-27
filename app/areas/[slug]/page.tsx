@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { SchemaJsonLd } from "@/components/seo/schema-json-ld";
 import { getLocalSeoSettingsAdmin } from "@/lib/services/local-seo";
 import { getPublishedServiceAreaPage } from "@/lib/services/service-area-pages";
+import { buildTenantSocialMetadata } from "@/lib/seo/tenant-metadata";
 import {
   buildServiceAreaPageSchemas,
   schemaToJsonLd,
@@ -23,9 +24,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const page = await getPublishedServiceAreaPage(ctx.website.client_id, slug);
   if (!page) return {};
 
+  const title = page.seo_title ?? page.h1 ?? undefined;
+  const description = page.meta_description ?? undefined;
+
   return {
-    title: page.seo_title ?? page.h1 ?? undefined,
-    description: page.meta_description ?? undefined,
+    title,
+    description,
+    ...buildTenantSocialMetadata({
+      website: ctx.website,
+      title: title ?? ctx.website.seo_title ?? ctx.website.name,
+      description,
+    }),
   };
 }
 

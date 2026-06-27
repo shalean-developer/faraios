@@ -1,8 +1,11 @@
 import type { MetadataRoute } from "next";
 
-import { createClient } from "@/lib/supabase/server";
+import { INDUSTRY_CARDS } from "@/lib/data/home-marketing";
+import { FARAIOS_MARKETING_PATHS } from "@/lib/seo/platform-metadata";
 import { getTenantSitemapExtras } from "@/lib/services/tenant-seo";
+import { listMarketplaceBusinessesPublic } from "@/lib/services/marketplace";
 import { FARAIOS_TENANT_DOMAIN_SUFFIX } from "@/lib/constants/tenant-domain";
+import { createClient } from "@/lib/supabase/server";
 import { getMainAppDomain } from "@/lib/services/websites";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -15,12 +18,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const appHost = getMainAppDomain();
   const base = appHost ? `https://${appHost}` : null;
   const urls: MetadataRoute.Sitemap = [];
+  const now = new Date();
 
   if (base) {
-    urls.push({
-      url: `${base}/`,
-      lastModified: new Date(),
-    });
+    for (const path of FARAIOS_MARKETING_PATHS) {
+      urls.push({
+        url: path === "/" ? `${base}/` : `${base}${path}`,
+        lastModified: now,
+      });
+    }
+
+    for (const industry of INDUSTRY_CARDS) {
+      urls.push({
+        url: `${base}/industries/${industry.slug}`,
+        lastModified: now,
+      });
+    }
+
+    const marketplaceListings = await listMarketplaceBusinessesPublic();
+    for (const listing of marketplaceListings) {
+      urls.push({
+        url: `${base}/marketplace/${encodeURIComponent(listing.slug)}`,
+        lastModified: now,
+      });
+    }
   }
 
   for (const website of websites ?? []) {

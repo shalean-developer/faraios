@@ -9,12 +9,29 @@ import { createClient } from "@/lib/supabase/server";
 import { renderWebsiteTemplate } from "@/lib/services/render-website-template";
 import { getTenantContext, getTenantMetadata } from "@/lib/services/tenant-site";
 import { TenantHomeSchema } from "@/lib/services/tenant-seo";
+import {
+  buildPlatformOpenGraph,
+  buildPlatformTwitter,
+  FARAIOS_DEFAULT_DESCRIPTION,
+  FARAIOS_DEFAULT_TITLE,
+} from "@/lib/seo/platform-metadata";
+import { PlatformHomeSchema } from "@/lib/seo/platform-schema";
 
 import { HomeFallback } from "./home-fallback";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const ctx = await getTenantContext();
+  if (ctx.mainHost) {
+    return {
+      title: FARAIOS_DEFAULT_TITLE,
+      description: FARAIOS_DEFAULT_DESCRIPTION,
+      alternates: { canonical: "/" },
+      openGraph: buildPlatformOpenGraph(),
+      twitter: buildPlatformTwitter(),
+    };
+  }
   return getTenantMetadata("home");
 }
 
@@ -45,9 +62,12 @@ export default async function HomePage() {
 
   if (isMainExperience) {
     return (
-      <Suspense fallback={<HomeFallback />}>
-        <HomeData />
-      </Suspense>
+      <>
+        <PlatformHomeSchema />
+        <Suspense fallback={<HomeFallback />}>
+          <HomeData />
+        </Suspense>
+      </>
     );
   }
 

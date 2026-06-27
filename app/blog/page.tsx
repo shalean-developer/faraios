@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { listPublishedContentPosts } from "@/lib/services/content-posts";
+import { buildTenantSocialMetadata } from "@/lib/seo/tenant-metadata";
 import { getTenantContext } from "@/lib/services/tenant-site";
 
 export const dynamic = "force-dynamic";
@@ -10,9 +11,16 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   const ctx = await getTenantContext();
   if (!ctx.website) return {};
+  const title = `Blog | ${ctx.website.seo_title || ctx.website.name}`;
+  const description = ctx.website.seo_description ?? undefined;
   return {
-    title: `Blog | ${ctx.website.seo_title || ctx.website.name}`,
-    description: ctx.website.seo_description ?? undefined,
+    title,
+    description,
+    ...buildTenantSocialMetadata({
+      website: ctx.website,
+      title,
+      description,
+    }),
   };
 }
 

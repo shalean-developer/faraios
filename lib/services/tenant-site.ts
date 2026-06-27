@@ -10,6 +10,7 @@ import {
   isMainHost,
 } from "@/lib/services/websites";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import { buildTenantSocialMetadata } from "@/lib/seo/tenant-metadata";
 import type { WebsiteContent } from "@/types/database";
 
 async function getCompanyBranding(companyId: string): Promise<CompanyBranding | null> {
@@ -97,23 +98,15 @@ export async function getTenantMetadata(kind: TenantPageKind): Promise<Metadata>
   const keywords = ctx.website.seo_keywords
     ? ctx.website.seo_keywords.split(",").map((k) => k.trim()).filter(Boolean)
     : undefined;
-  const image = ctx.website.og_image || undefined;
 
   return {
     title,
     description,
     keywords,
-    openGraph: {
+    ...buildTenantSocialMetadata({
+      website: ctx.website,
       title,
       description,
-      images: image ? [image] : [],
-      type: "website",
-    },
-    twitter: {
-      card: image ? "summary_large_image" : "summary",
-      title,
-      description,
-      images: image ? [image] : [],
-    },
+    }),
   };
 }

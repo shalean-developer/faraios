@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { FaraiIndustriesPage } from "@/components/marketing/farai-industries-page";
 import { INDUSTRY_CARDS } from "@/lib/data/home-marketing";
+import { platformPageMetadata } from "@/lib/seo/platform-metadata";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -16,10 +17,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!industry) {
     return { title: "Industry not found — FaraiOS" };
   }
-  return {
+  return platformPageMetadata({
     title: `${industry.name} — FaraiOS Industries`,
     description: industry.description,
-  };
+    path: `/industries/${slug}`,
+  });
 }
 
 export default async function IndustryDetailPage({ params }: Props) {

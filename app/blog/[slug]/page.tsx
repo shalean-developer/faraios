@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { ContentBody } from "@/components/content/content-body";
 import { getPublishedContentPost } from "@/lib/services/content-posts";
+import { buildTenantSocialMetadata } from "@/lib/seo/tenant-metadata";
 import { getTenantContext } from "@/lib/services/tenant-site";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +19,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = await getPublishedContentPost(ctx.website.client_id, slug);
   if (!post) return {};
 
+  const title = post.meta_title ?? post.title;
+  const description = post.meta_description ?? undefined;
+
   return {
-    title: post.meta_title ?? post.title,
-    description: post.meta_description ?? undefined,
+    title,
+    description,
+    ...buildTenantSocialMetadata({
+      website: ctx.website,
+      title,
+      description,
+      image: post.featured_image,
+    }),
   };
 }
 
@@ -66,7 +76,7 @@ export default async function BlogPostPage({ params }: Props) {
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={post.featured_image}
-          alt=""
+          alt={post.title}
           className="mt-6 w-full rounded-2xl object-cover"
         />
       ) : null}

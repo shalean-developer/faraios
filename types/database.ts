@@ -232,6 +232,8 @@ export type Website = {
   seo_title?: string | null;
   seo_description?: string | null;
   seo_keywords?: string | null;
+  og_title?: string | null;
+  og_description?: string | null;
   og_image?: string | null;
   created_at: string;
 };
