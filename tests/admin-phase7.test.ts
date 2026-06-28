@@ -45,6 +45,7 @@ function sampleMetrics(): AdminPlatformOverviewMetrics {
       domains: "unknown",
       ssl: "unknown",
     },
+    systemHealthIssues: [],
     infrastructure: {
       pipelineInProgress: 0,
       pipelineInReview: 0,

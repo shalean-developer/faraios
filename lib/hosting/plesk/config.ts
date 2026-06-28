@@ -90,30 +90,7 @@ function credentialsFromServerRow(server: HostingServerRow): PleskCredentials | 
   };
 }
 
-export async function getPleskCredentials(serverId?: string | null): Promise<PleskCredentials | null> {
-  if (serverId) {
-    const admin = tryCreateAdminClient();
-    if (admin.ok) {
-      const { data: server } = await admin.client
-        .from("hosting_servers")
-        .select("*")
-        .eq("id", serverId)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      if (server) {
-        const fromServer = credentialsFromServerRow(server as HostingServerRow);
-        if (fromServer) return fromServer;
-      }
-    }
-  }
-
-  const env = credentialsFromEnv();
-  if (env) return env;
-
-  const fromDb = await credentialsFromPlatformSettings();
-  if (fromDb) return fromDb;
-
+async function credentialsFromDefaultServer(): Promise<PleskCredentials | null> {
   const admin = tryCreateAdminClient();
   if (!admin.ok) return null;
 
@@ -124,11 +101,40 @@ export async function getPleskCredentials(serverId?: string | null): Promise<Ple
     .eq("is_active", true)
     .maybeSingle();
 
-  if (defaultServer) {
-    return credentialsFromServerRow(defaultServer as HostingServerRow);
+  if (!defaultServer) return null;
+  return credentialsFromServerRow(defaultServer as HostingServerRow);
+}
+
+async function credentialsFromServerId(
+  serverId: string
+): Promise<PleskCredentials | null> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return null;
+
+  const { data: server } = await admin.client
+    .from("hosting_servers")
+    .select("*")
+    .eq("id", serverId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!server) return null;
+  return credentialsFromServerRow(server as HostingServerRow);
+}
+
+export async function getPleskCredentials(serverId?: string | null): Promise<PleskCredentials | null> {
+  if (serverId) {
+    const fromServer = await credentialsFromServerId(serverId);
+    if (fromServer) return fromServer;
   }
 
-  return null;
+  const fromDefaultServer = await credentialsFromDefaultServer();
+  if (fromDefaultServer) return fromDefaultServer;
+
+  const fromDb = await credentialsFromPlatformSettings();
+  if (fromDb) return fromDb;
+
+  return credentialsFromEnv();
 }
 
 export function encryptServerSecret(secret: string): string {

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { clearFailedPlatformEmailLogs } from "@/lib/platform/email-log";
 import { logPlatformAuditEvent } from "@/lib/platform/audit-log";
 import {
   adminStatusToDb,
@@ -67,6 +68,7 @@ function revalidateAdminSurfaces(options?: {
   revalidatePath("/admin/support");
   revalidatePath("/admin/feature-requests");
   revalidatePath("/admin/domains");
+  revalidatePath("/admin/emails");
   revalidatePath("/marketplace");
   if (options?.companySlug) {
     revalidatePath(`/marketplace/${options.companySlug}`);
@@ -1440,4 +1442,23 @@ export async function adminDeleteWebsiteDomainAction(
   });
 
   return { ok: true };
+}
+
+export async function adminClearFailedEmailLogs(): Promise<
+  AdminMutationResult & { deletedCount?: number }
+> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const result = await clearFailedPlatformEmailLogs();
+  if (!result.ok) return { ok: false, error: result.error };
+
+  revalidateAdminSurfaces();
+  await auditAdminAction({
+    action: "email_logs.failed_cleared",
+    targetType: "platform_email_logs",
+    metadata: { deletedCount: result.deletedCount },
+  });
+
+  return { ok: true, deletedCount: result.deletedCount };
 }

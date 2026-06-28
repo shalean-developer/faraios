@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { AdminActivityBellLink } from "@/components/admin/admin-activity-bell-link";
 import { AdminPageShell } from "@/components/admin/admin-page-shell";
 import {
@@ -14,9 +15,11 @@ import {
   riseTableClassName,
   riseTableHeadRowClassName,
 } from "@/lib/ui/rise-dashboard-styles";
+import { formatDateTimeEnZA } from "@/lib/format/dates";
 import {
   adminChangeHostingPackageAction,
   adminManualProvisionAction,
+  adminRemoveHostingOrderAction,
   adminResetHostingPasswordAction,
   adminRetryProvisioningAction,
   adminSuspendHostingServiceAction,
@@ -117,7 +120,13 @@ export function FaraiAdminHostingServices({
 }
 
 export function FaraiAdminHostingOrders({ orders }: { orders: OrderRow[] }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const canRemove = (status: string) =>
+    status === "failed" || status === "cancelled" || status === "pending";
 
   return (
     <AdminPageShell
@@ -125,6 +134,8 @@ export function FaraiAdminHostingOrders({ orders }: { orders: OrderRow[] }) {
       actions={<AdminActivityBellLink />}
     >
       <AdminHostingNav />
+      {message ? <p className="text-sm text-emerald-700">{message}</p> : null}
+      {error ? <p className="text-sm text-red-700">{error}</p> : null}
       <div className={riseTableClassName}>
         <table className="w-full min-w-[900px]">
           <thead>
@@ -155,6 +166,28 @@ export function FaraiAdminHostingOrders({ orders }: { orders: OrderRow[] }) {
                         Provision
                       </Button>
                     )}
+                    {canRemove(order.status) && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={pending}
+                        onClick={() => {
+                          setMessage(null);
+                          setError(null);
+                          startTransition(async () => {
+                            const result = await adminRemoveHostingOrderAction(order.id);
+                            if (!result.ok) {
+                              setError(result.error);
+                              return;
+                            }
+                            setMessage(`Removed ${result.domainName ?? order.domain_name}.`);
+                            router.refresh();
+                          });
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -179,7 +212,7 @@ export function FaraiAdminHostingLogs({ logs }: { logs: LogRow[] }) {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-bold text-slate-900">{log.action}</p>
-                <p className="text-xs text-slate-500">{log.hosting_orders?.domain_name ?? "—"} · {new Date(log.created_at).toLocaleString()}</p>
+                <p className="text-xs text-slate-500">{log.hosting_orders?.domain_name ?? "—"} · {formatDateTimeEnZA(log.created_at)}</p>
               </div>
               <HostingStatusBadge status={log.status} />
             </div>

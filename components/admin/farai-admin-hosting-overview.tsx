@@ -11,6 +11,7 @@ import {
 import {
   riseStatCardClassName,
 } from "@/lib/ui/rise-dashboard-styles";
+import { formatDateTimeEnZA } from "@/lib/format/dates";
 import type { AdminHostingOverviewData } from "@/lib/services/hosting-admin";
 
 export function FaraiAdminHostingOverview({ data }: { data: AdminHostingOverviewData }) {
@@ -86,7 +87,7 @@ export function FaraiAdminHostingOverview({ data }: { data: AdminHostingOverview
               <div key={log.id} className="flex items-center justify-between gap-3 text-sm">
                 <div>
                   <p className="font-semibold text-slate-900">{log.action}</p>
-                  <p className="text-xs text-slate-500">{new Date(log.created_at).toLocaleString()}</p>
+                  <p className="text-xs text-slate-500">{formatDateTimeEnZA(log.created_at)}</p>
                 </div>
                 <HostingStatusBadge status={log.status} />
               </div>

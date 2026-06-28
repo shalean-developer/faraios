@@ -264,6 +264,22 @@ export type AdminSystemHealth = {
   ssl: AdminHealthStatus;
 };
 
+export type AdminHealthFixAction =
+  | { kind: "link"; href: string; label: string }
+  | { kind: "retry_hosting_orders"; orderIds: string[]; label?: string }
+  | { kind: "remove_hosting_orders"; orderIds: string[]; label?: string }
+  | { kind: "clear_failed_emails"; label?: string };
+
+export type AdminHealthIssue = {
+  key: keyof AdminSystemHealth;
+  label: string;
+  status: AdminHealthStatus;
+  summary: string;
+  actionHref?: string;
+  actionLabel?: string;
+  fixActions?: AdminHealthFixAction[];
+};
+
 export type AdminPlatformBusinessMetrics = {
   total: number;
   active: number;
@@ -341,6 +357,7 @@ export type AdminPlatformOverviewMetrics = {
   revenue: AdminPlatformRevenueMetrics;
   operations: AdminPlatformOperationsMetrics;
   systemHealth: AdminSystemHealth;
+  systemHealthIssues: AdminHealthIssue[];
   infrastructure: AdminPlatformInfrastructureMetrics;
   marketplace: AdminPlatformMarketplaceMetrics;
   businessGrowthTrend: AdminAnalyticsPoint[];

@@ -20,6 +20,7 @@ import {
   connectHostingDomainAction,
   verifyHostingDomainAction,
 } from "@/app/actions/hosting";
+import { createHostingOrderAction } from "@/app/actions/hosting-automation";
 import { confirmHostingPaymentAction } from "@/app/actions/confirm-hosting-payment";
 import { rememberHostingPaymentReference } from "@/components/hosting/hosting-payment-recovery";
 import { ClientOnly } from "@/components/client-only";
@@ -44,7 +45,7 @@ import type {
   HostingPayment,
   HostingSubscription,
 } from "@/types/database";
-import type { HostingInvoiceRow, HostingServiceRow } from "@/types/hosting-automation";
+import type { HostingInvoiceRow, HostingPlanRow, HostingServiceRow } from "@/types/hosting-automation";
 import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 import type { HostingPaymentConfirmationState } from "@/lib/services/hosting-subscription-verify";
 
@@ -61,6 +62,7 @@ type Props = {
   domainDnsHelp?: WebsiteDomainDnsHelp | null;
   automationServices?: HostingServiceRow[];
   automationInvoices?: HostingInvoiceRow[];
+  automationPlans?: HostingPlanRow[];
   embedded?: boolean;
 };
 
@@ -104,6 +106,7 @@ export function CompanyHostingClient({
   domainDnsHelp,
   automationServices = [],
   automationInvoices = [],
+  automationPlans = [],
   embedded = false,
 }: Props) {
   const [selectedPlan, setSelectedPlan] = useState(
@@ -142,16 +145,59 @@ export function CompanyHostingClient({
       setBillingError("Missing billing email on your workspace.");
       return;
     }
+
+    const normalizedDomain = domainInput
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/.*$/, "")
+      .replace(/^www\./, "");
+
+    if (!normalizedDomain || !normalizedDomain.includes(".")) {
+      setBillingError("Enter your domain name (e.g. yourbusiness.co.za).");
+      return;
+    }
+
+    const plan =
+      automationPlans.find((entry) => entry.slug === selectedPlan) ?? automationPlans[0];
+    if (!plan) {
+      setBillingError("Hosting plans are not configured yet. Contact support.");
+      return;
+    }
+
     setBillingError(null);
     setBillingPending(true);
     try {
+      const orderResult = await createHostingOrderAction({
+        companyId: company.id,
+        companySlug: slug,
+        planId: plan.id,
+        domainName: normalizedDomain,
+        domainType: "existing",
+        billingCycle: "monthly",
+      });
+
+      if (!orderResult.ok) {
+        setBillingError(orderResult.error);
+        setBillingPending(false);
+        return;
+      }
+
+      if (!orderResult.orderId || !orderResult.invoiceId) {
+        setBillingError("Order created but payment details are missing.");
+        setBillingPending(false);
+        return;
+      }
+
       const res = await fetch("/api/paystack/hosting/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           companyId: company.id,
-          plan: selectedPlan,
+          plan: plan.slug,
           email,
+          orderId: orderResult.orderId,
+          invoiceId: orderResult.invoiceId,
         }),
       });
       const data = (await res.json()) as {
@@ -193,7 +239,7 @@ export function CompanyHostingClient({
       }
       setConfirmMessage(
         result.activated
-          ? "Hosting payment confirmed. Your plan is now active."
+          ? "Hosting payment confirmed. Your Plesk account is being provisioned."
           : "Hosting payment confirmed. Your plan is already active."
       );
       window.location.reload();
@@ -601,9 +647,24 @@ export function CompanyHostingClient({
                 No active hosting
               </h2>
               <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                Choose a hosting plan and pay securely with Paystack to activate
-                your FaraiOS cloud hosting.
+                Choose a plan, enter your domain, and pay securely with Paystack.
+                Your Plesk hosting account is provisioned automatically after payment.
               </p>
+            </div>
+
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
+              <label className="block text-sm font-semibold text-slate-900">
+                Domain name
+              </label>
+              <p className="mt-1 text-xs text-slate-500">
+                The domain for your new Plesk hosting account (without www).
+              </p>
+              <input
+                value={domainInput}
+                onChange={(event) => setDomainInput(event.target.value)}
+                placeholder="yourbusiness.co.za"
+                className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
             </div>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -637,7 +698,7 @@ export function CompanyHostingClient({
                 disabled={billingPending}
                 className={risePrimaryButtonClassName}
               >
-                {billingPending ? "Redirecting to Paystack..." : "Pay with Paystack"}
+                {billingPending ? "Redirecting to Paystack..." : "Order hosting & pay"}
               </Button>
               <Link
                 href="/hosting"

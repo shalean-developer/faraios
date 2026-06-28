@@ -15,7 +15,7 @@ import { userHasCompanySlugAccess } from "@/lib/services/memberships";
 import { confirmWorkspacePaymentForUser } from "@/lib/services/workspace-subscription-verify";
 import { getWorkspaceSetupFeeEnabled } from "@/lib/billing/platform-billing-settings";
 import { companyDashboardPath, type CompanyBillingTab } from "@/lib/paths/company";
-import { getCompanyHostingOverview } from "@/lib/services/hosting-automation";
+import { getCompanyHostingOverview, listActiveHostingPlans } from "@/lib/services/hosting-automation";
 import { loadWebsiteDomainDnsHelp } from "@/lib/hosting/website-domain-dns-help";
 import { createClient } from "@/lib/supabase/server";
 
@@ -128,6 +128,7 @@ export default async function CompanyBillingPage({ params, searchParams }: Props
     : { domain: null, dnsRecords: [] };
 
   const hostingOverview = await getCompanyHostingOverview(row.id);
+  const automationPlans = await listActiveHostingPlans();
   const domainDnsHelp = await loadWebsiteDomainDnsHelp(row.id);
 
   return (
@@ -149,6 +150,7 @@ export default async function CompanyBillingPage({ params, searchParams }: Props
         domainDnsHelp,
         automationServices: hostingOverview.services,
         automationInvoices: hostingOverview.invoices,
+        automationPlans,
       }}
     />
   );

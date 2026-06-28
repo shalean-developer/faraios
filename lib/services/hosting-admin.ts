@@ -157,3 +157,109 @@ export async function getAdminHostingSettingsPageData() {
   ]);
   return { settings, servers };
 }
+
+function normalizeDomainName(domain: string): string {
+  return domain
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "")
+    .replace(/^www\./, "");
+}
+
+function canRemoveHostingOrder(order: {
+  status: string;
+  payment_status: string;
+}): boolean {
+  if (order.status === "failed" || order.status === "cancelled") return true;
+  if (order.status === "pending" && order.payment_status === "unpaid") return true;
+  return false;
+}
+
+export async function removeHostingOrderRecords(
+  orderId: string
+): Promise<{ ok: true; domainName: string } | { ok: false; error: string }> {
+  const admin = createAdminClient();
+
+  const { data: order, error: orderError } = await admin
+    .from("hosting_orders")
+    .select("id, domain_name, status, payment_status, invoice_id")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (orderError) return { ok: false, error: orderError.message };
+  if (!order) return { ok: false, error: "Hosting order not found." };
+  if (!canRemoveHostingOrder(order)) {
+    return {
+      ok: false,
+      error: "Only failed, cancelled, or unpaid pending orders can be removed.",
+    };
+  }
+
+  const { data: service } = await admin
+    .from("hosting_services")
+    .select("id, status, plesk_subscription_id")
+    .eq("order_id", orderId)
+    .maybeSingle();
+
+  if (service?.plesk_subscription_id) {
+    return {
+      ok: false,
+      error: "Terminate the provisioned service before removing this order.",
+    };
+  }
+
+  const serviceId = service?.id ?? null;
+
+  await admin.from("hosting_email_logs").delete().eq("order_id", orderId);
+  await admin.from("hosting_provisioning_logs").delete().eq("order_id", orderId);
+
+  if (serviceId) {
+    await admin.from("hosting_mailboxes").delete().eq("service_id", serviceId);
+    await admin.from("hosting_ftp_accounts").delete().eq("service_id", serviceId);
+    await admin.from("hosting_databases").delete().eq("service_id", serviceId);
+    await admin.from("hosting_dns_records").delete().eq("service_id", serviceId);
+    await admin.from("hosting_usage_snapshots").delete().eq("service_id", serviceId);
+    await admin.from("hosting_domains").delete().eq("service_id", serviceId);
+    await admin.from("hosting_services").delete().eq("id", serviceId);
+  }
+
+  await admin.from("hosting_payments").delete().eq("order_id", orderId);
+  await admin.from("hosting_orders").update({ invoice_id: null }).eq("id", orderId);
+
+  if (order.invoice_id) {
+    await admin.from("hosting_invoices").delete().eq("id", order.invoice_id);
+  }
+
+  const { error: deleteOrderError } = await admin.from("hosting_orders").delete().eq("id", orderId);
+  if (deleteOrderError) return { ok: false, error: deleteOrderError.message };
+
+  return { ok: true, domainName: order.domain_name };
+}
+
+export async function removeHostingOrderByDomain(
+  domainName: string
+): Promise<{ ok: true; domainName: string; orderId: string } | { ok: false; error: string }> {
+  const normalized = normalizeDomainName(domainName);
+  if (!normalized) return { ok: false, error: "Domain is required." };
+
+  const admin = createAdminClient();
+  const { data: orders, error } = await admin
+    .from("hosting_orders")
+    .select("id")
+    .ilike("domain_name", normalized);
+
+  if (error) return { ok: false, error: error.message };
+  if (!orders?.length) return { ok: false, error: `No hosting order found for ${normalized}.` };
+
+  let lastError: string | undefined;
+  for (const order of orders) {
+    const result = await removeHostingOrderRecords(order.id);
+    if (result.ok) {
+      return { ok: true, domainName: result.domainName, orderId: order.id };
+    }
+    lastError = result.error;
+  }
+
+  return { ok: false, error: lastError ?? "Failed to remove hosting order." };
+}

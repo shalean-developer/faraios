@@ -1,4 +1,4 @@
-import { confirmHostingPaymentFromReference } from "@/lib/billing/hosting-subscription-payment";
+import { confirmAnyHostingPaymentFromReference } from "@/lib/billing/hosting-payment-confirm";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
 
 export type HostingPaymentConfirmationState =
@@ -29,7 +29,7 @@ export async function confirmHostingPaymentForUser(input: {
     return { status: "failed", error: "You do not have access to this workspace." };
   }
 
-  const result = await confirmHostingPaymentFromReference({
+  const result = await confirmAnyHostingPaymentFromReference({
     reference,
     companyId: input.companyId,
   });

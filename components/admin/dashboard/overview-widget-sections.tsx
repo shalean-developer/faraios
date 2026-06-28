@@ -28,6 +28,7 @@ import {
 import type { ReactNode } from "react";
 
 import { BusinessGrowthChart } from "@/components/admin/dashboard/business-growth-chart";
+import { PlatformHealthIssues } from "@/components/admin/dashboard/platform-health-issues";
 import { PlatformHealthPill } from "@/components/admin/dashboard/platform-health-pill";
 import { PlatformMetricCard } from "@/components/admin/dashboard/platform-metric-card";
 import { PlatformPanel } from "@/components/admin/dashboard/platform-panel";
@@ -59,7 +60,12 @@ export function renderOverviewWidgetSection(
 ): ReactNode {
   switch (widgetId) {
     case "system_health":
-      return (
+      {
+        const issues = metrics.systemHealthIssues ?? [];
+        const issueDetail = (key: (typeof issues)[number]["key"]) =>
+          issues.find((issue) => issue.key === key)?.summary;
+
+        return (
         <div className="space-y-3">
           <PlatformSectionHeading
             title="System Health"
@@ -69,18 +75,20 @@ export function renderOverviewWidgetSection(
               { href: "/admin/emails", label: "Email" },
             ]}
           />
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
-            <PlatformHealthPill label="API" status={metrics.systemHealth.api} />
-            <PlatformHealthPill label="Cron" status={metrics.systemHealth.cron} />
-            <PlatformHealthPill label="Email" status={metrics.systemHealth.email} />
-            <PlatformHealthPill label="Queue" status={metrics.systemHealth.queue} />
-            <PlatformHealthPill label="Hosting" status={metrics.systemHealth.hosting} />
-            <PlatformHealthPill label="Websites" status={metrics.systemHealth.websites} />
-            <PlatformHealthPill label="Domains" status={metrics.systemHealth.domains} />
-            <PlatformHealthPill label="SSL" status={metrics.systemHealth.ssl} />
+          <div className="flex flex-wrap gap-2">
+            <PlatformHealthPill label="API" status={metrics.systemHealth.api} detail={issueDetail("api")} />
+            <PlatformHealthPill label="Cron" status={metrics.systemHealth.cron} detail={issueDetail("cron")} />
+            <PlatformHealthPill label="Email" status={metrics.systemHealth.email} detail={issueDetail("email")} />
+            <PlatformHealthPill label="Queue" status={metrics.systemHealth.queue} detail={issueDetail("queue")} />
+            <PlatformHealthPill label="Hosting" status={metrics.systemHealth.hosting} detail={issueDetail("hosting")} />
+            <PlatformHealthPill label="Websites" status={metrics.systemHealth.websites} detail={issueDetail("websites")} />
+            <PlatformHealthPill label="Domains" status={metrics.systemHealth.domains} detail={issueDetail("domains")} />
+            <PlatformHealthPill label="SSL" status={metrics.systemHealth.ssl} detail={issueDetail("ssl")} />
           </div>
+          <PlatformHealthIssues issues={issues} />
         </div>
-      );
+        );
+      }
 
     case "platform_metrics":
       return (

@@ -1,6 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createHostingAccount } from "@/lib/hosting/plesk/provisioning";
 import { getPleskCredentials } from "@/lib/hosting/plesk/config";
+import { addPleskDnsRecord } from "@/lib/hosting/plesk/pleskDns";
+import { provisionCompanyWebsiteDomain } from "@/lib/services/hosting-domain";
+import { normalizeDomain, verifyWebsiteDomain } from "@/lib/services/website-domains";
 import {
   notifyHostingAccountCreated,
   notifyHostingOrderReceived,
@@ -394,7 +397,75 @@ export async function provisionHostingOrder(
     provisioned.controlPanelUrl
   );
 
+  await linkProvisionedDomainToWebsiteEngine({
+    companyId: order.company_id,
+    domainName: order.domain_name,
+    serverId: order.server_id,
+    pleskSubscriptionId: provisioned.pleskSubscriptionId,
+  });
+
   return { ok: true, serviceId: service.id };
+}
+
+async function linkProvisionedDomainToWebsiteEngine(input: {
+  companyId: string;
+  domainName: string;
+  serverId: string | null;
+  pleskSubscriptionId: string;
+}): Promise<void> {
+  const normalizedDomain = normalizeDomain(input.domainName);
+  if (!normalizedDomain) return;
+
+  const domainProvision = await provisionCompanyWebsiteDomain({
+    companyId: input.companyId,
+    domain: normalizedDomain,
+    hostingProvider: "plesk",
+    syncHostingSubscription: true,
+    isPrimary: true,
+  });
+
+  if (!domainProvision.ok) {
+    console.error(
+      "[hosting] post-provision domain link failed",
+      normalizedDomain,
+      domainProvision.error
+    );
+    return;
+  }
+
+  const admin = createAdminClient();
+  const { data: domainRow } = await admin
+    .from("website_domains")
+    .select("verification_token")
+    .eq("id", domainProvision.websiteDomainId)
+    .maybeSingle();
+
+  const creds = await getPleskCredentials(input.serverId);
+  if (creds && domainRow?.verification_token) {
+    const txtResult = await addPleskDnsRecord(creds, {
+      siteId: input.pleskSubscriptionId,
+      record: {
+        type: "TXT",
+        host: "_faraios",
+        value: `faraios-verify=${domainRow.verification_token}`,
+      },
+      serverId: input.serverId ?? creds.serverId ?? undefined,
+    });
+
+    if (!txtResult.ok) {
+      console.error(
+        "[hosting] Plesk _faraios TXT sync failed",
+        normalizedDomain,
+        txtResult.error
+      );
+    }
+  }
+
+  try {
+    await verifyWebsiteDomain(domainProvision.websiteDomainId, input.companyId);
+  } catch (error) {
+    console.error("[hosting] post-provision DNS verify failed", normalizedDomain, error);
+  }
 }
 
 export async function getCompanyHostingOverview(companyId: string) {

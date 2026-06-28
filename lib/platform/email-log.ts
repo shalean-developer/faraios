@@ -28,3 +28,23 @@ export async function logPlatformEmail(input: PlatformEmailLogInput): Promise<vo
     console.error("[platform] logPlatformEmail", error);
   }
 }
+
+export async function clearFailedPlatformEmailLogs(): Promise<
+  { ok: true; deletedCount: number } | { ok: false; error: string }
+> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return { ok: false, error: admin.error };
+
+  const { data, error } = await admin.client
+    .from("platform_email_logs")
+    .delete()
+    .eq("status", "failed")
+    .select("id");
+
+  if (error) {
+    console.error("[platform] clearFailedPlatformEmailLogs", error.message);
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true, deletedCount: data?.length ?? 0 };
+}

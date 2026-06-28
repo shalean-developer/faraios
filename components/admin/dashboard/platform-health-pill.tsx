@@ -13,18 +13,25 @@ const HEALTH_STYLES: Record<
 export function PlatformHealthPill({
   label,
   status,
+  detail,
 }: {
   label: string;
   status: AdminHealthStatus;
+  detail?: string;
 }) {
   const style = HEALTH_STYLES[status];
   return (
-    <div className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
-      <span className="text-xs font-semibold text-gray-600">{label}</span>
-      <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${style.text}`}>
-        <span className={`h-2 w-2 rounded-full ${style.dot}`} />
-        {style.label}
-      </span>
+    <div className="inline-flex shrink-0 flex-col rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
+      <div className="flex items-center gap-2 whitespace-nowrap">
+        <span className="text-xs font-semibold text-gray-600">{label}</span>
+        <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${style.text}`}>
+          <span className={`h-2 w-2 shrink-0 rounded-full ${style.dot}`} />
+          {style.label}
+        </span>
+      </div>
+      {detail ? (
+        <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-gray-500">{detail}</p>
+      ) : null}
     </div>
   );
 }

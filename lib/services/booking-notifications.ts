@@ -1,5 +1,7 @@
 import { companyAllowsNotificationEmail } from "@/lib/services/company-notification-preferences";
-import { logPlatformEmail } from "@/lib/platform/email-log";import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import { sendResendEmail } from "@/lib/email/resend";
+import { logPlatformEmail } from "@/lib/platform/email-log";
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
 
 type BookingNotificationPayload = {
   companyId: string;
@@ -48,52 +50,32 @@ async function sendBookingEmail(input: {
     return;
   }
 
-  try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from,
-        to: [input.to],
-        subject: input.subject,
-        html: input.html,
-      }),
-    });
+  const result = await sendResendEmail({
+    to: input.to,
+    subject: input.subject,
+    html: input.html,
+    from,
+  });
 
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-      await logPlatformEmail({
-        to: input.to,
-        subject: input.subject,
-        template,
-        status: "failed",
-        companyId: input.companyId,
-        errorMessage: `HTTP ${response.status}: ${body.slice(0, 200)}`,
-      });
-      return;
-    }
-
-    await logPlatformEmail({
-      to: input.to,
-      subject: input.subject,
-      template,
-      status: "sent",
-      companyId: input.companyId,
-    });
-  } catch (error) {
-    console.error("[booking-notifications] sendBookingEmail", error);
+  if (!result.ok) {
     await logPlatformEmail({
       to: input.to,
       subject: input.subject,
       template,
       status: "failed",
       companyId: input.companyId,
-      errorMessage: error instanceof Error ? error.message : "Unknown error",
+      errorMessage: result.errorMessage,
     });
+    return;
   }
+
+  await logPlatformEmail({
+    to: input.to,
+    subject: input.subject,
+    template,
+    status: "sent",
+    companyId: input.companyId,
+  });
 }
 
 export async function notifyBookingCreated(

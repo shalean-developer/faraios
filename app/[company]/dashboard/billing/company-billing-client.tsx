@@ -44,7 +44,7 @@ import type {
   HostingPayment,
   HostingSubscription,
 } from "@/types/database";
-import type { HostingInvoiceRow, HostingServiceRow } from "@/types/hosting-automation";
+import type { HostingInvoiceRow, HostingPlanRow, HostingServiceRow } from "@/types/hosting-automation";
 import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 import type { WebsiteDomainDnsHelp } from "@/components/websites/website-domains-panel";
 import { cn } from "@/lib/utils";
@@ -67,6 +67,7 @@ type HostingBillingProps = {
   domainDnsHelp?: WebsiteDomainDnsHelp | null;
   automationServices?: HostingServiceRow[];
   automationInvoices?: HostingInvoiceRow[];
+  automationPlans?: HostingPlanRow[];
 };
 
 type Props = {
@@ -491,6 +492,7 @@ export function CompanyBillingClient({
               domainDnsHelp={hosting.domainDnsHelp}
               automationServices={hosting.automationServices}
               automationInvoices={hosting.automationInvoices}
+              automationPlans={hosting.automationPlans}
               embedded
             />
           ) : null}

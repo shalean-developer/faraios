@@ -10,6 +10,7 @@ import {
   runSyncPleskSubscriptions,
   saveHostingServerRecord,
 } from "@/lib/services/hosting-plesk-admin";
+import { removeHostingOrderRecords } from "@/lib/services/hosting-admin";
 import {
   adminAddDnsRecord,
   adminCreateDatabase,
@@ -47,9 +48,64 @@ export async function adminRetryProvisioningAction(orderId: string): Promise<Adm
   if (denied) return denied;
 
   const result = await retryFailedProvisioning(orderId);
+  revalidatePath("/admin");
+  revalidatePath("/admin/hosting");
   revalidatePath("/admin/hosting/provisioning-logs");
   revalidatePath("/admin/hosting/orders");
   return result.ok ? { ok: true } : result;
+}
+
+export async function adminRetryFailedHostingOrdersAction(
+  orderIds: string[]
+): Promise<AdminResult & { retriedCount?: number }> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const uniqueIds = [...new Set(orderIds.filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    return { ok: false, error: "No orders to retry." };
+  }
+
+  let retriedCount = 0;
+  let lastError: string | undefined;
+
+  for (const orderId of uniqueIds) {
+    const result = await retryFailedProvisioning(orderId);
+    if (result.ok) {
+      retriedCount += 1;
+    } else {
+      lastError = result.error;
+    }
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/hosting");
+  revalidatePath("/admin/hosting/provisioning-logs");
+  revalidatePath("/admin/hosting/orders");
+
+  if (retriedCount === 0) {
+    return { ok: false, error: lastError ?? "Retry failed." };
+  }
+
+  return { ok: true, retriedCount };
+}
+
+export async function adminRemoveHostingOrderAction(orderId: string): Promise<
+  AdminResult & { domainName?: string }
+> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const result = await removeHostingOrderRecords(orderId);
+  if (!result.ok) return result;
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/hosting");
+  revalidatePath("/admin/hosting/orders");
+  revalidatePath("/admin/hosting/services");
+  revalidatePath("/admin/hosting/provisioning-logs");
+
+  return { ok: true, domainName: result.domainName };
 }
 
 export async function adminManualProvisionAction(orderId: string): Promise<AdminResult> {

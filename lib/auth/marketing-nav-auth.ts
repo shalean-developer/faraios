@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { safeGetUser } from "@/lib/auth/invalid-refresh-token";
 import {
   getPlatformAdminUserIds,
   isPlatformAdminUser,
@@ -14,9 +15,7 @@ export type MarketingNavAuthState = {
 export async function loadMarketingNavAuth(
   supabase: SupabaseClient
 ): Promise<MarketingNavAuthState> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await safeGetUser(supabase);
 
   if (!user) {
     return { isAuthenticated: false, companySlug: null, isPlatformAdmin: false };

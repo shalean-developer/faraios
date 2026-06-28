@@ -50,6 +50,7 @@ import type {
   AdminClientStats,
   AdminCompanyNote,
   AdminAssignableProject,
+  AdminHealthIssue,
   AdminHealthStatus,
   AdminNotificationPreferences,
   AdminOverviewBusinessRow,
@@ -406,6 +407,7 @@ function emptyPlatformOverviewMetrics(): AdminPlatformOverviewMetrics {
       domains: "unknown",
       ssl: "unknown",
     },
+    systemHealthIssues: [],
     infrastructure: {
       pipelineInProgress: 0,
       pipelineInReview: 0,
@@ -543,6 +545,210 @@ function computeSslHealthFromDomains(
   return "healthy";
 }
 
+function summarizeEmailFailureMessage(message: string | null | undefined): string {
+  if (!message) return "Recent outbound emails are failing.";
+  if (/only send testing emails to your own email address/i.test(message)) {
+    return "Resend sandbox mode: verify a domain or set RESEND_SANDBOX_TO for local delivery.";
+  }
+  if (/missing resend_api_key/i.test(message)) {
+    return "Missing RESEND_API_KEY or BOOKING_FROM_EMAIL.";
+  }
+  return message.slice(0, 180);
+}
+
+function isResendSandboxEmailError(message: string | null | undefined): boolean {
+  if (!message) return false;
+  return /only send testing emails|sandbox mode|RESEND_SANDBOX/i.test(message);
+}
+
+function isPleskCredentialError(message: string | null | undefined): boolean {
+  if (!message) return false;
+  return /incorrect username or password|authentication failed|invalid credentials|unauthorized/i.test(
+    message
+  );
+}
+
+function buildSystemHealthIssues(input: {
+  apiHealth: AdminHealthStatus;
+  cronHealth: AdminHealthStatus;
+  emailHealth: AdminHealthStatus;
+  queueHealth: AdminHealthStatus;
+  hostingHealth: AdminHealthStatus;
+  websiteHealth: AdminHealthStatus;
+  domainHealth: AdminHealthStatus;
+  sslHealth: AdminHealthStatus;
+  emailFailedCount: number;
+  emailSampleCount: number;
+  latestEmailError?: string | null;
+  failedHostingOrders: Array<{
+    id: string;
+    domain_name: string;
+    errorMessage?: string | null;
+  }>;
+  pendingDomains: string[];
+  failedSslDomains: string[];
+  pendingAutomationJobs: number;
+  failedAutomationJobs: number;
+}): AdminHealthIssue[] {
+  const issues: AdminHealthIssue[] = [];
+
+  if (input.emailHealth === "critical" || input.emailHealth === "warning") {
+    const rate =
+      input.emailSampleCount > 0
+        ? Math.round((input.emailFailedCount / input.emailSampleCount) * 100)
+        : 0;
+    const emailFixActions: AdminHealthIssue["fixActions"] = [];
+    if (input.emailFailedCount > 0) {
+      emailFixActions.push({ kind: "clear_failed_emails", label: "Clear failed logs" });
+    }
+    if (isResendSandboxEmailError(input.latestEmailError)) {
+      emailFixActions.push({
+        kind: "link",
+        href: "/admin/emails",
+        label: "View setup guide",
+      });
+    }
+    issues.push({
+      key: "email",
+      label: "Email",
+      status: input.emailHealth,
+      summary:
+        input.emailSampleCount > 0
+          ? `${input.emailFailedCount}/${input.emailSampleCount} recent emails failed (${rate}%). ${summarizeEmailFailureMessage(input.latestEmailError)}`
+          : summarizeEmailFailureMessage(input.latestEmailError),
+      actionHref: "/admin/emails",
+      actionLabel: "View email logs",
+      fixActions: emailFixActions.length > 0 ? emailFixActions : undefined,
+    });
+  }
+
+  if (input.hostingHealth === "critical" || input.hostingHealth === "warning") {
+    const failedSummary = input.failedHostingOrders
+      .slice(0, 2)
+      .map((order) =>
+        order.errorMessage
+          ? `${order.domain_name}: ${order.errorMessage.slice(0, 100)}`
+          : order.domain_name
+      )
+      .join("; ");
+    const hostingFixActions: AdminHealthIssue["fixActions"] = [];
+    const hasCredentialError = input.failedHostingOrders.some((order) =>
+      isPleskCredentialError(order.errorMessage)
+    );
+    if (hasCredentialError) {
+      hostingFixActions.push({
+        kind: "link",
+        href: "/admin/hosting/settings",
+        label: "Fix credentials",
+      });
+    }
+    const failedOrderIds = input.failedHostingOrders.map((order) => order.id);
+    if (failedOrderIds.length > 0) {
+      hostingFixActions.push({
+        kind: "retry_hosting_orders",
+        orderIds: failedOrderIds,
+        label:
+          failedOrderIds.length === 1 ? "Retry provisioning" : `Retry ${failedOrderIds.length} orders`,
+      });
+      hostingFixActions.push({
+        kind: "remove_hosting_orders",
+        orderIds: failedOrderIds,
+        label:
+          failedOrderIds.length === 1 ? "Remove order" : `Remove ${failedOrderIds.length} orders`,
+      });
+    }
+    issues.push({
+      key: "hosting",
+      label: "Hosting",
+      status: input.hostingHealth,
+      summary:
+        input.failedHostingOrders.length > 0
+          ? `${input.failedHostingOrders.length} failed order${input.failedHostingOrders.length === 1 ? "" : "s"}. ${failedSummary}`
+          : `${input.pendingAutomationJobs} hosting orders still provisioning.`,
+      actionHref: "/admin/hosting/orders",
+      actionLabel: "Review hosting",
+      fixActions: hostingFixActions.length > 0 ? hostingFixActions : undefined,
+    });
+  }
+
+  if (input.domainHealth === "critical" || input.domainHealth === "warning") {
+    issues.push({
+      key: "domains",
+      label: "Domains",
+      status: input.domainHealth,
+      summary:
+        input.pendingDomains.length > 0
+          ? `${input.pendingDomains.length} domain${input.pendingDomains.length === 1 ? "" : "s"} awaiting DNS verification: ${input.pendingDomains.slice(0, 3).join(", ")}.`
+          : `${input.failedSslDomains.length} domain${input.failedSslDomains.length === 1 ? "" : "s"} with SSL failures.`,
+      actionHref: "/admin/websites",
+      actionLabel: "Review domains",
+    });
+  }
+
+  if (input.sslHealth === "critical" || input.sslHealth === "warning") {
+    issues.push({
+      key: "ssl",
+      label: "SSL",
+      status: input.sslHealth,
+      summary:
+        input.failedSslDomains.length > 0
+          ? `SSL failed for ${input.failedSslDomains.slice(0, 3).join(", ")}.`
+          : "One or more domains still have SSL provisioning in progress.",
+      actionHref: "/admin/websites",
+      actionLabel: "Review SSL",
+    });
+  }
+
+  if (input.queueHealth === "critical" || input.queueHealth === "warning") {
+    issues.push({
+      key: "queue",
+      label: "Queue",
+      status: input.queueHealth,
+      summary:
+        input.failedAutomationJobs > 0
+          ? `${input.failedAutomationJobs} automation job${input.failedAutomationJobs === 1 ? "" : "s"} failed.`
+          : `${input.pendingAutomationJobs} automation jobs pending.`,
+      actionHref: "/admin/cron",
+      actionLabel: "Review queue",
+    });
+  }
+
+  if (input.apiHealth === "critical" || input.apiHealth === "warning") {
+    issues.push({
+      key: "api",
+      label: "API",
+      status: input.apiHealth,
+      summary: "Elevated API error rate in recent platform requests.",
+      actionHref: "/admin/api-usage",
+      actionLabel: "View API usage",
+    });
+  }
+
+  if (input.cronHealth === "critical" || input.cronHealth === "warning") {
+    issues.push({
+      key: "cron",
+      label: "Cron",
+      status: input.cronHealth,
+      summary: "Recent scheduled jobs failed or are running below target success rate.",
+      actionHref: "/admin/cron",
+      actionLabel: "View cron runs",
+    });
+  }
+
+  if (input.websiteHealth === "warning") {
+    issues.push({
+      key: "websites",
+      label: "Websites",
+      status: input.websiteHealth,
+      summary: "Fewer than half of tracked websites are published.",
+      actionHref: "/admin/websites",
+      actionLabel: "Review websites",
+    });
+  }
+
+  return issues;
+}
+
 function computePipelineStatsFromCompanies(
   rows: Array<{ build_status?: string | null }>
 ): AdminProjectStats {
@@ -641,6 +847,7 @@ async function fetchPlatformOverviewMetricsUncached(): Promise<AdminPlatformOver
     recentOpenTicketsResult,
     pendingFeatureRequestsResult,
     topFeatureRequestsResult,
+    hostingProvisioningLogsResult,
   ] = await Promise.all([
     supabase
       .from("companies")
@@ -653,7 +860,7 @@ async function fetchPlatformOverviewMetricsUncached(): Promise<AdminPlatformOver
       .from("hosting_payments")
       .select("amount_cents,status,created_at"),
     supabase.from("websites").select("status"),
-    supabase.from("website_domains").select("verification_status,ssl_status"),
+    supabase.from("website_domains").select("domain,verification_status,ssl_status"),
     supabase
       .from("companies")
       .select("id,name,created_at,plan,subscription_status,industries(name)")
@@ -671,11 +878,11 @@ async function fetchPlatformOverviewMetricsUncached(): Promise<AdminPlatformOver
       .limit(50),
     supabase
       .from("platform_email_logs")
-      .select("status")
+      .select("status,error_message")
       .order("created_at", { ascending: false })
       .limit(200),
     supabase.from("automation_jobs").select("status"),
-    supabase.from("hosting_orders").select("status"),
+    supabase.from("hosting_orders").select("id,status,domain_name"),
     supabase
       .from("bookings")
       .select("id", { count: "exact", head: true })
@@ -706,6 +913,12 @@ async function fetchPlatformOverviewMetricsUncached(): Promise<AdminPlatformOver
       .in("status", ["submitted", "under_review", "planned", "in_progress"])
       .order("vote_count", { ascending: false })
       .limit(5),
+    supabase
+      .from("hosting_provisioning_logs")
+      .select("order_id,error_message,created_at")
+      .eq("status", "failed")
+      .order("created_at", { ascending: false })
+      .limit(20),
   ]);
 
   if (companiesResult.error) {
@@ -856,6 +1069,7 @@ async function fetchPlatformOverviewMetricsUncached(): Promise<AdminPlatformOver
   const domainRows = domainsResult.error
     ? []
     : ((domainsResult.data ?? []) as Array<{
+        domain: string;
         verification_status: string;
         ssl_status: string;
       }>);
@@ -884,13 +1098,24 @@ async function fetchPlatformOverviewMetricsUncached(): Promise<AdminPlatformOver
     : ((cronRunsResult.data ?? []) as Array<{ status: string }>);
   const emailLogRows = emailLogsResult.error
     ? []
-    : ((emailLogsResult.data ?? []) as Array<{ status: string }>);
+    : ((emailLogsResult.data ?? []) as Array<{ status: string; error_message?: string | null }>);
   const automationJobRows = automationJobsResult.error
     ? []
     : ((automationJobsResult.data ?? []) as Array<{ status: string }>);
   const hostingOrderRows = hostingOrdersResult.error
     ? []
-    : ((hostingOrdersResult.data ?? []) as Array<{ status: string }>);
+    : ((hostingOrdersResult.data ?? []) as Array<{
+        id: string;
+        status: string;
+        domain_name: string;
+      }>);
+  const hostingProvisioningLogRows = hostingProvisioningLogsResult.error
+    ? []
+    : ((hostingProvisioningLogsResult.data ?? []) as Array<{
+        order_id: string | null;
+        error_message: string | null;
+        created_at: string;
+      }>);
 
   const apiHealth = computeApiHealthFromLogs(apiLogRows);
   const cronHealth = computeCronHealthFromRuns(cronRunRows);
@@ -899,6 +1124,34 @@ async function fetchPlatformOverviewMetricsUncached(): Promise<AdminPlatformOver
   const queueHealth = computeQueueHealthFromJobs(automationJobRows);
   const hostingHealth = computeHostingHealthFromOrders(hostingOrderRows);
   const sslHealth = computeSslHealthFromDomains(domainRows);
+
+  const emailFailedCount = emailLogRows.filter((row) => row.status === "failed").length;
+  const latestEmailError =
+    emailLogRows.find((row) => row.status === "failed")?.error_message ?? null;
+
+  const provisioningErrorByOrderId = new Map<string, string>();
+  for (const log of hostingProvisioningLogRows) {
+    if (!log.order_id || !log.error_message) continue;
+    if (!provisioningErrorByOrderId.has(log.order_id)) {
+      provisioningErrorByOrderId.set(log.order_id, log.error_message);
+    }
+  }
+
+  const failedHostingOrderDetails = hostingOrderRows
+    .filter((order) => order.status === "failed")
+    .map((order) => ({
+      id: order.id,
+      domain_name: order.domain_name,
+      errorMessage: provisioningErrorByOrderId.get(order.id) ?? null,
+    }));
+
+  const pendingDomains = domainRows
+    .filter((domain) => domain.verification_status === "pending")
+    .map((domain) => domain.domain);
+
+  const failedSslDomains = domainRows
+    .filter((domain) => domain.ssl_status === "failed")
+    .map((domain) => domain.domain);
 
   let pendingAutomationJobs = 0;
   let failedAutomationJobs = 0;
@@ -915,6 +1168,25 @@ async function fetchPlatformOverviewMetricsUncached(): Promise<AdminPlatformOver
     }
     if (order.status === "failed") failedHostingOrders += 1;
   }
+
+  const systemHealthIssues = buildSystemHealthIssues({
+    apiHealth,
+    cronHealth,
+    emailHealth,
+    queueHealth,
+    hostingHealth,
+    websiteHealth,
+    domainHealth,
+    sslHealth,
+    emailFailedCount,
+    emailSampleCount: emailLogRows.length,
+    latestEmailError,
+    failedHostingOrders: failedHostingOrderDetails,
+    pendingDomains,
+    failedSslDomains,
+    pendingAutomationJobs,
+    failedAutomationJobs,
+  });
 
   const pipelineStats = computePipelineStatsFromCompanies(companyRows);
   const businessGrowthTrend = buildBusinessGrowthTrend(companyRows, now);
@@ -1055,6 +1327,7 @@ async function fetchPlatformOverviewMetricsUncached(): Promise<AdminPlatformOver
       domains: domainHealth,
       ssl: sslHealth,
     },
+    systemHealthIssues,
     infrastructure: {
       pipelineInProgress: pipelineStats.inProgress,
       pipelineInReview: pipelineStats.inReview,

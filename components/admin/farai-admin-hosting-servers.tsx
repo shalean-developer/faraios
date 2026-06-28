@@ -11,6 +11,7 @@ import {
   riseInputClassName,
   riseStatCardClassName,
 } from "@/lib/ui/rise-dashboard-styles";
+import { formatDateTimeEnZA } from "@/lib/format/dates";
 import {
   adminDeleteHostingServerAction,
   adminImportPleskServicePlansAction,
@@ -228,7 +229,7 @@ export function FaraiAdminHostingServers({ servers }: { servers: HostingServerRo
                   {server.last_connection_message && (
                     <p className="mt-2 text-xs text-gray-500">
                       Last test: {server.last_connection_message}
-                      {server.last_connection_at && ` · ${new Date(server.last_connection_at).toLocaleString()}`}
+                      {server.last_connection_at && ` · ${formatDateTimeEnZA(server.last_connection_at)}`}
                     </p>
                   )}
                   <div className="mt-3 flex flex-wrap gap-2">

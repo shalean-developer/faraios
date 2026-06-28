@@ -1,4 +1,5 @@
 import { createAdminClient, tryCreateAdminClient } from "@/lib/supabase/admin";
+import { sendResendEmail } from "@/lib/email/resend";
 
 async function getCompanyEmail(companyId: string): Promise<string | null> {
   const admin = tryCreateAdminClient();
@@ -76,27 +77,19 @@ async function sendHostingEmail(input: {
   }
 
   try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from,
-        to: [input.to],
-        subject: input.subject,
-        html: input.html,
-      }),
+    const result = await sendResendEmail({
+      to: input.to,
+      subject: input.subject,
+      html: input.html,
+      from,
     });
 
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
+    if (!result.ok) {
       await logHostingEmail({
         ...input,
         recipient: input.to,
         status: "failed",
-        errorMessage: `HTTP ${res.status}: ${body.slice(0, 200)}`,
+        errorMessage: result.errorMessage,
       });
       return;
     }

@@ -2,9 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 
-import { confirmHostingPaymentFromReference } from "@/lib/billing/hosting-subscription-payment";
+import { confirmAnyHostingPaymentFromReference } from "@/lib/billing/hosting-payment-confirm";
 import { requireCompanyOwner } from "@/lib/services/company-access";
-import { companyHostingPath } from "@/lib/paths/company";
+import {
+  companyHostingPath,
+  companyHostingInvoicesPath,
+  companyHostingServicesPath,
+} from "@/lib/paths/company";
 
 export type ConfirmHostingPaymentResult =
   | { ok: true; activated: boolean }
@@ -23,7 +27,7 @@ export async function confirmHostingPaymentAction(input: {
     return { ok: false, error: "Enter your Paystack payment reference." };
   }
 
-  const result = await confirmHostingPaymentFromReference({
+  const result = await confirmAnyHostingPaymentFromReference({
     reference,
     companyId: input.companyId,
   });
@@ -33,6 +37,8 @@ export async function confirmHostingPaymentAction(input: {
   }
 
   revalidatePath(companyHostingPath(input.companySlug));
+  revalidatePath(companyHostingServicesPath(input.companySlug));
+  revalidatePath(companyHostingInvoicesPath(input.companySlug));
   revalidatePath(`/${input.companySlug}/dashboard`);
 
   return { ok: true, activated: !result.alreadyActive };
