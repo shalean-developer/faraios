@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   isResendSandboxMode,
@@ -7,6 +7,7 @@ import {
 
 describe("resend sandbox helpers", () => {
   afterEach(() => {
+    vi.unstubAllEnvs();
     delete process.env.BOOKING_FROM_EMAIL;
     delete process.env.RESEND_SANDBOX;
     delete process.env.RESEND_SANDBOX_TO;
@@ -18,7 +19,7 @@ describe("resend sandbox helpers", () => {
   });
 
   it("redirects all dev mail when RESEND_SANDBOX_TO is configured", () => {
-    process.env.NODE_ENV = "development";
+    vi.stubEnv("NODE_ENV", "development");
     process.env.BOOKING_FROM_EMAIL = "noreply@faraios.com";
     process.env.RESEND_SANDBOX_TO = "developer@example.com";
 
