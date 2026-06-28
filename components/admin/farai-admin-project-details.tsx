@@ -38,6 +38,10 @@ import {
 } from "@/app/actions/admin";
 import { ADMIN_BUSINESSES_PATH } from "@/lib/constants/admin-nav";
 import { ADMIN_DEVELOPER_OPTIONS } from "@/lib/constants/admin-developers";
+import {
+  MARKETPLACE_LISTING_REQUIRES_PUBLISH,
+  MARKETPLACE_LISTING_REQUIRES_WEBSITE,
+} from "@/lib/marketplace/listing-eligibility";
 import { agencyWorkspaceHref } from "@/lib/platform/agency-workspace";
 import { companyWebsiteBuilderPath } from "@/lib/paths/company";
 import type { AdminPipelineStatus, AdminProjectDetails } from "@/types/admin";
@@ -178,6 +182,16 @@ export function FaraiAdminProjectDetails({
   );
   const websiteHref = workspaceBuilderHref;
   const websiteLabel = project.websiteId ? "Open Website Builder" : "Create in Workspace";
+  const adminCreateWebsiteHref = `/admin/websites/create?companyId=${project.id}`;
+  const adminPublishWebsiteHref = project.websiteId
+    ? `/admin/websites/${project.websiteId}/edit`
+    : null;
+  const canListOnMarketplace = Boolean(project.websiteId && project.websitePublished);
+  const marketplaceBlockReason = !project.websiteId
+    ? MARKETPLACE_LISTING_REQUIRES_WEBSITE
+    : !project.websitePublished
+      ? MARKETPLACE_LISTING_REQUIRES_PUBLISH
+      : null;
   const marketplaceHref = `/marketplace/${project.slug}`;
   const clientEmailValid = isValidClientEmail(project.user.email);
 
@@ -212,10 +226,8 @@ export function FaraiAdminProjectDetails({
   const saveMarketplaceListing = () => {
     setMarketplaceMessage(null);
     setMutationError(null);
-    if (listedInMarketplace && !project.websitePublished) {
-      setMutationError(
-        "Publish the website before listing this business on the marketplace."
-      );
+    if (listedInMarketplace && marketplaceBlockReason) {
+      setMutationError(marketplaceBlockReason);
       return;
     }
     startTransition(async () => {
@@ -575,7 +587,7 @@ export function FaraiAdminProjectDetails({
                       <Globe className="h-3.5 w-3.5 text-emerald-600" />
                     </div>
                     <h3 className="text-sm font-bold text-gray-900">Marketplace</h3>
-                    {listedInMarketplace ? (
+                    {listedInMarketplace && canListOnMarketplace ? (
                       <span className="ml-auto rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
                         Listed
                       </span>
@@ -584,12 +596,41 @@ export function FaraiAdminProjectDetails({
                   <div className="space-y-4 px-5 py-5">
                     <p className="text-xs leading-relaxed text-gray-500">
                       List this business on the public FaraiOS marketplace so consumers can discover and book services.
-                      {!project.websitePublished ? (
+                      {marketplaceBlockReason ? (
                         <span className="mt-1 block font-medium text-amber-600">
-                          Publish the website before listing.
+                          {marketplaceBlockReason}
                         </span>
                       ) : null}
                     </p>
+
+                    {marketplaceBlockReason ? (
+                      <div className="flex flex-wrap gap-2">
+                        {!project.websiteId ? (
+                          <Link
+                            href={adminCreateWebsiteHref}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                          >
+                            <Globe className="h-3.5 w-3.5" />
+                            Create website
+                          </Link>
+                        ) : adminPublishWebsiteHref ? (
+                          <Link
+                            href={adminPublishWebsiteHref}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                          >
+                            <Globe className="h-3.5 w-3.5" />
+                            Publish website
+                          </Link>
+                        ) : null}
+                        <Link
+                          href={websiteHref}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-semibold text-gray-700 transition hover:border-indigo-200 hover:text-indigo-700"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          {websiteLabel}
+                        </Link>
+                      </div>
+                    ) : null}
 
                     <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/80 px-3.5 py-3">
                       <span className="text-xs font-semibold text-gray-700">List on marketplace</span>
@@ -597,8 +638,8 @@ export function FaraiAdminProjectDetails({
                         type="checkbox"
                         checked={listedInMarketplace}
                         onChange={(e) => setListedInMarketplace(e.target.checked)}
-                        disabled={isPending}
-                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        disabled={isPending || (!canListOnMarketplace && !listedInMarketplace)}
+                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                       />
                     </label>
 
@@ -652,7 +693,7 @@ export function FaraiAdminProjectDetails({
                         <Sparkles className="h-3.5 w-3.5" />
                         {isPending ? "Saving…" : "Save listing"}
                       </button>
-                      {listedInMarketplace && project.websitePublished ? (
+                      {listedInMarketplace && canListOnMarketplace ? (
                         <Link
                           href={marketplaceHref}
                           target="_blank"

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { clearFailedPlatformEmailLogs } from "@/lib/platform/email-log";
+import { getCompanyMarketplaceListingEligibility } from "@/lib/marketplace/listing-eligibility";
 import { logPlatformAuditEvent } from "@/lib/platform/audit-log";
 import {
   adminStatusToDb,
@@ -256,6 +257,16 @@ export async function adminUpdateMarketplaceListing(
   const adminResult = tryCreateAdminClient();
   if (!adminResult.ok) return { ok: false, error: adminResult.error };
   const admin = adminResult.client;
+
+  if (input.listed) {
+    const eligibility = await getCompanyMarketplaceListingEligibility(admin, companyId);
+    if (!eligibility.canList) {
+      return {
+        ok: false,
+        error: eligibility.blockReason ?? "This business cannot be listed yet.",
+      };
+    }
+  }
 
   const { data: company, error } = await admin
     .from("companies")

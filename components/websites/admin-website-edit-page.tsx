@@ -6,6 +6,10 @@ import { type FormEvent, useState } from "react";
 import { ExternalLink, Eye, Store } from "lucide-react";
 
 import {
+  MARKETPLACE_LISTING_REQUIRES_PUBLISH,
+} from "@/lib/marketplace/listing-eligibility";
+
+import {
   connectDomainAsAdminAction,
   publishWebsiteAsAdminAction,
   unpublishWebsiteAsAdminAction,
@@ -401,7 +405,7 @@ export function AdminWebsiteEditPage({
 
         {status !== "published" ? (
           <p className="mt-4 text-sm text-amber-600">
-            Publish the website before listing this business on the marketplace.
+            {MARKETPLACE_LISTING_REQUIRES_PUBLISH}
           </p>
         ) : null}
 
