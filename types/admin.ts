@@ -72,6 +72,8 @@ export type AdminProjectDetails = AdminProject & {
   deadline: string | null;
   projectProgress: number;
   websiteId: string | null;
+  /** True when the linked site uses the V9 self-serve builder (`builder_mode`). */
+  websiteBuilderMode: boolean;
   listedInMarketplace: boolean;
   marketplaceSummary: string | null;
   marketplaceLocation: string | null;

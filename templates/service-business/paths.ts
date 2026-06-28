@@ -1,4 +1,11 @@
-export type TemplatePage = "home" | "services" | "about" | "reviews" | "contact";
+export type TemplatePage =
+  | "home"
+  | "services"
+  | "about"
+  | "reviews"
+  | "contact"
+  | "blog"
+  | "faq";
 
 export type TemplatePaths = {
   home: string;
@@ -6,6 +13,8 @@ export type TemplatePaths = {
   about: string;
   reviews: string;
   contact: string;
+  blog: string;
+  faq: string;
 };
 
 export function buildTemplatePaths(previewWebsiteId?: string | null): TemplatePaths {
@@ -16,6 +25,8 @@ export function buildTemplatePaths(previewWebsiteId?: string | null): TemplatePa
     about: `${prefix}/about`,
     reviews: `${prefix}/reviews`,
     contact: `${prefix}/contact`,
+    blog: `${prefix}/blog`,
+    faq: `${prefix}/faq`,
   };
 }
 
@@ -34,6 +45,8 @@ export function resolveTemplateHref(
     "#about": "about",
     "#reviews": "reviews",
     "#contact": "contact",
+    "#blog": "blog",
+    "#faq": "faq",
     "#": "home",
   };
 

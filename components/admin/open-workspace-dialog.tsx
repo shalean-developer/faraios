@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { type ReactNode, useState, useTransition } from "react";
 import { Building2, Shield } from "lucide-react";
 
 import { fetchWorkspaceEntryOptions } from "@/app/actions/platform-admin-roles";
@@ -16,12 +16,20 @@ export function OpenWorkspaceDialog({
   companyName,
   triggerClassName,
   triggerLabel = "Open Workspace",
+  redirectTo,
+  hideTriggerIcon = false,
+  unstyledTrigger = false,
+  triggerContent,
 }: {
   companyId: string;
   companySlug: string;
   companyName: string;
   triggerClassName?: string;
   triggerLabel?: string;
+  redirectTo?: string;
+  hideTriggerIcon?: boolean;
+  unstyledTrigger?: boolean;
+  triggerContent?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -58,6 +66,7 @@ export function OpenWorkspaceDialog({
         reason,
         grants: selectedGrants,
         fullAccess,
+        redirectTo,
       });
       if (!result.ok) {
         setError(result.error);
@@ -78,12 +87,17 @@ export function OpenWorkspaceDialog({
         type="button"
         onClick={handleOpen}
         className={cn(
-          "inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700",
+          !unstyledTrigger &&
+            "inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700",
           triggerClassName
         )}
       >
-        <Building2 className="h-4 w-4" />
-        {triggerLabel}
+        {triggerContent ?? (
+          <>
+            {hideTriggerIcon ? null : <Building2 className="h-4 w-4" />}
+            {triggerLabel}
+          </>
+        )}
       </button>
 
       {open ? (

@@ -35,6 +35,20 @@ export const SERVICE_BUSINESS_CONTENT_SECTIONS = [
   { id: "footer", label: "Footer" },
 ] as const;
 
+/** Labels aligned with the luxury beauty/spa homepage layout. */
+export const LUXURY_BEAUTY_CONTENT_SECTIONS = [
+  { id: "brand", label: "Brand" },
+  { id: "hero", label: "Hero" },
+  { id: "services", label: "Services" },
+  { id: "trust", label: "Reviews" },
+  { id: "about", label: "About" },
+  { id: "process", label: "Blog" },
+  { id: "faq", label: "FAQ" },
+  { id: "areas", label: "Areas" },
+  { id: "contact", label: "Contact" },
+  { id: "footer", label: "Footer" },
+] as const;
+
 export type ContentSectionId = (typeof SERVICE_BUSINESS_CONTENT_SECTIONS)[number]["id"];
 
 const inputClass =
@@ -46,6 +60,7 @@ type WebsiteContentEditorSectionsProps = {
   formData: WebsiteContentFormData;
   setFormData: Dispatch<SetStateAction<WebsiteContentFormData>>;
   extended: boolean;
+  luxuryLayout?: boolean;
   websiteId: string;
 };
 
@@ -54,6 +69,7 @@ export function WebsiteContentEditorSections({
   formData,
   setFormData,
   extended,
+  luxuryLayout = false,
   websiteId,
 }: WebsiteContentEditorSectionsProps) {
   const updateService = (index: number, key: keyof ServiceItem, value: string) => {
@@ -265,8 +281,57 @@ export function WebsiteContentEditorSections({
         <>
           <h2 className="text-lg font-semibold text-slate-900">Brand & top bar</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Theme colors and contact details shown in the site header bar.
+            {luxuryLayout
+              ? "Logo, header contact details, social links, and the About section tagline."
+              : "Logo, theme colors, and contact details shown in the site header bar."}
           </p>
+          <div className="mt-4">
+            <WebsiteImageUploadField
+              label="Business logo"
+              websiteId={websiteId}
+              value={formData.topbar.logo}
+              alt={formData.hero.businessName}
+              hideAlt
+              previewClassName="h-24 object-contain bg-white p-2"
+              onValueChange={(logo) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  topbar: {
+                    ...prev.topbar,
+                    logo,
+                    hideBusinessNameInHeader: logo.trim()
+                      ? prev.topbar.hideBusinessNameInHeader
+                      : false,
+                  },
+                }))
+              }
+              onAltChange={() => {}}
+            />
+          </div>
+          <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+              checked={formData.topbar.hideBusinessNameInHeader}
+              disabled={!formData.topbar.logo.trim()}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  topbar: { ...prev.topbar, hideBusinessNameInHeader: e.target.checked },
+                }))
+              }
+            />
+            <span>
+              <span className="block text-sm font-medium text-slate-700">
+                Hide business name in header
+              </span>
+              <span className="mt-0.5 block text-xs text-slate-500">
+                {formData.topbar.logo.trim()
+                  ? "Show only the logo in the site header — useful when your logo already includes the business name."
+                  : "Upload a logo first to hide the text business name from the header."}
+              </span>
+            </span>
+          </label>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className={labelClass}>
               Primary color
@@ -322,6 +387,20 @@ export function WebsiteContentEditorSections({
             </label>
           </div>
           <div className="mt-4 grid gap-3">
+            <label className={labelClass}>
+              Tagline
+              <input
+                className={inputClass}
+                value={formData.topbar.tagline}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    topbar: { ...prev.topbar, tagline: e.target.value },
+                  }))
+                }
+                placeholder={luxuryLayout ? "e.g. Holistic wellness at your door" : "e.g. TRUSTED LOCAL SERVICE."}
+              />
+            </label>
             <label className={labelClass}>
               Service area
               <input
@@ -413,7 +492,9 @@ export function WebsiteContentEditorSections({
         <>
           <h2 className="text-lg font-semibold text-slate-900">Hero section</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Main headline and call-to-action on the homepage.
+            {luxuryLayout
+              ? "Full-bleed hero headline, subtitle, badge, and background image."
+              : "Main headline and call-to-action on the homepage."}
           </p>
           <div className="mt-4 grid gap-3">
             {extended ? (
@@ -469,6 +550,20 @@ export function WebsiteContentEditorSections({
                         hero: { ...prev.hero, location: e.target.value },
                       }))
                     }
+                  />
+                </label>
+                <label className={labelClass}>
+                  Hero badge label
+                  <input
+                    className={inputClass}
+                    value={formData.hero.badge}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        hero: { ...prev.hero, badge: e.target.value },
+                      }))
+                    }
+                    placeholder="e.g. CAPE TOWN'S TRUSTED SPA"
                   />
                 </label>
                 <label className={labelClass}>
@@ -671,7 +766,9 @@ export function WebsiteContentEditorSections({
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Services section</h2>
               <p className="mt-1 text-sm text-slate-500">
-                List the services this business offers.
+                {luxuryLayout
+                  ? "Service list, images, and chips shown on the homepage and /services page."
+                  : "List the services this business offers."}
               </p>
             </div>
             <Button type="button" onClick={addService}>
@@ -824,11 +921,16 @@ export function WebsiteContentEditorSections({
 
       {activeSection === "trust" && extended ? (
         <>
-          <h2 className="text-lg font-semibold text-slate-900">Trust & credibility</h2>
+          <h2 className="text-lg font-semibold text-slate-900">
+            {luxuryLayout ? "Reviews & stats" : "Trust & credibility"}
+          </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Trust band, why choose us, and social proof stats.
+            {luxuryLayout
+              ? "Google review quote, stats band, and strategy section copy. Trust band is hidden on the luxury layout."
+              : "Trust band, why choose us, and social proof stats."}
           </p>
 
+          {!luxuryLayout ? (
           <div className="mt-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h3 className="text-base font-semibold text-slate-900">Trust band items</h3>
@@ -868,9 +970,17 @@ export function WebsiteContentEditorSections({
               ))}
             </div>
           </div>
+          ) : null}
 
-          <div className="mt-8 border-t border-slate-100 pt-6">
-            <h3 className="text-base font-semibold text-slate-900">Why choose us</h3>
+          <div className={`${luxuryLayout ? "mt-0" : "mt-8 border-t border-slate-100 pt-6"}`}>
+            <h3 className="text-base font-semibold text-slate-900">
+              {luxuryLayout ? "About & strategy copy" : "Why choose us"}
+            </h3>
+            {luxuryLayout ? (
+              <p className="mt-1 text-sm text-slate-500">
+                Body text powers the hero dock, About page, and Strategy section.
+              </p>
+            ) : null}
             <div className="mt-3 grid gap-3">
               <label className={labelClass}>
                 Heading
@@ -953,6 +1063,7 @@ export function WebsiteContentEditorSections({
                 Add benefit
               </Button>
             </div>
+            {!luxuryLayout ? (
             <div className="mt-3 space-y-3">
               {formData.whyChooseUs.benefits.map((benefit, idx) => (
                 <div key={`benefit-${idx}`} className="rounded-xl border border-slate-200 p-3">
@@ -984,10 +1095,20 @@ export function WebsiteContentEditorSections({
                 </div>
               ))}
             </div>
+            ) : (
+              <p className="mt-2 text-xs text-slate-500">
+                Benefits are not shown on the luxury layout.
+              </p>
+            )}
           </div>
 
           <div className="mt-8 border-t border-slate-100 pt-6">
             <h3 className="text-base font-semibold text-slate-900">Social proof</h3>
+            {luxuryLayout ? (
+              <p className="mt-1 text-sm text-slate-500">
+                Stats appear on the Reviews page; years of expertise uses Established year.
+              </p>
+            ) : null}
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <label className={labelClass}>
                 Established year
@@ -1013,6 +1134,34 @@ export function WebsiteContentEditorSections({
                       socialProof: { ...prev.socialProof, jobsCompleted: e.target.value },
                     }))
                   }
+                />
+              </label>
+              <label className={labelClass}>
+                Satisfaction rate
+                <input
+                  className={inputClass}
+                  value={formData.socialProof.satisfactionRate}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      socialProof: { ...prev.socialProof, satisfactionRate: e.target.value },
+                    }))
+                  }
+                  placeholder="98%"
+                />
+              </label>
+              <label className={labelClass}>
+                Response time
+                <input
+                  className={inputClass}
+                  value={formData.socialProof.responseTime}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      socialProof: { ...prev.socialProof, responseTime: e.target.value },
+                    }))
+                  }
+                  placeholder="2hr"
                 />
               </label>
               <label className={cn(labelClass, "sm:col-span-2")}>
@@ -1120,9 +1269,13 @@ export function WebsiteContentEditorSections({
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">How it works</h2>
+              <h2 className="text-lg font-semibold text-slate-900">
+                {luxuryLayout ? "Wellness blog" : "How it works"}
+              </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Step-by-step process shown on the homepage.
+                {luxuryLayout
+                  ? "Three steps become blog cards on the homepage and /blog page."
+                  : "Step-by-step process shown on the homepage."}
               </p>
             </div>
             <Button type="button" onClick={addStep}>
@@ -1427,7 +1580,9 @@ export function WebsiteContentEditorSections({
         <>
           <h2 className="text-lg font-semibold text-slate-900">Contact section</h2>
           <p className="mt-1 text-sm text-slate-500">
-            How customers can reach this business. Phone and email also update the top bar.
+            {luxuryLayout
+              ? "Phone and email power the header, footer, and booking form. Heading is optional on the luxury layout."
+              : "How customers can reach this business. Phone and email also update the top bar."}
           </p>
           <div className="mt-4 grid gap-3">
             <label className={labelClass}>
@@ -1509,11 +1664,13 @@ export function WebsiteContentEditorSections({
         <>
           <h2 className="text-lg font-semibold text-slate-900">Footer</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Footer description and link columns (one link per line).
+            {luxuryLayout
+              ? "Description becomes the large footer headline. Social links use Brand tab URLs."
+              : "Footer description and link columns (one link per line)."}
           </p>
           <div className="mt-4 grid gap-3">
             <label className={labelClass}>
-              Description
+              {luxuryLayout ? "Footer headline" : "Description"}
               <textarea
                 className={inputClass}
                 rows={3}
@@ -1523,6 +1680,11 @@ export function WebsiteContentEditorSections({
                     ...prev,
                     footer: { ...prev.footer, description: e.target.value },
                   }))
+                }
+                placeholder={
+                  luxuryLayout
+                    ? "Holistic perspectives for Being and Spirit"
+                    : undefined
                 }
               />
             </label>

@@ -8,7 +8,14 @@ import type { CompanyBranding } from "@/lib/website-templates/apply-variant";
 import ServiceBusinessTemplate from "@/templates/service-business/ServiceBusinessTemplate";
 import type { Website, WebsiteContent } from "@/types/database";
 
-type PageSection = "home" | "services" | "about" | "reviews" | "contact";
+type PageSection =
+  | "home"
+  | "services"
+  | "about"
+  | "reviews"
+  | "contact"
+  | "blog"
+  | "faq";
 
 type RenderWebsiteOptions = {
   marketplaceBookingUrl?: string | null;

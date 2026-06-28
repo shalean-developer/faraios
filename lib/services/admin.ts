@@ -1652,7 +1652,7 @@ export async function getAdminProjectDetails(
 
   const { data: website } = await supabase
     .from("websites")
-    .select("id, status")
+    .select("id, status, builder_mode")
     .eq("client_id", companyId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -1671,6 +1671,7 @@ export async function getAdminProjectDetails(
       null,
     projectProgress: numericProgress,
     websiteId: (website?.id as string | undefined) ?? null,
+    websiteBuilderMode: Boolean(website?.builder_mode),
     listedInMarketplace: Boolean(row.listed_in_marketplace),
     marketplaceSummary: row.marketplace_summary?.trim() ?? null,
     marketplaceLocation: row.marketplace_location?.trim() ?? null,

@@ -22,6 +22,13 @@ import {
   Wrench,
 } from "lucide-react";
 
+import { LuxuryAboutSection } from "@/templates/service-business/LuxuryAboutSection";
+import { LuxuryBlogSection } from "@/templates/service-business/LuxuryBlogSection";
+import { LuxuryContactSection } from "@/templates/service-business/LuxuryContactSection";
+import { LuxuryFaqSection } from "@/templates/service-business/LuxuryFaqSection";
+import { LuxuryReviewsSection } from "@/templates/service-business/LuxuryReviewsSection";
+import { LuxuryServicesSection } from "@/templates/service-business/LuxuryServicesSection";
+import { LuxuryStrategySection } from "@/templates/service-business/LuxuryStrategySection";
 import { FaqAccordion } from "@/templates/service-business/FaqAccordion";
 import type { ParsedSiteContent } from "@/templates/service-business/content";
 import {
@@ -59,6 +66,7 @@ type Props = {
   site: ParsedSiteContent;
   bookingUrl?: string | null;
   paths: TemplatePaths;
+  skipHero?: boolean;
 };
 
 function ServiceImage({
@@ -77,7 +85,7 @@ function ServiceImage({
     const Icon = style.icon;
     return (
       <div
-        className={`flex flex-col items-center justify-center gap-3 bg-gradient-to-br px-4 text-center ${className ?? ""}`}
+        className={`flex h-full min-h-[inherit] flex-col items-center justify-center gap-3 bg-gradient-to-br px-4 text-center ${className ?? ""}`}
         style={{
           backgroundImage: `linear-gradient(135deg, ${style.from}, ${style.to})`,
         }}
@@ -95,7 +103,7 @@ function ServiceImage({
       alt={alt}
       width={640}
       height={400}
-      className={`object-cover ${className ?? ""}`}
+      className={`block object-cover ${className ?? ""}`}
       unoptimized
     />
   );
@@ -125,7 +133,7 @@ function WhatsAppIcon({ className }: { className?: string }) {
   );
 }
 
-export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
+export function ServiceBusinessHome({ site, bookingUrl, paths, skipHero = false }: Props) {
   const { hero, theme, services, contact, topbar } = site;
   const phoneHref = topbar.phone.replace(/\s+/g, "");
   const bookHref = bookingUrl ?? resolveTemplateHref(hero.ctaHref, paths);
@@ -164,9 +172,9 @@ export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
 
   return (
     <>
-      {/* 1. Hero */}
+      {!skipHero ? (
       <section className="bg-white pb-8 pt-12 lg:pb-12 lg:pt-20">
-        <div className={`${sectionContainer} grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16`}>
+        <div className={`${sectionContainer} grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-16`}>
           <div>
             <span
               className={`${badgePill} bg-blue-50`}
@@ -216,6 +224,33 @@ export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
               <p className="text-base text-slate-600">{hero.ratingCount}</p>
               <AvatarStack />
             </div>
+
+            {serviceChips.length > 0 ? (
+              <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {serviceChips.map((chip, index) => {
+                  const Icon = CHIP_ICONS[index % CHIP_ICONS.length];
+                  return (
+                    <div
+                      key={`${chip.title}-${index}`}
+                      className="flex min-h-[5.5rem] items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
+                    >
+                      <span
+                        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-md"
+                        style={{ backgroundColor: theme.accent }}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold leading-snug text-slate-900 sm:text-base">
+                          {chip.title}
+                        </p>
+                        <p className="mt-0.5 text-sm font-semibold text-slate-600">{chip.priceFrom}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
           </div>
 
           <div className="relative">
@@ -223,7 +258,7 @@ export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
               <ServiceImage
                 src={hero.image}
                 alt={hero.imageAlt}
-                className="aspect-[4/5] w-full sm:aspect-[5/6] lg:aspect-[4/5]"
+                className="h-56 w-full sm:h-64 lg:h-72"
                 index={0}
               />
             </div>
@@ -241,37 +276,36 @@ export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
             </div>
           </div>
         </div>
-
-        {/* Service category chips */}
-        {serviceChips.length > 0 ? (
-          <div className={`${sectionContainer} mt-14`}>
-            <div className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-2 snap-x snap-mandatory sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-6">
-              {serviceChips.map((chip, index) => {
-                const Icon = CHIP_ICONS[index % CHIP_ICONS.length];
-                return (
-                  <div
-                    key={`${chip.title}-${index}`}
-                    className="flex min-w-[260px] shrink-0 snap-start items-center gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-6 shadow-sm sm:min-w-0"
-                  >
-                    <span
-                      className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-md"
-                      style={{ backgroundColor: theme.accent }}
-                    >
-                      <Icon className="h-7 w-7" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-lg font-bold text-slate-900">{chip.title}</p>
-                      <p className="mt-1 text-base font-semibold text-slate-600">{chip.priceFrom}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
       </section>
+      ) : null}
 
-      {/* 2. Trust benefits band */}
+      {skipHero && serviceChips.length > 0 ? (
+        <section className="border-b border-[#2d2926]/10 bg-[#f5f3e7] py-10">
+          <div className={`${sectionContainer} grid gap-4 sm:grid-cols-3`}>
+            {serviceChips.slice(0, 3).map((chip, index) => {
+              const Icon = CHIP_ICONS[index % CHIP_ICONS.length];
+              return (
+                <div
+                  key={`${chip.title}-${index}`}
+                  className="flex min-h-[5.5rem] items-center gap-4 rounded-sm border border-[#2d2926]/10 bg-[#ebe7d8] px-5 py-4"
+                >
+                  <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#2a2018] text-[#f2f0e6]">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-[#2d2926] sm:text-base">{chip.title}</p>
+                    <p className="mt-0.5 text-sm text-[#2d2926]/60">{chip.priceFrom}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      {skipHero ? <LuxuryAboutSection site={site} paths={paths} /> : null}
+
+      {!skipHero ? (
       <section className="py-20 lg:py-24" style={{ backgroundColor: theme.primary }}>
         <div className={`${sectionContainer} grid gap-6 sm:grid-cols-2 lg:grid-cols-4`}>
           {site.trustBand.map((item, index) => {
@@ -293,8 +327,11 @@ export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
           })}
         </div>
       </section>
+      ) : null}
 
-      {/* 3. Services */}
+      {skipHero ? (
+        <LuxuryServicesSection site={site} paths={paths} bookingUrl={bookHref} />
+      ) : (
       <section id="services" className={`bg-white ${sectionY}`}>
         <div className={sectionContainer}>
           <div className="flex flex-wrap items-end justify-between gap-6">
@@ -319,11 +356,11 @@ export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
                   key={`${item.title}-${index}`}
                   className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-lg"
                 >
-                  <div className="relative">
+                  <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
                     <ServiceImage
                       src={item.image}
                       alt={item.imageAlt ?? item.title}
-                      className="h-52 w-full"
+                      className="h-full w-full"
                       index={index}
                     />
                     <span
@@ -359,8 +396,9 @@ export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
           </ul>
         </div>
       </section>
+      )}
 
-      {/* 4. Trusted by local customers */}
+      {!skipHero ? (
       <section className={`bg-slate-50 ${sectionY}`}>
         <div className={`${sectionContainer} grid gap-14 lg:grid-cols-2 lg:items-center`}>
           <div className="relative grid grid-cols-2 gap-4">
@@ -368,15 +406,15 @@ export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
               <ServiceImage
                 src={mosaicImages[0]}
                 alt={site.whyChooseUs.imageAlt}
-                className="h-72 w-full sm:min-h-[400px] sm:h-full"
+                className="aspect-[3/4] h-full w-full min-h-[280px] sm:min-h-[360px]"
                 index={0}
               />
             </div>
             <div className="overflow-hidden rounded-2xl shadow-md">
-              <ServiceImage src={mosaicImages[1]} alt="" className="h-40 w-full" index={1} />
+              <ServiceImage src={mosaicImages[1]} alt="" className="aspect-[4/3] w-full" index={1} />
             </div>
             <div className="overflow-hidden rounded-2xl shadow-md">
-              <ServiceImage src={mosaicImages[2]} alt="" className="h-40 w-full" index={2} />
+              <ServiceImage src={mosaicImages[2]} alt="" className="aspect-[4/3] w-full" index={2} />
             </div>
             <div className="absolute bottom-4 left-4 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-base font-semibold text-slate-900 shadow-lg">
               <MapPin className="h-4 w-4" style={{ color: theme.accent }} />
@@ -431,8 +469,11 @@ export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
           </div>
         </div>
       </section>
+      ) : null}
 
-      {/* 5. Statistics */}
+      {skipHero ? (
+        <LuxuryStrategySection site={site} />
+      ) : (
       <section className="border-y border-slate-200 bg-white py-14 sm:py-16">
         <div className={`${sectionContainer} grid gap-5 sm:grid-cols-2 lg:grid-cols-5`}>
           {stats.map((stat) => (
@@ -470,8 +511,11 @@ export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
           ))}
         </div>
       </section>
+      )}
 
-      {/* 6. How it works */}
+      {skipHero ? (
+        <LuxuryBlogSection site={site} paths={paths} />
+      ) : (
       <section className={`bg-slate-50 ${sectionY}`}>
         <div className={sectionContainer}>
           <h2 className={`text-center ${sectionHeading}`}>{site.howItWorks.heading}</h2>
@@ -504,8 +548,11 @@ export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
           </ol>
         </div>
       </section>
+      )}
 
-      {/* 7. Reviews / testimonial band */}
+      {skipHero ? (
+        <LuxuryReviewsSection site={site} paths={paths} />
+      ) : (
       <section className="py-14 sm:py-16" style={{ backgroundColor: theme.primary }}>
         <div className={sectionContainer}>
           <div className="rounded-3xl border border-white/10 bg-white/5 p-8 sm:p-10 lg:p-12">
@@ -540,8 +587,11 @@ export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
           </div>
         </div>
       </section>
+      )}
 
-      {/* 8. FAQ + Service areas */}
+      {skipHero ? (
+        <LuxuryFaqSection site={site} paths={paths} bookingUrl={bookHref} />
+      ) : (
       <section id="faq" className={`bg-white ${sectionY}`}>
         <div className={`${sectionContainer} grid gap-12 lg:grid-cols-2 lg:gap-16`}>
           <div>
@@ -551,7 +601,7 @@ export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
               <FaqAccordion items={site.faq.items} />
             </div>
             <a
-              href={paths.contact}
+              href={paths.faq}
               className={`mt-6 inline-flex items-center gap-2 text-base font-semibold`}
               style={{ color: theme.accent }}
             >
@@ -592,8 +642,9 @@ export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
           </div>
         </div>
       </section>
+      )}
 
-      {/* 9. Final CTA */}
+      {!skipHero ? (
       <section className={sectionY}>
         <div className={sectionContainer}>
           <div
@@ -634,8 +685,11 @@ export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
           </div>
         </div>
       </section>
+      ) : null}
 
-      {/* 10. Contact */}
+      {skipHero ? (
+        <LuxuryContactSection site={site} bookingUrl={bookHref} />
+      ) : (
       <section className={`bg-slate-50 ${sectionY}`}>
         <div className={sectionContainer}>
           <h2 className={sectionHeading}>{contact.heading}</h2>
@@ -730,6 +784,7 @@ export function ServiceBusinessHome({ site, bookingUrl, paths }: Props) {
           </div>
         </div>
       </section>
+      )}
     </>
   );
 }

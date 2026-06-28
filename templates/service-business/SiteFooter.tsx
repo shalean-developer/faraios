@@ -71,7 +71,7 @@ function footerLinkHref(label: string, paths: TemplatePaths): string {
   if (lower.includes("contact")) return paths.contact;
   if (lower.includes("service")) return paths.services;
   if (lower.includes("pricing")) return paths.services;
-  if (lower.includes("faq")) return `${paths.home}#faq`;
+  if (lower.includes("faq")) return paths.faq;
   if (lower.includes("privacy")) return "/privacy";
   if (lower.includes("terms")) return "/terms";
   return paths.home;

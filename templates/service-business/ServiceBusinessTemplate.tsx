@@ -7,6 +7,17 @@ import { resolveWebsiteTemplateVariant } from "@/lib/website-templates/variants"
 import type { WebsiteContent } from "@/types/database";
 import { parseSiteContent } from "@/templates/service-business/content";
 import { ServiceBusinessHome } from "@/templates/service-business/ServiceBusinessHome";
+import { LuxuryFooter } from "@/templates/service-business/LuxuryFooter";
+import { LuxuryHeroSection } from "@/templates/service-business/LuxuryHeroSection";
+import {
+  LuxuryAboutPage,
+  LuxuryBlogPage,
+  LuxuryContactPage,
+  LuxuryFaqPage,
+  LuxuryReviewsPage,
+  LuxuryServicesPage,
+} from "@/templates/service-business/luxury-pages";
+import { LuxurySiteHeader } from "@/templates/service-business/LuxurySiteHeader";
 import { SiteChrome } from "@/templates/service-business/SiteChrome";
 import { SiteFooter } from "@/templates/service-business/SiteFooter";
 import {
@@ -293,11 +304,14 @@ export default function ServiceBusinessTemplate({
   );
   const paths = buildTemplatePaths(previewWebsiteId);
   const resolvedBookingUrl = bookingUrl ?? marketplaceBookingUrl;
+  const isLuxuryLayout = site.variant === "beauty";
+  const isLuxuryHome = isLuxuryLayout && pageSection === "home";
 
   return (
     <div
-      className="min-h-screen bg-white font-sans text-slate-900 antialiased"
+      className={`min-h-screen font-sans antialiased ${isLuxuryLayout ? "bg-[#f5f3e7] text-[#2d2926]" : "bg-white text-slate-900"}`}
       data-website-variant={site.variant}
+      data-website-layout={isLuxuryLayout ? "luxury" : "classic"}
       style={
         {
           "--site-primary": site.theme.primary,
@@ -307,23 +321,93 @@ export default function ServiceBusinessTemplate({
         } as CSSProperties
       }
     >
-      <SiteChrome site={site} bookingUrl={resolvedBookingUrl} paths={paths} />
+      {isLuxuryLayout ? (
+        // eslint-disable-next-line @next/next/no-page-custom-font
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@400;500;600&display=swap" />
+      ) : null}
+      {isLuxuryHome ? null : isLuxuryLayout ? (
+        <LuxurySiteHeader
+          site={site}
+          bookingUrl={resolvedBookingUrl}
+          paths={paths}
+          activePage={pageSection}
+        />
+      ) : (
+        <SiteChrome site={site} bookingUrl={resolvedBookingUrl} paths={paths} />
+      )}
       <main>
+        {isLuxuryHome ? (
+          <LuxuryHeroSection
+            site={site}
+            paths={paths}
+            bookingUrl={resolvedBookingUrl}
+          />
+        ) : null}
         {pageSection === "home" ? (
-          <ServiceBusinessHome site={site} bookingUrl={resolvedBookingUrl} paths={paths} />
+          <ServiceBusinessHome
+            site={site}
+            bookingUrl={resolvedBookingUrl}
+            paths={paths}
+            skipHero={isLuxuryHome}
+          />
         ) : null}
         {pageSection === "services" ? (
-          <ServicesPage site={site} bookingUrl={resolvedBookingUrl} paths={paths} />
+          isLuxuryLayout ? (
+            <LuxuryServicesPage site={site} paths={paths} bookingUrl={resolvedBookingUrl} />
+          ) : (
+            <ServicesPage site={site} bookingUrl={resolvedBookingUrl} paths={paths} />
+          )
         ) : null}
-        {pageSection === "about" ? <AboutPage site={site} paths={paths} /> : null}
+        {pageSection === "about" ? (
+          isLuxuryLayout ? (
+            <LuxuryAboutPage site={site} paths={paths} bookingUrl={resolvedBookingUrl} />
+          ) : (
+            <AboutPage site={site} paths={paths} />
+          )
+        ) : null}
         {pageSection === "reviews" ? (
-          <ReviewsPage site={site} bookingUrl={resolvedBookingUrl} paths={paths} />
+          isLuxuryLayout ? (
+            <LuxuryReviewsPage site={site} paths={paths} bookingUrl={resolvedBookingUrl} />
+          ) : (
+            <ReviewsPage site={site} bookingUrl={resolvedBookingUrl} paths={paths} />
+          )
         ) : null}
         {pageSection === "contact" ? (
-          <ContactPage site={site} bookingUrl={resolvedBookingUrl} paths={paths} />
+          isLuxuryLayout ? (
+            <LuxuryContactPage site={site} bookingUrl={resolvedBookingUrl} />
+          ) : (
+            <ContactPage site={site} bookingUrl={resolvedBookingUrl} paths={paths} />
+          )
+        ) : null}
+        {pageSection === "blog" ? (
+          isLuxuryLayout ? (
+            <LuxuryBlogPage site={site} paths={paths} />
+          ) : (
+            <section className="bg-white py-16">
+              <div className="mx-auto max-w-3xl px-4">
+                <h1 className="text-3xl font-bold text-slate-900">Blog</h1>
+                <p className="mt-3 text-slate-600">Tips, guides, and updates from our team.</p>
+              </div>
+            </section>
+          )
+        ) : null}
+        {pageSection === "faq" ? (
+          isLuxuryLayout ? (
+            <LuxuryFaqPage site={site} paths={paths} bookingUrl={resolvedBookingUrl} />
+          ) : (
+            <section className="bg-white py-16">
+              <div className="mx-auto max-w-3xl px-4">
+                <h1 className="text-3xl font-bold text-slate-900">FAQ</h1>
+              </div>
+            </section>
+          )
         ) : null}
       </main>
-      <SiteFooter site={site} paths={paths} />
+      {isLuxuryLayout ? (
+        <LuxuryFooter site={site} paths={paths} />
+      ) : (
+        <SiteFooter site={site} paths={paths} />
+      )}
     </div>
   );
 }

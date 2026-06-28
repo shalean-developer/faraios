@@ -1,3 +1,6 @@
+import { normalizeIndustrySlug } from "@/lib/industry-modules/registry";
+import { resolveWebsiteTemplateVariant } from "@/lib/website-templates/variants";
+
 /** Curated Unsplash URLs for default website imagery (stable hotlinks). */
 
 export type IndustryImagePreset = {
@@ -178,5 +181,7 @@ const PRESETS: Record<string, IndustryImagePreset> = {
 
 export function industryImagePreset(industry: string): IndustryImagePreset {
   const key = industry.trim().toLowerCase();
-  return PRESETS[key] ?? DEFAULT;
+  const normalized = normalizeIndustrySlug(key);
+  const variant = resolveWebsiteTemplateVariant(key);
+  return PRESETS[normalized] ?? PRESETS[variant] ?? DEFAULT;
 }

@@ -4,6 +4,13 @@ export function asString(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
 }
 
+export function asBoolean(value: unknown, fallback = false): boolean {
+  if (typeof value === "boolean") return value;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return fallback;
+}
+
 export function asStringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string")
@@ -127,6 +134,7 @@ export type ParsedSiteContent = {
     email: string;
     tagline: string;
     logo: string;
+    hideBusinessNameInHeader: boolean;
     socialFacebook: string;
     socialInstagram: string;
     socialWhatsapp: string;
@@ -264,6 +272,7 @@ export function parseSiteContent(content: WebsiteContent[]): ParsedSiteContent {
       email: asString(topbar.email, contactEmail),
       tagline: asString(topbar.tagline, "CLEAN SPACES. BETTER LIVES."),
       logo: asString(topbar.logo, asString(topbar.logoUrl)),
+      hideBusinessNameInHeader: asBoolean(topbar.hideBusinessNameInHeader),
       socialFacebook: asString(topbar.facebook),
       socialInstagram: asString(topbar.instagram),
       socialWhatsapp: asString(topbar.whatsapp),

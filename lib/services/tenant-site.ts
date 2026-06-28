@@ -32,7 +32,14 @@ async function getCompanyBranding(companyId: string): Promise<CompanyBranding | 
   };
 }
 
-export type TenantPageKind = "home" | "services" | "about" | "reviews" | "contact";
+export type TenantPageKind =
+  | "home"
+  | "services"
+  | "about"
+  | "reviews"
+  | "contact"
+  | "blog"
+  | "faq";
 
 export async function getTenantContext() {
   const requestHeaders = await headers();

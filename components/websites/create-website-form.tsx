@@ -14,7 +14,6 @@ type FormState = {
   industry: string;
   services: string;
   contactInfo: string;
-  template: string;
   customDomain: string;
 };
 
@@ -23,7 +22,6 @@ const INITIAL_STATE: FormState = {
   industry: "",
   services: "",
   contactInfo: "",
-  template: "service-business",
   customDomain: "",
 };
 
@@ -46,7 +44,6 @@ export function CreateWebsiteForm({ companySlug }: { companySlug: string }) {
         industry: state.industry,
         services: state.services,
         contactInfo: state.contactInfo,
-        template: state.template,
         customDomain: state.customDomain,
       });
 
@@ -93,16 +90,6 @@ export function CreateWebsiteForm({ companySlug }: { companySlug: string }) {
         onChange={(e) => setState((prev) => ({ ...prev, contactInfo: e.target.value }))}
         required
       />
-      <div>
-        <label className="mb-2 block text-sm font-medium text-slate-700">Template</label>
-        <select
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
-          value={state.template}
-          onChange={(e) => setState((prev) => ({ ...prev, template: e.target.value }))}
-        >
-          <option value="service-business">Service Business</option>
-        </select>
-      </div>
       <Input
         placeholder="Custom domain (optional) e.g. www.clientbusiness.com"
         value={state.customDomain}

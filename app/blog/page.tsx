@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { listPublishedContentPosts } from "@/lib/services/content-posts";
 import { buildTenantSocialMetadata } from "@/lib/seo/tenant-metadata";
 import { getTenantContext } from "@/lib/services/tenant-site";
+import { resolveWebsiteTemplateVariant } from "@/lib/website-templates/variants";
+import ServiceBusinessTemplate from "@/templates/service-business/ServiceBusinessTemplate";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +31,20 @@ export default async function BlogIndexPage() {
 
   if (!ctx.website || ctx.website.status !== "published") {
     notFound();
+  }
+
+  const variant = resolveWebsiteTemplateVariant(ctx.website.template);
+  if (variant === "beauty") {
+    return (
+      <ServiceBusinessTemplate
+        content={ctx.content}
+        pageSection="blog"
+        bookingUrl={ctx.bookingUrl}
+        marketplaceBookingUrl={ctx.marketplaceBookingUrl}
+        templateVariant={ctx.website.template}
+        companyBranding={ctx.companyBranding}
+      />
+    );
   }
 
   const posts = await listPublishedContentPosts(ctx.website.client_id);

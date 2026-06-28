@@ -9,12 +9,14 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   BASIC_CONTENT_SECTIONS,
+  LUXURY_BEAUTY_CONTENT_SECTIONS,
   SERVICE_BUSINESS_CONTENT_SECTIONS,
   WebsiteContentEditorSections,
   type ContentSectionId,
 } from "@/components/websites/website-content-editor-sections";
 import {
   buildWebsiteContentFormData,
+  isLuxuryBeautyWebsite,
   isServiceBusinessTemplate,
   websiteContentFormDataToPayload,
   type WebsiteContentFormData,
@@ -47,10 +49,16 @@ export function WebsiteContentEditor({
   variant = "company",
   embedded = false,
 }: Props) {
-  const extended = isServiceBusinessTemplate(websiteTemplate);
+  const extended = isServiceBusinessTemplate(websiteTemplate, websiteIndustry);
+  const luxuryLayout = isLuxuryBeautyWebsite(websiteTemplate, websiteIndustry);
   const contentSections = useMemo(
-    () => (extended ? SERVICE_BUSINESS_CONTENT_SECTIONS : BASIC_CONTENT_SECTIONS),
-    [extended]
+    () =>
+      luxuryLayout
+        ? LUXURY_BEAUTY_CONTENT_SECTIONS
+        : extended
+          ? SERVICE_BUSINESS_CONTENT_SECTIONS
+          : BASIC_CONTENT_SECTIONS,
+    [extended, luxuryLayout]
   );
 
   const [formData, setFormData] = useState<WebsiteContentFormData>(() =>
@@ -96,6 +104,7 @@ export function WebsiteContentEditor({
         formData={formData}
         setFormData={setFormData}
         extended={extended}
+        luxuryLayout={luxuryLayout}
         websiteId={websiteId}
       />
     </div>
@@ -145,7 +154,9 @@ export function WebsiteContentEditor({
         <div className="mt-8">
           <h2 className="text-lg font-semibold text-slate-900">Content</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Edit on the left; the preview updates when you save.
+            {luxuryLayout
+              ? "Luxury spa layout — each tab maps to a section on the live site. Save to refresh the preview."
+              : "Edit on the left; the preview updates when you save."}
           </p>
         </div>
       )}

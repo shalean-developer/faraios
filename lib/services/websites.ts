@@ -18,10 +18,33 @@ export type CreateWebsiteInput = {
   industry: string;
   services: string;
   contactInfo: string;
-  template: string;
+  /** When omitted or `service-business`, industry drives the content seed. */
+  template?: string;
   customDomain?: string;
   location?: string;
 };
+
+function isGenericLegacyTemplate(template?: string | null): boolean {
+  const key = template?.trim().toLowerCase() ?? "";
+  return !key || key === "service-business";
+}
+
+/** Content seed variant: industry wins over generic service-business template. */
+export function resolveLegacyWebsiteContentVariant(
+  input: Pick<CreateWebsiteInput, "template" | "industry">
+): ReturnType<typeof resolveWebsiteTemplateVariant> {
+  if (!isGenericLegacyTemplate(input.template)) {
+    return resolveWebsiteTemplateVariant(input.template);
+  }
+  return resolveWebsiteTemplateVariant(input.industry);
+}
+
+function storedWebsiteTemplateSlug(input: CreateWebsiteInput, industrySlug: string): string {
+  if (!isGenericLegacyTemplate(input.template)) {
+    return input.template!.trim().toLowerCase();
+  }
+  return industrySlug;
+}
 
 export type WebsiteSeoInput = {
   seoTitle: string;
@@ -67,14 +90,6 @@ function cleanDomain(value: string): string | null {
 
 function buildSubdomainSeed(name: string): string {
   return slugifyBusinessName(name).slice(0, 48);
-}
-
-function titleCase(value: string): string {
-  return value
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
 }
 
 export function mergeStockImagesIntoContent(
@@ -131,7 +146,7 @@ function asString(value: unknown, fallback = ""): string {
 export function buildDefaultWebsiteContent(
   input: CreateWebsiteInput
 ): WebsiteSectionSeed[] {
-  const template = resolveWebsiteTemplateVariant(input.template || input.industry);
+  const template = resolveLegacyWebsiteContentVariant(input);
   if (
     template === "service-business" ||
     template === "cleaning" ||
@@ -240,19 +255,52 @@ export async function createWebsiteDraftForCurrentUser(
   return createWebsiteDraftForCompanyId(membership.company_id, input);
 }
 
+async function enrichCreateWebsiteInputFromCompany(
+  supabase: SupabaseClient,
+  companyId: string,
+  input: CreateWebsiteInput
+): Promise<CreateWebsiteInput> {
+  if (input.services.trim()) {
+    return input;
+  }
+
+  const { data: companyServices } = await supabase
+    .from("company_services")
+    .select("name")
+    .eq("company_id", companyId)
+    .eq("active", true)
+    .order("sort_order", { ascending: true })
+    .limit(6);
+
+  const serviceNames = (companyServices ?? [])
+    .map((row) => (typeof row.name === "string" ? row.name.trim() : ""))
+    .filter(Boolean);
+
+  if (serviceNames.length === 0) {
+    return input;
+  }
+
+  return { ...input, services: serviceNames.join(", ") };
+}
+
 async function insertWebsiteDraft(
   supabase: SupabaseClient,
   companyId: string,
   input: CreateWebsiteInput
 ): Promise<{ ok: true; websiteId: string } | { ok: false; error: string }> {
-  const domain = cleanDomain(input.customDomain ?? "");
-  const subdomain = buildSubdomainSeed(input.businessName);
-  const businessName = input.businessName.trim();
-  const industry = input.industry.trim().toLowerCase() || "general";
-  const industryLabel = titleCase(industry);
-  const seoTitle = `${businessName} | ${industryLabel} Services`;
-  const seoDescription = `${businessName} provides trusted ${industry} services with fast response and professional support.`;
-  const seoKeywords = `${businessName}, ${industry}, ${industry} services, local ${industry}`;
+  const enrichedInput = await enrichCreateWebsiteInputFromCompany(supabase, companyId, input);
+  const domain = cleanDomain(enrichedInput.customDomain ?? "");
+  const subdomain = buildSubdomainSeed(enrichedInput.businessName);
+  const businessName = enrichedInput.businessName.trim();
+  const industry = enrichedInput.industry.trim().toLowerCase() || "general";
+  const industryModule = loadIndustryModule(industry);
+  const industryLabel = industryModule.name;
+  const templateSlug = storedWebsiteTemplateSlug(enrichedInput, industry);
+  const seoTitle = `${businessName} | ${industryLabel}`;
+  const seoDescription =
+    industryModule.growth.heroSubtitle ||
+    `${businessName} provides trusted ${industryLabel.toLowerCase()} services with fast response and professional support.`;
+  const seoKeywords = `${businessName}, ${industry}, ${industryLabel.toLowerCase()}, local services`;
 
   const { data: website, error: websiteError } = await supabase
     .from("websites")
@@ -260,7 +308,7 @@ async function insertWebsiteDraft(
       client_id: companyId,
       name: businessName,
       industry,
-      template: resolveWebsiteTemplateVariant(input.template || input.industry),
+      template: templateSlug,
       domain,
       subdomain,
       status: "draft",
@@ -275,7 +323,7 @@ async function insertWebsiteDraft(
     return { ok: false, error: websiteError?.message ?? "Failed to create website." };
   }
 
-  const seedSections = buildDefaultWebsiteContent(input);
+  const seedSections = buildDefaultWebsiteContent(enrichedInput);
   const seedMap = Object.fromEntries(
     seedSections.map((item) => [item.section, item.content])
   ) as Record<string, Record<string, unknown>>;
@@ -775,6 +823,103 @@ export function getMainAppDomain(): string {
 
 export function isMainHost(host: string): boolean {
   return isMainHostFromConfig(host);
+}
+
+export function replaceStringInJson(value: unknown, from: string, to: string): unknown {
+  if (typeof value === "string") {
+    return value.includes(from) ? value.split(from).join(to) : value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => replaceStringInJson(item, from, to));
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, nested]) => [
+        key,
+        replaceStringInJson(nested, from, to),
+      ])
+    );
+  }
+  return value;
+}
+
+/** Renames display text across websites.name, SEO fields, and all CMS JSON sections. */
+export async function renameWebsiteBusinessName(
+  websiteId: string,
+  fromName: string,
+  toName: string
+): Promise<
+  | { ok: true; updatedSections: number; websiteName: string }
+  | { ok: false; error: string }
+> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) {
+    return { ok: false, error: admin.error };
+  }
+
+  const supabase = admin.client;
+  const oldName = fromName.trim();
+  const newName = toName.trim();
+  if (!oldName || !newName) {
+    return { ok: false, error: "Both old and new business names are required." };
+  }
+
+  const { data: website, error: websiteError } = await supabase
+    .from("websites")
+    .select("*")
+    .eq("id", websiteId)
+    .maybeSingle();
+
+  if (websiteError || !website) {
+    return { ok: false, error: websiteError?.message ?? "Website not found." };
+  }
+
+  const replace = (value: string | null | undefined) =>
+    value?.includes(oldName) ? value.split(oldName).join(newName) : value ?? null;
+
+  const nextWebsiteName =
+    website.name === oldName || website.name.includes(oldName)
+      ? website.name.split(oldName).join(newName)
+      : newName;
+
+  const { error: updateWebsiteError } = await supabase
+    .from("websites")
+    .update({
+      name: nextWebsiteName,
+      seo_title: replace(website.seo_title),
+      seo_description: replace(website.seo_description),
+      seo_keywords: replace(website.seo_keywords),
+    })
+    .eq("id", websiteId);
+
+  if (updateWebsiteError) {
+    return { ok: false, error: updateWebsiteError.message };
+  }
+
+  const { data: rows, error: contentError } = await supabase
+    .from("website_content")
+    .select("*")
+    .eq("website_id", websiteId);
+
+  if (contentError) {
+    return { ok: false, error: contentError.message };
+  }
+
+  let updatedSections = 0;
+  for (const row of (rows as WebsiteContent[]) ?? []) {
+    const nextContent = replaceStringInJson(row.content, oldName, newName);
+    const { error: rowError } = await supabase
+      .from("website_content")
+      .update({ content: nextContent })
+      .eq("id", row.id);
+
+    if (rowError) {
+      return { ok: false, error: rowError.message };
+    }
+    updatedSections += 1;
+  }
+
+  return { ok: true, updatedSections, websiteName: nextWebsiteName };
 }
 
 export async function getWebsiteContentByWebsiteId(

@@ -1,3 +1,4 @@
+import { resolveWebsiteTemplateVariant } from "@/lib/website-templates/variants";
 import type { WebsiteContent } from "@/types/database";
 
 export type ServiceItem = {
@@ -34,18 +35,22 @@ export type WebsiteContentFormData = {
     accentColor: string;
   };
   topbar: {
+    logo: string;
+    hideBusinessNameInHeader: boolean;
     serviceArea: string;
     hours: string;
     phone: string;
     email: string;
     facebook: string;
     instagram: string;
+    tagline: string;
   };
   hero: {
     businessName: string;
     headline: string;
     subtitle: string;
     location: string;
+    badge: string;
     startingPrice: string;
     trustBullets: string;
     ctaLabel: string;
@@ -87,6 +92,8 @@ export type WebsiteContentFormData = {
   socialProof: {
     establishedYear: string;
     jobsCompleted: string;
+    satisfactionRate: string;
+    responseTime: string;
     reviewQuote: string;
     reviewAuthor: string;
     googleReviews: string;
@@ -128,6 +135,13 @@ export type WebsiteContentFormData = {
     supportLinks: string;
   };
 };
+
+function asBoolean(value: unknown, fallback = false): boolean {
+  if (typeof value === "boolean") return value;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return fallback;
+}
 
 function toRecord(rows: WebsiteContent[]): Record<string, Record<string, unknown>> {
   return rows.reduce<Record<string, Record<string, unknown>>>((acc, row) => {
@@ -275,18 +289,22 @@ export function buildWebsiteContentFormData(rows: WebsiteContent[]): WebsiteCont
       accentColor: asString(theme.accentColor, "#2563eb"),
     },
     topbar: {
+      logo: asString(topbar.logo, asString(topbar.logoUrl)),
+      hideBusinessNameInHeader: asBoolean(topbar.hideBusinessNameInHeader),
       serviceArea: asString(topbar.serviceArea),
       hours: asString(topbar.hours, "Mon–Sat: 8:00 AM – 6:00 PM"),
       phone: asString(topbar.phone, asString(contact.phone)),
       email: asString(topbar.email, asString(contact.email)),
       facebook: asString(topbar.facebook),
       instagram: asString(topbar.instagram),
+      tagline: asString(topbar.tagline),
     },
     hero: {
       businessName: asString(hero.businessName, headline),
       headline,
       subtitle: asString(hero.subtitle),
       location: asString(hero.location, asString(topbar.serviceArea)),
+      badge: asString(hero.badge),
       startingPrice: asString(hero.startingPrice, "From R299"),
       trustBullets: linesToString(hero.trustBullets),
       ctaLabel: asString(hero.ctaLabel, "Book a Service"),
@@ -334,6 +352,8 @@ export function buildWebsiteContentFormData(rows: WebsiteContent[]): WebsiteCont
     socialProof: {
       establishedYear: asString(socialProof.establishedYear, "2016"),
       jobsCompleted: asString(socialProof.jobsCompleted, "2,500+"),
+      satisfactionRate: asString(socialProof.satisfactionRate, "98%"),
+      responseTime: asString(socialProof.responseTime, "2hr"),
       reviewQuote: asString(socialProof.reviewQuote),
       reviewAuthor: asString(socialProof.reviewAuthor, "Verified Google Review"),
       googleReviews: asString(socialProof.googleReviews, "120+ verified Google reviews"),
@@ -407,12 +427,15 @@ export function websiteContentFormDataToPayload(
       accentColor: form.theme.accentColor.trim(),
     },
     topbar: {
+      logo: form.topbar.logo.trim(),
+      hideBusinessNameInHeader: form.topbar.hideBusinessNameInHeader,
       serviceArea: form.topbar.serviceArea.trim(),
       hours: form.topbar.hours.trim(),
       phone: form.topbar.phone.trim(),
       email: form.topbar.email.trim(),
       facebook: form.topbar.facebook.trim(),
       instagram: form.topbar.instagram.trim(),
+      tagline: form.topbar.tagline.trim(),
     },
     hero: {
       businessName: form.hero.businessName.trim(),
@@ -420,6 +443,7 @@ export function websiteContentFormDataToPayload(
       title: form.hero.headline.trim(),
       subtitle: form.hero.subtitle.trim(),
       location: form.hero.location.trim(),
+      badge: form.hero.badge.trim(),
       startingPrice: form.hero.startingPrice.trim(),
       trustBullets,
       ctaLabel: form.hero.ctaLabel.trim(),
@@ -488,6 +512,8 @@ export function websiteContentFormDataToPayload(
     socialProof: {
       establishedYear: form.socialProof.establishedYear.trim(),
       jobsCompleted: form.socialProof.jobsCompleted.trim(),
+      satisfactionRate: form.socialProof.satisfactionRate.trim(),
+      responseTime: form.socialProof.responseTime.trim(),
       reviewQuote: form.socialProof.reviewQuote.trim(),
       reviewAuthor: form.socialProof.reviewAuthor.trim(),
       googleReviews: form.socialProof.googleReviews.trim(),
@@ -569,7 +595,31 @@ export function websiteContentFormDataToPayload(
   };
 }
 
-export function isServiceBusinessTemplate(template?: string | null): boolean {
-  const key = (template ?? "").trim().toLowerCase();
-  return key === "service-business" || key === "cleaning";
+export function isServiceBusinessTemplate(
+  template?: string | null,
+  industry?: string | null
+): boolean {
+  const fromTemplate = resolveWebsiteTemplateVariant(template);
+  const fromIndustry = resolveWebsiteTemplateVariant(industry);
+  const variant =
+    template?.trim() && fromTemplate !== "service-business" ? fromTemplate : fromIndustry;
+
+  return (
+    variant === "service-business" ||
+    variant === "cleaning" ||
+    variant === "beauty" ||
+    variant === "technology" ||
+    variant === "tourism"
+  );
+}
+
+export function isLuxuryBeautyWebsite(
+  template?: string | null,
+  industry?: string | null
+): boolean {
+  const fromTemplate = resolveWebsiteTemplateVariant(template);
+  const fromIndustry = resolveWebsiteTemplateVariant(industry);
+  const variant =
+    template?.trim() && fromTemplate !== "service-business" ? fromTemplate : fromIndustry;
+  return variant === "beauty";
 }

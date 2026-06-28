@@ -74,6 +74,8 @@ export function SiteChrome({ site, bookingUrl, paths }: Props) {
 
   const quoteHref = resolveTemplateHref(hero.quoteCtaHref, paths);
   const bookHref = bookingUrl ?? resolveTemplateHref(hero.ctaHref, paths);
+  const hideBusinessName =
+    topbar.hideBusinessNameInHeader && Boolean(topbar.logo?.trim());
 
   const headerOutlineBtn = `${outlineBtn} px-5 py-3 text-base`;
   const headerPrimaryBtn = `${primaryBtn} px-6 py-3 text-base shadow-sm`;
@@ -175,16 +177,18 @@ export function SiteChrome({ site, bookingUrl, paths }: Props) {
                 {mark}
               </span>
             )}
-            <span className="min-w-0">
-              <span className="block truncate text-lg font-bold text-slate-900 lg:text-xl">
-                {businessName}
-              </span>
-              {topbar.tagline ? (
-                <span className="hidden text-xs font-semibold tracking-[0.12em] text-slate-500 sm:block">
-                  {topbar.tagline}
+            {hideBusinessName ? null : (
+              <span className="min-w-0">
+                <span className="block truncate text-lg font-bold text-slate-900 lg:text-xl">
+                  {businessName}
                 </span>
-              ) : null}
-            </span>
+                {topbar.tagline ? (
+                  <span className="hidden text-xs font-semibold tracking-[0.12em] text-slate-500 sm:block">
+                    {topbar.tagline}
+                  </span>
+                ) : null}
+              </span>
+            )}
           </a>
 
           <nav className="hidden items-center gap-8 xl:flex" aria-label="Primary">

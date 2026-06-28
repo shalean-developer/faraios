@@ -5,6 +5,7 @@ import {
   getAdminSessionProfile,
 } from "@/lib/services/admin";
 import { listIndustries } from "@/lib/services/industries";
+import { getActivePlatformWorkspaceSessionForSlug } from "@/lib/platform/workspace-session";
 
 export const metadata = {
   title: "Business Details — FaraiOS Admin",
@@ -45,6 +46,8 @@ export default async function AdminBusinessDetailPage(props: Props) {
   const initialTab =
     tab === "pipeline" || tab === "users" || tab === "revenue" ? tab : "overview";
 
+  const workspaceSession = await getActivePlatformWorkspaceSessionForSlug(business.slug);
+
   return (
     <FaraiAdminBusinessDetails
       business={business}
@@ -52,6 +55,7 @@ export default async function AdminBusinessDetailPage(props: Props) {
       adminDisplayName={profile.adminDisplayName}
       initialTab={initialTab}
       industries={industries}
+      canOpenWorkspaceDirectly={Boolean(workspaceSession)}
     />
   );
 }

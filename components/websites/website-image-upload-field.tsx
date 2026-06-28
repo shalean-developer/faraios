@@ -18,6 +18,8 @@ type Props = {
   onValueChange: (value: string) => void;
   onAltChange: (value: string) => void;
   altLabel?: string;
+  hideAlt?: boolean;
+  previewClassName?: string;
   className?: string;
 };
 
@@ -29,6 +31,8 @@ export function WebsiteImageUploadField({
   onValueChange,
   onAltChange,
   altLabel = "Image alt text",
+  hideAlt = false,
+  previewClassName,
   className,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -121,15 +125,17 @@ export function WebsiteImageUploadField({
         </div>
       </div>
 
-      <label className={labelClass}>
-        {altLabel}
-        <input
-          className={inputClass}
-          value={alt}
-          onChange={(e) => onAltChange(e.target.value)}
-          placeholder="Describe the image for accessibility"
-        />
-      </label>
+      {hideAlt ? null : (
+        <label className={labelClass}>
+          {altLabel}
+          <input
+            className={inputClass}
+            value={alt}
+            onChange={(e) => onAltChange(e.target.value)}
+            placeholder="Describe the image for accessibility"
+          />
+        </label>
+      )}
 
       {error ? <p className="text-xs font-medium text-red-600">{error}</p> : null}
 
@@ -138,7 +144,10 @@ export function WebsiteImageUploadField({
         <img
           src={value.trim()}
           alt={alt || "Uploaded preview"}
-          className="h-36 w-full rounded-lg border border-slate-200 object-cover"
+          className={cn(
+            "h-36 w-full rounded-lg border border-slate-200 object-cover",
+            previewClassName
+          )}
         />
       ) : (
         <button

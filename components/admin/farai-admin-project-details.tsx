@@ -37,6 +37,7 @@ import {
   adminUpdateMarketplaceListing,
   adminUpdateProjectInfo,
 } from "@/app/actions/admin";
+import { OpenWorkspaceDialog } from "@/components/admin/open-workspace-dialog";
 import { ADMIN_BUSINESSES_PATH } from "@/lib/constants/admin-nav";
 import { ADMIN_DEVELOPER_OPTIONS } from "@/lib/constants/admin-developers";
 import { pricingPlans } from "@/lib/data/pricing";
@@ -159,11 +160,13 @@ export function FaraiAdminProjectDetails({
   adminDisplayName,
   industries = [],
   embedded = false,
+  canOpenWorkspaceDirectly = false,
 }: {
   project: AdminProjectDetails;
   adminDisplayName: string;
   industries?: Industry[];
   embedded?: boolean;
+  canOpenWorkspaceDirectly?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -223,17 +226,26 @@ export function FaraiAdminProjectDetails({
     project.projectGoal,
   ]);
 
-  const clientHref = `/admin/clients?companyId=${project.id}`;
+  const clientHref = `${ADMIN_BUSINESSES_PATH}?companyId=${project.companyId}`;
   const workspaceBuilderHref = agencyWorkspaceHref(
     project.slug,
     companyWebsiteBuilderPath(project.slug)
   );
-  const websiteHref = workspaceBuilderHref;
-  const websiteLabel = project.websiteId ? "Open Website Builder" : "Create in Workspace";
-  const adminCreateWebsiteHref = `/admin/websites/create?companyId=${project.id}`;
-  const adminPublishWebsiteHref = project.websiteId
+  const legacyWebsiteEditHref = project.websiteId
     ? `/admin/websites/${project.websiteId}/edit`
     : null;
+  const usesWorkspaceBuilder = !project.websiteId || project.websiteBuilderMode;
+  const websiteHref = usesWorkspaceBuilder
+    ? workspaceBuilderHref
+    : legacyWebsiteEditHref ?? workspaceBuilderHref;
+  const websiteLabel = !project.websiteId
+    ? "Create in Workspace"
+    : project.websiteBuilderMode
+      ? "Open Website Builder"
+      : "Edit Website";
+  const openWebsiteDirectly = !usesWorkspaceBuilder || canOpenWorkspaceDirectly;
+  const adminCreateWebsiteHref = `/admin/websites/create?companyId=${project.id}`;
+  const adminPublishWebsiteHref = legacyWebsiteEditHref;
   const canListOnMarketplace = Boolean(project.websiteId && project.websitePublished);
   const marketplaceBlockReason = !project.websiteId
     ? MARKETPLACE_LISTING_REQUIRES_WEBSITE
@@ -460,13 +472,25 @@ export function FaraiAdminProjectDetails({
                       <Users2 className="h-3.5 w-3.5" />
                       <span>Manage Client</span>
                     </Link>
-                    <Link
-                      href={websiteHref}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90 transition-all hover:bg-white/20 hover:text-white"
-                    >
-                      <Globe className="h-3.5 w-3.5" />
-                      <span>{websiteLabel}</span>
-                    </Link>
+                    {openWebsiteDirectly ? (
+                      <Link
+                        href={websiteHref}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90 transition-all hover:bg-white/20 hover:text-white"
+                      >
+                        <Globe className="h-3.5 w-3.5" />
+                        <span>{websiteLabel}</span>
+                      </Link>
+                    ) : (
+                      <OpenWorkspaceDialog
+                        companyId={project.companyId}
+                        companySlug={project.slug}
+                        companyName={projectInfo.businessName}
+                        redirectTo={websiteHref}
+                        triggerLabel={websiteLabel}
+                        unstyledTrigger
+                        triggerClassName="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90 transition-all hover:bg-white/20 hover:text-white"
+                      />
+                    )}
                     {status !== "completed" ? (
                       <button
                         type="button"
@@ -947,14 +971,32 @@ export function FaraiAdminProjectDetails({
                       <Users2 className="h-3.5 w-3.5" />
                       <span>Manage Client</span>
                     </Link>
-                    <Link
-                      href={websiteHref}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/15 py-2.5 text-xs font-semibold text-white transition-all hover:bg-white/25"
-                    >
-                      <Globe className="h-3.5 w-3.5" />
-                      <span>{websiteLabel}</span>
-                      <ExternalLink className="h-3 w-3 opacity-70" />
-                    </Link>
+                    {openWebsiteDirectly ? (
+                      <Link
+                        href={websiteHref}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/15 py-2.5 text-xs font-semibold text-white transition-all hover:bg-white/25"
+                      >
+                        <Globe className="h-3.5 w-3.5" />
+                        <span>{websiteLabel}</span>
+                        <ExternalLink className="h-3 w-3 opacity-70" />
+                      </Link>
+                    ) : (
+                      <OpenWorkspaceDialog
+                        companyId={project.companyId}
+                        companySlug={project.slug}
+                        companyName={projectInfo.businessName}
+                        redirectTo={websiteHref}
+                        unstyledTrigger
+                        triggerClassName="flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/15 py-2.5 text-xs font-semibold text-white transition-all hover:bg-white/25"
+                        triggerContent={
+                          <>
+                            <Globe className="h-3.5 w-3.5" />
+                            <span>{websiteLabel}</span>
+                            <ExternalLink className="h-3 w-3 opacity-70" />
+                          </>
+                        }
+                      />
+                    )}
                     <button type="button" onClick={handleGenerateReport} className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/15 py-2.5 text-xs font-semibold text-white transition-all hover:bg-white/25">
                       <FileText className="h-3.5 w-3.5" />
                       <span>Generate Report</span>

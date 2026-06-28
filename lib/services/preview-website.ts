@@ -26,7 +26,14 @@ async function getCompanyBranding(companyId: string): Promise<CompanyBranding | 
   };
 }
 
-export type PreviewPageSection = "home" | "services" | "about" | "reviews" | "contact";
+export type PreviewPageSection =
+  | "home"
+  | "services"
+  | "about"
+  | "reviews"
+  | "contact"
+  | "blog"
+  | "faq";
 
 export async function renderPreviewWebsitePage(
   websiteId: string,

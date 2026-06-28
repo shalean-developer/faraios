@@ -58,12 +58,14 @@ export function FaraiAdminBusinessDetails({
   adminDisplayName,
   initialTab = "overview",
   industries = [],
+  canOpenWorkspaceDirectly = false,
 }: {
   business: AdminBusinessDetail;
   project: AdminProjectDetails;
   adminDisplayName: string;
   initialTab?: BusinessTab;
   industries?: Industry[];
+  canOpenWorkspaceDirectly?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -168,6 +170,7 @@ export function FaraiAdminBusinessDetails({
           adminDisplayName={adminDisplayName}
           industries={industries}
           embedded
+          canOpenWorkspaceDirectly={canOpenWorkspaceDirectly}
         />
       ) : (
         <>

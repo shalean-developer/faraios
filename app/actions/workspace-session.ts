@@ -39,6 +39,7 @@ export async function enterPlatformWorkspace(input: {
   grants?: WorkspaceGrantKey[];
   fullAccess?: boolean;
   supportTicketId?: string | null;
+  redirectTo?: string;
 }): Promise<
   | { ok: true; redirectTo: string }
   | { ok: false; error: string }
@@ -54,7 +55,10 @@ export async function enterPlatformWorkspace(input: {
   revalidatePath("/admin/businesses");
   revalidatePath(platformWorkspaceRoot(input.companySlug));
 
-  return { ok: true, redirectTo: platformWorkspaceRoot(input.companySlug) };
+  const destination =
+    input.redirectTo?.trim() || platformWorkspaceRoot(input.companySlug);
+
+  return { ok: true, redirectTo: destination };
 }
 
 export async function enterPlatformWorkspaceAndRedirect(input: {
