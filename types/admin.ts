@@ -67,6 +67,7 @@ export type AdminProjectActivity = {
 
 export type AdminProjectDetails = AdminProject & {
   companyId: string;
+  industryId: string | null;
   plan: string | null;
   deadline: string | null;
   projectProgress: number;

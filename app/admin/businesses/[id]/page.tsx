@@ -4,6 +4,7 @@ import {
   getAdminProjectDetails,
   getAdminSessionProfile,
 } from "@/lib/services/admin";
+import { listIndustries } from "@/lib/services/industries";
 
 export const metadata = {
   title: "Business Details — FaraiOS Admin",
@@ -21,10 +22,11 @@ export default async function AdminBusinessDetailPage(props: Props) {
   const { id } = await props.params;
   const { tab } = await props.searchParams;
 
-  const [business, project, profile] = await Promise.all([
+  const [business, project, profile, industries] = await Promise.all([
     getAdminBusinessDetail(id),
     getAdminProjectDetails(id),
     getAdminSessionProfile(),
+    listIndustries(),
   ]);
 
   if (!business || !project) {
@@ -49,6 +51,7 @@ export default async function AdminBusinessDetailPage(props: Props) {
       project={project}
       adminDisplayName={profile.adminDisplayName}
       initialTab={initialTab}
+      industries={industries}
     />
   );
 }

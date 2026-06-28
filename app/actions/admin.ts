@@ -9,6 +9,7 @@ import {
   adminStatusToDb,
   isCurrentUserPlatformAdmin,
 } from "@/lib/services/admin";
+import { normalizePlanSlug } from "@/lib/data/pricing";
 import { DEFAULT_PROGRESS_BY_STATUS } from "@/lib/data/project-stages";
 import { buildStatusToProjectStatus } from "@/lib/data/project-stages";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
@@ -165,6 +166,115 @@ export async function adminUpdateCompanyStatus(
     targetId: companyId,
     targetLabel: company?.name ?? null,
     metadata: { status },
+  });
+  return { ok: true };
+}
+
+export async function adminUpdateProjectInfo(
+  companyId: string,
+  input: {
+    businessName: string;
+    contactName: string;
+    contactEmail: string;
+    industryId: string | null;
+    plan: string | null;
+    deadline: string | null;
+    designStyle: string | null;
+    contactPhone: string | null;
+    projectGoal: string | null;
+  }
+): Promise<AdminMutationResult> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const businessName = input.businessName.trim();
+  const contactName = input.contactName.trim();
+  const contactEmail = input.contactEmail.trim().toLowerCase();
+  if (!businessName || !contactName || !contactEmail) {
+    return {
+      ok: false,
+      error: "Business name, contact name, and email are required.",
+    };
+  }
+  if (!contactEmail.includes("@")) {
+    return { ok: false, error: "Enter a valid contact email." };
+  }
+
+  const adminResult = tryCreateAdminClient();
+  if (!adminResult.ok) return { ok: false, error: adminResult.error };
+  const admin = adminResult.client;
+
+  const { data: existing, error: fetchError } = await admin
+    .from("companies")
+    .select("onboarding_data, slug")
+    .eq("id", companyId)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error("[admin] adminUpdateProjectInfo fetch", fetchError.message);
+    return { ok: false, error: fetchError.message };
+  }
+  if (!existing) {
+    return { ok: false, error: "Business not found." };
+  }
+
+  const currentOnboarding =
+    existing.onboarding_data && typeof existing.onboarding_data === "object"
+      ? (existing.onboarding_data as Record<string, unknown>)
+      : {};
+
+  let deadlineIso: string | null = null;
+  if (input.deadline?.trim()) {
+    const parsed = new Date(input.deadline.trim());
+    if (Number.isNaN(parsed.getTime())) {
+      return { ok: false, error: "Enter a valid deadline date." };
+    }
+    deadlineIso = parsed.toISOString();
+  }
+
+  const contactPhone = input.contactPhone?.trim() || null;
+  const onboarding_data = {
+    ...currentOnboarding,
+    style: input.designStyle?.trim() || null,
+    project_goal: input.projectGoal?.trim() || null,
+    contact_phone: contactPhone,
+    deadline: deadlineIso,
+  };
+
+  const updatePayload = {
+    name: businessName,
+    primary_contact_name: contactName,
+    primary_contact_email: contactEmail,
+    industry_id: input.industryId?.trim() || null,
+    plan: input.plan?.trim() ? normalizePlanSlug(input.plan) : null,
+    contact_phone: contactPhone,
+    onboarding_data,
+  };
+
+  let { error } = await admin
+    .from("companies")
+    .update(updatePayload)
+    .eq("id", companyId);
+
+  if (
+    error?.message.includes("contact_phone") ||
+    error?.message.includes("industry_id")
+  ) {
+    const { contact_phone: _p, industry_id: _i, ...basePayload } = updatePayload;
+    ({ error } = await admin.from("companies").update(basePayload).eq("id", companyId));
+  }
+
+  if (error) {
+    console.error("[admin] adminUpdateProjectInfo", error.message);
+    return { ok: false, error: error.message };
+  }
+
+  revalidateAdminSurfaces({ companyId, companySlug: existing.slug });
+  await auditAdminAction({
+    action: "pipeline.project_info_updated",
+    targetType: "company",
+    targetId: companyId,
+    targetLabel: businessName,
   });
   return { ok: true };
 }

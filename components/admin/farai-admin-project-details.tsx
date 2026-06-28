@@ -35,9 +35,11 @@ import {
   adminUpdateAssignedDeveloper,
   adminUpdateCompanyStatus,
   adminUpdateMarketplaceListing,
+  adminUpdateProjectInfo,
 } from "@/app/actions/admin";
 import { ADMIN_BUSINESSES_PATH } from "@/lib/constants/admin-nav";
 import { ADMIN_DEVELOPER_OPTIONS } from "@/lib/constants/admin-developers";
+import { pricingPlans } from "@/lib/data/pricing";
 import {
   MARKETPLACE_LISTING_REQUIRES_PUBLISH,
   MARKETPLACE_LISTING_REQUIRES_WEBSITE,
@@ -45,6 +47,8 @@ import {
 import { agencyWorkspaceHref } from "@/lib/platform/agency-workspace";
 import { companyWebsiteBuilderPath } from "@/lib/paths/company";
 import type { AdminPipelineStatus, AdminProjectDetails } from "@/types/admin";
+import type { Industry } from "@/types/database";
+import type { DesignStyle } from "@/types/company";
 
 type NoteEntry = {
   id: string;
@@ -111,6 +115,36 @@ const STATUS_OPTIONS: { value: AdminPipelineStatus; label: string }[] = [
   { value: "completed", label: "Completed" },
 ];
 
+const DESIGN_STYLE_OPTIONS: { value: DesignStyle; label: string }[] = [
+  { value: "modern", label: "Modern" },
+  { value: "luxury", label: "Luxury" },
+  { value: "minimal", label: "Minimal" },
+];
+
+const projectInfoInputClass =
+  "w-full max-w-[220px] rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-right text-xs font-semibold text-gray-800 placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500";
+
+function toDateInputValue(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+function projectInfoFromServer(project: AdminProjectDetails) {
+  return {
+    businessName: project.businessName,
+    contactName: project.user.name,
+    contactEmail: project.user.email === "—" ? "" : project.user.email,
+    industryId: project.industryId ?? "",
+    plan: project.plan ?? "",
+    deadline: toDateInputValue(project.deadline),
+    designStyle: (project.designStyle ?? "") as DesignStyle | "",
+    contactPhone: project.contactPhone ?? "",
+    projectGoal: project.projectGoal ?? "",
+  };
+}
+
 function isValidClientEmail(email: string): boolean {
   return email.trim().length > 0 && email !== "—" && email.includes("@");
 }
@@ -123,10 +157,12 @@ const fadeUp = {
 export function FaraiAdminProjectDetails({
   project,
   adminDisplayName,
+  industries = [],
   embedded = false,
 }: {
   project: AdminProjectDetails;
   adminDisplayName: string;
+  industries?: Industry[];
   embedded?: boolean;
 }) {
   const router = useRouter();
@@ -154,6 +190,8 @@ export function FaraiAdminProjectDetails({
     project.marketplaceFeatured
   );
   const [marketplaceMessage, setMarketplaceMessage] = useState<string | null>(null);
+  const [projectInfo, setProjectInfo] = useState(() => projectInfoFromServer(project));
+  const [projectInfoMessage, setProjectInfoMessage] = useState<string | null>(null);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -164,6 +202,7 @@ export function FaraiAdminProjectDetails({
       setStatus(project.status);
       setAssignedDeveloper(project.assignedDeveloper);
       setNotes(project.notes.map(noteFromServer));
+      setProjectInfo(projectInfoFromServer(project));
     });
   }, [
     project.listedInMarketplace,
@@ -173,6 +212,15 @@ export function FaraiAdminProjectDetails({
     project.status,
     project.assignedDeveloper,
     project.notes,
+    project.businessName,
+    project.user.name,
+    project.user.email,
+    project.industryId,
+    project.plan,
+    project.deadline,
+    project.designStyle,
+    project.contactPhone,
+    project.projectGoal,
   ]);
 
   const clientHref = `/admin/clients?companyId=${project.id}`;
@@ -193,7 +241,38 @@ export function FaraiAdminProjectDetails({
       ? MARKETPLACE_LISTING_REQUIRES_PUBLISH
       : null;
   const marketplaceHref = `/marketplace/${project.slug}`;
-  const clientEmailValid = isValidClientEmail(project.user.email);
+  const clientEmailValid = isValidClientEmail(projectInfo.contactEmail);
+
+  const saveProjectInfo = () => {
+    setProjectInfoMessage(null);
+    setMutationError(null);
+    startTransition(async () => {
+      const res = await adminUpdateProjectInfo(project.id, {
+        businessName: projectInfo.businessName,
+        contactName: projectInfo.contactName,
+        contactEmail: projectInfo.contactEmail,
+        industryId: projectInfo.industryId || null,
+        plan: projectInfo.plan || null,
+        deadline: projectInfo.deadline || null,
+        designStyle: projectInfo.designStyle || null,
+        contactPhone: projectInfo.contactPhone || null,
+        projectGoal: projectInfo.projectGoal || null,
+      });
+      if (!res.ok) {
+        setMutationError(res.error ?? "Could not update project info.");
+        return;
+      }
+      setProjectInfoMessage("Project info saved.");
+      router.refresh();
+    });
+  };
+
+  const updateProjectInfoField = <K extends keyof typeof projectInfo>(
+    key: K,
+    value: (typeof projectInfo)[K]
+  ) => {
+    setProjectInfo((prev) => ({ ...prev, [key]: value }));
+  };
 
   const updateStatus = (nextStatus: AdminPipelineStatus) => {
     setMutationError(null);
@@ -288,11 +367,11 @@ export function FaraiAdminProjectDetails({
       setMutationError("Add a valid client email before sending an update.");
       return;
     }
-    const subject = encodeURIComponent(`Project update: ${project.businessName}`);
+    const subject = encodeURIComponent(`Project update: ${projectInfo.businessName}`);
     const body = encodeURIComponent(
-      `Hi ${project.user.name},\n\nHere is an update on your ${project.businessName} project.\n\nStatus: ${st.label}\nProgress: ${project.projectProgress}%\n\nBest,\n${adminDisplayName}`
+      `Hi ${projectInfo.contactName},\n\nHere is an update on your ${projectInfo.businessName} project.\n\nStatus: ${st.label}\nProgress: ${project.projectProgress}%\n\nBest,\n${adminDisplayName}`
     );
-    window.location.href = `mailto:${project.user.email}?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:${projectInfo.contactEmail}?subject=${subject}&body=${body}`;
   };
 
   const progressWidth = `${Math.max(0, Math.min(100, project.projectProgress))}%`;
@@ -415,24 +494,98 @@ export function FaraiAdminProjectDetails({
                   </div>
                   <div className="divide-y divide-gray-50 px-6 py-2">
                     {[
-                      { label: "Business Name", value: project.businessName, icon: <Briefcase className="h-3.5 w-3.5 text-gray-400" /> },
                       {
-                        label: "Client",
-                        value: clientEmailValid ? (
-                          <a href={`mailto:${project.user.email}`} className="text-indigo-600 hover:text-indigo-800">
-                            {project.user.name} · {project.user.email}
-                          </a>
-                        ) : (
-                          `${project.user.name} · ${project.user.email}`
+                        label: "Business Name",
+                        icon: <Briefcase className="h-3.5 w-3.5 text-gray-400" />,
+                        control: (
+                          <input
+                            type="text"
+                            value={projectInfo.businessName}
+                            onChange={(e) => updateProjectInfoField("businessName", e.target.value)}
+                            className={projectInfoInputClass}
+                          />
                         ),
-                        icon: <Users className="h-3.5 w-3.5 text-gray-400" />,
                       },
-                      { label: "Industry", value: project.industry, icon: <Globe className="h-3.5 w-3.5 text-gray-400" /> },
-                      { label: "Package", value: project.plan ?? "Not set", icon: <Sparkles className="h-3.5 w-3.5 text-gray-400" /> },
-                      { label: "Deadline", value: formatDate(project.deadline), icon: <Calendar className="h-3.5 w-3.5 text-gray-400" /> },
+                      {
+                        label: "Contact Name",
+                        icon: <Users className="h-3.5 w-3.5 text-gray-400" />,
+                        control: (
+                          <input
+                            type="text"
+                            value={projectInfo.contactName}
+                            onChange={(e) => updateProjectInfoField("contactName", e.target.value)}
+                            className={projectInfoInputClass}
+                          />
+                        ),
+                      },
+                      {
+                        label: "Contact Email",
+                        icon: <Users className="h-3.5 w-3.5 text-gray-400" />,
+                        control: (
+                          <input
+                            type="email"
+                            value={projectInfo.contactEmail}
+                            onChange={(e) => updateProjectInfoField("contactEmail", e.target.value)}
+                            className={projectInfoInputClass}
+                          />
+                        ),
+                      },
+                      {
+                        label: "Industry",
+                        icon: <Globe className="h-3.5 w-3.5 text-gray-400" />,
+                        control: (
+                          <select
+                            value={projectInfo.industryId}
+                            onChange={(e) => updateProjectInfoField("industryId", e.target.value)}
+                            className={projectInfoInputClass}
+                          >
+                            <option value="">Not set</option>
+                            {industries.map((industry) => (
+                              <option key={industry.id} value={industry.id}>
+                                {industry.name}
+                              </option>
+                            ))}
+                          </select>
+                        ),
+                      },
+                      {
+                        label: "Package",
+                        icon: <Sparkles className="h-3.5 w-3.5 text-gray-400" />,
+                        control: (
+                          <select
+                            value={projectInfo.plan}
+                            onChange={(e) => updateProjectInfoField("plan", e.target.value)}
+                            className={projectInfoInputClass}
+                          >
+                            <option value="">Not set</option>
+                            {pricingPlans.map((plan) => (
+                              <option key={plan.slug} value={plan.slug}>
+                                {plan.name}
+                              </option>
+                            ))}
+                            {projectInfo.plan &&
+                            !pricingPlans.some((plan) => plan.slug === projectInfo.plan) ? (
+                              <option value={projectInfo.plan}>{projectInfo.plan}</option>
+                            ) : null}
+                          </select>
+                        ),
+                      },
+                      {
+                        label: "Deadline",
+                        icon: <Calendar className="h-3.5 w-3.5 text-gray-400" />,
+                        control: (
+                          <input
+                            type="date"
+                            value={projectInfo.deadline}
+                            onChange={(e) => updateProjectInfoField("deadline", e.target.value)}
+                            className={projectInfoInputClass}
+                          />
+                        ),
+                      },
                       {
                         label: "Developer",
-                        value: (
+                        icon: <Shield className="h-3.5 w-3.5 text-gray-400" />,
+                        control: (
                           <div className="relative" onClick={(e) => e.stopPropagation()}>
                             <button
                               type="button"
@@ -481,20 +634,81 @@ export function FaraiAdminProjectDetails({
                             </AnimatePresence>
                           </div>
                         ),
-                        icon: <Shield className="h-3.5 w-3.5 text-gray-400" />,
                       },
-                      { label: "Design Style", value: project.designStyle ?? "Not provided", icon: <Tag className="h-3.5 w-3.5 text-gray-400" /> },
-                      { label: "Phone", value: project.contactPhone ?? "Not provided", icon: <Users className="h-3.5 w-3.5 text-gray-400" /> },
-                      { label: "Project Goal", value: project.projectGoal ?? "Not provided", icon: <BookOpen className="h-3.5 w-3.5 text-gray-400" /> },
+                      {
+                        label: "Design Style",
+                        icon: <Tag className="h-3.5 w-3.5 text-gray-400" />,
+                        control: (
+                          <select
+                            value={projectInfo.designStyle}
+                            onChange={(e) =>
+                              updateProjectInfoField(
+                                "designStyle",
+                                e.target.value as DesignStyle | ""
+                              )
+                            }
+                            className={projectInfoInputClass}
+                          >
+                            <option value="">Not provided</option>
+                            {DESIGN_STYLE_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        ),
+                      },
+                      {
+                        label: "Phone",
+                        icon: <Users className="h-3.5 w-3.5 text-gray-400" />,
+                        control: (
+                          <input
+                            type="tel"
+                            value={projectInfo.contactPhone}
+                            onChange={(e) => updateProjectInfoField("contactPhone", e.target.value)}
+                            placeholder="Not provided"
+                            className={projectInfoInputClass}
+                          />
+                        ),
+                      },
+                      {
+                        label: "Project Goal",
+                        icon: <BookOpen className="h-3.5 w-3.5 text-gray-400" />,
+                        control: (
+                          <textarea
+                            value={projectInfo.projectGoal}
+                            onChange={(e) => updateProjectInfoField("projectGoal", e.target.value)}
+                            placeholder="Not provided"
+                            rows={2}
+                            className={`${projectInfoInputClass} max-w-[280px] resize-none text-left`}
+                          />
+                        ),
+                      },
                     ].map((row) => (
-                      <div key={row.label} className="flex items-center justify-between gap-4 py-3">
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <div key={row.label} className="flex items-start justify-between gap-4 py-3">
+                        <div className="flex items-center gap-2 pt-1.5 text-xs text-gray-500">
                           {row.icon}
                           <span className="font-medium">{row.label}</span>
                         </div>
-                        <span className="text-right text-xs font-semibold text-gray-800">{row.value}</span>
+                        <div className="text-right text-xs font-semibold text-gray-800">{row.control}</div>
                       </div>
                     ))}
+                  </div>
+                  <div className="border-t border-gray-100 bg-gray-50/60 px-6 py-4">
+                    {projectInfoMessage ? (
+                      <p className="mb-2 text-xs font-medium text-emerald-600">{projectInfoMessage}</p>
+                    ) : null}
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={saveProjectInfo}
+                        disabled={isPending}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-xs font-bold text-white shadow-md transition-all hover:-translate-y-0.5 disabled:opacity-60"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        {isPending ? "Saving…" : "Save project info"}
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
 

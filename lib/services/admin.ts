@@ -140,6 +140,7 @@ type CompanyOnboardingData = {
   competitors?: unknown;
   project_goal?: unknown;
   contact_phone?: unknown;
+  deadline?: unknown;
 };
 
 function parseStringList(value: unknown): string[] {
@@ -195,7 +196,9 @@ function companyRowToAdminProject(row: CompanyWithIndustry): AdminProject {
     designStyle: parseOptionalString(onboardingData.style),
     competitors: parseCompetitors(onboardingData.competitors),
     projectGoal: parseOptionalString(onboardingData.project_goal),
-    contactPhone: parseOptionalString(onboardingData.contact_phone),
+    contactPhone:
+      parseOptionalString(row.contact_phone) ??
+      parseOptionalString(onboardingData.contact_phone),
   };
 }
 
@@ -1655,11 +1658,17 @@ export async function getAdminProjectDetails(
     .limit(1)
     .maybeSingle();
 
+  const onboardingData = (row.onboarding_data ?? {}) as CompanyOnboardingData;
+
   return {
     ...base,
     companyId: row.id,
+    industryId: row.industry_id ?? null,
     plan: row.plan?.trim() ?? null,
-    deadline: row.next_billing_date ?? null,
+    deadline:
+      parseOptionalString(onboardingData.deadline) ??
+      row.next_billing_date ??
+      null,
     projectProgress: numericProgress,
     websiteId: (website?.id as string | undefined) ?? null,
     listedInMarketplace: Boolean(row.listed_in_marketplace),

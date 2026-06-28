@@ -34,6 +34,7 @@ import type {
   AdminPlatformStatus,
   AdminProjectDetails,
 } from "@/types/admin";
+import type { Industry } from "@/types/database";
 
 type BusinessTab = "overview" | "pipeline" | "users" | "revenue";
 
@@ -56,11 +57,13 @@ export function FaraiAdminBusinessDetails({
   project,
   adminDisplayName,
   initialTab = "overview",
+  industries = [],
 }: {
   business: AdminBusinessDetail;
   project: AdminProjectDetails;
   adminDisplayName: string;
   initialTab?: BusinessTab;
+  industries?: Industry[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -163,6 +166,7 @@ export function FaraiAdminBusinessDetails({
         <FaraiAdminProjectDetails
           project={project}
           adminDisplayName={adminDisplayName}
+          industries={industries}
           embedded
         />
       ) : (
