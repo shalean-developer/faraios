@@ -82,7 +82,11 @@ export function WebsiteDomainsPanel({
       setError(result.error);
       return;
     }
-    setSuccess(result.verified ? "Domain verified!" : "DNS not verified yet. Check your records.");
+    setSuccess(
+      result.verified
+        ? "Domain verified!"
+        : result.hint ?? "DNS not verified yet. Check your records."
+    );
     router.refresh();
   };
 
@@ -220,6 +224,18 @@ export function WebsiteDomainsPanel({
                         ))}
                       </tbody>
                     </table>
+                    {records.some(
+                      (record) =>
+                        record.record_type === "TXT" &&
+                        record.host === "_faraios" &&
+                        record.status !== "verified"
+                    ) ? (
+                      <p className="mt-3 text-xs text-amber-800">
+                        Add a TXT record at your domain&apos;s DNS host (where your nameservers
+                        point): host <code className="rounded bg-white px-1">_faraios</code>, value{" "}
+                        <code className="rounded bg-white px-1 break-all">{records.find((r) => r.host === "_faraios")?.value}</code>
+                      </p>
+                    ) : null}
                   </div>
                 ) : null}
               </div>

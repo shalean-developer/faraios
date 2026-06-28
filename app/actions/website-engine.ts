@@ -90,7 +90,7 @@ export async function verifyWebsiteDomainAction(input: {
   companyId: string;
   companySlug: string;
   websiteDomainId: string;
-}): Promise<{ ok: true; verified: boolean } | { ok: false; error: string }> {
+}): Promise<{ ok: true; verified: boolean; hint?: string } | { ok: false; error: string }> {
   const access = await requireCompanyPermission(input.companyId, "view_websites");
   if (!access.ok) return access;
 
@@ -136,7 +136,7 @@ export async function verifyWebsiteDomainAction(input: {
 
   revalidatePath(companyWebsiteDomainsPath(input.companySlug));
   revalidatePath(companyWebsiteBuilderSectionPath(input.companySlug, "domains"));
-  return { ok: true, verified: result.verified };
+  return { ok: true, verified: result.verified, hint: result.hint };
 }
 
 export async function rotateApiKeyAction(input: {

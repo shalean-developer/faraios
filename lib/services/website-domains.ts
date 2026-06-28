@@ -4,6 +4,7 @@ import { normalizeDomain } from "@/lib/utils/normalize-domain";
 
 import { getHostingProvider } from "@/lib/hosting/providers";
 import type { DnsRecordType } from "@/lib/hosting/providers";
+import { getPleskHostingTarget } from "@/lib/hosting/plesk/target";
 import { syncHostingSubscriptionFromWebsiteDomain } from "@/lib/services/hosting-domain";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
@@ -86,10 +87,35 @@ async function verifyDnsRecord(
   return false;
 }
 
+async function getPublicNameservers(domain: string): Promise<string[]> {
+  try {
+    return await dns.resolveNs(domain);
+  } catch {
+    return [];
+  }
+}
+
+function normalizeNameserver(value: string): string {
+  return value.toLowerCase().replace(/\.$/, "");
+}
+
+function usesExternalDns(publicNs: string[], pleskNs: string[]): boolean {
+  if (!publicNs.length || !pleskNs.length) return false;
+  const pleskSet = new Set(pleskNs.map(normalizeNameserver));
+  return publicNs.some((ns) => !pleskSet.has(normalizeNameserver(ns)));
+}
+
+export function buildExternalDnsTxtHint(
+  nameservers: string[]
+): string {
+  const nsList = nameservers.join(", ");
+  return `This domain uses external DNS (${nsList}). Add the _faraios TXT record at that DNS provider. Plesk DNS sync does not publish records when nameservers point elsewhere.`;
+}
+
 export async function verifyWebsiteDomain(
   websiteDomainId: string,
   companyId: string
-): Promise<{ ok: boolean; verified: boolean; error?: string }> {
+): Promise<{ ok: boolean; verified: boolean; error?: string; hint?: string }> {
   const admin = tryCreateAdminClient();
   if (!admin.ok) {
     return { ok: false, verified: false, error: "Server not configured." };
@@ -114,6 +140,7 @@ export async function verifyWebsiteDomain(
   const dnsRecords = (records ?? []) as WebsiteDnsRecord[];
   const now = new Date().toISOString();
   let allVerified = dnsRecords.length > 0;
+  let hint: string | undefined;
 
   for (const record of dnsRecords) {
     const verified = await verifyDnsRecord(
@@ -131,7 +158,20 @@ export async function verifyWebsiteDomain(
       })
       .eq("id", record.id);
 
-    if (!verified) allVerified = false;
+    if (!verified) {
+      allVerified = false;
+      if (
+        !hint &&
+        record.record_type === "TXT" &&
+        record.host === "_faraios"
+      ) {
+        const publicNs = await getPublicNameservers(domainRow.domain);
+        const pleskTarget = await getPleskHostingTarget({ companyId });
+        if (usesExternalDns(publicNs, pleskTarget?.nameservers ?? [])) {
+          hint = buildExternalDnsTxtHint(publicNs);
+        }
+      }
+    }
   }
 
   const verificationStatus = allVerified ? "verified" : "pending";
@@ -171,7 +211,7 @@ export async function verifyWebsiteDomain(
     sslStatus
   );
 
-  return { ok: true, verified: allVerified };
+  return { ok: true, verified: allVerified, hint };
 }
 
 export async function seedDnsRecordsForDomain(
