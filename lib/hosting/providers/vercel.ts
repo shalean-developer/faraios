@@ -12,9 +12,20 @@ import type {
   RemoveDomainResult,
 } from "./types";
 
-import { FARAIOS_CNAME_TARGET } from "@/lib/hosting/constants";
+import { FARAIOS_CNAME_TARGET, getFaraiosVercelConfig } from "@/lib/hosting/constants";
 
 const VERCEL_CNAME_TARGET = FARAIOS_CNAME_TARGET;
+
+function vercelApiUrl(path: string): string {
+  const teamId = getFaraiosVercelConfig()?.teamId ?? process.env.FARAIOS_VERCEL_TEAM_ID?.trim();
+  if (!teamId) return `https://api.vercel.com${path}`;
+  const separator = path.includes("?") ? "&" : "?";
+  return `https://api.vercel.com${path}${separator}teamId=${encodeURIComponent(teamId)}`;
+}
+
+function resolveVercelProjectId(input: ConnectDomainInput): string {
+  return getFaraiosVercelConfig()?.projectId ?? input.providerProjectId;
+}
 
 /**
  * Vercel hosting provider adapter.
@@ -59,8 +70,9 @@ export const vercelHostingProvider: HostingProvider = {
 
     if (token) {
       try {
+        const projectId = resolveVercelProjectId(input);
         const res = await fetch(
-          `https://api.vercel.com/v10/projects/${input.providerProjectId}/domains`,
+          vercelApiUrl(`/v10/projects/${encodeURIComponent(projectId)}/domains`),
           {
             method: "POST",
             headers: {

@@ -16,3 +16,37 @@ export function planAmountInKobo(plan: string | null | undefined): number {
 export function normalizeBillingPlan(plan: string | null | undefined): string {
   return normalizePlanSlug(plan);
 }
+
+/**
+ * Extract a Paystack transaction reference from pasted input:
+ * plain reference, query string, or full return URL.
+ */
+export function parsePaystackPaymentReference(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+
+  try {
+    if (trimmed.includes("://")) {
+      const url = new URL(trimmed);
+      return (
+        url.searchParams.get("reference")?.trim() ||
+        url.searchParams.get("trxref")?.trim() ||
+        ""
+      );
+    }
+
+    if (trimmed.includes("=")) {
+      const query = trimmed.startsWith("?") ? trimmed.slice(1) : trimmed;
+      const params = new URLSearchParams(query);
+      return (
+        params.get("reference")?.trim() ||
+        params.get("trxref")?.trim() ||
+        ""
+      );
+    }
+  } catch {
+    // fall through
+  }
+
+  return trimmed;
+}

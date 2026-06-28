@@ -158,7 +158,9 @@ export async function createHostingAccount(
     return { ok: false, error: subscriptionResult.error };
   }
 
-  const controlPanelUrl = `${creds.url}:8443`;
+  const controlPanelUrl = creds.url.includes(":8443")
+    ? creds.url
+    : `${creds.url}:8443`;
 
   await logProvisioning({
     companyId: input.companyId,

@@ -1,4 +1,5 @@
 import { confirmAnyHostingPaymentFromReference } from "@/lib/billing/hosting-payment-confirm";
+import { parsePaystackPaymentReference } from "@/lib/billing/paystack";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
 
 export type HostingPaymentConfirmationState =
@@ -19,7 +20,7 @@ export async function confirmHostingPaymentForUser(input: {
     return { status: "none" };
   }
 
-  const reference = input.reference?.trim();
+  const reference = parsePaystackPaymentReference(input.reference?.trim() ?? "");
   if (!reference) {
     return { status: "pending_webhook" };
   }

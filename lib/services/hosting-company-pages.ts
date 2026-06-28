@@ -3,6 +3,10 @@ import { notFound } from "next/navigation";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { getCompanyHostingOverview } from "@/lib/services/hosting-automation";
 import { getHostingSubscriptionForCompany } from "@/lib/services/hosting";
+import {
+  confirmHostingPaymentForUser,
+  type HostingPaymentConfirmationState,
+} from "@/lib/services/hosting-subscription-verify";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
 import { createClient } from "@/lib/supabase/server";
 import type { CompanyWithIndustry } from "@/types/database";
@@ -51,4 +55,47 @@ export async function loadCompanyHostingPage(
     },
     hasLegacySubscription: legacySubscription?.status === "active",
   };
+}
+
+type HostingPaymentQuery = {
+  payment?: string;
+  reference?: string;
+  trxref?: string;
+};
+
+export async function loadCompanyHostingPageWithPaymentConfirmation(
+  companyParam: string,
+  query: HostingPaymentQuery = {}
+): Promise<
+  CompanyHostingPageContext & {
+    paymentConfirmation: HostingPaymentConfirmationState;
+  }
+> {
+  const context = await loadCompanyHostingPage(companyParam);
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const paymentConfirmation = user
+    ? await confirmHostingPaymentForUser({
+        reference: query.reference ?? query.trxref,
+        companyId: context.company.id,
+        companySlug: context.slug,
+        userId: user.id,
+        paymentSuccess: query.payment === "success",
+      })
+    : { status: "none" as const };
+
+  if (paymentConfirmation.status === "activated") {
+    const refreshed = await getCompanyHostingOverview(context.company.id);
+    context.overview = {
+      services: refreshed.services,
+      invoices: refreshed.invoices,
+      tickets: (refreshed.tickets ?? []) as HostingSupportTicketRow[],
+    };
+  }
+
+  return { ...context, paymentConfirmation };
 }

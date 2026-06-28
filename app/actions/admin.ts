@@ -17,7 +17,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import { createClient } from "@/lib/supabase/server";
 import { slugifyBusinessName } from "@/lib/slug";
 import { syncHostingSubscriptionFromWebsiteDomain } from "@/lib/services/hosting-domain";
-import { normalizeDomain } from "@/lib/services/website-domains";
+import { normalizeDomain, verifyWebsiteDomain } from "@/lib/services/website-domains";
 import { syncDomainSettingsCustomDomain } from "@/lib/website-builder/service";
 import type {
   AdminFeatureRequestPriority,
@@ -1468,6 +1468,49 @@ export async function adminUpdateWebsiteDomainAction(input: {
   return { ok: true };
 }
 
+export async function adminVerifyWebsiteDomainAction(
+  domainId: string
+): Promise<{ ok: true; verified: boolean } | { ok: false; error: string }> {
+  const denied = await requirePlatformAdmin();
+  if (denied?.ok === false) return denied;
+  if (denied) return { ok: false, error: "Forbidden." };
+
+  const trimmedId = domainId.trim();
+  if (!trimmedId) return { ok: false, error: "Domain id is required." };
+
+  const adminResult = tryCreateAdminClient();
+  if (!adminResult.ok) return { ok: false, error: adminResult.error };
+  const admin = adminResult.client;
+
+  const { data: existing, error: fetchError } = await admin
+    .from("website_domains")
+    .select("id, company_id")
+    .eq("id", trimmedId)
+    .maybeSingle();
+
+  if (fetchError) {
+    return { ok: false, error: fetchError.message };
+  }
+  if (!existing) {
+    return { ok: false, error: "Domain not found." };
+  }
+
+  const result = await verifyWebsiteDomain(trimmedId, existing.company_id as string);
+  if (!result.ok) {
+    return { ok: false, error: result.error ?? "Verification failed." };
+  }
+
+  revalidatePath("/admin/domains");
+  await auditAdminAction({
+    action: "website_domain.verified",
+    targetType: "website_domain",
+    targetId: trimmedId,
+    metadata: { verified: result.verified },
+  });
+
+  return { ok: true, verified: result.verified };
+}
+
 export async function adminDeleteWebsiteDomainAction(
   domainId: string
 ): Promise<AdminMutationResult> {
@@ -1508,27 +1551,50 @@ export async function adminDeleteWebsiteDomainAction(
     return { ok: false, error: deleteError.message };
   }
 
+  const normalizedDeletedDomain = normalizeDomain(domain);
+  const affectedWebsiteIds = new Set<string>();
   if (websiteId) {
+    affectedWebsiteIds.add(websiteId);
+  }
+
+  const { data: companyWebsites } = await admin
+    .from("websites")
+    .select("id, domain")
+    .eq("client_id", companyId);
+
+  for (const website of companyWebsites ?? []) {
+    const websiteDomain = normalizeDomain((website.domain as string | null) ?? "");
+    if (websiteDomain && websiteDomain === normalizedDeletedDomain) {
+      affectedWebsiteIds.add(website.id as string);
+    }
+  }
+
+  for (const affectedWebsiteId of affectedWebsiteIds) {
     const { data: website } = await admin
       .from("websites")
-      .select("domain, subdomain")
-      .eq("id", websiteId)
+      .select("domain")
+      .eq("id", affectedWebsiteId)
       .eq("client_id", companyId)
       .maybeSingle();
 
-    if (website && normalizeDomain((website.domain as string | null) ?? "") === normalizeDomain(domain)) {
+    if (
+      website &&
+      normalizeDomain((website.domain as string | null) ?? "") === normalizedDeletedDomain
+    ) {
       await admin
         .from("websites")
         .update({ domain: null })
-        .eq("id", websiteId)
+        .eq("id", affectedWebsiteId)
         .eq("client_id", companyId);
 
       await syncDomainSettingsCustomDomain({
-        websiteId,
+        websiteId: affectedWebsiteId,
         companyId,
         customDomain: null,
         customDomainStatus: "not_connected",
       });
+
+      revalidatePath(`/admin/websites/${affectedWebsiteId}/edit`);
     }
   }
 

@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 
 import { createHostingOrderAction } from "@/app/actions/hosting-automation";
 
+import { rememberHostingPaymentReference } from "@/components/hosting/hosting-payment-recovery";
 import { formatHostingAmount } from "@/components/hosting/hosting-shared-ui";
 
 import { Button } from "@/components/ui/button";
@@ -158,6 +159,10 @@ export function CompanyHostingOrderClient({
 
         return;
 
+      }
+
+      if (payJson.reference) {
+        rememberHostingPaymentReference(company.id, payJson.reference as string);
       }
 
       window.location.href = payJson.authorizationUrl as string;

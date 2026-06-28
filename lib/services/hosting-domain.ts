@@ -1,5 +1,7 @@
 import { getHostingProvider } from "@/lib/hosting/providers";
 import { getDefaultHostingProviderSlug } from "@/lib/hosting/constants";
+import { syncFaraiosDomainDnsToPlesk } from "@/lib/hosting/plesk/syncFaraiosDomainDns";
+import { getPleskHostingTarget } from "@/lib/hosting/plesk/target";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import type { WebsiteDnsRecord, WebsiteDomain, WebsiteDomainType } from "@/types/website-engine";
@@ -8,6 +10,7 @@ import {
   getDnsRecordsForDomain,
   normalizeDomain,
   seedDnsRecordsForDomain,
+  verifyWebsiteDomain,
 } from "./website-domains";
 
 type ProvisionInput = {
@@ -262,6 +265,38 @@ export async function provisionCompanyWebsiteDomain(
       })
       .eq("company_id", input.companyId)
       .eq("status", "active");
+  }
+
+  if (provider.slug === "plesk") {
+    const target = await getPleskHostingTarget({ companyId: input.companyId });
+    if (target?.serverIp) {
+      const syncResult = await syncFaraiosDomainDnsToPlesk({
+        companyId: input.companyId,
+        domain: normalized,
+        serverIp: target.serverIp,
+        verificationToken: tokenRow?.verification_token ?? null,
+      });
+
+      if (!syncResult.ok) {
+        console.error(
+          "[hosting-domain] Plesk DNS sync failed",
+          normalized,
+          syncResult.error
+        );
+      } else if (!("skipped" in syncResult) && syncResult.synced.length > 0) {
+        console.info(
+          "[hosting-domain] Plesk DNS synced",
+          normalized,
+          syncResult.synced.join(", ")
+        );
+      }
+
+      try {
+        await verifyWebsiteDomain(websiteDomainId, input.companyId);
+      } catch (error) {
+        console.error("[hosting-domain] post-connect DNS verify failed", normalized, error);
+      }
+    }
   }
 
   return { ok: true, websiteDomainId };

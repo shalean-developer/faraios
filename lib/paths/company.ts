@@ -61,8 +61,22 @@ export function companyHostingOrderPath(slug: string): string {
   return `/${encodeURIComponent(slug)}/dashboard/hosting/order`;
 }
 
-export function companyHostingServicesPath(slug: string): string {
-  return `/${encodeURIComponent(slug)}/dashboard/hosting/services`;
+export function companyHostingServicesPath(
+  slug: string,
+  options?: { payment?: string; reference?: string }
+): string {
+  const base = `/${encodeURIComponent(slug)}/dashboard/hosting/services`;
+  const params = new URLSearchParams();
+
+  if (options?.payment) {
+    params.set("payment", options.payment);
+  }
+  if (options?.reference) {
+    params.set("reference", options.reference);
+  }
+
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
 }
 
 export function companyHostingInvoicesPath(slug: string): string {

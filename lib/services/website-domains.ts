@@ -1,5 +1,7 @@
 import { promises as dns } from "dns";
 
+import { normalizeDomain } from "@/lib/utils/normalize-domain";
+
 import { getHostingProvider } from "@/lib/hosting/providers";
 import type { DnsRecordType } from "@/lib/hosting/providers";
 import { syncHostingSubscriptionFromWebsiteDomain } from "@/lib/services/hosting-domain";
@@ -52,15 +54,6 @@ export async function getDnsRecordsForDomain(
   }
 
   return (data ?? []) as WebsiteDnsRecord[];
-}
-
-function normalizeDomain(raw: string): string {
-  return raw
-    .trim()
-    .toLowerCase()
-    .replace(/^https?:\/\//, "")
-    .replace(/\/.*$/, "")
-    .replace(/\.$/, "");
 }
 
 async function verifyDnsRecord(
@@ -206,4 +199,4 @@ export async function seedDnsRecordsForDomain(
   );
 }
 
-export { normalizeDomain };
+export { normalizeDomain } from "@/lib/utils/normalize-domain";

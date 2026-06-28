@@ -5,6 +5,7 @@ export * from "@/lib/hosting/plesk/pleskCustomers";
 export * from "@/lib/hosting/plesk/pleskSubscriptions";
 export * from "@/lib/hosting/plesk/pleskDomains";
 export * from "@/lib/hosting/plesk/pleskDns";
+export * from "@/lib/hosting/plesk/syncFaraiosDomainDns";
 export * from "@/lib/hosting/plesk/pleskMail";
 export * from "@/lib/hosting/plesk/pleskFtp";
 export * from "@/lib/hosting/plesk/pleskDatabases";

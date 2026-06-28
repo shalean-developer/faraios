@@ -25,6 +25,10 @@ import {
 } from "@/lib/ui/rise-dashboard-styles";
 import { agencyWorkspaceHref } from "@/lib/platform/agency-workspace";
 import { companyWebsiteBuilderPath } from "@/lib/paths/company";
+import {
+  resolveWebsiteLiveUrl,
+  tenantSubdomainHost,
+} from "@/lib/services/website-public-url";
 import { cn } from "@/lib/utils";
 import type { WebsiteContent } from "@/types/database";
 
@@ -106,8 +110,12 @@ export function AdminWebsiteEditPage({
       ? agencyWorkspaceHref(company.slug, companyWebsiteBuilderPath(company.slug))
       : null;
   const previewPath = `/preview/${website.id}`;
-  const liveHost = domain.trim() || `${website.subdomain}.faraios.com`;
-  const liveUrl = `https://${liveHost}`;
+  const live = resolveWebsiteLiveUrl({
+    websiteId: website.id,
+    domain,
+    subdomain: website.subdomain,
+  });
+  const fallbackTenantHost = tenantSubdomainHost(website.subdomain);
 
   const onPublish = async () => {
     if (!companyId) {
@@ -216,8 +224,8 @@ export function AdminWebsiteEditPage({
       title={website.name}
       description={
         company
-          ? `Client: ${company.name} · Fallback host: ${website.subdomain}.faraios.com`
-          : `Fallback host: ${website.subdomain}.faraios.com`
+          ? `Client: ${company.name} · Tenant subdomain: ${fallbackTenantHost ?? "—"} (requires platform DNS)`
+          : `Tenant subdomain: ${fallbackTenantHost ?? "—"} (requires platform DNS)`
       }
       actions={
         <>
@@ -238,7 +246,7 @@ export function AdminWebsiteEditPage({
             Preview
           </Link>
           {status === "published" ? (
-            <a href={liveUrl} target="_blank" rel="noreferrer" className={riseOutlineButtonClassName}>
+            <a href={live.href} target="_blank" rel="noreferrer" className={riseOutlineButtonClassName}>
               <ExternalLink className="h-4 w-4" />
               Live site
             </a>
@@ -294,6 +302,16 @@ export function AdminWebsiteEditPage({
           <p className="text-xs text-slate-500">
             After saving, point <strong>A</strong> records for <strong>@</strong> and{" "}
             <strong>www</strong> to your FaraiOS Plesk server IP in Website → Domains or Hosting.
+            Without a custom domain, <strong>Live site</strong> opens the preview URL on this app
+            ({live.source === "preview" ? live.href : "main app"}). The FaraiOS subdomain{" "}
+            {fallbackTenantHost ? (
+              <>
+                <strong>{fallbackTenantHost}</strong>
+              </>
+            ) : (
+              "above"
+            )}{" "}
+            only works after platform wildcard DNS (<code>*.faraios.com</code>) points to this app.
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <input

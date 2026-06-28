@@ -1,7 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createHostingAccount } from "@/lib/hosting/plesk/provisioning";
 import { getPleskCredentials } from "@/lib/hosting/plesk/config";
-import { addPleskDnsRecord } from "@/lib/hosting/plesk/pleskDns";
+import { syncFaraiosDomainDnsToPlesk } from "@/lib/hosting/plesk/syncFaraiosDomainDns";
+import { getPleskHostingTarget } from "@/lib/hosting/plesk/target";
 import { provisionCompanyWebsiteDomain } from "@/lib/services/hosting-domain";
 import { normalizeDomain, verifyWebsiteDomain } from "@/lib/services/website-domains";
 import {
@@ -200,12 +201,24 @@ export async function markHostingInvoicePaid(input: {
     .maybeSingle();
 
   if (existing?.status === "paid") {
-    return { ok: true, orderId: existing.order_id ?? "" };
+    const orderId = existing.order_id ?? "";
+    if (orderId) {
+      const { data: service } = await admin
+        .from("hosting_services")
+        .select("id, status")
+        .eq("order_id", orderId)
+        .maybeSingle();
+
+      if (!service || service.status === "failed") {
+        await provisionHostingOrder(orderId);
+      }
+    }
+    return { ok: true, orderId };
   }
 
   const { data: invoice, error } = await admin
     .from("hosting_invoices")
-    .select("*, hosting_orders(*, hosting_plans(*))")
+    .select("*, hosting_orders!hosting_invoices_order_id_fkey(*, hosting_plans(*))")
     .eq("id", input.invoiceId)
     .maybeSingle();
 
@@ -214,7 +227,19 @@ export async function markHostingInvoicePaid(input: {
   }
 
   if (invoice.status === "paid") {
-    return { ok: true, orderId: invoice.order_id ?? "" };
+    const orderId = invoice.order_id ?? "";
+    if (orderId) {
+      const { data: service } = await admin
+        .from("hosting_services")
+        .select("id, status")
+        .eq("order_id", orderId)
+        .maybeSingle();
+
+      if (!service || service.status === "failed") {
+        await provisionHostingOrder(orderId);
+      }
+    }
+    return { ok: true, orderId };
   }
 
   if (input.paidAmount !== invoice.amount_cents) {
@@ -314,34 +339,55 @@ export async function provisionHostingOrder(
     .update({ status: "provisioning", provisioning_status: "running", updated_at: now })
     .eq("id", orderId);
 
-  const { data: service, error: serviceError } = await admin
+  const { data: existingService } = await admin
     .from("hosting_services")
-    .insert({
-      company_id: order.company_id,
-      order_id: order.id,
-      invoice_id: order.invoice_id,
-      plan_id: order.plan_id,
-      domain_name: order.domain_name,
-      server_id: order.server_id,
-      status: "pending",
-      billing_cycle: order.billing_cycle,
-      next_due_date: nextDue.toISOString(),
-    })
-    .select("id")
-    .single();
+    .select("id, status")
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  if (serviceError || !service) {
+  let serviceId: string;
+
+  if (existingService && existingService.status === "failed") {
     await admin
-      .from("hosting_orders")
-      .update({ status: "failed", provisioning_status: "failed", updated_at: now })
-      .eq("id", orderId);
-    return { ok: false, error: serviceError?.message ?? "Failed to create service record." };
+      .from("hosting_services")
+      .update({ status: "pending", updated_at: now })
+      .eq("id", existingService.id);
+    serviceId = existingService.id;
+  } else if (existingService && existingService.status !== "terminated") {
+    serviceId = existingService.id;
+  } else {
+    const { data: service, error: serviceError } = await admin
+      .from("hosting_services")
+      .insert({
+        company_id: order.company_id,
+        order_id: order.id,
+        invoice_id: order.invoice_id,
+        plan_id: order.plan_id,
+        domain_name: order.domain_name,
+        server_id: order.server_id,
+        status: "pending",
+        billing_cycle: order.billing_cycle,
+        next_due_date: nextDue.toISOString(),
+      })
+      .select("id")
+      .single();
+
+    if (serviceError || !service) {
+      await admin
+        .from("hosting_orders")
+        .update({ status: "failed", provisioning_status: "failed", updated_at: now })
+        .eq("id", orderId);
+      return { ok: false, error: serviceError?.message ?? "Failed to create service record." };
+    }
+    serviceId = service.id;
   }
 
   const provisioned = await createHostingAccount({
     companyId: order.company_id,
     orderId: order.id,
-    serviceId: service.id,
+    serviceId,
     domainName: order.domain_name,
     planSlug: plan.slug,
     pleskServicePlan: plan.plesk_service_plan ?? plan.slug,
@@ -352,7 +398,7 @@ export async function provisionHostingOrder(
     await admin
       .from("hosting_services")
       .update({ status: "failed", updated_at: now })
-      .eq("id", service.id);
+      .eq("id", serviceId);
     await admin
       .from("hosting_orders")
       .update({ status: "failed", provisioning_status: "failed", updated_at: now })
@@ -371,7 +417,7 @@ export async function provisionHostingOrder(
       control_panel_url: provisioned.controlPanelUrl,
       updated_at: now,
     })
-    .eq("id", service.id);
+    .eq("id", serviceId);
 
   await admin
     .from("hosting_orders")
@@ -381,13 +427,13 @@ export async function provisionHostingOrder(
   if (order.invoice_id) {
     await admin
       .from("hosting_invoices")
-      .update({ service_id: service.id, updated_at: now })
+      .update({ service_id: serviceId, updated_at: now })
       .eq("id", order.invoice_id);
   }
 
   await admin
     .from("hosting_domains")
-    .update({ service_id: service.id, dns_status: "active", updated_at: now })
+    .update({ service_id: serviceId, dns_status: "active", updated_at: now })
     .eq("company_id", order.company_id)
     .eq("domain_name", order.domain_name);
 
@@ -404,7 +450,7 @@ export async function provisionHostingOrder(
     pleskSubscriptionId: provisioned.pleskSubscriptionId,
   });
 
-  return { ok: true, serviceId: service.id };
+  return { ok: true, serviceId };
 }
 
 async function linkProvisionedDomainToWebsiteEngine(input: {
@@ -440,23 +486,24 @@ async function linkProvisionedDomainToWebsiteEngine(input: {
     .eq("id", domainProvision.websiteDomainId)
     .maybeSingle();
 
-  const creds = await getPleskCredentials(input.serverId);
-  if (creds && domainRow?.verification_token) {
-    const txtResult = await addPleskDnsRecord(creds, {
-      siteId: input.pleskSubscriptionId,
-      record: {
-        type: "TXT",
-        host: "_faraios",
-        value: `faraios-verify=${domainRow.verification_token}`,
-      },
-      serverId: input.serverId ?? creds.serverId ?? undefined,
+  const target = await getPleskHostingTarget({
+    companyId: input.companyId,
+    serverId: input.serverId,
+  });
+
+  if (target?.serverIp) {
+    const syncResult = await syncFaraiosDomainDnsToPlesk({
+      companyId: input.companyId,
+      domain: normalizedDomain,
+      serverIp: target.serverIp,
+      verificationToken: domainRow?.verification_token ?? null,
     });
 
-    if (!txtResult.ok) {
+    if (!syncResult.ok) {
       console.error(
-        "[hosting] Plesk _faraios TXT sync failed",
+        "[hosting] Plesk DNS sync failed",
         normalizedDomain,
-        txtResult.error
+        syncResult.error
       );
     }
   }

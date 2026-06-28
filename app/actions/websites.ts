@@ -23,6 +23,7 @@ import {
 } from "@/lib/services/company-access";
 import { createClient } from "@/lib/supabase/server";
 import { getDefaultHostingProviderSlug } from "@/lib/hosting/constants";
+import { ensureTenantSubdomainOnVercel } from "@/lib/services/vercel-tenant-domain";
 
 export type WebsiteMutationResult =
   | { ok: true; websiteId?: string }
@@ -128,6 +129,13 @@ async function revalidateAdminWebsitePaths(
   revalidatePath("/contact");
 }
 
+async function registerTenantSubdomainForPublish(subdomain: string | null | undefined) {
+  const result = await ensureTenantSubdomainOnVercel(subdomain);
+  if (!result.ok) {
+    console.warn("[websites] tenant subdomain Vercel registration failed:", result.error);
+  }
+}
+
 export async function publishWebsiteAsAdminAction(
   websiteId: string,
   companySlug: string,
@@ -143,7 +151,7 @@ export async function publishWebsiteAsAdminAction(
   const supabase = await getAdminQueryClient();
   const { data: website, error: websiteError } = await supabase
     .from("websites")
-    .select("id,client_id")
+    .select("id,client_id,subdomain")
     .eq("id", websiteId)
     .maybeSingle();
 
@@ -164,6 +172,7 @@ export async function publishWebsiteAsAdminAction(
     return { ok: false, error: error.message };
   }
 
+  await registerTenantSubdomainForPublish(website.subdomain as string | null | undefined);
   await revalidateAdminWebsitePaths(websiteId, companySlug, companyId);
   return { ok: true };
 }
@@ -307,6 +316,16 @@ export async function publishWebsiteAction(
   if (!access.ok) return access;
 
   const supabase = await createClient();
+  const { data: website, error: websiteError } = await supabase
+    .from("websites")
+    .select("subdomain")
+    .eq("id", websiteId)
+    .maybeSingle();
+
+  if (websiteError || !website) {
+    return { ok: false, error: websiteError?.message ?? "Website not found." };
+  }
+
   const hostingProvider = getDefaultHostingProviderSlug();
   const { error } = await supabase
     .from("websites")
@@ -343,6 +362,7 @@ export async function publishWebsiteAction(
     { onConflict: "company_id" }
   );
 
+  await registerTenantSubdomainForPublish(website.subdomain as string | null | undefined);
   await revalidateCompanyWebsitePaths(companySlug, websiteId);
   revalidatePath("/");
   return { ok: true };

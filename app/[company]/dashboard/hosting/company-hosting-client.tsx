@@ -714,7 +714,9 @@ export function CompanyHostingClient({
             <div className="mt-8 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-5">
               <h3 className="text-sm font-semibold text-slate-900">Already paid?</h3>
               <p className="mt-1 text-sm text-slate-600">
-                Paste your Paystack reference to confirm hosting payment.
+                Paste your Paystack reference (e.g.{" "}
+                <span className="font-mono text-xs">plkv6ima1c</span>) or the full URL Paystack
+                returned you to.
               </p>
               <ClientOnly
                 fallback={
@@ -729,7 +731,7 @@ export function CompanyHostingClient({
                     type="text"
                     value={confirmReference}
                     onChange={(event) => setConfirmReference(event.target.value)}
-                    placeholder="Paystack reference"
+                    placeholder="plkv6ima1c or full return URL"
                     autoComplete="off"
                     suppressHydrationWarning
                     className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"

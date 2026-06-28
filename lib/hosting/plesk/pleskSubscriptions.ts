@@ -1,4 +1,5 @@
 import { escapeXml, getAllXmlBlocks, getXmlText, pleskXmlRequest } from "@/lib/hosting/plesk/pleskXmlClient";
+import { getPleskDefaultIpAddress } from "@/lib/hosting/plesk/pleskIp";
 import type { PleskCredentials, PleskSubscription } from "@/lib/hosting/plesk/pleskTypes";
 
 function parseSubscriptionBlock(block: string): PleskSubscription | null {
@@ -54,7 +55,11 @@ export async function createPleskSubscription(
   | { ok: true; subscription: PleskSubscription; ftpLogin: string }
   | { ok: false; error: string }
 > {
-  const inner = `<webspace><add><gen_setup><name>${escapeXml(input.domainName)}</name><owner-id>${escapeXml(input.customerId)}</owner-id><htype>vrt_hst</htype><ip_address>shared</ip_address></gen_setup><plan-name>${escapeXml(input.planName)}</plan-name><hosting><vrt_hst><property><name>ftp_login</name><value>${escapeXml(input.ftpLogin)}</value></property><property><name>ftp_password</name><value>${escapeXml(input.ftpPassword)}</value></property></vrt_hst></hosting></add></webspace>`;
+  const ipAddress =
+    (await getPleskDefaultIpAddress(creds, input.serverId)) ?? "127.0.0.1";
+
+  // Plesk requires hosting before plan-name, and a real IP — not the literal "shared".
+  const inner = `<webspace><add><gen_setup><name>${escapeXml(input.domainName)}</name><owner-id>${escapeXml(input.customerId)}</owner-id><htype>vrt_hst</htype><ip_address>${escapeXml(ipAddress)}</ip_address></gen_setup><hosting><vrt_hst><property><name>ftp_login</name><value>${escapeXml(input.ftpLogin)}</value></property><property><name>ftp_password</name><value>${escapeXml(input.ftpPassword)}</value></property><ip_address>${escapeXml(ipAddress)}</ip_address></vrt_hst></hosting><plan-name>${escapeXml(input.planName)}</plan-name></add></webspace>`;
 
   const result = await pleskXmlRequest(creds, inner, {
     companyId: input.companyId,

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { confirmAnyHostingPaymentFromReference } from "@/lib/billing/hosting-payment-confirm";
+import { parsePaystackPaymentReference } from "@/lib/billing/paystack";
 import { requireCompanyOwner } from "@/lib/services/company-access";
 import {
   companyHostingPath,
@@ -22,9 +23,13 @@ export async function confirmHostingPaymentAction(input: {
   const access = await requireCompanyOwner(input.companyId);
   if (!access.ok) return access;
 
-  const reference = input.reference.trim();
+  const reference = parsePaystackPaymentReference(input.reference);
   if (!reference) {
-    return { ok: false, error: "Enter your Paystack payment reference." };
+    return {
+      ok: false,
+      error:
+        "Could not find a Paystack reference. Paste the reference only (e.g. plkv6ima1c) or your full return URL.",
+    };
   }
 
   const result = await confirmAnyHostingPaymentFromReference({

@@ -1,6 +1,12 @@
 import { escapeXml, getAllXmlBlocks, getXmlText, pleskXmlRequest } from "@/lib/hosting/plesk/pleskXmlClient";
 import type { PleskCredentials, PleskDnsRecord } from "@/lib/hosting/plesk/pleskTypes";
 
+/** Plesk expects an empty host for apex records, not "@". */
+export function formatPleskDnsHost(host: string): string {
+  const trimmed = host.trim();
+  return trimmed === "@" ? "" : trimmed;
+}
+
 function parseDnsRecord(block: string): PleskDnsRecord | null {
   const type = getXmlText(block, "type");
   const host = getXmlText(block, "host") ?? "@";
@@ -54,7 +60,7 @@ export async function addPleskDnsRecord(
   const priority = input.record.priority != null
     ? `<priority>${input.record.priority}</priority>`
     : "";
-  const inner = `<dns><add_rec><site-id>${escapeXml(input.siteId)}</site-id><type>${escapeXml(input.record.type)}</type><host>${escapeXml(input.record.host)}</host><value>${escapeXml(input.record.value)}</value>${priority}</add_rec></dns>`;
+  const inner = `<dns><add_rec><site-id>${escapeXml(input.siteId)}</site-id><type>${escapeXml(input.record.type)}</type><host>${escapeXml(formatPleskDnsHost(input.record.host))}</host><value>${escapeXml(input.record.value)}</value>${priority}</add_rec></dns>`;
 
   const result = await pleskXmlRequest(creds, inner, { serverId: input.serverId, action: "add_dns_record" });
   if (!result.ok) return { ok: false, error: result.error };
@@ -75,7 +81,7 @@ export async function updatePleskDnsRecord(
   const priority = input.record.priority != null
     ? `<priority>${input.record.priority}</priority>`
     : "";
-  const inner = `<dns><set_rec><filter><site-id>${escapeXml(input.siteId)}</site-id><id>${escapeXml(input.recordId)}</id></filter><value>${escapeXml(input.record.value)}</value><host>${escapeXml(input.record.host)}</host>${priority}</set_rec></dns>`;
+  const inner = `<dns><set_rec><filter><site-id>${escapeXml(input.siteId)}</site-id><id>${escapeXml(input.recordId)}</id></filter><value>${escapeXml(input.record.value)}</value><host>${escapeXml(formatPleskDnsHost(input.record.host))}</host>${priority}</set_rec></dns>`;
 
   const result = await pleskXmlRequest(creds, inner, { serverId: input.serverId, action: "update_dns_record" });
   return result.ok ? { ok: true } : { ok: false, error: result.error };
