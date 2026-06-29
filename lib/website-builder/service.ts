@@ -122,6 +122,104 @@ export async function getBuilderWebsiteForCompany(
   return mapWebsite(data as Record<string, unknown>);
 }
 
+export async function getLegacyWebsiteRowForCompany(
+  companyId: string
+): Promise<Record<string, unknown> | null> {
+  if (!isSupabaseConfigured()) return null;
+  const admin = tryCreateAdminClient();
+  const client = admin.ok ? admin.client : await createClient();
+  const { data } = await client
+    .from("websites")
+    .select("*")
+    .eq("client_id", companyId)
+    .eq("builder_mode", false)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return (data as Record<string, unknown>) ?? null;
+}
+
+function mergeThemeSettings(
+  company: CompanyWithIndustry,
+  existing: unknown
+): Record<string, unknown> {
+  const base = {
+    primaryColor: company.brand_primary_color ?? "#6366f1",
+    accentColor: company.brand_accent_color ?? "#4f46e5",
+    logoUrl: company.brand_logo_url ?? null,
+    bookingButtonLabel: "Book Now",
+  };
+  if (existing && typeof existing === "object") {
+    return { ...base, ...(existing as Record<string, unknown>) };
+  }
+  return base;
+}
+
+async function seedBuilderLandingAndDomainSettings(
+  client: Awaited<ReturnType<typeof createClient>>,
+  company: CompanyWithIndustry,
+  websiteId: string,
+  options?: { legacyDomain?: string | null }
+): Promise<void> {
+  const siteSlug = company.slug;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const defaultUrl = publicSiteUrl(siteSlug, appUrl);
+  const seo = defaultSeoForWebsite(company);
+
+  const { count } = await client
+    .from("website_pages")
+    .select("id", { count: "exact", head: true })
+    .eq("website_id", websiteId);
+
+  if (!count) {
+    const { data: services } = await client
+      .from("company_services")
+      .select("name, description, base_price_cents")
+      .eq("company_id", company.id)
+      .eq("active", true)
+      .order("sort_order", { ascending: true })
+      .limit(12);
+
+    const landing = buildLandingContentFromCompany(
+      company,
+      (services ?? []) as { name: string; description: string | null; base_price_cents: number }[]
+    );
+
+    await client.from("website_pages").insert({
+      website_id: websiteId,
+      company_id: company.id,
+      page_type: "landing",
+      title: "Home",
+      slug: "home",
+      content: landing,
+      status: "draft",
+      seo_title: seo.seo_title,
+      seo_description: seo.seo_description,
+      og_title: seo.seo_title,
+      og_description: seo.seo_description,
+    });
+  }
+
+  const { data: existingSettings } = await client
+    .from("domain_settings")
+    .select("id")
+    .eq("website_id", websiteId)
+    .maybeSingle();
+
+  if (!existingSettings) {
+    const legacyDomain = options?.legacyDomain?.trim() || null;
+    await client.from("domain_settings").insert({
+      website_id: websiteId,
+      company_id: company.id,
+      default_url: defaultUrl,
+      requested_subdomain: siteSlug,
+      custom_domain: legacyDomain,
+      custom_domain_status: legacyDomain ? "pending" : "not_connected",
+    });
+  }
+}
+
 export async function getPublishedBuilderWebsiteByCompanySlug(
   companySlug: string
 ): Promise<{ website: BuilderWebsite; companyId: string } | null> {
@@ -217,8 +315,43 @@ export async function ensureBuilderWebsite(
 
   const seo = defaultSeoForWebsite(company);
   const siteSlug = company.slug;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const defaultUrl = publicSiteUrl(siteSlug, appUrl);
+  const legacy = await getLegacyWebsiteRowForCompany(company.id);
+
+  if (legacy?.id) {
+    const legacyDomain =
+      typeof legacy.domain === "string" && legacy.domain.trim()
+        ? legacy.domain.trim()
+        : null;
+
+    const { data: website, error } = await admin.client
+      .from("websites")
+      .update({
+        builder_mode: true,
+        slug: (legacy.slug as string) || siteSlug,
+        title: (legacy.title as string) || company.name,
+        description: (legacy.description as string) ?? company.business_description,
+        theme_settings: mergeThemeSettings(company, legacy.theme_settings),
+        seo_title: (legacy.seo_title as string) || seo.seo_title,
+        seo_description: (legacy.seo_description as string) || seo.seo_description,
+        seo_keywords: (legacy.seo_keywords as string) || seo.seo_keywords,
+        og_title: (legacy.og_title as string) || seo.seo_title,
+        og_description: (legacy.og_description as string) || seo.seo_description,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", legacy.id as string)
+      .select("*")
+      .single();
+
+    if (error || !website) {
+      return { ok: false, error: error?.message ?? "Could not upgrade website for builder." };
+    }
+
+    await seedBuilderLandingAndDomainSettings(admin.client, company, website.id as string, {
+      legacyDomain,
+    });
+
+    return { ok: true, website: mapWebsite(website as Record<string, unknown>) };
+  }
 
   const { data: website, error } = await admin.client
     .from("websites")
@@ -233,12 +366,7 @@ export async function ensureBuilderWebsite(
       slug: siteSlug,
       status: "draft",
       builder_mode: true,
-      theme_settings: {
-        primaryColor: company.brand_primary_color ?? "#6366f1",
-        accentColor: company.brand_accent_color ?? "#4f46e5",
-        logoUrl: company.brand_logo_url ?? null,
-        bookingButtonLabel: "Book Now",
-      },
+      theme_settings: mergeThemeSettings(company, null),
       seo_title: seo.seo_title,
       seo_description: seo.seo_description,
       seo_keywords: seo.seo_keywords,
@@ -253,42 +381,7 @@ export async function ensureBuilderWebsite(
     return { ok: false, error: error?.message ?? "Could not create website." };
   }
 
-  const websiteId = website.id as string;
-
-  const { data: services } = await admin.client
-    .from("company_services")
-    .select("name, description, base_price_cents")
-    .eq("company_id", company.id)
-    .eq("active", true)
-    .order("sort_order", { ascending: true })
-    .limit(12);
-
-  const landing = buildLandingContentFromCompany(
-    company,
-    (services ?? []) as { name: string; description: string | null; base_price_cents: number }[]
-  );
-
-  await admin.client.from("website_pages").insert({
-    website_id: websiteId,
-    company_id: company.id,
-    page_type: "landing",
-    title: "Home",
-    slug: "home",
-    content: landing,
-    status: "draft",
-    seo_title: seo.seo_title,
-    seo_description: seo.seo_description,
-    og_title: seo.seo_title,
-    og_description: seo.seo_description,
-  });
-
-  await admin.client.from("domain_settings").insert({
-    website_id: websiteId,
-    company_id: company.id,
-    default_url: defaultUrl,
-    requested_subdomain: siteSlug,
-    custom_domain_status: "not_connected",
-  });
+  await seedBuilderLandingAndDomainSettings(admin.client, company, website.id as string);
 
   return { ok: true, website: mapWebsite(website as Record<string, unknown>) };
 }

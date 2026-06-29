@@ -8,7 +8,11 @@ import {
   getDnsRecordsForDomain,
   getWebsiteDomainsForCompany,
 } from "@/lib/services/website-domains";
-import { getBuilderDashboardData } from "@/lib/website-builder/service";
+import {
+  ensureBuilderWebsite,
+  getBuilderDashboardData,
+  getLegacyWebsiteRowForCompany,
+} from "@/lib/website-builder/service";
 import { getBlogDashboardData } from "@/lib/website-builder/blog";
 import { getBuilderAnalytics } from "@/lib/website-builder/analytics";
 import { listPublishSnapshots } from "@/lib/website-builder/publish-snapshots";
@@ -35,17 +39,27 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
   const hasAccess = await userHasCompanySlugAccess(user.id, decoded);
   if (!hasAccess) return { unauthorized: true as const };
 
-  const [dashboardData, servicesRes, contentPosts, blogData] = await Promise.all([
-    getBuilderDashboardData(company.id),
-    supabase
-      .from("company_services")
-      .select("*")
-      .eq("company_id", company.id)
-      .eq("active", true)
-      .order("sort_order", { ascending: true }),
-    listContentPosts(company.id),
-    getBlogDashboardData(company.id),
-  ]);
+  const [initialDashboardData, servicesRes, contentPosts, blogData, legacyWebsite] =
+    await Promise.all([
+      getBuilderDashboardData(company.id),
+      supabase
+        .from("company_services")
+        .select("*")
+        .eq("company_id", company.id)
+        .eq("active", true)
+        .order("sort_order", { ascending: true }),
+      listContentPosts(company.id),
+      getBlogDashboardData(company.id),
+      getLegacyWebsiteRowForCompany(company.id),
+    ]);
+
+  let dashboardData = initialDashboardData;
+  if (!dashboardData && legacyWebsite) {
+    const adopted = await ensureBuilderWebsite(company);
+    if (adopted.ok) {
+      dashboardData = await getBuilderDashboardData(company.id);
+    }
+  }
 
   const builderAnalytics =
     section === "analytics" && dashboardData?.website
