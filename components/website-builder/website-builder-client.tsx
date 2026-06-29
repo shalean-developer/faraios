@@ -1255,6 +1255,8 @@ function EmptyWebsite({
   companyId: string;
   editorChoice?: WebsiteEditorChoice;
 }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const choice = editorChoice ?? { legacy: null, builder: null };
 
   if (choice.legacy || choice.builder) {
@@ -1262,9 +1264,6 @@ function EmptyWebsite({
       <WebsiteEditorChoicePanel slug={slug} companyId={companyId} editorChoice={choice} />
     );
   }
-
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
 
   return (
     <SectionCard title="Get started">
