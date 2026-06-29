@@ -4,7 +4,7 @@ import { Home, Menu, X } from "lucide-react";
 import { useState } from "react";
 
 import type { ParsedSiteContent } from "@/templates/service-business/content";
-import { LuxuryImage } from "@/templates/service-business/LuxuryImage";
+import { SiteLogoMark } from "@/templates/service-business/site-logo";
 import { ModernOverlayTopbar } from "@/templates/service-business/ModernOverlayTopbar";
 import {
   resolveTemplateHref,
@@ -51,18 +51,22 @@ export function ModernOverlaySiteHeader({
       <header className={headerShell}>
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4">
           <a href={paths.home} className="flex min-w-0 shrink-0 items-center gap-3">
-            {topbar.logo ? (
-              <span className="relative inline-flex h-10 w-10 shrink-0 overflow-hidden rounded-lg">
-                <LuxuryImage src={topbar.logo} alt={businessName} fill fallbackIndex={0} />
-              </span>
-            ) : (
-              <span
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white"
-                style={{ backgroundColor: theme.accent }}
-              >
-                <Home className="h-5 w-5" strokeWidth={2} />
-              </span>
-            )}
+            <SiteLogoMark
+              logo={topbar.logo}
+              alt={businessName}
+              size={topbar.logoSize}
+              width={topbar.logoWidth}
+              shape={topbar.logoShape}
+              useLuxuryImage
+              fallback={
+                <span
+                  className="flex h-full w-full items-center justify-center text-white"
+                  style={{ backgroundColor: theme.accent }}
+                >
+                  <Home className="h-5 w-5" strokeWidth={2} />
+                </span>
+              }
+            />
             {hideBusinessName ? null : (
               <span className="truncate text-lg font-bold text-white">{businessName}</span>
             )}

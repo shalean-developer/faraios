@@ -3,7 +3,15 @@
 import type { Dispatch, SetStateAction } from "react";
 
 import { Button } from "@/components/ui/button";
+import { WebsiteContentEditorModernSections } from "@/components/websites/website-content-editor-modern-sections";
 import { WebsiteImageUploadField } from "@/components/websites/website-image-upload-field";
+import {
+  defaultLogoWidthForShape,
+  LOGO_SHAPE_OPTIONS,
+  logoShapeUsesCustomWidth,
+  type LogoShape,
+} from "@/lib/website-templates/logo-display";
+import { SiteLogoMark } from "@/templates/service-business/site-logo";
 import {
   type ChipFormItem,
   type FaqFormItem,
@@ -19,6 +27,23 @@ export const BASIC_CONTENT_SECTIONS = [
   { id: "services", label: "Services" },
   { id: "about", label: "About" },
   { id: "contact", label: "Contact" },
+] as const;
+
+export const MODERN_OVERLAY_CONTENT_SECTIONS = [
+  { id: "brand", label: "Brand" },
+  { id: "hero", label: "Hero" },
+  { id: "about", label: "About" },
+  { id: "services", label: "Services" },
+  { id: "workProcess", label: "Work process" },
+  { id: "whyChooseUs", label: "Quality You Trust" },
+  { id: "featureBanner", label: "Feature banner" },
+  { id: "transform", label: "Dreams Into Reality" },
+  { id: "testimonials", label: "Clients Love Us" },
+  { id: "craftsmanship", label: "Homes Made Perfect" },
+  { id: "faq", label: "FAQ" },
+  { id: "blog", label: "Expert Insights" },
+  { id: "contact", label: "Contact" },
+  { id: "footer", label: "Footer" },
 ] as const;
 
 export const SERVICE_BUSINESS_CONTENT_SECTIONS = [
@@ -49,7 +74,9 @@ export const LUXURY_BEAUTY_CONTENT_SECTIONS = [
   { id: "footer", label: "Footer" },
 ] as const;
 
-export type ContentSectionId = (typeof SERVICE_BUSINESS_CONTENT_SECTIONS)[number]["id"];
+export type ContentSectionId =
+  | (typeof SERVICE_BUSINESS_CONTENT_SECTIONS)[number]["id"]
+  | (typeof MODERN_OVERLAY_CONTENT_SECTIONS)[number]["id"];
 
 const inputClass =
   "mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm";
@@ -61,6 +88,7 @@ type WebsiteContentEditorSectionsProps = {
   setFormData: Dispatch<SetStateAction<WebsiteContentFormData>>;
   extended: boolean;
   luxuryLayout?: boolean;
+  modernOverlay?: boolean;
   websiteId: string;
 };
 
@@ -70,6 +98,7 @@ export function WebsiteContentEditorSections({
   setFormData,
   extended,
   luxuryLayout = false,
+  modernOverlay = false,
   websiteId,
 }: WebsiteContentEditorSectionsProps) {
   const updateService = (index: number, key: keyof ServiceItem, value: string) => {
@@ -307,6 +336,113 @@ export function WebsiteContentEditorSections({
               }
               onAltChange={() => {}}
             />
+          </div>
+          <label className={cn(labelClass, "mt-4 block")}>
+            Logo shape
+            <select
+              className={inputClass}
+              value={formData.topbar.logoShape}
+              onChange={(e) => {
+                const logoShape = e.target.value as LogoShape;
+                setFormData((prev) => ({
+                  ...prev,
+                  topbar: {
+                    ...prev.topbar,
+                    logoShape,
+                    logoWidth: defaultLogoWidthForShape(logoShape, prev.topbar.logoSize),
+                  },
+                }));
+              }}
+            >
+              {LOGO_SHAPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={cn(labelClass, "mt-4 block")}>
+            Logo height ({formData.topbar.logoSize}px)
+            <input
+              type="range"
+              min={24}
+              max={120}
+              step={2}
+              className="mt-2 w-full accent-violet-600"
+              value={formData.topbar.logoSize}
+              onChange={(e) => {
+                const logoSize = Number(e.target.value);
+                setFormData((prev) => ({
+                  ...prev,
+                  topbar: {
+                    ...prev.topbar,
+                    logoSize,
+                    logoWidth: logoShapeUsesCustomWidth(prev.topbar.logoShape)
+                      ? defaultLogoWidthForShape(prev.topbar.logoShape, logoSize)
+                      : logoSize,
+                  },
+                }));
+              }}
+            />
+          </label>
+          {logoShapeUsesCustomWidth(formData.topbar.logoShape) ? (
+            <label className={cn(labelClass, "mt-4 block")}>
+              Logo width ({formData.topbar.logoWidth}px)
+              <input
+                type="range"
+                min={formData.topbar.logoShape === "tall" ? 24 : formData.topbar.logoSize}
+                max={formData.topbar.logoShape === "tall" ? formData.topbar.logoSize : 280}
+                step={2}
+                className="mt-2 w-full accent-violet-600"
+                value={formData.topbar.logoWidth}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    topbar: { ...prev.topbar, logoWidth: Number(e.target.value) },
+                  }))
+                }
+              />
+            </label>
+          ) : null}
+          {formData.topbar.logo.trim() ? (
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Preview</p>
+              <div className="mt-3 flex items-center gap-3">
+                <SiteLogoMark
+                  logo={formData.topbar.logo}
+                  alt={formData.hero.businessName || "Logo preview"}
+                  size={formData.topbar.logoSize}
+                  width={formData.topbar.logoWidth}
+                  shape={formData.topbar.logoShape}
+                  useLuxuryImage
+                />
+                {!formData.topbar.hideBusinessNameInHeader ? (
+                  <span className="text-sm font-semibold text-slate-800">
+                    {formData.hero.businessName || "Business name"}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+          <div className="mt-4">
+            <WebsiteImageUploadField
+              label="Favicon"
+              websiteId={websiteId}
+              value={formData.theme.faviconUrl}
+              alt="Site favicon"
+              hideAlt
+              previewClassName="h-12 w-12 object-contain bg-white p-1"
+              onValueChange={(faviconUrl) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  theme: { ...prev.theme, faviconUrl },
+                }))
+              }
+              onAltChange={() => {}}
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Shown in the browser tab. Use a square PNG or ICO (32×32 or 64×64 recommended).
+            </p>
           </div>
           <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/80 p-3">
             <input
@@ -766,9 +902,11 @@ export function WebsiteContentEditorSections({
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Services section</h2>
               <p className="mt-1 text-sm text-slate-500">
-                {luxuryLayout
-                  ? "Service list, images, and chips shown on the homepage and /services page."
-                  : "List the services this business offers."}
+                {modernOverlay
+                  ? "The large photo on the right matches the selected service in the list — set an image on each service below."
+                  : luxuryLayout
+                    ? "Service list, images, and chips shown on the homepage and /services page."
+                    : "List the services this business offers."}
               </p>
             </div>
             <Button type="button" onClick={addService}>
@@ -919,7 +1057,7 @@ export function WebsiteContentEditorSections({
         </>
       ) : null}
 
-      {activeSection === "trust" && extended ? (
+      {activeSection === "trust" && extended && !modernOverlay ? (
         <>
           <h2 className="text-lg font-semibold text-slate-900">
             {luxuryLayout ? "Reviews & stats" : "Trust & credibility"}
@@ -1213,7 +1351,9 @@ export function WebsiteContentEditorSections({
         <>
           <h2 className="text-lg font-semibold text-slate-900">About section</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Tell visitors about the business and what makes it unique.
+            {modernOverlay
+              ? "Three photos in a grid beside your story — each upload maps to a specific slot on the preview."
+              : "Tell visitors about the business and what makes it unique."}
           </p>
           <label className={cn(labelClass, "mt-4 block")}>
             Heading
@@ -1244,7 +1384,7 @@ export function WebsiteContentEditorSections({
           </label>
           <div className="mt-3">
             <WebsiteImageUploadField
-              label="About image"
+              label={modernOverlay ? "Tall photo (right column, top)" : "About image"}
               websiteId={websiteId}
               value={formData.about.image}
               alt={formData.about.imageAlt}
@@ -1262,10 +1402,98 @@ export function WebsiteContentEditorSections({
               }
             />
           </div>
+          {modernOverlay ? (
+            <>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <WebsiteImageUploadField
+                  label="Left column photo"
+                  websiteId={websiteId}
+                  value={formData.about.imageSecondary}
+                  alt={formData.about.imageAlt}
+                  hideAlt
+                  onValueChange={(imageSecondary) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      about: { ...prev.about, imageSecondary },
+                    }))
+                  }
+                  onAltChange={() => {}}
+                />
+                <WebsiteImageUploadField
+                  label="Small photo (right column, bottom)"
+                  websiteId={websiteId}
+                  value={formData.about.imageTertiary}
+                  alt={formData.about.imageAlt}
+                  hideAlt
+                  onValueChange={(imageTertiary) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      about: { ...prev.about, imageTertiary },
+                    }))
+                  }
+                  onAltChange={() => {}}
+                />
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <label className={labelClass}>
+                  Stat 1 value
+                  <input
+                    className={inputClass}
+                    value={formData.about.stat1Value}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        about: { ...prev.about, stat1Value: e.target.value },
+                      }))
+                    }
+                  />
+                </label>
+                <label className={labelClass}>
+                  Stat 1 label
+                  <input
+                    className={inputClass}
+                    value={formData.about.stat1Label}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        about: { ...prev.about, stat1Label: e.target.value },
+                      }))
+                    }
+                  />
+                </label>
+                <label className={labelClass}>
+                  Stat 2 value
+                  <input
+                    className={inputClass}
+                    value={formData.about.stat2Value}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        about: { ...prev.about, stat2Value: e.target.value },
+                      }))
+                    }
+                  />
+                </label>
+                <label className={labelClass}>
+                  Stat 2 label
+                  <input
+                    className={inputClass}
+                    value={formData.about.stat2Label}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        about: { ...prev.about, stat2Label: e.target.value },
+                      }))
+                    }
+                  />
+                </label>
+              </div>
+            </>
+          ) : null}
         </>
       ) : null}
 
-      {activeSection === "process" && extended ? (
+      {activeSection === "process" && extended && !modernOverlay ? (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -1429,7 +1657,7 @@ export function WebsiteContentEditorSections({
         </>
       ) : null}
 
-      {activeSection === "areas" && extended ? (
+      {activeSection === "areas" && extended && !modernOverlay ? (
         <>
           <h2 className="text-lg font-semibold text-slate-900">Service areas</h2>
           <p className="mt-1 text-sm text-slate-500">
@@ -1510,7 +1738,7 @@ export function WebsiteContentEditorSections({
         </>
       ) : null}
 
-      {activeSection === "cta" && extended ? (
+      {activeSection === "cta" && extended && !modernOverlay ? (
         <>
           <h2 className="text-lg font-semibold text-slate-900">Final CTA</h2>
           <p className="mt-1 text-sm text-slate-500">
@@ -1670,7 +1898,7 @@ export function WebsiteContentEditorSections({
           </p>
           <div className="mt-4 grid gap-3">
             <label className={labelClass}>
-              {luxuryLayout ? "Footer headline" : "Description"}
+              {luxuryLayout || modernOverlay ? "Footer headline" : "Description"}
               <textarea
                 className={inputClass}
                 rows={3}
@@ -1684,10 +1912,57 @@ export function WebsiteContentEditorSections({
                 placeholder={
                   luxuryLayout
                     ? "Holistic perspectives for Being and Spirit"
-                    : undefined
+                    : modernOverlay
+                      ? "Modern Home Upgrades Made Easy Today"
+                      : undefined
                 }
               />
             </label>
+            {modernOverlay ? (
+              <>
+                <label className={labelClass}>
+                  Newsletter heading
+                  <input
+                    className={inputClass}
+                    value={formData.footer.newsletterHeading}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        footer: { ...prev.footer, newsletterHeading: e.target.value },
+                      }))
+                    }
+                  />
+                </label>
+                <label className={labelClass}>
+                  Newsletter body
+                  <textarea
+                    className={inputClass}
+                    rows={3}
+                    value={formData.footer.newsletterBody}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        footer: { ...prev.footer, newsletterBody: e.target.value },
+                      }))
+                    }
+                  />
+                </label>
+                <label className={labelClass}>
+                  Copyright business name
+                  <input
+                    className={inputClass}
+                    value={formData.footer.copyrightName}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        footer: { ...prev.footer, copyrightName: e.target.value },
+                      }))
+                    }
+                    placeholder={formData.hero.businessName}
+                  />
+                </label>
+              </>
+            ) : null}
             <label className={labelClass}>
               Service links
               <textarea
@@ -1718,6 +1993,23 @@ export function WebsiteContentEditorSections({
                 placeholder="One link label per line"
               />
             </label>
+            {modernOverlay ? (
+              <label className={labelClass}>
+                Resource links
+                <textarea
+                  className={inputClass}
+                  rows={4}
+                  value={formData.footer.resourceLinks}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      footer: { ...prev.footer, resourceLinks: e.target.value },
+                    }))
+                  }
+                  placeholder="One link label per line"
+                />
+              </label>
+            ) : null}
             <label className={labelClass}>
               Support links
               <textarea
@@ -1735,6 +2027,15 @@ export function WebsiteContentEditorSections({
             </label>
           </div>
         </>
+      ) : null}
+
+      {modernOverlay ? (
+        <WebsiteContentEditorModernSections
+          activeSection={activeSection}
+          formData={formData}
+          setFormData={setFormData}
+          websiteId={websiteId}
+        />
       ) : null}
     </div>
   );

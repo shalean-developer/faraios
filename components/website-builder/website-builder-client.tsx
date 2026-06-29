@@ -82,11 +82,15 @@ import type { DomainPurchaseNotice } from "@/lib/services/domain-purchase-notice
 import type { DomainDnsGuidance } from "@/lib/hosting/external-dns-guidance";
 import type { WebsiteEditorChoice } from "@/lib/websites/editor-choice";
 import { WebsiteEditorChoicePanel } from "@/components/websites/website-editor-choice";
+import { WebsiteContentEditor } from "@/components/websites/website-content-editor";
+import { isModernOverlayWebsite } from "@/lib/website-templates/modern-overlay";
+import type { WebsiteContent } from "@/types/database";
 
 export type BuilderSection =
   | "overview"
   | "pages"
   | "page-builder"
+  | "homepage-sections"
   | "templates"
   | "components"
   | "theme"
@@ -133,6 +137,8 @@ type Props = {
   domainPurchaseNotice?: DomainPurchaseNotice | null;
   domainDnsGuidanceById?: Record<string, DomainDnsGuidance>;
   editorChoice?: WebsiteEditorChoice;
+  classicContentRows?: WebsiteContent[];
+  classicWebsiteMeta?: { id: string; template: string | null; industry: string | null } | null;
 };
 
 function SectionCard({
@@ -185,6 +191,11 @@ const SECTION_TITLES: Record<BuilderSection, { title: string; description: strin
   "page-builder": {
     title: "Page Builder",
     description: "Drag-and-drop sections with live split-screen preview.",
+  },
+  "homepage-sections": {
+    title: "Homepage sections",
+    description:
+      "Edit construction template sections — Dreams Into Reality, Clients Love Us, and more.",
   },
   templates: { title: "Templates", description: "Industry templates library." },
   components: { title: "Components", description: "Reusable blocks saved across pages." },
@@ -267,6 +278,7 @@ export function WebsiteBuilderClient(props: Props) {
       {section === "overview" ? <OverviewSection {...props} /> : null}
       {section === "pages" ? <PagesSection {...props} /> : null}
       {section === "page-builder" ? <PageBuilderSection {...props} /> : null}
+      {section === "homepage-sections" ? <HomepageSectionsSection {...props} /> : null}
       {section === "theme" ? <ThemeSection {...props} /> : null}
       {section === "templates" ? (
         <TemplatesSection {...props} companyServices={props.companyServices} />
@@ -429,6 +441,52 @@ function BuilderPlaceholderSection({ section }: { section: BuilderSection }) {
       <p className="mx-auto mt-2 max-w-lg text-sm text-slate-500">{copy[section]}</p>
       <p className="mt-4 text-xs text-slate-400">Phase 3 of Website Builder V2 — see docs/website-builder-v2-upgrade.md</p>
     </section>
+  );
+}
+
+function HomepageSectionsSection({
+  slug,
+  classicContentRows = [],
+  classicWebsiteMeta,
+}: Props) {
+  if (!classicWebsiteMeta?.id) {
+    return (
+      <SectionCard title="No homepage template" description="Create a website first from the overview.">
+        <p className="text-sm text-slate-600">
+          Homepage section editing is available for construction-style templates.
+        </p>
+      </SectionCard>
+    );
+  }
+
+  const modernOverlay = isModernOverlayWebsite(
+    classicWebsiteMeta.template,
+    classicContentRows
+  );
+
+  if (!modernOverlay) {
+    return (
+      <SectionCard title="Classic template only" description="This layout does not use construction homepage sections.">
+        <Link
+          href={`/${encodeURIComponent(slug)}/dashboard/websites/${encodeURIComponent(classicWebsiteMeta.id)}/edit`}
+          className="text-sm font-medium text-violet-700 hover:text-violet-900"
+        >
+          Open classic content editor →
+        </Link>
+      </SectionCard>
+    );
+  }
+
+  return (
+    <WebsiteContentEditor
+      websiteId={classicWebsiteMeta.id}
+      companySlug={slug}
+      previewPath={`/preview/${classicWebsiteMeta.id}`}
+      websiteIndustry={classicWebsiteMeta.industry ?? undefined}
+      websiteTemplate={classicWebsiteMeta.template ?? undefined}
+      contentRows={classicContentRows}
+      embedded
+    />
   );
 }
 

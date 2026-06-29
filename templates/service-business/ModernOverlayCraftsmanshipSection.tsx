@@ -41,27 +41,15 @@ function CollageImage({
 }
 
 export function ModernOverlayCraftsmanshipSection({ site }: Props) {
-  const { craftsmanship, topbar, about, services, theme } = site;
+  const { craftsmanship, topbar, theme } = site;
   const features =
     craftsmanship.features.length >= 2
       ? craftsmanship.features.slice(0, 2)
       : DEFAULT_FEATURES;
 
-  const imageMain =
-    craftsmanship.image ||
-    about.imageSecondary ||
-    services.items[0]?.image ||
-    luxuryFallbackImage(0);
-  const imageTop =
-    craftsmanship.imageSecondary ||
-    about.imageTertiary ||
-    services.items[1]?.image ||
-    luxuryFallbackImage(1);
-  const imageBottom =
-    craftsmanship.imageTertiary ||
-    about.image ||
-    services.items[2]?.image ||
-    luxuryFallbackImage(2);
+  const imageMain = craftsmanship.image?.trim() || luxuryFallbackImage(0);
+  const imageTop = craftsmanship.imageSecondary?.trim() || luxuryFallbackImage(1);
+  const imageBottom = craftsmanship.imageTertiary?.trim() || luxuryFallbackImage(2);
 
   const phone = craftsmanship.phone?.trim() || topbar.phone?.trim();
   const phoneHref = phone ? `tel:${phone.replace(/\s+/g, "")}` : null;

@@ -449,14 +449,13 @@ export async function updateWebsiteContentAction(
   payload: WebsiteContentFormPayload
 ): Promise<WebsiteMutationResult> {
   const isAdmin = await isCurrentUserPlatformAdmin();
-  const authClient = await createClient();
 
   if (!isAdmin) {
     const access = await requireWebsiteCompanyPermission(websiteId);
     if (!access.ok) return access;
   }
 
-  const supabase = isAdmin ? await getAdminQueryClient() : authClient;
+  const supabase = await getAdminQueryClient();
   const rows = Object.entries(payload).map(([section, content]) => ({
     website_id: websiteId,
     section,
@@ -488,14 +487,13 @@ export async function applyIndustryStockImagesAction(
   companySlug: string
 ): Promise<WebsiteMutationResult> {
   const isAdmin = await isCurrentUserPlatformAdmin();
-  const authClient = await createClient();
 
   if (!isAdmin) {
     const access = await requireWebsiteCompanyPermission(websiteId);
     if (!access.ok) return access;
   }
 
-  const supabase = isAdmin ? await getAdminQueryClient() : authClient;
+  const supabase = await getAdminQueryClient();
   const { data: website, error: websiteError } = await supabase
     .from("websites")
     .select("id,industry")

@@ -4,7 +4,7 @@ import { ArrowUpRight, Menu, X } from "lucide-react";
 import { useState } from "react";
 
 import type { ParsedSiteContent } from "@/templates/service-business/content";
-import { LuxuryImage } from "@/templates/service-business/LuxuryImage";
+import { SiteLogoMark } from "@/templates/service-business/site-logo";
 import { luxury } from "@/templates/service-business/luxury-styles";
 import {
   resolveTemplateHref,
@@ -55,11 +55,15 @@ export function LuxurySiteHeader({
     <header className={shellClass}>
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-5 py-5 sm:px-8 lg:py-6">
         <a href={paths.home} className="flex min-w-0 shrink-0 items-center gap-3">
-          {topbar.logo ? (
-            <span className="relative inline-flex h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1 ring-white/20">
-              <LuxuryImage src={topbar.logo} alt={businessName} fill fallbackIndex={0} />
-            </span>
-          ) : null}
+          <SiteLogoMark
+            logo={topbar.logo}
+            alt={businessName}
+            size={topbar.logoSize}
+            width={topbar.logoWidth}
+            shape={topbar.logoShape}
+            className="ring-1 ring-white/20"
+            useLuxuryImage
+          />
           {hideBusinessName ? null : (
             <span
               className={`truncate text-lg font-semibold uppercase tracking-[0.22em] sm:text-xl ${logoClass}`}

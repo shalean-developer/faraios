@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; reset?: string; next?: string }>;
+  searchParams: Promise<{ error?: string; reset?: string; next?: string; reason?: string }>;
 }) {
-  const { error, reset, next } = await searchParams;
+  const { error, reset, next, reason } = await searchParams;
   return (
     <FaraiAuthPage
       initialMode="login"
@@ -23,9 +23,11 @@ export default async function SignInPage({
           : undefined
       }
       initialInfo={
-        reset === "success"
-          ? "Password updated. Sign in with your new password."
-          : undefined
+        reason === "session-expired"
+          ? "Your session expired. Please sign in again."
+          : reset === "success"
+            ? "Password updated. Sign in with your new password."
+            : undefined
       }
     />
   );

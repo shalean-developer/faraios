@@ -441,6 +441,7 @@ export type WebsiteSubNavKey =
   | "builder"
   | "builder-pages"
   | "builder-page-builder"
+  | "builder-homepage-sections"
   | "builder-templates"
   | "builder-components"
   | "builder-theme"
@@ -493,6 +494,7 @@ const WEBSITE_BUILDER_SIDEBAR_KEYS = new Set<WebsiteSubNavKey>([
   "builder",
   "builder-pages",
   "builder-page-builder",
+  "builder-homepage-sections",
   "builder-templates",
   "builder-components",
   "builder-theme",
@@ -520,6 +522,11 @@ function websiteSubNavCatalog(
       key: "builder-page-builder",
       label: "Page Builder",
       href: companyWebsiteBuilderSectionPath(slug, "page-builder"),
+    },
+    {
+      key: "builder-homepage-sections",
+      label: "Homepage sections",
+      href: companyWebsiteBuilderSectionPath(slug, "homepage-sections"),
     },
     {
       key: "builder-templates",
@@ -687,6 +694,8 @@ export function websiteSubNavKeyFromPathname(
   if (pathname.startsWith(`${base}/websites/builder/components`)) return "builder-components";
   if (pathname.startsWith(`${base}/websites/builder/templates`)) return "builder-templates";
   if (pathname.startsWith(`${base}/websites/builder/page-builder`)) return "builder-page-builder";
+  if (pathname.startsWith(`${base}/websites/builder/homepage-sections`))
+    return "builder-homepage-sections";
   if (pathname.startsWith(`${base}/websites/builder/domains`)) return "builder-domains";
   if (pathname.startsWith(`${base}/websites/builder/publish`)) return "builder-publish";
   if (pathname.startsWith(`${base}/websites/builder/seo`)) return "builder-seo";

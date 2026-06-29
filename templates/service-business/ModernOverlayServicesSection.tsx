@@ -24,17 +24,15 @@ function buildCategories(items: ServiceCard[]): ServiceCategory[] {
 }
 
 export function ModernOverlayServicesSection({ site }: Props) {
-  const { services, topbar, theme, whyChooseUs, hero } = site;
+  const { services, topbar, theme } = site;
   const listItems = services.items.slice(0, 6);
   const categories = buildCategories(listItems);
   const [activeTab, setActiveTab] = useState(0);
   const [activeItem, setActiveItem] = useState(0);
 
   const featuredImage =
-    listItems[activeItem]?.image ||
-    listItems[0]?.image ||
-    whyChooseUs.image ||
-    hero.image ||
+    listItems[activeItem]?.image?.trim() ||
+    listItems[0]?.image?.trim() ||
     luxuryFallbackImage(0);
 
   const headline =

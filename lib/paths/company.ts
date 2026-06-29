@@ -383,6 +383,7 @@ export function companyWebsiteBuilderSectionPath(
   section:
     | "pages"
     | "page-builder"
+    | "homepage-sections"
     | "templates"
     | "components"
     | "theme"

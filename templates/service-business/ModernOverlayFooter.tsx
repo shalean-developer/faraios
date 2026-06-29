@@ -96,14 +96,9 @@ const DEFAULT_COMPANY_LINKS = ["About", "Service", "Service Details", "Reviews"]
 const DEFAULT_RESOURCE_LINKS = ["Blogs", "Projects", "Project details", "Privacy Policy"];
 
 export function ModernOverlayFooter({ site, paths }: Props) {
-  const { footer, businessName, topbar, homeBlog, theme } = site;
+  const { footer, businessName, topbar, theme } = site;
   const [email, setEmail] = useState("");
   const year = new Date().getFullYear();
-  const phone = homeBlog.callCtaPhone?.trim() || topbar.phone?.trim();
-  const phoneHref = phone ? `tel:${phone.replace(/\s+/g, "")}` : null;
-  const callLabel = phone
-    ? `${homeBlog.callCtaPrefix} (${phone})`
-    : homeBlog.callCtaPrefix;
 
   const headline = footer.description || "Modern Home Upgrades Made Easy Today";
 
@@ -129,26 +124,7 @@ export function ModernOverlayFooter({ site, paths }: Props) {
 
   return (
     <footer className="relative bg-[#111827] text-white">
-      <div className={`${sectionContainer} relative z-10 -mt-8 flex justify-center px-4 sm:-mt-10 sm:px-6`}>
-        {phoneHref ? (
-          <a
-            href={phoneHref}
-            className="inline-flex w-full max-w-3xl items-center justify-center rounded-full px-6 py-4 text-center text-sm font-bold text-white shadow-lg transition hover:opacity-95 sm:text-base"
-            style={{ backgroundColor: theme.accent }}
-          >
-            {callLabel}
-          </a>
-        ) : (
-          <p
-            className="inline-flex w-full max-w-3xl items-center justify-center rounded-full px-6 py-4 text-center text-sm font-bold sm:text-base"
-            style={{ backgroundColor: theme.accent }}
-          >
-            {callLabel}
-          </p>
-        )}
-      </div>
-
-      <div className={`${sectionContainer} px-4 pb-10 pt-14 sm:px-6 sm:pb-12 sm:pt-16`}>
+      <div className={`${sectionContainer} px-4 pb-10 pt-10 sm:px-6 sm:pb-12 sm:pt-12`}>
         <div className="grid gap-12 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-4">
             <h2 className="max-w-sm text-2xl font-bold leading-tight sm:text-3xl">{headline}</h2>

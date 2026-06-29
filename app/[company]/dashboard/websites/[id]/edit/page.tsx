@@ -12,7 +12,10 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ company: string; id: string }> };
+type Props = {
+  params: Promise<{ company: string; id: string }>;
+  searchParams: Promise<{ section?: string }>;
+};
 
 function AccessDenied({ slug }: { slug: string }) {
   return (
@@ -31,8 +34,9 @@ function AccessDenied({ slug }: { slug: string }) {
   );
 }
 
-export default async function CompanyEditWebsitePage({ params }: Props) {
+export default async function CompanyEditWebsitePage({ params, searchParams }: Props) {
   const { company, id } = await params;
+  const { section } = await searchParams;
   const slug = decodeURIComponent(company);
 
   const supabase = await createClient();
@@ -86,6 +90,7 @@ export default async function CompanyEditWebsitePage({ params }: Props) {
       websiteIndustry={typedWebsite.industry}
       websiteTemplate={typedWebsite.template}
       contentRows={(rows as WebsiteContent[]) ?? []}
+      initialSection={section ?? null}
     />
   );
 }

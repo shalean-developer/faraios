@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { SiteLogoMark } from "@/templates/service-business/site-logo";
 import { useState } from "react";
 import {
   Clock,
@@ -159,24 +159,21 @@ export function SiteChrome({ site, bookingUrl, paths }: Props) {
       <header className="sticky top-0 z-50 border-b border-slate-200 bg-white shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-8 px-5 py-4 sm:px-6 lg:gap-12 lg:py-5">
           <a href={paths.home} className="flex min-w-0 shrink-0 items-center gap-4">
-            {topbar.logo ? (
-              <span className="relative inline-flex h-12 w-12 shrink-0 overflow-hidden rounded-full lg:h-14 lg:w-14">
-                <Image
-                  src={topbar.logo}
-                  alt={businessName}
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
-              </span>
-            ) : (
-              <span
-                className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-base font-bold text-white shadow-md lg:h-14 lg:w-14"
-                style={{ backgroundColor: theme.primary }}
-              >
-                {mark}
-              </span>
-            )}
+            <SiteLogoMark
+              logo={topbar.logo}
+              alt={businessName}
+              size={topbar.logoSize}
+              width={topbar.logoWidth}
+              shape={topbar.logoShape}
+              fallback={
+                <span
+                  className="flex h-full w-full items-center justify-center text-base font-bold text-white shadow-md lg:text-lg"
+                  style={{ backgroundColor: theme.primary }}
+                >
+                  {mark}
+                </span>
+              }
+            />
             {hideBusinessName ? null : (
               <span className="min-w-0">
                 <span className="block truncate text-lg font-bold text-slate-900 lg:text-xl">

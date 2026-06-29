@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+import { safeGetUser } from "@/lib/auth/invalid-refresh-token";
 import { getSupabasePublicKey, getSupabaseUrl } from "./public-env";
 
 /**
@@ -30,4 +31,10 @@ export async function createClient() {
       },
     }
   );
+}
+
+/** Server-side auth lookup that clears invalid refresh tokens instead of retrying. */
+export async function getAuthUser() {
+  const supabase = await createClient();
+  return safeGetUser(supabase);
 }

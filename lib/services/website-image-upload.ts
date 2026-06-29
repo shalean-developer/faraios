@@ -114,7 +114,9 @@ export async function uploadWebsiteImage(
   const replacePath = input.replaceStoragePath?.trim();
   const path = replacePath || `${websiteId}/${randomUUID()}.${extension}`;
   const bytes = Buffer.from(await file.arrayBuffer());
-  const supabase = access.isAdmin ? await getAdminQueryClient() : await createClient();
+  // Access is verified above; use service role when configured so storage RLS
+  // does not block member uploads (policies still apply when only anon key exists).
+  const supabase = await getAdminQueryClient();
 
   const { error: uploadError } = await supabase.storage
     .from(WEBSITE_ASSETS_BUCKET)

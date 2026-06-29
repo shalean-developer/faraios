@@ -1,3 +1,11 @@
+import {
+  defaultLogoWidthForShape,
+  resolveLogoShape,
+  resolveLogoSizePx,
+  resolveLogoWidthPx,
+  type LogoShape,
+} from "@/lib/website-templates/logo-display";
+import { isModernOverlayWebsite } from "@/lib/website-templates/modern-overlay";
 import { resolveWebsiteTemplateVariant } from "@/lib/website-templates/variants";
 import type { WebsiteContent } from "@/types/database";
 
@@ -29,13 +37,38 @@ export type StepFormItem = {
   description: string;
 };
 
+export type TransformSlideFormItem = {
+  label: string;
+  beforeImage: string;
+  afterImage: string;
+  thumbnailImage: string;
+};
+
+export type TestimonialFormItem = {
+  quote: string;
+  name: string;
+  company: string;
+  avatar: string;
+};
+
+export type BlogPostFormItem = {
+  category: string;
+  title: string;
+  excerpt: string;
+  image: string;
+};
+
 export type WebsiteContentFormData = {
   theme: {
     primaryColor: string;
     accentColor: string;
+    faviconUrl: string;
   };
   topbar: {
     logo: string;
+    logoSize: number;
+    logoShape: LogoShape;
+    logoWidth: number;
     hideBusinessNameInHeader: boolean;
     serviceArea: string;
     hours: string;
@@ -79,14 +112,24 @@ export type WebsiteContentFormData = {
     body: string;
     image: string;
     imageAlt: string;
+    imageSecondary: string;
+    imageTertiary: string;
+    stat1Value: string;
+    stat1Label: string;
+    stat2Value: string;
+    stat2Label: string;
   };
   whyChooseUs: {
+    label: string;
     heading: string;
     body: string;
     ctaLabel: string;
     whatsapp: string;
     image: string;
     imageAlt: string;
+    imageSecondary: string;
+    imageSecondaryAlt: string;
+    badgeText: string;
     benefits: TitleDescriptionItem[];
   };
   socialProof: {
@@ -101,6 +144,48 @@ export type WebsiteContentFormData = {
   howItWorks: {
     heading: string;
     steps: StepFormItem[];
+  };
+  workProcess: {
+    label: string;
+    heading: string;
+    steps: StepFormItem[];
+  };
+  featureBanner: {
+    image: string;
+    imageAlt: string;
+  };
+  transformShowcase: {
+    label: string;
+    heading: string;
+    body: string;
+    features: string;
+    slides: TransformSlideFormItem[];
+  };
+  testimonials: {
+    label: string;
+    heading: string;
+    items: TestimonialFormItem[];
+  };
+  craftsmanship: {
+    label: string;
+    heading: string;
+    body: string;
+    features: string;
+    phoneLabel: string;
+    phone: string;
+    image: string;
+    imageSecondary: string;
+    imageTertiary: string;
+    imageAlt: string;
+  };
+  homeBlog: {
+    label: string;
+    heading: string;
+    body: string;
+    ctaLabel: string;
+    callCtaPrefix: string;
+    callCtaPhone: string;
+    posts: BlogPostFormItem[];
   };
   faq: {
     heading: string;
@@ -130,8 +215,12 @@ export type WebsiteContentFormData = {
   };
   footer: {
     description: string;
+    newsletterHeading: string;
+    newsletterBody: string;
+    copyrightName: string;
     serviceLinks: string;
     companyLinks: string;
+    resourceLinks: string;
     supportLinks: string;
   };
 };
@@ -245,6 +334,65 @@ function toStepItems(raw: unknown): StepFormItem[] {
     .filter((item): item is StepFormItem => item !== null);
 }
 
+function toTransformSlides(raw: unknown): TransformSlideFormItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((item) => {
+    if (typeof item !== "object" || !item) return [];
+    const record = item as Record<string, unknown>;
+    const label = asString(record.label);
+    const beforeImage = asString(record.beforeImage, asString(record.before));
+    const afterImage = asString(record.afterImage, asString(record.after));
+    if (!label) return [];
+    return [
+      {
+        label,
+        beforeImage,
+        afterImage,
+        thumbnailImage: asString(record.thumbnailImage, asString(record.thumbnail)),
+      },
+    ];
+  });
+}
+
+function toTestimonialItems(raw: unknown): TestimonialFormItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => {
+      if (typeof item === "string") {
+        return { quote: item, name: "", company: "", avatar: "" };
+      }
+      if (typeof item !== "object" || !item) return null;
+      const record = item as Record<string, unknown>;
+      const quote = asString(record.quote, asString(record.text, asString(record.review)));
+      if (!quote) return null;
+      return {
+        quote,
+        name: asString(record.name, asString(record.author)),
+        company: asString(record.company, asString(record.role)),
+        avatar: asString(record.avatar, asString(record.image)),
+      };
+    })
+    .filter((item): item is TestimonialFormItem => item !== null);
+}
+
+function toBlogPostItems(raw: unknown): BlogPostFormItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((item) => {
+    if (typeof item !== "object" || !item) return [];
+    const record = item as Record<string, unknown>;
+    const title = asString(record.title);
+    if (!title) return [];
+    return [
+      {
+        category: asString(record.category, "Insights"),
+        title,
+        excerpt: asString(record.excerpt, asString(record.description)),
+        image: readImageField(record),
+      },
+    ];
+  });
+}
+
 function linesToString(value: unknown): string {
   if (Array.isArray(value)) {
     return value.filter((item): item is string => typeof item === "string").join("\n");
@@ -271,6 +419,12 @@ export function buildWebsiteContentFormData(rows: WebsiteContent[]): WebsiteCont
   const whyChooseUs = content.whyChooseUs ?? {};
   const socialProof = content.socialProof ?? {};
   const howItWorks = content.howItWorks ?? {};
+  const workProcess = content.workProcess ?? {};
+  const featureBanner = content.featureBanner ?? {};
+  const transformShowcase = content.transformShowcase ?? {};
+  const testimonials = content.testimonials ?? {};
+  const craftsmanship = content.craftsmanship ?? {};
+  const homeBlog = content.homeBlog ?? {};
   const faq = content.faq ?? {};
   const serviceAreas = content.serviceAreas ?? {};
   const cta = content.cta ?? {};
@@ -287,9 +441,21 @@ export function buildWebsiteContentFormData(rows: WebsiteContent[]): WebsiteCont
     theme: {
       primaryColor: asString(theme.primaryColor, "#0f2744"),
       accentColor: asString(theme.accentColor, "#2563eb"),
+      faviconUrl: asString(theme.faviconUrl, asString(theme.favicon)),
     },
     topbar: {
       logo: asString(topbar.logo, asString(topbar.logoUrl)),
+      logoSize: resolveLogoSizePx(topbar.logoSize),
+      logoShape: resolveLogoShape(topbar.logoShape),
+      logoWidth: resolveLogoWidthPx(
+        topbar.logoWidth,
+        resolveLogoSizePx(topbar.logoSize),
+        resolveLogoShape(topbar.logoShape),
+        defaultLogoWidthForShape(
+          resolveLogoShape(topbar.logoShape),
+          resolveLogoSizePx(topbar.logoSize)
+        )
+      ),
       hideBusinessNameInHeader: asBoolean(topbar.hideBusinessNameInHeader),
       serviceArea: asString(topbar.serviceArea),
       hours: asString(topbar.hours, "Mon–Sat: 8:00 AM – 6:00 PM"),
@@ -339,14 +505,24 @@ export function buildWebsiteContentFormData(rows: WebsiteContent[]): WebsiteCont
       body: asString(about.body),
       image: readImageField(about),
       imageAlt: asString(about.imageAlt),
+      imageSecondary: asString(about.imageSecondary, asString(about.image2)),
+      imageTertiary: asString(about.imageTertiary, asString(about.image3)),
+      stat1Value: asString(about.stat1Value, asString(socialProof.jobsCompleted, "250+")),
+      stat1Label: asString(about.stat1Label, "Projects Completed"),
+      stat2Value: asString(about.stat2Value, "10+"),
+      stat2Label: asString(about.stat2Label, "Years of Experience"),
     },
     whyChooseUs: {
+      label: asString(whyChooseUs.label, "Quality You Trust"),
       heading: asString(whyChooseUs.heading, "Trusted by Local Customers"),
       body: asString(whyChooseUs.body, asString(about.body)),
       ctaLabel: asString(whyChooseUs.ctaLabel, "Book a Service"),
       whatsapp: asString(whyChooseUs.whatsapp),
-      image: readImageField(whyChooseUs) || readImageField(about),
+      image: readImageField(whyChooseUs),
       imageAlt: asString(whyChooseUs.imageAlt),
+      imageSecondary: asString(whyChooseUs.imageSecondary),
+      imageSecondaryAlt: asString(whyChooseUs.imageSecondaryAlt, "Our expert team"),
+      badgeText: asString(whyChooseUs.badgeText, "Built with lasting quality"),
       benefits: toTitleDescriptionItems(whyChooseUs.benefits),
     },
     socialProof: {
@@ -361,6 +537,62 @@ export function buildWebsiteContentFormData(rows: WebsiteContent[]): WebsiteCont
     howItWorks: {
       heading: asString(howItWorks.heading, "From Booking to Done"),
       steps: toStepItems(howItWorks.steps),
+    },
+    workProcess: {
+      label: asString(workProcess.label, "Our work process"),
+      heading: asString(workProcess.heading, asString(howItWorks.heading, "Step-by-Step Home Transformations")),
+      steps: toStepItems(workProcess.steps).length
+        ? toStepItems(workProcess.steps)
+        : toStepItems(howItWorks.steps),
+    },
+    featureBanner: {
+      image: readImageField(featureBanner),
+      imageAlt: asString(featureBanner.imageAlt, "Feature banner"),
+    },
+    transformShowcase: {
+      label: asString(transformShowcase.label, "Dreams Into Reality"),
+      heading: asString(
+        transformShowcase.heading,
+        "Turning Ordinary Houses into Beautiful Cozy Homes"
+      ),
+      body: asString(
+        transformShowcase.body,
+        "After we deliver, enjoy a perfect home. Once our renovation work is complete, every corner of your space reflects quality, care, and attention to detail."
+      ),
+      features: linesToString(transformShowcase.features),
+      slides: toTransformSlides(transformShowcase.slides),
+    },
+    testimonials: {
+      label: asString(testimonials.label, "Clients Love Us"),
+      heading: asString(testimonials.heading, "Trusted By Homeowners"),
+      items: toTestimonialItems(testimonials.items),
+    },
+    craftsmanship: {
+      label: asString(craftsmanship.label, "Homes Made Perfect"),
+      heading: asString(craftsmanship.heading, "Craftsmanship That Stands the Test"),
+      body: asString(
+        craftsmanship.body,
+        "Expert Craftsmanship Guaranteed. Our skilled team brings years of experience and meticulous attention to every renovation project."
+      ),
+      features: linesToString(craftsmanship.features),
+      phoneLabel: asString(craftsmanship.phoneLabel, "Call us 24/7"),
+      phone: asString(craftsmanship.phone, asString(topbar.phone, asString(contact.phone))),
+      image: readImageField(craftsmanship),
+      imageSecondary: asString(craftsmanship.imageSecondary),
+      imageTertiary: asString(craftsmanship.imageTertiary),
+      imageAlt: asString(craftsmanship.imageAlt, "Expert craftsmanship"),
+    },
+    homeBlog: {
+      label: asString(homeBlog.label, "Expert Insights"),
+      heading: asString(homeBlog.heading, "Smart Home Upgrade Blog"),
+      body: asString(
+        homeBlog.body,
+        "Welcome to our Home Upgrade Blog, where we share practical tips, expert advice, and renovation inspiration."
+      ),
+      ctaLabel: asString(homeBlog.ctaLabel, "Explore Blog"),
+      callCtaPrefix: asString(homeBlog.callCtaPrefix, "Need Help? Call Now :"),
+      callCtaPhone: asString(homeBlog.callCtaPhone, asString(topbar.phone, asString(contact.phone))),
+      posts: toBlogPostItems(homeBlog.posts),
     },
     faq: {
       heading: asString(faq.heading, "Frequently Asked Questions"),
@@ -390,8 +622,15 @@ export function buildWebsiteContentFormData(rows: WebsiteContent[]): WebsiteCont
     },
     footer: {
       description: asString(footer.description),
+      newsletterHeading: asString(footer.newsletterHeading, "Stay Updated"),
+      newsletterBody: asString(
+        footer.newsletterBody,
+        "Hey there! Join our newsletter for renovation tips, project ideas, and exclusive offers."
+      ),
+      copyrightName: asString(footer.copyrightName),
       serviceLinks: linesToString(footer.serviceLinks),
       companyLinks: linesToString(footer.companyLinks),
+      resourceLinks: linesToString(footer.resourceLinks),
       supportLinks: linesToString(footer.supportLinks),
     },
   };
@@ -408,6 +647,12 @@ export type WebsiteContentSavePayload = {
   whyChooseUs: Record<string, unknown>;
   socialProof: Record<string, unknown>;
   howItWorks: Record<string, unknown>;
+  workProcess: Record<string, unknown>;
+  featureBanner: Record<string, unknown>;
+  transformShowcase: Record<string, unknown>;
+  testimonials: Record<string, unknown>;
+  craftsmanship: Record<string, unknown>;
+  homeBlog: Record<string, unknown>;
   faq: Record<string, unknown>;
   serviceAreas: Record<string, unknown>;
   cta: Record<string, unknown>;
@@ -417,7 +662,8 @@ export type WebsiteContentSavePayload = {
 
 export function websiteContentFormDataToPayload(
   form: WebsiteContentFormData,
-  extended: boolean
+  extended: boolean,
+  modernOverlay = false
 ): Record<string, Record<string, unknown>> {
   const trustBullets = stringToLines(form.hero.trustBullets);
 
@@ -425,9 +671,17 @@ export function websiteContentFormDataToPayload(
     theme: {
       primaryColor: form.theme.primaryColor.trim(),
       accentColor: form.theme.accentColor.trim(),
+      faviconUrl: form.theme.faviconUrl.trim(),
     },
     topbar: {
       logo: form.topbar.logo.trim(),
+      logoSize: resolveLogoSizePx(form.topbar.logoSize),
+      logoShape: form.topbar.logoShape,
+      logoWidth: resolveLogoWidthPx(
+        form.topbar.logoWidth,
+        resolveLogoSizePx(form.topbar.logoSize),
+        form.topbar.logoShape
+      ),
       hideBusinessNameInHeader: form.topbar.hideBusinessNameInHeader,
       serviceArea: form.topbar.serviceArea.trim(),
       hours: form.topbar.hours.trim(),
@@ -493,8 +747,15 @@ export function websiteContentFormDataToPayload(
       body: form.about.body.trim(),
       image: form.about.image.trim(),
       imageAlt: form.about.imageAlt.trim(),
+      imageSecondary: form.about.imageSecondary.trim(),
+      imageTertiary: form.about.imageTertiary.trim(),
+      stat1Value: form.about.stat1Value.trim(),
+      stat1Label: form.about.stat1Label.trim(),
+      stat2Value: form.about.stat2Value.trim(),
+      stat2Label: form.about.stat2Label.trim(),
     },
     whyChooseUs: {
+      label: form.whyChooseUs.label.trim(),
       heading: form.whyChooseUs.heading.trim(),
       body: form.whyChooseUs.body.trim(),
       ctaLabel: form.whyChooseUs.ctaLabel.trim(),
@@ -502,6 +763,9 @@ export function websiteContentFormDataToPayload(
       whatsapp: form.whyChooseUs.whatsapp.trim(),
       image: form.whyChooseUs.image.trim(),
       imageAlt: form.whyChooseUs.imageAlt.trim(),
+      imageSecondary: form.whyChooseUs.imageSecondary.trim(),
+      imageSecondaryAlt: form.whyChooseUs.imageSecondaryAlt.trim(),
+      badgeText: form.whyChooseUs.badgeText.trim(),
       benefits: form.whyChooseUs.benefits
         .filter((item) => item.title.trim())
         .map((item) => ({
@@ -525,6 +789,75 @@ export function websiteContentFormDataToPayload(
         .map((item) => ({
           title: item.title.trim(),
           description: item.description.trim(),
+        })),
+    },
+    workProcess: {
+      label: form.workProcess.label.trim(),
+      heading: form.workProcess.heading.trim(),
+      steps: form.workProcess.steps
+        .filter((item) => item.title.trim())
+        .map((item) => ({
+          title: item.title.trim(),
+          description: item.description.trim(),
+        })),
+    },
+    featureBanner: {
+      image: form.featureBanner.image.trim(),
+      imageAlt: form.featureBanner.imageAlt.trim(),
+    },
+    transformShowcase: {
+      label: form.transformShowcase.label.trim(),
+      heading: form.transformShowcase.heading.trim(),
+      body: form.transformShowcase.body.trim(),
+      features: stringToLines(form.transformShowcase.features),
+      slides: form.transformShowcase.slides
+        .filter((slide) => slide.label.trim())
+        .map((slide) => ({
+          label: slide.label.trim(),
+          beforeImage: slide.beforeImage.trim(),
+          afterImage: slide.afterImage.trim(),
+          thumbnailImage: slide.thumbnailImage.trim(),
+        })),
+    },
+    testimonials: {
+      label: form.testimonials.label.trim(),
+      heading: form.testimonials.heading.trim(),
+      items: form.testimonials.items
+        .filter((item) => item.quote.trim())
+        .map((item) => ({
+          quote: item.quote.trim(),
+          name: item.name.trim(),
+          company: item.company.trim(),
+          avatar: item.avatar.trim(),
+        })),
+    },
+    craftsmanship: {
+      label: form.craftsmanship.label.trim(),
+      heading: form.craftsmanship.heading.trim(),
+      body: form.craftsmanship.body.trim(),
+      features: stringToLines(form.craftsmanship.features),
+      phoneLabel: form.craftsmanship.phoneLabel.trim(),
+      phone: form.craftsmanship.phone.trim(),
+      image: form.craftsmanship.image.trim(),
+      imageSecondary: form.craftsmanship.imageSecondary.trim(),
+      imageTertiary: form.craftsmanship.imageTertiary.trim(),
+      imageAlt: form.craftsmanship.imageAlt.trim(),
+    },
+    homeBlog: {
+      label: form.homeBlog.label.trim(),
+      heading: form.homeBlog.heading.trim(),
+      body: form.homeBlog.body.trim(),
+      ctaLabel: form.homeBlog.ctaLabel.trim(),
+      ctaHref: "/blog",
+      callCtaPrefix: form.homeBlog.callCtaPrefix.trim(),
+      callCtaPhone: form.homeBlog.callCtaPhone.trim(),
+      posts: form.homeBlog.posts
+        .filter((post) => post.title.trim())
+        .map((post) => ({
+          category: post.category.trim() || "Insights",
+          title: post.title.trim(),
+          excerpt: post.excerpt.trim(),
+          image: post.image.trim(),
         })),
     },
     faq: {
@@ -562,13 +895,31 @@ export function websiteContentFormDataToPayload(
     },
     footer: {
       description: form.footer.description.trim(),
+      newsletterHeading: form.footer.newsletterHeading.trim(),
+      newsletterBody: form.footer.newsletterBody.trim(),
+      copyrightName: form.footer.copyrightName.trim(),
       serviceLinks: stringToLines(form.footer.serviceLinks),
       companyLinks: stringToLines(form.footer.companyLinks),
+      resourceLinks: stringToLines(form.footer.resourceLinks),
       supportLinks: stringToLines(form.footer.supportLinks),
     },
   };
 
-  if (extended) return full as unknown as Record<string, Record<string, unknown>>;
+  if (modernOverlay) {
+    return full as unknown as Record<string, Record<string, unknown>>;
+  }
+
+  if (extended) {
+    const { workProcess, featureBanner, transformShowcase, testimonials, craftsmanship, homeBlog, ...classic } =
+      full;
+    void workProcess;
+    void featureBanner;
+    void transformShowcase;
+    void testimonials;
+    void craftsmanship;
+    void homeBlog;
+    return classic as unknown as Record<string, Record<string, unknown>>;
+  }
 
   return {
     hero: {
@@ -612,6 +963,8 @@ export function isServiceBusinessTemplate(
     variant === "tourism"
   );
 }
+
+export { isModernOverlayTemplate, isModernOverlayWebsite, hasModernOverlayWebsiteContent } from "@/lib/website-templates/modern-overlay";
 
 export function isLuxuryBeautyWebsite(
   template?: string | null,

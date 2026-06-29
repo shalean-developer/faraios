@@ -341,6 +341,9 @@ export default function ServiceBusinessTemplate({
         // eslint-disable-next-line @next/next/no-page-custom-font
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@400;500;600&display=swap" />
       ) : null}
+      {site.theme.faviconUrl ? (
+        <link rel="icon" href={site.theme.faviconUrl} />
+      ) : null}
       {isLuxuryHome || isModernOverlayHome ? null : isLuxuryLayout ? (
         <LuxurySiteHeader
           site={site}

@@ -1,3 +1,10 @@
+import { resolveLogoSizePx } from "@/lib/website-templates/modern-overlay";
+import {
+  defaultLogoWidthForShape,
+  resolveLogoShape,
+  resolveLogoWidthPx,
+  type LogoShape,
+} from "@/lib/website-templates/logo-display";
 import type { WebsiteContent } from "@/types/database";
 
 export function asString(value: unknown, fallback = ""): string {
@@ -208,7 +215,7 @@ function mapChips(raw: unknown, services: ServiceCard[]): ChipItem[] {
 
 export type ParsedSiteContent = {
   businessName: string;
-  theme: { primary: string; accent: string };
+  theme: { primary: string; accent: string; faviconUrl: string };
   topbar: {
     serviceArea: string;
     hours: string;
@@ -216,6 +223,9 @@ export type ParsedSiteContent = {
     email: string;
     tagline: string;
     logo: string;
+    logoSize: number;
+    logoShape: LogoShape;
+    logoWidth: number;
     hideBusinessNameInHeader: boolean;
     socialFacebook: string;
     socialInstagram: string;
@@ -408,6 +418,7 @@ export function parseSiteContent(content: WebsiteContent[]): ParsedSiteContent {
     theme: {
       primary: asString(theme.primaryColor, "#002147"),
       accent: asString(theme.accentColor, "#2563eb"),
+      faviconUrl: asString(theme.faviconUrl, asString(theme.favicon)),
     },
     topbar: {
       serviceArea: asString(topbar.serviceArea, location),
@@ -416,6 +427,17 @@ export function parseSiteContent(content: WebsiteContent[]): ParsedSiteContent {
       email: asString(topbar.email, contactEmail),
       tagline: asString(topbar.tagline, "CLEAN SPACES. BETTER LIVES."),
       logo: asString(topbar.logo, asString(topbar.logoUrl)),
+      logoSize: resolveLogoSizePx(topbar.logoSize),
+      logoShape: resolveLogoShape(topbar.logoShape),
+      logoWidth: resolveLogoWidthPx(
+        topbar.logoWidth,
+        resolveLogoSizePx(topbar.logoSize),
+        resolveLogoShape(topbar.logoShape),
+        defaultLogoWidthForShape(
+          resolveLogoShape(topbar.logoShape),
+          resolveLogoSizePx(topbar.logoSize)
+        )
+      ),
       hideBusinessNameInHeader: asBoolean(topbar.hideBusinessNameInHeader),
       socialFacebook: asString(topbar.facebook),
       socialInstagram: asString(topbar.instagram),
@@ -491,12 +513,9 @@ export function parseSiteContent(content: WebsiteContent[]): ParsedSiteContent {
       ctaLabel: asString(whyChooseUs.ctaLabel, "Book a Service"),
       ctaHref: asString(whyChooseUs.ctaHref, "/contact"),
       whatsapp: asString(whyChooseUs.whatsapp, contactPhone.replace(/\s+/g, "")),
-      image: asString(whyChooseUs.image, aboutImage),
+      image: asString(whyChooseUs.image),
       imageAlt: asString(whyChooseUs.imageAlt, businessName),
-      imageSecondary: asString(
-        whyChooseUs.imageSecondary,
-        asString(about.imageSecondary, asString(about.image))
-      ),
+      imageSecondary: asString(whyChooseUs.imageSecondary),
       imageSecondaryAlt: asString(whyChooseUs.imageSecondaryAlt, "Our expert team"),
       badgeText: asString(whyChooseUs.badgeText, "Built with lasting quality"),
       benefits: mapBenefits(whyChooseUs.benefits).length
@@ -604,9 +623,9 @@ export function parseSiteContent(content: WebsiteContent[]): ParsedSiteContent {
           ],
       phoneLabel: asString(craftsmanship.phoneLabel, "Call us 24/7"),
       phone: asString(craftsmanship.phone, asString(topbar.phone, contactPhone)),
-      image: asString(craftsmanship.image, asString(about.imageSecondary, aboutImage)),
-      imageSecondary: asString(craftsmanship.imageSecondary, asString(about.imageTertiary)),
-      imageTertiary: asString(craftsmanship.imageTertiary, asString(about.image, aboutImage)),
+      image: asString(craftsmanship.image),
+      imageSecondary: asString(craftsmanship.imageSecondary),
+      imageTertiary: asString(craftsmanship.imageTertiary),
       imageAlt: asString(craftsmanship.imageAlt, "Expert craftsmanship"),
     },
     homeBlog: {

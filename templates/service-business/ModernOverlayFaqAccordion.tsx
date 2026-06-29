@@ -78,10 +78,10 @@ function RenovationIllustration() {
   return (
     <svg
       viewBox="0 0 320 240"
-      className="h-auto w-full max-w-[280px] text-slate-300"
+      className="h-auto w-full max-w-[340px] text-slate-300 sm:max-w-[360px]"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth="1.75"
       aria-hidden
     >
       <rect x="40" y="30" width="240" height="180" rx="4" />

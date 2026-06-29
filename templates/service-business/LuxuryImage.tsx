@@ -33,8 +33,8 @@ export function LuxuryImage({
   }
 
   const imgClass = fill
-    ? `absolute inset-0 h-full w-full object-cover ${className}`.trim()
-    : `block h-full w-full object-cover ${className}`.trim();
+    ? `absolute inset-0 h-full w-full ${className || "object-cover"}`.trim()
+    : `block h-full w-full ${className || "object-cover"}`.trim();
 
   return (
     // eslint-disable-next-line @next/next/no-img-element

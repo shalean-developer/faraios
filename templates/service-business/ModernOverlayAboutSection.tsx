@@ -33,12 +33,11 @@ function AboutImage({
 }
 
 export function ModernOverlayAboutSection({ site, paths }: Props) {
-  const { about, whyChooseUs, services, socialProof, theme, businessName } = site;
-  const serviceImages = services.items.slice(0, 3);
+  const { about, socialProof, theme, businessName } = site;
 
-  const imageLeft = about.imageSecondary || serviceImages[0]?.image || about.image;
-  const imageTall = about.image || whyChooseUs.image || serviceImages[1]?.image;
-  const imageSmall = about.imageTertiary || serviceImages[2]?.image || serviceImages[1]?.image;
+  const imageLeft = about.imageSecondary?.trim() || luxuryFallbackImage(0);
+  const imageTall = about.image?.trim() || luxuryFallbackImage(1);
+  const imageSmall = about.imageTertiary?.trim() || luxuryFallbackImage(2);
 
   const stat1Value = about.stat1Value || socialProof.jobsCompleted;
   const stat1Label = about.stat1Label || "Projects Completed";
@@ -64,7 +63,7 @@ export function ModernOverlayAboutSection({ site, paths }: Props) {
           <div className="order-2 lg:order-none lg:col-span-4 lg:row-start-2">
             <AboutImage
               src={imageLeft}
-              alt={serviceImages[0]?.imageAlt ?? about.imageAlt ?? businessName}
+              alt={about.imageAlt || businessName}
               className="aspect-[4/5] w-full sm:aspect-[3/4]"
               fallbackIndex={0}
             />
@@ -72,7 +71,7 @@ export function ModernOverlayAboutSection({ site, paths }: Props) {
 
           <div className="order-1 flex flex-col justify-center lg:order-none lg:col-span-4 lg:col-start-5 lg:row-start-2 lg:py-2">
             <p className="text-base leading-relaxed text-slate-600 sm:text-lg">
-              {about.body || whyChooseUs.body}
+              {about.body}
             </p>
             <div className="mt-8 grid grid-cols-2 gap-6 sm:gap-8">
               <div>
@@ -99,13 +98,13 @@ export function ModernOverlayAboutSection({ site, paths }: Props) {
           <div className="order-3 flex flex-col gap-5 lg:order-none lg:col-span-4 lg:col-start-9 lg:row-start-1 lg:row-span-2">
             <AboutImage
               src={imageTall}
-              alt={about.imageAlt || whyChooseUs.imageAlt || "Our team at work"}
+              alt={about.imageAlt || "Our team at work"}
               className="aspect-[4/5] w-full lg:aspect-auto lg:min-h-[280px] lg:flex-1"
               fallbackIndex={1}
             />
             <AboutImage
               src={imageSmall}
-              alt={serviceImages[2]?.imageAlt ?? "Craftsmanship"}
+              alt={about.imageAlt || "Craftsmanship"}
               className="aspect-[16/10] w-full lg:aspect-[16/9]"
               fallbackIndex={2}
             />

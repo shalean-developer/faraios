@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import {
   BASIC_CONTENT_SECTIONS,
   LUXURY_BEAUTY_CONTENT_SECTIONS,
+  MODERN_OVERLAY_CONTENT_SECTIONS,
   SERVICE_BUSINESS_CONTENT_SECTIONS,
   WebsiteContentEditorSections,
   type ContentSectionId,
@@ -17,10 +18,12 @@ import {
 import {
   buildWebsiteContentFormData,
   isLuxuryBeautyWebsite,
+  isModernOverlayWebsite,
   isServiceBusinessTemplate,
   websiteContentFormDataToPayload,
   type WebsiteContentFormData,
 } from "@/components/websites/website-content-form-data";
+import { resolveContentSectionId } from "@/components/websites/website-content-section-ids";
 import { WebsitePreviewFrame } from "@/components/websites/website-preview-frame";
 import { companyDashboardPath, companyWebsiteBuilderPath, companyWebsitesPath } from "@/lib/paths/company";
 import { cn } from "@/lib/utils";
@@ -36,6 +39,7 @@ type Props = {
   websiteTemplate?: string;
   variant?: "company" | "admin";
   embedded?: boolean;
+  initialSection?: string | null;
 };
 
 export function WebsiteContentEditor({
@@ -48,17 +52,21 @@ export function WebsiteContentEditor({
   websiteTemplate,
   variant = "company",
   embedded = false,
+  initialSection = null,
 }: Props) {
   const extended = isServiceBusinessTemplate(websiteTemplate, websiteIndustry);
   const luxuryLayout = isLuxuryBeautyWebsite(websiteTemplate, websiteIndustry);
+  const modernOverlay = isModernOverlayWebsite(websiteTemplate, contentRows);
   const contentSections = useMemo(
     () =>
-      luxuryLayout
-        ? LUXURY_BEAUTY_CONTENT_SECTIONS
-        : extended
-          ? SERVICE_BUSINESS_CONTENT_SECTIONS
-          : BASIC_CONTENT_SECTIONS,
-    [extended, luxuryLayout]
+      modernOverlay
+        ? MODERN_OVERLAY_CONTENT_SECTIONS
+        : luxuryLayout
+          ? LUXURY_BEAUTY_CONTENT_SECTIONS
+          : extended
+            ? SERVICE_BUSINESS_CONTENT_SECTIONS
+            : BASIC_CONTENT_SECTIONS,
+    [extended, luxuryLayout, modernOverlay]
   );
 
   const [formData, setFormData] = useState<WebsiteContentFormData>(() =>
@@ -69,7 +77,15 @@ export function WebsiteContentEditor({
     setFormData(buildWebsiteContentFormData(contentRows));
   }, [contentRows]);
 
-  const [activeSection, setActiveSection] = useState<ContentSectionId>("hero");
+  const [activeSection, setActiveSection] = useState<ContentSectionId>(() =>
+    resolveContentSectionId(initialSection, modernOverlay)
+  );
+
+  useEffect(() => {
+    if (initialSection) {
+      setActiveSection(resolveContentSectionId(initialSection, modernOverlay));
+    }
+  }, [initialSection, modernOverlay]);
   const [previewVersion, setPreviewVersion] = useState(0);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +94,7 @@ export function WebsiteContentEditor({
   const onSave = async () => {
     setPending(true);
     setError(null);
-    const payload = websiteContentFormDataToPayload(formData, extended);
+    const payload = websiteContentFormDataToPayload(formData, extended, modernOverlay);
     try {
       const result = await updateWebsiteContentAction(websiteId, companySlug, payload);
       if (!result.ok) {
@@ -105,6 +121,7 @@ export function WebsiteContentEditor({
         setFormData={setFormData}
         extended={extended}
         luxuryLayout={luxuryLayout}
+        modernOverlay={modernOverlay}
         websiteId={websiteId}
       />
     </div>
@@ -154,7 +171,9 @@ export function WebsiteContentEditor({
           </h1>
           <p className="mt-2 text-sm text-slate-500">
             {extended
-              ? "Edit all homepage sections — preview updates after you save. Prefer drag-and-drop? Use the visual website builder instead."
+              ? modernOverlay
+                ? "Edit every homepage section from header to footer — logo size, favicon, and all images. Save to refresh the preview."
+                : "Edit all homepage sections — preview updates after you save. Prefer drag-and-drop? Use the visual website builder instead."
               : "Update content sections — use the live preview on larger screens."}
           </p>
         </>
@@ -168,6 +187,41 @@ export function WebsiteContentEditor({
           </p>
         </div>
       )}
+
+      {modernOverlay && !embedded ? (
+        <div className="mt-4 rounded-xl border border-violet-100 bg-violet-50/60 p-4">
+          <p className="text-sm font-medium text-slate-800">Jump to a homepage section</p>
+          <p className="mt-1 text-xs text-slate-600">
+            These tabs match the labels on your preview site. Upload images, edit copy, then save.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[
+              { id: "about" as const, label: "About" },
+              { id: "services" as const, label: "Services" },
+              { id: "whyChooseUs" as const, label: "Quality You Trust" },
+              { id: "featureBanner" as const, label: "Feature banner" },
+              { id: "transform" as const, label: "Dreams Into Reality" },
+              { id: "testimonials" as const, label: "Clients Love Us" },
+              { id: "craftsmanship" as const, label: "Homes Made Perfect" },
+              { id: "blog" as const, label: "Expert Insights" },
+            ].map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveSection(item.id)}
+                className={cn(
+                  "rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
+                  activeSection === item.id
+                    ? "border-violet-600 bg-violet-600 text-white"
+                    : "border-violet-200 bg-white text-violet-800 hover:border-violet-300"
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-6 lg:grid lg:grid-cols-5 lg:items-start lg:gap-6">
         <div className="min-w-0 lg:col-span-2">

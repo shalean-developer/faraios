@@ -3,7 +3,7 @@ import {
   MapPin,
   Phone,
 } from "lucide-react";
-import Image from "next/image";
+import { SiteLogoMark } from "@/templates/service-business/site-logo";
 import Link from "next/link";
 
 import type { ParsedSiteContent } from "@/templates/service-business/content";
@@ -94,21 +94,19 @@ export function SiteFooter({ site, paths }: Props) {
       <div className="mx-auto grid max-w-7xl gap-8 px-5 py-10 sm:px-6 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8 lg:py-12">
         <div className="lg:col-span-3">
           <div className="flex items-center gap-3">
-            {topbar.logo ? (
-              <span className="relative inline-flex h-11 w-11 shrink-0 overflow-hidden rounded-full border border-white/20">
-                <Image
-                  src={topbar.logo}
-                  alt={businessName}
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
-              </span>
-            ) : (
-              <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-sm font-bold text-white">
-                {mark}
-              </span>
-            )}
+            <SiteLogoMark
+              logo={topbar.logo}
+              alt={businessName}
+              size={topbar.logoSize}
+              width={topbar.logoWidth}
+              shape={topbar.logoShape}
+              className="border border-white/20"
+              fallback={
+                <span className="flex h-full w-full items-center justify-center border border-white/20 text-sm font-bold text-white">
+                  {mark}
+                </span>
+              }
+            />
             <span className="text-lg font-bold text-white">{businessName}</span>
           </div>
           <p className="mt-4 max-w-xs text-base leading-relaxed text-slate-400">

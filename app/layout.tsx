@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import { AuthSessionRecovery } from "@/components/auth/auth-session-recovery";
@@ -40,7 +41,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthSessionRecovery />
+        <Suspense fallback={null}>
+          <AuthSessionRecovery />
+        </Suspense>
         {children}
         <Analytics />
       </body>

@@ -106,10 +106,21 @@ export async function getTenantMetadata(kind: TenantPageKind): Promise<Metadata>
     ? ctx.website.seo_keywords.split(",").map((k) => k.trim()).filter(Boolean)
     : undefined;
 
+  const themeContent = ctx.content.find((row) => row.section === "theme")?.content;
+  const faviconUrl =
+    themeContent &&
+    typeof themeContent === "object" &&
+    typeof (themeContent as Record<string, unknown>).faviconUrl === "string"
+      ? ((themeContent as Record<string, unknown>).faviconUrl as string).trim()
+      : "";
+
   return {
     title,
     description,
     keywords,
+    ...(faviconUrl
+      ? { icons: { icon: faviconUrl, shortcut: faviconUrl, apple: faviconUrl } }
+      : {}),
     ...buildTenantSocialMetadata({
       website: ctx.website,
       title,

@@ -28,6 +28,7 @@ export function applyCompanyBrandingToSite<T extends ParsedSiteContent>(
     theme: {
       primary: primaryColor || site.theme.primary,
       accent: accentColor || site.theme.accent,
+      faviconUrl: site.theme.faviconUrl,
     },
     topbar: {
       ...site.topbar,
@@ -55,6 +56,7 @@ export function applyWebsiteVariantToSite(
     theme: {
       primary: usesDefaultPrimary ? variantTheme.primary : site.theme.primary,
       accent: usesDefaultAccent ? variantTheme.accent : site.theme.accent,
+      faviconUrl: site.theme.faviconUrl,
     },
     topbar: {
       ...site.topbar,

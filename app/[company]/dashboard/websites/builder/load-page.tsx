@@ -21,6 +21,7 @@ import { listContentPosts, summarizeContentPosts } from "@/lib/services/content-
 import { createClient } from "@/lib/supabase/server";
 import type { WebsiteDomainDnsHelp } from "@/components/websites/website-domains-panel";
 import type { CompanyWithIndustry, CompanyService } from "@/types/database";
+import type { WebsiteContent } from "@/types/database";
 import type { PublishSnapshotSummary } from "@/types/website-builder-settings";
 import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 import type { HostingPlanRow } from "@/types/hosting-automation";
@@ -99,6 +100,39 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
     }
   }
 
+  let classicContentRows: WebsiteContent[] = [];
+  let classicWebsiteMeta: { id: string; template: string | null; industry: string | null } | null =
+    null;
+
+  if (section === "homepage-sections") {
+    const websiteId =
+      (dashboardData?.website?.id as string | undefined) ??
+      editorChoice.builder?.id ??
+      editorChoice.legacy?.id ??
+      null;
+
+    if (websiteId) {
+      const { data: websiteRow } = await supabase
+        .from("websites")
+        .select("id,template,industry")
+        .eq("id", websiteId)
+        .maybeSingle();
+      const { data: contentRows } = await supabase
+        .from("website_content")
+        .select("*")
+        .eq("website_id", websiteId);
+
+      classicContentRows = (contentRows as WebsiteContent[]) ?? [];
+      if (websiteRow) {
+        classicWebsiteMeta = {
+          id: websiteRow.id,
+          template: websiteRow.template,
+          industry: websiteRow.industry,
+        };
+      }
+    }
+  }
+
   return {
     unauthorized: false as const,
     slug: decoded,
@@ -128,6 +162,8 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
     billingEmail: company.primary_contact_email ?? null,
     domainDnsGuidanceById,
     editorChoice,
+    classicContentRows,
+    classicWebsiteMeta,
   };
 }
 
@@ -173,6 +209,8 @@ export function renderWebsiteBuilderPage(
       domainPurchaseNotice={domainPurchaseNotice ?? null}
       domainDnsGuidanceById={data.domainDnsGuidanceById}
       editorChoice={data.editorChoice}
+      classicContentRows={data.classicContentRows}
+      classicWebsiteMeta={data.classicWebsiteMeta}
     />
   );
 }

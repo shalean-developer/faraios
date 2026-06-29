@@ -73,7 +73,7 @@ function SideImage({
 }
 
 export function ModernOverlayWhyChooseUsSection({ site }: Props) {
-  const { whyChooseUs, about, services, theme } = site;
+  const { whyChooseUs, theme } = site;
 
   const label = whyChooseUs.label || "Quality You Trust";
   const heading =
@@ -88,16 +88,8 @@ export function ModernOverlayWhyChooseUsSection({ site }: Props) {
       ? whyChooseUs.benefits.slice(0, 3).map((b) => b.title)
       : DEFAULT_BENEFITS;
 
-  const imageLeft =
-    whyChooseUs.image ||
-    about.imageSecondary ||
-    services.items[0]?.image ||
-    luxuryFallbackImage(0);
-  const imageRight =
-    whyChooseUs.imageSecondary ||
-    about.image ||
-    services.items[1]?.image ||
-    luxuryFallbackImage(1);
+  const imageLeft = whyChooseUs.image?.trim() || luxuryFallbackImage(0);
+  const imageRight = whyChooseUs.imageSecondary?.trim() || luxuryFallbackImage(1);
 
   return (
     <section id="why-us" className="bg-[#f7f5f0] py-16 sm:py-20 lg:py-24">

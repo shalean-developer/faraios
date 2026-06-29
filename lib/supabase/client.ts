@@ -1,5 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 
+import { recoverBrowserAuthSession } from "@/lib/auth/invalid-refresh-token";
 import { getSupabasePublicKey, getSupabaseUrl } from "./public-env";
 
 /**
@@ -18,6 +19,13 @@ export function createBrowserSupabaseClient() {
 }
 
 let browserClient: ReturnType<typeof createBrowserClient> | undefined;
+let browserRecoveryStarted = false;
+
+function ensureBrowserAuthRecovery(client: ReturnType<typeof createBrowserClient>) {
+  if (browserRecoveryStarted || typeof window === "undefined") return;
+  browserRecoveryStarted = true;
+  void recoverBrowserAuthSession(client);
+}
 
 /** Singleton for client components (call only in the browser / event handlers). */
 export function getSupabaseBrowserClient() {
@@ -26,6 +34,7 @@ export function getSupabaseBrowserClient() {
   }
   if (!browserClient) {
     browserClient = createBrowserSupabaseClient();
+    ensureBrowserAuthRecovery(browserClient);
   }
   return browserClient;
 }

@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { publicCorsPreflightResponse } from "@/lib/api/public-cors";
-import { clearStaleAuthSession } from "@/lib/auth/invalid-refresh-token";
+import { clearStaleAuthSession, isInvalidRefreshTokenError } from "@/lib/auth/invalid-refresh-token";
 import { isPlatformAdminUser } from "@/lib/auth/post-login-redirect";
 import { PLATFORM_WORKSPACE_COOKIE } from "@/lib/constants/workspace-session";
 import { tryWwwRedirectResponse } from "@/lib/website-builder/www-redirect-middleware";
@@ -260,11 +260,16 @@ export async function middleware(request: NextRequest) {
 
 
   const {
-    data: { user },
+    data: { user: authUser },
     error: authError,
   } = await supabase.auth.getUser();
 
-  await clearStaleAuthSession(supabase, authError);
+  const sessionExpired = isInvalidRefreshTokenError(authError);
+  if (sessionExpired) {
+    await clearStaleAuthSession(supabase, authError);
+  }
+
+  const user = sessionExpired ? null : authUser;
 
   if (isOnboarding) {
 
