@@ -10,7 +10,7 @@ import {
 } from "@/app/actions/website-engine";
 import { confirmHostingPaymentAction } from "@/app/actions/confirm-hosting-payment";
 import { Button } from "@/components/ui/button";
-import { DomainHostingCheckout } from "@/components/websites/domain-hosting-checkout";
+import { DomainHostingCheckoutModal } from "@/components/websites/domain-hosting-checkout-modal";
 import { formatDateTimeEnZA } from "@/lib/format/dates";
 import {
   companyWebsiteBuilderSectionPath,
@@ -209,10 +209,7 @@ export function WebsiteDomainsPanel({
 
       if (!connect.ok && connect.requiresHosting) {
         setHostingDomain(domain);
-        setError(
-          connect.error ??
-            "Hosting is still provisioning. Refresh in a minute or contact support."
-        );
+        setError(null);
       } else if (!connect.ok) {
         setError(connect.error);
       } else {
@@ -251,8 +248,10 @@ export function WebsiteDomainsPanel({
       if (!result.ok) {
         if (result.requiresHosting && result.domain) {
           setHostingDomain(result.domain);
+          setError(null);
+        } else {
+          setError(result.error);
         }
-        setError(result.error);
         return;
       }
       setAutoPolling(true);
@@ -357,19 +356,19 @@ export function WebsiteDomainsPanel({
       </form>
 
       {hostingDomain ? (
-        <DomainHostingCheckout
+        <DomainHostingCheckoutModal
+          open={Boolean(hostingDomain)}
           slug={slug}
           companyId={companyId}
           domain={hostingDomain}
           plans={hostingPlans}
           billingEmail={billingEmail}
-          embedded={embedded}
           returnPath={`${
             embedded
               ? companyWebsiteBuilderSectionPath(slug, "domains")
               : companyWebsiteDomainsPath(slug)
           }?payment=success&domain=${encodeURIComponent(hostingDomain)}`}
-          onCancel={() => setHostingDomain(null)}
+          onClose={() => setHostingDomain(null)}
         />
       ) : null}
 
@@ -484,7 +483,22 @@ export function WebsiteDomainsPanel({
         </div>
       )}
 
-      {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
+      {error ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm font-medium text-red-600">{error}</p>
+          {hostingPlans.length > 0 && domainInput.trim() ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => setHostingDomain(domainInput.trim().toLowerCase())}
+            >
+              View hosting plans
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
       {success ? <p className="text-sm font-medium text-emerald-600">{success}</p> : null}
     </div>
   );
