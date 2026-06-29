@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
+import { after } from "next/server";
 
 import { getHostingProvider } from "@/lib/hosting/providers";
 import { getDefaultHostingProviderSlug } from "@/lib/hosting/constants";
@@ -10,6 +11,7 @@ import { requireCompanyPermission } from "@/lib/services/company-access";
 import { provisionCompanyWebsiteDomain } from "@/lib/services/hosting-domain";
 import {
   normalizeDomain,
+  runAutoDomainVerificationWithRetries,
   verifyWebsiteDomain,
 } from "@/lib/services/website-domains";
 import { recordApiKeyEvent } from "@/lib/services/business-websites";
@@ -27,7 +29,9 @@ import {
   syncDomainSettingsCustomDomain,
 } from "@/lib/website-builder/service";
 
-type ActionResult = { ok: true } | { ok: false; error: string };
+type ActionResult =
+  | { ok: true; websiteDomainId?: string }
+  | { ok: false; error: string };
 type ActionResultWithKey = { ok: true; apiKey: string } | { ok: false; error: string };
 
 export async function addWebsiteDomainAction(input: {
@@ -83,7 +87,7 @@ export async function addWebsiteDomainAction(input: {
   revalidatePath(companyWebsiteDomainsPath(input.companySlug));
   revalidatePath(companyWebsiteBuilderSectionPath(input.companySlug, "domains"));
   revalidatePath(companyWebsitesPath(input.companySlug));
-  return { ok: true };
+  return { ok: true, websiteDomainId: provision.websiteDomainId };
 }
 
 export async function verifyWebsiteDomainAction(input: {
@@ -136,6 +140,25 @@ export async function verifyWebsiteDomainAction(input: {
 
   revalidatePath(companyWebsiteDomainsPath(input.companySlug));
   revalidatePath(companyWebsiteBuilderSectionPath(input.companySlug, "domains"));
+
+  if (!result.verified) {
+    const { companyId, companySlug, websiteDomainId } = input;
+    after(async () => {
+      try {
+        const autoResult = await runAutoDomainVerificationWithRetries(
+          websiteDomainId,
+          companyId
+        );
+        if (autoResult.verified) {
+          revalidatePath(companyWebsiteDomainsPath(companySlug));
+          revalidatePath(companyWebsiteBuilderSectionPath(companySlug, "domains"));
+        }
+      } catch (error) {
+        console.error("[website-engine] auto-verify follow-up failed", websiteDomainId, error);
+      }
+    });
+  }
+
   return { ok: true, verified: result.verified, hint: result.hint };
 }
 

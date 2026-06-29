@@ -11,6 +11,7 @@ import type { WebsiteDnsRecord, WebsiteDomain, WebsiteDomainType } from "@/types
 import {
   getDnsRecordsForDomain,
   normalizeDomain,
+  runAutoDomainVerificationWithRetries,
   seedDnsRecordsForDomain,
 } from "./website-domains";
 
@@ -318,8 +319,17 @@ export async function provisionCompanyWebsiteDomain(
           serverId: input.serverId,
           pleskSubscriptionId: input.pleskSubscriptionId,
         });
+        await runAutoDomainVerificationWithRetries(websiteDomainId, input.companyId);
       } catch (error) {
         console.error("[hosting-domain] post-connect tasks failed", normalized, error);
+      }
+    });
+  } else {
+    after(async () => {
+      try {
+        await runAutoDomainVerificationWithRetries(websiteDomainId, input.companyId);
+      } catch (error) {
+        console.error("[hosting-domain] auto-verify failed", normalized, error);
       }
     });
   }

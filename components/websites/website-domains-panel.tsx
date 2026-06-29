@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, RefreshCw } from "lucide-react";
 
@@ -14,6 +14,8 @@ import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 import { cn } from "@/lib/utils";
 
 const DOMAIN_ACTION_TIMEOUT_MS = 25_000;
+const AUTO_VERIFY_POLL_INTERVAL_MS = 20_000;
+const AUTO_VERIFY_POLL_MAX_ATTEMPTS = 15;
 
 async function withDomainActionTimeout<T>(
   promise: Promise<T>,
@@ -67,7 +69,78 @@ export function WebsiteDomainsPanel({
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [autoPolling, setAutoPolling] = useState(false);
+  const pollAttemptsRef = useRef(0);
   const embedded = variant === "embedded";
+
+  const pendingDomainIds = domains
+    .filter((domain) => domain.verification_status === "pending")
+    .map((domain) => domain.id);
+  const pendingDomainIdsKey = pendingDomainIds.join(",");
+
+  const runVerification = useCallback(
+    async (domainId: string) => {
+      const result = await withDomainActionTimeout(
+        verifyWebsiteDomainAction({
+          companyId,
+          companySlug: slug,
+          websiteDomainId: domainId,
+        })
+      );
+      return result;
+    },
+    [companyId, slug]
+  );
+
+  useEffect(() => {
+    if (!autoPolling || !pendingDomainIdsKey) {
+      pollAttemptsRef.current = 0;
+      return;
+    }
+
+    const domainIds = pendingDomainIdsKey.split(",").filter(Boolean);
+
+    const poll = async () => {
+      pollAttemptsRef.current += 1;
+
+      for (const domainId of domainIds) {
+        try {
+          const result = await runVerification(domainId);
+          if (!result.ok) continue;
+          if (result.verified) {
+            setAutoPolling(false);
+            setSuccess("Domain verified automatically.");
+            router.refresh();
+            return;
+          }
+        } catch {
+          // Keep polling until max attempts.
+        }
+      }
+
+      router.refresh();
+
+      if (pollAttemptsRef.current >= AUTO_VERIFY_POLL_MAX_ATTEMPTS) {
+        setAutoPolling(false);
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      void poll();
+    }, AUTO_VERIFY_POLL_INTERVAL_MS);
+
+    void poll();
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [autoPolling, pendingDomainIdsKey, router, runVerification]);
+
+  useEffect(() => {
+    if (pendingDomainIdsKey) {
+      setAutoPolling(true);
+    }
+  }, [pendingDomainIdsKey]);
 
   const onAddDomain = async (e: FormEvent) => {
     e.preventDefault();
@@ -88,7 +161,11 @@ export function WebsiteDomainsPanel({
         setError(result.error);
         return;
       }
-      setSuccess("Domain added. Configure DNS records below, then click Verify DNS.");
+      setAutoPolling(true);
+      pollAttemptsRef.current = 0;
+      setSuccess(
+        "Domain added. Auto-checking DNS every 20 seconds — add the records below at your DNS host if you have not already."
+      );
       setDomainInput("");
       router.refresh();
     } catch (actionError) {
@@ -106,23 +183,23 @@ export function WebsiteDomainsPanel({
   const onVerify = async (domainId: string) => {
     setVerifyingId(domainId);
     setError(null);
+    setAutoPolling(true);
+    pollAttemptsRef.current = 0;
     try {
-      const result = await withDomainActionTimeout(
-        verifyWebsiteDomainAction({
-          companyId,
-          companySlug: slug,
-          websiteDomainId: domainId,
-        })
-      );
+      const result = await runVerification(domainId);
       if (!result.ok) {
         setError(result.error);
         return;
       }
-      setSuccess(
-        result.verified
-          ? "Domain verified!"
-          : result.hint ?? "DNS not verified yet. Check your records."
-      );
+      if (result.verified) {
+        setAutoPolling(false);
+        setSuccess("Domain verified!");
+      } else {
+        setSuccess(
+          result.hint ??
+            "DNS not verified yet. Auto-checking every 20 seconds while this page is open."
+        );
+      }
       router.refresh();
     } catch (actionError) {
       setError(
@@ -189,6 +266,12 @@ export function WebsiteDomainsPanel({
         <p className="text-sm text-slate-500">No custom domains connected yet.</p>
       ) : (
         <div className="space-y-4">
+          {autoPolling && pendingDomainIdsKey ? (
+            <p className="flex items-center gap-2 text-sm text-slate-600">
+              <Loader2 className="h-4 w-4 animate-spin text-violet-600" />
+              Auto-checking DNS for pending domains every 20 seconds…
+            </p>
+          ) : null}
           {domains.map((domain) => {
             const records = dnsByDomain[domain.id] ?? [];
             return (

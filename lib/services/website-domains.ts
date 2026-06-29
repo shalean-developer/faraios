@@ -256,6 +256,48 @@ export async function verifyWebsiteDomain(
   return { ok: true, verified: allVerified, hint: resultHint };
 }
 
+const AUTO_VERIFY_RETRY_DELAYS_MS = [0, 15_000, 30_000, 60_000, 120_000] as const;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+/** Background DNS checks after connect or manual verify (handles propagation delay). */
+export async function runAutoDomainVerificationWithRetries(
+  websiteDomainId: string,
+  companyId: string
+): Promise<{ verified: boolean; attempts: number }> {
+  let attempts = 0;
+
+  for (const delayMs of AUTO_VERIFY_RETRY_DELAYS_MS) {
+    if (delayMs > 0) {
+      await sleep(delayMs);
+    }
+
+    attempts += 1;
+    const result = await verifyWebsiteDomain(websiteDomainId, companyId);
+    if (!result.ok) {
+      console.warn(
+        "[website_domains] auto-verify attempt failed",
+        websiteDomainId,
+        result.error
+      );
+      continue;
+    }
+
+    if (result.verified) {
+      console.info("[website_domains] auto-verify succeeded", websiteDomainId, {
+        attempts,
+      });
+      return { verified: true, attempts };
+    }
+  }
+
+  return { verified: false, attempts };
+}
+
 export async function seedDnsRecordsForDomain(
   websiteDomainId: string,
   dnsRecords: { recordType: DnsRecordType; host: string; value: string }[]
