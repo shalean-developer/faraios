@@ -13,10 +13,8 @@ import { companyHasWebsiteProject } from "@/lib/services/projects";
 import { getWebsiteSetupChecklistForCompany } from "@/lib/services/website-checklist";
 import { getWebsiteDomainsForCompany } from "@/lib/services/website-domains";
 import { getRecentTrackingEvents } from "@/lib/services/website-tracking";
-import {
-  getWebsiteEditorChoice,
-  primaryHostedWebsiteForClassicEditor,
-} from "@/lib/websites/editor-choice";
+import { getWebsiteEditorChoice } from "@/lib/websites/get-website-editor-choice";
+import { primaryHostedWebsiteForClassicEditor } from "@/lib/websites/editor-choice";
 import { companyDashboardPath } from "@/lib/paths/company";
 import { createClient } from "@/lib/supabase/server";
 import type { Website } from "@/types/database";

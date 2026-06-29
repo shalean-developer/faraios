@@ -15,10 +15,8 @@ import { getCompanyBySlug } from "@/lib/services/companies";
 import { listCompaniesForUser } from "@/lib/services/memberships";
 import { getUserPermissionKeys } from "@/lib/services/permissions";
 import { companyHasWebsiteProject } from "@/lib/services/projects";
-import {
-  getWebsiteEditorChoice,
-  primaryHostedWebsiteForClassicEditor,
-} from "@/lib/websites/editor-choice";
+import { getWebsiteEditorChoice } from "@/lib/websites/get-website-editor-choice";
+import { primaryHostedWebsiteForClassicEditor } from "@/lib/websites/editor-choice";
 import { createClient } from "@/lib/supabase/server";
 import type { SubscriptionCompanyFields } from "@/lib/subscriptions/types";
 

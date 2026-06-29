@@ -14,7 +14,7 @@ import {
   getBuilderDashboardData,
 } from "@/lib/website-builder/service";
 import { getBlogDashboardData } from "@/lib/website-builder/blog";
-import { getWebsiteEditorChoice } from "@/lib/websites/editor-choice";
+import { getWebsiteEditorChoice } from "@/lib/websites/get-website-editor-choice";
 import { getBuilderAnalytics } from "@/lib/website-builder/analytics";
 import { listPublishSnapshots } from "@/lib/website-builder/publish-snapshots";
 import { listContentPosts, summarizeContentPosts } from "@/lib/services/content-posts";
