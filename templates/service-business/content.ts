@@ -127,23 +127,18 @@ function mapBenefits(raw: unknown): BenefitItem[] {
 
 function mapTransformSlides(raw: unknown): TransformSlideItem[] {
   if (!Array.isArray(raw)) return [];
-  return raw
-    .map((item) => {
-      if (typeof item !== "object" || !item) return null;
-      const record = item as Record<string, unknown>;
-      const label = asString(record.label);
-      const beforeImage = asString(record.beforeImage, asString(record.before));
-      const afterImage = asString(record.afterImage, asString(record.after));
-      if (!label || !beforeImage || !afterImage) return null;
-      const thumbnailImage = asString(record.thumbnailImage, asString(record.thumbnail));
-      return {
-        label,
-        beforeImage,
-        afterImage,
-        thumbnailImage: thumbnailImage || undefined,
-      };
-    })
-    .filter((item): item is TransformSlideItem => item !== null);
+  return raw.flatMap((item) => {
+    if (typeof item !== "object" || !item) return [];
+    const record = item as Record<string, unknown>;
+    const label = asString(record.label);
+    const beforeImage = asString(record.beforeImage, asString(record.before));
+    const afterImage = asString(record.afterImage, asString(record.after));
+    if (!label || !beforeImage || !afterImage) return [];
+    const thumbnailImage = asString(record.thumbnailImage, asString(record.thumbnail));
+    const slide: TransformSlideItem = { label, beforeImage, afterImage };
+    if (thumbnailImage) slide.thumbnailImage = thumbnailImage;
+    return [slide];
+  });
 }
 
 function mapStringList(raw: unknown): string[] {
@@ -175,21 +170,22 @@ function mapTestimonialCards(raw: unknown): TestimonialCard[] {
 
 function mapBlogPosts(raw: unknown): BlogPostCard[] {
   if (!Array.isArray(raw)) return [];
-  return raw
-    .map((item) => {
-      if (typeof item !== "object" || !item) return null;
-      const record = item as Record<string, unknown>;
-      const title = asString(record.title);
-      if (!title) return null;
-      return {
-        category: asString(record.category, "Insights"),
-        title,
-        excerpt: asString(record.excerpt, asString(record.description)),
-        image: asString(record.image, asString(record.imageUrl)) || undefined,
-        href: asString(record.href) || undefined,
-      };
-    })
-    .filter((item): item is BlogPostCard => item !== null);
+  return raw.flatMap((item) => {
+    if (typeof item !== "object" || !item) return [];
+    const record = item as Record<string, unknown>;
+    const title = asString(record.title);
+    if (!title) return [];
+    const post: BlogPostCard = {
+      category: asString(record.category, "Insights"),
+      title,
+      excerpt: asString(record.excerpt, asString(record.description)),
+    };
+    const image = asString(record.image, asString(record.imageUrl));
+    const href = asString(record.href);
+    if (image) post.image = image;
+    if (href) post.href = href;
+    return [post];
+  });
 }
 
 function mapChips(raw: unknown, services: ServiceCard[]): ChipItem[] {
