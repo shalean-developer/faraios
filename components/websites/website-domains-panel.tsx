@@ -13,6 +13,28 @@ import { formatDateTimeEnZA } from "@/lib/format/dates";
 import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 import { cn } from "@/lib/utils";
 
+const DOMAIN_ACTION_TIMEOUT_MS = 25_000;
+
+async function withDomainActionTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs = DOMAIN_ACTION_TIMEOUT_MS
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(
+        () =>
+          reject(
+            new Error(
+              "This is taking longer than expected. Refresh the page — your domain may already be listed below."
+            )
+          ),
+        timeoutMs
+      );
+    }),
+  ]);
+}
+
 export type WebsiteDomainDnsHelp = {
   serverIp: string | null;
   serverHostname: string | null;
@@ -52,42 +74,66 @@ export function WebsiteDomainsPanel({
     setPending(true);
     setError(null);
     setSuccess(null);
-    const result = await addWebsiteDomainAction({
-      companyId,
-      companySlug: slug,
-      domain: domainInput,
-      websiteId: websiteId ?? null,
-      isPrimary: domains.length === 0,
-    });
-    setPending(false);
-    if (!result.ok) {
-      setError(result.error);
-      return;
+    try {
+      const result = await withDomainActionTimeout(
+        addWebsiteDomainAction({
+          companyId,
+          companySlug: slug,
+          domain: domainInput,
+          websiteId: websiteId ?? null,
+          isPrimary: domains.length === 0,
+        })
+      );
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setSuccess("Domain added. Configure DNS records below, then click Verify DNS.");
+      setDomainInput("");
+      router.refresh();
+    } catch (actionError) {
+      setError(
+        actionError instanceof Error
+          ? actionError.message
+          : "Could not connect domain. Try again."
+      );
+      router.refresh();
+    } finally {
+      setPending(false);
     }
-    setSuccess("Domain added. Configure DNS records below.");
-    setDomainInput("");
-    router.refresh();
   };
 
   const onVerify = async (domainId: string) => {
     setVerifyingId(domainId);
     setError(null);
-    const result = await verifyWebsiteDomainAction({
-      companyId,
-      companySlug: slug,
-      websiteDomainId: domainId,
-    });
-    setVerifyingId(null);
-    if (!result.ok) {
-      setError(result.error);
-      return;
+    try {
+      const result = await withDomainActionTimeout(
+        verifyWebsiteDomainAction({
+          companyId,
+          companySlug: slug,
+          websiteDomainId: domainId,
+        })
+      );
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setSuccess(
+        result.verified
+          ? "Domain verified!"
+          : result.hint ?? "DNS not verified yet. Check your records."
+      );
+      router.refresh();
+    } catch (actionError) {
+      setError(
+        actionError instanceof Error
+          ? actionError.message
+          : "Verification timed out. Check DNS records and try again."
+      );
+      router.refresh();
+    } finally {
+      setVerifyingId(null);
     }
-    setSuccess(
-      result.verified
-        ? "Domain verified!"
-        : result.hint ?? "DNS not verified yet. Check your records."
-    );
-    router.refresh();
   };
 
   return (

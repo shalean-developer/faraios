@@ -68,18 +68,21 @@ async function verifyDnsRecord(
 
   try {
     if (recordType === "TXT") {
-      const records = await dns.resolveTxt(lookupDomain);
+      const records = await withDnsTimeout(dns.resolveTxt(lookupDomain));
+      if (!records) return false;
       const flat = records.map((r) => r.join("")).join("");
       return flat.includes(expectedValue.replace(/"/g, ""));
     }
     if (recordType === "CNAME") {
-      const records = await dns.resolveCname(lookupDomain);
+      const records = await withDnsTimeout(dns.resolveCname(lookupDomain));
+      if (!records) return false;
       return records.some(
         (r) => r.toLowerCase().replace(/\.$/, "") === expectedValue.toLowerCase().replace(/\.$/, "")
       );
     }
     if (recordType === "A") {
-      const records = await dns.resolve4(lookupDomain);
+      const records = await withDnsTimeout(dns.resolve4(lookupDomain));
+      if (!records) return false;
       return records.includes(expectedValue);
     }
   } catch {
@@ -90,7 +93,8 @@ async function verifyDnsRecord(
 
 async function getPublicNameservers(domain: string): Promise<string[]> {
   try {
-    return await dns.resolveNs(domain);
+    const records = await withDnsTimeout(dns.resolveNs(domain));
+    return records ?? [];
   } catch {
     return [];
   }
@@ -98,6 +102,17 @@ async function getPublicNameservers(domain: string): Promise<string[]> {
 
 function normalizeNameserver(value: string): string {
   return value.toLowerCase().replace(/\.$/, "");
+}
+
+const DNS_LOOKUP_TIMEOUT_MS = 5_000;
+
+function withDnsTimeout<T>(promise: Promise<T>, timeoutMs = DNS_LOOKUP_TIMEOUT_MS): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), timeoutMs);
+    }),
+  ]);
 }
 
 function usesExternalDns(publicNs: string[], pleskNs: string[]): boolean {
@@ -208,12 +223,15 @@ export async function verifyWebsiteDomain(
 
   if (allVerified && domain.hosting_provider) {
     const provider = getHostingProvider(domain.hosting_provider);
-    const status = await provider.checkStatus({
-      providerDomainId: domain.provider_domain_id ?? undefined,
-      domain: domain.domain,
-      companyId,
-    });
-    if (status.sslStatus === "active") {
+    const status = await withDnsTimeout(
+      provider.checkStatus({
+        providerDomainId: domain.provider_domain_id ?? undefined,
+        domain: domain.domain,
+        companyId,
+      }),
+      8_000
+    );
+    if (status?.sslStatus === "active") {
       sslStatus = "active";
       await admin.client
         .from("website_domains")

@@ -124,6 +124,7 @@ export async function pleskXmlRequest(
       },
       body: packet,
       cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
     });
 
     const rawXml = await res.text();
