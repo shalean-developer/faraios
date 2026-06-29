@@ -13,6 +13,10 @@ import { companyHasWebsiteProject } from "@/lib/services/projects";
 import { getWebsiteSetupChecklistForCompany } from "@/lib/services/website-checklist";
 import { getWebsiteDomainsForCompany } from "@/lib/services/website-domains";
 import { getRecentTrackingEvents } from "@/lib/services/website-tracking";
+import {
+  getWebsiteEditorChoice,
+  primaryHostedWebsiteForClassicEditor,
+} from "@/lib/websites/editor-choice";
 import { companyDashboardPath } from "@/lib/paths/company";
 import { createClient } from "@/lib/supabase/server";
 import type { Website } from "@/types/database";
@@ -70,7 +74,7 @@ export default async function CompanyWebsitesPage({ params }: Props) {
 
   const companyId = row.id;
 
-  const [{ data: websites }, hasWebsiteProject, connectedWebsite, hosting, domains, properties, recentEvents] =
+  const [{ data: websites }, hasWebsiteProject, connectedWebsite, hosting, domains, properties, recentEvents, editorChoice] =
     await Promise.all([
       supabase
         .from("websites")
@@ -83,9 +87,12 @@ export default async function CompanyWebsitesPage({ params }: Props) {
       getWebsiteDomainsForCompany(companyId),
       listBusinessWebProperties(companyId),
       getRecentTrackingEvents(companyId, 5),
+      getWebsiteEditorChoice(companyId),
     ]);
 
   const hostedWebsites = (websites as Website[] | null) ?? [];
+  const classicEditorWebsiteId =
+    primaryHostedWebsiteForClassicEditor(editorChoice)?.id ?? null;
 
   const checklist = await getWebsiteSetupChecklistForCompany(
     companyId,
@@ -117,6 +124,8 @@ export default async function CompanyWebsitesPage({ params }: Props) {
       checklist={checklist}
       summary={summary}
       recentEvents={recentEvents}
+      editorChoice={editorChoice}
+      classicEditorWebsiteId={classicEditorWebsiteId}
     />
   );
 }

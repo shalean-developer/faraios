@@ -49,6 +49,7 @@ import {
   companyWebsiteTrackingPath,
   companyWebsiteBuilderPath,
   companyWebsiteBuilderSectionPath,
+  companyWebsiteEditPath,
   companyWebsitesPath,
 } from "@/lib/paths/company";
 
@@ -461,7 +462,14 @@ export type WebsiteSubNavKey =
   | "tracking"
   | "hosting"
   | "billing"
-  | "project";
+  | "project"
+  | "classic-editor";
+
+export type WebsiteNavOptions = {
+  hasWebsiteProject?: boolean;
+  /** Hosted website id for the classic section-based content editor. */
+  classicEditorWebsiteId?: string | null;
+};
 
 export type WebsiteSubNavItem = {
   key: WebsiteSubNavKey;
@@ -502,7 +510,7 @@ const WEBSITE_BUILDER_SIDEBAR_KEYS = new Set<WebsiteSubNavKey>([
 
 function websiteSubNavCatalog(
   slug: string,
-  options?: { hasWebsiteProject?: boolean }
+  options?: WebsiteNavOptions
 ): WebsiteSubNavItem[] {
   const items: WebsiteSubNavItem[] = [
     { key: "overview", label: "Overview", href: companyWebsitesPath(slug) },
@@ -602,6 +610,15 @@ function websiteSubNavCatalog(
     },
   ];
 
+  if (options?.classicEditorWebsiteId) {
+    items.splice(2, 0, {
+      key: "classic-editor",
+      label: "Classic editor",
+      href: companyWebsiteEditPath(slug, options.classicEditorWebsiteId),
+      description: "Section-based content editor for hosted template sites",
+    });
+  }
+
   if (options?.hasWebsiteProject) {
     items.push({
       key: "project",
@@ -615,11 +632,12 @@ function websiteSubNavCatalog(
 
 export function websiteSubNavItems(
   slug: string,
-  options?: { hasWebsiteProject?: boolean }
+  options?: WebsiteNavOptions
 ): WebsiteSubNavItem[] {
   return websiteSubNavCatalog(slug, options).filter(
     (item) =>
       item.key === "overview" ||
+      item.key === "classic-editor" ||
       WEBSITE_BUILDER_SIDEBAR_KEYS.has(item.key) ||
       item.key === "builder-service-pages" ||
       item.key === "builder-enquiries"
@@ -628,20 +646,28 @@ export function websiteSubNavItems(
 
 export function websiteOverviewHubItems(
   slug: string,
-  options?: { hasWebsiteProject?: boolean }
+  options?: WebsiteNavOptions
 ): WebsiteSubNavItem[] {
   const hub = websiteSubNavCatalog(slug, options).filter((item) =>
     WEBSITE_OVERVIEW_HUB_KEYS.has(item.key)
   );
-  return [
+  const editorLinks: WebsiteSubNavItem[] = [
     {
       key: "builder",
       label: "Website builder",
       href: companyWebsiteBuilderPath(slug),
       description: "Visual page builder, theme, and publishing",
     },
-    ...hub,
   ];
+  if (options?.classicEditorWebsiteId) {
+    editorLinks.push({
+      key: "classic-editor",
+      label: "Classic editor",
+      href: companyWebsiteEditPath(slug, options.classicEditorWebsiteId),
+      description: "Hero, services, gallery, and template sections",
+    });
+  }
+  return [...editorLinks, ...hub];
 }
 
 export function websiteSubNavKeyFromPathname(
@@ -674,6 +700,7 @@ export function websiteSubNavKeyFromPathname(
   if (pathname.startsWith(`${base}/websites/api-keys`)) return "api-keys";
   if (pathname.startsWith(`${base}/websites/tracking`)) return "tracking";
   if (pathname.startsWith(`${base}/websites/hosting`)) return "hosting";
+  if (/\/websites\/[^/]+\/edit\/?$/.test(pathname)) return "classic-editor";
   if (pathname.startsWith(`${base}/websites`)) return "overview";
   return "overview";
 }

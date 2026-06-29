@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  FileText,
   Globe,
   Hammer,
   Key,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { PreviewWebsiteButton } from "@/components/websites/preview-website-button";
+import { WebsiteEditorChoicePanel } from "@/components/websites/website-editor-choice";
 import { BookingWidgetInstallSummary } from "@/components/company/booking-widget-install-summary";
 import { WebsiteSetupChecklistPanel } from "@/components/websites/website-setup-checklist";
 import { websiteOverviewHubItems, type WebsiteSubNavKey } from "@/lib/constants/company-nav";
@@ -33,6 +35,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { ConnectedWebsite, HostingSubscription, Website } from "@/types/database";
 import type { WebsiteDomain } from "@/types/website-engine";
+import type { WebsiteEditorChoice } from "@/lib/websites/editor-choice";
 
 const riseCardClassName = "rounded-xl border border-slate-200 bg-white shadow-sm";
 const riseOutlineButtonClassName =
@@ -70,6 +73,7 @@ const HUB_LINK_ICONS: Record<
   hosting: Rocket,
   billing: Server,
   project: Hammer,
+  "classic-editor": FileText,
 };
 
 type TrackingEvent = {
@@ -208,6 +212,8 @@ export function CompanyWebsitesClient({
   summary,
   recentEvents,
   companyId,
+  editorChoice,
+  classicEditorWebsiteId = null,
 }: {
   slug: string;
   companyId: string;
@@ -220,6 +226,8 @@ export function CompanyWebsitesClient({
   checklist: WebsiteSetupChecklist;
   summary: WebsiteHubSummary;
   recentEvents: TrackingEvent[];
+  editorChoice: WebsiteEditorChoice;
+  classicEditorWebsiteId?: string | null;
 }) {
   const statCards = [
     {
@@ -245,7 +253,10 @@ export function CompanyWebsitesClient({
     },
   ];
 
-  const hubLinks = websiteOverviewHubItems(slug, { hasWebsiteProject });
+  const hubLinks = websiteOverviewHubItems(slug, {
+    hasWebsiteProject,
+    classicEditorWebsiteId,
+  });
 
   return (
     <div className="bg-[#f0f2f5] px-4 py-4 sm:px-5 sm:py-5">
@@ -275,6 +286,13 @@ export function CompanyWebsitesClient({
           <MetricCard key={card.label} {...card} />
         ))}
       </div>
+
+      <WebsiteEditorChoicePanel
+        slug={slug}
+        companyId={companyId}
+        editorChoice={editorChoice}
+        className="mt-4"
+      />
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <PathCard
@@ -351,7 +369,7 @@ export function CompanyWebsitesClient({
                             href={companyWebsiteEditPath(slug, website.id)}
                             className="font-medium text-[#4a6fd8] hover:underline"
                           >
-                            Edit
+                            Classic editor
                           </Link>
                         </td>
                         <td className="px-4 py-3 text-right sm:pr-5">

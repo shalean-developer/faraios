@@ -15,6 +15,10 @@ import { getCompanyBySlug } from "@/lib/services/companies";
 import { listCompaniesForUser } from "@/lib/services/memberships";
 import { getUserPermissionKeys } from "@/lib/services/permissions";
 import { companyHasWebsiteProject } from "@/lib/services/projects";
+import {
+  getWebsiteEditorChoice,
+  primaryHostedWebsiteForClassicEditor,
+} from "@/lib/websites/editor-choice";
 import { createClient } from "@/lib/supabase/server";
 import type { SubscriptionCompanyFields } from "@/lib/subscriptions/types";
 
@@ -32,7 +36,12 @@ export default async function CompanyDashboardLayout({ children, params }: Props
     notFound();
   }
 
-  const hasWebsiteProject = await companyHasWebsiteProject(row.id);
+  const [hasWebsiteProject, editorChoice] = await Promise.all([
+    companyHasWebsiteProject(row.id),
+    getWebsiteEditorChoice(row.id),
+  ]);
+  const classicEditorWebsiteId =
+    primaryHostedWebsiteForClassicEditor(editorChoice)?.id ?? null;
 
   const supabase = await createClient();
   const {
@@ -92,6 +101,7 @@ export default async function CompanyDashboardLayout({ children, params }: Props
         slug={slug}
         companyName={row.name}
         hasWebsiteProject={hasWebsiteProject}
+        classicEditorWebsiteId={classicEditorWebsiteId}
         companies={isPlatformWorkspace ? [] : companies}
         userDisplayName={
           isPlatformWorkspace

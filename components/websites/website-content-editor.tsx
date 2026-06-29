@@ -22,7 +22,7 @@ import {
   type WebsiteContentFormData,
 } from "@/components/websites/website-content-form-data";
 import { WebsitePreviewFrame } from "@/components/websites/website-preview-frame";
-import { companyDashboardPath, companyWebsitesPath } from "@/lib/paths/company";
+import { companyDashboardPath, companyWebsiteBuilderPath, companyWebsitesPath } from "@/lib/paths/company";
 import { cn } from "@/lib/utils";
 import type { WebsiteContent } from "@/types/database";
 
@@ -121,12 +121,20 @@ export function WebsiteContentEditor({
             ← Back to websites
           </Link>
           {!isAdmin ? (
-            <Link
-              href={companyDashboardPath(companySlug)}
-              className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
-            >
-              Dashboard
-            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href={companyWebsiteBuilderPath(companySlug)}
+                className="text-sm font-medium text-[#4a6fd8] transition-colors hover:underline"
+              >
+                Visual website builder
+              </Link>
+              <Link
+                href={companyDashboardPath(companySlug)}
+                className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
+              >
+                Dashboard
+              </Link>
+            </div>
           ) : null}
           <a
             href={resolvedPreviewHref}
@@ -142,11 +150,11 @@ export function WebsiteContentEditor({
       {!embedded ? (
         <>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Website Content Editor
+            Classic content editor
           </h1>
           <p className="mt-2 text-sm text-slate-500">
             {extended
-              ? "Edit all homepage sections — preview updates after you save."
+              ? "Edit all homepage sections — preview updates after you save. Prefer drag-and-drop? Use the visual website builder instead."
               : "Update content sections — use the live preview on larger screens."}
           </p>
         </>

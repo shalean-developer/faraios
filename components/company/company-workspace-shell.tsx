@@ -41,6 +41,7 @@ export function CompanyWorkspaceShell({
   slug,
   companyName,
   hasWebsiteProject = false,
+  classicEditorWebsiteId = null,
   companies = [],
   userDisplayName,
   userEmail,
@@ -53,6 +54,7 @@ export function CompanyWorkspaceShell({
   slug: string;
   companyName: string;
   hasWebsiteProject?: boolean;
+  classicEditorWebsiteId?: string | null;
   companies?: UserCompany[];
   userDisplayName: string;
   userEmail: string | null;
@@ -119,6 +121,7 @@ export function CompanyWorkspaceShell({
             slug={slug}
             activeNav={activeNav}
             hasWebsiteProject={hasWebsiteProject}
+            classicEditorWebsiteId={classicEditorWebsiteId}
             collapsed={mounted && collapsed}
             userPermissions={userPermissions}
             subscription={subscription}
@@ -133,6 +136,7 @@ export function CompanyWorkspaceShell({
             activeNav={activeNav}
             companyName={companyName}
             hasWebsiteProject={hasWebsiteProject}
+            classicEditorWebsiteId={classicEditorWebsiteId}
             userPermissions={userPermissions}
             subscription={subscription}
             industrySlug={industrySlug}

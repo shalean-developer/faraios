@@ -11,11 +11,10 @@ import {
   getWebsiteDomainsForCompany,
 } from "@/lib/services/website-domains";
 import {
-  ensureBuilderWebsite,
   getBuilderDashboardData,
-  getLegacyWebsiteRowForCompany,
 } from "@/lib/website-builder/service";
 import { getBlogDashboardData } from "@/lib/website-builder/blog";
+import { getWebsiteEditorChoice } from "@/lib/websites/editor-choice";
 import { getBuilderAnalytics } from "@/lib/website-builder/analytics";
 import { listPublishSnapshots } from "@/lib/website-builder/publish-snapshots";
 import { listContentPosts, summarizeContentPosts } from "@/lib/services/content-posts";
@@ -44,7 +43,7 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
   const hasAccess = await userHasCompanySlugAccess(user.id, decoded);
   if (!hasAccess) return { unauthorized: true as const };
 
-  const [initialDashboardData, servicesRes, contentPosts, blogData, legacyWebsite] =
+  const [initialDashboardData, servicesRes, contentPosts, blogData, editorChoice] =
     await Promise.all([
       getBuilderDashboardData(company.id),
       supabase
@@ -55,16 +54,10 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
         .order("sort_order", { ascending: true }),
       listContentPosts(company.id),
       getBlogDashboardData(company.id),
-      getLegacyWebsiteRowForCompany(company.id),
+      getWebsiteEditorChoice(company.id),
     ]);
 
-  let dashboardData = initialDashboardData;
-  if (!dashboardData && legacyWebsite) {
-    const adopted = await ensureBuilderWebsite(company);
-    if (adopted.ok) {
-      dashboardData = await getBuilderDashboardData(company.id);
-    }
-  }
+  const dashboardData = initialDashboardData;
 
   const builderAnalytics =
     section === "analytics" && dashboardData?.website
@@ -134,6 +127,7 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
     hostingPlans,
     billingEmail: company.primary_contact_email ?? null,
     domainDnsGuidanceById,
+    editorChoice,
   };
 }
 
@@ -178,6 +172,7 @@ export function renderWebsiteBuilderPage(
       billingEmail={data.billingEmail}
       domainPurchaseNotice={domainPurchaseNotice ?? null}
       domainDnsGuidanceById={data.domainDnsGuidanceById}
+      editorChoice={data.editorChoice}
     />
   );
 }

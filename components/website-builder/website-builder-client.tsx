@@ -80,6 +80,8 @@ import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 import type { HostingPlanRow } from "@/types/hosting-automation";
 import type { DomainPurchaseNotice } from "@/lib/services/domain-purchase-notice";
 import type { DomainDnsGuidance } from "@/lib/hosting/external-dns-guidance";
+import type { WebsiteEditorChoice } from "@/lib/websites/editor-choice";
+import { WebsiteEditorChoicePanel } from "@/components/websites/website-editor-choice";
 
 export type BuilderSection =
   | "overview"
@@ -130,6 +132,7 @@ type Props = {
   billingEmail?: string | null;
   domainPurchaseNotice?: DomainPurchaseNotice | null;
   domainDnsGuidanceById?: Record<string, DomainDnsGuidance>;
+  editorChoice?: WebsiteEditorChoice;
 };
 
 function SectionCard({
@@ -304,12 +307,21 @@ export function WebsiteBuilderClient(props: Props) {
   );
 }
 
+function emptyWebsiteState({
+  slug,
+  companyId,
+  editorChoice,
+}: Pick<Props, "slug" | "companyId" | "editorChoice">) {
+  return <EmptyWebsite slug={slug} companyId={companyId} editorChoice={editorChoice} />;
+}
+
 function OverviewSection({
   slug,
   companyId,
   company,
   website,
   domainSettings,
+  editorChoice,
 }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -340,6 +352,13 @@ function OverviewSection({
     <div className="space-y-6">
       <SectionCard title="Your business website">
         {!website ? (
+          editorChoice?.legacy || editorChoice?.builder ? (
+            <WebsiteEditorChoicePanel
+              slug={slug}
+              companyId={companyId}
+              editorChoice={editorChoice ?? { legacy: null, builder: null }}
+            />
+          ) : (
           <div className="text-center">
             <p className="text-sm text-slate-600">
               Generate a landing page using your business profile, services, and brand colors.
@@ -355,6 +374,7 @@ function OverviewSection({
               {canBuild ? "Create website from profile" : "Preview only on Starter"}
             </button>
           </div>
+          )
         ) : (
           <dl className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -422,7 +442,7 @@ function PageBuilderSection(props: Props) {
     servicePages,
     savedComponents = [],
   } = props;
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
+  if (!website) return emptyWebsiteState(props);
   if (!landingContent) {
     return (
       <p className="text-sm text-slate-600">Create your website first, then open the page builder.</p>
@@ -445,7 +465,7 @@ function PageBuilderSection(props: Props) {
 
 function ThemeSection(props: Props) {
   const { slug, companyId, company, website } = props;
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
+  if (!website) return emptyWebsiteState(props);
   return (
     <Gate slug={slug} company={company} feature="websiteBuilder">
       <ThemeEditor slug={slug} companyId={companyId} website={website} />
@@ -455,7 +475,7 @@ function ThemeSection(props: Props) {
 
 function NavigationSection(props: Props) {
   const { slug, companyId, company, website, landingContent, servicePages } = props;
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
+  if (!website) return emptyWebsiteState(props);
   return (
     <Gate slug={slug} company={company} feature="websiteBuilder">
       <NavigationEditor
@@ -472,7 +492,7 @@ function NavigationSection(props: Props) {
 
 function SettingsSection(props: Props) {
   const { slug, companyId, company, website, domainSettings, publishSnapshots = [] } = props;
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
+  if (!website) return emptyWebsiteState(props);
   return (
     <Gate slug={slug} company={company} feature="websiteBuilder">
       <SettingsEditor
@@ -493,7 +513,7 @@ function PagesSection(props: Props) {
   const [content, setContent] = useState<LandingPageContent | null>(landingContent);
   const [message, setMessage] = useState<string | null>(null);
 
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
+  if (!website) return emptyWebsiteState(props);
 
   return (
     <Gate slug={slug} company={company} feature="websiteBuilder">
@@ -594,19 +614,20 @@ function PagesSection(props: Props) {
   );
 }
 
-function ServicePagesSection({
-  slug,
-  companyId,
-  company,
-  website,
-  servicePages,
-  companyServices,
-}: Props) {
+function ServicePagesSection(props: Props) {
+  const {
+    slug,
+    companyId,
+    company,
+    website,
+    servicePages,
+    companyServices,
+  } = props;
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
+  if (!website) return emptyWebsiteState(props);
 
   return (
     <Gate slug={slug} company={company} feature="websiteServicePages">
@@ -725,7 +746,7 @@ function ServicePagesSection({
 
 function ContactSection(props: Props) {
   const { slug, companyId, company, website, landingContent, servicePages } = props;
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
+  if (!website) return emptyWebsiteState(props);
   return (
     <Gate slug={slug} company={company} feature="websiteBuilder">
       <FormsEditor
@@ -739,13 +760,14 @@ function ContactSection(props: Props) {
   );
 }
 
-function BookingSection({ slug, companyId, company, website }: Props) {
+function BookingSection(props: Props) {
+  const { slug, companyId, company, website } = props;
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [label, setLabel] = useState(website?.booking_button_label ?? "Book Now");
   const [message, setMessage] = useState<string | null>(null);
 
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
+  if (!website) return emptyWebsiteState(props);
 
   const presets = ["Book Now", "Request a Quote", "Schedule Appointment"];
 
@@ -806,7 +828,7 @@ function BookingSection({ slug, companyId, company, website }: Props) {
 
 function AnalyticsSectionWrapper(props: Props) {
   const { slug, companyId, company, website, builderAnalytics } = props;
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
+  if (!website) return emptyWebsiteState(props);
   if (!builderAnalytics) {
     return (
       <p className="text-sm text-slate-600">Loading analytics…</p>
@@ -835,7 +857,7 @@ function SeoSection(props: Props) {
     mediaItems = [],
     domainSettings,
   } = props;
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
+  if (!website) return emptyWebsiteState(props);
   return (
     <Gate slug={slug} company={company} feature="websiteSeo">
       <SeoEditor
@@ -852,12 +874,13 @@ function SeoSection(props: Props) {
   );
 }
 
-function PublishSection({ slug, companyId, company, website }: Props) {
+function PublishSection(props: Props) {
+  const { slug, companyId, company, website } = props;
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
+  if (!website) return emptyWebsiteState(props);
 
   return (
     <Gate slug={slug} company={company} feature="websitePublish">
@@ -1163,14 +1186,15 @@ function EnquiriesSection({ slug, companyId, company, enquiries }: Props) {
   );
 }
 
-function PreviewSection({
-  slug,
-  companyId,
-  company,
-  website,
-  landingContent,
-  servicePages,
-}: Props) {
+function PreviewSection(props: Props) {
+  const {
+    slug,
+    companyId,
+    company,
+    website,
+    landingContent,
+    servicePages,
+  } = props;
   const [mode, setMode] = useState<"desktop" | "mobile">("desktop");
 
   if (!canAccessWebsiteBuilderFeature(company, "websiteBuilderPreview")) {
@@ -1178,7 +1202,7 @@ function PreviewSection({
   }
 
   if (!website || !landingContent) {
-    return <EmptyWebsite slug={slug} companyId={companyId} />;
+    return emptyWebsiteState(props);
   }
 
   return (
@@ -1222,13 +1246,31 @@ function PreviewSection({
   );
 }
 
-function EmptyWebsite({ slug, companyId }: { slug: string; companyId: string }) {
+function EmptyWebsite({
+  slug,
+  companyId,
+  editorChoice,
+}: {
+  slug: string;
+  companyId: string;
+  editorChoice?: WebsiteEditorChoice;
+}) {
+  const choice = editorChoice ?? { legacy: null, builder: null };
+
+  if (choice.legacy || choice.builder) {
+    return (
+      <WebsiteEditorChoicePanel slug={slug} companyId={companyId} editorChoice={choice} />
+    );
+  }
+
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   return (
     <SectionCard title="Get started">
-      <p className="text-sm text-slate-600">Create your website from the overview first.</p>
+      <p className="text-sm text-slate-600">
+        Create your website from the overview, or choose an editor on the Websites hub.
+      </p>
       <button
         type="button"
         disabled={pending}

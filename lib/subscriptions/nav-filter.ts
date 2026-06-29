@@ -201,6 +201,13 @@ export function filterWebsiteSubNavBySubscription<
         canAccessWebsiteBuilderFeature(company, "websiteBuilderPreview")
       );
     }
+    if (item.key === "classic-editor") {
+      return (
+        canAccessFeature(company, "websites") ||
+        canAccessWebsiteBuilderFeature(company, "websiteBuilder") ||
+        canAccessWebsiteBuilderFeature(company, "websiteBuilderPreview")
+      );
+    }
     return canAccessFeature(company, "websites");
   });
 }

@@ -74,6 +74,7 @@ function getSubNavItems(
   slug: string,
   collapsible: CollapsibleNavKey,
   hasWebsiteProject: boolean,
+  classicEditorWebsiteId: string | null,
   userPermissions: PermissionKey[],
   subscription?: SubscriptionCompanyFields
 ) {
@@ -94,7 +95,7 @@ function getSubNavItems(
     }
     case "websites": {
       const items = filterSubNavItems(
-        websiteSubNavItems(slug, { hasWebsiteProject }).map((sub) => ({
+        websiteSubNavItems(slug, { hasWebsiteProject, classicEditorWebsiteId }).map((sub) => ({
           ...sub,
           permissions: ["view_websites"] as PermissionKey[],
         })),
@@ -150,6 +151,7 @@ export function CompanySidebarNav({
   slug,
   activeNav,
   hasWebsiteProject = false,
+  classicEditorWebsiteId = null,
   collapsed = false,
   userPermissions = [],
   subscription,
@@ -161,6 +163,7 @@ export function CompanySidebarNav({
   slug: string;
   activeNav: CompanyNavKey;
   hasWebsiteProject?: boolean;
+  classicEditorWebsiteId?: string | null;
   collapsed?: boolean;
   userPermissions?: PermissionKey[];
   subscription?: SubscriptionCompanyFields;
@@ -201,6 +204,7 @@ export function CompanySidebarNav({
           slug,
           collapsible,
           hasWebsiteProject,
+          classicEditorWebsiteId,
           userPermissions,
           subscription
         )
