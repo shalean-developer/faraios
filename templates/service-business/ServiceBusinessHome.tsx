@@ -23,6 +23,16 @@ import {
 } from "lucide-react";
 
 import { LuxuryAboutSection } from "@/templates/service-business/LuxuryAboutSection";
+import { ModernOverlayAboutSection } from "@/templates/service-business/ModernOverlayAboutSection";
+import { ModernOverlayServicesSection } from "@/templates/service-business/ModernOverlayServicesSection";
+import { ModernOverlayWorkProcessSection } from "@/templates/service-business/ModernOverlayWorkProcessSection";
+import { ModernOverlayBlogSection } from "@/templates/service-business/ModernOverlayBlogSection";
+import { ModernOverlayCraftsmanshipSection } from "@/templates/service-business/ModernOverlayCraftsmanshipSection";
+import { ModernOverlayFaqSection } from "@/templates/service-business/ModernOverlayFaqSection";
+import { ModernOverlayTestimonialsSection } from "@/templates/service-business/ModernOverlayTestimonialsSection";
+import { ModernOverlayTransformSection } from "@/templates/service-business/ModernOverlayTransformSection";
+import { ModernOverlayFeatureBannerSection } from "@/templates/service-business/ModernOverlayFeatureBannerSection";
+import { ModernOverlayWhyChooseUsSection } from "@/templates/service-business/ModernOverlayWhyChooseUsSection";
 import { LuxuryBlogSection } from "@/templates/service-business/LuxuryBlogSection";
 import { LuxuryContactSection } from "@/templates/service-business/LuxuryContactSection";
 import { LuxuryFaqSection } from "@/templates/service-business/LuxuryFaqSection";
@@ -67,6 +77,7 @@ type Props = {
   bookingUrl?: string | null;
   paths: TemplatePaths;
   skipHero?: boolean;
+  homeLayout?: "classic" | "luxury" | "modern-overlay";
 };
 
 function ServiceImage({
@@ -133,7 +144,13 @@ function WhatsAppIcon({ className }: { className?: string }) {
   );
 }
 
-export function ServiceBusinessHome({ site, bookingUrl, paths, skipHero = false }: Props) {
+export function ServiceBusinessHome({
+  site,
+  bookingUrl,
+  paths,
+  skipHero = false,
+  homeLayout = "classic",
+}: Props) {
   const { hero, theme, services, contact, topbar } = site;
   const phoneHref = topbar.phone.replace(/\s+/g, "");
   const bookHref = bookingUrl ?? resolveTemplateHref(hero.ctaHref, paths);
@@ -280,21 +297,55 @@ export function ServiceBusinessHome({ site, bookingUrl, paths, skipHero = false 
       ) : null}
 
       {skipHero && serviceChips.length > 0 ? (
-        <section className="border-b border-[#2d2926]/10 bg-[#f5f3e7] py-10">
+        <section
+          className={
+            homeLayout === "modern-overlay"
+              ? "bg-[#f7f5f0] py-10"
+              : "border-b border-[#2d2926]/10 bg-[#f5f3e7] py-10"
+          }
+        >
           <div className={`${sectionContainer} grid gap-4 sm:grid-cols-3`}>
             {serviceChips.slice(0, 3).map((chip, index) => {
               const Icon = CHIP_ICONS[index % CHIP_ICONS.length];
+              const isOverlay = homeLayout === "modern-overlay";
               return (
                 <div
                   key={`${chip.title}-${index}`}
-                  className="flex min-h-[5.5rem] items-center gap-4 rounded-sm border border-[#2d2926]/10 bg-[#ebe7d8] px-5 py-4"
+                  className={
+                    isOverlay
+                      ? "flex min-h-[5.5rem] items-center gap-4 rounded-2xl border border-slate-200/80 bg-[#ebe7d8] px-5 py-4 shadow-sm"
+                      : "flex min-h-[5.5rem] items-center gap-4 rounded-sm border border-[#2d2926]/10 bg-[#ebe7d8] px-5 py-4"
+                  }
                 >
-                  <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#2a2018] text-[#f2f0e6]">
+                  <span
+                    className={
+                      isOverlay
+                        ? "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white"
+                        : "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#2a2018] text-[#f2f0e6]"
+                    }
+                    style={isOverlay ? { backgroundColor: theme.accent } : undefined}
+                  >
                     <Icon className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-[#2d2926] sm:text-base">{chip.title}</p>
-                    <p className="mt-0.5 text-sm text-[#2d2926]/60">{chip.priceFrom}</p>
+                    <p
+                      className={
+                        isOverlay
+                          ? "text-sm font-semibold text-slate-900 sm:text-base"
+                          : "text-sm font-medium text-[#2d2926] sm:text-base"
+                      }
+                    >
+                      {chip.title}
+                    </p>
+                    <p
+                      className={
+                        isOverlay
+                          ? "mt-0.5 text-sm text-slate-500"
+                          : "mt-0.5 text-sm text-[#2d2926]/60"
+                      }
+                    >
+                      {chip.priceFrom}
+                    </p>
                   </div>
                 </div>
               );
@@ -303,7 +354,12 @@ export function ServiceBusinessHome({ site, bookingUrl, paths, skipHero = false 
         </section>
       ) : null}
 
-      {skipHero ? <LuxuryAboutSection site={site} paths={paths} /> : null}
+      {skipHero && homeLayout === "modern-overlay" ? (
+        <ModernOverlayAboutSection site={site} paths={paths} />
+      ) : null}
+      {skipHero && homeLayout === "luxury" ? (
+        <LuxuryAboutSection site={site} paths={paths} />
+      ) : null}
 
       {!skipHero ? (
       <section className="py-20 lg:py-24" style={{ backgroundColor: theme.primary }}>
@@ -329,7 +385,9 @@ export function ServiceBusinessHome({ site, bookingUrl, paths, skipHero = false 
       </section>
       ) : null}
 
-      {skipHero ? (
+      {skipHero && homeLayout === "modern-overlay" ? (
+        <ModernOverlayServicesSection site={site} />
+      ) : skipHero ? (
         <LuxuryServicesSection site={site} paths={paths} bookingUrl={bookHref} />
       ) : (
       <section id="services" className={`bg-white ${sectionY}`}>
@@ -397,6 +455,14 @@ export function ServiceBusinessHome({ site, bookingUrl, paths, skipHero = false 
         </div>
       </section>
       )}
+
+      {skipHero && homeLayout === "modern-overlay" ? (
+        <ModernOverlayWorkProcessSection site={site} />
+      ) : null}
+
+      {skipHero && homeLayout === "modern-overlay" ? (
+        <ModernOverlayWhyChooseUsSection site={site} />
+      ) : null}
 
       {!skipHero ? (
       <section className={`bg-slate-50 ${sectionY}`}>
@@ -471,9 +537,9 @@ export function ServiceBusinessHome({ site, bookingUrl, paths, skipHero = false 
       </section>
       ) : null}
 
-      {skipHero ? (
-        <LuxuryStrategySection site={site} />
-      ) : (
+      {skipHero && homeLayout === "luxury" ? <LuxuryStrategySection site={site} /> : null}
+
+      {!skipHero ? (
       <section className="border-y border-slate-200 bg-white py-14 sm:py-16">
         <div className={`${sectionContainer} grid gap-5 sm:grid-cols-2 lg:grid-cols-5`}>
           {stats.map((stat) => (
@@ -511,9 +577,11 @@ export function ServiceBusinessHome({ site, bookingUrl, paths, skipHero = false 
           ))}
         </div>
       </section>
-      )}
+      ) : null}
 
-      {skipHero ? (
+      {skipHero && homeLayout === "modern-overlay" ? (
+        <ModernOverlayFeatureBannerSection site={site} />
+      ) : skipHero ? (
         <LuxuryBlogSection site={site} paths={paths} />
       ) : (
       <section className={`bg-slate-50 ${sectionY}`}>
@@ -550,7 +618,9 @@ export function ServiceBusinessHome({ site, bookingUrl, paths, skipHero = false 
       </section>
       )}
 
-      {skipHero ? (
+      {skipHero && homeLayout === "modern-overlay" ? (
+        <ModernOverlayTransformSection site={site} />
+      ) : skipHero ? (
         <LuxuryReviewsSection site={site} paths={paths} />
       ) : (
       <section className="py-14 sm:py-16" style={{ backgroundColor: theme.primary }}>
@@ -589,7 +659,9 @@ export function ServiceBusinessHome({ site, bookingUrl, paths, skipHero = false 
       </section>
       )}
 
-      {skipHero ? (
+      {skipHero && homeLayout === "modern-overlay" ? (
+        <ModernOverlayTestimonialsSection site={site} />
+      ) : skipHero ? (
         <LuxuryFaqSection site={site} paths={paths} bookingUrl={bookHref} />
       ) : (
       <section id="faq" className={`bg-white ${sectionY}`}>
@@ -644,6 +716,18 @@ export function ServiceBusinessHome({ site, bookingUrl, paths, skipHero = false 
       </section>
       )}
 
+      {skipHero && homeLayout === "modern-overlay" ? (
+        <ModernOverlayCraftsmanshipSection site={site} />
+      ) : null}
+
+      {skipHero && homeLayout === "modern-overlay" ? (
+        <ModernOverlayFaqSection site={site} />
+      ) : null}
+
+      {skipHero && homeLayout === "modern-overlay" ? (
+        <ModernOverlayBlogSection site={site} paths={paths} />
+      ) : null}
+
       {!skipHero ? (
       <section className={sectionY}>
         <div className={sectionContainer}>
@@ -687,7 +771,7 @@ export function ServiceBusinessHome({ site, bookingUrl, paths, skipHero = false 
       </section>
       ) : null}
 
-      {skipHero ? (
+      {skipHero && homeLayout === "modern-overlay" ? null : skipHero ? (
         <LuxuryContactSection site={site} bookingUrl={bookHref} />
       ) : (
       <section className={`bg-slate-50 ${sectionY}`}>

@@ -5,8 +5,12 @@ import { motion } from "framer-motion";
 import { ArrowRight, Briefcase } from "lucide-react";
 
 import { IndustriesSection } from "@/components/marketing/home/industries-section";
+import { landingGreenBtnLg, marketingBadge } from "@/components/marketing/home/landing-styles";
 import { fadeUp } from "@/components/marketing/home/motion";
+import { MarketingCtaBand } from "@/components/marketing/marketing-cta-band";
+import { MarketingPageHero } from "@/components/marketing/marketing-page-hero";
 import { MarketingPageShell } from "@/components/marketing/marketing-page-shell";
+import { cn } from "@/lib/utils";
 
 type Props = {
   highlightSlug?: string;
@@ -18,51 +22,39 @@ export function FaraiIndustriesPage({ highlightSlug }: Props) {
   return (
     <MarketingPageShell active="industries">
       <main>
-        <section className="border-b border-gray-100 bg-gradient-to-br from-violet-50 via-white to-indigo-50 px-4 pb-12 pt-28 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-4xl text-center">
-            <motion.div initial="hidden" animate="visible" variants={fadeUp}>
-              <span className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-1.5 text-xs font-semibold text-violet-700">
-                <Briefcase className="h-3.5 w-3.5" />
-                Industries we serve
-              </span>
-              <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
-                Built for how your industry works
-              </h1>
-              <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-gray-600">
-                FaraiOS ships with presets for cleaning, beauty, tourism, technology,
-                trades, and more — so your workspace matches your business from day one.
-              </p>
-              {highlighted ? (
-                <p className="mt-4 text-sm font-medium text-violet-700">
-                  Showing details for your selected industry below.
-                </p>
-              ) : null}
-            </motion.div>
-          </div>
-        </section>
+        <MarketingPageHero
+          badge={
+            <span className={marketingBadge}>
+              <Briefcase className="h-3.5 w-3.5" />
+              Industries we serve
+            </span>
+          }
+          title="Built for how your industry works"
+          description="FaraiOS ships with presets for cleaning, electrical, tourism, technology, trades, and more — so your workspace matches your business from day one."
+        >
+          {highlighted ? (
+            <motion.p
+              initial="hidden"
+              animate="visible"
+              variants={fadeUp}
+              className="mt-4 text-sm font-medium text-emerald-700"
+            >
+              Showing details for your selected industry below.
+            </motion.p>
+          ) : null}
+        </MarketingPageHero>
 
         <IndustriesSection highlightSlug={highlighted} />
 
-        <section className="px-4 pb-20 pt-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="rounded-3xl border border-violet-100 bg-violet-50/80 p-8 sm:p-12">
-              <h2 className="mb-4 text-2xl font-extrabold text-gray-900 sm:text-3xl">
-                Don&apos;t see your industry?
-              </h2>
-              <p className="mb-8 text-base text-gray-600">
-                FaraiOS is flexible enough for most local service businesses. Start
-                your workspace and customize services, pages, and workflows to fit.
-              </p>
-              <Link
-                href="/auth/sign-up"
-                className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-8 py-3.5 text-base font-bold text-white shadow-lg transition-all hover:-translate-y-0.5"
-              >
-                Start your workspace
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </div>
-          </div>
-        </section>
+        <MarketingCtaBand
+          title="Don't see your industry?"
+          description="FaraiOS is flexible enough for most local service businesses. Start your workspace and customize services, pages, and workflows to fit."
+        >
+          <Link href="/auth/sign-up" className={cn(landingGreenBtnLg, "group")}>
+            Start your workspace
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </Link>
+        </MarketingCtaBand>
       </main>
     </MarketingPageShell>
   );

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { FaraiLogo } from "@/components/brand/farai-logo";
 import { FooterSocialLinks } from "@/components/marketing/footer-social-links";
+import { landingContainer, landingSectionX } from "@/components/marketing/home/landing-styles";
 import { FOOTER_INDUSTRY_LINKS } from "@/lib/data/home-marketing";
 import { cn } from "@/lib/utils";
 
@@ -21,11 +22,12 @@ export function MarketingFooter({ variant = "light" }: MarketingFooterProps) {
   return (
     <footer
       className={cn(
-        "border-t px-4 py-14 sm:px-6 lg:px-8",
+        "border-t py-14",
+        landingSectionX,
         dark ? "border-white/10 bg-[#0a0f1e] text-slate-300" : "border-slate-100 bg-slate-50 text-slate-600"
       )}
     >
-      <div className="mx-auto max-w-6xl">
+      <div className={landingContainer}>
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="sm:col-span-2 lg:col-span-1">
             <Link href="/" aria-label="FaraiOS home" className="inline-flex items-center">

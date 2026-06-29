@@ -1,0 +1,4 @@
+# FaraiOS reverse proxy (Plesk API cannot set additional directives on reseller accounts)
+RewriteEngine On
+RewriteCond %{REQUEST_URI} !^/\.well-known/
+RewriteRule ^(.*)$ http://127.0.0.1:3000/$1 [P,L]

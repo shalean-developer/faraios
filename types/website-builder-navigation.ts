@@ -33,10 +33,14 @@ export type WebsiteFooterColumn = {
   items: WebsiteNavItem[];
 };
 
+export type WebsiteHeaderVariant = "light" | "dark" | "overlay";
+
 export type WebsiteSocialLinks = {
   facebook?: string;
   instagram?: string;
   whatsapp?: string;
+  twitter?: string;
+  youtube?: string;
 };
 
 export type WebsiteNavigationSettings = {
@@ -50,6 +54,7 @@ export type WebsiteNavigationSettings = {
     showBookingButton: boolean;
     showSecondaryCta: boolean;
     secondaryCta?: WebsiteNavCta | null;
+    variant?: WebsiteHeaderVariant;
     items: WebsiteNavItem[];
   };
   mobile: {
@@ -73,5 +78,6 @@ export type WebsiteNavigationSettings = {
     email?: string | null;
     hours?: string | null;
     location?: string | null;
+    socialLinks?: WebsiteSocialLinks;
   };
 };

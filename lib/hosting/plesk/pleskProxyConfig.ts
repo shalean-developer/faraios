@@ -44,6 +44,17 @@ export function buildFaraiosReverseProxyDirectives(originUrl: string): string {
 }
 
 /** Nginx additional directives (common on Plesk Linux / LiteSpeed frontends). */
+/** LiteSpeed / shared-hosting fallback when Plesk XML API accepts but does not persist additional-* properties. */
+export function buildFaraiosHtaccessProxyDirectives(originUrl: string): string {
+  const origin = originUrl.replace(/\/$/, "");
+  return [
+    "# FaraiOS reverse proxy (Plesk reseller API often cannot persist additional directives)",
+    "RewriteEngine On",
+    "RewriteCond %{REQUEST_URI} !^/\\.well-known/",
+    `RewriteRule ^(.*)$ ${origin}/$1 [P,L]`,
+  ].join("\n");
+}
+
 export function buildFaraiosNginxProxyDirectives(originUrl: string): string {
   const origin = originUrl.replace(/\/$/, "");
   return [
@@ -83,7 +94,7 @@ export function describeFaraiosPleskProxyManualFallback(
   domain: string,
   originUrl: string
 ): string {
-  return `Plesk reseller API could not set reverse proxy for ${domain}. In Plesk open ${domain} → Apache & nginx Settings → Additional nginx directives (or Apache/LiteSpeed), paste a proxy to ${originUrl} with Host preserved.`;
+  return `Plesk reseller API could not set reverse proxy for ${domain}. Upload httpdocs/.htaccess with a proxy to ${originUrl}, or in Plesk open ${domain} → Apache & nginx Settings and paste proxy directives with Host preserved.`;
 }
 
 export function describeFaraiosPleskProxySetup(originUrl: string | null): string {

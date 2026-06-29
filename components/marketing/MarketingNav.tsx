@@ -5,6 +5,7 @@ import { useState } from "react";
 import { LayoutDashboard, LogOut, Menu, X } from "lucide-react";
 
 import { FaraiLogo } from "@/components/brand/farai-logo";
+import { landingContainer, landingSectionX } from "@/components/marketing/home/landing-styles";
 import { cn } from "@/lib/utils";
 
 export type MarketingNavActive =
@@ -58,8 +59,8 @@ export function MarketingNav({
     key && active === key ? "text-emerald-700" : undefined;
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 border-b border-gray-100 bg-white/90 shadow-sm backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+    <header className={cn("fixed left-0 right-0 top-0 z-50 border-b border-gray-100 bg-white/90 shadow-sm backdrop-blur-md", landingSectionX)}>
+      <div className={cn(landingContainer, "flex h-16 items-center justify-between gap-4")}>
         <Link
           href={logoHref}
           className="group flex shrink-0 items-center"
@@ -177,8 +178,8 @@ export function MarketingNav({
       </div>
 
       {mobileOpen ? (
-        <div className="border-t border-gray-100 bg-white px-4 py-4 md:hidden">
-          <nav className="flex flex-col gap-1" aria-label="Mobile navigation">
+        <div className={cn(landingSectionX, "border-t border-gray-100 bg-white py-4 md:hidden")}>
+          <nav className={cn(landingContainer, "flex flex-col gap-1")} aria-label="Mobile navigation">
             {isAuthenticated ? (
               <>
                 <Link

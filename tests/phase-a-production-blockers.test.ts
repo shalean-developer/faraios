@@ -80,10 +80,10 @@ describe("Phase A industry onboarding journeys", () => {
       expectedServiceKeyword: "Deep",
     },
     {
-      name: "Luxury M Spa",
-      industrySlug: "beauty",
-      expectedField: "allergies",
-      expectedServiceKeyword: "Massage",
+      name: "ProFix Electrical",
+      industrySlug: "electrical",
+      expectedField: "electrical_issue",
+      expectedServiceKeyword: "Electrical",
     },
     {
       name: "MakTech",

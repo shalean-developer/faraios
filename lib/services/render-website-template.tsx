@@ -29,6 +29,7 @@ const SUPPORTED_TEMPLATES = new Set<string>([
   "beauty-spa",
   "technology-services",
   "tourism-travel",
+  "construction",
 ]);
 
 export function renderWebsiteTemplate(
@@ -55,6 +56,7 @@ export function renderWebsiteTemplate(
         bookingUrl={options?.bookingUrl ?? options?.marketplaceBookingUrl ?? null}
         previewWebsiteId={options?.previewWebsiteId ?? null}
         templateVariant={variant}
+        templateSlug={templateKey}
         companyBranding={options?.companyBranding ?? null}
       />
     );

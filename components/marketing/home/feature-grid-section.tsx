@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { CalendarDays, CreditCard, Megaphone, PenLine } from "lucide-react";
 
 import { fadeUp, sectionScrollClass, stagger } from "@/components/marketing/home/motion";
+import { landingContainer, landingSectionPad } from "@/components/marketing/home/landing-styles";
 import { FEATURE_GRID_ITEMS, type FeatureGridItem } from "@/lib/data/home-marketing";
 import { cn } from "@/lib/utils";
 
@@ -201,8 +202,8 @@ function FeatureMockup({ index, accent }: { index: number; accent: FeatureGridIt
 
 export function FeatureGridSection() {
   return (
-    <section className={`bg-white px-4 py-20 sm:px-6 lg:px-8 ${sectionScrollClass}`}>
-      <div className="mx-auto max-w-6xl">
+    <section className={cn(landingSectionPad, sectionScrollClass, "bg-white")}>
+      <div className={landingContainer}>
         <motion.div
           initial="hidden"
           whileInView="visible"

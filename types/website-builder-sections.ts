@@ -57,6 +57,7 @@ export type HeroSectionProps = {
   secondaryCta?: HeroCta;
   trustBadges?: string[];
   reviewsBadge?: { rating: number; count: number; label?: string } | null;
+  reviewsPosition?: "above" | "below";
   statistics?: { label: string; value: string }[];
   floatingBookingButton?: boolean;
   whatsAppButton?: { enabled: boolean; phone?: string; message?: string };

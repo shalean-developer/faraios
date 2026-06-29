@@ -4,17 +4,16 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Check } from "lucide-react";
 
-import { landingSectionTitle } from "@/components/marketing/home/landing-styles";
+import { landingContainer, landingGrid2Col, landingSectionPad, landingSectionTitle } from "@/components/marketing/home/landing-styles";
 import { fadeUp, sectionScrollClass, stagger } from "@/components/marketing/home/motion";
 import { PaymentsDashboardPreview } from "@/components/marketing/home/ui-mockups";
 import { PAYMENTS_FEATURES } from "@/lib/data/home-marketing";
+import { cn } from "@/lib/utils";
 
 export function PaymentsSection() {
   return (
-    <section
-      className={`bg-[#0f2744] px-4 py-20 sm:px-6 lg:px-8 ${sectionScrollClass}`}
-    >
-      <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
+    <section className={cn(landingSectionPad, sectionScrollClass, "bg-[#0f2744]")}>
+      <div className={cn(landingContainer, landingGrid2Col)}>
         <motion.div
           initial="hidden"
           whileInView="visible"

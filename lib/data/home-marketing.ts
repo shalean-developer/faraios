@@ -18,7 +18,7 @@ export const HERO_HEADLINE_EMPHASIS = "Service Businesses";
 export const HERO_BULLETS = [
   "Booking, CRM, payments, and marketing in one place",
   "Connect an existing website or add one later",
-  "Built for cleaning, beauty, tourism, tech, trades, and more",
+  "Built for cleaning, electrical, tourism, tech, trades, and more",
 ] as const;
 
 export type SocialProofStat = {
@@ -35,23 +35,23 @@ export const SOCIAL_PROOF_STATS: SocialProofStat[] = [
 
 export const CLIENT_EXAMPLES = [
   "FaraiOS Cleaning Services",
-  "Luxury M Spa",
+  "ProFix Electrical",
   "MakTech",
   "Afrika Tour",
 ] as const;
 
 export const SOCIAL_PROOF_TAGLINE =
-  "Designed to power service businesses across cleaning, beauty, technology, tourism, and more.";
+  "Designed to power service businesses across cleaning, trades, technology, tourism, and more.";
 
 export const SOCIAL_PROOF_HEADLINE = "Trusted by service businesses across South Africa";
 
 export const SOCIAL_PROOF_LOGOS = [
   "FaraiOS Cleaning Services",
-  "Luxury M Spa",
+  "ProFix Electrical",
   "MakTech",
   "Afrika Tour",
   "Greenview Ltd",
-  "ProFix Electrical",
+  "Atlas HVAC",
 ] as const;
 
 export type EverythingFeature = {

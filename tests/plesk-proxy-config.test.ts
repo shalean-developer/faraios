@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  buildFaraiosHtaccessProxyDirectives,
   buildFaraiosReverseProxyDirectives,
   buildFaraiosNginxProxyDirectives,
   buildPleskProxyPropertyAttempts,
@@ -47,5 +48,11 @@ describe("pleskProxyConfig", () => {
     expect(attempts.some((a) => a.name === "additional-nginx")).toBe(true);
     expect(attempts.some((a) => a.name === "additional-settings")).toBe(true);
     expect(buildFaraiosNginxProxyDirectives("http://127.0.0.1:3000")).toContain("proxy_set_header Host $host");
+  });
+
+  it("builds .htaccess proxy fallback for LiteSpeed hosts", () => {
+    const htaccess = buildFaraiosHtaccessProxyDirectives("https://faraios.com");
+    expect(htaccess).toContain("RewriteEngine On");
+    expect(htaccess).toContain("https://faraios.com/");
   });
 });

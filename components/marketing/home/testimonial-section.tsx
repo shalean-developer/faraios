@@ -4,14 +4,20 @@ import { motion } from "framer-motion";
 import { Quote } from "lucide-react";
 
 import { fadeUp, sectionScrollClass, stagger } from "@/components/marketing/home/motion";
+import { landingContainer, landingSectionPad } from "@/components/marketing/home/landing-styles";
 import { TESTIMONIAL } from "@/lib/data/home-marketing";
+import { cn } from "@/lib/utils";
 
 export function TestimonialSection() {
   return (
     <section
-      className={`bg-gradient-to-br from-amber-50/80 to-orange-50/40 px-4 py-20 sm:px-6 lg:px-8 ${sectionScrollClass}`}
+      className={cn(
+        landingSectionPad,
+        sectionScrollClass,
+        "bg-gradient-to-br from-amber-50/80 to-orange-50/40"
+      )}
     >
-      <div className="mx-auto max-w-6xl">
+      <div className={landingContainer}>
         <motion.div
           initial="hidden"
           whileInView="visible"

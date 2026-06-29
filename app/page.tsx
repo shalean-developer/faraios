@@ -10,6 +10,10 @@ import { renderWebsiteTemplate } from "@/lib/services/render-website-template";
 import { getTenantContext, getTenantMetadata } from "@/lib/services/tenant-site";
 import { TenantHomeSchema } from "@/lib/services/tenant-seo";
 import {
+  isTenantBuilderWebsite,
+  renderTenantBuilderPublicSite,
+} from "@/lib/website-builder/tenant-public-site";
+import {
   buildPlatformOpenGraph,
   buildPlatformTwitter,
   FARAIOS_DEFAULT_DESCRIPTION,
@@ -86,6 +90,13 @@ export default async function HomePage() {
         Coming soon
       </div>
     );
+  }
+
+  if (isTenantBuilderWebsite(website)) {
+    const builderSite = await renderTenantBuilderPublicSite(website);
+    if (builderSite) {
+      return builderSite;
+    }
   }
 
   return (

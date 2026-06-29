@@ -7,21 +7,32 @@ import {
   BookingFlowMobilePreview,
   PhoneMockup,
 } from "@/components/marketing/home/ui-mockups";
-import { landingSectionSubtitle, landingSectionTitle } from "@/components/marketing/home/landing-styles";
+import {
+  landingContainer,
+  landingSectionHeader,
+  landingSectionPad,
+  landingSectionSubtitle,
+  landingSectionTitle,
+} from "@/components/marketing/home/landing-styles";
 import { fadeUp, sectionScrollClass, stagger } from "@/components/marketing/home/motion";
+import { cn } from "@/lib/utils";
 
 export function BookingSystemSection() {
   return (
     <section
-      className={`bg-gradient-to-b from-sky-50 to-blue-50/50 px-4 py-20 sm:px-6 lg:px-8 ${sectionScrollClass}`}
+      className={cn(
+        landingSectionPad,
+        sectionScrollClass,
+        "bg-gradient-to-b from-sky-50 to-blue-50/50"
+      )}
     >
-      <div className="mx-auto max-w-6xl">
+      <div className={landingContainer}>
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
           variants={stagger}
-          className="mb-14 text-center"
+          className={landingSectionHeader}
         >
           <motion.h2 variants={fadeUp} className={landingSectionTitle}>
             A complete booking system for your business

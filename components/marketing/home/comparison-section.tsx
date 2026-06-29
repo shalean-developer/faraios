@@ -6,6 +6,8 @@ import { ArrowRight, Check, X } from "lucide-react";
 
 import { FaraiLogo } from "@/components/brand/farai-logo";
 import { fadeUp, sectionScrollClass, stagger } from "@/components/marketing/home/motion";
+import { landingContainer, landingSectionPad } from "@/components/marketing/home/landing-styles";
+import { cn } from "@/lib/utils";
 
 const faraiBenefits = [
   "Bookings, CRM, and payments in one place",
@@ -23,8 +25,8 @@ const legacyPain = [
 
 export function ComparisonSection() {
   return (
-    <section className={`bg-slate-50 px-4 py-20 sm:px-6 lg:px-8 ${sectionScrollClass}`}>
-      <div className="mx-auto max-w-6xl">
+    <section className={cn(landingSectionPad, sectionScrollClass, "bg-slate-50")}>
+      <div className={landingContainer}>
         <motion.div
           initial="hidden"
           whileInView="visible"

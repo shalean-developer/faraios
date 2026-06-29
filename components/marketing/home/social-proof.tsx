@@ -4,16 +4,25 @@ import { motion } from "framer-motion";
 
 import { fadeUp, sectionScrollClass, stagger } from "@/components/marketing/home/motion";
 import {
+  landingContainer,
+  landingSectionPadCompact,
+} from "@/components/marketing/home/landing-styles";
+import {
   SOCIAL_PROOF_HEADLINE,
   SOCIAL_PROOF_LOGOS,
 } from "@/lib/data/home-marketing";
+import { cn } from "@/lib/utils";
 
 export function SocialProof() {
   return (
     <section
-      className={`border-y border-slate-100 bg-white px-4 py-10 sm:px-6 lg:px-8 ${sectionScrollClass}`}
+      className={cn(
+        landingSectionPadCompact,
+        sectionScrollClass,
+        "border-y border-slate-100 bg-white"
+      )}
     >
-      <div className="mx-auto max-w-6xl">
+      <div className={landingContainer}>
         <motion.div
           initial="hidden"
           whileInView="visible"

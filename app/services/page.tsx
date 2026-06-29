@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import { getTenantContext, getTenantMetadata } from "@/lib/services/tenant-site";
+import { isTenantBuilderWebsite } from "@/lib/website-builder/tenant-public-site";
 import ServiceBusinessTemplate from "@/templates/service-business/ServiceBusinessTemplate";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +19,10 @@ export default async function ServicesPage() {
         Website not configured
       </div>
     );
+  }
+
+  if (isTenantBuilderWebsite(ctx.website)) {
+    redirect("/#services");
   }
 
   return <ServiceBusinessTemplate content={ctx.content} pageSection="services" bookingUrl={ctx.bookingUrl} marketplaceBookingUrl={ctx.marketplaceBookingUrl} templateVariant={ctx.website.template} companyBranding={ctx.companyBranding} />;

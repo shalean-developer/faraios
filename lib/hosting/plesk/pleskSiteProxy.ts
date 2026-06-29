@@ -24,6 +24,26 @@ function buildSiteSetPacket(filterXml: string, propertyName: string, propertyVal
   return `<site><set><filter>${filterXml}</filter><values>${hostingXml}</values></set></site>`;
 }
 
+async function readSiteHostingProperty(
+  creds: PleskCredentials,
+  siteId: string,
+  propertyName: string
+): Promise<string | null> {
+  const inner = `<site><get><filter><id>${escapeXml(siteId)}</id></filter><dataset><hosting/></dataset></get></site>`;
+  const result = await pleskXmlRequest(creds, inner, {
+    action: "get_faraios_reverse_proxy",
+    serverId: undefined,
+  });
+  if (!result.ok || !result.rawXml) return null;
+
+  const re = new RegExp(
+    `<name>${propertyName}</name>\\s*<value>([\\s\\S]*?)</value>`,
+    "i"
+  );
+  const match = result.rawXml.match(re);
+  return match?.[1]?.trim() || null;
+}
+
 async function trySiteHostingProperty(
   creds: PleskCredentials,
   input: SetPleskReverseProxyInput,
@@ -39,9 +59,19 @@ async function trySiteHostingProperty(
     companyId: input.companyId,
   });
 
-  return result.ok
-    ? { ok: true }
-    : { ok: false, error: result.error || "Site hosting update failed." };
+  if (!result.ok) {
+    return { ok: false, error: result.error || "Site hosting update failed." };
+  }
+
+  const persisted = await readSiteHostingProperty(creds, input.siteId, propertyName);
+  if (persisted) {
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    error: `${propertyName} API returned ok but was not persisted (common on Plesk reseller accounts).`,
+  };
 }
 
 /**

@@ -9,6 +9,9 @@ import { parseSiteContent } from "@/templates/service-business/content";
 import { ServiceBusinessHome } from "@/templates/service-business/ServiceBusinessHome";
 import { LuxuryFooter } from "@/templates/service-business/LuxuryFooter";
 import { LuxuryHeroSection } from "@/templates/service-business/LuxuryHeroSection";
+import { ModernOverlayFooter } from "@/templates/service-business/ModernOverlayFooter";
+import { ModernOverlayHeroSection } from "@/templates/service-business/ModernOverlayHeroSection";
+import { ModernOverlaySiteHeader } from "@/templates/service-business/ModernOverlaySiteHeader";
 import {
   LuxuryAboutPage,
   LuxuryBlogPage,
@@ -33,6 +36,7 @@ type Props = {
   marketplaceBookingUrl?: string | null;
   previewWebsiteId?: string | null;
   templateVariant?: string | null;
+  templateSlug?: string | null;
   companyBranding?: CompanyBranding | null;
 };
 
@@ -294,6 +298,7 @@ export default function ServiceBusinessTemplate({
   marketplaceBookingUrl,
   previewWebsiteId,
   templateVariant,
+  templateSlug,
   companyBranding,
 }: Props) {
   const parsed = parseSiteContent(content);
@@ -306,12 +311,23 @@ export default function ServiceBusinessTemplate({
   const resolvedBookingUrl = bookingUrl ?? marketplaceBookingUrl;
   const isLuxuryLayout = site.variant === "beauty";
   const isLuxuryHome = isLuxuryLayout && pageSection === "home";
+  const isModernOverlayLayout =
+    (templateSlug ?? templateVariant ?? "").trim().toLowerCase() === "construction";
+  const isModernOverlayHome = isModernOverlayLayout && pageSection === "home";
 
   return (
     <div
-      className={`min-h-screen font-sans antialiased ${isLuxuryLayout ? "bg-[#f5f3e7] text-[#2d2926]" : "bg-white text-slate-900"}`}
+      className={`min-h-screen font-sans antialiased ${
+        isLuxuryLayout
+          ? "bg-[#f5f3e7] text-[#2d2926]"
+          : isModernOverlayLayout
+            ? "bg-white text-slate-900"
+            : "bg-white text-slate-900"
+      }`}
       data-website-variant={site.variant}
-      data-website-layout={isLuxuryLayout ? "luxury" : "classic"}
+      data-website-layout={
+        isLuxuryLayout ? "luxury" : isModernOverlayLayout ? "modern-overlay" : "classic"
+      }
       style={
         {
           "--site-primary": site.theme.primary,
@@ -325,8 +341,15 @@ export default function ServiceBusinessTemplate({
         // eslint-disable-next-line @next/next/no-page-custom-font
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@400;500;600&display=swap" />
       ) : null}
-      {isLuxuryHome ? null : isLuxuryLayout ? (
+      {isLuxuryHome || isModernOverlayHome ? null : isLuxuryLayout ? (
         <LuxurySiteHeader
+          site={site}
+          bookingUrl={resolvedBookingUrl}
+          paths={paths}
+          activePage={pageSection}
+        />
+      ) : isModernOverlayLayout ? (
+        <ModernOverlaySiteHeader
           site={site}
           bookingUrl={resolvedBookingUrl}
           paths={paths}
@@ -343,12 +366,22 @@ export default function ServiceBusinessTemplate({
             bookingUrl={resolvedBookingUrl}
           />
         ) : null}
+        {isModernOverlayHome ? (
+          <ModernOverlayHeroSection
+            site={site}
+            paths={paths}
+            bookingUrl={resolvedBookingUrl}
+          />
+        ) : null}
         {pageSection === "home" ? (
           <ServiceBusinessHome
             site={site}
             bookingUrl={resolvedBookingUrl}
             paths={paths}
-            skipHero={isLuxuryHome}
+            skipHero={isLuxuryHome || isModernOverlayHome}
+            homeLayout={
+              isLuxuryHome ? "luxury" : isModernOverlayHome ? "modern-overlay" : "classic"
+            }
           />
         ) : null}
         {pageSection === "services" ? (
@@ -405,6 +438,8 @@ export default function ServiceBusinessTemplate({
       </main>
       {isLuxuryLayout ? (
         <LuxuryFooter site={site} paths={paths} />
+      ) : isModernOverlayLayout ? (
+        <ModernOverlayFooter site={site} paths={paths} />
       ) : (
         <SiteFooter site={site} paths={paths} />
       )}

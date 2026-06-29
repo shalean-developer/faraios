@@ -9,10 +9,15 @@ import { EverythingFeatureSection } from "@/components/marketing/home/everything
 import { FeatureGridSection } from "@/components/marketing/home/feature-grid-section";
 import { FinalCta } from "@/components/marketing/home/final-cta";
 import { IndustriesSection } from "@/components/marketing/home/industries-section";
+import {
+  landingContainer,
+  landingSectionPadCompact,
+} from "@/components/marketing/home/landing-styles";
 import { MobileFeaturesSection } from "@/components/marketing/home/mobile-features-section";
 import { PaymentsSection } from "@/components/marketing/home/payments-section";
 import { SocialProof } from "@/components/marketing/home/social-proof";
 import { TestimonialSection } from "@/components/marketing/home/testimonial-section";
+import { cn } from "@/lib/utils";
 
 type HomeMarketingSectionsProps = {
   onGetStarted: () => void;
@@ -30,8 +35,9 @@ export function HomeMarketingSections({ onGetStarted }: HomeMarketingSectionsPro
       <MobileFeaturesSection />
       <PaymentsSection />
       <IndustriesSection />
-      <section className="border-t border-slate-100 bg-white px-4 py-10 sm:px-6 lg:px-8">
-        <p className="mx-auto max-w-xl text-center text-sm text-slate-500">
+      <section className={cn(landingSectionPadCompact, "border-t border-slate-100 bg-white")}>
+        <div className={landingContainer}>
+          <p className="mx-auto max-w-xl text-center text-sm text-slate-500">
           Looking to book a local service?{" "}
           <Link
             href="/marketplace"
@@ -41,6 +47,7 @@ export function HomeMarketingSections({ onGetStarted }: HomeMarketingSectionsPro
             <ArrowRight className="ml-0.5 inline h-3.5 w-3.5" />
           </Link>
         </p>
+        </div>
       </section>
       <FinalCta onGetStarted={onGetStarted} />
     </>

@@ -5,9 +5,11 @@ import type {
   WebsiteServicePageRecord,
 } from "@/types/website-builder";
 import type {
+  WebsiteHeaderVariant,
   WebsiteNavItem,
   WebsiteNavLinkType,
   WebsiteNavigationSettings,
+  WebsiteSocialLinks,
 } from "@/types/website-builder-navigation";
 
 export const NAVIGATION_SETTINGS_KEY = "navigationSettings";
@@ -122,6 +124,23 @@ function parseNavItems(raw: unknown): WebsiteNavItem[] | null {
   return items.length > 0 ? items : null;
 }
 
+function parseSocialLinks(raw: unknown): WebsiteSocialLinks | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const data = raw as Record<string, unknown>;
+  const links: WebsiteSocialLinks = {};
+  if (typeof data.facebook === "string" && data.facebook) links.facebook = data.facebook;
+  if (typeof data.instagram === "string" && data.instagram) links.instagram = data.instagram;
+  if (typeof data.whatsapp === "string" && data.whatsapp) links.whatsapp = data.whatsapp;
+  if (typeof data.twitter === "string" && data.twitter) links.twitter = data.twitter;
+  if (typeof data.youtube === "string" && data.youtube) links.youtube = data.youtube;
+  return Object.keys(links).length > 0 ? links : undefined;
+}
+
+function parseHeaderVariant(raw: unknown): WebsiteHeaderVariant {
+  if (raw === "dark" || raw === "overlay") return raw;
+  return "light";
+}
+
 export function parseNavigationSettings(raw: unknown): WebsiteNavigationSettings | null {
   if (!raw || typeof raw !== "object") return null;
   const data = raw as Record<string, unknown>;
@@ -147,6 +166,7 @@ export function parseNavigationSettings(raw: unknown): WebsiteNavigationSettings
         header?.secondaryCta && typeof header.secondaryCta === "object"
           ? (header.secondaryCta as WebsiteNavigationSettings["header"]["secondaryCta"])
           : null,
+      variant: parseHeaderVariant(header?.variant),
       items: headerItems,
     },
     mobile: {
@@ -175,6 +195,7 @@ export function parseNavigationSettings(raw: unknown): WebsiteNavigationSettings
       email: typeof topbar?.email === "string" ? topbar.email : null,
       hours: typeof topbar?.hours === "string" ? topbar.hours : null,
       location: typeof topbar?.location === "string" ? topbar.location : null,
+      socialLinks: parseSocialLinks(topbar?.socialLinks),
     },
   };
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { getTenantContext, getTenantMetadata } from "@/lib/services/tenant-site";
+import { isTenantBuilderWebsite } from "@/lib/website-builder/tenant-public-site";
 import ServiceBusinessTemplate from "@/templates/service-business/ServiceBusinessTemplate";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,10 @@ export default async function AboutPage() {
         Website not configured
       </div>
     );
+  }
+
+  if (isTenantBuilderWebsite(ctx.website)) {
+    redirect("/#about");
   }
 
   return (

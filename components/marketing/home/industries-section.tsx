@@ -15,7 +15,12 @@ import {
   Zap,
 } from "lucide-react";
 
-import { landingSectionSubtitle, landingSectionTitle } from "@/components/marketing/home/landing-styles";
+import {
+  landingContainer,
+  landingSectionPad,
+  landingSectionSubtitle,
+  landingSectionTitle,
+} from "@/components/marketing/home/landing-styles";
 import { fadeUp, sectionScrollClass, stagger } from "@/components/marketing/home/motion";
 import { INDUSTRY_CARDS, type IndustryCardIcon } from "@/lib/data/home-marketing";
 import { cn } from "@/lib/utils";
@@ -63,8 +68,8 @@ const iconColors = [
 
 export function IndustriesSection({ highlightSlug }: { highlightSlug?: string }) {
   return (
-    <section className={`bg-white px-4 py-20 sm:px-6 lg:px-8 ${sectionScrollClass}`}>
-      <div className="mx-auto max-w-6xl">
+    <section className={cn(landingSectionPad, sectionScrollClass, "bg-white")}>
+      <div className={landingContainer}>
         <motion.div
           initial="hidden"
           whileInView="visible"

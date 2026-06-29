@@ -11,10 +11,18 @@ import {
   Users,
 } from "lucide-react";
 
-import { landingGreenBtn, landingSectionTitle } from "@/components/marketing/home/landing-styles";
+import {
+  landingContainer,
+  landingGrid2Col,
+  landingGreenBtn,
+  landingSectionPad,
+  landingSectionSubtitle,
+  landingSectionTitle,
+} from "@/components/marketing/home/landing-styles";
 import { fadeUp, sectionScrollClass, stagger } from "@/components/marketing/home/motion";
 import { BookingWidgetPreview } from "@/components/marketing/home/ui-mockups";
 import { EVERYTHING_FEATURES } from "@/lib/data/home-marketing";
+import { cn } from "@/lib/utils";
 
 const FEATURE_ICONS = [
   CalendarDays,
@@ -27,8 +35,8 @@ const FEATURE_ICONS = [
 
 export function EverythingFeatureSection() {
   return (
-    <section className={`bg-white px-4 py-20 sm:px-6 lg:px-8 ${sectionScrollClass}`}>
-      <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-20">
+    <section className={cn(landingSectionPad, sectionScrollClass, "bg-white")}>
+      <div className={cn(landingContainer, landingGrid2Col)}>
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -38,7 +46,7 @@ export function EverythingFeatureSection() {
           <motion.h2 variants={fadeUp} className={landingSectionTitle}>
             Everything you need to run your service business better
           </motion.h2>
-          <motion.p variants={fadeUp} className="mt-4 text-lg text-slate-600">
+          <motion.p variants={fadeUp} className={landingSectionSubtitle}>
             One connected workspace for bookings, customers, payments, and growth — without
             juggling spreadsheets and separate apps.
           </motion.p>

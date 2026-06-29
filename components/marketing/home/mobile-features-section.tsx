@@ -3,7 +3,13 @@
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 
-import { landingSectionSubtitle, landingSectionTitle } from "@/components/marketing/home/landing-styles";
+import {
+  landingContainer,
+  landingGrid2Col,
+  landingSectionPad,
+  landingSectionSubtitle,
+  landingSectionTitle,
+} from "@/components/marketing/home/landing-styles";
 import { fadeUp, sectionScrollClass, stagger } from "@/components/marketing/home/motion";
 import { PhoneMockup } from "@/components/marketing/home/ui-mockups";
 import { MOBILE_FEATURE_SECTIONS } from "@/lib/data/home-marketing";
@@ -55,12 +61,12 @@ export function MobileFeaturesSection() {
         <section
           key={section.title}
           className={cn(
-            "px-4 py-20 sm:px-6 lg:px-8",
+            landingSectionPad,
             sectionScrollClass,
             index % 2 === 0 ? "bg-white" : "bg-sky-50/60"
           )}
         >
-          <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
+          <div className={cn(landingContainer, landingGrid2Col)}>
             <motion.div
               initial="hidden"
               whileInView="visible"

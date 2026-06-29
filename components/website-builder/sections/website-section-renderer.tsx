@@ -1,5 +1,7 @@
 "use client";
 
+import { Star } from "lucide-react";
+
 import type { BuilderWebsite, WebsiteServicePageRecord } from "@/types/website-builder";
 import type { HeroSectionProps, WebsiteSection } from "@/types/website-builder-sections";
 import type { PlaceholderContext } from "@/lib/website-builder/dynamic-placeholders";
@@ -27,7 +29,19 @@ type Props = {
   contentPosts?: ContentPost[];
 };
 
-function heroHeightClass(height?: HeroSectionProps["height"]): string {
+function heroHeightClass(height?: HeroSectionProps["height"], overlay?: boolean): string {
+  if (overlay) {
+    switch (height) {
+      case "compact":
+        return "min-h-[480px]";
+      case "tall":
+        return "min-h-[720px]";
+      case "fullscreen":
+        return "min-h-[min(900px,100svh)]";
+      default:
+        return "min-h-[min(800px,95svh)]";
+    }
+  }
   switch (height) {
     case "compact":
       return "min-h-[280px] py-12";
@@ -38,6 +52,37 @@ function heroHeightClass(height?: HeroSectionProps["height"]): string {
     default:
       return "min-h-[400px] py-20";
   }
+}
+
+function HeroReviewsBadge({
+  badge,
+  accent,
+}: {
+  badge: NonNullable<HeroSectionProps["reviewsBadge"]>;
+  accent: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <span
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white"
+        style={{ backgroundColor: accent }}
+        aria-hidden
+      >
+        <Star className="h-4 w-4 fill-current" />
+      </span>
+      <div className="flex text-amber-400">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Star key={i} className="h-4 w-4 fill-current" />
+        ))}
+      </div>
+      <span className="text-sm font-semibold text-white">
+        {badge.rating}/5
+      </span>
+      <span className="text-sm text-white/80">
+        {badge.count} {badge.label ?? "reviews"}
+      </span>
+    </div>
+  );
 }
 
 function resolveHref(href: string, ctx: PlaceholderContext): string {
@@ -81,6 +126,13 @@ export function WebsiteSectionRenderer({
     return true;
   });
 
+  const firstSection = visibleSections[0];
+  const overlayHeroChrome =
+    showSiteChrome &&
+    navigation.header.enabled &&
+    navigation.header.variant === "overlay" &&
+    firstSection?.type === "hero";
+
   return (
     <div
       className={cn(
@@ -95,7 +147,7 @@ export function WebsiteSectionRenderer({
         </div>
       ) : null}
 
-      {showSiteChrome && navigation.header.enabled ? (
+      {showSiteChrome && navigation.header.enabled && !overlayHeroChrome ? (
         <PublicSiteChrome
           website={website}
           companySlug={companySlug}
@@ -108,97 +160,150 @@ export function WebsiteSectionRenderer({
         />
       ) : null}
 
-      {visibleSections.map((section) => {
+      {visibleSections.map((section, sectionIndex) => {
         const anchorId = sectionAnchorId(section.type);
         if (section.type === "hero") {
           const p = section.props as HeroSectionProps;
           const headline = resolveDynamicPlaceholders(p.headline, placeholderCtx);
           const subheadline = resolveDynamicPlaceholders(p.subheadline, placeholderCtx);
+          const isOverlayHero = overlayHeroChrome && sectionIndex === 0;
           const align =
             p.alignment === "left"
               ? "text-left items-start"
               : p.alignment === "right"
                 ? "text-right items-end"
                 : "text-center items-center";
+          const reviewsBelow = p.reviewsPosition !== "above";
+          const overlayOpacity = p.overlayOpacity ?? 0.35;
+          const ctaColor = accent;
+
+          const reviewsEl = p.reviewsBadge ? (
+            <HeroReviewsBadge badge={p.reviewsBadge} accent={ctaColor} />
+          ) : null;
 
           return (
             <section
               key={section.id}
               id={anchorId}
-              className={cn("relative flex flex-col justify-center px-6", heroHeightClass(p.height))}
-              style={{
-                backgroundImage: p.backgroundImageUrl
-                  ? `linear-gradient(rgba(0,0,0,${p.overlayOpacity ?? 0.35}), rgba(0,0,0,${p.overlayOpacity ?? 0.35})), url(${p.backgroundImageUrl})`
-                  : `linear-gradient(135deg, ${primary}12, white)`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
+              className={cn(
+                "relative flex flex-col overflow-hidden",
+                isOverlayHero ? heroHeightClass(p.height, true) : heroHeightClass(p.height)
+              )}
             >
-              <div className={cn("relative z-10 mx-auto flex w-full max-w-4xl flex-col gap-4", align)}>
-                {p.reviewsBadge ? (
-                  <span className="inline-flex rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-700 shadow-sm">
-                    ★ {p.reviewsBadge.rating} · {p.reviewsBadge.count} reviews
-                  </span>
-                ) : null}
-                <h1
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{
+                  backgroundImage: p.backgroundImageUrl
+                    ? `url(${p.backgroundImageUrl})`
+                    : `linear-gradient(135deg, ${primary}22, ${primary}08)`,
+                }}
+              />
+              {p.backgroundImageUrl ? (
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: isOverlayHero
+                      ? `linear-gradient(105deg, rgba(0,0,0,${Math.min(overlayOpacity + 0.15, 0.75)}) 0%, rgba(0,0,0,${overlayOpacity * 0.5}) 55%, rgba(0,0,0,${overlayOpacity * 0.25}) 100%)`
+                      : `linear-gradient(rgba(0,0,0,${overlayOpacity}), rgba(0,0,0,${overlayOpacity}))`,
+                  }}
+                />
+              ) : null}
+
+              {isOverlayHero ? (
+                <PublicSiteChrome
+                  website={website}
+                  companySlug={companySlug}
+                  companyId={companyId}
+                  companyName={companyName}
+                  servicePages={servicePages}
+                  navigation={navigation}
+                  viewport={viewport === "tablet" ? "desktop" : viewport}
+                  preview={preview}
+                  chromePosition="overlay"
+                />
+              ) : null}
+
+              <div
+                className={cn(
+                  "relative z-10 flex flex-1 flex-col justify-center px-6",
+                  isOverlayHero ? "pb-16 pt-8 sm:px-8 lg:pb-20" : "py-20"
+                )}
+              >
+                <div
                   className={cn(
-                    "text-3xl font-bold tracking-tight sm:text-4xl",
-                    p.backgroundImageUrl ? "text-white" : "text-slate-900"
+                    "mx-auto flex w-full max-w-7xl flex-col gap-5",
+                    align,
+                    isOverlayHero && p.alignment === "left" && "max-w-2xl lg:max-w-3xl"
                   )}
                 >
-                  {headline}
-                </h1>
-                <p
-                  className={cn(
-                    "max-w-2xl text-lg",
-                    p.backgroundImageUrl ? "text-white/90" : "text-slate-600"
-                  )}
-                >
-                  {subheadline}
-                </p>
-                {p.trustBadges && p.trustBadges.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {p.trustBadges.map((badge) => (
-                      <span
-                        key={badge}
-                        className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-medium text-slate-600"
-                      >
-                        {badge}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-                <div className="flex flex-wrap gap-3">
-                  {p.primaryCta ? (
-                    <a
-                      href={resolveHref(p.primaryCta.href, placeholderCtx)}
-                      className="rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
-                      style={{ backgroundColor: primary }}
-                    >
-                      {p.primaryCta.label}
-                    </a>
+                  {!reviewsBelow && reviewsEl}
+                  <h1
+                    className={cn(
+                      "font-bold tracking-tight",
+                      isOverlayHero
+                        ? "text-[clamp(2rem,5vw,3.75rem)] leading-[1.08]"
+                        : "text-3xl sm:text-4xl",
+                      p.backgroundImageUrl || isOverlayHero ? "text-white" : "text-slate-900"
+                    )}
+                  >
+                    {headline}
+                  </h1>
+                  <p
+                    className={cn(
+                      "max-w-xl text-base leading-relaxed sm:text-lg",
+                      p.backgroundImageUrl || isOverlayHero ? "text-white/90" : "text-slate-600"
+                    )}
+                  >
+                    {subheadline}
+                  </p>
+                  {p.trustBadges && p.trustBadges.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {p.trustBadges.map((badge) => (
+                        <span
+                          key={badge}
+                          className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-medium text-slate-600"
+                        >
+                          {badge}
+                        </span>
+                      ))}
+                    </div>
                   ) : null}
-                  {p.secondaryCta ? (
-                    <a
-                      href={resolveHref(p.secondaryCta.href, placeholderCtx)}
-                      className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700"
-                    >
-                      {p.secondaryCta.label}
-                    </a>
+                  <div className="flex flex-wrap gap-3">
+                    {p.primaryCta ? (
+                      <a
+                        href={resolveHref(p.primaryCta.href, placeholderCtx)}
+                        className={cn(
+                          "rounded-lg px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90",
+                          isOverlayHero && "shadow-md"
+                        )}
+                        style={{ backgroundColor: ctaColor }}
+                      >
+                        {p.primaryCta.label}
+                      </a>
+                    ) : null}
+                    {p.secondaryCta ? (
+                      <a
+                        href={resolveHref(p.secondaryCta.href, placeholderCtx)}
+                        className="rounded-lg border border-white/40 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm"
+                      >
+                        {p.secondaryCta.label}
+                      </a>
+                    ) : null}
+                  </div>
+                  {reviewsBelow ? reviewsEl : null}
+                  {p.statistics && p.statistics.length > 0 ? (
+                    <div className="mt-4 grid grid-cols-3 gap-4">
+                      {p.statistics.map((stat) => (
+                        <div key={stat.label}>
+                          <p className="text-2xl font-bold" style={{ color: accent }}>
+                            {stat.value}
+                          </p>
+                          <p className="text-xs text-slate-500">{stat.label}</p>
+                        </div>
+                      ))}
+                    </div>
                   ) : null}
                 </div>
-                {p.statistics && p.statistics.length > 0 ? (
-                  <div className="mt-4 grid grid-cols-3 gap-4">
-                    {p.statistics.map((stat) => (
-                      <div key={stat.label}>
-                        <p className="text-2xl font-bold" style={{ color: accent }}>
-                          {stat.value}
-                        </p>
-                        <p className="text-xs text-slate-500">{stat.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
               </div>
               {p.floatingBookingButton ? (
                 <a
