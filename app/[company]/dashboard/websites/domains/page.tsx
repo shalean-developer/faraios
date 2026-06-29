@@ -19,12 +19,14 @@ import {
 } from "@/lib/services/website-domains";
 
 import { loadWebsiteDomainDnsHelp } from "@/lib/hosting/website-domain-dns-help";
+import { listActiveHostingPlans } from "@/lib/services/domain-hosting-readiness";
 
 import { createClient } from "@/lib/supabase/server";
 
 import { riseCardClassName, risePageClassName } from "@/lib/ui/rise-dashboard-styles";
 
 import type { WebsiteDnsRecord } from "@/types/website-engine";
+import type { HostingPlanRow } from "@/types/hosting-automation";
 
 
 
@@ -101,6 +103,7 @@ export default async function CompanyWebsiteDomainsPage({ params }: Props) {
   const dnsByDomain: Record<string, WebsiteDnsRecord[]> = {};
 
   const domainDnsHelp = await loadWebsiteDomainDnsHelp(row.id);
+  const hostingPlans = (await listActiveHostingPlans()) as HostingPlanRow[];
 
 
 
@@ -163,6 +166,10 @@ export default async function CompanyWebsiteDomainsPage({ params }: Props) {
           dnsByDomain={dnsByDomain}
 
           dnsHelp={domainDnsHelp}
+
+          hostingPlans={hostingPlans}
+
+          billingEmail={row.primary_contact_email ?? null}
 
         />
 

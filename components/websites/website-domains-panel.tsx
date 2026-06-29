@@ -1,21 +1,34 @@
 "use client";
 
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Loader2, RefreshCw } from "lucide-react";
 
 import {
   addWebsiteDomainAction,
   verifyWebsiteDomainAction,
 } from "@/app/actions/website-engine";
+import { confirmHostingPaymentAction } from "@/app/actions/confirm-hosting-payment";
 import { Button } from "@/components/ui/button";
+import { DomainHostingCheckout } from "@/components/websites/domain-hosting-checkout";
 import { formatDateTimeEnZA } from "@/lib/format/dates";
+import {
+  companyWebsiteBuilderSectionPath,
+  companyWebsiteDomainsPath,
+} from "@/lib/paths/company";
 import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
+import type { HostingPlanRow } from "@/types/hosting-automation";
 import { cn } from "@/lib/utils";
 
 const DOMAIN_ACTION_TIMEOUT_MS = 25_000;
 const AUTO_VERIFY_POLL_INTERVAL_MS = 20_000;
 const AUTO_VERIFY_POLL_MAX_ATTEMPTS = 15;
+const POST_PAYMENT_CONNECT_MAX_ATTEMPTS = 10;
+const POST_PAYMENT_CONNECT_DELAY_MS = 3000;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 async function withDomainActionTimeout<T>(
   promise: Promise<T>,
@@ -52,6 +65,8 @@ type WebsiteDomainsPanelProps = {
   websiteId?: string | null;
   variant?: "page" | "embedded";
   dnsHelp?: WebsiteDomainDnsHelp | null;
+  hostingPlans?: HostingPlanRow[];
+  billingEmail?: string | null;
 };
 
 export function WebsiteDomainsPanel({
@@ -62,14 +77,18 @@ export function WebsiteDomainsPanel({
   websiteId,
   variant = "page",
   dnsHelp,
+  hostingPlans = [],
+  billingEmail,
 }: WebsiteDomainsPanelProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [domainInput, setDomainInput] = useState("");
   const [pending, setPending] = useState(false);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [autoPolling, setAutoPolling] = useState(false);
+  const [hostingDomain, setHostingDomain] = useState<string | null>(null);
   const pollAttemptsRef = useRef(0);
   const embedded = variant === "embedded";
 
@@ -142,6 +161,78 @@ export function WebsiteDomainsPanel({
     }
   }, [pendingDomainIdsKey]);
 
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    const domain = searchParams.get("domain");
+    const reference =
+      searchParams.get("reference") ?? searchParams.get("trxref") ?? "";
+
+    if (payment !== "success" || !domain) return;
+
+    let cancelled = false;
+
+    const finishHostingPurchase = async () => {
+      if (reference) {
+        await confirmHostingPaymentAction({
+          companyId,
+          companySlug: slug,
+          reference,
+        });
+      }
+
+      if (cancelled) return;
+
+      let connect:
+        | Awaited<ReturnType<typeof addWebsiteDomainAction>>
+        | null = null;
+
+      for (let attempt = 0; attempt < POST_PAYMENT_CONNECT_MAX_ATTEMPTS; attempt++) {
+        if (cancelled) return;
+        if (attempt > 0) {
+          await sleep(POST_PAYMENT_CONNECT_DELAY_MS);
+        }
+
+        connect = await addWebsiteDomainAction({
+          companyId,
+          companySlug: slug,
+          domain,
+          websiteId: websiteId ?? null,
+          isPrimary: domains.length === 0,
+        });
+
+        if (connect.ok || !connect.requiresHosting) {
+          break;
+        }
+      }
+
+      if (cancelled || !connect) return;
+
+      if (!connect.ok && connect.requiresHosting) {
+        setHostingDomain(domain);
+        setError(
+          connect.error ??
+            "Hosting is still provisioning. Refresh in a minute or contact support."
+        );
+      } else if (!connect.ok) {
+        setError(connect.error);
+      } else {
+        setSuccess(
+          "Hosting is active and your domain is connected. Configure DNS below, then verification will run automatically."
+        );
+        setAutoPolling(true);
+      }
+
+      router.replace(window.location.pathname);
+      router.refresh();
+    };
+
+    void finishHostingPurchase();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [companyId, domains.length, router, searchParams, slug, websiteId]);
+
   const onAddDomain = async (e: FormEvent) => {
     e.preventDefault();
     setPending(true);
@@ -158,6 +249,9 @@ export function WebsiteDomainsPanel({
         })
       );
       if (!result.ok) {
+        if (result.requiresHosting && result.domain) {
+          setHostingDomain(result.domain);
+        }
         setError(result.error);
         return;
       }
@@ -261,6 +355,23 @@ export function WebsiteDomainsPanel({
           </Button>
         </div>
       </form>
+
+      {hostingDomain ? (
+        <DomainHostingCheckout
+          slug={slug}
+          companyId={companyId}
+          domain={hostingDomain}
+          plans={hostingPlans}
+          billingEmail={billingEmail}
+          embedded={embedded}
+          returnPath={`${
+            embedded
+              ? companyWebsiteBuilderSectionPath(slug, "domains")
+              : companyWebsiteDomainsPath(slug)
+          }?payment=success&domain=${encodeURIComponent(hostingDomain)}`}
+          onCancel={() => setHostingDomain(null)}
+        />
+      ) : null}
 
       {domains.length === 0 ? (
         <p className="text-sm text-slate-500">No custom domains connected yet.</p>

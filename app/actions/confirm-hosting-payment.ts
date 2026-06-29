@@ -9,6 +9,8 @@ import {
   companyHostingPath,
   companyHostingInvoicesPath,
   companyHostingServicesPath,
+  companyWebsiteBuilderSectionPath,
+  companyWebsiteDomainsPath,
 } from "@/lib/paths/company";
 
 export type ConfirmHostingPaymentResult =
@@ -44,6 +46,8 @@ export async function confirmHostingPaymentAction(input: {
   revalidatePath(companyHostingPath(input.companySlug));
   revalidatePath(companyHostingServicesPath(input.companySlug));
   revalidatePath(companyHostingInvoicesPath(input.companySlug));
+  revalidatePath(companyWebsiteDomainsPath(input.companySlug));
+  revalidatePath(companyWebsiteBuilderSectionPath(input.companySlug, "domains"));
   revalidatePath(`/${input.companySlug}/dashboard`);
 
   return { ok: true, activated: !result.alreadyActive };

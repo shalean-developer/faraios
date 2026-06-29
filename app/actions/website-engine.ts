@@ -9,6 +9,7 @@ import { getDefaultHostingProviderSlug } from "@/lib/hosting/constants";
 import { previewSubdomainForSlug } from "@/lib/constants/tenant-domain";
 import { requireCompanyPermission } from "@/lib/services/company-access";
 import { provisionCompanyWebsiteDomain } from "@/lib/services/hosting-domain";
+import { getDomainHostingReadiness } from "@/lib/services/domain-hosting-readiness";
 import {
   normalizeDomain,
   runAutoDomainVerificationWithRetries,
@@ -31,7 +32,7 @@ import {
 
 type ActionResult =
   | { ok: true; websiteDomainId?: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; requiresHosting?: boolean; domain?: string };
 type ActionResultWithKey = { ok: true; apiKey: string } | { ok: false; error: string };
 
 export async function addWebsiteDomainAction(input: {
@@ -56,6 +57,16 @@ export async function addWebsiteDomainAction(input: {
   const access = await requireCompanyPermission(input.companyId, "view_websites");
   if (!access.ok) return access;
 
+  const readiness = await getDomainHostingReadiness(input.companyId, normalized);
+  if (!readiness.ready) {
+    return {
+      ok: false,
+      error: readiness.message,
+      requiresHosting: true,
+      domain: normalized,
+    };
+  }
+
   const provision = await provisionCompanyWebsiteDomain({
     companyId: input.companyId,
     domain: normalized,
@@ -64,6 +75,8 @@ export async function addWebsiteDomainAction(input: {
     websiteId: input.websiteId,
     connectedWebsiteId: input.connectedWebsiteId,
     isPrimary: input.isPrimary,
+    serverId: readiness.serverId,
+    pleskSubscriptionId: readiness.pleskSubscriptionId,
   });
 
   if (!provision.ok) {

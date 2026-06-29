@@ -14,6 +14,7 @@ type InitBody = {
   email?: string;
   orderId?: string;
   invoiceId?: string;
+  returnPath?: string;
 };
 
 export async function POST(req: Request) {
@@ -83,11 +84,13 @@ export async function POST(req: Request) {
     .eq("id", body.companyId)
     .maybeSingle();
 
-  const callbackPath = company?.slug
-    ? body.orderId
-      ? `/${encodeURIComponent(company.slug)}/dashboard/hosting/services?payment=success`
-      : companyBillingPath(company.slug, { tab: "hosting", payment: "success" })
-    : "/app";
+  const callbackPath =
+    body.returnPath?.trim() ||
+    (company?.slug
+      ? body.orderId
+        ? `/${encodeURIComponent(company.slug)}/dashboard/hosting/services?payment=success`
+        : companyBillingPath(company.slug, { tab: "hosting", payment: "success" })
+      : "/app");
   const callbackUrl = `${(siteUrl ?? "").replace(/\/$/, "")}${callbackPath}`;
 
   const paystackRes = await fetch(`${PAYSTACK_BASE_URL}/transaction/initialize`, {

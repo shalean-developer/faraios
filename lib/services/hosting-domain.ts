@@ -3,8 +3,8 @@ import { after } from "next/server";
 import { getHostingProvider } from "@/lib/hosting/providers";
 import { getDefaultHostingProviderSlug } from "@/lib/hosting/constants";
 import { pushWebsiteDomainDnsToPlesk } from "@/lib/services/plesk-website-dns-sync";
-import { ensurePleskWebspaceForBuilderDomain } from "@/lib/services/plesk-builder-domain-provision";
 import { wireCompanyDomainToFaraiosApp } from "@/lib/services/plesk-site-proxy";
+import { getDomainHostingReadiness } from "@/lib/services/domain-hosting-readiness";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import type { WebsiteDnsRecord, WebsiteDomain, WebsiteDomainType } from "@/types/website-engine";
@@ -113,49 +113,17 @@ async function runPleskDomainPostConnect(input: {
   serverId?: string | null;
   pleskSubscriptionId?: string | null;
 }): Promise<void> {
-  const admin = tryCreateAdminClient();
-  let serverId = input.serverId ?? null;
-  let pleskSubscriptionId = input.pleskSubscriptionId ?? null;
-
-  if (!pleskSubscriptionId && admin.ok) {
-    const { data: company } = await admin.client
-      .from("companies")
-      .select("name, primary_contact_email")
-      .eq("id", input.companyId)
-      .maybeSingle();
-
-    const webspace = await ensurePleskWebspaceForBuilderDomain({
-      companyId: input.companyId,
-      domain: input.domain,
-      companyName: company?.name as string | null,
-      companyEmail: company?.primary_contact_email as string | null,
-    });
-
-    if (!webspace.ok) {
-      console.error(
-        "[hosting-domain] Plesk webspace provision failed",
-        input.domain,
-        webspace.error
-      );
-    } else {
-      pleskSubscriptionId = webspace.pleskSubscriptionId;
-      if (!serverId) {
-        const { data: service } = await admin.client
-          .from("hosting_services")
-          .select("server_id")
-          .eq("id", webspace.serviceId)
-          .maybeSingle();
-        serverId = (service?.server_id as string | null) ?? null;
-      }
-      if ("created" in webspace && webspace.created) {
-        console.info(
-          "[hosting-domain] Plesk webspace created",
-          input.domain,
-          webspace.pleskSubscriptionId
-        );
-      }
-    }
+  const readiness = await getDomainHostingReadiness(input.companyId, input.domain);
+  if (!readiness.ready) {
+    console.warn(
+      "[hosting-domain] Skipping Plesk post-connect — hosting not ready",
+      input.domain
+    );
+    return;
   }
+
+  const serverId = input.serverId ?? readiness.serverId;
+  const pleskSubscriptionId = input.pleskSubscriptionId ?? readiness.pleskSubscriptionId;
 
   const syncResult = await pushWebsiteDomainDnsToPlesk({
     companyId: input.companyId,

@@ -56,7 +56,8 @@ import {
   WWW_REDIRECT_OPTIONS,
   type WwwRedirectMode,
 } from "@/lib/website-builder/www-redirect";
-import { WebsiteDomainsPanel, type WebsiteDomainDnsHelp } from "@/components/websites/website-domains-panel";
+import { WebsiteDomainsPanelWithSearch } from "@/components/websites/website-domains-panel-with-search";
+import type { WebsiteDomainDnsHelp } from "@/components/websites/website-domains-panel";
 import { publicSitePath, companyWebsiteBuilderSectionPath } from "@/lib/paths/company";
 import { cn } from "@/lib/utils";
 import type { CompanyService, CompanyWithIndustry } from "@/types/database";
@@ -76,6 +77,7 @@ import type { BlogCategory, BlogTag } from "@/types/website-builder-blog";
 import type { BuilderAnalytics } from "@/types/website-builder-analytics";
 import type { PublishSnapshotSummary } from "@/types/website-builder-settings";
 import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
+import type { HostingPlanRow } from "@/types/hosting-automation";
 
 export type BuilderSection =
   | "overview"
@@ -122,6 +124,8 @@ type Props = {
   blogTaxonomyReady?: boolean;
   builderAnalytics?: BuilderAnalytics | null;
   publishSnapshots?: PublishSnapshotSummary[];
+  hostingPlans?: HostingPlanRow[];
+  billingEmail?: string | null;
 };
 
 function SectionCard({
@@ -908,6 +912,8 @@ function DomainsSection({
   websiteDomains,
   dnsByDomain,
   domainDnsHelp,
+  hostingPlans,
+  billingEmail,
 }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -972,7 +978,7 @@ function DomainsSection({
         </dl>
 
         <div className="mt-6 border-t border-slate-100 pt-6">
-          <WebsiteDomainsPanel
+          <WebsiteDomainsPanelWithSearch
             companyId={companyId}
             slug={slug}
             domains={websiteDomains}
@@ -980,6 +986,8 @@ function DomainsSection({
             websiteId={website?.id}
             variant="embedded"
             dnsHelp={domainDnsHelp}
+            hostingPlans={hostingPlans}
+            billingEmail={billingEmail}
           />
         </div>
 

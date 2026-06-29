@@ -4,6 +4,7 @@ import { WebsiteBuilderClient, type BuilderSection } from "@/components/website-
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
 import { loadWebsiteDomainDnsHelp } from "@/lib/hosting/website-domain-dns-help";
+import { listActiveHostingPlans } from "@/lib/services/domain-hosting-readiness";
 import {
   getDnsRecordsForDomain,
   getWebsiteDomainsForCompany,
@@ -22,6 +23,7 @@ import type { WebsiteDomainDnsHelp } from "@/components/websites/website-domains
 import type { CompanyWithIndustry, CompanyService } from "@/types/database";
 import type { PublishSnapshotSummary } from "@/types/website-builder-settings";
 import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
+import type { HostingPlanRow } from "@/types/hosting-automation";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +81,8 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
   let websiteDomains = (dashboardData?.websiteDomains ?? []) as WebsiteDomain[];
   let dnsByDomain = (dashboardData?.dnsByDomain ?? {}) as Record<string, WebsiteDnsRecord[]>;
   let domainDnsHelp = dashboardData?.domainDnsHelp ?? null;
+  const hostingPlans =
+    section === "domains" ? ((await listActiveHostingPlans()) as HostingPlanRow[]) : [];
 
   if (section === "domains" && !dashboardData) {
     websiteDomains = await getWebsiteDomainsForCompany(company.id);
@@ -116,6 +120,8 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
     blogTaxonomyReady: blogData.taxonomyReady,
     builderAnalytics,
     publishSnapshots,
+    hostingPlans,
+    billingEmail: company.primary_contact_email ?? null,
   };
 }
 
@@ -155,6 +161,8 @@ export function renderWebsiteBuilderPage(
       blogTaxonomyReady={data.blogTaxonomyReady}
       builderAnalytics={data.builderAnalytics}
       publishSnapshots={data.publishSnapshots}
+      hostingPlans={data.hostingPlans}
+      billingEmail={data.billingEmail}
     />
   );
 }

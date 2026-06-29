@@ -3,12 +3,15 @@
 import { revalidatePath } from "next/cache";
 
 import { requireCompanyPermission } from "@/lib/services/company-access";
+import { getDomainHostingReadiness } from "@/lib/services/domain-hosting-readiness";
 import { provisionCompanyWebsiteDomain } from "@/lib/services/hosting-domain";
 import { normalizeDomain, verifyWebsiteDomain } from "@/lib/services/website-domains";
 import { createClient } from "@/lib/supabase/server";
 import { companyHostingPath } from "@/lib/paths/company";
 
-type ActionResult = { ok: true } | { ok: false; error: string };
+type ActionResult =
+  | { ok: true }
+  | { ok: false; error: string; requiresHosting?: boolean; domain?: string };
 
 export async function connectHostingDomainAction(
   subscriptionId: string,
@@ -44,11 +47,23 @@ export async function connectHostingDomainAction(
   const access = await requireCompanyPermission(sub.company_id, "view_websites");
   if (!access.ok) return access;
 
+  const readiness = await getDomainHostingReadiness(sub.company_id, normalized);
+  if (!readiness.ready) {
+    return {
+      ok: false,
+      error: readiness.message,
+      requiresHosting: true,
+      domain: normalized,
+    };
+  }
+
   const provision = await provisionCompanyWebsiteDomain({
     companyId: sub.company_id,
     domain: normalized,
     syncHostingSubscription: true,
     isPrimary: true,
+    serverId: readiness.serverId,
+    pleskSubscriptionId: readiness.pleskSubscriptionId,
   });
 
   if (!provision.ok) {
