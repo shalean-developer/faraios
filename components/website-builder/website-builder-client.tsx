@@ -933,8 +933,6 @@ function DomainsSection({
     customDomainStatus !== "not_connected" &&
     customDomainStatus !== "coming_soon";
 
-  if (!website) return <EmptyWebsite slug={slug} companyId={companyId} />;
-
   return (
     <Gate slug={slug} company={company} feature="websiteBuilder">
       <SectionCard title="Domain settings">
@@ -979,7 +977,7 @@ function DomainsSection({
             slug={slug}
             domains={websiteDomains}
             dnsByDomain={dnsByDomain}
-            websiteId={website.id}
+            websiteId={website?.id}
             variant="embedded"
             dnsHelp={domainDnsHelp}
           />

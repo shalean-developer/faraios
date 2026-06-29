@@ -3,6 +3,11 @@ import { notFound } from "next/navigation";
 import { WebsiteBuilderClient, type BuilderSection } from "@/components/website-builder/website-builder-client";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
+import { loadWebsiteDomainDnsHelp } from "@/lib/hosting/website-domain-dns-help";
+import {
+  getDnsRecordsForDomain,
+  getWebsiteDomainsForCompany,
+} from "@/lib/services/website-domains";
 import { getBuilderDashboardData } from "@/lib/website-builder/service";
 import { getBlogDashboardData } from "@/lib/website-builder/blog";
 import { getBuilderAnalytics } from "@/lib/website-builder/analytics";
@@ -57,6 +62,21 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
       ? await listPublishSnapshots(dashboardData.website.id)
       : [];
 
+  let websiteDomains = (dashboardData?.websiteDomains ?? []) as WebsiteDomain[];
+  let dnsByDomain = (dashboardData?.dnsByDomain ?? {}) as Record<string, WebsiteDnsRecord[]>;
+  let domainDnsHelp = dashboardData?.domainDnsHelp ?? null;
+
+  if (section === "domains" && !dashboardData) {
+    websiteDomains = await getWebsiteDomainsForCompany(company.id);
+    dnsByDomain = {};
+    await Promise.all(
+      websiteDomains.map(async (domain) => {
+        dnsByDomain[domain.id] = await getDnsRecordsForDomain(domain.id);
+      })
+    );
+    domainDnsHelp = await loadWebsiteDomainDnsHelp(company.id);
+  }
+
   return {
     unauthorized: false as const,
     slug: decoded,
@@ -68,9 +88,9 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
     servicePages: dashboardData?.servicePages ?? [],
     enquiries: dashboardData?.enquiries ?? [],
     domainSettings: dashboardData?.domainSettings ?? null,
-    websiteDomains: (dashboardData?.websiteDomains ?? []) as WebsiteDomain[],
-    dnsByDomain: (dashboardData?.dnsByDomain ?? {}) as Record<string, WebsiteDnsRecord[]>,
-    domainDnsHelp: dashboardData?.domainDnsHelp ?? null,
+    websiteDomains,
+    dnsByDomain,
+    domainDnsHelp,
     companyServices: (servicesRes.data ?? []) as CompanyService[],
     savedComponents: dashboardData?.savedComponents ?? [],
     mediaItems: dashboardData?.mediaItems ?? [],
