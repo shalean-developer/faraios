@@ -3,6 +3,8 @@ import {
   getPleskHostingTarget,
   type PleskHostingTarget,
 } from "@/lib/hosting/plesk/target";
+import { buildExternalDnsOverview } from "@/lib/hosting/external-dns-guidance";
+import type { DomainDnsGuidance } from "@/lib/hosting/external-dns-guidance";
 import type { WebsiteDomainDnsHelp } from "@/components/websites/website-domains-panel";
 
 export function buildWebsiteDomainDnsHelp(
@@ -13,6 +15,21 @@ export function buildWebsiteDomainDnsHelp(
     serverHostname: target?.serverHostname ?? null,
     nameservers: target?.nameservers ?? [],
     helpText: describePleskDnsInstructions(target),
+    externalDnsOverview: null,
+  };
+}
+
+export function enrichWebsiteDomainDnsHelp(
+  help: WebsiteDomainDnsHelp,
+  guidanceMap: Record<string, DomainDnsGuidance>
+): WebsiteDomainDnsHelp {
+  const overview = buildExternalDnsOverview(guidanceMap);
+  if (!overview) return help;
+
+  return {
+    ...help,
+    externalDnsOverview: overview,
+    helpText: overview,
   };
 }
 

@@ -11,6 +11,7 @@ import {
 } from "@/app/actions/website-engine";
 import { Button } from "@/components/ui/button";
 import { DomainHostingCheckoutModal } from "@/components/websites/domain-hosting-checkout-modal";
+import { ExternalDnsGuidanceCallout } from "@/components/websites/external-dns-guidance-callout";
 import { formatDateTimeEnZA } from "@/lib/format/dates";
 import {
   companyWebsiteBuilderSectionPath,
@@ -19,6 +20,7 @@ import {
 import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 import type { HostingPlanRow } from "@/types/hosting-automation";
 import type { DomainPurchaseNotice } from "@/lib/services/domain-purchase-notice";
+import type { DomainDnsGuidance } from "@/lib/hosting/external-dns-guidance";
 import { cn } from "@/lib/utils";
 
 const DOMAIN_ACTION_TIMEOUT_MS = 25_000;
@@ -51,6 +53,7 @@ export type WebsiteDomainDnsHelp = {
   serverHostname: string | null;
   nameservers: string[];
   helpText: string;
+  externalDnsOverview?: string | null;
 };
 
 type WebsiteDomainsPanelProps = {
@@ -64,6 +67,7 @@ type WebsiteDomainsPanelProps = {
   hostingPlans?: HostingPlanRow[];
   billingEmail?: string | null;
   domainPurchaseNotice?: DomainPurchaseNotice | null;
+  domainDnsGuidanceById?: Record<string, DomainDnsGuidance>;
 };
 
 export function WebsiteDomainsPanel({
@@ -77,6 +81,7 @@ export function WebsiteDomainsPanel({
   hostingPlans = [],
   billingEmail,
   domainPurchaseNotice,
+  domainDnsGuidanceById = {},
 }: WebsiteDomainsPanelProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -362,6 +367,11 @@ export function WebsiteDomainsPanel({
           {dnsHelp?.helpText ??
             "Connect your domain to load DNS records for your FaraiOS Plesk server."}
         </p>
+        {dnsHelp?.externalDnsOverview ? (
+          <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            {dnsHelp.externalDnsOverview}
+          </p>
+        ) : null}
         {dnsHelp?.serverIp ? (
           <p className="mt-2 text-xs text-slate-500">
             Plesk server IP:{" "}
@@ -423,6 +433,7 @@ export function WebsiteDomainsPanel({
           ) : null}
           {domains.map((domain) => {
             const records = dnsByDomain[domain.id] ?? [];
+            const guidance = domainDnsGuidanceById[domain.id];
             return (
               <div
                 key={domain.id}
@@ -470,6 +481,15 @@ export function WebsiteDomainsPanel({
                   </p>
                 ) : null}
 
+                {guidance ? (
+                  <ExternalDnsGuidanceCallout
+                    domain={domain.domain}
+                    guidance={guidance}
+                    records={records}
+                    embedded={embedded}
+                  />
+                ) : null}
+
                 {records.length > 0 ? (
                   <div className="mt-4 overflow-x-auto">
                     <table className="w-full min-w-[480px] text-left text-sm">
@@ -507,7 +527,7 @@ export function WebsiteDomainsPanel({
                         record.record_type === "TXT" &&
                         record.host === "_faraios" &&
                         record.status !== "verified"
-                    ) ? (
+                    ) && !guidance?.usesExternalDns ? (
                       <p className="mt-3 text-xs text-amber-800">
                         Add a TXT record at your domain&apos;s DNS host (where your nameservers
                         point): host <code className="rounded bg-white px-1">_faraios</code>, value{" "}

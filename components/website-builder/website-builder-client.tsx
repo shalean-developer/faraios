@@ -79,6 +79,7 @@ import type { PublishSnapshotSummary } from "@/types/website-builder-settings";
 import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 import type { HostingPlanRow } from "@/types/hosting-automation";
 import type { DomainPurchaseNotice } from "@/lib/services/domain-purchase-notice";
+import type { DomainDnsGuidance } from "@/lib/hosting/external-dns-guidance";
 
 export type BuilderSection =
   | "overview"
@@ -128,6 +129,7 @@ type Props = {
   hostingPlans?: HostingPlanRow[];
   billingEmail?: string | null;
   domainPurchaseNotice?: DomainPurchaseNotice | null;
+  domainDnsGuidanceById?: Record<string, DomainDnsGuidance>;
 };
 
 function SectionCard({
@@ -917,6 +919,7 @@ function DomainsSection({
   hostingPlans,
   billingEmail,
   domainPurchaseNotice,
+  domainDnsGuidanceById,
 }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -992,6 +995,7 @@ function DomainsSection({
             hostingPlans={hostingPlans}
             billingEmail={billingEmail}
             domainPurchaseNotice={domainPurchaseNotice}
+            domainDnsGuidanceById={domainDnsGuidanceById}
           />
         </div>
 

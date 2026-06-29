@@ -8,6 +8,7 @@ import {
 } from "@/components/websites/website-domains-panel";
 import type { HostingPlanRow } from "@/types/hosting-automation";
 import type { DomainPurchaseNotice } from "@/lib/services/domain-purchase-notice";
+import type { DomainDnsGuidance } from "@/lib/hosting/external-dns-guidance";
 import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 
 type Props = {
@@ -21,6 +22,7 @@ type Props = {
   hostingPlans?: HostingPlanRow[];
   billingEmail?: string | null;
   domainPurchaseNotice?: DomainPurchaseNotice | null;
+  domainDnsGuidanceById?: Record<string, DomainDnsGuidance>;
 };
 
 export function WebsiteDomainsPanelWithSearch(props: Props) {

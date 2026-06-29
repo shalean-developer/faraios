@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import { WebsiteBuilderClient, type BuilderSection } from "@/components/website-builder/website-builder-client";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { userHasCompanySlugAccess } from "@/lib/services/memberships";
-import { loadWebsiteDomainDnsHelp } from "@/lib/hosting/website-domain-dns-help";
+import { loadWebsiteDomainDnsHelp, enrichWebsiteDomainDnsHelp } from "@/lib/hosting/website-domain-dns-help";
 import { listActiveHostingPlans } from "@/lib/services/domain-hosting-readiness";
+import { loadDomainDnsGuidanceMap } from "@/lib/hosting/external-dns-guidance";
 import {
   getDnsRecordsForDomain,
   getWebsiteDomainsForCompany,
@@ -24,6 +25,7 @@ import type { CompanyWithIndustry, CompanyService } from "@/types/database";
 import type { PublishSnapshotSummary } from "@/types/website-builder-settings";
 import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 import type { HostingPlanRow } from "@/types/hosting-automation";
+import type { DomainDnsGuidance } from "@/lib/hosting/external-dns-guidance";
 import type { DomainPurchaseNotice } from "@/lib/services/domain-purchase-notice";
 
 export const dynamic = "force-dynamic";
@@ -84,6 +86,7 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
   let domainDnsHelp = dashboardData?.domainDnsHelp ?? null;
   const hostingPlans =
     section === "domains" ? ((await listActiveHostingPlans()) as HostingPlanRow[]) : [];
+  let domainDnsGuidanceById: Record<string, DomainDnsGuidance> = {};
 
   if (section === "domains" && !dashboardData) {
     websiteDomains = await getWebsiteDomainsForCompany(company.id);
@@ -94,6 +97,13 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
       })
     );
     domainDnsHelp = await loadWebsiteDomainDnsHelp(company.id);
+  }
+
+  if (section === "domains" && websiteDomains.length > 0) {
+    domainDnsGuidanceById = await loadDomainDnsGuidanceMap(company.id, websiteDomains);
+    if (domainDnsHelp) {
+      domainDnsHelp = enrichWebsiteDomainDnsHelp(domainDnsHelp, domainDnsGuidanceById);
+    }
   }
 
   return {
@@ -123,6 +133,7 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
     publishSnapshots,
     hostingPlans,
     billingEmail: company.primary_contact_email ?? null,
+    domainDnsGuidanceById,
   };
 }
 
@@ -166,6 +177,7 @@ export function renderWebsiteBuilderPage(
       hostingPlans={data.hostingPlans}
       billingEmail={data.billingEmail}
       domainPurchaseNotice={domainPurchaseNotice ?? null}
+      domainDnsGuidanceById={data.domainDnsGuidanceById}
     />
   );
 }

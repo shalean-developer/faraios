@@ -18,8 +18,9 @@ import {
 
 } from "@/lib/services/website-domains";
 
-import { loadWebsiteDomainDnsHelp } from "@/lib/hosting/website-domain-dns-help";
+import { loadWebsiteDomainDnsHelp, enrichWebsiteDomainDnsHelp } from "@/lib/hosting/website-domain-dns-help";
 import { listActiveHostingPlans } from "@/lib/services/domain-hosting-readiness";
+import { loadDomainDnsGuidanceMap } from "@/lib/hosting/external-dns-guidance";
 import { parseDomainPurchaseNotice } from "@/lib/services/domain-purchase-notice";
 import {
   domainHostingReturnPathForDomainsPage,
@@ -132,6 +133,8 @@ export default async function CompanyWebsiteDomainsPage({ params, searchParams }
 
   const domainDnsHelp = await loadWebsiteDomainDnsHelp(row.id);
   const hostingPlans = (await listActiveHostingPlans()) as HostingPlanRow[];
+  const domainDnsGuidanceById = await loadDomainDnsGuidanceMap(row.id, domains);
+  const enrichedDnsHelp = enrichWebsiteDomainDnsHelp(domainDnsHelp, domainDnsGuidanceById);
 
 
 
@@ -193,13 +196,15 @@ export default async function CompanyWebsiteDomainsPage({ params, searchParams }
 
           dnsByDomain={dnsByDomain}
 
-          dnsHelp={domainDnsHelp}
+          dnsHelp={enrichedDnsHelp}
 
           hostingPlans={hostingPlans}
 
           billingEmail={row.primary_contact_email ?? null}
 
           domainPurchaseNotice={domainPurchaseNotice}
+
+          domainDnsGuidanceById={domainDnsGuidanceById}
 
         />
 

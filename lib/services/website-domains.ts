@@ -5,6 +5,11 @@ import { normalizeDomain } from "@/lib/utils/normalize-domain";
 import { getHostingProvider } from "@/lib/hosting/providers";
 import type { DnsRecordType } from "@/lib/hosting/providers";
 import { getPleskHostingTarget } from "@/lib/hosting/plesk/target";
+import {
+  buildExternalDnsTxtHint,
+  getPublicNameserversForDomain,
+  usesExternalDns,
+} from "@/lib/hosting/external-dns-guidance";
 import { syncHostingSubscriptionFromWebsiteDomain } from "@/lib/services/hosting-domain";
 import { pushWebsiteDomainDnsToPlesk } from "@/lib/services/plesk-website-dns-sync";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
@@ -58,6 +63,17 @@ export async function getDnsRecordsForDomain(
   return (data ?? []) as WebsiteDnsRecord[];
 }
 
+const DNS_LOOKUP_TIMEOUT_MS = 5_000;
+
+function withDnsTimeout<T>(promise: Promise<T>, timeoutMs = DNS_LOOKUP_TIMEOUT_MS): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), timeoutMs);
+    }),
+  ]);
+}
+
 async function verifyDnsRecord(
   domain: string,
   recordType: DnsRecordType,
@@ -89,43 +105,6 @@ async function verifyDnsRecord(
     return false;
   }
   return false;
-}
-
-async function getPublicNameservers(domain: string): Promise<string[]> {
-  try {
-    const records = await withDnsTimeout(dns.resolveNs(domain));
-    return records ?? [];
-  } catch {
-    return [];
-  }
-}
-
-function normalizeNameserver(value: string): string {
-  return value.toLowerCase().replace(/\.$/, "");
-}
-
-const DNS_LOOKUP_TIMEOUT_MS = 5_000;
-
-function withDnsTimeout<T>(promise: Promise<T>, timeoutMs = DNS_LOOKUP_TIMEOUT_MS): Promise<T | null> {
-  return Promise.race([
-    promise,
-    new Promise<null>((resolve) => {
-      setTimeout(() => resolve(null), timeoutMs);
-    }),
-  ]);
-}
-
-function usesExternalDns(publicNs: string[], pleskNs: string[]): boolean {
-  if (!publicNs.length || !pleskNs.length) return false;
-  const pleskSet = new Set(pleskNs.map(normalizeNameserver));
-  return publicNs.some((ns) => !pleskSet.has(normalizeNameserver(ns)));
-}
-
-export function buildExternalDnsTxtHint(
-  nameservers: string[]
-): string {
-  const nsList = nameservers.join(", ");
-  return `This domain uses external DNS (${nsList}). Add the _faraios TXT record at that DNS provider. Plesk DNS sync does not publish records when nameservers point elsewhere.`;
 }
 
 export async function verifyWebsiteDomain(
@@ -198,7 +177,7 @@ export async function verifyWebsiteDomain(
         record.record_type === "TXT" &&
         record.host === "_faraios"
       ) {
-        const publicNs = await getPublicNameservers(domain.domain);
+        const publicNs = await getPublicNameserversForDomain(domain.domain);
         const pleskTarget = await getPleskHostingTarget({ companyId });
         if (usesExternalDns(publicNs, pleskTarget?.nameservers ?? [])) {
           hint = buildExternalDnsTxtHint(publicNs);

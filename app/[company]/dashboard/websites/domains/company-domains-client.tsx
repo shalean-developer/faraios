@@ -4,6 +4,7 @@ import { WebsiteDomainsPanelWithSearch } from "@/components/websites/website-dom
 import type { WebsiteDomainDnsHelp } from "@/components/websites/website-domains-panel";
 import type { HostingPlanRow } from "@/types/hosting-automation";
 import type { DomainPurchaseNotice } from "@/lib/services/domain-purchase-notice";
+import type { DomainDnsGuidance } from "@/lib/hosting/external-dns-guidance";
 import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 
 export function WebsiteDomainsClient({
@@ -15,6 +16,7 @@ export function WebsiteDomainsClient({
   hostingPlans = [],
   billingEmail,
   domainPurchaseNotice,
+  domainDnsGuidanceById,
 }: {
   companyId: string;
   slug: string;
@@ -24,6 +26,7 @@ export function WebsiteDomainsClient({
   hostingPlans?: HostingPlanRow[];
   billingEmail?: string | null;
   domainPurchaseNotice?: DomainPurchaseNotice | null;
+  domainDnsGuidanceById?: Record<string, DomainDnsGuidance>;
 }) {
   return (
     <WebsiteDomainsPanelWithSearch
@@ -36,6 +39,7 @@ export function WebsiteDomainsClient({
       hostingPlans={hostingPlans}
       billingEmail={billingEmail}
       domainPurchaseNotice={domainPurchaseNotice}
+      domainDnsGuidanceById={domainDnsGuidanceById}
     />
   );
 }
