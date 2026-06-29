@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { ChevronDown } from "lucide-react";
 
 import type { FaqItem } from "@/templates/service-business/content";
@@ -33,14 +33,14 @@ function FaqAccordionStatic({ items }: { items: FaqItem[] }) {
 }
 
 export function FaqAccordion({ items }: { items: FaqItem[] }) {
-  const [mounted, setMounted] = useState(false);
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const [openIndex, setOpenIndex] = useState(0);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
+  if (!isClient) {
     return <FaqAccordionStatic items={items} />;
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { ChevronDown } from "lucide-react";
 
 import { luxury } from "@/templates/service-business/luxury-styles";
@@ -31,12 +31,12 @@ function ContactFormSkeleton() {
 }
 
 export function LuxuryContactForm({ services, bookingUrl, email }: Props) {
-  const [mounted, setMounted] = useState(false);
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const [submitted, setSubmitted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -88,7 +88,7 @@ export function LuxuryContactForm({ services, bookingUrl, email }: Props) {
   const inputClass =
     "w-full rounded-md border-0 bg-[#ddd8c4] px-4 py-3.5 text-sm text-[#2d2926] placeholder:text-[#2d2926]/45 outline-none ring-0 focus:bg-[#d4cfb8]";
 
-  if (!mounted) {
+  if (!isClient) {
     return <ContactFormSkeleton />;
   }
 

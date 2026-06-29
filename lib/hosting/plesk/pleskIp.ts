@@ -1,7 +1,7 @@
 import { getAllXmlBlocks, getXmlText, pleskXmlRequest } from "@/lib/hosting/plesk/pleskXmlClient";
 import type { PleskCredentials } from "@/lib/hosting/plesk/pleskTypes";
 
-let cachedIpByEndpoint = new Map<string, string>();
+const cachedIpByEndpoint = new Map<string, string>();
 
 /** Resolve a usable shared IPv4 address for new Plesk subscriptions. */
 export async function getPleskDefaultIpAddress(
