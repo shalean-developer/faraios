@@ -5980,6 +5980,7 @@ create table if not exists public.domain_settings (
   requested_subdomain text,
   custom_domain text,
   custom_domain_status text not null default 'coming_soon',
+  www_redirect text not null default 'none',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (website_id)

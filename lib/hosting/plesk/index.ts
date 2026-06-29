@@ -10,3 +10,5 @@ export * from "@/lib/hosting/plesk/pleskMail";
 export * from "@/lib/hosting/plesk/pleskFtp";
 export * from "@/lib/hosting/plesk/pleskDatabases";
 export * from "@/lib/hosting/plesk/pleskUsage";
+export * from "@/lib/hosting/plesk/pleskProxyConfig";
+export * from "@/lib/hosting/plesk/pleskSiteProxy";

@@ -6,6 +6,7 @@ import { getHostingProvider } from "@/lib/hosting/providers";
 import type { DnsRecordType } from "@/lib/hosting/providers";
 import { getPleskHostingTarget } from "@/lib/hosting/plesk/target";
 import { syncHostingSubscriptionFromWebsiteDomain } from "@/lib/services/hosting-domain";
+import { pushWebsiteDomainDnsToPlesk } from "@/lib/services/plesk-website-dns-sync";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import type {
@@ -132,6 +133,23 @@ export async function verifyWebsiteDomain(
     return { ok: false, verified: false, error: "Domain not found." };
   }
 
+  const domain = domainRow as WebsiteDomain;
+
+  if (domain.hosting_provider === "plesk") {
+    const pushResult = await pushWebsiteDomainDnsToPlesk({
+      companyId,
+      domain: domain.domain,
+      verificationToken: domain.verification_token ?? null,
+    });
+    if (!pushResult.ok) {
+      console.warn(
+        "[website_domains] Plesk DNS re-sync before verify failed",
+        domain.domain,
+        pushResult.error
+      );
+    }
+  }
+
   const { data: records } = await admin.client
     .from("website_dns_records")
     .select("*")
@@ -144,7 +162,7 @@ export async function verifyWebsiteDomain(
 
   for (const record of dnsRecords) {
     const verified = await verifyDnsRecord(
-      domainRow.domain,
+      domain.domain,
       record.record_type,
       record.host,
       record.value
@@ -165,7 +183,7 @@ export async function verifyWebsiteDomain(
         record.record_type === "TXT" &&
         record.host === "_faraios"
       ) {
-        const publicNs = await getPublicNameservers(domainRow.domain);
+        const publicNs = await getPublicNameservers(domain.domain);
         const pleskTarget = await getPleskHostingTarget({ companyId });
         if (usesExternalDns(publicNs, pleskTarget?.nameservers ?? [])) {
           hint = buildExternalDnsTxtHint(publicNs);
@@ -176,7 +194,7 @@ export async function verifyWebsiteDomain(
 
   const verificationStatus = allVerified ? "verified" : "pending";
   let sslStatus =
-    allVerified && domainRow.ssl_status === "not_started" ? "pending" : domainRow.ssl_status;
+    allVerified && domain.ssl_status === "not_started" ? "pending" : domain.ssl_status;
 
   await admin.client
     .from("website_domains")
@@ -188,11 +206,11 @@ export async function verifyWebsiteDomain(
     })
     .eq("id", websiteDomainId);
 
-  if (allVerified && domainRow.hosting_provider) {
-    const provider = getHostingProvider(domainRow.hosting_provider);
+  if (allVerified && domain.hosting_provider) {
+    const provider = getHostingProvider(domain.hosting_provider);
     const status = await provider.checkStatus({
-      providerDomainId: domainRow.provider_domain_id ?? undefined,
-      domain: domainRow.domain,
+      providerDomainId: domain.provider_domain_id ?? undefined,
+      domain: domain.domain,
       companyId,
     });
     if (status.sslStatus === "active") {
@@ -206,12 +224,18 @@ export async function verifyWebsiteDomain(
 
   await syncHostingSubscriptionFromWebsiteDomain(
     companyId,
-    domainRow.domain,
+    domain.domain,
     verificationStatus,
     sslStatus
   );
 
-  return { ok: true, verified: allVerified, hint };
+  let resultHint = hint;
+  if (allVerified && sslStatus === "pending" && domain.hosting_provider === "plesk") {
+    resultHint =
+      "DNS verified. SSL stays pending until HTTPS is active on your domain — in Plesk open SSL/TLS Certificates and install Let's Encrypt (or wait for auto-issue), then click Verify DNS again.";
+  }
+
+  return { ok: true, verified: allVerified, hint: resultHint };
 }
 
 export async function seedDnsRecordsForDomain(
@@ -240,3 +264,61 @@ export async function seedDnsRecordsForDomain(
 }
 
 export { normalizeDomain } from "@/lib/utils/normalize-domain";
+
+export type ProcessPendingPleskDomainsResult = {
+  checked: number;
+  verified: number;
+  errors: string[];
+};
+
+/** Re-push FaraiOS DNS to Plesk, then verify pending Plesk website domains. */
+export async function processPendingPleskDomainVerifications(
+  limit = 50
+): Promise<ProcessPendingPleskDomainsResult> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) {
+    return { checked: 0, verified: 0, errors: [admin.error] };
+  }
+
+  const { data: pendingDomains, error } = await admin.client
+    .from("website_domains")
+    .select("id, company_id, domain, hosting_provider")
+    .eq("verification_status", "pending")
+    .eq("hosting_provider", "plesk")
+    .order("updated_at", { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    return { checked: 0, verified: 0, errors: [error.message] };
+  }
+
+  let verified = 0;
+  const errors: string[] = [];
+
+  for (const row of pendingDomains ?? []) {
+    const domainId = row.id as string;
+    const companyId = row.company_id as string;
+    const domain = row.domain as string;
+
+    try {
+      const verifyResult = await verifyWebsiteDomain(domainId, companyId);
+      if (!verifyResult.ok) {
+        errors.push(`${domain}: ${verifyResult.error ?? "Verification failed."}`);
+        continue;
+      }
+      if (verifyResult.verified) {
+        verified += 1;
+      }
+    } catch (verifyError) {
+      const message =
+        verifyError instanceof Error ? verifyError.message : "Verification failed.";
+      errors.push(`${domain}: ${message}`);
+    }
+  }
+
+  return {
+    checked: pendingDomains?.length ?? 0,
+    verified,
+    errors,
+  };
+}

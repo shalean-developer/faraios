@@ -1,10 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createHostingAccount } from "@/lib/hosting/plesk/provisioning";
 import { getPleskCredentials } from "@/lib/hosting/plesk/config";
-import { syncFaraiosDomainDnsToPlesk } from "@/lib/hosting/plesk/syncFaraiosDomainDns";
-import { getPleskHostingTarget } from "@/lib/hosting/plesk/target";
 import { provisionCompanyWebsiteDomain } from "@/lib/services/hosting-domain";
-import { normalizeDomain, verifyWebsiteDomain } from "@/lib/services/website-domains";
+import { syncServiceDnsRecords } from "@/lib/services/hosting-resources";
+import { normalizeDomain } from "@/lib/services/website-domains";
 import {
   notifyHostingAccountCreated,
   notifyHostingOrderReceived,
@@ -433,21 +432,18 @@ export async function provisionHostingOrder(
 
   await admin
     .from("hosting_domains")
-    .update({ service_id: serviceId, dns_status: "active", updated_at: now })
+    .update({ service_id: serviceId, dns_status: "pending", updated_at: now })
     .eq("company_id", order.company_id)
     .eq("domain_name", order.domain_name);
 
-  await notifyHostingAccountCreated(
-    order.company_id,
-    order.domain_name,
-    provisioned.controlPanelUrl
-  );
+  await notifyHostingAccountCreated(order.company_id, order.domain_name, serviceId);
 
   await linkProvisionedDomainToWebsiteEngine({
     companyId: order.company_id,
     domainName: order.domain_name,
     serverId: order.server_id,
     pleskSubscriptionId: provisioned.pleskSubscriptionId,
+    serviceId,
   });
 
   return { ok: true, serviceId };
@@ -458,6 +454,7 @@ async function linkProvisionedDomainToWebsiteEngine(input: {
   domainName: string;
   serverId: string | null;
   pleskSubscriptionId: string;
+  serviceId: string;
 }): Promise<void> {
   const normalizedDomain = normalizeDomain(input.domainName);
   if (!normalizedDomain) return;
@@ -468,6 +465,8 @@ async function linkProvisionedDomainToWebsiteEngine(input: {
     hostingProvider: "plesk",
     syncHostingSubscription: true,
     isPrimary: true,
+    serverId: input.serverId,
+    pleskSubscriptionId: input.pleskSubscriptionId,
   });
 
   if (!domainProvision.ok) {
@@ -479,40 +478,40 @@ async function linkProvisionedDomainToWebsiteEngine(input: {
     return;
   }
 
+  await syncServiceDnsRecords(input.serviceId);
+
+  const { wireHostingServiceToFaraiosApp } = await import("@/lib/services/plesk-site-proxy");
+  const wireResult = await wireHostingServiceToFaraiosApp(input.serviceId);
+  if (!wireResult.ok) {
+    console.error(
+      "[hosting] post-provision FaraiOS proxy wire failed",
+      normalizedDomain,
+      wireResult.error
+    );
+  } else if (wireResult.ok && "origin" in wireResult) {
+    console.info(
+      "[hosting] FaraiOS proxy wired",
+      normalizedDomain,
+      wireResult.origin
+    );
+  }
+
   const admin = createAdminClient();
   const { data: domainRow } = await admin
     .from("website_domains")
-    .select("verification_token")
+    .select("verification_status")
     .eq("id", domainProvision.websiteDomainId)
     .maybeSingle();
 
-  const target = await getPleskHostingTarget({
-    companyId: input.companyId,
-    serverId: input.serverId,
-  });
-
-  if (target?.serverIp) {
-    const syncResult = await syncFaraiosDomainDnsToPlesk({
-      companyId: input.companyId,
-      domain: normalizedDomain,
-      serverIp: target.serverIp,
-      verificationToken: domainRow?.verification_token ?? null,
-    });
-
-    if (!syncResult.ok) {
-      console.error(
-        "[hosting] Plesk DNS sync failed",
-        normalizedDomain,
-        syncResult.error
-      );
-    }
-  }
-
-  try {
-    await verifyWebsiteDomain(domainProvision.websiteDomainId, input.companyId);
-  } catch (error) {
-    console.error("[hosting] post-provision DNS verify failed", normalizedDomain, error);
-  }
+  const dnsVerified = domainRow?.verification_status === "verified";
+  await admin
+    .from("hosting_domains")
+    .update({
+      dns_status: dnsVerified ? "active" : "pending",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("company_id", input.companyId)
+    .ilike("domain_name", normalizedDomain);
 }
 
 export async function getCompanyHostingOverview(companyId: string) {

@@ -4,6 +4,10 @@ import { getCompanyBySlug } from "@/lib/services/companies";
 import { getCompanyHostingOverview } from "@/lib/services/hosting-automation";
 import { getHostingSubscriptionForCompany } from "@/lib/services/hosting";
 import {
+  getServiceResourceSummary,
+  type HostingServiceResourceSummary,
+} from "@/lib/services/hosting-resources";
+import {
   confirmHostingPaymentForUser,
   type HostingPaymentConfirmationState,
 } from "@/lib/services/hosting-subscription-verify";
@@ -98,4 +102,22 @@ export async function loadCompanyHostingPageWithPaymentConfirmation(
   }
 
   return { ...context, paymentConfirmation };
+}
+
+export async function loadCompanyHostingService(
+  companyParam: string,
+  serviceId: string
+): Promise<
+  CompanyHostingPageContext & {
+    service: HostingServiceRow;
+    resourceSummary: HostingServiceResourceSummary;
+  }
+> {
+  const context = await loadCompanyHostingPage(companyParam);
+  const service = context.overview.services.find((entry) => entry.id === serviceId);
+  if (!service) notFound();
+
+  const resourceSummary = await getServiceResourceSummary(serviceId, context.company.id);
+
+  return { ...context, service, resourceSummary };
 }

@@ -79,28 +79,98 @@ export function companyHostingServicesPath(
   return query ? `${base}?${query}` : base;
 }
 
-export function companyHostingInvoicesPath(slug: string): string {
-  return `/${encodeURIComponent(slug)}/dashboard/hosting/invoices`;
+export function companyHostingServicePanelPath(slug: string, serviceId: string): string {
+  return `/${encodeURIComponent(slug)}/dashboard/hosting/services/${encodeURIComponent(serviceId)}`;
 }
 
-export function companyHostingSupportPath(slug: string): string {
-  return `/${encodeURIComponent(slug)}/dashboard/hosting/support`;
+type HostingResourcePathOptions = { serviceId?: string };
+
+function appendHostingServiceQuery(base: string, options?: HostingResourcePathOptions): string {
+  if (!options?.serviceId) return base;
+  const params = new URLSearchParams({ service: options.serviceId });
+  return `${base}?${params.toString()}`;
 }
 
-export function companyHostingDomainsPath(slug: string): string {
-  return `/${encodeURIComponent(slug)}/dashboard/hosting/domains`;
+export function companyHostingInvoicesPath(
+  slug: string,
+  options?: HostingResourcePathOptions
+): string {
+  return appendHostingServiceQuery(
+    `/${encodeURIComponent(slug)}/dashboard/hosting/invoices`,
+    options
+  );
 }
 
-export function companyHostingMailboxesPath(slug: string): string {
-  return `/${encodeURIComponent(slug)}/dashboard/hosting/mailboxes`;
+export function companyHostingSupportPath(
+  slug: string,
+  options?: HostingResourcePathOptions
+): string {
+  return appendHostingServiceQuery(
+    `/${encodeURIComponent(slug)}/dashboard/hosting/support`,
+    options
+  );
 }
 
-export function companyHostingFtpPath(slug: string): string {
-  return `/${encodeURIComponent(slug)}/dashboard/hosting/ftp`;
+export function companyHostingDomainsPath(
+  slug: string,
+  options?: HostingResourcePathOptions
+): string {
+  return appendHostingServiceQuery(
+    `/${encodeURIComponent(slug)}/dashboard/hosting/domains`,
+    options
+  );
 }
 
-export function companyHostingDatabasesPath(slug: string): string {
-  return `/${encodeURIComponent(slug)}/dashboard/hosting/databases`;
+export function companyHostingDnsPath(
+  slug: string,
+  options?: HostingResourcePathOptions
+): string {
+  return appendHostingServiceQuery(
+    `/${encodeURIComponent(slug)}/dashboard/hosting/dns`,
+    options
+  );
+}
+
+export function companyHostingMailboxesPath(
+  slug: string,
+  options?: HostingResourcePathOptions
+): string {
+  return appendHostingServiceQuery(
+    `/${encodeURIComponent(slug)}/dashboard/hosting/mailboxes`,
+    options
+  );
+}
+
+export function companyHostingFtpPath(
+  slug: string,
+  options?: HostingResourcePathOptions
+): string {
+  return appendHostingServiceQuery(
+    `/${encodeURIComponent(slug)}/dashboard/hosting/ftp`,
+    options
+  );
+}
+
+export function companyHostingDatabasesPath(
+  slug: string,
+  options?: HostingResourcePathOptions
+): string {
+  return appendHostingServiceQuery(
+    `/${encodeURIComponent(slug)}/dashboard/hosting/databases`,
+    options
+  );
+}
+
+export function absoluteCompanyHostingServicePanelUrl(
+  slug: string,
+  serviceId: string
+): string {
+  const base =
+    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+    "";
+  const path = companyHostingServicePanelPath(slug, serviceId);
+  return base ? `${base.replace(/\/$/, "")}${path}` : path;
 }
 
 export function companyBookingsPath(slug: string): string {

@@ -4,6 +4,8 @@ import { createPleskCustomer } from "@/lib/hosting/plesk/pleskCustomers";
 import {
   changePleskServicePlan,
   createPleskSubscription,
+  findPleskSubscriptionByDomain,
+  isPleskDuplicateDomainError,
   suspendPleskSubscription,
   terminatePleskSubscription,
   unsuspendPleskSubscription,
@@ -110,6 +112,40 @@ export async function createHostingAccount(
   const ftpLogin = generateUsername(`${input.domainName}-ftp`);
   const ftpPassword = generatePassword();
 
+  const controlPanelUrl = creds.url.includes(":8443")
+    ? creds.url
+    : `${creds.url}:8443`;
+
+  const existingSubscription = await findPleskSubscriptionByDomain(
+    creds,
+    input.domainName,
+    input.serverId ?? creds.serverId ?? undefined
+  );
+
+  if (existingSubscription) {
+    await logProvisioning({
+      companyId: input.companyId,
+      orderId: input.orderId,
+      serviceId: input.serviceId,
+      serverId: input.serverId ?? undefined,
+      action: "link_existing_subscription",
+      status: "success",
+      requestPayload: { domain: input.domainName },
+      responsePayload: {
+        subscriptionId: existingSubscription.id,
+        linkedExisting: true,
+      },
+    });
+
+    return {
+      ok: true,
+      pleskSubscriptionId: existingSubscription.id,
+      pleskCustomerId: existingSubscription.customerId ?? "",
+      username: ftpLogin,
+      controlPanelUrl,
+    };
+  }
+
   const customerResult = await createPleskCustomer(creds, {
     login: customerLogin,
     password: customerPassword,
@@ -146,6 +182,38 @@ export async function createHostingAccount(
   });
 
   if (!subscriptionResult.ok) {
+    if (isPleskDuplicateDomainError(subscriptionResult.error)) {
+      const linked = await findPleskSubscriptionByDomain(
+        creds,
+        input.domainName,
+        input.serverId ?? creds.serverId ?? undefined
+      );
+
+      if (linked) {
+        await logProvisioning({
+          companyId: input.companyId,
+          orderId: input.orderId,
+          serviceId: input.serviceId,
+          serverId: input.serverId ?? undefined,
+          action: "link_existing_subscription",
+          status: "success",
+          requestPayload: { domain: input.domainName },
+          responsePayload: {
+            subscriptionId: linked.id,
+            linkedExisting: true,
+          },
+        });
+
+        return {
+          ok: true,
+          pleskSubscriptionId: linked.id,
+          pleskCustomerId: linked.customerId ?? customerResult.customer.id,
+          username: ftpLogin,
+          controlPanelUrl,
+        };
+      }
+    }
+
     await logProvisioning({
       companyId: input.companyId,
       orderId: input.orderId,
@@ -157,10 +225,6 @@ export async function createHostingAccount(
     });
     return { ok: false, error: subscriptionResult.error };
   }
-
-  const controlPanelUrl = creds.url.includes(":8443")
-    ? creds.url
-    : `${creds.url}:8443`;
 
   await logProvisioning({
     companyId: input.companyId,

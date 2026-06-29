@@ -4,20 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import { requireCompanyPermission } from "@/lib/services/company-access";
 import { provisionCompanyWebsiteDomain } from "@/lib/services/hosting-domain";
-import { verifyWebsiteDomain } from "@/lib/services/website-domains";
+import { normalizeDomain, verifyWebsiteDomain } from "@/lib/services/website-domains";
 import { createClient } from "@/lib/supabase/server";
 import { companyHostingPath } from "@/lib/paths/company";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
-
-function normalizeDomain(raw: string): string {
-  return raw
-    .trim()
-    .toLowerCase()
-    .replace(/^https?:\/\//, "")
-    .replace(/\/.*$/, "")
-    .replace(/^www\./, "");
-}
 
 export async function connectHostingDomainAction(
   subscriptionId: string,

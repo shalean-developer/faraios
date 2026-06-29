@@ -852,15 +852,40 @@ export async function updateWwwRedirectAction(input: {
     updated_at: new Date().toISOString(),
   };
 
-  const { error } = existing
-    ? await admin.client.from("domain_settings").update(patch).eq("website_id", website.id)
-    : await admin.client.from("domain_settings").insert({
-        website_id: website.id,
-        company_id: input.companyId,
-        ...patch,
-      });
+  let error: { message: string } | null = null;
 
-  if (error) return { ok: false, error: error.message };
+  if (existing) {
+    ({ error } = await admin.client.from("domain_settings").update(patch).eq("website_id", website.id));
+  } else {
+    const { data: primaryDomain } = await admin.client
+      .from("website_domains")
+      .select("domain, verification_status")
+      .eq("company_id", input.companyId)
+      .order("is_primary", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    ({ error } = await admin.client.from("domain_settings").insert({
+      website_id: website.id,
+      company_id: input.companyId,
+      custom_domain: (primaryDomain?.domain as string | undefined) ?? null,
+      custom_domain_status:
+        primaryDomain?.verification_status === "verified" ? "verified" : "not_connected",
+      ...patch,
+    }));
+  }
+
+  if (error) {
+    if (error.message.includes("www_redirect")) {
+      return {
+        ok: false,
+        error:
+          "WWW redirect is not available yet — run database migration 20260713000000_domain_settings_www_redirect.sql (npm run db:apply-all-migrations).",
+      };
+    }
+    return { ok: false, error: error.message };
+  }
 
   revalidateBuilderPaths(input.companySlug);
   return { ok: true };

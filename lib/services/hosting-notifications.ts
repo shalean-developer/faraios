@@ -1,5 +1,6 @@
 import { createAdminClient, tryCreateAdminClient } from "@/lib/supabase/admin";
 import { sendResendEmail } from "@/lib/email/resend";
+import { absoluteCompanyHostingServicePanelUrl, companyHostingServicePanelPath } from "@/lib/paths/company";
 
 async function getCompanyEmail(companyId: string): Promise<string | null> {
   const admin = tryCreateAdminClient();
@@ -169,10 +170,23 @@ export async function notifyHostingPaymentSuccessful(
 export async function notifyHostingAccountCreated(
   companyId: string,
   domain: string,
-  controlPanelUrl: string
+  serviceId: string
 ) {
   const email = await getCompanyEmail(companyId);
   if (!email) return;
+
+  const admin = tryCreateAdminClient();
+  let controlPanelUrl = companyHostingServicePanelPath("workspace", serviceId);
+  if (admin.ok) {
+    const { data: company } = await admin.client
+      .from("companies")
+      .select("slug")
+      .eq("id", companyId)
+      .maybeSingle();
+    if (company?.slug) {
+      controlPanelUrl = absoluteCompanyHostingServicePanelUrl(company.slug, serviceId);
+    }
+  }
 
   await sendHostingEmail({
     to: email,

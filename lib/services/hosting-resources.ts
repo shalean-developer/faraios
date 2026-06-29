@@ -52,23 +52,53 @@ export async function syncServiceDnsRecords(serviceId: string) {
   if (!result.ok) return result;
 
   const admin = createAdminClient();
+  const seenPleskIds = new Set<string>();
+
   for (const rec of result.records) {
-    await admin.from("hosting_dns_records").upsert(
-      {
-        company_id: ctx.service.company_id,
-        service_id: serviceId,
-        domain_name: ctx.service.domain_name,
-        record_type: rec.type,
-        host: rec.host,
-        value: rec.value,
-        priority: rec.priority ?? null,
-        ttl: rec.ttl ?? 3600,
-        plesk_record_id: rec.id ?? null,
-        status: "active",
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "id", ignoreDuplicates: false }
-    );
+    const row = {
+      company_id: ctx.service.company_id,
+      service_id: serviceId,
+      domain_name: ctx.service.domain_name,
+      record_type: rec.type,
+      host: rec.host,
+      value: rec.value,
+      priority: rec.priority ?? null,
+      ttl: rec.ttl ?? 3600,
+      plesk_record_id: rec.id ?? null,
+      status: "active",
+      updated_at: new Date().toISOString(),
+    };
+
+    if (rec.id) {
+      seenPleskIds.add(rec.id);
+      const { data: existing } = await admin
+        .from("hosting_dns_records")
+        .select("id")
+        .eq("service_id", serviceId)
+        .eq("plesk_record_id", rec.id)
+        .maybeSingle();
+
+      if (existing?.id) {
+        await admin.from("hosting_dns_records").update(row).eq("id", existing.id);
+      } else {
+        await admin.from("hosting_dns_records").insert(row);
+      }
+      continue;
+    }
+
+    await admin.from("hosting_dns_records").insert(row);
+  }
+
+  const { data: existingRows } = await admin
+    .from("hosting_dns_records")
+    .select("id, plesk_record_id")
+    .eq("service_id", serviceId);
+
+  for (const row of existingRows ?? []) {
+    const pleskId = row.plesk_record_id as string | null;
+    if (pleskId && !seenPleskIds.has(pleskId)) {
+      await admin.from("hosting_dns_records").delete().eq("id", row.id);
+    }
   }
 
   const { data } = await admin
@@ -423,7 +453,7 @@ export async function resetMailboxPasswordForService(
     serverId: ctx.serverId,
   });
 
-  return result.ok ? { ok: true as const } : result;
+  return result.ok ? { ok: true as const, password: newPassword } : result;
 }
 
 export async function resetFtpPasswordForService(
@@ -435,16 +465,29 @@ export async function resetFtpPasswordForService(
   if (!ctx) return { ok: false as const, error: "Service not provisioned." };
 
   const newPassword = password ?? generatePassword();
-  return resetPleskFtpPassword(ctx.creds, {
+  const result = await resetPleskFtpPassword(ctx.creds, {
     siteId: ctx.siteId,
     username,
     password: newPassword,
     serviceId,
     serverId: ctx.serverId,
   });
+
+  return result.ok ? { ok: true as const, password: newPassword } : result;
 }
 
 /** Fast DB-only reads for company dashboard pages (no Plesk sync on load). */
+export async function listCompanyDnsRecords(companyId: string) {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("hosting_dns_records")
+    .select("*")
+    .eq("company_id", companyId)
+    .order("record_type")
+    .order("host");
+  return data ?? [];
+}
+
 export async function listCompanyMailboxes(companyId: string) {
   const admin = createAdminClient();
   const { data } = await admin
@@ -473,4 +516,63 @@ export async function listCompanyDatabases(companyId: string) {
     .eq("company_id", companyId)
     .order("created_at", { ascending: false });
   return data ?? [];
+}
+
+export type HostingServiceResourceSummary = {
+  domains: number;
+  dnsRecords: number;
+  mailboxes: number;
+  ftpAccounts: number;
+  databases: number;
+  openTickets: number;
+};
+
+export async function getServiceResourceSummary(
+  serviceId: string,
+  companyId: string
+): Promise<HostingServiceResourceSummary> {
+  const admin = createAdminClient();
+
+  const [domains, dnsRecords, mailboxes, ftpAccounts, databases, tickets] = await Promise.all([
+    admin
+      .from("hosting_domains")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .eq("service_id", serviceId),
+    admin
+      .from("hosting_dns_records")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .eq("service_id", serviceId),
+    admin
+      .from("hosting_mailboxes")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .eq("service_id", serviceId),
+    admin
+      .from("hosting_ftp_accounts")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .eq("service_id", serviceId),
+    admin
+      .from("hosting_databases")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .eq("service_id", serviceId),
+    admin
+      .from("hosting_support_tickets")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .eq("service_id", serviceId)
+      .eq("status", "open"),
+  ]);
+
+  return {
+    domains: domains.count ?? 0,
+    dnsRecords: dnsRecords.count ?? 0,
+    mailboxes: mailboxes.count ?? 0,
+    ftpAccounts: ftpAccounts.count ?? 0,
+    databases: databases.count ?? 0,
+    openTickets: tickets.count ?? 0,
+  };
 }

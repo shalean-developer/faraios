@@ -363,6 +363,24 @@ export async function publishWebsiteAction(
   );
 
   await registerTenantSubdomainForPublish(website.subdomain as string | null | undefined);
+
+  const { data: websiteRow } = await supabase
+    .from("websites")
+    .select("domain, client_id")
+    .eq("id", websiteId)
+    .maybeSingle();
+
+  if (websiteRow?.domain && websiteRow.client_id) {
+    const { wireCompanyDomainToFaraiosApp } = await import("@/lib/services/plesk-site-proxy");
+    const wireResult = await wireCompanyDomainToFaraiosApp({
+      companyId: websiteRow.client_id as string,
+      domain: websiteRow.domain as string,
+    });
+    if (!wireResult.ok) {
+      console.error("[websites] Plesk proxy wire on publish failed", wireResult.error);
+    }
+  }
+
   await revalidateCompanyWebsitePaths(companySlug, websiteId);
   revalidatePath("/");
   return { ok: true };
@@ -390,6 +408,15 @@ export async function connectDomainAction(
 
   if (error) {
     return { ok: false, error: error.message };
+  }
+
+  const { wireCompanyDomainToFaraiosApp } = await import("@/lib/services/plesk-site-proxy");
+  const wireResult = await wireCompanyDomainToFaraiosApp({
+    companyId: access.companyId,
+    domain: normalizedDomain,
+  });
+  if (!wireResult.ok) {
+    console.error("[websites] Plesk proxy wire on connect domain failed", wireResult.error);
   }
 
   await revalidateCompanyWebsitePaths(companySlug, websiteId);

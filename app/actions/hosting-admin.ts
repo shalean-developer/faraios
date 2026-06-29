@@ -470,6 +470,72 @@ export async function adminDeleteDnsRecordAction(
   return result.ok ? { ok: true } : result;
 }
 
+export async function adminForceSyncFaraiosDnsAction(serviceId: string): Promise<
+  AdminResult & { synced?: string[]; message?: string }
+> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const { forceSyncHostingServiceDnsToPlesk } = await import(
+    "@/lib/services/plesk-website-dns-sync"
+  );
+  const result = await forceSyncHostingServiceDnsToPlesk(serviceId);
+
+  revalidatePath("/admin/hosting/dns");
+  revalidatePath("/admin/hosting/services");
+  revalidatePath("/admin/hosting/domains");
+
+  if (!result.ok) {
+    return { ok: false, error: result.error };
+  }
+
+  const message =
+    result.synced.length > 0
+      ? `Synced to Plesk: ${result.synced.join(", ")}`
+      : "Plesk DNS already up to date (A @, A www, TXT _faraios).";
+
+  return { ok: true, synced: result.synced, message };
+}
+
+export async function adminForceWireFaraiosSiteAction(serviceId: string): Promise<
+  AdminResult & { message?: string; domain?: string; origin?: string }
+> {
+  const denied = await requirePlatformAdmin();
+  if (denied) return denied;
+
+  const { wireHostingServiceToFaraiosApp } = await import("@/lib/services/plesk-site-proxy");
+  const result = await wireHostingServiceToFaraiosApp(serviceId);
+
+  revalidatePath("/admin/hosting/dns");
+  revalidatePath("/admin/hosting/services");
+  revalidatePath("/admin/hosting/domains");
+
+  if (!result.ok) {
+    return { ok: false, error: result.error };
+  }
+
+  if ("skipped" in result && result.skipped) {
+    const reason =
+      result.reason === "proxy_disabled"
+        ? "Proxy wiring is disabled (FARAIOS_PLESK_PROXY_ENABLED=false)."
+        : result.reason === "no_origin"
+          ? "Set FARAIOS_PLESK_APP_ORIGIN (e.g. http://127.0.0.1:3000)."
+          : "No active Plesk hosting service found for this domain.";
+    return { ok: true, message: reason };
+  }
+
+  if (!("origin" in result)) {
+    return { ok: false, error: "Proxy wiring did not return an origin." };
+  }
+
+  return {
+    ok: true,
+    message: `Wired ${result.domain} → ${result.origin} (reverse proxy).`,
+    domain: result.domain,
+    origin: result.origin,
+  };
+}
+
 export async function adminUpdateHostingSettingsAction(input: {
   pleskUrl: string;
   pleskUsername: string;

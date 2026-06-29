@@ -1013,7 +1013,18 @@ function DomainsSection({
               ))}
             </div>
             {redirectMessage ? (
-              <p className="mt-3 text-sm text-slate-600">{redirectMessage}</p>
+              <p
+                className={cn(
+                  "mt-3 text-sm",
+                  redirectMessage.includes("migration") || redirectMessage.includes("Upgrade")
+                    ? "text-amber-700"
+                    : redirectMessage.endsWith("saved.")
+                      ? "text-emerald-700"
+                      : "text-red-600"
+                )}
+              >
+                {redirectMessage}
+              </p>
             ) : null}
             <button
               type="button"

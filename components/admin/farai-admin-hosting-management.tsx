@@ -18,6 +18,7 @@ import {
 import { formatDateTimeEnZA } from "@/lib/format/dates";
 import {
   adminChangeHostingPackageAction,
+  adminForceSyncFaraiosDnsAction,
   adminManualProvisionAction,
   adminRemoveHostingOrderAction,
   adminResetHostingPasswordAction,
@@ -67,12 +68,19 @@ export function FaraiAdminHostingServices({
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
-  const run = (action: () => Promise<{ ok: boolean; error?: string }>, serviceId: string) => {
+  const run = (
+    action: () => Promise<{ ok: boolean; error?: string; message?: string }>,
+    serviceId: string
+  ) => {
     setMessage(null);
     startTransition(() => {
       void (async () => {
         const result = await action();
-        setMessage(result.ok ? `Action completed for ${serviceId.slice(0, 8)}` : result.error ?? "Failed");
+        setMessage(
+          result.ok
+            ? result.message ?? `Action completed for ${serviceId.slice(0, 8)}`
+            : result.error ?? "Failed"
+        );
       })();
     });
   };
@@ -104,6 +112,7 @@ export function FaraiAdminHostingServices({
                 <td className="px-4 py-3"><HostingStatusBadge status={service.status} /></td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
+                    <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => adminForceSyncFaraiosDnsAction(service.id), service.id)}>Sync DNS</Button>
                     <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => adminSuspendHostingServiceAction(service.id), service.id)}>Suspend</Button>
                     <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => adminUnsuspendHostingServiceAction(service.id), service.id)}>Unsuspend</Button>
                     <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => adminResetHostingPasswordAction(service.id), service.id)}>Reset pwd</Button>

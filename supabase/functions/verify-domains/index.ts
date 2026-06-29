@@ -1,23 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
-type DnsRecordType = "CNAME" | "A" | "TXT";
-
-type DnsRecord = {
-  id: string;
-  record_type: DnsRecordType;
-  host: string;
-  value: string;
-};
-
-type WebsiteDomain = {
-  id: string;
-  company_id: string;
-  domain: string;
-  ssl_status: string;
-  hosting_provider: string | null;
-  provider_domain_id: string | null;
-};
-
 function isAuthorized(req: Request): boolean {
   const auth = req.headers.get("Authorization");
   if (!auth?.startsWith("Bearer ")) return false;
@@ -31,120 +13,31 @@ function isAuthorized(req: Request): boolean {
   return false;
 }
 
-async function verifyDnsRecord(
-  domain: string,
-  recordType: DnsRecordType,
-  host: string,
-  expectedValue: string
-): Promise<boolean> {
-  const lookupDomain = host === "@" ? domain : `${host}.${domain}`;
+async function invokeAppVerifyDomainsCron(): Promise<Response | null> {
+  const appUrl = Deno.env.get("FARAIOS_APP_URL")?.trim().replace(/\/$/, "");
+  if (!appUrl) return null;
+
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (cronSecret) {
+    headers.Authorization = `Bearer ${cronSecret}`;
+  }
 
   try {
-    if (recordType === "TXT") {
-      const records = await Deno.resolveDns(lookupDomain, "TXT");
-      const flat = records.flat().join("");
-      return flat.includes(expectedValue.replace(/"/g, ""));
-    }
-    if (recordType === "CNAME") {
-      const records = await Deno.resolveDns(lookupDomain, "CNAME");
-      const expected = expectedValue.toLowerCase().replace(/\.$/, "");
-      return records.some((r) => r.toLowerCase().replace(/\.$/, "") === expected);
-    }
-    if (recordType === "A") {
-      const records = await Deno.resolveDns(lookupDomain, "A");
-      return records.includes(expectedValue);
-    }
-  } catch {
-    return false;
+    return await fetch(`${appUrl}/api/cron/verify-domains`, {
+      method: "POST",
+      headers,
+      body: "{}",
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "App cron request failed";
+    return new Response(JSON.stringify({ ok: false, error: message }), {
+      status: 502,
+      headers: { "Content-Type": "application/json" },
+    });
   }
-  return false;
-}
-
-async function verifyWebsiteDomain(
-  supabase: ReturnType<typeof createClient>,
-  websiteDomainId: string,
-  companyId: string
-): Promise<boolean> {
-  const { data: domainRow, error: domainError } = await supabase
-    .from("website_domains")
-    .select("*")
-    .eq("id", websiteDomainId)
-    .eq("company_id", companyId)
-    .maybeSingle();
-
-  if (domainError || !domainRow) return false;
-
-  const domain = domainRow as WebsiteDomain;
-
-  const { data: records } = await supabase
-    .from("website_dns_records")
-    .select("*")
-    .eq("website_domain_id", websiteDomainId);
-
-  const dnsRecords = (records ?? []) as DnsRecord[];
-  const now = new Date().toISOString();
-  let allVerified = dnsRecords.length > 0;
-
-  for (const record of dnsRecords) {
-    const verified = await verifyDnsRecord(
-      domain.domain,
-      record.record_type,
-      record.host,
-      record.value
-    );
-
-    await supabase
-      .from("website_dns_records")
-      .update({
-        status: verified ? "verified" : "failed",
-        last_checked_at: now,
-      })
-      .eq("id", record.id);
-
-    if (!verified) allVerified = false;
-  }
-
-  const verificationStatus = allVerified ? "verified" : "pending";
-
-  await supabase
-    .from("website_domains")
-    .update({
-      verification_status: verificationStatus,
-      ssl_status:
-        allVerified && domain.ssl_status === "not_started" ? "pending" : domain.ssl_status,
-      last_checked_at: now,
-      updated_at: now,
-    })
-    .eq("id", websiteDomainId);
-
-  if (allVerified) {
-    await supabase
-      .from("connected_websites")
-      .update({ status: "verified", updated_at: now })
-      .eq("company_id", companyId);
-
-    const domainStatus = verificationStatus === "verified" ? "verified" : "pending";
-    const sslStatus =
-      domain.ssl_status === "active"
-        ? "active"
-        : domain.ssl_status === "failed"
-          ? "failed"
-          : "pending";
-
-    await supabase
-      .from("hosting_subscriptions")
-      .update({
-        custom_domain: domain.domain,
-        domain_status: domainStatus,
-        ssl_status: sslStatus,
-        updated_at: now,
-      })
-      .eq("company_id", companyId)
-      .eq("status", "active")
-      .ilike("custom_domain", domain.domain);
-  }
-
-  return allVerified;
 }
 
 Deno.serve(async (req) => {
@@ -158,6 +51,15 @@ Deno.serve(async (req) => {
   if (!isAuthorized(req)) {
     return new Response(JSON.stringify({ ok: false, error: "Unauthorized." }), {
       status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const appResponse = await invokeAppVerifyDomainsCron();
+  if (appResponse) {
+    const body = await appResponse.text();
+    return new Response(body, {
+      status: appResponse.status,
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -187,19 +89,18 @@ Deno.serve(async (req) => {
     });
   }
 
-  let verified = 0;
-  let checked = 0;
-
-  for (const row of pendingDomains ?? []) {
-    const domainId = row.id as string;
-    const companyId = row.company_id as string;
-    const result = await verifyWebsiteDomain(supabase, domainId, companyId);
-    checked += 1;
-    if (result) verified += 1;
-  }
-
-  return new Response(JSON.stringify({ ok: true, checked, verified }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      checked: pendingDomains?.length ?? 0,
+      verified: 0,
+      errors: [
+        "Set FARAIOS_APP_URL on the edge function to enable Plesk DNS re-sync before verification.",
+      ],
+    }),
+    {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }
+  );
 });

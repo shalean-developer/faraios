@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { confirmHostingPaymentAction } from "@/app/actions/confirm-hosting-payment";
 import { formatHostingAmount, HostingStatusBadge } from "@/components/hosting/hosting-shared-ui";
 import { CompanyHostingLegacyBanner } from "@/components/hosting/company-hosting-legacy-banner";
 import { HostingPaymentRecovery } from "@/components/hosting/hosting-payment-recovery";
 import { Button } from "@/components/ui/button";
 import { requestHostingCancellationAction } from "@/app/actions/hosting-automation";
-import { companyHostingOrderPath } from "@/lib/paths/company";
+import { companyHostingOrderPath, companyHostingServicePanelPath } from "@/lib/paths/company";
 import type { HostingPaymentConfirmationState } from "@/lib/services/hosting-subscription-verify";
 import type { HostingInvoiceRow, HostingServiceRow } from "@/types/hosting-automation";
 
@@ -241,16 +241,12 @@ export function CompanyHostingServicesClient({
                 <HostingStatusBadge status={service.status} />
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                {service.control_panel_url && (
-                  <a
-                    href={service.control_panel_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex h-8 items-center rounded-md border border-input bg-background px-3 text-xs font-medium"
-                  >
-                    Control panel <ExternalLink className="ml-1 h-3 w-3" />
-                  </a>
-                )}
+                <Link
+                  href={companyHostingServicePanelPath(slug, service.id)}
+                  className="inline-flex h-8 items-center rounded-md border border-input bg-background px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground"
+                >
+                  Control panel
+                </Link>
                 <Button
                   variant="outline"
                   size="sm"
@@ -274,15 +270,33 @@ export function CompanyHostingInvoicesClient({
   invoices,
   hasLegacySubscription = false,
   paymentConfirmation = { status: "none" },
+  scopedServiceId,
+  scopedServiceDomain,
 }: {
   slug: string;
   companyId?: string;
   invoices: HostingInvoiceRow[];
   hasLegacySubscription?: boolean;
   paymentConfirmation?: HostingPaymentConfirmationState;
+  scopedServiceId?: string;
+  scopedServiceDomain?: string;
 }) {
+  const visibleInvoices = scopedServiceId
+    ? invoices.filter((invoice) => invoice.service_id === scopedServiceId)
+    : invoices;
+
   return (
     <>
+      {scopedServiceId && scopedServiceDomain ? (
+        <Link
+          href={companyHostingServicePanelPath(slug, scopedServiceId)}
+          className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {scopedServiceDomain} control panel
+        </Link>
+      ) : null}
+
       {companyId ? (
         <HostingPaymentRecovery
           slug={slug}
@@ -292,11 +306,15 @@ export function CompanyHostingInvoicesClient({
       ) : null}
 
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Hosting invoices</h1>
-      <p className="mt-2 text-sm text-slate-500">View invoices for your hosting orders.</p>
+      <p className="mt-2 text-sm text-slate-500">
+        {scopedServiceDomain
+          ? `Invoices for ${scopedServiceDomain}`
+          : "View invoices for your hosting orders."}
+      </p>
 
       <HostingPaymentStatusBanner paymentConfirmation={paymentConfirmation} />
 
-      {invoices.length === 0 ? (
+      {visibleInvoices.length === 0 ? (
         <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
           No invoices yet.{" "}
           {!hasLegacySubscription && (
@@ -325,7 +343,7 @@ export function CompanyHostingInvoicesClient({
               </tr>
             </thead>
             <tbody>
-              {invoices.map((invoice) => (
+              {visibleInvoices.map((invoice) => (
                 <tr key={invoice.id} className="border-b border-slate-50 text-sm">
                   <td className="px-4 py-3 font-semibold text-slate-900">{invoice.invoice_number}</td>
                   <td className="px-4 py-3">

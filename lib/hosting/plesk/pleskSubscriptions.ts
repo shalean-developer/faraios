@@ -38,6 +38,26 @@ export async function syncPleskSubscriptions(
   return { ok: true, subscriptions };
 }
 
+export function isPleskDuplicateDomainError(error: string): boolean {
+  return /already exists|duplicate domain|incorrect name/i.test(error);
+}
+
+export async function findPleskSubscriptionByDomain(
+  creds: PleskCredentials,
+  domainName: string,
+  serverId?: string
+): Promise<PleskSubscription | null> {
+  const sync = await syncPleskSubscriptions(creds, serverId);
+  if (!sync.ok) return null;
+
+  const normalized = domainName.trim().toLowerCase().replace(/^www\./, "");
+  return (
+    sync.subscriptions.find(
+      (sub) => sub.domainName.trim().toLowerCase().replace(/^www\./, "") === normalized
+    ) ?? null
+  );
+}
+
 export async function createPleskSubscription(
   creds: PleskCredentials,
   input: {

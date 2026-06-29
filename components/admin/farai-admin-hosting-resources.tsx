@@ -14,6 +14,8 @@ import {
   adminCreateFtpAction,
   adminCreateMailboxAction,
   adminDeleteDnsRecordAction,
+  adminForceSyncFaraiosDnsAction,
+  adminForceWireFaraiosSiteAction,
 } from "@/app/actions/hosting-admin";
 
 type ServiceOption = { id: string; domain_name: string; status: string };
@@ -79,6 +81,28 @@ export function FaraiAdminHostingResources({
       void (async () => {
         const result = await adminDeleteDnsRecordAction(serviceId, recordId);
         setMessage(result.ok ? "Deleted." : result.error ?? "Failed.");
+      })();
+    });
+  };
+
+  const syncFaraiosDns = () => {
+    if (!serviceId) return;
+    setMessage(null);
+    startTransition(() => {
+      void (async () => {
+        const result = await adminForceSyncFaraiosDnsAction(serviceId);
+        setMessage(result.ok ? result.message ?? "DNS synced." : result.error ?? "Sync failed.");
+      })();
+    });
+  };
+
+  const wireFaraiosSite = () => {
+    if (!serviceId) return;
+    setMessage(null);
+    startTransition(() => {
+      void (async () => {
+        const result = await adminForceWireFaraiosSiteAction(serviceId);
+        setMessage(result.ok ? result.message ?? "Site wired." : result.error ?? "Wire failed.");
       })();
     });
   };
@@ -154,7 +178,72 @@ export function FaraiAdminHostingResources({
                   )}
                 </div>
               )}
-              <Button disabled={pending || !serviceId} onClick={submit}>Create</Button>
+              {resourceType === "dns" && (
+                <div className="flex flex-wrap gap-2">
+                  <Button disabled={pending || !serviceId} onClick={submit}>Create</Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={pending || !serviceId}
+                    onClick={syncFaraiosDns}
+                  >
+                    Force sync FaraiOS DNS to Plesk
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={pending || !serviceId}
+                    onClick={wireFaraiosSite}
+                  >
+                    Wire site to FaraiOS app
+                  </Button>
+                </div>
+              )}
+              {resourceType !== "dns" && (
+                <Button disabled={pending || !serviceId} onClick={submit}>Create</Button>
+              )}
+            </section>
+          )}
+
+          {resourceType === "domains" && services.length > 0 && (
+            <section className={`${riseStatCardClassName} space-y-3`}>
+              <h2 className="text-sm font-bold text-gray-900">FaraiOS site wiring</h2>
+              <p className="text-sm text-slate-600">
+                Point a customer subscription at the FaraiOS Node app on this Plesk server (reverse
+                proxy). Use after DNS is correct at Allanux.
+              </p>
+              <label className="block text-xs font-semibold text-gray-600">
+                Hosting service
+                <select
+                  className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+                  value={serviceId}
+                  onChange={(e) => setServiceId(e.target.value)}
+                >
+                  {services.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.domain_name} ({s.status})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={pending || !serviceId}
+                  onClick={wireFaraiosSite}
+                >
+                  Wire site to FaraiOS app
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={pending || !serviceId}
+                  onClick={syncFaraiosDns}
+                >
+                  Force sync DNS to Plesk
+                </Button>
+              </div>
             </section>
           )}
 

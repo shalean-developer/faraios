@@ -1,10 +1,14 @@
-import { CompanyHostingSupportClient } from "@/components/hosting/company-hosting-support-client";
+import { CompanyHostingDnsClient } from "@/components/hosting/company-hosting-dns-client";
 import { loadScopedCompanyHostingPage } from "@/lib/services/hosting-company-scope";
+import {
+  listCompanyDnsRecords,
+  syncServiceDnsRecords,
+} from "@/lib/services/hosting-resources";
 
-export const metadata = { title: "Hosting Support", robots: { index: false, follow: false } };
+export const metadata = { title: "Hosting DNS", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
-export default async function CompanyHostingSupportPage({
+export default async function CompanyHostingDnsPage({
   params,
   searchParams,
 }: {
@@ -16,12 +20,18 @@ export default async function CompanyHostingSupportPage({
   const { slug, company: row, overview, hasLegacySubscription, scopedServiceId, scopedServiceDomain } =
     await loadScopedCompanyHostingPage(company, query.service);
 
+  if (scopedServiceId) {
+    await syncServiceDnsRecords(scopedServiceId);
+  }
+
+  const records = await listCompanyDnsRecords(row.id);
+
   return (
-    <CompanyHostingSupportClient
+    <CompanyHostingDnsClient
       slug={slug}
       companyId={row.id}
       services={overview.services}
-      tickets={overview.tickets}
+      records={records}
       hasLegacySubscription={hasLegacySubscription}
       scopedServiceId={scopedServiceId}
       scopedServiceDomain={scopedServiceDomain}

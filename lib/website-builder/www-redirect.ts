@@ -118,13 +118,14 @@ export async function resolveWwwRedirectForHost(
 
   const { apex, www } = parseDomainHosts(host);
 
-  const { data: domainRow } = await supabase
+  const { data: domainRows } = await supabase
     .from("website_domains")
     .select("domain, company_id, website_id")
-    .or(`domain.eq.${apex},domain.eq.${www}`)
+    .in("domain", [apex, www])
     .order("is_primary", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+
+  const domainRow = domainRows?.[0] ?? null;
 
   let settings =
     (await loadDomainSettings(supabase, {
@@ -133,12 +134,12 @@ export async function resolveWwwRedirectForHost(
     })) ?? null;
 
   if (!settings) {
-    const { data } = await supabase
+    const { data: rows } = await supabase
       .from("domain_settings")
       .select("www_redirect, custom_domain")
-      .or(`custom_domain.eq.${apex},custom_domain.eq.${www}`)
-      .maybeSingle();
-    settings = (data as DomainSettingsRow | null) ?? null;
+      .in("custom_domain", [apex, www])
+      .limit(1);
+    settings = (rows?.[0] as DomainSettingsRow | undefined) ?? null;
   }
 
   const mode = normalizeWwwRedirectMode(settings?.www_redirect);

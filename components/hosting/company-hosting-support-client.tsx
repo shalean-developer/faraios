@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { HostingStatusBadge } from "@/components/hosting/hosting-shared-ui";
 import { CompanyHostingLegacyBanner } from "@/components/hosting/company-hosting-legacy-banner";
 import { Button } from "@/components/ui/button";
 import { createHostingSupportTicketAction } from "@/app/actions/hosting-automation";
+import { companyHostingServicePanelPath } from "@/lib/paths/company";
 import type { HostingServiceRow, HostingSupportTicketRow } from "@/types/hosting-automation";
 
 export function CompanyHostingSupportClient({
@@ -14,20 +17,27 @@ export function CompanyHostingSupportClient({
   services,
   tickets,
   hasLegacySubscription = false,
+  scopedServiceId,
+  scopedServiceDomain,
 }: {
   slug: string;
   companyId: string;
   services: HostingServiceRow[];
   tickets: HostingSupportTicketRow[];
   hasLegacySubscription?: boolean;
+  scopedServiceId?: string;
+  scopedServiceDomain?: string;
 }) {
   const router = useRouter();
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
-  const [serviceId, setServiceId] = useState("");
+  const [serviceId, setServiceId] = useState(scopedServiceId ?? "");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const visibleTickets = scopedServiceId
+    ? tickets.filter((ticket) => ticket.service_id === scopedServiceId)
+    : tickets;
 
   const submit = () => {
     setError(null);
@@ -53,8 +63,22 @@ export function CompanyHostingSupportClient({
 
   return (
     <>
+      {scopedServiceId && scopedServiceDomain ? (
+        <Link
+          href={companyHostingServicePanelPath(slug, scopedServiceId)}
+          className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {scopedServiceDomain} control panel
+        </Link>
+      ) : null}
+
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Hosting support</h1>
-      <p className="mt-2 text-sm text-slate-500">Open a ticket for hosting or domain issues.</p>
+      <p className="mt-2 text-sm text-slate-500">
+        {scopedServiceDomain
+          ? `Open a ticket for ${scopedServiceDomain}`
+          : "Open a ticket for hosting or domain issues."}
+      </p>
 
       <CompanyHostingLegacyBanner
         slug={slug}
@@ -63,21 +87,23 @@ export function CompanyHostingSupportClient({
       />
 
       <div className="mt-6 space-y-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
-        <label className="block text-xs font-semibold text-slate-600">
-          Related service
-          <select
-            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-            value={serviceId}
-            onChange={(e) => setServiceId(e.target.value)}
-          >
-            <option value="">General hosting</option>
-            {services.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.domain_name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!scopedServiceId && (
+          <label className="block text-xs font-semibold text-slate-600">
+            Related service
+            <select
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              value={serviceId}
+              onChange={(e) => setServiceId(e.target.value)}
+            >
+              <option value="">General hosting</option>
+              {services.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.domain_name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="block text-xs font-semibold text-slate-600">
           Subject
           <input
@@ -104,13 +130,13 @@ export function CompanyHostingSupportClient({
 
       <div className="mt-8">
         <h2 className="text-sm font-bold text-slate-900">Your tickets</h2>
-        {tickets.length === 0 ? (
+        {visibleTickets.length === 0 ? (
           <p className="mt-3 rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
             No support tickets yet.
           </p>
         ) : (
           <div className="mt-3 space-y-3">
-            {tickets.map((ticket) => (
+            {visibleTickets.map((ticket) => (
               <div
                 key={ticket.id}
                 className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm"

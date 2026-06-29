@@ -1,5 +1,10 @@
 import { getPleskCredentials } from "@/lib/hosting/plesk/config";
 import {
+  domainsMatchForHosting,
+  hostsMatch,
+  valuesMatch,
+} from "@/lib/hosting/plesk/dnsSyncUtils";
+import {
   addPleskDnsRecord,
   getPleskDnsRecords,
   updatePleskDnsRecord,
@@ -16,28 +21,13 @@ type RequiredRecord = {
 
 export type SyncFaraiosDomainDnsResult =
   | { ok: true; synced: string[] }
-  | { ok: true; skipped: true; reason: string }
   | { ok: false; error: string };
 
-function normalizeDnsHost(host: string, domain: string): string {
-  const lower = host.toLowerCase().replace(/\.$/, "");
-  const apex = domain.toLowerCase();
+const DNS_ZONE_RETRY_ATTEMPTS = 3;
+const DNS_ZONE_RETRY_DELAY_MS = 2000;
 
-  if (lower === "" || lower === "@" || lower === apex) return "@";
-  if (lower === "www" || lower === `www.${apex}`) return "www";
-  if (lower === "_faraios" || lower === `_faraios.${apex}`) return "_faraios";
-  return lower;
-}
-
-function hostsMatch(recordHost: string, wantedHost: string, domain: string): boolean {
-  return normalizeDnsHost(recordHost, domain) === normalizeDnsHost(wantedHost, domain);
-}
-
-function valuesMatch(type: string, actual: string, expected: string): boolean {
-  if (type.toUpperCase() === "TXT") {
-    return actual.replace(/"/g, "").includes(expected.replace(/"/g, ""));
-  }
-  return actual.toLowerCase().replace(/\.$/, "") === expected.toLowerCase().replace(/\.$/, "");
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function buildRequiredRecords(
@@ -63,7 +53,11 @@ function buildRequiredRecords(
 
 async function resolvePleskSiteContext(
   companyId: string,
-  domain: string
+  domain: string,
+  options?: {
+    serverId?: string | null;
+    pleskSubscriptionId?: string | null;
+  }
 ): Promise<
   | {
       creds: PleskCredentials;
@@ -77,43 +71,37 @@ async function resolvePleskSiteContext(
 
   const normalized = normalizeDomain(domain);
 
-  const { data: byDomain } = await admin.client
-    .from("hosting_services")
-    .select("plesk_subscription_id, server_id")
-    .eq("company_id", companyId)
-    .eq("status", "active")
-    .ilike("domain_name", normalized)
-    .not("plesk_subscription_id", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  let siteId = byDomain?.plesk_subscription_id ?? null;
-  let serverId = byDomain?.server_id ?? null;
-
-  if (!siteId) {
-    const { data: services } = await admin.client
-      .from("hosting_services")
-      .select("plesk_subscription_id, server_id")
-      .eq("company_id", companyId)
-      .eq("status", "active")
-      .not("plesk_subscription_id", "is", null)
-      .order("created_at", { ascending: false });
-
-    if (services?.length === 1) {
-      siteId = services[0].plesk_subscription_id;
-      serverId = services[0].server_id;
-    }
+  if (options?.pleskSubscriptionId) {
+    const creds = await getPleskCredentials(options.serverId);
+    if (!creds) return null;
+    return {
+      creds,
+      siteId: options.pleskSubscriptionId,
+      serverId: options.serverId ?? creds.serverId ?? undefined,
+    };
   }
 
-  if (!siteId) return null;
+  const { data: services } = await admin.client
+    .from("hosting_services")
+    .select("plesk_subscription_id, server_id, domain_name")
+    .eq("company_id", companyId)
+    .eq("status", "active")
+    .not("plesk_subscription_id", "is", null)
+    .order("created_at", { ascending: false });
 
+  const match = (services ?? []).find((service) =>
+    domainsMatchForHosting(String(service.domain_name ?? ""), normalized)
+  );
+
+  if (!match?.plesk_subscription_id) return null;
+
+  const serverId = options?.serverId ?? match.server_id ?? null;
   const creds = await getPleskCredentials(serverId);
   if (!creds) return null;
 
   return {
     creds,
-    siteId,
+    siteId: match.plesk_subscription_id as string,
     serverId: serverId ?? creds.serverId ?? undefined,
   };
 }
@@ -171,45 +159,68 @@ export async function syncFaraiosDomainDnsToPlesk(input: {
   domain: string;
   serverIp: string;
   verificationToken: string | null;
+  serverId?: string | null;
+  pleskSubscriptionId?: string | null;
 }): Promise<SyncFaraiosDomainDnsResult> {
   const domain = normalizeDomain(input.domain);
   if (!domain) {
     return { ok: false, error: "Invalid domain." };
   }
 
-  const ctx = await resolvePleskSiteContext(input.companyId, domain);
+  const ctx = await resolvePleskSiteContext(input.companyId, domain, {
+    serverId: input.serverId,
+    pleskSubscriptionId: input.pleskSubscriptionId,
+  });
+
   if (!ctx) {
     return {
-      ok: true,
-      skipped: true,
-      reason: "No active Plesk hosting service found for this company.",
+      ok: false,
+      error: `No active Plesk hosting service found for ${domain}.`,
     };
   }
 
   const requiredRecords = buildRequiredRecords(domain, input.serverIp, input.verificationToken);
-  const existingResult = await getPleskDnsRecords(ctx.creds, ctx.siteId, ctx.serverId);
-  if (!existingResult.ok) {
-    return { ok: false, error: existingResult.error };
-  }
-
   const synced: string[] = [];
 
   for (const required of requiredRecords) {
-    const result = await upsertPleskDnsRecord(
-      ctx.creds,
-      ctx.siteId,
-      ctx.serverId,
-      domain,
-      existingResult.records,
-      required
-    );
+    let lastError: string | undefined;
 
-    if (!result.ok) {
-      return { ok: false, error: result.error };
+    for (let attempt = 1; attempt <= DNS_ZONE_RETRY_ATTEMPTS; attempt += 1) {
+      const existingResult = await getPleskDnsRecords(ctx.creds, ctx.siteId, ctx.serverId);
+      if (!existingResult.ok) {
+        lastError = existingResult.error;
+        if (attempt < DNS_ZONE_RETRY_ATTEMPTS) {
+          await sleep(DNS_ZONE_RETRY_DELAY_MS);
+          continue;
+        }
+        return { ok: false, error: existingResult.error };
+      }
+
+      const result = await upsertPleskDnsRecord(
+        ctx.creds,
+        ctx.siteId,
+        ctx.serverId,
+        domain,
+        existingResult.records,
+        required
+      );
+
+      if (result.ok) {
+        if (result.action !== "unchanged") {
+          synced.push(`${required.type} ${required.host}`);
+        }
+        lastError = undefined;
+        break;
+      }
+
+      lastError = result.error;
+      if (attempt < DNS_ZONE_RETRY_ATTEMPTS) {
+        await sleep(DNS_ZONE_RETRY_DELAY_MS);
+      }
     }
 
-    if (result.action !== "unchanged") {
-      synced.push(`${required.type} ${required.host}`);
+    if (lastError) {
+      return { ok: false, error: lastError };
     }
   }
 

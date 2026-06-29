@@ -4,6 +4,7 @@ import {
   buildPleskDomainDnsRecords,
   getPleskHostingTarget,
 } from "@/lib/hosting/plesk/target";
+import { probeDomainSslActive } from "@/lib/hosting/ssl-probe";
 import type {
   CheckStatusInput,
   CheckStatusResult,
@@ -55,10 +56,16 @@ export const pleskHostingProvider: HostingProvider = {
   },
 
   async deploySite(input: DeploySiteInput): Promise<DeploySiteResult> {
+    const origin =
+      process.env.FARAIOS_PLESK_APP_ORIGIN?.trim() ||
+      (process.env.FARAIOS_PLESK_PROXY_ENABLED?.trim().toLowerCase() !== "false"
+        ? `http://127.0.0.1:${process.env.FARAIOS_PLESK_APP_PORT?.trim() || process.env.PORT?.trim() || "3000"}`
+        : "");
+
     return {
       ok: true,
       providerDeploymentId: `plesk-deploy-${Date.now()}`,
-      url: input.sourceUrl ?? "",
+      url: input.sourceUrl ?? origin,
       status: "live",
     };
   },
@@ -69,22 +76,32 @@ export const pleskHostingProvider: HostingProvider = {
     const target = await getPleskHostingTarget({ companyId: input.companyId });
     if (!target) return {};
 
-    const candidates = [input.domain.toLowerCase(), `www.${input.domain.toLowerCase()}`];
+    const domain = input.domain.toLowerCase();
+    const candidates = [domain, domain.startsWith("www.") ? domain : `www.${domain}`];
+    let dnsVerified = false;
+
     for (const hostname of candidates) {
       try {
         const records = await dns.resolve4(hostname);
         if (records.includes(target.serverIp)) {
-          return {
-            verificationStatus: "verified",
-            sslStatus: "pending",
-          };
+          dnsVerified = true;
+          break;
         }
       } catch {
         // try next hostname
       }
     }
 
-    return { verificationStatus: "pending", sslStatus: "not_started" };
+    if (!dnsVerified) {
+      return { verificationStatus: "pending", sslStatus: "not_started" };
+    }
+
+    const sslActive = await probeDomainSslActive(domain);
+
+    return {
+      verificationStatus: "verified",
+      sslStatus: sslActive ? "active" : "pending",
+    };
   },
 
   async removeDomain(_input: RemoveDomainInput): Promise<RemoveDomainResult> {

@@ -1,7 +1,6 @@
 import { getHostingProvider } from "@/lib/hosting/providers";
 import { getDefaultHostingProviderSlug } from "@/lib/hosting/constants";
-import { syncFaraiosDomainDnsToPlesk } from "@/lib/hosting/plesk/syncFaraiosDomainDns";
-import { getPleskHostingTarget } from "@/lib/hosting/plesk/target";
+import { pushWebsiteDomainDnsToPlesk } from "@/lib/services/plesk-website-dns-sync";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import type { WebsiteDnsRecord, WebsiteDomain, WebsiteDomainType } from "@/types/website-engine";
@@ -22,6 +21,8 @@ type ProvisionInput = {
   connectedWebsiteId?: string | null;
   isPrimary?: boolean;
   syncHostingSubscription?: boolean;
+  serverId?: string | null;
+  pleskSubscriptionId?: string | null;
 };
 
 type ProvisionResult =
@@ -268,34 +269,41 @@ export async function provisionCompanyWebsiteDomain(
   }
 
   if (provider.slug === "plesk") {
-    const target = await getPleskHostingTarget({ companyId: input.companyId });
-    if (target?.serverIp) {
-      const syncResult = await syncFaraiosDomainDnsToPlesk({
-        companyId: input.companyId,
-        domain: normalized,
-        serverIp: target.serverIp,
-        verificationToken: tokenRow?.verification_token ?? null,
-      });
+    const syncResult = await pushWebsiteDomainDnsToPlesk({
+      companyId: input.companyId,
+      domain: normalized,
+      verificationToken: tokenRow?.verification_token ?? null,
+      serverId: input.serverId,
+      pleskSubscriptionId: input.pleskSubscriptionId,
+    });
 
-      if (!syncResult.ok) {
-        console.error(
-          "[hosting-domain] Plesk DNS sync failed",
-          normalized,
-          syncResult.error
-        );
-      } else if (!("skipped" in syncResult) && syncResult.synced.length > 0) {
-        console.info(
-          "[hosting-domain] Plesk DNS synced",
-          normalized,
-          syncResult.synced.join(", ")
-        );
-      }
+    if (!syncResult.ok) {
+      console.error(
+        "[hosting-domain] Plesk DNS sync failed",
+        normalized,
+        syncResult.error
+      );
+    } else if (syncResult.synced.length > 0) {
+      console.info(
+        "[hosting-domain] Plesk DNS synced",
+        normalized,
+        syncResult.synced.join(", ")
+      );
+    }
 
-      try {
-        await verifyWebsiteDomain(websiteDomainId, input.companyId);
-      } catch (error) {
-        console.error("[hosting-domain] post-connect DNS verify failed", normalized, error);
-      }
+    try {
+      await verifyWebsiteDomain(websiteDomainId, input.companyId);
+    } catch (error) {
+      console.error("[hosting-domain] post-connect DNS verify failed", normalized, error);
+    }
+
+    const { wireCompanyDomainToFaraiosApp } = await import("@/lib/services/plesk-site-proxy");
+    const wireResult = await wireCompanyDomainToFaraiosApp({
+      companyId: input.companyId,
+      domain: normalized,
+    });
+    if (!wireResult.ok) {
+      console.error("[hosting-domain] Plesk proxy wire failed", normalized, wireResult.error);
     }
   }
 
