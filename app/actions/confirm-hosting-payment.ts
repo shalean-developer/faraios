@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { confirmAnyHostingPaymentFromReference } from "@/lib/billing/hosting-payment-confirm";
 import { parsePaystackPaymentReference } from "@/lib/billing/paystack";
-import { requireCompanyOwner } from "@/lib/services/company-access";
+import { requireCompanyPermission } from "@/lib/services/company-access";
 import {
   companyHostingPath,
   companyHostingInvoicesPath,
@@ -22,7 +22,7 @@ export async function confirmHostingPaymentAction(input: {
   companySlug: string;
   reference: string;
 }): Promise<ConfirmHostingPaymentResult> {
-  const access = await requireCompanyOwner(input.companyId);
+  const access = await requireCompanyPermission(input.companyId, "view_websites");
   if (!access.ok) return access;
 
   const reference = parsePaystackPaymentReference(input.reference);

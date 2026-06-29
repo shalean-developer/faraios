@@ -29,6 +29,7 @@ import {
   getBuilderWebsiteForCompany,
   syncDomainSettingsCustomDomain,
 } from "@/lib/website-builder/service";
+import { completeDomainHostingAfterPayment } from "@/lib/services/domain-hosting-purchase-complete";
 
 type ActionResult =
   | { ok: true; websiteDomainId?: string }
@@ -101,6 +102,29 @@ export async function addWebsiteDomainAction(input: {
   revalidatePath(companyWebsiteBuilderSectionPath(input.companySlug, "domains"));
   revalidatePath(companyWebsitesPath(input.companySlug));
   return { ok: true, websiteDomainId: provision.websiteDomainId };
+}
+
+export async function finishDomainHostingPurchaseAction(input: {
+  companyId: string;
+  companySlug: string;
+  domain: string;
+  reference?: string | null;
+  websiteId?: string | null;
+}): Promise<
+  | { ok: true; message: string }
+  | { ok: false; error: string; stillProvisioning?: boolean }
+> {
+  const access = await requireCompanyPermission(input.companyId, "view_websites");
+  if (!access.ok) return access;
+
+  return completeDomainHostingAfterPayment({
+    companyId: input.companyId,
+    companySlug: input.companySlug,
+    domain: input.domain,
+    reference: input.reference,
+    userId: access.userId,
+    websiteId: input.websiteId,
+  });
 }
 
 export async function verifyWebsiteDomainAction(input: {

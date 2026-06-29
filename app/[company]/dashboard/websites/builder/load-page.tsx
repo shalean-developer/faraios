@@ -24,6 +24,7 @@ import type { CompanyWithIndustry, CompanyService } from "@/types/database";
 import type { PublishSnapshotSummary } from "@/types/website-builder-settings";
 import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 import type { HostingPlanRow } from "@/types/hosting-automation";
+import type { DomainPurchaseNotice } from "@/lib/services/domain-purchase-notice";
 
 export const dynamic = "force-dynamic";
 
@@ -126,7 +127,8 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
 }
 
 export function renderWebsiteBuilderPage(
-  data: Awaited<ReturnType<typeof loadWebsiteBuilderPage>>
+  data: Awaited<ReturnType<typeof loadWebsiteBuilderPage>>,
+  domainPurchaseNotice?: DomainPurchaseNotice | null
 ) {
   if (data.unauthorized) {
     return (
@@ -163,6 +165,7 @@ export function renderWebsiteBuilderPage(
       publishSnapshots={data.publishSnapshots}
       hostingPlans={data.hostingPlans}
       billingEmail={data.billingEmail}
+      domainPurchaseNotice={domainPurchaseNotice ?? null}
     />
   );
 }

@@ -1,5 +1,3 @@
-import { getPleskCredentials } from "@/lib/hosting/plesk/config";
-import { findPleskSubscriptionByDomain } from "@/lib/hosting/plesk/pleskSubscriptions";
 import { domainsMatchForHosting } from "@/lib/hosting/plesk/dnsSyncUtils";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { normalizeDomain } from "@/lib/utils/normalize-domain";
@@ -52,23 +50,6 @@ export async function getDomainHostingReadiness(
   );
 
   if (service?.id && service.plesk_subscription_id) {
-    const creds = await getPleskCredentials((service.server_id as string | null) ?? null);
-    if (creds) {
-      const pleskSub = await findPleskSubscriptionByDomain(
-        creds,
-        normalized,
-        (service.server_id as string | null) ?? creds.serverId ?? undefined
-      );
-      if (!pleskSub) {
-        return {
-          ready: false,
-          requiresHosting: true,
-          message:
-            "This domain is not registered in Plesk yet. Purchase FaraiOS hosting to provision it automatically.",
-        };
-      }
-    }
-
     return {
       ready: true,
       serviceId: service.id as string,

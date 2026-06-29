@@ -6,9 +6,9 @@ import { Check, Loader2, RefreshCw } from "lucide-react";
 
 import {
   addWebsiteDomainAction,
+  finishDomainHostingPurchaseAction,
   verifyWebsiteDomainAction,
 } from "@/app/actions/website-engine";
-import { confirmHostingPaymentAction } from "@/app/actions/confirm-hosting-payment";
 import { Button } from "@/components/ui/button";
 import { DomainHostingCheckoutModal } from "@/components/websites/domain-hosting-checkout-modal";
 import { formatDateTimeEnZA } from "@/lib/format/dates";
@@ -18,17 +18,13 @@ import {
 } from "@/lib/paths/company";
 import type { WebsiteDnsRecord, WebsiteDomain } from "@/types/website-engine";
 import type { HostingPlanRow } from "@/types/hosting-automation";
+import type { DomainPurchaseNotice } from "@/lib/services/domain-purchase-notice";
 import { cn } from "@/lib/utils";
 
 const DOMAIN_ACTION_TIMEOUT_MS = 25_000;
 const AUTO_VERIFY_POLL_INTERVAL_MS = 20_000;
 const AUTO_VERIFY_POLL_MAX_ATTEMPTS = 15;
-const POST_PAYMENT_CONNECT_MAX_ATTEMPTS = 10;
-const POST_PAYMENT_CONNECT_DELAY_MS = 3000;
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+const PROVISIONING_POLL_INTERVAL_MS = 3000;
 
 async function withDomainActionTimeout<T>(
   promise: Promise<T>,
@@ -67,6 +63,7 @@ type WebsiteDomainsPanelProps = {
   dnsHelp?: WebsiteDomainDnsHelp | null;
   hostingPlans?: HostingPlanRow[];
   billingEmail?: string | null;
+  domainPurchaseNotice?: DomainPurchaseNotice | null;
 };
 
 export function WebsiteDomainsPanel({
@@ -79,6 +76,7 @@ export function WebsiteDomainsPanel({
   dnsHelp,
   hostingPlans = [],
   billingEmail,
+  domainPurchaseNotice,
 }: WebsiteDomainsPanelProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -89,7 +87,9 @@ export function WebsiteDomainsPanel({
   const [success, setSuccess] = useState<string | null>(null);
   const [autoPolling, setAutoPolling] = useState(false);
   const [hostingDomain, setHostingDomain] = useState<string | null>(null);
+  const [provisioningHosting, setProvisioningHosting] = useState(false);
   const pollAttemptsRef = useRef(0);
+  const purchaseNoticeHandledRef = useRef<string | null>(null);
   const embedded = variant === "embedded";
 
   const pendingDomainIds = domains
@@ -162,73 +162,96 @@ export function WebsiteDomainsPanel({
   }, [pendingDomainIdsKey]);
 
   useEffect(() => {
-    const payment = searchParams.get("payment");
-    const domain = searchParams.get("domain");
-    const reference =
-      searchParams.get("reference") ?? searchParams.get("trxref") ?? "";
+    if (!domainPurchaseNotice) return;
 
-    if (payment !== "success" || !domain) return;
+    const noticeKey = `${domainPurchaseNotice.status}:${domainPurchaseNotice.domain}`;
+    if (purchaseNoticeHandledRef.current === noticeKey) return;
+    purchaseNoticeHandledRef.current = noticeKey;
+
+    setHostingDomain(null);
+
+    if (domainPurchaseNotice.status === "connected") {
+      setSuccess(domainPurchaseNotice.message);
+      setError(null);
+      setAutoPolling(true);
+      pollAttemptsRef.current = 0;
+      router.replace(window.location.pathname);
+      return;
+    }
+
+    if (domainPurchaseNotice.status === "error") {
+      setError(domainPurchaseNotice.message);
+      setSuccess(null);
+      router.replace(window.location.pathname);
+      return;
+    }
+
+    if (domainPurchaseNotice.status === "provisioning") {
+      setProvisioningHosting(true);
+      setSuccess(domainPurchaseNotice.message);
+      setError(null);
+      router.replace(window.location.pathname);
+    }
+  }, [domainPurchaseNotice, router]);
+
+  useEffect(() => {
+    if (!provisioningHosting || !domainPurchaseNotice?.domain) return;
 
     let cancelled = false;
 
-    const finishHostingPurchase = async () => {
-      if (reference) {
-        await confirmHostingPaymentAction({
-          companyId,
-          companySlug: slug,
-          reference,
-        });
-      }
+    const attemptFinish = async () => {
+      const result = await finishDomainHostingPurchaseAction({
+        companyId,
+        companySlug: slug,
+        domain: domainPurchaseNotice.domain,
+        websiteId: websiteId ?? null,
+      });
 
       if (cancelled) return;
 
-      let connect:
-        | Awaited<ReturnType<typeof addWebsiteDomainAction>>
-        | null = null;
-
-      for (let attempt = 0; attempt < POST_PAYMENT_CONNECT_MAX_ATTEMPTS; attempt++) {
-        if (cancelled) return;
-        if (attempt > 0) {
-          await sleep(POST_PAYMENT_CONNECT_DELAY_MS);
-        }
-
-        connect = await addWebsiteDomainAction({
-          companyId,
-          companySlug: slug,
-          domain,
-          websiteId: websiteId ?? null,
-          isPrimary: domains.length === 0,
-        });
-
-        if (connect.ok || !connect.requiresHosting) {
-          break;
-        }
-      }
-
-      if (cancelled || !connect) return;
-
-      if (!connect.ok && connect.requiresHosting) {
-        setHostingDomain(domain);
-        setError(null);
-      } else if (!connect.ok) {
-        setError(connect.error);
-      } else {
-        setSuccess(
-          "Hosting is active and your domain is connected. Configure DNS below, then verification will run automatically."
-        );
+      if (result.ok) {
+        setProvisioningHosting(false);
+        setSuccess(result.message);
         setAutoPolling(true);
+        pollAttemptsRef.current = 0;
+        router.refresh();
+        return;
       }
 
-      router.replace(window.location.pathname);
-      router.refresh();
+      if (!result.stillProvisioning) {
+        setProvisioningHosting(false);
+        setError(result.error);
+      }
     };
 
-    void finishHostingPurchase();
+    void attemptFinish();
+    const intervalId = window.setInterval(() => {
+      void attemptFinish();
+    }, PROVISIONING_POLL_INTERVAL_MS);
 
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
     };
-  }, [companyId, domains.length, router, searchParams, slug, websiteId]);
+  }, [
+    companyId,
+    domainPurchaseNotice?.domain,
+    provisioningHosting,
+    router,
+    slug,
+    websiteId,
+  ]);
+
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    const domain = searchParams.get("domain");
+    if (payment === "success" && domain) {
+      setProvisioningHosting(true);
+      setHostingDomain(null);
+      setSuccess("Confirming your hosting payment…");
+      setError(null);
+    }
+  }, [searchParams]);
 
   const onAddDomain = async (e: FormEvent) => {
     e.preventDefault();
@@ -308,6 +331,22 @@ export function WebsiteDomainsPanel({
 
   return (
     <div className={embedded ? "space-y-4" : "space-y-8"}>
+      {provisioningHosting ? (
+        <div className="flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-900">
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+          <span>
+            {success ??
+              "Payment received. Setting up hosting in Plesk and connecting your domain…"}
+          </span>
+        </div>
+      ) : null}
+
+      {success && !provisioningHosting ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
+          {success}
+        </div>
+      ) : null}
+
       <form
         onSubmit={onAddDomain}
         className={cn(
@@ -355,7 +394,7 @@ export function WebsiteDomainsPanel({
         </div>
       </form>
 
-      {hostingDomain ? (
+      {hostingDomain && !provisioningHosting ? (
         <DomainHostingCheckoutModal
           open={Boolean(hostingDomain)}
           slug={slug}
@@ -499,7 +538,6 @@ export function WebsiteDomainsPanel({
           ) : null}
         </div>
       ) : null}
-      {success ? <p className="text-sm font-medium text-emerald-600">{success}</p> : null}
     </div>
   );
 }

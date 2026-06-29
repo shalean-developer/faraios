@@ -2,6 +2,7 @@ import {
   activateHostingOrderPayment,
   verifyPaystackHostingOrderPayment,
 } from "@/lib/billing/hosting-order-payment";
+import { provisionHostingOrder } from "@/lib/services/hosting-automation";
 import {
   confirmHostingPaymentFromReference,
   type ActivateHostingSubscriptionResult,
@@ -27,6 +28,12 @@ export async function confirmAnyHostingPaymentFromReference(input: {
 
   const orderVerify = await verifyPaystackHostingOrderPayment(input.reference);
   if (orderVerify.ok) {
+    if (orderVerify.companyId === input.companyId) {
+      const provisioned = await provisionHostingOrder(orderVerify.orderId);
+      if (provisioned.ok) {
+        return { ok: true, orderFlow: true };
+      }
+    }
     return { ok: false, error: orderResult.error ?? "Could not complete hosting order." };
   }
 
