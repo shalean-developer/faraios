@@ -242,7 +242,9 @@ export async function deployPleskHttpdocsProxyViaFtp(input: {
   const phpProxy = buildFaraiosPhpProxyScript(input.originUrl);
   const tenantHost = input.tenantSubdomainHost?.trim() || null;
   const tenantOrigin = tenantHost ? `https://${tenantHost}` : null;
-  const tenantPhpProxy = tenantOrigin ? buildFaraiosPhpProxyScript(tenantOrigin, tenantHost) : null;
+  const tenantPhpProxy = tenantHost
+    ? buildFaraiosPhpProxyScript(`https://${tenantHost}`, tenantHost)
+    : null;
 
   let session: FtpSession | null = null;
 

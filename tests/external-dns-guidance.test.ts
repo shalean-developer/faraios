@@ -4,6 +4,7 @@ import {
   buildExternalDnsGuidance,
   buildExternalDnsOverview,
   pendingDnsRecordsForGuidance,
+  type DnsRecordForGuidance,
 } from "@/lib/hosting/external-dns-guidance";
 
 describe("external DNS guidance", () => {
@@ -15,7 +16,7 @@ describe("external DNS guidance", () => {
 
   it("hides overview when external DNS records are verified", () => {
     const guidanceMap = { "domain-1": externalGuidance };
-    const dnsByDomain = {
+    const dnsByDomain: Record<string, DnsRecordForGuidance[]> = {
       "domain-1": [
         { record_type: "A", host: "@", value: "104.238.222.122", status: "verified" },
         { record_type: "TXT", host: "_faraios", value: "faraios-verify=abc", status: "verified" },
@@ -28,7 +29,7 @@ describe("external DNS guidance", () => {
 
   it("shows overview when external DNS still has pending records", () => {
     const guidanceMap = { "domain-1": externalGuidance };
-    const dnsByDomain = {
+    const dnsByDomain: Record<string, DnsRecordForGuidance[]> = {
       "domain-1": [
         { record_type: "A", host: "@", value: "104.238.222.122", status: "verified" },
         { record_type: "TXT", host: "_faraios", value: "faraios-verify=abc", status: "pending" },
