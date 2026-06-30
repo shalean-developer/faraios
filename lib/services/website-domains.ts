@@ -12,6 +12,7 @@ import {
 } from "@/lib/hosting/external-dns-guidance";
 import { syncHostingSubscriptionFromWebsiteDomain } from "@/lib/services/hosting-domain";
 import { pushWebsiteDomainDnsToPlesk } from "@/lib/services/plesk-website-dns-sync";
+import { wireCompanyDomainToFaraiosApp } from "@/lib/services/plesk-site-proxy";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/public-env";
 import type {
@@ -226,7 +227,37 @@ export async function verifyWebsiteDomain(
     sslStatus
   );
 
-  let resultHint = hint;
+  let wireHint: string | undefined;
+  if (allVerified && domain.hosting_provider === "plesk") {
+    const wireResult = await wireCompanyDomainToFaraiosApp({
+      companyId,
+      domain: domain.domain,
+    });
+    if (!wireResult.ok) {
+      console.error(
+        "[website_domains] Plesk proxy wire after DNS verify failed",
+        domain.domain,
+        wireResult.error
+      );
+      wireHint =
+        "DNS verified, but wiring your domain to FaraiOS failed. Click Verify DNS again in a minute or contact support.";
+    } else if ("origin" in wireResult) {
+      console.info(
+        "[website_domains] Plesk proxy wired after DNS verify",
+        domain.domain,
+        wireResult.origin,
+        wireResult.proxyMethod ?? "unknown"
+      );
+    } else if (wireResult.ok && "skipped" in wireResult) {
+      console.warn(
+        "[website_domains] Plesk proxy wire skipped after DNS verify",
+        domain.domain,
+        wireResult.reason
+      );
+    }
+  }
+
+  let resultHint = wireHint ?? hint;
   if (allVerified && sslStatus === "pending" && domain.hosting_provider === "plesk") {
     resultHint =
       "DNS verified. SSL stays pending until HTTPS is active on your domain — in Plesk open SSL/TLS Certificates and install Let's Encrypt (or wait for auto-issue), then click Verify DNS again.";

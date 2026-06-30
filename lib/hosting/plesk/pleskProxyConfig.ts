@@ -8,22 +8,35 @@ export function getFaraiosPleskProxyStyle(): PleskProxyStyle {
   return "auto";
 }
 
-export function getFaraiosPleskAppOrigin(): string | null {
-  const explicit = process.env.FARAIOS_PLESK_APP_ORIGIN?.trim();
-  if (explicit) {
-    return explicit.replace(/\/$/, "");
-  }
+function isLocalAppOrigin(url: string): boolean {
+  return /localhost|127\.0\.0\.1/i.test(url);
+}
 
+/** Public FaraiOS app URL used as the reverse-proxy target from Plesk customer domains. */
+export function getFaraiosPleskAppOrigin(): string | null {
   if (process.env.FARAIOS_PLESK_PROXY_ENABLED?.trim().toLowerCase() === "false") {
     return null;
   }
 
-  const port =
-    process.env.FARAIOS_PLESK_APP_PORT?.trim() ||
-    process.env.PORT?.trim() ||
-    "3000";
+  const explicit = process.env.FARAIOS_PLESK_APP_ORIGIN?.trim();
+  if (explicit && !isLocalAppOrigin(explicit)) {
+    return explicit.replace(/\/$/, "");
+  }
 
-  return `http://127.0.0.1:${port}`;
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+    "";
+  if (appUrl && !isLocalAppOrigin(appUrl)) {
+    return appUrl.replace(/\/$/, "");
+  }
+
+  if (explicit) {
+    return explicit.replace(/\/$/, "");
+  }
+
+  // Plesk LiteSpeed → FaraiOS on Vercel (Host header preserved for tenant routing).
+  return "https://faraios.com";
 }
 
 export function isFaraiosPleskProxyEnabled(): boolean {
@@ -48,7 +61,7 @@ export function buildFaraiosReverseProxyDirectives(originUrl: string): string {
 export function buildFaraiosHtaccessProxyDirectives(originUrl: string): string {
   const origin = originUrl.replace(/\/$/, "");
   return [
-    "# FaraiOS reverse proxy (Plesk reseller API often cannot persist additional directives)",
+    "# FaraiOS on Vercel — proxy from Plesk LiteSpeed while preserving Host for tenant routing",
     "RewriteEngine On",
     "RewriteCond %{REQUEST_URI} !^/\\.well-known/",
     `RewriteRule ^(.*)$ ${origin}/$1 [P,L]`,

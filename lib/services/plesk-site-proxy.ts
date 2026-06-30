@@ -3,13 +3,17 @@ import {
   getFaraiosPleskAppOrigin,
   isFaraiosPleskProxyEnabled,
 } from "@/lib/hosting/plesk/pleskProxyConfig";
+import { ensurePleskComplementarySiteAlias } from "@/lib/hosting/plesk/pleskSiteAliases";
 import { setPleskWebspaceReverseProxy } from "@/lib/hosting/plesk/pleskSiteProxy";
 import { domainsMatchForHosting } from "@/lib/hosting/plesk/dnsSyncUtils";
+import { ensureCustomDomainOnVercel } from "@/lib/services/vercel-custom-domain";
+import { ensureTenantSubdomainOnVercel } from "@/lib/services/vercel-tenant-domain";
+import { tenantSubdomainHost } from "@/lib/services/website-public-url";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { normalizeDomain } from "@/lib/utils/normalize-domain";
 
 export type WireFaraiosSiteResult =
-  | { ok: true; origin: string; domain: string }
+  | { ok: true; origin: string; domain: string; proxyMethod?: string }
   | { ok: true; skipped: true; reason: "proxy_disabled" | "no_origin" | "no_service" }
   | { ok: false; error: string };
 
@@ -38,6 +42,58 @@ async function syncWebsiteDomainForCompany(
   if (currentDomain && currentDomain !== normalized) return;
 
   await admin.client.from("websites").update({ domain: normalized }).eq("id", target.id);
+}
+
+async function resolveTenantSubdomainForCompany(companyId: string): Promise<{
+  slug: string | null;
+  host: string | null;
+}> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return { slug: null, host: null };
+
+  const { data: websites } = await admin.client
+    .from("websites")
+    .select("subdomain, status")
+    .eq("client_id", companyId)
+    .order("created_at", { ascending: false });
+
+  const target =
+    websites?.find((row) => row.status === "published") ?? websites?.[0];
+  const slug = target?.subdomain ? String(target.subdomain).trim() : null;
+  if (!slug) return { slug: null, host: null };
+
+  return { slug, host: tenantSubdomainHost(slug) };
+}
+
+/** Register Vercel domains and sync website.domain before FTP proxy deploy. */
+async function preparePleskDomainOnVercel(
+  companyId: string,
+  domain: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await syncWebsiteDomainForCompany(companyId, domain);
+
+  const { slug, host } = await resolveTenantSubdomainForCompany(companyId);
+  if (slug) {
+    const tenantResult = await ensureTenantSubdomainOnVercel(slug);
+    if (!tenantResult.ok) {
+      return { ok: false, error: tenantResult.error };
+    }
+    if ("domain" in tenantResult) {
+      console.info("[plesk-site-proxy] tenant subdomain on Vercel", tenantResult.domain);
+    }
+  } else if (!host) {
+    console.warn("[plesk-site-proxy] no website subdomain for PHP-tenant fallback", domain);
+  }
+
+  const vercelResult = await ensureCustomDomainOnVercel(domain);
+  if (!vercelResult.ok) {
+    return { ok: false, error: vercelResult.error };
+  }
+  if ("domains" in vercelResult) {
+    console.info("[plesk-site-proxy] custom domains on Vercel", vercelResult.domains.join(", "));
+  }
+
+  return { ok: true };
 }
 
 export async function wireHostingServiceToFaraiosApp(
@@ -84,10 +140,31 @@ export async function wireHostingServiceToFaraiosApp(
     return { ok: false, error: "Plesk credentials not configured." };
   }
 
+  const prepResult = await preparePleskDomainOnVercel(service.company_id as string, domain);
+  if (!prepResult.ok) {
+    return { ok: false, error: prepResult.error };
+  }
+
+  const aliasResult = await ensurePleskComplementarySiteAlias(creds, {
+    siteId: service.plesk_subscription_id as string,
+    primaryDomain: domain,
+    serverId: (service.server_id as string | null) ?? undefined,
+    serviceId: service.id as string,
+    companyId: service.company_id as string,
+  });
+  if (!aliasResult.ok) {
+    console.warn("[plesk-site-proxy] site alias setup failed", domain, aliasResult.error);
+  }
+
+  const { host: tenantSubdomainHostValue } = await resolveTenantSubdomainForCompany(
+    service.company_id as string
+  );
+
   const proxyResult = await setPleskWebspaceReverseProxy(creds, {
     siteId: service.plesk_subscription_id as string,
     domain,
     originUrl: origin,
+    tenantSubdomainHost: tenantSubdomainHostValue,
     serverId: (service.server_id as string | null) ?? undefined,
     serviceId: service.id as string,
     companyId: service.company_id as string,
@@ -97,9 +174,12 @@ export async function wireHostingServiceToFaraiosApp(
     return { ok: false, error: proxyResult.error };
   }
 
-  await syncWebsiteDomainForCompany(service.company_id as string, domain);
-
-  return { ok: true, origin, domain };
+  return {
+    ok: true,
+    origin,
+    domain,
+    proxyMethod: proxyResult.property,
+  };
 }
 
 export async function wireCompanyDomainToFaraiosApp(input: {

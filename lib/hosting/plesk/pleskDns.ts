@@ -93,7 +93,8 @@ export async function deletePleskDnsRecord(
   recordId: string,
   serverId?: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const inner = `<dns><del_rec><filter><site-id>${escapeXml(siteId)}</site-id><id>${escapeXml(recordId)}</id></filter></del_rec></dns>`;
+  // Plesk rejects filter nodes that combine site-id with id — use record id only.
+  const inner = `<dns><del_rec><filter><id>${escapeXml(recordId)}</id></filter></del_rec></dns>`;
   const result = await pleskXmlRequest(creds, inner, { serverId, action: "delete_dns_record" });
   return result.ok ? { ok: true } : { ok: false, error: result.error };
 }

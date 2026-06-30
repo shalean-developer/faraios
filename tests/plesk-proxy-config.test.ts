@@ -23,16 +23,22 @@ describe("pleskProxyConfig", () => {
     expect(directives).toContain("ProxyPassReverse / http://127.0.0.1:3000/");
   });
 
-  it("reads explicit FARAIOS_PLESK_APP_ORIGIN", () => {
+  it("prefers public FARAIOS_PLESK_APP_ORIGIN over localhost", () => {
+    process.env.FARAIOS_PLESK_APP_ORIGIN = "https://faraios.com";
+    expect(getFaraiosPleskAppOrigin()).toBe("https://faraios.com");
+  });
+
+  it("falls back to localhost when only local origin is configured", () => {
     process.env.FARAIOS_PLESK_APP_ORIGIN = "http://127.0.0.1:7080/";
+    delete process.env.NEXT_PUBLIC_APP_URL;
     expect(getFaraiosPleskAppOrigin()).toBe("http://127.0.0.1:7080");
   });
 
-  it("defaults to localhost port when proxy is not disabled", () => {
+  it("defaults to faraios.com when no origin env is set", () => {
     delete process.env.FARAIOS_PLESK_APP_ORIGIN;
+    delete process.env.NEXT_PUBLIC_APP_URL;
     delete process.env.FARAIOS_PLESK_PROXY_ENABLED;
-    process.env.FARAIOS_PLESK_APP_PORT = "4000";
-    expect(getFaraiosPleskAppOrigin()).toBe("http://127.0.0.1:4000");
+    expect(getFaraiosPleskAppOrigin()).toBe("https://faraios.com");
     expect(isFaraiosPleskProxyEnabled()).toBe(true);
   });
 

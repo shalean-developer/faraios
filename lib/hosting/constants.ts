@@ -3,6 +3,10 @@ import type { HostingProviderSlug } from "./providers/types";
 export const FARAIOS_CNAME_TARGET =
   process.env.FARAIOS_VERCEL_CNAME_TARGET ?? "cname.vercel-dns.com";
 
+/** Vercel anycast A record for customer apex domains when the app runs on Vercel. */
+export const FARAIOS_VERCEL_A_RECORD =
+  process.env.FARAIOS_VERCEL_A_RECORD?.trim() || "76.76.21.21";
+
 export type FaraiosVercelConfig = {
   token: string;
   projectId: string;
