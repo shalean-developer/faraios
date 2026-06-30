@@ -4,7 +4,10 @@ import {
   type PleskHostingTarget,
 } from "@/lib/hosting/plesk/target";
 import { buildExternalDnsOverview } from "@/lib/hosting/external-dns-guidance";
-import type { DomainDnsGuidance } from "@/lib/hosting/external-dns-guidance";
+import type {
+  DnsRecordForGuidance,
+  DomainDnsGuidance,
+} from "@/lib/hosting/external-dns-guidance";
 import type { WebsiteDomainDnsHelp } from "@/components/websites/website-domains-panel";
 
 export function buildWebsiteDomainDnsHelp(
@@ -21,9 +24,10 @@ export function buildWebsiteDomainDnsHelp(
 
 export function enrichWebsiteDomainDnsHelp(
   help: WebsiteDomainDnsHelp,
-  guidanceMap: Record<string, DomainDnsGuidance>
+  guidanceMap: Record<string, DomainDnsGuidance>,
+  dnsByDomain: Record<string, DnsRecordForGuidance[]> = {}
 ): WebsiteDomainDnsHelp {
-  const overview = buildExternalDnsOverview(guidanceMap);
+  const overview = buildExternalDnsOverview(guidanceMap, dnsByDomain);
   if (!overview) return help;
 
   return {

@@ -27,7 +27,7 @@ import {
   revokePreviewTokenAction,
   updateWebsiteBuilderSettingsAction,
 } from "@/app/actions/website-builder";
-import { publicSiteUrl } from "@/lib/website-builder/access";
+import { resolvePublicSiteUrl } from "@/lib/website-builder/access";
 import { getBuilderSettings, buildPreviewShareUrl } from "@/lib/website-builder/settings";
 import { parseSeoSettings } from "@/lib/website-builder/seo";
 import {
@@ -134,7 +134,7 @@ export function SettingsEditor({
   publishSnapshots = [],
 }: Props) {
   const router = useRouter();
-  const publicUrl = domainSettings?.default_url ?? publicSiteUrl(slug);
+  const publicUrl = resolvePublicSiteUrl(slug, domainSettings?.default_url);
   const appUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   const initialSettings = useMemo(

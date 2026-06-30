@@ -96,7 +96,11 @@ export async function loadWebsiteBuilderPage(slug: string, section: BuilderSecti
   if (section === "domains" && websiteDomains.length > 0) {
     domainDnsGuidanceById = await loadDomainDnsGuidanceMap(company.id, websiteDomains);
     if (domainDnsHelp) {
-      domainDnsHelp = enrichWebsiteDomainDnsHelp(domainDnsHelp, domainDnsGuidanceById);
+      domainDnsHelp = enrichWebsiteDomainDnsHelp(
+        domainDnsHelp,
+        domainDnsGuidanceById,
+        dnsByDomain
+      );
     }
   }
 

@@ -43,7 +43,7 @@ import {
 } from "@/components/website-builder/public-site";
 import {
   canAccessWebsiteBuilderFeature,
-  publicSiteUrl,
+  resolvePublicSiteUrl,
   type WebsiteBuilderFeature,
 } from "@/lib/website-builder/access";
 import {
@@ -358,7 +358,7 @@ function OverviewSection({
     });
   }
 
-  const publicUrl = domainSettings?.default_url ?? publicSiteUrl(slug);
+  const publicUrl = resolvePublicSiteUrl(slug, domainSettings?.default_url);
 
   return (
     <div className="space-y-6">
@@ -1034,12 +1034,12 @@ function DomainsSection({
             <dt className="font-medium text-slate-900">Default FaraiOS URL</dt>
             <dd className="text-slate-600">
               <a
-                href={domainSettings?.default_url ?? publicSiteUrl(slug)}
+                href={resolvePublicSiteUrl(slug, domainSettings?.default_url)}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 text-violet-700 hover:text-violet-900"
               >
-                {domainSettings?.default_url ?? publicSiteUrl(slug)}
+                {resolvePublicSiteUrl(slug, domainSettings?.default_url)}
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
             </dd>

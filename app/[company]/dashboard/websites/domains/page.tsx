@@ -129,23 +129,22 @@ export default async function CompanyWebsiteDomainsPage({ params, searchParams }
 
   const domains = await getWebsiteDomainsForCompany(row.id);
 
-  const dnsByDomain: Record<string, WebsiteDnsRecord[]> = {};
-
   const domainDnsHelp = await loadWebsiteDomainDnsHelp(row.id);
   const hostingPlans = (await listActiveHostingPlans()) as HostingPlanRow[];
   const domainDnsGuidanceById = await loadDomainDnsGuidanceMap(row.id, domains);
-  const enrichedDnsHelp = enrichWebsiteDomainDnsHelp(domainDnsHelp, domainDnsGuidanceById);
 
-
+  const dnsByDomain: Record<string, WebsiteDnsRecord[]> = {};
 
   await Promise.all(
-
     domains.map(async (d) => {
-
       dnsByDomain[d.id] = await getDnsRecordsForDomain(d.id);
-
     })
+  );
 
+  const enrichedDnsHelp = enrichWebsiteDomainDnsHelp(
+    domainDnsHelp,
+    domainDnsGuidanceById,
+    dnsByDomain
   );
 
 

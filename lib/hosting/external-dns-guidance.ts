@@ -101,13 +101,17 @@ export async function loadDomainDnsGuidanceMap(
 }
 
 export function buildExternalDnsOverview(
-  guidanceMap: Record<string, DomainDnsGuidance>
+  guidanceMap: Record<string, DomainDnsGuidance>,
+  dnsByDomain: Record<string, DnsRecordForGuidance[]> = {}
 ): string | null {
-  const external = Object.values(guidanceMap).filter((item) => item.usesExternalDns);
+  const external = Object.entries(guidanceMap).filter(([domainId, item]) => {
+    if (!item.usesExternalDns) return false;
+    return pendingDnsRecordsForGuidance(dnsByDomain[domainId] ?? []).length > 0;
+  });
   if (!external.length) return null;
 
   const nameservers = [
-    ...new Set(external.flatMap((item) => item.publicNameservers.map(normalizeNameserver))),
+    ...new Set(external.flatMap(([, item]) => item.publicNameservers.map(normalizeNameserver))),
   ];
 
   if (nameservers.length) {

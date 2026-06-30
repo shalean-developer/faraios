@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 import { updateWebsiteSeoSettingsAction } from "@/app/actions/website-builder";
-import { publicSiteUrl } from "@/lib/website-builder/access";
+import { resolvePublicSiteUrl } from "@/lib/website-builder/access";
 import {
   computeSeoScore,
   generateAiSeoDraft,
@@ -92,7 +92,7 @@ export function SeoEditor({
   domainSettings,
 }: Props) {
   const router = useRouter();
-  const publicUrl = domainSettings?.default_url ?? publicSiteUrl(slug);
+  const publicUrl = resolvePublicSiteUrl(slug, domainSettings?.default_url);
   const initialSettings = useMemo(
     () => getSeoSettings({ company, website, landing: landingContent, publicUrl }),
     [company, website, landingContent, publicUrl]

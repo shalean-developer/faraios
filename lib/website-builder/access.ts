@@ -87,3 +87,26 @@ export function publicSiteUrl(companySlug: string, appUrl?: string): string {
   if (!base) return `/site/${encodeURIComponent(companySlug)}`;
   return `${base}/site/${encodeURIComponent(companySlug)}`;
 }
+
+const DEV_APP_HOST_PATTERN = /^(localhost|127\.0\.0\.1)(:\d+)?$/i;
+
+export function isDevAppUrl(url: string): boolean {
+  try {
+    return DEV_APP_HOST_PATTERN.test(new URL(url).host);
+  } catch {
+    return DEV_APP_HOST_PATTERN.test(url);
+  }
+}
+
+/** Prefer a live app URL over a stale localhost value saved during local development. */
+export function resolvePublicSiteUrl(
+  companySlug: string,
+  storedDefaultUrl?: string | null,
+  appUrl?: string
+): string {
+  const computed = publicSiteUrl(companySlug, appUrl);
+  const stored = storedDefaultUrl?.trim();
+  if (!stored) return computed;
+  if (isDevAppUrl(stored)) return computed;
+  return stored;
+}

@@ -19,6 +19,7 @@ export function ExternalDnsGuidanceCallout({
   if (!guidance.usesExternalDns) return null;
 
   const pendingRecords = records.filter((record) => record.status !== "verified");
+  if (!pendingRecords.length) return null;
 
   return (
     <div

@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   canAccessWebsiteBuilderFeature,
   canAccessWebsiteSection,
+  isDevAppUrl,
   minimumPlanForWebsiteBuilderFeature,
   publicSiteUrl,
+  resolvePublicSiteUrl,
 } from "@/lib/website-builder/access";
 import { buildLandingContentFromCompany, defaultSeoForWebsite } from "@/lib/website-builder/service";
 import type { CompanyWithIndustry } from "@/types/database";
@@ -94,5 +96,20 @@ describe("website builder content", () => {
     expect(publicSiteUrl("acme-cleaning", "https://app.faraios.com")).toBe(
       "https://app.faraios.com/site/acme-cleaning"
     );
+  });
+
+  it("detects dev app URLs", () => {
+    expect(isDevAppUrl("http://localhost:3000/site/acme")).toBe(true);
+    expect(isDevAppUrl("https://app.faraios.com/site/acme")).toBe(false);
+  });
+
+  it("ignores stale localhost default URLs in production", () => {
+    expect(
+      resolvePublicSiteUrl(
+        "acme-cleaning",
+        "http://localhost:3000/site/acme-cleaning",
+        "https://app.faraios.com"
+      )
+    ).toBe("https://app.faraios.com/site/acme-cleaning");
   });
 });
