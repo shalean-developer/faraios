@@ -84,6 +84,47 @@ type DomainSettingsRow = {
   custom_domain: string | null;
 };
 
+type ConnectedWebsiteRow = {
+  type: string | null;
+  production_url: string | null;
+};
+
+function productionUrlMatchesDomain(productionUrl: string | null | undefined, domain: string): boolean {
+  if (!productionUrl) return false;
+
+  try {
+    const productionHost = new URL(productionUrl).hostname.toLowerCase();
+    return hostsMatchDomain(productionHost, domain);
+  } catch {
+    return false;
+  }
+}
+
+async function isExternallyHostedDomain(
+  supabase: SupabaseClient,
+  companyId: string | null | undefined,
+  domain: string
+): Promise<boolean> {
+  if (!companyId) return false;
+
+  const { data } = await supabase
+    .from("connected_websites")
+    .select("type, production_url")
+    .eq("company_id", companyId)
+    .maybeSingle();
+
+  const connected = data as ConnectedWebsiteRow | null;
+  if (!connected) return false;
+
+  // production_url is intentionally checked as well as type. Older publish flows could
+  // overwrite type="external" with type="hosted" while leaving the external origin in place.
+  // Matching the production host prevents FaraiOS middleware from taking over that live site.
+  return (
+    connected.type === "external" ||
+    productionUrlMatchesDomain(connected.production_url, domain)
+  );
+}
+
 async function loadDomainSettings(
   supabase: SupabaseClient,
   filter: { websiteId?: string | null; companyId?: string | null }
@@ -126,6 +167,16 @@ export async function resolveWwwRedirectForHost(
     .limit(1);
 
   const domainRow = domainRows?.[0] ?? null;
+
+  if (
+    await isExternallyHostedDomain(
+      supabase,
+      domainRow?.company_id as string | null,
+      (domainRow?.domain as string | undefined) ?? apex
+    )
+  ) {
+    return null;
+  }
 
   let settings =
     (await loadDomainSettings(supabase, {
