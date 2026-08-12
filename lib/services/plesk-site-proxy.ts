@@ -50,11 +50,11 @@ async function companyUsesExternalOrigin(companyId: string, domain: string): Pro
   const connected = data as ConnectedWebsiteOriginRow | null;
   if (!connected) return false;
 
-  // Keep the production URL check even if type was accidentally changed by an older
-  // publish flow. If the live external origin matches this domain, FaraiOS must not
-  // register the custom domain on Vercel or replace the Plesk site with a reverse proxy.
+  // External hosting protection is domain-specific. A company may manage an external
+  // website and a FaraiOS-hosted website at the same time, so type alone must never
+  // suppress wiring for an unrelated domain.
   return (
-    connected.type === "external" ||
+    connected.type === "external" &&
     productionUrlMatchesDomain(connected.production_url, domain)
   );
 }
