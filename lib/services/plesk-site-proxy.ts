@@ -14,8 +14,50 @@ import { normalizeDomain } from "@/lib/utils/normalize-domain";
 
 export type WireFaraiosSiteResult =
   | { ok: true; origin: string; domain: string; proxyMethod?: string }
-  | { ok: true; skipped: true; reason: "proxy_disabled" | "no_origin" | "no_service" }
+  | {
+      ok: true;
+      skipped: true;
+      reason: "proxy_disabled" | "no_origin" | "no_service" | "external_site";
+    }
   | { ok: false; error: string };
+
+type ConnectedWebsiteOriginRow = {
+  type: string | null;
+  production_url: string | null;
+};
+
+function productionUrlMatchesDomain(productionUrl: string | null | undefined, domain: string): boolean {
+  if (!productionUrl) return false;
+
+  try {
+    const productionHost = normalizeDomain(new URL(productionUrl).hostname);
+    return Boolean(productionHost && domainsMatchForHosting(productionHost, domain));
+  } catch {
+    return false;
+  }
+}
+
+async function companyUsesExternalOrigin(companyId: string, domain: string): Promise<boolean> {
+  const admin = tryCreateAdminClient();
+  if (!admin.ok) return false;
+
+  const { data } = await admin.client
+    .from("connected_websites")
+    .select("type, production_url")
+    .eq("company_id", companyId)
+    .maybeSingle();
+
+  const connected = data as ConnectedWebsiteOriginRow | null;
+  if (!connected) return false;
+
+  // Keep the production URL check even if type was accidentally changed by an older
+  // publish flow. If the live external origin matches this domain, FaraiOS must not
+  // register the custom domain on Vercel or replace the Plesk site with a reverse proxy.
+  return (
+    connected.type === "external" ||
+    productionUrlMatchesDomain(connected.production_url, domain)
+  );
+}
 
 async function syncWebsiteDomainForCompany(
   companyId: string,
@@ -135,6 +177,11 @@ export async function wireHostingServiceToFaraiosApp(
     return { ok: false, error: "Hosting service has no domain name." };
   }
 
+  if (await companyUsesExternalOrigin(service.company_id as string, domain)) {
+    console.info("[plesk-site-proxy] preserving external site origin", domain);
+    return { ok: true, skipped: true, reason: "external_site" };
+  }
+
   const creds = await getPleskCredentials(service.server_id as string | null);
   if (!creds) {
     return { ok: false, error: "Plesk credentials not configured." };
@@ -189,6 +236,11 @@ export async function wireCompanyDomainToFaraiosApp(input: {
   const normalized = normalizeDomain(input.domain);
   if (!normalized) {
     return { ok: false, error: "Invalid domain." };
+  }
+
+  if (await companyUsesExternalOrigin(input.companyId, normalized)) {
+    console.info("[plesk-site-proxy] preserving external site origin", normalized);
+    return { ok: true, skipped: true, reason: "external_site" };
   }
 
   const admin = tryCreateAdminClient();
