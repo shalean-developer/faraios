@@ -126,7 +126,7 @@ export async function publishWebsiteWithLifecycleAction(input: {
     .insert({
       website_id: website.id,
       company_id: input.companyId,
-      requested_by: access.user.id,
+      requested_by: access.userId,
       state: "publish_requested",
       snapshot,
       target_url: targetUrl,
