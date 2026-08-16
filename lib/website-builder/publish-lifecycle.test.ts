@@ -1,20 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-const states = [
-  "publish_requested",
-  "validating_origin",
-  "validating_domain",
-  "validating_ssl",
-  "smoke_testing",
-  "live",
-] as const;
+import {
+  WEBSITE_PUBLISH_SUCCESS_PATH,
+  publishStateComesAfter,
+} from "@/lib/website-builder/publish-lifecycle";
 
 describe("website publish lifecycle", () => {
-  it("does not reach live before readiness stages", () => {
-    expect(states.at(-1)).toBe("live");
-    expect(states.indexOf("live")).toBeGreaterThan(states.indexOf("validating_origin"));
-    expect(states.indexOf("live")).toBeGreaterThan(states.indexOf("validating_domain"));
-    expect(states.indexOf("live")).toBeGreaterThan(states.indexOf("validating_ssl"));
-    expect(states.indexOf("live")).toBeGreaterThan(states.indexOf("smoke_testing"));
+  it("keeps live behind every readiness gate", () => {
+    expect(WEBSITE_PUBLISH_SUCCESS_PATH.at(-1)).toBe("live");
+    expect(publishStateComesAfter("live", "validating_origin")).toBe(true);
+    expect(publishStateComesAfter("live", "validating_domain")).toBe(true);
+    expect(publishStateComesAfter("live", "validating_ssl")).toBe(true);
+    expect(publishStateComesAfter("live", "smoke_testing")).toBe(true);
+  });
+
+  it("does not treat an earlier validation stage as live-ready", () => {
+    expect(publishStateComesAfter("validating_domain", "validating_ssl")).toBe(false);
+    expect(publishStateComesAfter("validating_ssl", "smoke_testing")).toBe(false);
   });
 });
