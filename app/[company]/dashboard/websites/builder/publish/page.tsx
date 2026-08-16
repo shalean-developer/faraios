@@ -1,3 +1,5 @@
+import { PublishLifecycleSection } from "@/components/website-builder/publish-lifecycle-section";
+
 import { loadWebsiteBuilderPage, renderWebsiteBuilderPage } from "../load-page";
 
 export const metadata = {
@@ -10,5 +12,16 @@ type Props = { params: Promise<{ company: string }> };
 export default async function WebsiteBuilderPublishPage({ params }: Props) {
   const { company } = await params;
   const data = await loadWebsiteBuilderPage(company, "publish");
-  return renderWebsiteBuilderPage(data);
+
+  if (data.unauthorized || !data.website) {
+    return renderWebsiteBuilderPage(data);
+  }
+
+  return (
+    <PublishLifecycleSection
+      slug={data.slug}
+      companyId={data.companyId}
+      website={data.website}
+    />
+  );
 }
