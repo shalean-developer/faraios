@@ -7,18 +7,10 @@ import { requireCompanyMembership } from "@/lib/services/company-access";
 import { getCompanyBySlug } from "@/lib/services/companies";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { canAccessWebsiteBuilderFeature, resolvePublicSiteUrl } from "@/lib/website-builder/access";
+import type { WebsitePublishState } from "@/lib/website-builder/publish-lifecycle";
 import { getBuilderWebsiteForCompany } from "@/lib/website-builder/service";
 
 type PublishStatus = "published" | "draft" | "unpublished";
-type PublishState =
-  | "publish_requested"
-  | "validating_origin"
-  | "validating_domain"
-  | "validating_ssl"
-  | "smoke_testing"
-  | "live"
-  | "failed";
-
 type Result = { ok: true } | { ok: false; error: string };
 
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -141,7 +133,7 @@ export async function publishWebsiteWithLifecycleAction(input: {
     };
   }
 
-  const transition = async (state: PublishState, errorMessage?: string) => {
+  const transition = async (state: WebsitePublishState, errorMessage?: string) => {
     await admin.client
       .from("website_publish_attempts")
       .update({
