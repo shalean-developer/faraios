@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 import {
   FARAIOS_LOGO_HEIGHT,
@@ -33,6 +36,14 @@ export function FaraiLogo({
   onDark = false,
   onError,
 }: FaraiLogoProps) {
+  const pathname = usePathname() ?? "";
+  const workspaceSlug = pathname.split("/").filter(Boolean)[0]?.toLowerCase() ?? "";
+  const isTeamEdlickWorkspace = workspaceSlug.includes("edlick");
+
+  if (isTeamEdlickWorkspace) {
+    return null;
+  }
+
   return (
     <span className={cn("inline-flex items-center", className)}>
       <Image
