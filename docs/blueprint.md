@@ -2,7 +2,7 @@
 
 Date: 19 October 2026. Scope source: owner discussion and [Build Plan and Progress Tracker](https://docs.google.com/spreadsheets/d/1v6o8ZLMUdqze-5WICBUp5ebLmZPObSkrgBUAxXg79PI/edit).
 
-The owner instructed implementation according to the tracker. This package starts T01–T04 and prepares the repository/checks portion of T06. Detailed policies below are proposals where explicitly labelled; production and commercial decisions remain open.
+The owner instructed implementation according to the tracker. This package starts T01–T04 and prepares the repository/checks portion of T06. Owner approved the reviewed business boundaries, roles and V1 direction on 19 October 2026, including manager invoice management and payment recording. Unspecified operational formulas, production and commercial decisions remain open.
 
 ## Product and V1 scope — T01
 
@@ -22,16 +22,16 @@ First milestone: a verified user switches between authorised businesses; a Bokki
 - One customer identity may sign in across participating businesses, but each business relationship and private notes remain separate. Customer identity linking must be verified, not inferred solely from matching email strings.
 - Platform operators do not automatically gain business access. Any future support-access mechanism requires separate approval, expiry and audit.
 
-## Proposed role matrix — T03
+## Approved role matrix — T03
 
 | Capability | Owner | Manager | Staff | Customer |
 |---|---|---|---|---|
 | Business configuration / memberships | Manage | No | No | No |
 | Customers / bookings | Business scope | Business scope | Assigned job details only | Own records only |
-| Finance | Read/manage | Read only (proposal) | Own earnings only | Own invoices/payments only |
+| Finance | Read/manage | Read; manage invoices; record payments | Own earnings only | Own invoices/payments only |
 | Job progress | Manage | Manage | Own assignments | No |
 
-The role matrix requires owner review before live implementation. Customer and platform routes are not implemented by the policy core in this package. Staff sharing, manager financial access and support access must not expand silently.
+Owner approval: 19 October 2026, in this conversation. Managers can view finances, create/manage invoices and record customer payments (including EFT) only for authorised businesses. Payout approval, refunds, bank/payment settings and user permissions remain owner-controlled. Financial changes must record actor, business, timestamp and change details when persistence is implemented. Recording a payment must never fabricate provider-confirmed status. Customer and platform routes are not implemented by this policy core; support access must not expand silently.
 
 Journeys: owner signs in → selects authorised business → configures catalogue → adds customer → creates booking → assigns team → records completion → reconciles payment → reviews monthly payout. Customer selects business → books → pays → receives confirmed status → accesses own history. Cleaner signs in → views assignment → updates progress → reviews own earnings.
 
@@ -43,7 +43,7 @@ Booking status, payment status, invoice status and payout status are distinct. V
 
 Each business configures supported services, extras, working hours, service areas, team requirements and recurring frequencies. Earnings options must be explicitly defined, versioned and tested. Do not infer payout eligibility from customer payment alone. Monthly bank payouts require reviewed earnings, adjustments, freeze, approval, transfer evidence and duplicate-settlement prevention. Other payout frequencies are future configurable options only after specification/testing.
 
-Open: pricing formula choices, cancellation/refund rules, recurrence change policy, earnings formulas, manager finance visibility, retention periods and initial cutover order. These block affected implementation, not documentation or isolated policy tests.
+Open: pricing formula choices, cancellation/refund rules, recurrence change policy, earnings formulas, retention periods and initial cutover order. These block affected implementation, not documentation or isolated policy tests.
 
 ## Technical starting point — T05/T06
 
@@ -61,7 +61,7 @@ Migration: feature inventory → data ownership mapping → rehearsal → counts
 
 ## Next gates
 
-1. Owner reviews role and operational choices (T02–T04).
+1. Business boundaries and roles approved; specify remaining pricing, earnings and cancellation choices (T04).
 2. Verify actual Plesk permissions/resources and recurring costs (T05).
 3. Complete CI and choose application stack (T06).
 4. Create isolated environments (T07), then memberships/auth/database isolation (T08–T09).
