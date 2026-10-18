@@ -23,3 +23,15 @@ Read-only Plesk inspection; no configuration applied.
 CONDITIONAL PASS for Node 24-compatible local application preparation. T05 remains blocked for production readiness and budget confirmation. Do not infer unlimited compute from storage quotas. No new services, charges, deployments, database projects or changes to existing business websites are authorised by this evidence report.
 
 PR #2 rule contracts merged at 9fb9f60d7714abe729ef07c323c5a9e93fc5157a after both GitHub checks succeeded; local suite had 15 passing tests. Actual pricing/earnings decisions remain open.
+
+## Allanux client-area verification
+
+Directly observed on 19 October 2026 in the authenticated client area:
+
+- Lite Reseller active: R420/month; next due 25 October 2026.
+- Reseller storage: 35,346 M used / 51,200 M total (69% displayed). Remaining 15,854 M, about 15.5 GiB. The reseller-wide quota limits actual headroom even when an individual subscription says unlimited.
+- Separate Starter Cloud for shalean.co.za: active R99/month. Combined displayed recurring hosting amounts R519/month, excluding domains, optional services and usage charges. Do not cancel either service.
+- No CPU, RAM, process/concurrency limits or explicit staging charge displayed in the reseller product details.
+- Public Lite plan lists 50 GB storage, unlimited subdomains and free SSL: https://www.allanuxweb.com/reseller-hosting . The page comparison inconsistently lists 60 GB elsewhere; use authenticated 51,200 M quota as account evidence.
+
+Inference: existing subdomain allowance may accommodate staging without another plan, but no staging-specific charge guarantee is verified. Provider confirmation is still required for resource limits and any additional charges. The R420 is existing shared hosting spend, not a new FaraiOS-only charge; incremental FaraiOS costs remain unverified.
