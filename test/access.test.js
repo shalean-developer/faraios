@@ -48,3 +48,18 @@ test('earnings ownership prevents peer visibility',()=>{
   assert.equal(canAccessOwnedRecord({...req,record:{businessId:'shalean',userId:'cleaner'}}),true);
   assert.equal(canAccessOwnedRecord({...req,record:{businessId:'shalean',userId:'other'}}),false);
 });
+
+test('approved manager invoice and payment permissions remain business scoped',()=>{
+  for (const permission of ['finance.read','invoices.manage','payments.record']) {
+    assert.equal(canAccess(request('manager','bokkie',permission)),true);
+    assert.equal(canAccess(request('manager','shalean',permission)),false);
+    assert.equal(canAccessOwnedRecord({...request('manager','bokkie',permission),record:{businessId:'shalean'}}),false);
+    assert.equal(canAccess(request('cleaner','shalean',permission)),false);
+  }
+});
+test('owner retains restricted financial and administration actions',()=>{
+  for (const permission of ['payouts.approve','refunds.issue','payment_settings.manage','members.manage']) {
+    assert.equal(canAccess(request('manager','bokkie',permission)),false);
+    assert.equal(canAccess(request('farai','bokkie',permission)),true);
+  }
+});
