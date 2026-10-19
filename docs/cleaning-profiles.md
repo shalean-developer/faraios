@@ -6,6 +6,8 @@ Implementation for the T14 extension. This is an office one-off booking flow, wi
 
 In Services, prices and extras, edit a service, choose the relevant cleaning profile and save. Reopen it to enter its pricing and duration rules. Profiles require fixed base pricing. The catalogue price is the base visit price; the service fee is separate. Every option and count requires explicit additional cents and minutes, including zero when no addition applies. A saved profile without configuration is blocked from new bookings.
 
+For profiles with pets, enter the service’s allowed pet answers and their rates/minutes explicitly. These choices are specific to that business-owned service; no pet menu is imported from Regular into Deep or Moving. Changing a profile clears its configuration and requires reopening the new profile before entering its rates.
+
 Choose the allowed active extras from the same business and enter additional minutes for each. Extras use their own catalogue rates, quantities and version snapshots. Deleting/deactivating an extra prevents new selection; old bookings remain unchanged. Managers can book with the configured rules; only owners can change catalogue configuration.
 
 Choose an equipment policy explicitly: included, customer supplies equipment, or optional distance delivery. Optional delivery requires a base location, base fee, cents per kilometre, minimum fee and extra minutes. Fee = max(minimum, ceil(base + distance × rate)). This is a configurable FaraiOS rule, not an inferred claim about Shalean's existing formula. The office must record distance and its source; no route or distance provider is connected.
