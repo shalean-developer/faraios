@@ -2,6 +2,12 @@ import {validDate,validTime,validPickerValue} from './date-time-values.js';
 export {validDate,validTime,validPickerValue} from './date-time-values.js';
 import {enhanceDropdown} from './dropdown.js';
 const pad=n=>String(n).padStart(2,'0');
+// Quarter-hour suggestions are presentation only; keep any exact existing value.
+export function timeChoices(value=''){
+ const values=Array.from({length:96},(_,i)=>pad(Math.floor(i/4))+':'+pad(i%4*15));
+ if(validTime(value)&&!values.includes(value))values.push(value);
+ return values.sort();
+}
 export function shiftDate(value,days){const d=new Date(value+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+days);const s=d.toISOString().slice(0,10);return validDate(s)?s:value;}
 export function shiftMonth(value,months){
  const d=new Date(value+'T12:00:00Z'),day=d.getUTCDate();d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()+months);const last=new Date(d);last.setUTCMonth(last.getUTCMonth()+1);last.setUTCDate(0);d.setUTCDate(Math.min(day,last.getUTCDate()));const result=d.toISOString().slice(0,10);return validDate(result)?result:value;
@@ -22,13 +28,13 @@ export function enhancePicker(input){
  trigger.setAttribute('aria-haspopup','dialog');trigger.setAttribute('aria-controls',popup.id);trigger.setAttribute('aria-expanded','false');
  const error=element('span','picker-error');error.id=input.id+'-error';error.hidden=true;error.setAttribute('role','alert');input.setAttribute('aria-errormessage',error.id);
  input.after(root);root.append(control,popup,error);control.append(input,trigger);
- let selected='',focused='',month='',hour='00',minute='00';const timeDropdowns=[];
+ let selected='',focused='',month='',timeValue='00:00',timeDropdown=null;
  const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:input.dataset.timeZone||'UTC',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  const title=element('p','picker-month');title.id=input.id+'-month';title.setAttribute('aria-live','polite');
  const grid=element('div','picker-grid');grid.setAttribute('role','grid');grid.setAttribute('aria-labelledby',title.id);
- const close=(restore=false)=>{timeDropdowns.forEach(dropdown=>dropdown?.close());popup.hidden=true;trigger.setAttribute('aria-expanded','false');if(restore)trigger.focus();};
+ const close=(restore=false)=>{timeDropdown?.close();popup.hidden=true;trigger.setAttribute('aria-expanded','false');if(restore)trigger.focus();};
  const validate=()=>{const bad=!!input.value&&!validPickerValue(input.value,kind);input.setCustomValidity(bad?'Enter a valid '+(kind==='datetime'?'date and time':kind)+'.':'');if(!bad){input.removeAttribute('aria-invalid');error.hidden=true;error.textContent='';}};
- const commit=()=>{input.value=kind==='date'?selected:kind==='time'?hour+':'+minute:selected+'T'+hour+':'+minute;validate();input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));close(true);};
+ const commit=()=>{input.value=kind==='date'?selected:kind==='time'?timeValue:selected+'T'+timeValue;validate();input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));close(true);};
  const renderDays=()=>{
   title.textContent=new Intl.DateTimeFormat('en-ZA',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(month+'-01T12:00:00Z'));
   grid.replaceChildren();const headings=element('div','picker-weekdays');headings.setAttribute('role','row');
@@ -52,18 +58,15 @@ export function enhancePicker(input){
   }
  };
  const focusDay=()=>grid.querySelector(`[data-day="${focused}"]`)?.focus();
- const timeSelects=[];
+ let timeSelect=null;
+ const populateTimes=value=>{timeSelect.replaceChildren();for(const choice of timeChoices(value)){const option=element('option','',choice);option.value=choice;timeSelect.append(option);}timeSelect.value=value;};
  if(kind!=='time'){
   const head=element('div','picker-month-nav'),prev=button('‹','Previous month'),next=button('›','Next month');head.append(prev,title,next);popup.append(head,grid);
   const move=direction=>{focused=shiftMonth(focused,direction);month=focused.slice(0,7);renderDays();};prev.addEventListener('click',()=>move(-1));next.addEventListener('click',()=>move(1));
  }
  if(kind!=='date'){
-  const time=element('div','picker-time'),caption=element('p','picker-time-caption','Time · 24-hour');popup.append(caption,time);
-  for(const [part,count] of [['hour',24],['minute',60]]){
-   const block=element('div'),label=element('label','',part==='hour'?'Hour':'Minute'),select=element('select');select.id=input.id+'-'+part;label.htmlFor=select.id;
-   for(let i=0;i<count;i++){const option=element('option','',pad(i));option.value=pad(i);select.append(option);}
-   select.addEventListener('change',()=>{if(part==='hour')hour=select.value;else minute=select.value;});block.append(label,select);time.append(block);timeSelects.push(select);timeDropdowns.push(enhanceDropdown(select));
-  }
+  const time=element('div','picker-time'),block=element('div'),label=element('label','','Time (24-hour)');timeSelect=element('select');timeSelect.id=input.id+'-time';label.htmlFor=timeSelect.id;
+  populateTimes('00:00');timeSelect.addEventListener('change',()=>{timeValue=timeSelect.value;});block.append(label,timeSelect);time.append(block);popup.append(time);timeDropdown=enhanceDropdown(timeSelect);
  }
  const actions=element('div','picker-actions'),cancel=button('Cancel'),done=button('Done');cancel.addEventListener('click',()=>close(true));done.addEventListener('click',commit);
  if(kind!=='time'){const current=button('Today');current.addEventListener('click',()=>{selected=today();focused=selected;month=selected.slice(0,7);if(kind==='date')commit();else{renderDays();focusDay();}});actions.append(current);}
@@ -71,8 +74,8 @@ export function enhancePicker(input){
  const open=()=>{
   document.dispatchEvent(new CustomEvent('faraios:picker-open',{detail:root}));
   const valid=validPickerValue(input.value,kind);selected=valid&&kind!=='time'?input.value.slice(0,10):today();focused=selected;month=selected.slice(0,7);
-  const time=valid&&kind!=='date'?input.value.slice(-5):'00:00';[hour,minute]=time.split(':');
-  timeSelects.forEach((select,i)=>{select.value=i?minute:hour;select.dispatchEvent(new Event('change'));});
+  timeValue=valid&&kind!=='date'?input.value.slice(-5):'00:00';
+  if(timeSelect){populateTimes(timeValue);timeDropdown.refreshOptions();}
   if(kind!=='time')renderDays();popup.hidden=false;trigger.setAttribute('aria-expanded','true');
   popup.style.maxHeight='calc(100dvh - 32px)';
   const rect=control.getBoundingClientRect(),box=popup.getBoundingClientRect(),width=box.width,height=Math.min(box.height,window.innerHeight-32);
