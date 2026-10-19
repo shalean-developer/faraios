@@ -24,7 +24,7 @@ test('booking input, duplicate submission comparison and optimistic mutations',a
 test('Postgres booking lifecycle, tenant links, snapshots, team and audit are enforced',async()=>{
  const db=new PGlite();try{
  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated;`);
- for(const path of ['identity-draft.sql','audit-draft.sql','business-settings-draft.sql','catalogue-draft.sql','customers-draft.sql','bookings-draft.sql'])await db.exec(await readFile(new URL('../database/'+path,import.meta.url),'utf8'));
+ for(const path of ['identity-draft.sql','audit-draft.sql','business-settings-draft.sql','catalogue-draft.sql','customers-draft.sql','bookings-draft.sql','bookings-context-hardening-draft.sql'])await db.exec(await readFile(new URL('../database/'+path,import.meta.url),'utf8'));
  await db.query("insert into auth.users values($1,'owner@example.test'),($2,'manager@example.test'),($3,'staff@example.test')",[owner,manager,staff]);
  await db.query("insert into public.businesses(id,name,industry) values($1,'A','cleaning'),($2,'B','cleaning')",[a,b]);
  await db.query("insert into public.business_memberships(business_id,user_id,role) values($1,$3,'owner'),($2,$3,'owner'),($2,$4,'manager'),($1,$5,'staff'),($2,$5,'staff')",[a,b,owner,manager,staff]);
