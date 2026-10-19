@@ -6,13 +6,13 @@ const database=process.env.T16_TEST_DATABASE_URL;
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 const owner=id(1),manager=id(2),staff=id(3),a=id(10),b=id(20),ba=id(30),bb=id(40);
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-test('independent connections prevent shared-cleaner overlaps and duplicate recurring/quote conversion',{skip:!database,timeout:45000},async()=>{
+test('independent connections prevent shared-cleaner overlaps and duplicate recurring/quote/invoice creation',{skip:!database,timeout:45000},async()=>{
  // This test provisions an empty disposable database, never a project database.
  const target=new URL(database);assert.equal(target.hostname,'127.0.0.1');assert.equal(target.pathname,'/faraios_t16_test');
  const args=[database,'-X','-qAt','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'];
  const sql=text=>{const r=spawnSync('psql',args,{input:text,encoding:'utf8',timeout:15000});assert.equal(r.status,0,r.stderr||r.error?.message);return r.stdout.trim();};
- let setup=`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated;`;
- for(const file of ['identity-draft.sql','audit-draft.sql','business-settings-draft.sql','catalogue-draft.sql','customers-draft.sql','bookings-draft.sql','bookings-context-hardening-draft.sql','cleaning-profiles-draft.sql','cleaning-assessments-draft.sql','cleaning-assessment-review-hardening-draft.sql','staff-teams-draft.sql','availability-draft.sql','recurring-draft.sql','quotes-draft.sql'])setup+=await readFile(new URL('../database/'+file,import.meta.url),'utf8');
+ let setup=`create role anon;create role authenticated;create role service_role;grant usage on schema public to service_role;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated;`;
+ for(const file of ['identity-draft.sql','audit-draft.sql','business-settings-draft.sql','catalogue-draft.sql','customers-draft.sql','bookings-draft.sql','bookings-context-hardening-draft.sql','cleaning-profiles-draft.sql','cleaning-assessments-draft.sql','cleaning-assessment-review-hardening-draft.sql','staff-teams-draft.sql','availability-draft.sql','recurring-draft.sql','quotes-draft.sql','quote-acceptance-actor-draft.sql','invoices-draft.sql'])setup+=await readFile(new URL('../database/'+file,import.meta.url),'utf8');
  setup+=`insert into auth.users values('${owner}','owner@test.invalid'),('${manager}','manager@test.invalid'),('${staff}','staff@test.invalid');insert into public.businesses(id,name,industry) values('${a}','A','cleaning'),('${b}','B','cleaning');insert into public.business_memberships(business_id,user_id,role) values('${a}','${owner}','owner'),('${b}','${owner}','owner'),('${b}','${manager}','manager'),('${a}','${staff}','staff'),('${b}','${staff}','staff');set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);`;
  for(const [business,n,booking] of [[a,10,ba],[b,20,bb]])setup+=`
  insert into public.business_settings(business_id,display_name,working_days,opens_at,closes_at,time_zone) values('${business}','Synthetic',array[0,1,2,3,4,5,6]::smallint[],'08:00','18:00','Africa/Johannesburg');
@@ -97,4 +97,26 @@ test('independent connections prevent shared-cleaner overlaps and duplicate recu
   const saved=quoted.stdout.split('\n').find(s=>s.startsWith('QUOTE:')).slice(6);
   assert.equal(sql(`select agreement->'customer_snapshot'->>'phone' from public.business_quotes where id='${saved}'`),'0000000099');
  }finally{for(const c of [contact,quoteReader].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+
+ // T19: one invoice per booking, then one active accounting claim across workers.
+ const invoicePreparer=connect('t19_preparer');let invoiceRetry;
+ try{
+  invoicePreparer.child.stdin.write(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);select public.prepare_invoice('${a}','${ba}');select 'INVOICE_HELD';\n`);
+  for(let i=0;i<100&&!invoicePreparer.output().includes('INVOICE_HELD');i++)await pause(25);assert.match(invoicePreparer.output(),/INVOICE_HELD/);
+  invoiceRetry=connect('t19_invoice_retry');invoiceRetry.child.stdin.end(`begin;set local lock_timeout='10s';set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);select 'RETRY:'||public.prepare_invoice('${a}','${ba}');commit;`);
+  let blocked=false;for(let i=0;i<50&&!blocked;i++){blocked=sql("select count(*) from pg_stat_activity where application_name='t19_invoice_retry' and wait_event_type='Lock'")==='1';if(!blocked)await pause(25);}assert.equal(blocked,true);invoicePreparer.child.stdin.end('commit;\n');
+  const [created,retried]=await Promise.all([invoicePreparer.closed,invoiceRetry.closed]);assert.equal(created.code,0,created.stderr);assert.equal(retried.code,0,retried.stderr);
+  const saved=sql(`select id from public.business_invoices where business_id='${a}' and booking_id='${ba}'`);assert.match(retried.stdout,new RegExp('RETRY:'+saved));assert.equal(sql('select count(*) from public.business_invoices'),'1');
+ }finally{for(const c of [invoicePreparer,invoiceRetry].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+ const savedInvoice=sql(`select id from public.business_invoices where business_id='${a}' and booking_id='${ba}'`);
+ sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);select public.configure_accounting('${a}',0,'111','https://www.zohoapis.com','A_TEST',true);`);
+ const claimWinner=connect('t19_claim_winner');let claimRetry;
+ try{
+  claimWinner.child.stdin.write(`begin;set local role service_role;select public.claim_invoice_sync('${a}','${savedInvoice}','${owner}','123');select 'CLAIM_HELD';\n`);
+  for(let i=0;i<100&&!claimWinner.output().includes('CLAIM_HELD');i++)await pause(25);assert.match(claimWinner.output(),/CLAIM_HELD/);
+  claimRetry=connect('t19_claim_retry');claimRetry.child.stdin.end(`begin;set local lock_timeout='10s';set local role service_role;select public.claim_invoice_sync('${a}','${savedInvoice}','${owner}','123');commit;`);
+  let blocked=false;for(let i=0;i<50&&!blocked;i++){blocked=sql("select count(*) from pg_stat_activity where application_name='t19_claim_retry' and wait_event_type='Lock'")==='1';if(!blocked)await pause(25);}assert.equal(blocked,true);claimWinner.child.stdin.end('commit;\n');
+  const [claimed,retried]=await Promise.all([claimWinner.closed,claimRetry.closed]);assert.equal(claimed.code,0,claimed.stderr);assert.notEqual(retried.code,0);assert.match(retried.stderr,/40001/);assert.equal(sql(`select version from public.business_invoices where id='${savedInvoice}'`),'2');
+ }finally{for(const c of [claimWinner,claimRetry].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+
 });

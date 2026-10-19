@@ -1,3 +1,4 @@
+import {listInvoices,readInvoice,bookingInvoice,accountingConnection,invoiceTotals,prepareInvoice,saveAccountingConnection,syncInvoice,renderInvoices} from './invoices.js';
 import {listQuotes,readQuote,quoteHandoff,quoteAcceptanceActor,createQuote,changeQuote,convertQuote,renderQuotes} from './quotes.js';
 import {listRecurring,readRecurring,recurringVisits,createRecurring,changeRecurring,generateRecurring,renderRecurring} from './recurring.js';
 import {calendarOptions,readCalendar,checkAvailability,renderCalendar} from './calendar.js';
@@ -15,7 +16,7 @@ const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const pageHtml=(title,body,business=null,identity=null,active='/dashboard')=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS staging</title><link rel="stylesheet" href="/style.css"><script type="module" src="/dropdown.js"></script><script type="module" src="/date-time-picker.js"></script><script type="module" src="/catalogue-setup.js"></script>${title==='Quotes'?'<script type="module" src="/quote-detail.js"></script>':''}</head><body${business&&identity?' class="workspace-layout"':''}><div class="notice">FaraiOS STAGING · Test workspace · No production data</div>${business&&identity?renderWorkspaceFrame(identity,business,body,active):`<main class="${title==='Sign in'?'login':'workspace-page'}">${title==='Sign in'?'<div class="brand">FaraiOS</div>':''}${body}</main>`}</body></html>`;
 const form=message=>pageHtml('Sign in',`<h1>Welcome back</h1><p>Use your FaraiOS staging test account.</p>${message?`<p role="alert">${esc(message)}</p>`:''}<form method="post" action="/login" class="panel"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" maxlength="254" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><button type="submit">Sign in</button><p class="muted">Accounts are provisioned in staging. Never enter a production password here.</p></form>`);
 
-export function createStagingServer({createClient,now=()=>Date.now()}){
+export function createStagingServer({createClient,accountingWorker=null,accountingAdapter=null,now=()=>Date.now()}){
   if(process.env.NODE_ENV==='production')throw new Error('Local staging server cannot run in production');
   const auth=createAuthSessions({createClient,now});let failures=[];
   const server=createServer(async(req,res)=>{
@@ -37,6 +38,33 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       if(req.method==='GET'&&url.pathname==='/quote-detail.js')return send(200,await readFile(new URL('../public/quote-detail.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/style.css')return send(200,await readFile(new URL('../public/style.css',import.meta.url),'utf8'),'text/css');
       if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/'))return send(200,form(''));
+      if(url.pathname==='/invoices'&&['GET','POST'].includes(req.method)){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        return await auth.withInvoices(id,url.searchParams.get('business'),async(client,business,actor,owner)=>{
+          headerBusiness=business;
+          const invoiceId=url.searchParams.get('invoice'),bookingId=url.searchParams.get('booking'),settings=url.searchParams.get('settings')==='1';
+          if([Boolean(invoiceId),Boolean(bookingId),settings].filter(Boolean).length>1)return send(400,'Choose one invoice view','text/plain');
+          let invoice=invoiceId?await readInvoice(client,business.id,invoiceId):null;
+          const booking=invoice?await readBooking(client,business.id,invoice.booking_id):bookingId?await readBooking(client,business.id,bookingId):null;
+          if(invoiceId&&!invoice||bookingId&&!booking||invoice&&!booking)return send(404,'Invoice or booking unavailable','text/plain');
+          if(bookingId&&req.method==='GET'){const existing=await bookingInvoice(client,business.id,bookingId);if(existing)return redirect('/invoices?business='+encodeURIComponent(business.id)+'&invoice='+encodeURIComponent(existing.id));}
+          const show=async(options={})=>html('Invoices',renderInvoices(business,invoice||booking||settings?[]:await listInvoices(client,business.id),{invoice,booking,connection:await accountingConnection(client,business.id),totals:invoice||booking||settings?null:await invoiceTotals(client,business.id),owner,settings,workerConfigured:Boolean(accountingWorker&&accountingAdapter),...options}));
+          if(req.method==='GET')return send(200,await show({message:url.searchParams.get('saved')==='1'?'Saved. Accounting status is shown below.':''}));
+          if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
+          if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
+          let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>8192)return send(413,'Form too large','text/plain');}
+          const data=new URLSearchParams(body);
+          try{
+            const action=data.get('action');
+            if(action==='configure'&&settings){if(!owner)return send(403,'Owner access required','text/plain');await saveAccountingConnection(client,business.id,data);return redirect('/invoices?business='+encodeURIComponent(business.id)+'&settings=1&saved=1');}
+            let saved=invoiceId;
+            if(action==='prepare'&&booking&&!invoice)saved=await prepareInvoice(client,business.id,booking.id);
+            else if(action==='sync'&&invoice){if(booking.status==='cancelled')throw new Error('Cancelled booking needs accounting review.');await syncInvoice({worker:accountingWorker,adapter:accountingAdapter,businessId:business.id,invoice,actor,customerId:(data.get('external_customer_id')??'').trim()});}
+            else throw new Error('Choose an invoice action.');
+            return redirect('/invoices?business='+encodeURIComponent(business.id)+'&invoice='+encodeURIComponent(saved)+'&saved=1');
+          }catch(error){if(invoiceId)invoice=await readInvoice(client,business.id,invoiceId);return send(error.status??422,await show({message:error.message,error:true}));}
+        });
+      }
       if(url.pathname==='/quotes'&&['GET','POST'].includes(req.method)){
         if(!await readIdentity(id)){clear();return redirect('/login');}
         return await auth.withQuotes(id,url.searchParams.get('business'),async(client,business)=>{
@@ -269,7 +297,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       const selected=url.searchParams.get('business')??'all';
       if(selected!=='all'&&!identity.businessIds.includes(selected))return send(403,'You do not have access to this business.','text/plain');
       return send(200,renderWorkspace(identity,selected));
-    }catch(error){if(['Quote access denied','Staff access denied','Settings access denied','Catalogue access denied','Customer access denied','Booking access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,form('Staging service unavailable. Please try again later.'));}
+    }catch(error){if(['Invoice access denied','Quote access denied','Staff access denied','Settings access denied','Catalogue access denied','Customer access denied','Booking access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,form('Staging service unavailable. Please try again later.'));}
   });return server;
 }
 
