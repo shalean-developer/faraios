@@ -162,3 +162,19 @@
 .catalogue-tabs a{display:inline-flex;align-items:center;gap:10px;margin:0;padding:11px 18px;min-height:44px;border:1px solid #cbdad3;background:#fff;color:#16654f;font-size:15px}
 .catalogue-tabs a[aria-current="page"]{background:#16654f;color:#fff;border-color:#16654f;font-weight:600}
 .catalogue-tabs a span{font-size:12px;opacity:.85}
+
+.workspace-page{max-width:1250px;margin:0 auto;padding:24px 42px 55px}
+.workspace-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:28px}
+.workspace-home{font-weight:700;font-size:23px;color:#17332e}
+.workspace-home span{color:#15936f}
+.account-trigger{display:inline-flex;gap:14px;align-items:center;flex-shrink:0;anchor-name:--workspace-account}
+.account-dropdown{position:fixed;inset:auto 24px auto auto;top:125px;margin:0;width:230px;max-width:calc(100vw - 32px);padding:8px;border:1px solid #d5e2db;border-radius:12px;background:#fff;color:#17332e;box-shadow:0 12px 32px #17332e26}
+.account-dropdown::backdrop{background:transparent}
+.account-dropdown nav{display:block;margin:0;overflow:visible}
+.account-dropdown nav a,.account-dropdown button{display:block;width:100%;padding:12px 14px;margin:0;text-align:left;border:0;border-radius:8px;font-size:15px}
+.account-dropdown nav a:hover{background:#edf5f0}
+.account-dropdown form{margin:6px 0 0;padding-top:6px;border-top:1px solid #e0e8e3}
+.account-dropdown button{background:#fff;color:#943d32}
+.account-dropdown button:hover{background:#fff0ed}
+@supports (top:anchor(bottom)){.account-dropdown{position-anchor:--workspace-account;top:calc(anchor(bottom) + 8px);right:anchor(right)}}
+@media(max-width:600px){.workspace-page{padding:20px}.workspace-header{gap:12px}.workspace-header .muted{font-size:12px}.workspace-home{font-size:21px}.account-trigger{padding:10px 12px}}
