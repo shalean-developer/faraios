@@ -4,7 +4,7 @@ import {createStagingServer} from '../src/staging-server.js';
 const uid='00000000-0000-4000-8000-000000000001',bid='10000000-0000-4000-8000-000000000001';
 function catalogueClient(state){
  let update,deleting=false,filters=[];
- const builder={eq(key,value){filters.push([key,value]);return this;},order(){return this;},limit:async()=>({data:state.catalogue}),select(){
+ const builder={eq(key,value){filters.push([key,value]);return this;},order(){return this;},range:async(start,end)=>({data:state.catalogue.filter(row=>filters.every(([key,value])=>row[key]===value)).slice(start,end+1)}),select(){
    if(!update&&!deleting)return this;
    const item=state.catalogue.find(row=>filters.every(([key,value])=>row[key]===value));
    if(!item)return Promise.resolve({data:[]});if(deleting){state.catalogue.splice(state.catalogue.indexOf(item),1);state.catalogueWrites++;return Promise.resolve({data:[{id:item.id}]});}Object.assign(item,update,{version:item.version+1});state.catalogueWrites++;return Promise.resolve({data:[{id:item.id}]});
