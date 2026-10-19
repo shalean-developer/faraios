@@ -6,13 +6,13 @@ const database=process.env.T16_TEST_DATABASE_URL;
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 const owner=id(1),manager=id(2),staff=id(3),a=id(10),b=id(20),ba=id(30),bb=id(40);
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-test('independent connections prevent shared-cleaner overlaps and duplicate recurring generation',{skip:!database,timeout:45000},async()=>{
+test('independent connections prevent shared-cleaner overlaps and duplicate recurring/quote conversion',{skip:!database,timeout:45000},async()=>{
  // This test provisions an empty disposable database, never a project database.
  const target=new URL(database);assert.equal(target.hostname,'127.0.0.1');assert.equal(target.pathname,'/faraios_t16_test');
  const args=[database,'-X','-qAt','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'];
  const sql=text=>{const r=spawnSync('psql',args,{input:text,encoding:'utf8',timeout:15000});assert.equal(r.status,0,r.stderr||r.error?.message);return r.stdout.trim();};
  let setup=`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated;`;
- for(const file of ['identity-draft.sql','audit-draft.sql','business-settings-draft.sql','catalogue-draft.sql','customers-draft.sql','bookings-draft.sql','bookings-context-hardening-draft.sql','cleaning-profiles-draft.sql','cleaning-assessments-draft.sql','cleaning-assessment-review-hardening-draft.sql','staff-teams-draft.sql','availability-draft.sql','recurring-draft.sql'])setup+=await readFile(new URL('../database/'+file,import.meta.url),'utf8');
+ for(const file of ['identity-draft.sql','audit-draft.sql','business-settings-draft.sql','catalogue-draft.sql','customers-draft.sql','bookings-draft.sql','bookings-context-hardening-draft.sql','cleaning-profiles-draft.sql','cleaning-assessments-draft.sql','cleaning-assessment-review-hardening-draft.sql','staff-teams-draft.sql','availability-draft.sql','recurring-draft.sql','quotes-draft.sql'])setup+=await readFile(new URL('../database/'+file,import.meta.url),'utf8');
  setup+=`insert into auth.users values('${owner}','owner@test.invalid'),('${manager}','manager@test.invalid'),('${staff}','staff@test.invalid');insert into public.businesses(id,name,industry) values('${a}','A','cleaning'),('${b}','B','cleaning');insert into public.business_memberships(business_id,user_id,role) values('${a}','${owner}','owner'),('${b}','${owner}','owner'),('${b}','${manager}','manager'),('${a}','${staff}','staff'),('${b}','${staff}','staff');set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);`;
  for(const [business,n,booking] of [[a,10,ba],[b,20,bb]])setup+=`
  insert into public.business_settings(business_id,display_name,working_days,opens_at,closes_at,time_zone) values('${business}','Synthetic',array[0,1,2,3,4,5,6]::smallint[],'08:00','18:00','Africa/Johannesburg');
@@ -66,4 +66,35 @@ test('independent connections prevent shared-cleaner overlaps and duplicate recu
   const counts=sql(`select count(*)||':'||count(distinct recurring_occurrence_date) from public.one_off_bookings where recurring_schedule_id='${recurring}'`).split(':');assert.equal(counts[0],counts[1]);assert.ok(Number(counts[0])>0);
   assert.equal(sql(`select md5(to_jsonb(b)::text) from public.one_off_bookings b where id='${ba}'`),sourceBefore);
  }finally{for(const c of [generator,retry].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+
+ // T18: both independent requests return the exact same persisted conversion.
+ const quote=sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);select public.create_quote('${a}',gen_random_uuid(),'${id(110)}','${id(111)}','[{"catalogue_id":"${id(112)}","quantity":1}]',null,120);`).split('\n').at(-1);
+ sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);select public.change_quote('${a}','${quote}',1,'issued','Shared fixture');select public.change_quote('${a}','${quote}',2,'accepted','Accepted fixture');`);
+ const quoteStart=sql("select ((now() at time zone 'Africa/Johannesburg')::date+1)::text||' 09:00'");
+ const converter=connect('t18_converter');let conversionRetry;
+ try{
+  converter.child.stdin.write(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);select public.convert_quote('${a}','${quote}',3,'${quoteStart}','');select 'CONVERSION_HELD';\n`);
+  for(let i=0;i<100&&!converter.output().includes('CONVERSION_HELD');i++)await pause(25);
+  assert.match(converter.output(),/CONVERSION_HELD/);
+  conversionRetry=connect('t18_retry');conversionRetry.child.stdin.end(`begin;set local lock_timeout='10s';set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);select 'RETRY:'||public.convert_quote('${a}','${quote}',3,'${quoteStart}','')::text;commit;`);
+  let blocked=false;for(let i=0;i<50&&!blocked;i++){blocked=sql("select count(*) from pg_stat_activity where application_name='t18_retry' and wait_event_type='Lock'")==='1';if(!blocked)await pause(25);}
+  assert.equal(blocked,true,'Conversion retry must wait on the accepted quote row');converter.child.stdin.end('commit;\n');
+  const [created,retried]=await Promise.all([converter.closed,conversionRetry.closed]);assert.equal(created.code,0,created.stderr);assert.equal(retried.code,0,retried.stderr);
+  const firstReceipt=JSON.parse(created.stdout.split('\n').find(s=>s.startsWith('{'))),retryReceipt=JSON.parse(retried.stdout.split('\n').find(s=>s.startsWith('RETRY:')).slice(6));assert.deepEqual(retryReceipt,firstReceipt);
+  assert.equal(sql(`select count(*) from public.one_off_bookings where source_quote_id='${quote}'`),'1');assert.equal(sql(`select count(*) from public.quote_invoice_handoffs where quote_id='${quote}'`),'1');assert.equal(sql(`select status||':'||version from public.business_quotes where id='${quote}'`),'converted:4');
+ }finally{for(const c of [converter,conversionRetry].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+
+ // Contact edits cannot race between scope validation and the saved snapshot.
+ const contact=connect('t18_contact_edit');let quoteReader;
+ try{
+  contact.child.stdin.write(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);update public.business_customers set phone='0000000099' where id='${id(110)}';select 'CONTACT_HELD';\n`);
+  for(let i=0;i<100&&!contact.output().includes('CONTACT_HELD');i++)await pause(25);
+  assert.match(contact.output(),/CONTACT_HELD/);
+  quoteReader=connect('t18_contact_quote');quoteReader.child.stdin.end(`begin;set local lock_timeout='10s';set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);select 'QUOTE:'||public.create_quote('${a}',gen_random_uuid(),'${id(110)}','${id(111)}','[{"catalogue_id":"${id(112)}","quantity":1}]',null,120)::text;commit;`);
+  let blocked=false;for(let i=0;i<50&&!blocked;i++){blocked=sql("select count(*) from pg_stat_activity where application_name='t18_contact_quote' and wait_event_type='Lock'")==='1';if(!blocked)await pause(25);}
+  assert.equal(blocked,true,'Quote calculation must wait for the active contact version');contact.child.stdin.end('commit;\n');
+  const [edited,quoted]=await Promise.all([contact.closed,quoteReader.closed]);assert.equal(edited.code,0,edited.stderr);assert.equal(quoted.code,0,quoted.stderr);
+  const saved=quoted.stdout.split('\n').find(s=>s.startsWith('QUOTE:')).slice(6);
+  assert.equal(sql(`select agreement->'customer_snapshot'->>'phone' from public.business_quotes where id='${saved}'`),'0000000099');
+ }finally{for(const c of [contact,quoteReader].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
 });

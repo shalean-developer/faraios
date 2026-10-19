@@ -2,8 +2,8 @@
  * This does not implement authentication, API enforcement or database RLS.
  */
 const permissions = Object.freeze({
-  owner: ['staff.read','staff.manage','catalogue.read','catalogue.manage','business.read', 'business.manage', 'members.manage', 'customers.read', 'customers.manage', 'bookings.read', 'bookings.manage', 'finance.read', 'invoices.manage', 'payments.record', 'payouts.approve', 'refunds.issue', 'payment_settings.manage'],
-  manager: ['staff.read','catalogue.read','business.read', 'customers.read', 'customers.manage', 'bookings.read', 'bookings.manage', 'finance.read', 'invoices.manage', 'payments.record'],
+  owner: ['quotes.read','quotes.manage','staff.read','staff.manage','catalogue.read','catalogue.manage','business.read', 'business.manage', 'members.manage', 'customers.read', 'customers.manage', 'bookings.read', 'bookings.manage', 'finance.read', 'invoices.manage', 'payments.record', 'payouts.approve', 'refunds.issue', 'payment_settings.manage'],
+  manager: ['quotes.read','quotes.manage','staff.read','catalogue.read','business.read', 'customers.read', 'customers.manage', 'bookings.read', 'bookings.manage', 'finance.read', 'invoices.manage', 'payments.record'],
   staff: ['business.read', 'jobs.assigned.read', 'jobs.assigned.update', 'earnings.own.read'],
 });
 const validId = value => typeof value === 'string' && value.trim().length > 0;

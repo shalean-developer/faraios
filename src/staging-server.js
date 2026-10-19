@@ -1,3 +1,4 @@
+import {listQuotes,readQuote,quoteHandoff,createQuote,changeQuote,convertQuote,renderQuotes} from './quotes.js';
 import {listRecurring,readRecurring,recurringVisits,createRecurring,changeRecurring,generateRecurring,renderRecurring} from './recurring.js';
 import {calendarOptions,readCalendar,checkAvailability,renderCalendar} from './calendar.js';
 import {staffAccounts,listStaffRecords,parseStaffRecord,saveStaffRecord,resolveAssignedTeam,renderStaffTeams} from './staff-teams.js';
@@ -35,6 +36,38 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       if(req.method==='GET'&&url.pathname==='/catalogue-setup.js')return send(200,await readFile(new URL('../public/catalogue-setup.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/style.css')return send(200,await readFile(new URL('../public/style.css',import.meta.url),'utf8'),'text/css');
       if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/'))return send(200,form(''));
+      if(url.pathname==='/quotes'&&['GET','POST'].includes(req.method)){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        return await auth.withQuotes(id,url.searchParams.get('business'),async(client,business)=>{
+          headerBusiness=business;
+          const quoteId=url.searchParams.get('quote');let quote=quoteId?await readQuote(client,business.id,quoteId):null;
+          if(quoteId&&!quote)return send(404,'Quote unavailable','text/plain');
+          let data=null;
+          if(req.method==='POST'){
+            if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
+            if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
+            let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>65536)return send(413,'Form too large','text/plain');}
+            data=new URLSearchParams(body);
+          }
+          const customerId=quote?null:data?.get('customer_id')??url.searchParams.get('customer');
+          const customer=customerId?await readCustomer(client,business.id,customerId):null;
+          if(customerId&&(!customer||!customer.is_active))return send(404,'Customer unavailable','text/plain');
+          const catalogue=quote?[]:await listCatalogue(client,business.id);
+          const show=async(options={})=>html('Quotes',renderQuotes(business,await listQuotes(client,business.id),{quote,handoff:quote?await quoteHandoff(client,business.id,quote):null,customer,customers:quote?[]:await listCustomers(client,business.id),addresses:customer?await listAddresses(client,business.id,customer.id):[],catalogue,creating:!quote&&(url.searchParams.get('create')==='1'||Boolean(customer)||Boolean(data)),values:{service:data?.get('service_id')??url.searchParams.get('service'),...(data?Object.fromEntries(data):{})},filters:{q:url.searchParams.get('q'),status:url.searchParams.get('status')},...options}));
+          if(req.method==='GET')return send(200,await show({message:quote&&url.searchParams.get('saved')==='1'?'Quote saved.':quote?.status==='converted'&&url.searchParams.get('converted')==='1'?'Quote converted. Open the linked booking below.':''}));
+          try{
+            const action=data.get('action');let saved=quoteId,flag='saved=1';
+            if(action==='create'&&!quote&&customer)saved=await createQuote(client,business.id,data,catalogue);
+            else if(action==='change'&&quote)await changeQuote(client,business.id,quote.id,data);
+            else if(action==='convert'&&quote){await convertQuote(client,business.id,quote.id,data);flag='converted=1';}
+            else throw new Error('Choose a quote action.');
+            return redirect('/quotes?business='+encodeURIComponent(business.id)+'&quote='+encodeURIComponent(saved)+'&'+flag);
+          }catch(error){
+            if(quoteId)quote=await readQuote(client,business.id,quoteId);
+            return send(error.status??422,await show({message:error.message,error:true}));
+          }
+        });
+      }
       if(url.pathname==='/recurring'&&['GET','POST'].includes(req.method)){
         if(!await readIdentity(id)){clear();return redirect('/login');}
         return await auth.withBookings(id,url.searchParams.get('business'),async(client,business)=>{
@@ -235,7 +268,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       const selected=url.searchParams.get('business')??'all';
       if(selected!=='all'&&!identity.businessIds.includes(selected))return send(403,'You do not have access to this business.','text/plain');
       return send(200,renderWorkspace(identity,selected));
-    }catch(error){if(['Staff access denied','Settings access denied','Catalogue access denied','Customer access denied','Booking access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,form('Staging service unavailable. Please try again later.'));}
+    }catch(error){if(['Quote access denied','Staff access denied','Settings access denied','Catalogue access denied','Customer access denied','Booking access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,form('Staging service unavailable. Please try again later.'));}
   });return server;
 }
 

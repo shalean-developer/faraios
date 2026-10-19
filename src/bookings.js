@@ -11,7 +11,7 @@ export const bookingStatuses=Object.freeze({draft:'Draft',confirmed:'Confirmed',
 const transitions={draft:['confirmed','cancelled'],confirmed:['assigned','cancelled'],assigned:['en_route','cancelled'],en_route:['arrived','cancelled'],arrived:['in_progress','cancelled'],in_progress:['completed'],completed:[],cancelled:[]};
 const text=(form,key,max=2000)=>{const value=(form.get(key)??'').trim();if(value.length>max)throw new Error(`Check ${key.replaceAll('_',' ')}.`);return value;};
 function schedule(form){const local_start=text(form,'local_start',16),raw=text(form,'duration_minutes',4),hours_override_reason=text(form,'hours_override_reason');if(!validPickerValue(local_start,'datetime')||!/^\d+$/.test(raw)||Number(raw)<15||Number(raw)>1440)throw new Error('Enter a date/time and duration from 15 to 1440 minutes.');return {local_start,duration_minutes:Number(raw),hours_override_reason};}
-export function parseBookingCreate(form,catalogue){
+export function parseBookingAgreement(form,catalogue){
  const customer_id=text(form,'customer_id',36),address_id=text(form,'address_id',36),service_id=text(form,'service_id',36),request_key=text(form,'request_key',36);
  if(![customer_id,address_id,service_id,request_key].every(validCustomerId))throw new Error('Select a customer, address and service.');
  const quantity=value=>{if(!/^[1-9]\d{0,5}$/.test(value))throw new Error('Use positive whole-number quantities.');return Number(value);};
@@ -21,10 +21,15 @@ export function parseBookingCreate(form,catalogue){
  for(const extra of catalogue.filter(r=>r.kind==='extra'&&r.is_active)){const raw=text(form,'extra_'+extra.id,6);if(raw&&raw!=='0'&&service.cleaning_profile&&!service.cleaning_config?.extras?.includes(extra.id))throw new Error('This extra is not available for the selected service.');if(raw&&raw!=='0')selection.push({catalogue_id:extra.id,quantity:quantity(raw)});}
  if(selection.length>51)throw new Error('Select at most 50 extras.');
  for(const line of selection){const item=catalogue.find(r=>r.id===line.catalogue_id);if(item.pricing_model==='fixed'&&line.quantity!==1)throw new Error('Fixed-price items require quantity one.');}
- const timed=schedule(service.cleaning_profile?new URLSearchParams([...form].map(([k,v])=>[k,k==='duration_minutes'?'15':v]).concat(form.has('duration_minutes')?[]:[['duration_minutes','15']])):form);
- return {customer_id,address_id,request_key,selection,...timed,...(cleaning_scope?{cleaning_scope}:{} )};
+ const raw=service.cleaning_profile?'15':text(form,'duration_minutes',4);
+ if(!/^\d+$/.test(raw)||Number(raw)<15||Number(raw)>1440)throw new Error('Enter a duration from 15 to 1440 minutes.');
+ return {customer_id,address_id,request_key,selection,duration_minutes:Number(raw),...(cleaning_scope?{cleaning_scope}:{} )};
 }
-const fields='id,business_id,request_key,customer_id,address_id,local_start,duration_minutes,time_zone,starts_at,ends_at,status,assigned_staff,customer_snapshot,address_snapshot,price_lines,total_cents,currency,required_team_size,version,change_reason,hours_override_reason,created_at,updated_at,cleaning_scope,cleaning_snapshot,recurring_schedule_id,recurring_occurrence_date,recurring_revision';
+export function parseBookingCreate(form,catalogue){
+ const agreement=parseBookingAgreement(form,catalogue),timed=new URLSearchParams(form);timed.set('duration_minutes',String(agreement.duration_minutes));
+ return {...agreement,...schedule(timed)};
+}
+const fields='id,business_id,request_key,customer_id,address_id,local_start,duration_minutes,time_zone,starts_at,ends_at,status,assigned_staff,customer_snapshot,address_snapshot,price_lines,total_cents,currency,required_team_size,version,change_reason,hours_override_reason,created_at,updated_at,cleaning_scope,cleaning_snapshot,recurring_schedule_id,recurring_occurrence_date,recurring_revision,source_quote_id';
 export async function bookingContext(client,businessId){const {data,error}=await client.rpc('booking_context',{p_business_id:businessId});if(error||!data?.time_zone||!Array.isArray(data.staff))throw new Error('Configure business working hours before creating bookings.');return {...data,staff:await staffAccounts(client,businessId),teams:await listStaffRecords(client,businessId,'team')};}
 export async function listBookings(client,businessId){const {data,error}=await client.from('one_off_bookings').select(fields).eq('business_id',businessId).order('starts_at',{ascending:false}).limit(200);if(error||!Array.isArray(data)||data.some(r=>r.business_id!==businessId))throw new Error('Bookings unavailable');return data;}
 export async function readBooking(client,businessId,id){if(!validCustomerId(id))return null;const {data,error}=await client.from('one_off_bookings').select(fields).eq('business_id',businessId).eq('id',id).maybeSingle();if(error||data&&data.business_id!==businessId)throw new Error('Booking unavailable');return data;}
@@ -69,6 +74,7 @@ export function renderBookings(business,bookings,ctx,{booking=null,customers=[],
    if(['draft','confirmed','assigned','en_route','arrived'].includes(b.status))content+=`<section class="panel"><h2>Reschedule</h2><form class="settings-form" method="post" action="${action}"><input type="hidden" name="action" value="reschedule">${hidden(b)}${scheduleFields(b)}${reason('reschedule')}<button>Save schedule</button></form></section>`;
    if(b.status==='assigned')content+=`<section class="panel"><h2>Change team</h2><form class="settings-form" method="post" action="${action}"><input type="hidden" name="action" value="reassign">${hidden(b)}${staffFields(b.assigned_staff)}${reason('reassign')}<button>Save team</button></form></section>`;
   }
+  if(b.source_quote_id)content+=`<p><a href="/quotes?business=${encodeURIComponent(business.id)}&amp;quote=${encodeURIComponent(b.source_quote_id)}">Open accepted quote and invoice handoff</a></p>`;
   content+=b.recurring_schedule_id?`<p><a href="/recurring?business=${encodeURIComponent(business.id)}&amp;schedule=${encodeURIComponent(b.recurring_schedule_id)}">Open recurring schedule</a></p>`:b.status!=='cancelled'?`<p><a href="/recurring?business=${encodeURIComponent(business.id)}&amp;source=${encodeURIComponent(b.id)}">Make recurring</a></p>`:'';
   content+=`<p><a href="${base}">Back to bookings</a></p>`;
  }else if(creating||customer||error){
