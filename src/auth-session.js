@@ -38,6 +38,12 @@ export function createAuthSessions({createClient,now=()=>Date.now()}) {
       const session=sessions.get(id);if(!session)throw new Error('Catalogue access denied');
       return action(session.client,identity.businesses.find(b=>b.id===businessId),identity.memberships.some(m=>m.businessId===businessId&&m.role==='owner'));
     },
+    async withStaff(id,businessId,write,action){
+      const identity=await this.read(id);
+      if(!identity?.businessIds.includes(businessId)||!canAccess({userId:identity.userId,businessId,permission:write?'staff.manage':'staff.read',memberships:identity.memberships}))throw new Error('Staff access denied');
+      const session=sessions.get(id);if(!session)throw new Error('Staff access denied');
+      return action(session.client,identity.businesses.find(b=>b.id===businessId),identity.memberships.some(m=>m.businessId===businessId&&m.role==='owner'));
+    },
     async withBookings(id,businessId,action){
       const identity=await this.read(id);
       if(!identity?.businessIds.includes(businessId)||!canAccess({userId:identity.userId,businessId,permission:'bookings.manage',memberships:identity.memberships}))throw new Error('Booking access denied');
@@ -62,3 +68,4 @@ export function createAuthSessions({createClient,now=()=>Date.now()}) {
     }
   };
 }
+
