@@ -2,7 +2,7 @@ import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {createAuthSessions} from './auth-session.js';
 import {parseBusinessSettings,readBusinessSettings,saveBusinessSettings,renderBusinessSettings} from './business-settings.js';
-import {parseCatalogueItem,listCatalogue,saveCatalogueItem,renderCatalogue} from './catalogue.js';
+import {parseCatalogueItem,listCatalogue,saveCatalogueItem,deleteCatalogueItem,renderCatalogueDelete,renderCatalogue} from './catalogue.js';
 import {renderWorkspace} from './workspace.js';
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const html=(title,body)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS staging</title><link rel="stylesheet" href="/style.css"></head><body><div class="notice">FARAiOS STAGING · Real test-account sign-in · No production data</div><main class="login"><div class="brand">FaraiOS</div>${body}</main></body></html>`;
@@ -31,6 +31,12 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
           return await auth.withCatalogue(id,businessId,true,async(client,business)=>{
             const data=new URLSearchParams(body),items=await listCatalogue(client,businessId);
             if(itemId&&!items.some(i=>i.id===itemId))return send(404,html('Item unavailable','<h1>Item unavailable</h1><a href="/dashboard">Back to workspace</a>'));
+            if(data.get('action')==='delete'){
+              if(!itemId)return send(400,'Item required','text/plain');
+              try{await deleteCatalogueItem(client,businessId,itemId,Number(data.get('version')));}
+              catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,null,error.message,true)));}
+              return redirect('/catalogue?business='+encodeURIComponent(businessId)+'&deleted=1');
+            }
             let item;try{item=parseCatalogueItem(data);}catch(error){return send(422,html('Catalogue',renderCatalogue(business,items,true,{...Object.fromEntries(data),id:itemId},error.message,true)));}
             if(itemId&&items.find(i=>i.id===itemId).kind!==item.kind)return send(422,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},'Item type cannot be changed. Create another item instead.',true)));
             try{await saveCatalogueItem(client,businessId,item,{id:itemId,version:Number(data.get('version'))});}
@@ -64,7 +70,12 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         return await auth.withCatalogue(id,url.searchParams.get('business'),false,async(client,business,canManage)=>{
           const items=await listCatalogue(client,business.id),itemId=url.searchParams.get('item'),editing=itemId?items.find(i=>i.id===itemId):null;
           if(itemId&&!editing)return send(404,html('Item unavailable','<h1>Item unavailable</h1><a href="/dashboard">Back to workspace</a>'));
-          return send(200,html('Catalogue',renderCatalogue(business,items,canManage,editing,url.searchParams.get('saved')==='1'?'Catalogue saved.':'')));
+          if(url.searchParams.get('delete')==='1'){
+            if(!canManage)throw new Error('Catalogue access denied');
+            if(!editing)return send(400,'Item required','text/plain');
+            return send(200,html('Delete catalogue item',renderCatalogueDelete(business,editing)));
+          }
+          return send(200,html('Catalogue',renderCatalogue(business,items,canManage,editing,url.searchParams.get('deleted')==='1'?'Item deleted.':url.searchParams.get('saved')==='1'?'Catalogue saved.':'')));
         });
       }
       if(url.pathname==='/settings'){

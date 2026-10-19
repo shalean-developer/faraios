@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import {createStagingServer} from '../src/staging-server.js';
 const uid='00000000-0000-4000-8000-000000000001',bid='10000000-0000-4000-8000-000000000001';
 function catalogueClient(state){
- let update,filters=[];
+ let update,deleting=false,filters=[];
  const builder={eq(key,value){filters.push([key,value]);return this;},order(){return this;},limit:async()=>({data:state.catalogue}),select(){
-   if(!update)return this;
+   if(!update&&!deleting)return this;
    const item=state.catalogue.find(row=>filters.every(([key,value])=>row[key]===value));
-   if(!item)return Promise.resolve({data:[]});Object.assign(item,update,{version:item.version+1});state.catalogueWrites++;return Promise.resolve({data:[{id:item.id}]});
- },insert(row){const item={...row,id:'30000000-0000-4000-8000-'+String(state.catalogue.length+1).padStart(12,'0'),version:1};state.catalogue.push(item);state.catalogueWrites++;return {select:async()=>({data:[{id:item.id}]})};},update(row){update=row;return this;}};return builder;
+   if(!item)return Promise.resolve({data:[]});if(deleting){state.catalogue.splice(state.catalogue.indexOf(item),1);state.catalogueWrites++;return Promise.resolve({data:[{id:item.id}]});}Object.assign(item,update,{version:item.version+1});state.catalogueWrites++;return Promise.resolve({data:[{id:item.id}]});
+ },insert(row){const item={...row,id:'30000000-0000-4000-8000-'+String(state.catalogue.length+1).padStart(12,'0'),version:1};state.catalogue.push(item);state.catalogueWrites++;return {select:async()=>({data:[{id:item.id}]})};},delete(){deleting=true;return this;},update(row){update=row;return this;}};return builder;
 }
 async function run(fn, {role="manager"}={}){
   const state={role,active:true,verified:true,time:Date.now(),settings:null,settingsWrites:0,catalogue:[],catalogueWrites:0};
@@ -85,11 +85,17 @@ test('catalogue HTTP owner create/edit rejects stale versions and foreign scope'
  assert.equal((await post(url,catalogueForm.replace('250.01','1.001'))).status,422);
  assert.equal((await post(base+'/catalogue?business=other',catalogueForm)).status,403);
  assert.equal(state.catalogueWrites,2);
+ const confirmation=await fetch(edit+'&delete=1',{headers:{Cookie}});assert.equal(confirmation.status,200);assert.match(await confirmation.text(),/Confirm delete/);assert.equal(state.catalogue.length,1);
+ assert.equal((await post(edit,'action=delete&version=1')).status,409);assert.equal(state.catalogue.length,1);
+ assert.equal((await fetch(edit,{method:'POST',headers:{Cookie,Origin:'https://foreign.invalid','Content-Type':'application/x-www-form-urlencoded'},body:'action=delete&version=2'})).status,403);
+ assert.equal((await post(edit,'action=delete&version=2')).status,303);assert.equal(state.catalogue.length,0);
+ assert.equal((await post(edit,'action=delete&version=2')).status,404);
 },{role:'owner'}));
 for(const role of ['manager','staff'])test(`catalogue HTTP ${role} follows read/write restrictions`,async()=>run(async(base,state)=>{
  const Cookie=await signIn(base),url=base+'/catalogue?business='+bid;
  const response=await fetch(url,{headers:{Cookie}});assert.equal(response.status,role==='manager'?200:403);
  if(role==='manager'){const html=await response.text();assert.match(html,/Read-only catalogue/);assert.doesNotMatch(html,/<form/);}
  assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:catalogueForm})).status,403);
+ assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'action=delete&version=1'})).status,403);
  assert.equal(state.catalogueWrites,0);
 },{role}));

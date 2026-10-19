@@ -2,7 +2,7 @@
 
 FaraiOS staging only. Catalogue entries belong to one business; neither business inherits the other's prices or extras. No live rates are seeded or copied from existing Shalean/Bokkie systems.
 
-Owners can create and edit services/extras, names/descriptions, fixed/hourly/per-unit ZAR rates, unit labels, service team sizes and active/inactive status. New entries start inactive in the form. Managers can read their business catalogue but cannot change it; staff have no catalogue access. Authentication, HTTP business/role checks and database RLS all apply. There are no delete grants; deactivate entries instead. An item's business, ID and type cannot be changed after creation.
+Owners can create and edit services/extras, names/descriptions, fixed/hourly/per-unit ZAR rates, unit labels, service team sizes and active/inactive status. New entries start inactive in the form. Managers can read their business catalogue but cannot change it; staff have no catalogue access. Authentication, HTTP business/role checks and database RLS all apply. Owners can delete saved items through a named confirmation page. Deletion is scoped by business, item and expected version; stale confirmations fail. Active owner membership in an active business is required by database RLS. Existing audit history and the deleted row snapshot are retained. An item's business, ID and type cannot be changed after creation.
 
 Amounts are parsed from decimal strings into integer cents, rejecting scientific notation, negative values and more than two decimal places. Supported range: zero through 2,147,483,647 cents. Service team size is 1–100; extras have no team-size value. These are supported configuration limits, not business policy defaults.
 
