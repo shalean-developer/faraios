@@ -98,7 +98,7 @@ begin
  end if;
  if new.assigned_staff is null or cardinality(new.assigned_staff)>100 or array_position(new.assigned_staff,null) is not null or cardinality(new.assigned_staff)<>(select count(distinct x) from unnest(new.assigned_staff) x) then raise exception 'Invalid staff assignment';end if;
  -- Check assignee membership at assignment and each operational transition.
- if tg_op='INSERT' or new.assigned_staff<>old.assigned_staff or new.status<>old.status then
+ if tg_op='INSERT' or new.assigned_staff<>old.assigned_staff or (new.status<>old.status and new.status<>'cancelled') then
   foreach uid in array new.assigned_staff loop
    if not exists(select 1 from jsonb_array_elements(ctx->'staff') x where x.value->>'user_id'=uid::text) then raise exception 'Assignee must be active staff in this business';end if;
   end loop;
