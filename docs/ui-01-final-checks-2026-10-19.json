@@ -1,0 +1,370 @@
+{
+  "date": "2026-10-19",
+  "timezone": "Africa/Johannesburg",
+  "scope": "UI-01 focused correction recheck",
+  "sourceCommit": "8caefdc166f301a8480db2773af30f46f94821a4",
+  "runtimeShaIndependentlyMeasured": false,
+  "environment": "Owner-PC FaraiOS staging, port 3101, Chrome",
+  "ownerConfirmation": "Ready, 2026-10-19 21:30 SAST",
+  "notes": [
+    "Browser DOM and actual keyboard observations; screenshots inspected internally and not saved.",
+    "11 measured page/viewport states, 2 keyboard checks, 3 presentation observations, and 1 picker measurement.",
+    "Desktop width 1280; mobile 390x844. Desktop height followed the user's normal browser.",
+    "Header Open bookings links are included in action measurements but are not row actions.",
+    "Date dialog Cancel closed it; temporary viewport override reset; no saved business-data mutation submitted."
+  ],
+  "checks": [
+    {
+      "check": "Shalean dashboard keyboard skip",
+      "tag": "MAIN",
+      "id": "main-content",
+      "tabindex": "-1",
+      "skipOutline": "solid"
+    },
+    {
+      "check": "Shalean module keyboard skip",
+      "id": "main-content",
+      "tabindex": "-1",
+      "tag": "MAIN"
+    },
+    {
+      "check": "Shalean bookings desktop",
+      "actions": [
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 76
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 76
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 76
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 76
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 76
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 76
+        }
+      ],
+      "overflow": [],
+      "scrollWidth": 1265,
+      "viewportHeight": 631,
+      "viewportWidth": 1280
+    },
+    {
+      "check": "Shalean bookings mobile",
+      "actions": [
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 309.3333435058594
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 309.3333435058594
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 309.3333435058594
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 309.3333435058594
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 309.3333435058594
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 309.3333435058594
+        }
+      ],
+      "overflow": [],
+      "scrollWidth": 375,
+      "viewportHeight": 844,
+      "viewportWidth": 390
+    },
+    {
+      "check": "Shalean recurring desktop",
+      "actions": [
+        {
+          "height": 44,
+          "label": "Open bookings",
+          "overflowWrap": "anywhere",
+          "whiteSpace": "normal",
+          "width": 135.2291717529297
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 76
+        }
+      ],
+      "overflow": [],
+      "scrollWidth": 1265,
+      "viewportHeight": 631,
+      "viewportWidth": 1280
+    },
+    {
+      "check": "Recurring presentation",
+      "scheduleCountLabel": "1 schedule",
+      "formattedAmountVisible": true
+    },
+    {
+      "check": "Shalean generated visits desktop",
+      "actions": [
+        {
+          "height": 44,
+          "label": "Open visit →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 120
+        },
+        {
+          "height": 44,
+          "label": "Open visit →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 120
+        }
+      ],
+      "overflow": [],
+      "scrollWidth": 1265,
+      "viewportHeight": 631,
+      "viewportWidth": 1280
+    },
+    {
+      "check": "Shalean generated visits mobile",
+      "actions": [
+        {
+          "height": 44,
+          "label": "Open visit →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 305.3333435058594
+        },
+        {
+          "height": 44,
+          "label": "Open visit →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 305.3333435058594
+        }
+      ],
+      "overflow": [],
+      "scrollWidth": 375,
+      "viewportHeight": 844,
+      "viewportWidth": 390
+    },
+    {
+      "check": "Shalean recurring mobile",
+      "actions": [
+        {
+          "height": 44,
+          "label": "Open bookings",
+          "overflowWrap": "anywhere",
+          "whiteSpace": "normal",
+          "width": 358
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 324.66668701171875
+        }
+      ],
+      "overflow": [],
+      "scrollWidth": 390,
+      "viewportHeight": 844,
+      "viewportWidth": 390
+    },
+    {
+      "check": "Staff singular label",
+      "label": "1 staff profile"
+    },
+    {
+      "check": "Team member singular label",
+      "visibleCount": 2
+    },
+    {
+      "check": "Shalean calendar mobile",
+      "actions": [
+        {
+          "height": 44,
+          "label": "Open bookings",
+          "overflowWrap": "anywhere",
+          "whiteSpace": "normal",
+          "width": 342.66668701171875
+        }
+      ],
+      "overflow": [],
+      "scrollWidth": 375,
+      "viewportHeight": 844,
+      "viewportWidth": 390
+    },
+    {
+      "check": "Shalean starting-date picker mobile",
+      "bottom": 820.2500305175781,
+      "fits": true,
+      "left": 34.66666793823242,
+      "right": 364.6666679382324,
+      "top": 451.5833435058594,
+      "viewportHeight": 844,
+      "viewportWidth": 390
+    },
+    {
+      "check": "Shalean customers desktop",
+      "actions": [
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 76
+        }
+      ],
+      "overflow": [],
+      "scrollWidth": 1265,
+      "viewportHeight": 575,
+      "viewportWidth": 1280
+    },
+    {
+      "check": "Shalean customers mobile",
+      "actions": [
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 309.3333435058594
+        }
+      ],
+      "overflow": [],
+      "scrollWidth": 375,
+      "viewportHeight": 844,
+      "viewportWidth": 390
+    },
+    {
+      "check": "Bokkie bookings desktop",
+      "actions": [
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 76
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 76
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 76
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 76
+        }
+      ],
+      "overflow": [],
+      "scrollWidth": 1265,
+      "viewportHeight": 575,
+      "viewportWidth": 1280
+    },
+    {
+      "check": "Bokkie bookings mobile",
+      "actions": [
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 309.3333435058594
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 309.3333435058594
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 309.3333435058594
+        },
+        {
+          "height": 44,
+          "label": "Open →",
+          "overflowWrap": "normal",
+          "whiteSpace": "nowrap",
+          "width": 309.3333435058594
+        }
+      ],
+      "overflow": [],
+      "scrollWidth": 375,
+      "viewportHeight": 844,
+      "viewportWidth": 390
+    }
+  ]
+}
