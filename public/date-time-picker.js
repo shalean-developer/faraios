@@ -1,11 +1,7 @@
+import {validDate,validTime,validPickerValue} from './date-time-values.js';
+export {validDate,validTime,validPickerValue} from './date-time-values.js';
 import {enhanceDropdown} from './dropdown.js';
 const pad=n=>String(n).padStart(2,'0');
-export function validDate(value){
- if(!/^\d{4}-\d{2}-\d{2}$/.test(value)||value<'0001-01-01')return false;
- const d=new Date(value+'T12:00:00Z');return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===value;
-}
-export const validTime=value=>/^([01]\d|2[0-3]):[0-5]\d$/.test(value);
-export function validPickerValue(value,kind){return kind==='date'?validDate(value):kind==='time'?validTime(value):value.length===16&&validDate(value.slice(0,10))&&value[10]==='T'&&validTime(value.slice(11));}
 export function shiftDate(value,days){const d=new Date(value+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+days);const s=d.toISOString().slice(0,10);return validDate(s)?s:value;}
 export function shiftMonth(value,months){
  const d=new Date(value+'T12:00:00Z'),day=d.getUTCDate();d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()+months);const last=new Date(d);last.setUTCMonth(last.getUTCMonth()+1);last.setUTCDate(0);d.setUTCDate(Math.min(day,last.getUTCDate()));const result=d.toISOString().slice(0,10);return validDate(result)?result:value;
