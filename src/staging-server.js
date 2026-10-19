@@ -4,6 +4,7 @@ import {createAuthSessions} from './auth-session.js';
 import {parseBusinessSettings,readBusinessSettings,saveBusinessSettings,renderBusinessSettings} from './business-settings.js';
 import {parseCatalogueItem,listCatalogue,saveCatalogueItem,deleteCatalogueItem,renderCatalogueDelete,renderCatalogue} from './catalogue.js';
 import {parseCustomerForm,listCustomers,readCustomer,listAddresses,readAddress,saveCustomerRecord,renderCustomers} from './customers.js';
+import {bookingContext,listBookings,readBooking,parseBookingCreate,createBooking,updateBooking,renderBookings} from './bookings.js';
 import {renderWorkspace} from './workspace.js';
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const html=(title,body)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS staging</title><link rel="stylesheet" href="/style.css"><script type="module" src="/dropdown.js"></script></head><body><div class="notice">FARAiOS STAGING · Real test-account sign-in · No production data</div><main class="login"><div class="brand">FaraiOS</div>${body}</main></body></html>`;
@@ -26,7 +27,22 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       if(req.method==='POST'){
         if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
         if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
-        let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>(url.pathname==='/customers'?65536:['/settings','/catalogue'].includes(url.pathname)?32768:4096))return send(413,'Form too large','text/plain');}
+        let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>(['/customers','/bookings'].includes(url.pathname)?65536:['/settings','/catalogue'].includes(url.pathname)?32768:4096))return send(413,'Form too large','text/plain');}
+        if(url.pathname==='/bookings'){
+          if(!await auth.read(id)){clear();return redirect('/login');}
+          return await auth.withBookings(id,url.searchParams.get('business'),async(client,business)=>{
+            const data=new URLSearchParams(body),bookingId=url.searchParams.get('booking'),ctx=await bookingContext(client,business.id),booking=bookingId?await readBooking(client,business.id,bookingId):null;
+            if(bookingId&&!booking)return send(404,'Booking unavailable','text/plain');
+            const customerId=data.get('customer_id'),customer=!booking&&customerId?await readCustomer(client,business.id,customerId):null;
+            const catalogue=!booking?await listCatalogue(client,business.id):[];
+            try{
+              if(booking){await updateBooking(client,business.id,booking,data);return redirect('/bookings?business='+encodeURIComponent(business.id)+'&booking='+encodeURIComponent(booking.id)+'&saved=1');}
+              if(data.get('action')!=='create'||!customer?.is_active)throw new Error('Select an active customer.');
+              const row=parseBookingCreate(data,catalogue),saved=await createBooking(client,business.id,row);
+              return redirect('/bookings?business='+encodeURIComponent(business.id)+'&booking='+encodeURIComponent(saved)+'&saved=1');
+            }catch(error){return send(error.status??422,html('Bookings',renderBookings(business,await listBookings(client,business.id),ctx,{booking,customers:await listCustomers(client,business.id),customer,addresses:customer?await listAddresses(client,business.id,customer.id):[],catalogue,values:Object.fromEntries(data),message:error.message,error:true})));}
+          });
+        }
         if(url.pathname==='/customers'){
           if(!await auth.read(id)){clear();return redirect('/login');}
           return await auth.withCustomers(id,url.searchParams.get('business'),async(client,business)=>{
@@ -82,6 +98,14 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         }
       }
       if(req.method!=='GET')return send(405,'Method not allowed','text/plain');
+      if(url.pathname==='/bookings'){
+        if(!await auth.read(id)){clear();return redirect('/login');}
+        return await auth.withBookings(id,url.searchParams.get('business'),async(client,business)=>{
+          const ctx=await bookingContext(client,business.id),bookingId=url.searchParams.get('booking'),customerId=url.searchParams.get('customer'),booking=bookingId?await readBooking(client,business.id,bookingId):null,customer=customerId?await readCustomer(client,business.id,customerId):null;
+          if(bookingId&&!booking||customerId&&!customer)return send(404,'Booking or customer unavailable','text/plain');
+          return send(200,html('Bookings',renderBookings(business,await listBookings(client,business.id),ctx,{booking,customer,customers:await listCustomers(client,business.id),addresses:customer?await listAddresses(client,business.id,customer.id):[],catalogue:await listCatalogue(client,business.id),message:url.searchParams.get('saved')==='1'?'Booking saved.':''})));
+        });
+      }
         if(url.pathname==='/customers'){
         if(!await auth.read(id)){clear();return redirect('/login');}
         return await auth.withCustomers(id,url.searchParams.get('business'),async(client,business)=>{
@@ -114,6 +138,6 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       const selected=url.searchParams.get('business')??'all';
       if(selected!=='all'&&!identity.businessIds.includes(selected))return send(403,'You do not have access to this business.','text/plain');
       return send(200,renderWorkspace(identity,selected));
-    }catch(error){if(['Settings access denied','Catalogue access denied','Customer access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,form('Staging service unavailable. Please try again later.'));}
+    }catch(error){if(['Settings access denied','Catalogue access denied','Customer access denied','Booking access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,form('Staging service unavailable. Please try again later.'));}
   });return server;
 }

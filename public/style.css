@@ -86,3 +86,6 @@
 .catalogue-status.is-inactive{background:#edf0ef;color:#586b64}
 .catalogue-row>p{font-size:14px;line-height:1.6;margin:8px 0}
 @media(max-width:560px){.catalogue-row-heading{display:block}.catalogue-row-heading h3{padding-top:0;margin-bottom:10px}.catalogue-actions{justify-content:flex-start}.catalogue-meta{gap:8px 10px}}
+.booking-state{display:inline-block;padding:6px 12px;border-radius:20px;background:#e7f3ed;color:#12644f;font-weight:600}
+#address-editor,#customer-editor{scroll-margin-top:20px}
+.settings-form fieldset input[type="number"]{display:block;width:100%;padding:11px;border:1px solid #cbdad3;border-radius:8px;font:inherit;margin:8px 0 16px}
