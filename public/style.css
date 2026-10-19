@@ -208,8 +208,8 @@
 .catalogue-add-link:hover{background:#104d3c}
 .catalogue-toolbar{margin-top:24px}
 .catalogue-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin-top:16px}
-.catalogue-filters label{display:flex;flex-direction:column;gap:6px;font-size:13px;flex:1 1 150px;min-width:0}
-.catalogue-filters label:first-of-type{flex:2 1 240px}
+.catalogue-filters>label{display:flex;flex-direction:column;gap:6px;font-size:13px;flex:1 1 150px;min-width:0}
+.catalogue-filters>label:first-of-type{flex:2 1 240px}
 .catalogue-filters input,.catalogue-filters select{width:100%;max-width:100%;min-height:44px;padding:10px 12px;border:1px solid #cbdad3;border-radius:8px;font:inherit;background:#fff;color:#17332e}
 .catalogue-filters>a{padding:12px 0;min-height:44px}
 .catalogue-result-count{font-size:13px;margin:14px 0 0}
@@ -234,7 +234,7 @@
 .catalogue-more>div>a{display:flex;justify-content:flex-start;white-space:normal;border:0;min-height:44px}
 .catalogue-more>summary:focus-visible{outline:3px solid #bb7b22;outline-offset:2px}
 @media(max-width:1000px){.catalogue-columns{display:none}.catalogue-compact{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}.catalogue-name{grid-column:1}.catalogue-compact>.catalogue-price{grid-column:2;grid-row:1;text-align:right}.catalogue-compact>.catalogue-scope{grid-column:1/-1}.catalogue-compact>.catalogue-actions{grid-column:2}.catalogue-list .catalogue-compact{gap:10px 16px;padding:16px 0}.catalogue-compact>.catalogue-status{grid-column:1}.catalogue-more>div{right:0}}
-@media(max-width:600px){.catalogue-list{padding:0 14px}.catalogue-filters label,.catalogue-filters label:first-of-type{flex-basis:100%}.catalogue-filters button{flex:1}.catalogue-top>.catalogue-add-link{width:100%}.catalogue-name h3{font-size:15px}.catalogue-compact .catalogue-price{font-size:15px}.catalogue-compact>.catalogue-actions{flex-wrap:wrap}.catalogue-compact small{font-size:12px}}
+@media(max-width:600px){.catalogue-list{padding:0 14px}.catalogue-filters>label,.catalogue-filters>label:first-of-type{flex-basis:100%}.catalogue-filters button{flex:1}.catalogue-top>.catalogue-add-link{width:100%}.catalogue-name h3{font-size:15px}.catalogue-compact .catalogue-price{font-size:15px}.catalogue-compact>.catalogue-actions{flex-wrap:wrap}.catalogue-compact small{font-size:12px}}
 .catalogue-filter-field{display:flex;flex-direction:column;gap:6px;flex:1 1 150px;min-width:0}
 .catalogue-filter-field>label{flex:0 0 auto}
 .catalogue-filter-field .dropdown-trigger{font-size:15px;font-weight:400}
