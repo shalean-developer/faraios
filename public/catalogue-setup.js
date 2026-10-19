@@ -1,5 +1,7 @@
 // Progressive enhancement only: the complete form still submits without JavaScript.
 export function enhanceCatalogueSetup(form){
+ const profile=form.elements.namedItem('cleaning_profile'),configure=form.querySelector('[data-configure-profile]');
+ if(profile&&configure){configure.hidden=true;profile.addEventListener('change',()=>form.requestSubmit(configure));}
  const sync=()=>{
   const kind=form.elements.namedItem('kind')?.value;
   form.querySelectorAll('[data-setup-service-only]').forEach(group=>{group.hidden=kind==='extra';const team=group.querySelector('input[name="team_size"]');if(team)team.required=kind==='service';const profile=group.querySelector('select[name="cleaning_profile"]');if(kind==='extra'&&profile?.value){profile.value='';profile.dispatchEvent(new Event('change',{bubbles:true}));}});
