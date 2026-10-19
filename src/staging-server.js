@@ -70,7 +70,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
               catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,null,error.message,true)));}
               return redirect('/catalogue?business='+encodeURIComponent(businessId)+'&deleted=1');
             }
-            let item;try{item=parseCatalogueItem(data);}catch(error){return send(422,html('Catalogue',renderCatalogue(business,items,true,{...Object.fromEntries(data),id:itemId},error.message,true)));}
+            let item;try{item=parseCatalogueItem(data,items.find(i=>i.id===itemId));}catch(error){return send(422,html('Catalogue',renderCatalogue(business,items,true,{...Object.fromEntries(data),id:itemId},error.message,true)));}
             if(itemId&&items.find(i=>i.id===itemId).kind!==item.kind)return send(422,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},'Item type cannot be changed. Create another item instead.',true)));
             try{await saveCatalogueItem(client,businessId,item,{id:itemId,version:Number(data.get('version'))});}
             catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},error.message,true)));}
