@@ -53,3 +53,6 @@
 .dropdown-options [aria-disabled="true"]{opacity:.5;cursor:default}
 .switch .dropdown{flex:1;min-width:0;max-width:320px}
 .settings-form select[hidden]{display:none}
+
+.dropdown-arrow{display:block;width:9px;height:9px;flex:0 0 9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);margin:0 3px 0 8px;pointer-events:none}
+.dropdown-trigger[aria-expanded="true"] .dropdown-arrow{transform:translateY(2px) rotate(225deg)}
