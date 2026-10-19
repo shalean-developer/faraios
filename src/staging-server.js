@@ -37,7 +37,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
           const accounts=await staffAccounts(client,business.id),profiles=await listStaffRecords(client,business.id,'profile'),teams=await listStaffRecords(client,business.id,'team');
           const editing=itemId?(kind==='team'?teams:profiles).find(r=>r.id===itemId):null;
           if(itemId&&!editing)return send(404,'Staff record unavailable','text/plain');
-          if(req.method==='GET')return send(200,html('Staff and teams',renderStaffTeams(business,accounts,profiles,teams,canManage,{kind,editing,message:url.searchParams.get('saved')==='1'?'Staff record saved.':''})));
+          if(req.method==='GET')return send(200,html('Staff and teams',renderStaffTeams(business,accounts,profiles,teams,canManage,{kind,editing,creating:url.searchParams.get('create')===kind,message:url.searchParams.get('saved')==='1'?'Staff record saved.':''})));
           if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
           if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
           let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>16384)return send(413,'Form too large','text/plain');}
@@ -48,7 +48,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
             if(kind==='profile'&&(!accounts.some(a=>a.user_id===row.user_id)||editing&&editing.user_id!==row.user_id))throw new Error('Select an authorised staff account.');
             if(kind==='team'&&row.members.some(id=>!accounts.some(a=>a.user_id===id))&&(row.is_active||!editing||JSON.stringify(row.members)!==JSON.stringify(editing.members)))throw new Error('Select active staff in this business.');
             const saved=await saveStaffRecord(client,business.id,kind,row,{id:itemId,version:Number(data.get('version'))});
-            return redirect('/staff?business='+encodeURIComponent(business.id)+'&view='+kind+'&item='+encodeURIComponent(saved)+'&saved=1');
+            return redirect('/staff?business='+encodeURIComponent(business.id)+'&view='+kind+(data.get('action')==='deactivate'?'':'&item='+encodeURIComponent(saved))+'&saved=1');
           }catch(error){return send(error.status??422,html('Staff and teams',renderStaffTeams(business,accounts,profiles,teams,canManage,{kind,editing,values:row??{...Object.fromEntries(data),members:data.getAll('members'),is_active:data.get('status')==='active'},message:error.message,error:true})));}
         });
       }
@@ -196,4 +196,5 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
     }catch(error){if(['Staff access denied','Settings access denied','Catalogue access denied','Customer access denied','Booking access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,form('Staging service unavailable. Please try again later.'));}
   });return server;
 }
+
 
