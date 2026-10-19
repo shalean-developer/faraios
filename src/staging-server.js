@@ -2,6 +2,7 @@ import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {createAuthSessions} from './auth-session.js';
 import {parseBusinessSettings,readBusinessSettings,saveBusinessSettings,renderBusinessSettings} from './business-settings.js';
+import {parseCatalogueItem,listCatalogue,saveCatalogueItem,renderCatalogue} from './catalogue.js';
 import {renderWorkspace} from './workspace.js';
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const html=(title,body)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS staging</title><link rel="stylesheet" href="/style.css"></head><body><div class="notice">FARAiOS STAGING · Real test-account sign-in · No production data</div><main class="login"><div class="brand">FaraiOS</div>${body}</main></body></html>`;
@@ -23,7 +24,20 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       if(req.method==='POST'){
         if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
         if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
-        let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>(url.pathname==='/settings'?32768:4096))return send(413,'Form too large','text/plain');}
+        let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>(['/settings','/catalogue'].includes(url.pathname)?32768:4096))return send(413,'Form too large','text/plain');}
+        if(url.pathname==='/catalogue'){
+          if(!await auth.read(id)){clear();return redirect('/login');}
+          const businessId=url.searchParams.get('business'),itemId=url.searchParams.get('item');
+          return await auth.withCatalogue(id,businessId,true,async(client,business)=>{
+            const data=new URLSearchParams(body),items=await listCatalogue(client,businessId);
+            if(itemId&&!items.some(i=>i.id===itemId))return send(404,html('Item unavailable','<h1>Item unavailable</h1><a href="/dashboard">Back to workspace</a>'));
+            let item;try{item=parseCatalogueItem(data);}catch(error){return send(422,html('Catalogue',renderCatalogue(business,items,true,{...Object.fromEntries(data),id:itemId},error.message,true)));}
+            if(itemId&&items.find(i=>i.id===itemId).kind!==item.kind)return send(422,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},'Item type cannot be changed. Create another item instead.',true)));
+            try{await saveCatalogueItem(client,businessId,item,{id:itemId,version:Number(data.get('version'))});}
+            catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},error.message,true)));}
+            return redirect('/catalogue?business='+encodeURIComponent(businessId)+'&saved=1');
+          });
+        }
         if(url.pathname==='/settings'){
           const businessId=url.searchParams.get('business');
           if(!await auth.read(id)){clear();return redirect('/login');}
@@ -45,6 +59,14 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         }
       }
       if(req.method!=='GET')return send(405,'Method not allowed','text/plain');
+      if(url.pathname==='/catalogue'){
+        if(!await auth.read(id)){clear();return redirect('/login');}
+        return await auth.withCatalogue(id,url.searchParams.get('business'),false,async(client,business,canManage)=>{
+          const items=await listCatalogue(client,business.id),itemId=url.searchParams.get('item'),editing=itemId?items.find(i=>i.id===itemId):null;
+          if(itemId&&!editing)return send(404,html('Item unavailable','<h1>Item unavailable</h1><a href="/dashboard">Back to workspace</a>'));
+          return send(200,html('Catalogue',renderCatalogue(business,items,canManage,editing,url.searchParams.get('saved')==='1'?'Catalogue saved.':'')));
+        });
+      }
       if(url.pathname==='/settings'){
         if(!await auth.read(id)){clear();return redirect('/login');}
         return await auth.withOwner(id,url.searchParams.get('business'),async(client,business)=>send(200,html('Business settings',renderBusinessSettings(business,await readBusinessSettings(client,business.id),url.searchParams.get('saved')==='1'?'Settings saved.':''))));
@@ -54,6 +76,6 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       const selected=url.searchParams.get('business')??'all';
       if(selected!=='all'&&!identity.businessIds.includes(selected))return send(403,'You do not have access to this business.','text/plain');
       return send(200,renderWorkspace(identity,selected));
-    }catch(error){if(error.message==='Settings access denied')return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to manage these business settings.</p><a href="/dashboard">Back to workspace</a>'));return send(503,form('Staging service unavailable. Please try again later.'));}
+    }catch(error){if(['Settings access denied','Catalogue access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,form('Staging service unavailable. Please try again later.'));}
   });return server;
 }
