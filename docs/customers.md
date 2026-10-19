@@ -8,7 +8,7 @@ Customers and addresses carry immutable business IDs. Addresses reference their 
 
 Every update matches business, record ID and expected version; address writes also match customer ID. Changed/unavailable records return 409. Source mutation and audit recording happen atomically through an internal, non-exposed audit-only trigger. Source RLS remains authoritative. Customer and address transfers are prohibited.
 
-The list shows up to 500 customers; each detail shows up to 100 addresses, with limit notices. No customer booking/payment history exists yet; it will be linked under T14 and finance work. No messages are sent and no consent is inferred from saving a contact. Existing recovery tooling covers identity only, so full recovery remains open under T11.
+The list shows up to 500 customers; each detail shows up to 100 addresses, with limit notices. Direct address lookup/edit is independently scoped and remains available beyond the list cap. Customer forms permit up to 64 KiB of encoded body so valid non-ASCII notes fit. No customer booking/payment history exists yet; it will be linked under T14 and finance work. No messages are sent and no consent is inferred from saving a contact. Existing recovery tooling covers identity only, so full recovery remains open under T11.
 
 Validation includes input bounds and escaping; HTTP owner/manager create/edit/address flows, stale writes, CSRF, foreign businesses, missing records, suspension, staff/anonymous denial; isolated PostgreSQL tenant/role restrictions, private-note isolation, multiple addresses, composite FK enforcement, immutable identity, version checks and audited old/new values.
 
