@@ -51,5 +51,10 @@ test('office assessment parsing requires explicit charge, duration and reason an
  const f=formFor('moving'),service=parseCleaningConfig(f,'service');service.cleaning_config.equipment={policy:'assessed'};f.set('scope_equipment_arrangement','Business supplies equipment');assert.throws(()=>parseCleaningScope(f,service),/office assessment/);
  f.set('assessment_cents','0');f.set('assessment_minutes','120');f.set('assessment_reason','Equipment assessed and included for this job');assert.equal(parseCleaningScope(f,service).assessment.additional_cents,0);
  f.set('assessment_reason','');assert.throws(()=>parseCleaningScope(f,service),/assessment/);
- const air=formFor('airbnb'),airService=parseCleaningConfig(air,'service');air.set('scope_linen','No linen change');air.set('scope_linen_change','Yes');assert.throws(()=>parseCleaningScope(air,airService),/Fresh linen/);
+ const air=formFor('airbnb');air.set('linen_change_enabled','on');air.set('rule_linen_change_0_cents','0');air.set('rule_linen_change_0_minutes','0');air.set('rule_linen_change_1_cents','5000');air.set('rule_linen_change_1_minutes','30');const airService=parseCleaningConfig(air,'service');air.set('scope_linen','No linen change');air.set('scope_linen_change','Yes');assert.throws(()=>parseCleaningScope(air,airService),/Fresh linen/);
+});
+
+test('optional linen changes stay scoped to the configured business service',()=>{
+ const oldForm=formFor('airbnb'),oldService=parseCleaningConfig(oldForm,'service');assert.equal(oldService.cleaning_config.linen_change_enabled,false);assert.doesNotMatch(cleaningScopeForm(oldService),/name="scope_linen_change"/);assert.equal(parseCleaningScope(oldForm,oldService).linen_change,undefined);
+ const form=formFor('airbnb');form.set('linen_change_enabled','on');for(const i of [0,1]){form.set('rule_linen_change_'+i+'_cents',String(i*5000));form.set('rule_linen_change_'+i+'_minutes',String(i*30));}const configured=parseCleaningConfig(form,'service');assert.match(cleaningScopeForm(configured),/name="scope_linen_change"/);assert.throws(()=>parseCleaningScope(form,configured),/change linen/);form.set('scope_linen_change','Yes');assert.equal(parseCleaningScope(form,configured).linen_change,'Yes');assert.doesNotMatch(cleaningScopeForm(oldService),/name="scope_linen_change"/);
 });
