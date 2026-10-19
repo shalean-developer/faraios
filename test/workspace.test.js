@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {renderWorkspace} from '../src/workspace.js';
 const identity={userId:'u',businesses:[{id:'a',name:'Alpha & Co'},{id:'b',name:'Beta <script>'},{id:'c',name:'Forbidden'}],memberships:[{userId:'u',businessId:'a',role:'owner',status:'active'},{userId:'u',businessId:'b',role:'staff',status:'active'},{userId:'other',businessId:'c',role:'owner',status:'active'}]};
 test('combined workspace includes only authorised businesses and escapes names',()=>{
- const html=renderWorkspace(identity);assert.match(html,/Alpha &amp; Co/);assert.match(html,/Beta &lt;script&gt;/);assert.doesNotMatch(html,/Forbidden|<script>/);assert.match(html,/All authorised businesses/);
+ const html=renderWorkspace(identity);assert.match(html,/Alpha &amp; Co/);assert.match(html,/Beta &lt;script&gt;/);assert.doesNotMatch(html,/Forbidden|<script>/);assert.match(html,/All businesses/);
 });
 test('selected staff workspace excludes owner and business finance controls',()=>{
  const html=renderWorkspace(identity,'b');assert.match(html,/My assignments/);assert.match(html,/My earnings/);assert.doesNotMatch(html,/Business finances|>Finance<|Business settings|Team access|payout approval/);assert.match(html,/>Alpha &amp; Co<\/option>/);assert.doesNotMatch(html,/<strong>Alpha/);
