@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validDate,validTime,validPickerValue,shiftDate,shiftMonth,monthDays,enhancePicker} from '../public/date-time-picker.js';
+import {validDate,validTime,validPickerValue,shiftDate,shiftMonth,monthDays,timeChoices,enhancePicker} from '../public/date-time-picker.js';
 import {dateTimeField} from '../src/date-time-field.js';
 import {renderBusinessSettings} from '../src/business-settings.js';
 import {renderBookings} from '../src/bookings.js';
@@ -64,10 +64,11 @@ test('shared pickers commit canonical values, cancel, navigate with keyboard, re
   input.value='';input.form.dispatchEvent(new Event('reset'));await new Promise(r=>setTimeout(r,5));assert.equal(input.validationMessage,'');assert.equal(input.attrs['aria-invalid'],undefined);assert.equal(error.hidden,true);assert.equal(error.textContent,'');
   assert.equal(enhancePicker(input),undefined);
   const combined=new Element('input');combined.id='start';combined.value='2026-10-19T07:03';combined.dataset={picker:'datetime',timeZone:'UTC'};const datetime=enhancePicker(combined);datetime.open();
-  const selects=walk(datetime.root).filter(n=>n.tagName==='select');assert.equal(selects.length,2);assert.equal(selects[0].value,'07');assert.equal(selects[1].value,'03');
-  selects[0].value='15';selects[0].dispatchEvent(new Event('change'));selects[1].value='47';selects[1].dispatchEvent(new Event('change'));click(walk(datetime.root).find(n=>n.textContent==='Done'));assert.equal(combined.value,'2026-10-19T15:47');
-  datetime.open();selects[0].value='18';selects[0].dispatchEvent(new Event('change'));click(walk(datetime.root).find(n=>n.textContent==='Cancel'));assert.equal(combined.value,'2026-10-19T15:47');
-  const time=new Element('input');time.id='opening';time.value='08:17';time.dataset={picker:'time'};const clock=enhancePicker(time);clock.open();const timeSelects=walk(clock.root).filter(n=>n.tagName==='select');timeSelects[0].value='10';timeSelects[0].dispatchEvent(new Event('change'));click(walk(clock.root).find(n=>n.textContent==='Done'));assert.equal(time.value,'10:17');
+  const selects=walk(datetime.root).filter(n=>n.tagName==='select');assert.equal(selects.length,1);assert.equal(selects[0].value,'07:03');assert.ok(selects[0].options.some(o=>o.value==='07:03'));
+  selects[0].value='15:45';selects[0].dispatchEvent(new Event('change'));click(walk(datetime.root).find(n=>n.textContent==='Done'));assert.equal(combined.value,'2026-10-19T15:45');
+  datetime.open();selects[0].value='18:00';selects[0].dispatchEvent(new Event('change'));click(walk(datetime.root).find(n=>n.textContent==='Cancel'));assert.equal(combined.value,'2026-10-19T15:45');
+  const time=new Element('input');time.id='opening';time.value='08:17';time.dataset={picker:'time'};const clock=enhancePicker(time);clock.open();const timeSelects=walk(clock.root).filter(n=>n.tagName==='select');timeSelects[0].value='10:15';timeSelects[0].dispatchEvent(new Event('change'));click(walk(clock.root).find(n=>n.textContent==='Done'));assert.equal(time.value,'10:15');
+  combined.value='2026-10-19T09:37';datetime.open();assert.equal(selects[0].value,'09:37');assert.ok(selects[0].options.some(o=>o.value==='09:37'));assert.ok(walk(datetime.root).some(n=>n.role==='option'&&n.textContent==='09:37'&&n.attrs['aria-selected']==='true'));click(walk(datetime.root).find(n=>n.textContent==='Done'));assert.equal(combined.value,'2026-10-19T09:37');
   datetime.open();clock.open();assert.equal(datetime.root.children[1].hidden,true);assert.equal(clock.root.children[1].hidden,false);
  }finally{globalThis.document=previous.document;globalThis.window=previous.window;}
 });
@@ -82,11 +83,16 @@ test('pointer focus transitions keep dates and custom time options clickable bef
   const combined=new Element('input');combined.id='time-pointer';combined.value='2026-10-12T09:00';combined.dataset={picker:'datetime',timeZone:'UTC'};
   const time=enhancePicker(combined);time.open();const timePopup=time.root.children[1],hourDropdown=walk(timePopup).find(n=>n.className==='dropdown'),hourTrigger=hourDropdown.children[0],hourOptions=hourDropdown.children[1];
   doc.activeElement=doc;blurTo(time.root,hourTrigger);await Promise.resolve();assert.equal(timePopup.hidden,false);hourTrigger.focus();click(hourTrigger);
-  const selection=new Event('click');Object.defineProperty(selection,'target',{value:hourOptions.children[15]});hourOptions.dispatchEvent(selection);
+  const selection=new Event('click');Object.defineProperty(selection,'target',{value:hourOptions.children.find(o=>o.textContent==='15:00')});hourOptions.dispatchEvent(selection);
   const done=walk(timePopup).find(n=>n.textContent==='Done');doc.activeElement=doc;blurTo(time.root,done);await Promise.resolve();assert.equal(timePopup.hidden,false);done.focus();click(done);assert.equal(combined.value,'2026-10-12T15:00');
   // A null destination during grid replacement must wait for the next focus.
   picker.open();doc.activeElement=doc;blurTo(picker.root,null);await Promise.resolve();assert.equal(popup.hidden,false);popup.querySelector('[data-day="2026-10-20"]').focus();await new Promise(r=>setTimeout(r,5));assert.equal(popup.hidden,false);
   // Genuine keyboard/pointer departure and null-target blur still dismiss.
   blurTo(picker.root,new Element());assert.equal(popup.hidden,true);picker.open();doc.activeElement=doc;blurTo(picker.root,null);await new Promise(r=>setTimeout(r,5));assert.equal(popup.hidden,true);
  }finally{globalThis.document=previous.document;globalThis.window=previous.window;}
+});
+
+test('single time choices span the day and preserve off-grid exact minutes without rounding',()=>{
+ const choices=timeChoices();assert.equal(choices.length,96);assert.equal(choices[0],'00:00');assert.equal(choices.at(-1),'23:45');
+ assert.equal(timeChoices('09:30').length,96);assert.equal(timeChoices('09:37').length,97);assert.ok(timeChoices('09:37').includes('09:37'));assert.ok(timeChoices('23:59').includes('23:59'));assert.equal(timeChoices('24:00').length,96);
 });
