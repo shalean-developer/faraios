@@ -3,7 +3,7 @@ import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {createAuthSessions} from './auth-session.js';
 import {parseBusinessSettings,readBusinessSettings,saveBusinessSettings,renderBusinessSettings} from './business-settings.js';
-import {parseCatalogueItem,listCatalogue,saveCatalogueItem,deleteCatalogueItem,renderCatalogueDelete,renderCatalogue} from './catalogue.js';
+import {parseCatalogueItem,listCatalogue,saveCatalogueItem,deleteCatalogueItem,renderCatalogueDelete,renderCatalogueDeactivate,renderCatalogue} from './catalogue.js';
 import {parseCustomerForm,listCustomers,readCustomer,listAddresses,readAddress,saveCustomerRecord,renderCustomers} from './customers.js';
 import {bookingContext,listBookings,readBooking,parseBookingCreate,createBooking,updateBooking,renderBookings} from './bookings.js';
 import {renderWorkspace} from './workspace.js';
@@ -66,6 +66,21 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
           return await auth.withCatalogue(id,businessId,true,async(client,business)=>{
             const data=new URLSearchParams(body),items=await listCatalogue(client,businessId);
             if(itemId&&!items.some(i=>i.id===itemId))return send(404,html('Item unavailable','<h1>Item unavailable</h1><a href="/dashboard">Back to workspace</a>'));
+            if(data.get('action')==='deactivate'){
+              const existing=items.find(i=>i.id===itemId);
+              if(!existing)return send(404,'Item unavailable','text/plain');
+              try{await saveCatalogueItem(client,businessId,{is_active:false},{id:itemId,version:Number(data.get('version'))});}
+              catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,null,error.message,true,view)));}
+              return redirect('/catalogue?business='+encodeURIComponent(businessId)+(view==='extra'?'&view=extra':'')+'&saved=1');
+            }
+            if(data.get('action')==='configure'){
+              const previous=items.find(i=>i.id===itemId),values=Object.fromEntries(data),profile=values.cleaning_profile??'';
+              if(!['','regular','deep','moving','airbnb','office','carpet'].includes(profile)||!['service','extra'].includes(values.kind))return send(422,'Invalid profile or type','text/plain');
+              const same=profile===(values.configuration_profile??'');
+              const retained=same?{...values,allowed_extra:data.getAll('allowed_extra')}:Object.fromEntries(Object.entries(values).filter(([key])=>['kind','name','description','price','pricing_model','unit_label','team_size','status','version','cleaning_profile'].includes(key)));
+              if(profile)retained.pricing_model='fixed';
+              return send(200,html('Catalogue',renderCatalogue(business,items,true,{...previous,...retained,id:itemId,creating:!itemId,configure_profile:true,cleaning_config:same?previous?.cleaning_config:null,form_values:retained},'',false,view)));
+            }
             if(data.get('action')==='delete'){
               if(!itemId)return send(400,'Item required','text/plain');
               try{await deleteCatalogueItem(client,businessId,itemId,Number(data.get('version')));}
@@ -121,14 +136,19 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       if(url.pathname==='/catalogue'){
         if(!await auth.read(id)){clear();return redirect('/login');}
         return await auth.withCatalogue(id,url.searchParams.get('business'),false,async(client,business,canManage)=>{
-          const items=await listCatalogue(client,business.id),itemId=url.searchParams.get('item'),editing=itemId?items.find(i=>i.id===itemId):null;
+          const items=await listCatalogue(client,business.id),itemId=url.searchParams.get('item'),create=url.searchParams.get('create'),editing=itemId?items.find(i=>i.id===itemId):canManage&&['service','extra'].includes(create)?{kind:create,creating:true}:null;
           if(itemId&&!editing)return send(404,html('Item unavailable','<h1>Item unavailable</h1><a href="/dashboard">Back to workspace</a>'));
+          if(url.searchParams.get('deactivate')==='1'){
+            if(!canManage)throw new Error('Catalogue access denied');
+            if(!itemId||!editing)return send(400,'Item required','text/plain');
+            return send(200,html('Deactivate catalogue item',renderCatalogueDeactivate(business,editing,url.searchParams.get('view'))));
+          }
           if(url.searchParams.get('delete')==='1'){
             if(!canManage)throw new Error('Catalogue access denied');
             if(!editing)return send(400,'Item required','text/plain');
             return send(200,html('Delete catalogue item',renderCatalogueDelete(business,editing,url.searchParams.get('view'))));
           }
-          return send(200,html('Catalogue',renderCatalogue(business,items,canManage,editing,url.searchParams.get('deleted')==='1'?'Item deleted.':url.searchParams.get('saved')==='1'?'Catalogue saved.':'',false,url.searchParams.get('view'))));
+          return send(200,html('Catalogue',renderCatalogue(business,items,canManage,editing,url.searchParams.get('deleted')==='1'?'Item deleted.':url.searchParams.get('saved')==='1'?'Catalogue saved.':'',false,url.searchParams.get('view'),{q:url.searchParams.get('q'),status:url.searchParams.get('status'),service:url.searchParams.get('service')})));
         });
       }
       if(url.pathname==='/settings'){
