@@ -1,3 +1,4 @@
+import {listRecurring,readRecurring,recurringVisits,createRecurring,changeRecurring,generateRecurring,renderRecurring} from './recurring.js';
 import {calendarOptions,readCalendar,checkAvailability,renderCalendar} from './calendar.js';
 import {staffAccounts,listStaffRecords,parseStaffRecord,saveStaffRecord,resolveAssignedTeam,renderStaffTeams} from './staff-teams.js';
 import {renderWorkspaceHeader} from './workspace-header.js';
@@ -32,6 +33,29 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       if(req.method==='GET'&&url.pathname==='/catalogue-setup.js')return send(200,await readFile(new URL('../public/catalogue-setup.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/style.css')return send(200,await readFile(new URL('../public/style.css',import.meta.url),'utf8'),'text/css');
       if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/'))return send(200,form(''));
+      if(url.pathname==='/recurring'&&['GET','POST'].includes(req.method)){
+        if(!await auth.read(id)){clear();return redirect('/login');}
+        return await auth.withBookings(id,url.searchParams.get('business'),async(client,business)=>{
+          headerBusiness=business;
+          const scheduleId=url.searchParams.get('schedule'),sourceId=url.searchParams.get('source');
+          const schedule=scheduleId?await readRecurring(client,business.id,scheduleId):null,source=sourceId?await readBooking(client,business.id,sourceId):null;
+          if(scheduleId&&!schedule||sourceId&&!source||scheduleId&&sourceId)return send(404,'Recurring schedule or source unavailable','text/plain');
+          const show=async(options={})=>html('Recurring bookings',renderRecurring(business,await listRecurring(client,business.id),{schedule,source,visits:schedule?await recurringVisits(client,business.id,schedule.id):[],...options}));
+          if(req.method==='GET')return send(200,await show({message:url.searchParams.get('saved')==='1'?'Schedule saved. Created visits are unchanged.':url.searchParams.has('created')?'Created '+url.searchParams.get('created').replace(/[^0-9]/g,'').slice(0,3)+' new draft visits.':''}));
+          if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
+          if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
+          let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>8192)return send(413,'Form too large','text/plain');}
+          const data=new URLSearchParams(body);
+          try{
+            const action=data.get('action');let saved=scheduleId,result='saved=1';
+            if(action==='create'&&source&&!schedule)saved=await createRecurring(client,business.id,source.id,data);
+            else if(action==='change'&&schedule)await changeRecurring(client,business.id,schedule.id,data);
+            else if(action==='generate'&&schedule)result='created='+await generateRecurring(client,business.id,schedule.id,data);
+            else throw new Error('Choose a schedule action.');
+            return redirect('/recurring?business='+encodeURIComponent(business.id)+'&schedule='+encodeURIComponent(saved)+'&'+result);
+          }catch(error){return send(error.status??422,await show({values:{...Object.fromEntries(data),weekdays:data.getAll('weekdays')},message:error.message,error:true}));}
+        });
+      }
       if(url.pathname==='/staff'&&['GET','POST'].includes(req.method)){
         if(!await auth.read(id)){clear();return redirect('/login');}
         return await auth.withStaff(id,url.searchParams.get('business'),req.method==='POST',async(client,business,canManage)=>{
