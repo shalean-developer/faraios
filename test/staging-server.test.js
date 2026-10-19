@@ -112,7 +112,7 @@ test('catalogue HTTP owner create/edit rejects stale versions and foreign scope'
 for(const role of ['manager','staff'])test(`catalogue HTTP ${role} follows read/write restrictions`,async()=>run(async(base,state)=>{
  const Cookie=await signIn(base),url=base+'/catalogue?business='+bid;
  const response=await fetch(url,{headers:{Cookie}});assert.equal(response.status,role==='manager'?200:403);
- if(role==='manager'){const html=await response.text();assert.match(html,/Read-only catalogue/);assert.deepEqual([...html.matchAll(/<form[^>]*action="([^"]+)"/g)].map(m=>m[1]),['/logout']);assert.match(html,/<a href="\/dashboard">Home<\/a>/);assert.doesNotMatch(html,/catalogue-editor/);}
+ if(role==='manager'){const html=await response.text();assert.match(html,/Read-only catalogue/);assert.deepEqual([...html.matchAll(/<form[^>]*method="post"[^>]*action="([^"]+)"/g)].map(m=>m[1]),['/logout']);assert.match(html,/<a href="\/dashboard">Home<\/a>/);assert.doesNotMatch(html,/catalogue-editor/);}
  assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:catalogueForm})).status,403);
  assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'action=delete&version=1'})).status,403);
  assert.equal(state.catalogueWrites,0);
@@ -193,3 +193,24 @@ test('catalogue HTTP profile changes reset the old configuration before renderin
  const invalid=configure.replace('version=1','version=3').replace('cleaning_profile=office','cleaning_profile=regular')+'&rule_bedrooms_unit_rand=12.345&pet_label_5=Cats%20%26%20dogs&pet_5_rand=25.50&pet_5_minutes=15';
  const failed=await post(edit,invalid);assert.equal(failed.status,422);const body=await failed.text();assert.match(body,/value="12.345"/);assert.match(body,/value="Cats &amp; dogs"/);assert.equal(state.catalogue[0].version,3);
 },{role:'owner'}));
+
+test('catalogue focused creation, profile preview, single save, filters and deactivate keep owner guards',async()=>run(async(base,state)=>{
+ const Cookie=await signIn(base),url=base+'/catalogue?business='+bid;
+ const get=path=>fetch(path,{headers:{Cookie}}),post=(path,body)=>fetch(path,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body,redirect:'manual'});
+ let html=await(await get(url)).text();assert.doesNotMatch(html,/id="catalogue-editor"/);assert.match(html,/create=service/);
+ html=await(await get(url+'&view=extra&create=extra')).text();assert.match(html,/<h1>Add extra/);assert.match(html,/name="kind" value="extra"/);assert.doesNotMatch(html,/Cleaners required|Booking questions|catalogue-list/);assert.match(html,/>Cancel</);
+ let response=await post(url,catalogueForm+'&action=configure&cleaning_profile=office');assert.equal(response.status,200);html=await response.text();assert.equal(state.catalogueWrites,0);assert.match(html,/name="base_minutes"/);assert.match(html,/name="configuration_profile" value="office"/);assert.match(html,/value="Synthetic"/);assert.doesNotMatch(html,/save, then reopen/);
+ const complete=catalogueForm+'&configuration_profile=office&cleaning_profile=office&base_minutes=60&service_fee_rand=0&equipment_policy=included&rule_bathrooms_unit_rand=0&rule_bathrooms_unit_minutes=0'+[0,1,2,3].map(i=>'&rule_office_size_'+i+'_rand=0&rule_office_size_'+i+'_minutes=0').join('');
+ assert.equal((await post(url,complete)).status,303);assert.equal(state.catalogueWrites,1);assert.equal(state.catalogue[0].cleaning_config.base_minutes,60);
+ const id=state.catalogue[0].id,edit=url+'&item='+id;
+ assert.equal((await post(edit,'action=deactivate&version=1')).status,303);assert.equal(state.catalogue[0].is_active,false);assert.equal((await post(edit,'action=deactivate&version=1')).status,409);
+ html=await(await get(url+'&q=not-found')).text();assert.match(html,/No matching items/);assert.doesNotMatch(html,/<h3>Synthetic/);
+ html=await(await get(url+'&status=active')).text();assert.doesNotMatch(html,/<h3>Synthetic/);
+ html=await(await get(url+'&status=inactive')).text();assert.match(html,/<h3>Synthetic/);
+ assert.equal((await post(url+'&item=30000000-0000-4000-8000-999999999999','action=deactivate&version=1')).status,404);
+},{role:'owner'}));
+for(const role of ['manager','staff'])test(`catalogue ${role} cannot preview or deactivate`,async()=>run(async(base,state)=>{
+ const Cookie=await signIn(base),url=base+'/catalogue?business='+bid;
+ for(const action of ['configure','deactivate'])assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:catalogueForm+'&action='+action,redirect:'manual'})).status,403);
+ assert.equal(state.catalogueWrites,0);
+},{role}));
