@@ -57,7 +57,7 @@ export function renderCatalogue(business,items,canManage,editing=null,message=''
  const input=(name,title,type='text',value=s[name]??'',required=true)=>`<label class="setup-field"><span>${title}</span><input id="${name}" name="${name}" type="${type}" value="${esc(value)}"${required?' required':''}${name==='team_size'?' min="1" max="100" step="1"':''} maxlength="${name==='description'?2000:name==='price'?20:120}"></label>`;
  const select=(name,title,choices,value)=>`<div class="setup-field"><label for="${name}">${title}</label><select data-dropdown id="${name}" name="${name}" required>${choices.map(([v,t])=>`<option value="${esc(v)}"${v===value?' selected':''}>${esc(t)}</option>`).join('')}</select></div>`;
  const title=editingForm?`${s.id?'Edit':'Add'} ${label}`:'Services & extras';
- const back=editingForm?`<a class="catalogue-back" href="${base}">← Back to ${selected==='extra'?'extras':'services'}</a>`:`<a href="/dashboard?business=${encodeURIComponent(business.id)}">← Back to ${esc(business.name)}</a>`;
+ const back=editingForm?`<a class="catalogue-back" href="${base}">← Back to ${selected==='extra'?'extras':'services'}</a>`:'';
  const intro=`${back}<section class="catalogue-top${editingForm?' catalogue-editor-top':''}"><div class="catalogue-intro"><h1>${title}</h1><p>${esc(business.name)}${editingForm?'':` · ${canManage?'Owner configuration':'Read-only catalogue'}`}</p></div>${canManage&&!editingForm?`<a class="catalogue-add-link" href="${base}&amp;create=${selected}">+ Add ${selected==='extra'?'Extra':'Service'}</a>`:''}</section>${message?`<p role="${error?'alert':'status'}">${esc(message)}</p>`:''}`;
  if(editingForm){
   const price=s.price??(s.price_cents==null?'':(s.price_cents/100).toFixed(2));
