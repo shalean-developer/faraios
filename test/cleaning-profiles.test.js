@@ -5,7 +5,7 @@ import {parseBookingCreate,renderBookings,createBooking} from '../src/bookings.j
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 const formFor=profile=>{
  const form=new URLSearchParams({cleaning_profile:profile,base_minutes:'60',service_fee_cents:'0',equipment_policy:'included'});
- for(const key of profileFields[profile]){const d=definitions[key];for(const [i] of (d.count?['unit']:d.options).entries()){const prefix='rule_'+key+'_'+(d.count?'unit':i);form.set(prefix+'_cents','0');form.set(prefix+'_minutes','0');}form.set('scope_'+key,d.count?(['bathrooms','carpet_rooms'].includes(key)?'1':'0'):d.options[0]);}
+ for(const key of profileFields[profile]){const d=definitions[key].custom?{...definitions[key],options:['No animals','Birds present']}:definitions[key];if(d.custom){for(const [i,label] of d.options.entries()){form.set('pet_label_'+i,label);form.set('pet_'+i+'_cents','0');form.set('pet_'+i+'_minutes','0');}}for(const [i] of (d.count?['unit']:d.options).entries()){if(d.custom)continue;const prefix='rule_'+key+'_'+(d.count?'unit':i);form.set(prefix+'_cents','0');form.set(prefix+'_minutes','0');}form.set('scope_'+key,d.count?(['bathrooms','carpet_rooms'].includes(key)?'1':'0'):d.options[0]);}
  return form;
 };
 test('all six profiles require explicit configuration and render only their own scope fields',()=>{
@@ -38,4 +38,11 @@ test('equipment requires recorded distance evidence; duplicate scoped requests c
  const old={...row,duration_minutes:120,cleaning_scope:Object.fromEntries(Object.entries(scope).reverse())};
  const q={eq(){return this;},maybeSingle:async()=>({data:{id:id(4),request_payload:old}})};const client={from:()=>({insert:()=>({select:async()=>({error:{code:'23505'}})}),select:()=>q})};
  assert.equal(await createBooking(client,id(5),row),id(4));await assert.rejects(createBooking(client,id(5),{...row,cleaning_scope:{...scope,bedrooms:3}}),e=>e.status===409);
+});
+
+test('profile changes clear old configuration and pet choices remain service-specific',()=>{
+ const f=formFor('regular'),regular=parseCleaningConfig(f,'service');f.set('cleaning_profile','office');assert.equal(parseCleaningConfig(f,'service',regular).cleaning_config,null);
+ f.set('cleaning_profile','deep');assert.equal(parseCleaningConfig(f,'service',regular).cleaning_config,null);
+ const pets=formFor('regular');pets.set('scope_pets','Dogs');assert.throws(()=>parseCleaningScope(pets,regular),/Select pets/);pets.set('scope_pets','Birds present');assert.equal(parseCleaningScope(pets,regular).pets,'Birds present');
+ pets.set('pet_label_1','No animals');assert.throws(()=>parseCleaningConfig(pets,'service'),/distinct pet choices/);
 });
