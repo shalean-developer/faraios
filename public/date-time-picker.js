@@ -24,13 +24,14 @@ export function enhancePicker(input){
  const popup=element('div','picker-popup');popup.id=input.id+'-picker';popup.hidden=true;popup.setAttribute('role','dialog');popup.setAttribute('aria-label',kind==='time'?'Choose time':kind==='datetime'?'Choose date and time':'Choose date');
  const fieldLabel=input.labels?.[0]?.textContent;if(fieldLabel){trigger.setAttribute('aria-label','Choose '+fieldLabel);popup.setAttribute('aria-label','Choose '+fieldLabel);}
  trigger.setAttribute('aria-haspopup','dialog');trigger.setAttribute('aria-controls',popup.id);trigger.setAttribute('aria-expanded','false');
- input.after(root);root.append(control,popup);control.append(input,trigger);
+ const error=element('span','picker-error');error.id=input.id+'-error';error.hidden=true;error.setAttribute('role','alert');input.setAttribute('aria-errormessage',error.id);
+ input.after(root);root.append(control,popup,error);control.append(input,trigger);
  let selected='',focused='',month='',hour='00',minute='00';const timeDropdowns=[];
  const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:input.dataset.timeZone||'UTC',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  const title=element('p','picker-month');title.id=input.id+'-month';title.setAttribute('aria-live','polite');
  const grid=element('div','picker-grid');grid.setAttribute('role','grid');grid.setAttribute('aria-labelledby',title.id);
  const close=(restore=false)=>{timeDropdowns.forEach(dropdown=>dropdown?.close());popup.hidden=true;trigger.setAttribute('aria-expanded','false');if(restore)trigger.focus();};
- const validate=()=>{const bad=!!input.value&&!validPickerValue(input.value,kind);input.setCustomValidity(bad?'Enter a valid '+(kind==='datetime'?'date and time':kind)+'.':'');if(!bad)input.removeAttribute('aria-invalid');};
+ const validate=()=>{const bad=!!input.value&&!validPickerValue(input.value,kind);input.setCustomValidity(bad?'Enter a valid '+(kind==='datetime'?'date and time':kind)+'.':'');if(!bad){input.removeAttribute('aria-invalid');error.hidden=true;error.textContent='';}};
  const commit=()=>{input.value=kind==='date'?selected:kind==='time'?hour+':'+minute:selected+'T'+hour+':'+minute;validate();input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));close(true);};
  const renderDays=()=>{
   title.textContent=new Intl.DateTimeFormat('en-ZA',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(month+'-01T12:00:00Z'));
@@ -89,8 +90,8 @@ export function enhancePicker(input){
  document.addEventListener('faraios:picker-open',event=>{if(event.detail!==root)close();});window.addEventListener('resize',()=>close());
  document.addEventListener('scroll',event=>{if(!popup.contains(event.target))close();},true);
  input.addEventListener('input',validate);input.addEventListener('change',validate);
- input.addEventListener('invalid',event=>{event.preventDefault();input.setAttribute('aria-invalid','true');input.focus();});
- input.form?.addEventListener('reset',()=>setTimeout(()=>{close();input.setCustomValidity('');input.removeAttribute('aria-invalid');},0));
+ input.addEventListener('invalid',event=>{event.preventDefault();input.setAttribute('aria-invalid','true');error.textContent='Enter '+(kind==='datetime'?'a valid date and time (YYYY-MM-DDTHH:mm).':kind==='date'?'a valid date (YYYY-MM-DD).':'a valid 24-hour time (HH:mm).');error.hidden=false;input.focus();});
+ input.form?.addEventListener('reset',()=>setTimeout(()=>{close();input.setCustomValidity('');input.removeAttribute('aria-invalid');error.hidden=true;error.textContent='';},0));
  input.dataset.pickerEnhanced='true';validate();return {root,open,close};
 }
 if(typeof document!=='undefined')document.querySelectorAll('input[data-picker]').forEach(enhancePicker);
