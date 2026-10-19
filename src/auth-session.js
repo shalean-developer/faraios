@@ -31,6 +31,12 @@ export function createAuthSessions({createClient,now=()=>Date.now()}) {
         return {...identity,businesses,businessIds:identity.businessIds.filter(id=>ids.has(id)),memberships:identity.memberships.filter(m=>ids.has(m.businessId))};
       }catch{sessions.delete(id);return null;}
     },
+    async withOwner(id,businessId,action){
+      const identity=await this.read(id);
+      if(!identity?.businessIds.includes(businessId)||!identity.memberships.some(m=>m.businessId===businessId&&m.role==='owner'))throw new Error('Settings access denied');
+      const session=sessions.get(id);if(!session)throw new Error('Settings access denied');
+      return action(session.client,identity.businesses.find(b=>b.id===businessId));
+    },
     async logout(id){
       const session=sessions.get(id);sessions.delete(id);
       if(session){const result=await session.client.auth.signOut({scope:'local'});if(result?.error)throw new Error('Remote sign-out failed; local session cleared');}
