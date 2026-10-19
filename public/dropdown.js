@@ -37,6 +37,8 @@ export function enhanceDropdown(select){
    if(index>=0){event.preventDefault();if(list.hidden)open();highlight(index);}
   }
  });
+ // Keep focus on the combobox until the option click commits its value.
+ list.addEventListener('mousedown',event=>event.preventDefault());
  list.addEventListener('click',event=>{const row=event.target.closest('[role="option"]');if(row&&list.contains(row))choose(Number(row.dataset.index));});
  document.addEventListener('pointerdown',event=>{if(!root.contains(event.target))close();});
  root.addEventListener('focusout',event=>{if(!root.contains(event.relatedTarget))close();});
