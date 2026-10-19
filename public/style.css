@@ -325,7 +325,7 @@
 .list-filters .dropdown-trigger{font-size:14px;min-height:44px}
 .list-count{font-size:12px;margin:16px 0 8px;color:#647b70}
 .record-list{padding:0 20px;margin-top:0}
-.record-row,.record-columns{display:grid;gap:14px;align-items:center;grid-template-columns:minmax(140px,1.4fr) minmax(105px,1fr) minmax(75px,.7fr) 100px minmax(90px,.7fr) 64px}
+.record-row,.record-columns{display:grid;gap:14px;align-items:center;grid-template-columns:minmax(140px,1.4fr) minmax(105px,1fr) minmax(75px,.7fr) 100px minmax(90px,.7fr) 76px}
 .record-columns{padding:14px 0;font-size:11px;font-weight:600;color:#647b70}
 .record-row{border-top:1px solid #e4eae6;padding:16px 0;min-height:80px}
 .record-row>*{min-width:0;overflow-wrap:anywhere}
@@ -335,14 +335,14 @@
 .record-row small,.visit-row small{display:block;font-size:12px;color:#647b70;line-height:1.5;margin-top:4px}
 .record-team,.record-contact{font-size:13px;line-height:1.5}
 .record-amount{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
-.row-action{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 10px;border:1px solid #cbdad3;border-radius:7px;background:#fff;font-size:13px;font-weight:600;line-height:1.4}
+.row-action{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 10px;border:1px solid #cbdad3;border-radius:7px;background:#fff;font-size:13px;font-weight:600;line-height:1.4;white-space:nowrap;overflow-wrap:normal}
 .row-action:hover{background:#edf5f0;border-color:#16654f}
 .mobile-label{display:none}
 .empty-state{padding:32px 16px;text-align:center}
 .empty-state h2{font-size:18px;margin-bottom:8px}
 .empty-state p{font-size:14px;margin:0 auto;max-width:55ch}
-.customer-list .record-row,.customer-list .record-columns{grid-template-columns:minmax(150px,1.3fr) minmax(150px,1.4fr) minmax(110px,1fr) 80px 64px}
-.recurring-list .record-row,.recurring-list .record-columns{grid-template-columns:minmax(150px,1.5fr) minmax(130px,1.2fr) 90px minmax(90px,1fr) 64px}
+.customer-list .record-row,.customer-list .record-columns{grid-template-columns:minmax(150px,1.3fr) minmax(150px,1.4fr) minmax(110px,1fr) 80px 76px}
+.recurring-list .record-row,.recurring-list .record-columns{grid-template-columns:minmax(150px,1.5fr) minmax(130px,1.2fr) 90px minmax(90px,1fr) 76px}
 .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 20px;align-items:start}
 .form-field{display:flex;flex-direction:column;gap:7px;min-width:0;font-size:13px}
 .form-field input,.form-field textarea,.form-field select{width:100%;max-width:100%;padding:11px 12px;border:1px solid #cbdad3;border-radius:8px;background:#fff;font:inherit;color:#17332e}
@@ -378,7 +378,7 @@
 .weekday-options>legend{font-size:13px;font-weight:600;padding:0 6px}
 .settings-form .weekday-options>label{display:flex;align-items:center;gap:8px;margin:0;padding:8px;min-height:44px;font-size:13px}
 .weekday-options input{width:18px;height:18px;accent-color:#16654f}
-.visit-row{display:grid;grid-template-columns:minmax(100px,1fr) 100px minmax(80px,1fr) 110px;align-items:center;gap:12px;padding:14px 0;border-top:1px solid #e4eae6;font-size:14px}
+.visit-row{display:grid;grid-template-columns:minmax(100px,1fr) 100px minmax(80px,1fr) 120px;align-items:center;gap:12px;padding:14px 0;border-top:1px solid #e4eae6;font-size:14px}
 .module-content .catalogue-top{margin-top:4px}
 .module-content .catalogue-intro{flex:1 1 300px}
 .module-content .catalogue-setup{max-width:940px}

@@ -1,0 +1,322 @@
+{
+  "implementation": "908ba7e665e2eefd0ebf138c9f063bba37dff9b4",
+  "date": "2026-10-19",
+  "scope": "DOM measurements of observed owner-session UI states; not an exhaustive device or accessibility test",
+  "checks": [
+    {
+      "label": "Shalean services mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Services & extras",
+      "width": 390
+    },
+    {
+      "label": "Shalean extras mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Services & extras",
+      "width": 390
+    },
+    {
+      "label": "Shalean extra editor mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Edit extra",
+      "width": 390
+    },
+    {
+      "label": "Shalean service editor mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Edit service",
+      "width": 390
+    },
+    {
+      "label": "Shalean service extras expanded mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Edit service",
+      "width": 390
+    },
+    {
+      "label": "Shalean add service mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Add service",
+      "width": 390
+    },
+    {
+      "label": "Shalean new-service profile preview mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Add service",
+      "width": 390
+    },
+    {
+      "label": "Shalean customers mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Customers",
+      "width": 390
+    },
+    {
+      "label": "Shalean customer details mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Customer details",
+      "width": 390
+    },
+    {
+      "label": "Shalean address editor mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Customer details",
+      "width": 390
+    },
+    {
+      "label": "Shalean address editor desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Customer details",
+      "width": 1280
+    },
+    {
+      "label": "Shalean recurring desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Recurring bookings",
+      "width": 1280
+    },
+    {
+      "label": "Shalean recurring detail desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Recurring bookings",
+      "width": 1280
+    },
+    {
+      "label": "Shalean recurring detail mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Recurring bookings",
+      "width": 390
+    },
+    {
+      "label": "Shalean staff desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Staff & teams",
+      "width": 1280
+    },
+    {
+      "label": "Shalean teams desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Staff & teams",
+      "width": 1280
+    },
+    {
+      "label": "Shalean team editor desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Edit team",
+      "width": 1280
+    },
+    {
+      "label": "Shalean team editor mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Edit team",
+      "width": 390
+    },
+    {
+      "label": "Shalean calendar desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Availability & calendar",
+      "width": 1280
+    },
+    {
+      "label": "Shalean calendar mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Availability & calendar",
+      "width": 390
+    },
+    {
+      "label": "Combined dashboard desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Your workspace",
+      "width": 1280
+    },
+    {
+      "label": "Bokkie dashboard desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Bokkie",
+      "width": 1280
+    },
+    {
+      "label": "Bokkie Bookings desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Bookings",
+      "width": 1280
+    },
+    {
+      "label": "Bokkie Bookings mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Bookings",
+      "width": 390
+    },
+    {
+      "label": "Bokkie Recurring bookings desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Recurring bookings",
+      "width": 1280
+    },
+    {
+      "label": "Bokkie Recurring bookings mobile",
+      "overflow": [],
+      "scroll": 390,
+      "title": "Recurring bookings",
+      "width": 390
+    },
+    {
+      "label": "Bokkie Availability & calendar desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Availability & calendar",
+      "width": 1280
+    },
+    {
+      "label": "Bokkie Availability & calendar mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Availability & calendar",
+      "width": 390
+    },
+    {
+      "label": "Bokkie Customers desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Customers",
+      "width": 1280
+    },
+    {
+      "label": "Bokkie Customers mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Customers",
+      "width": 390
+    },
+    {
+      "label": "Bokkie Services & extras desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Services & extras",
+      "width": 1280
+    },
+    {
+      "label": "Bokkie Services & extras mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Services & extras",
+      "width": 390
+    },
+    {
+      "label": "Bokkie Staff & teams desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Staff & teams",
+      "width": 1280
+    },
+    {
+      "label": "Bokkie Staff & teams mobile",
+      "overflow": [],
+      "scroll": 390,
+      "title": "Staff & teams",
+      "width": 390
+    },
+    {
+      "label": "Bokkie settings desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Business settings",
+      "width": 1280
+    },
+    {
+      "label": "Bokkie settings mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Business settings",
+      "width": 390
+    },
+    {
+      "label": "Bokkie extras mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Services & extras",
+      "width": 390
+    },
+    {
+      "label": "Bokkie extras desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Services & extras",
+      "width": 1280
+    },
+    {
+      "label": "Bokkie add extra desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Add extra",
+      "width": 1280
+    },
+    {
+      "label": "Bokkie add extra mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Add extra",
+      "width": 390
+    },
+    {
+      "label": "Bokkie add customer mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Add customer",
+      "width": 390
+    },
+    {
+      "label": "Bokkie add customer desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Add customer",
+      "width": 1280
+    },
+    {
+      "label": "Bokkie completed filter desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Bookings",
+      "width": 1280
+    },
+    {
+      "label": "Bokkie booking detail desktop",
+      "overflow": [],
+      "scroll": 1265,
+      "title": "Booking details",
+      "width": 1280
+    },
+    {
+      "label": "Bokkie booking detail mobile",
+      "overflow": [],
+      "scroll": 375,
+      "title": "Booking details",
+      "width": 390
+    }
+  ]
+}
