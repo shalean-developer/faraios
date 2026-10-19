@@ -1,6 +1,6 @@
 -- Office assessments are immutable booking inputs. No business rates are seeded by this migration.
 begin;
-create or replace function audit.cleaning_definitions() returns jsonb language sql immutable security invoker set search_path='' as $defs$select '{"definitions":{"property_type":{"label":"Property type","options":["House","Apartment","Townhouse"]},"bedrooms":{"label":"Bedrooms","count":true},"bathrooms":{"label":"Bathrooms","count":true},"extra_rooms":{"label":"Extra rooms","count":true},"pets":{"label":"Pets","custom":true},"last_cleaned":{"label":"Last professionally cleaned","options":["Never / unsure","6+ months","3–6 months","1–3 months"]},"move_type":{"label":"Moving service","options":["Move-in","Move-out"]},"furnishing":{"label":"Property furnishing","options":["Furnished","Empty"]},"linen_change":{"label":"Change linen?","options":["No","Yes"]},"linen":{"label":"Linen","options":["Fresh linen available","No linen change"]},"access_method":{"label":"Key / access method","options":["Lockbox","Smart lock / code","Meet in person","Managed by agent"]},"office_size":{"label":"Office size","options":["Small: 1–5 desks","Medium: 6–20 desks","Large: 21–50 desks","Enterprise: 50+ desks"]},"carpet_rooms":{"label":"Carpeted rooms","count":true},"rugs":{"label":"Rugs","count":true},"carpet_type":{"label":"Carpet type","options":["Standard pile","Thick / shag pile","Berber / loop","Persian / delicate"]},"stains":{"label":"Visible stains","options":["No","Yes"]}},"profileFields":{"regular":["property_type","bedrooms","bathrooms","extra_rooms","pets"],"deep":["property_type","bedrooms","bathrooms","extra_rooms","last_cleaned","pets"],"moving":["property_type","bedrooms","bathrooms","extra_rooms","move_type","furnishing","pets"],"airbnb":["property_type","bedrooms","bathrooms","extra_rooms","linen","linen_change","access_method"],"office":["office_size","bathrooms"],"carpet":["property_type","carpet_rooms","rugs","carpet_type","stains"]}}'::jsonb$defs$;
+create or replace function audit.cleaning_definitions() returns jsonb language sql immutable security invoker set search_path='' as $defs$select '{"definitions":{"property_type":{"label":"Property type","options":["House","Apartment","Townhouse"]},"bedrooms":{"label":"Bedrooms","count":true},"bathrooms":{"label":"Bathrooms","count":true},"extra_rooms":{"label":"Extra rooms","count":true},"pets":{"label":"Pets","custom":true},"last_cleaned":{"label":"Last professionally cleaned","options":["Never / unsure","6+ months","3–6 months","1–3 months"]},"move_type":{"label":"Moving service","options":["Move-in","Move-out"]},"furnishing":{"label":"Property furnishing","options":["Furnished","Empty"]},"linen_change":{"label":"Change linen?","options":["No","Yes"]},"linen":{"label":"Linen","options":["Fresh linen available","No linen change"]},"access_method":{"label":"Key / access method","options":["Lockbox","Smart lock / code","Meet in person","Managed by agent"]},"office_size":{"label":"Office size","options":["Small: 1–5 desks","Medium: 6–20 desks","Large: 21–50 desks","Enterprise: 50+ desks"]},"carpet_rooms":{"label":"Carpeted rooms","count":true},"rugs":{"label":"Rugs","count":true},"carpet_type":{"label":"Carpet type","options":["Standard pile","Thick / shag pile","Berber / loop","Persian / delicate"]},"stains":{"label":"Visible stains","options":["No","Yes"]}},"profileFields":{"regular":["property_type","bedrooms","bathrooms","extra_rooms","pets"],"deep":["property_type","bedrooms","bathrooms","extra_rooms","last_cleaned","pets"],"moving":["property_type","bedrooms","bathrooms","extra_rooms","move_type","furnishing","pets"],"airbnb":["property_type","bedrooms","bathrooms","extra_rooms","linen","access_method"],"office":["office_size","bathrooms"],"carpet":["property_type","carpet_rooms","rugs","carpet_type","stains"]}}'::jsonb$defs$;
 create or replace function audit.validate_cleaning_config() returns trigger language plpgsql security invoker set search_path='' as $config$
 declare defs jsonb:=audit.cleaning_definitions();k text;opt text;r jsonb;e jsonb;x text;v text;
 begin
@@ -8,8 +8,9 @@ begin
  if new.cleaning_profile is null or jsonb_typeof(new.cleaning_config)<>'object' then raise exception 'Choose a cleaning profile';end if;
  if jsonb_typeof(new.cleaning_config->'base_minutes') is distinct from 'number' or coalesce(new.cleaning_config->>'base_minutes','')!~'^[0-9]{1,4}$' or (new.cleaning_config->>'base_minutes')::int>1440 then raise exception 'Configure base duration';end if;
  if jsonb_typeof(new.cleaning_config->'service_fee_cents') is distinct from 'number' or coalesce(new.cleaning_config->>'service_fee_cents','')!~'^[0-9]{1,10}$' or (new.cleaning_config->>'service_fee_cents')::numeric>2147483647 then raise exception 'Configure explicit service fee';end if;
+ if new.cleaning_config ? 'linen_change_enabled' and (jsonb_typeof(new.cleaning_config->'linen_change_enabled') is distinct from 'boolean' or (new.cleaning_profile<>'airbnb' and new.cleaning_config->>'linen_change_enabled'='true')) then raise exception 'Invalid optional linen change setting';end if;
  if new.cleaning_config ? 'manual_duration' and jsonb_typeof(new.cleaning_config->'manual_duration') is distinct from 'boolean' then raise exception 'Invalid manual duration setting';end if;
- for k in select jsonb_array_elements_text(defs->'profileFields'->new.cleaning_profile) loop
+ for k in select jsonb_array_elements_text((defs->'profileFields'->new.cleaning_profile)||case when new.cleaning_profile='airbnb' and new.cleaning_config->>'linen_change_enabled'='true' then '["linen_change"]'::jsonb else '[]'::jsonb end) loop
   if k='pets' and (jsonb_typeof(new.cleaning_config->'rules'->k) is distinct from 'object' or (select count(*) from jsonb_object_keys(new.cleaning_config->'rules'->k)) not between 1 and 20) then raise exception 'Configure service-specific pet choices';end if;
   for opt in select jsonb_array_elements_text(case when k='pets' then (select jsonb_agg(key) from jsonb_object_keys(new.cleaning_config->'rules'->k) key) when defs->'definitions'->k->>'count'='true' then '["unit"]'::jsonb else defs->'definitions'->k->'options' end) loop
    if length(trim(opt)) not between 1 and 60 or opt<>trim(opt) then raise exception 'Pet/option labels must contain 1–60 characters';end if;
@@ -36,7 +37,7 @@ begin
  return new;
 end;$config$;
 create or replace function audit.prepare_cleaning_booking() returns trigger language plpgsql security invoker set search_path='' as $scope$
-declare service public.business_catalogue;defs jsonb:=audit.cleaning_definitions();cfg jsonb;s jsonb;k text;v text;opt text;r jsonb;qty int;minutes bigint;amount numeric:=0;fee numeric:=0;lines jsonb:='[]';line jsonb;allowed text[];item public.business_catalogue;requires_assessment boolean:=false;assessment jsonb;ak text;
+declare service public.business_catalogue;defs jsonb:=audit.cleaning_definitions();cfg jsonb;s jsonb;k text;v text;opt text;r jsonb;qty int;minutes bigint;amount numeric:=0;fee numeric:=0;lines jsonb:='[]';line jsonb;allowed text[];item public.business_catalogue;requires_assessment boolean:=false;assessment jsonb;configured_minutes bigint;
 begin
  if tg_op='UPDATE' then
   if new.cleaning_scope is distinct from old.cleaning_scope or new.cleaning_snapshot is distinct from old.cleaning_snapshot then raise exception 'Cleaning scope and snapshots are immutable';end if;
@@ -54,6 +55,7 @@ begin
  requires_assessment:=coalesce((cfg->>'manual_duration')::boolean,false);
  allowed:=array(select jsonb_array_elements_text(defs->'profileFields'->service.cleaning_profile));
  if service.cleaning_profile='airbnb' then allowed:=allowed||array['access_instructions'];end if;
+ if service.cleaning_profile='airbnb' and cfg->>'linen_change_enabled'='true' then allowed:=allowed||array['linen_change'];end if;
  if cfg->'equipment'->>'policy'='distance' then allowed:=allowed||array['equipment','distance_km','distance_reason'];end if;
  allowed:=allowed||array['assessment'];
  if cfg->'equipment'->>'policy'='assessed' then allowed:=allowed||array['equipment_arrangement'];end if;
@@ -62,7 +64,7 @@ begin
  minutes:=(cfg->>'base_minutes')::int;
  amount:=(cfg->>'service_fee_cents')::numeric;
  lines:=jsonb_build_array(jsonb_build_object('name','Service fee','kind','fee','pricing_model','fixed','unit_label','visit','rate_cents',amount,'quantity',1,'total_cents',amount));
- for k in select jsonb_array_elements_text(defs->'profileFields'->service.cleaning_profile) loop
+ for k in select jsonb_array_elements_text((defs->'profileFields'->service.cleaning_profile)||case when service.cleaning_profile='airbnb' and cfg->>'linen_change_enabled'='true' then '["linen_change"]'::jsonb else '[]'::jsonb end) loop
   v:=s->>k;
   if defs->'definitions'->k->>'count'='true' then
    if jsonb_typeof(s->k) is distinct from 'number' or coalesce(v,'')!~'^[0-9]{1,3}$' or v::int>100 or (k in ('bathrooms','carpet_rooms') and v::int<1) then raise exception 'Enter valid whole room counts (0–100; bathrooms and carpet rooms at least 1)';end if;qty:=v::int;opt:='unit';
@@ -97,6 +99,7 @@ begin
   if coalesce(line->>'quantity','')!~'^[1-9][0-9]{0,5}$' then raise exception 'Use positive whole-number quantities';end if;
   minutes:=minutes+(cfg->'extra_minutes'->>(line->>'catalogue_id'))::int*(line->>'quantity')::int;
  end loop;
+ configured_minutes:=minutes;
  assessment:=s->'assessment';
  if requires_assessment and assessment is null then raise exception 'Office assessment, charge, duration and reason required before saving';end if;
  if assessment is not null then
@@ -109,7 +112,7 @@ begin
  end if;
  if minutes not between 15 and 1440 or amount>2147483647 then raise exception 'Configured quote exceeds supported price or duration bounds';end if;
  new.duration_minutes:=minutes;
- new.cleaning_snapshot:=jsonb_build_object('profile',service.cleaning_profile,'version',service.version,'configuration',cfg,'duration_minutes',minutes,'adjustment_cents',amount,'lines',lines,'equipment_policy',cfg->'equipment'->>'policy','equipment_fee_cents',fee,'assessment_required',requires_assessment,'assessed_by',case when assessment is not null then auth.uid() else null end,'assessed_at',case when assessment is not null then now() else null end);
+ new.cleaning_snapshot:=jsonb_build_object('profile',service.cleaning_profile,'version',service.version,'configuration',cfg,'duration_minutes',minutes,'adjustment_cents',amount,'lines',lines,'equipment_policy',cfg->'equipment'->>'policy','equipment_fee_cents',fee,'configured_duration_minutes',case when coalesce((cfg->>'manual_duration')::boolean,false) then null else configured_minutes end,'assessed_duration_minutes',case when assessment is not null then minutes else null end,'assessment_required',requires_assessment,'assessed_by',case when assessment is not null then auth.uid() else null end,'assessed_at',case when assessment is not null then now() else null end);
  return new;
 end;$scope$;
 commit;
