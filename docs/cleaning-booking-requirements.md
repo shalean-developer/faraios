@@ -67,3 +67,7 @@ Only Regular's equipment toggle was observed. Other service detail screens had n
 ### Remaining verification before a full parity claim
 
 Confirm authoritative business/service pricing and duration configuration, exact custom-count bounds, equipment distance/minimum/rounding policy, service-specific recurrence availability, all pet choices, availability/cleaner-slot logic and checkout validation/payment outcomes. No production booking/payment was submitted in this inspection. The field inventory is recorded; the Cleaning-form implementation and those acceptance checks remain open.
+
+## Implementation follow-up
+
+The six office booking profiles, explicit business pricing/duration configuration, allowed extras, equipment policy and immutable scope/configuration snapshots are implemented in this branch. See `cleaning-profiles.md` for configuration, calculation, limits and acceptance boundaries. The observations above remain source evidence; they are not authoritative tariffs. T14 remains In progress until owner configuration and real staging acceptance.
