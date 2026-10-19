@@ -19,9 +19,18 @@ function customerClient(state,table){
   const row={...payload,id:'40000000-0000-4000-8000-'+String(rows.length+1).padStart(12,'0'),version:1};rows.push(row);return Promise.resolve({data:[{id:row.id}]});
  },insert(row){payload=row;return this;},update(row){payload=row;updating=true;return this;}};return query;
 }
+function bookingClient(state){
+ let filters=[],payload,updating=false;const matches=r=>filters.every(([k,v])=>r[k]===v);
+ const query={eq(k,v){filters.push([k,v]);return this;},order(){return this;},limit:async count=>({data:state.bookings.filter(matches).slice(0,count)}),maybeSingle:async()=>({data:state.bookings.find(matches)??null}),select(){
+  if(!payload)return this;
+  if(updating){const row=state.bookings.find(matches);if(!row)return Promise.resolve({data:[]});Object.assign(row,payload,{version:row.version+1});return Promise.resolve({data:[{id:row.id}]});}
+  if(state.bookings.some(r=>r.business_id===payload.business_id&&r.request_key===payload.request_key))return Promise.resolve({error:{code:'23505'}});
+  const row={...payload,id:'60000000-0000-4000-8000-'+String(state.bookings.length+1).padStart(12,'0'),version:1,status:'draft',time_zone:'UTC',required_team_size:1,assigned_staff:[],customer_snapshot:{name:'Synthetic customer'},address_snapshot:{address_line:'Synthetic street'},price_lines:[{name:'Synthetic',quantity:1,rate_cents:100,total_cents:100,unit_label:'visit'}],total_cents:100,request_payload:{...payload}};state.bookings.push(row);return Promise.resolve({data:[{id:row.id}]});
+ },insert(r){payload=r;return this;},update(r){payload=r;updating=true;return this;}};return query;
+}
 async function run(fn, {role="manager"}={}){
-  const state={role,active:true,verified:true,time:Date.now(),settings:null,settingsWrites:0,catalogue:[],catalogueWrites:0,customers:[],addresses:[]};
-  const factory=()=>({auth:{signInWithPassword:async({password})=>password==='test-password'?{data:{session:{expires_at:Math.floor(state.time/1000)+3600}}}:{error:{message:'bad'}},getUser:async()=>state.verified?({data:{user:{id:uid}}}):({error:{message:'revoked'}}),signOut:async()=>({})},from:table=>['business_customers','customer_addresses'].includes(table)?customerClient(state,table):table==='business_catalogue'?catalogueClient(state):table==='business_settings'?{select(){return this;},eq(){return this;},maybeSingle:async()=>({data:state.settings}),upsert(row){state.settings=row;state.settingsWrites++;return {select:async()=>({data:[{business_id:row.business_id}]})};}}:({select(){return this;},eq(key){if(table==='businesses')return Promise.resolve({data:[{id:bid,name:'Synthetic Co'}]});return key==='status'?Promise.resolve({data:state.active?[{user_id:uid,business_id:bid,role:state.role,status:'active'}]:[]}):this;}})});
+  const state={role,active:true,verified:true,time:Date.now(),settings:null,settingsWrites:0,catalogue:[],catalogueWrites:0,customers:[],addresses:[],bookings:[]};
+  const factory=()=>({rpc:async()=>({data:{time_zone:'UTC',working_days:[1,2,3,4,5],opens_at:'08:00',closes_at:'18:00',staff:[{user_id:uid,label:'Synthetic staff'}]}}),auth:{signInWithPassword:async({password})=>password==='test-password'?{data:{session:{expires_at:Math.floor(state.time/1000)+3600}}}:{error:{message:'bad'}},getUser:async()=>state.verified?({data:{user:{id:uid}}}):({error:{message:'revoked'}}),signOut:async()=>({})},from:table=>table==='one_off_bookings'?bookingClient(state):['business_customers','customer_addresses'].includes(table)?customerClient(state,table):table==='business_catalogue'?catalogueClient(state):table==='business_settings'?{select(){return this;},eq(){return this;},maybeSingle:async()=>({data:state.settings}),upsert(row){state.settings=row;state.settingsWrites++;return {select:async()=>({data:[{business_id:row.business_id}]})};}}:({select(){return this;},eq(key){if(table==='businesses')return Promise.resolve({data:[{id:bid,name:'Synthetic Co'}]});return key==='status'?Promise.resolve({data:state.active?[{user_id:uid,business_id:bid,role:state.role,status:'active'}]:[]}):this;}})});
   const server=createStagingServer({createClient:factory,now:()=>state.time});await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
   try{await fn(base,state);}finally{await new Promise(r=>server.close(r));}
 }
@@ -141,4 +150,31 @@ test('customer HTTP denies staff and anonymous reads/writes',async()=>run(async(
  assert.equal((await fetch(url,{redirect:'manual'})).status,303);
  const Cookie=await signIn(base);assert.equal((await fetch(url,{headers:{Cookie}})).status,403);
  assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'action=customer&name=No&status=active'})).status,403);
+},{role:'staff'}));
+
+for(const role of ['owner','manager'])test(`booking HTTP ${role} lifecycle, duplicate submission, reschedule and cancel`,async()=>run(async(base,state)=>{
+ const customer='70000000-0000-4000-8000-000000000001',address='70000000-0000-4000-8000-000000000002',service='70000000-0000-4000-8000-000000000003';
+ state.customers.push({id:customer,business_id:bid,name:'Synthetic',is_active:true});state.addresses.push({id:address,business_id:bid,customer_id:customer,label:'Home',address_line:'Street',is_active:true});state.catalogue.push({id:service,business_id:bid,kind:'service',name:'Synthetic',price_cents:100,pricing_model:'fixed',unit_label:'visit',is_active:true});
+ const Cookie=await signIn(base),url=base+'/bookings?business='+bid;
+ const post=(target,body)=>fetch(target,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body,redirect:'manual'});
+ const create=new URLSearchParams({action:'create',customer_id:customer,address_id:address,service_id:service,request_key:'70000000-0000-4000-8000-000000000004',service_quantity:'1',local_start:'2026-10-20T09:00',duration_minutes:'120'}).toString();
+ assert.equal((await fetch(url+'&customer='+customer,{headers:{Cookie}})).status,200);
+ assert.equal((await post(url,create)).status,303);assert.equal((await post(url,create)).status,303);assert.equal(state.bookings.length,1);
+ const detail=url+'&booking='+state.bookings[0].id;
+ assert.equal((await post(detail,'action=transition&status=completed&version=1')).status,422);
+ assert.equal((await post(detail,'action=transition&status=confirmed&version=1')).status,303);
+ assert.equal((await post(detail,'action=transition&status=assigned&assigned_staff='+uid+'&version=1')).status,409);
+ assert.equal((await post(detail,'action=transition&status=assigned&assigned_staff='+uid+'&version=2')).status,303);
+ assert.equal((await post(detail,'action=reschedule&local_start=2026-10-21T10%3A00&duration_minutes=120&change_reason=Customer+request&version=3')).status,303);
+ let version=4;for(const status of ['en_route','arrived','in_progress','completed'])assert.equal((await post(detail,'action=transition&status='+status+'&version='+version++)).status,303);
+ assert.match(await (await fetch(detail,{headers:{Cookie}})).text(),/Completed/);
+ const cancel=create.replace('000000000004','000000000005');assert.equal((await post(url,cancel)).status,303);const other=url+'&booking='+state.bookings[1].id;
+ assert.equal((await post(other,'action=transition&status=cancelled&version=1')).status,422);
+ assert.equal((await post(other,'action=transition&status=cancelled&change_reason=Cancelled+by+customer&version=1')).status,303);
+ assert.equal((await fetch(base+'/bookings?business=foreign',{headers:{Cookie}})).status,403);
+ assert.equal((await post(base+'/bookings?business=foreign',create)).status,403);
+ assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:'https://foreign.invalid','Content-Type':'application/x-www-form-urlencoded'},body:create})).status,403);
+},{role}));
+test('booking HTTP denies staff and anonymous access',async()=>run(async(base)=>{
+ const url=base+'/bookings?business='+bid;assert.equal((await fetch(url,{redirect:'manual'})).status,303);const Cookie=await signIn(base);assert.equal((await fetch(url,{headers:{Cookie}})).status,403);assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'action=create'})).status,403);
 },{role:'staff'}));
