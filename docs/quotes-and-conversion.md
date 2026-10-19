@@ -1,6 +1,6 @@
 # T18 — Quotes and conversion
 
-19 October 2026. Owner: Codex. Authority: owner instruction to proceed with T18 in the original Build Plan and Progress Tracker after UI-01 closure. Baseline main `ef5ba8c065682dd735d44512a5ed825cad37ae41`, tree `9d51e260b62cf223b896dd354d16094cfa308e5a`. Status: implementation and staging verification passed; In review pending owner client update, browser acceptance and independent closure. PR59 candidate `c07ee93cdc56aa2f28eae1801e40bc35d66003f2`; see [validation and QA evidence](quotes-validation.md).
+19 October 2026. Owner: Codex. Authority: owner instruction to proceed with T18 in the original Build Plan and Progress Tracker after UI-01 closure. Baseline main `ef5ba8c065682dd735d44512a5ed825cad37ae41`, tree `9d51e260b62cf223b896dd354d16094cfa308e5a`. Status: bounded staging delivery accepted; independent final QA PASS after both-business browser acceptance. Tracker closure follows this documentation gate. PR59 candidate `c07ee93cdc56aa2f28eae1801e40bc35d66003f2`; see [validation and QA evidence](quotes-validation.md).
 
 ## Objective and scope
 
@@ -57,4 +57,6 @@ Local evidence: syntax and whitespace checks pass. Independent full regression r
 
 `scripts/verify-quotes-staging.sql` passed both isolated rehearsal and actual staging execution. It exercises both existing completed fixtures against current prices, owner/manager conversion, staff/anonymous/foreign denial, replay/conflict, source immutability and direct API completion in a transaction that ends in ROLLBACK. All original staging booking, catalogue, customer/address, membership, settings and audit baselines matched afterward. No SQL test quote, handoff or booking persisted. Independent staging/premerge QA PASS confirmed all 17 deployed function-body hashes, controls, baseline digests and cleanup. Detailed advisory differences and review limitations are retained in the linked validation record.
 
-Delivery remains NOT DONE until the evidence matrix, independent technical review, staging and browser conditions pass. Engineering owns implementation; Farai retains production, foundation, financial-policy and any materially expanded scope decisions. No approval is inferred for those separate matters.
+Both-business owner browser acceptance passed: Bokkie R410/330 minutes and Shalean R875/240 minutes retained their saved agreements in unassigned Draft bookings. A real second Accepted form returned the same Shalean booking after conversion. Desktop/mobile, invalid date, picker/keyboard, list filtering and cancelled-booking invoicing-review presentation passed. Both labelled test visits are Cancelled with zero reservations; history remains. All original record digests are unchanged. Independent QA-T18-CLOSURE-20261019 issued PASS for bounded staging delivery; its limits and evidence are preserved in the linked record.
+
+Engineering owns implementation and documentation/tracker closure. T19 actual invoice identities/accounting remain unstarted. Farai retains production, foundation, financial-policy and materially expanded scope decisions. No approval is inferred for those separate matters.
