@@ -1,4 +1,4 @@
-import {listStaffRecords} from './staff-teams.js';
+import {listStaffRecords,staffAccounts} from './staff-teams.js';
 import {parseCleaningScope,cleaningScopeForm} from './cleaning-profiles.js';
 import {isDeepStrictEqual} from 'node:util';
 import {randomUUID} from 'node:crypto';
@@ -22,7 +22,7 @@ export function parseBookingCreate(form,catalogue){
  return {customer_id,address_id,request_key,selection,...timed,...(cleaning_scope?{cleaning_scope}:{} )};
 }
 const fields='id,business_id,request_key,customer_id,address_id,local_start,duration_minutes,time_zone,starts_at,ends_at,status,assigned_staff,customer_snapshot,address_snapshot,price_lines,total_cents,currency,required_team_size,version,change_reason,hours_override_reason,created_at,updated_at,cleaning_scope,cleaning_snapshot';
-export async function bookingContext(client,businessId){const {data,error}=await client.rpc('booking_context',{p_business_id:businessId});if(error||!data?.time_zone||!Array.isArray(data.staff))throw new Error('Configure business working hours before creating bookings.');return {...data,teams:await listStaffRecords(client,businessId,'team')};}
+export async function bookingContext(client,businessId){const {data,error}=await client.rpc('booking_context',{p_business_id:businessId});if(error||!data?.time_zone||!Array.isArray(data.staff))throw new Error('Configure business working hours before creating bookings.');return {...data,staff:await staffAccounts(client,businessId),teams:await listStaffRecords(client,businessId,'team')};}
 export async function listBookings(client,businessId){const {data,error}=await client.from('one_off_bookings').select(fields).eq('business_id',businessId).order('starts_at',{ascending:false}).limit(200);if(error||!Array.isArray(data)||data.some(r=>r.business_id!==businessId))throw new Error('Bookings unavailable');return data;}
 export async function readBooking(client,businessId,id){if(!validCustomerId(id))return null;const {data,error}=await client.from('one_off_bookings').select(fields).eq('business_id',businessId).eq('id',id).maybeSingle();if(error||data&&data.business_id!==businessId)throw new Error('Booking unavailable');return data;}
 function databaseError(error){const result=new Error(['42501'].includes(error?.code)?'Booking access denied':error?.message??'Booking could not be saved');result.status=error?.code==='42501'?403:422;return result;}
