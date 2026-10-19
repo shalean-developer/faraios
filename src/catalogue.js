@@ -1,15 +1,16 @@
 import {parseCleaningConfig,cleaningConfigForm} from './cleaning-profiles.js';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function parseCatalogueItem(form){
+export function parseCatalogueItem(form,previous=null){
  const text=(key,max,required=false)=>{const value=(form.get(key)??'').trim();if((required&&!value)||value.length>max)throw new Error(`Check ${key.replaceAll('_',' ')}.`);return value;};
  const kind=text('kind',10,true),pricing_model=text('pricing_model',10,true);
  if(!['service','extra'].includes(kind)||!['fixed','hourly','per_unit'].includes(pricing_model))throw new Error('Select an item type and pricing model.');
+ if(form.get('cleaning_profile')&&pricing_model!=='fixed')throw new Error('Cleaning profiles require fixed base visit pricing.');
  const raw=text('price',20,true);if(!/^\d+(\.\d{1,2})?$/.test(raw))throw new Error('Enter a Rand amount with at most two decimal places.');
  const [whole,fraction='']=raw.split('.');const amount=BigInt(whole)*100n+BigInt(fraction.padEnd(2,'0'));
  if(amount>2147483647n)throw new Error('Price exceeds the supported amount.');
  const team=text('team_size',3);if(kind==='service'&&(!/^\d+$/.test(team)||Number(team)<1||Number(team)>100))throw new Error('Enter a service team size between 1 and 100.');
  const status=text('status',10,true);if(!['active','inactive'].includes(status))throw new Error('Select an item status.');
- return {...parseCleaningConfig(form,kind),kind,name:text('name',120,true),description:text('description',2000),pricing_model,unit_label:text('unit_label',40,true),price_cents:Number(amount),currency:'ZAR',team_size:kind==='service'?Number(team):null,is_active:status==='active'};
+ return {...parseCleaningConfig(form,kind,previous),kind,name:text('name',120,true),description:text('description',2000),pricing_model,unit_label:text('unit_label',40,true),price_cents:Number(amount),currency:'ZAR',team_size:kind==='service'?Number(team):null,is_active:status==='active'};
 }
 export async function listCatalogue(client,businessId){
  const {data,error}=await client.from('business_catalogue').select('id,business_id,kind,name,description,pricing_model,unit_label,price_cents,currency,team_size,is_active,version,cleaning_profile,cleaning_config').eq('business_id',businessId).order('name').limit(500);
