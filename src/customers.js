@@ -20,6 +20,11 @@ export async function listAddresses(client,businessId,customerId){
  const {data,error}=await client.from('customer_addresses').select('id,business_id,customer_id,label,address_line,suburb,city,postal_code,access_notes,is_active,version').eq('business_id',businessId).eq('customer_id',customerId).order('label').limit(100);
  if(error||!Array.isArray(data)||data.some(r=>r.business_id!==businessId||r.customer_id!==customerId))throw new Error('Addresses unavailable');return data;
 }
+export async function readAddress(client,businessId,customerId,id){
+ if(!validCustomerId(id)||!validCustomerId(customerId))return null;
+ const {data,error}=await client.from('customer_addresses').select('id,business_id,customer_id,label,address_line,suburb,city,postal_code,access_notes,is_active,version').eq('business_id',businessId).eq('customer_id',customerId).eq('id',id).maybeSingle();
+ if(error)throw new Error('Address unavailable');if(data&&(data.business_id!==businessId||data.customer_id!==customerId))throw new Error('Address scope mismatch');return data;
+}
 export async function saveCustomerRecord(client,businessId,row,{id,version,customerId}={}){
  const address=customerId!==undefined;
  if(address&&!validCustomerId(customerId))throw new Error('Invalid customer reference');
