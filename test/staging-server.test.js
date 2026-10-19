@@ -11,7 +11,7 @@ function catalogueClient(state){
  },insert(row){const item={...row,id:'30000000-0000-4000-8000-'+String(state.catalogue.length+1).padStart(12,'0'),version:1};state.catalogue.push(item);state.catalogueWrites++;return {select:async()=>({data:[{id:item.id}]})};},delete(){deleting=true;return this;},update(row){update=row;return this;}};return builder;
 }
 function customerClient(state,table){
- const rows=table==='staff_profiles'?state.profiles:table==='staff_teams'?state.teams:table==='business_customers'?state.customers:state.addresses;let filters=[],payload,updating=false;
+ const rows=table==='recurring_schedules'?state.recurring:table==='staff_profiles'?state.profiles:table==='staff_teams'?state.teams:table==='business_customers'?state.customers:state.addresses;let filters=[],payload,updating=false;
  const matches=row=>filters.every(([key,value])=>row[key]===value);
  const query={eq(key,value){filters.push([key,value]);return this;},order(){return this;},range:async(start,end)=>({data:rows.filter(matches).slice(start,end+1)}),limit:async count=>({data:rows.filter(matches).slice(0,count)}),maybeSingle:async()=>({data:rows.find(matches)??null}),select(){
   if(!payload)return this;
@@ -29,8 +29,8 @@ function bookingClient(state){
  },insert(r){payload=r;return this;},update(r){payload=r;updating=true;return this;}};return query;
 }
 async function run(fn, {role="manager"}={}){
-  const state={role,active:true,verified:true,time:Date.now(),settings:null,settingsWrites:0,catalogue:[],catalogueWrites:0,customers:[],addresses:[],bookings:[],profiles:[],teams:[]};
-  const factory=()=>({rpc:async name=>name==='calendar_window'?({data:{time_zone:'UTC',starts_at:'2026-10-20T00:00:00Z',ends_at:'2026-10-27T00:00:00Z',bookings:state.bookings.map(b=>({...b,name:b.customer_snapshot.name})),busy:[]}}):name==='staff_availability'?({data:{time_zone:'UTC',starts_at:'2026-10-20T09:00:00Z',ends_at:'2026-10-20T11:00:00Z',staff:[{user_id:uid,busy:true}]}}):name==='staff_context'?({data:[{user_id:uid,label:'Synthetic staff'}]}):({data:{time_zone:'UTC',working_days:[1,2,3,4,5],opens_at:'08:00',closes_at:'18:00',staff:[{user_id:uid,label:'Synthetic staff'}]}}),auth:{signInWithPassword:async({password})=>password==='test-password'?{data:{session:{expires_at:Math.floor(state.time/1000)+3600}}}:{error:{message:'bad'}},getUser:async()=>state.verified?({data:{user:{id:uid}}}):({error:{message:'revoked'}}),signOut:async()=>({})},from:table=>table==='one_off_bookings'?bookingClient(state):['business_customers','customer_addresses','staff_profiles','staff_teams'].includes(table)?customerClient(state,table):table==='business_catalogue'?catalogueClient(state):table==='business_settings'?{select(){return this;},eq(){return this;},maybeSingle:async()=>({data:state.settings}),upsert(row){state.settings=row;state.settingsWrites++;return {select:async()=>({data:[{business_id:row.business_id}]})};}}:({select(){return this;},eq(key){if(table==='businesses')return Promise.resolve({data:[{id:bid,name:'Synthetic Co'}]});return key==='status'?Promise.resolve({data:state.active?[{user_id:uid,business_id:bid,role:state.role,status:'active'}]:[]}):this;}})});
+  const state={role,active:true,verified:true,time:Date.now(),settings:null,settingsWrites:0,catalogue:[],catalogueWrites:0,customers:[],addresses:[],bookings:[],profiles:[],teams:[],recurring:[],rpcCalls:[]};
+  const factory=()=>({rpc:async (name,params)=>name.endsWith('_recurring')?(state.rpcCalls.push({name,params}),{data:name==='generate_recurring'?3:'80000000-0000-4000-8000-000000000001'}):name==='calendar_window'?({data:{time_zone:'UTC',starts_at:'2026-10-20T00:00:00Z',ends_at:'2026-10-27T00:00:00Z',bookings:state.bookings.map(b=>({...b,name:b.customer_snapshot.name})),busy:[]}}):name==='staff_availability'?({data:{time_zone:'UTC',starts_at:'2026-10-20T09:00:00Z',ends_at:'2026-10-20T11:00:00Z',staff:[{user_id:uid,busy:true}]}}):name==='staff_context'?({data:[{user_id:uid,label:'Synthetic staff'}]}):({data:{time_zone:'UTC',working_days:[1,2,3,4,5],opens_at:'08:00',closes_at:'18:00',staff:[{user_id:uid,label:'Synthetic staff'}]}}),auth:{signInWithPassword:async({password})=>password==='test-password'?{data:{session:{expires_at:Math.floor(state.time/1000)+3600}}}:{error:{message:'bad'}},getUser:async()=>state.verified?({data:{user:{id:uid}}}):({error:{message:'revoked'}}),signOut:async()=>({})},from:table=>table==='one_off_bookings'?bookingClient(state):['business_customers','customer_addresses','staff_profiles','staff_teams','recurring_schedules'].includes(table)?customerClient(state,table):table==='business_catalogue'?catalogueClient(state):table==='business_settings'?{select(){return this;},eq(){return this;},maybeSingle:async()=>({data:state.settings}),upsert(row){state.settings=row;state.settingsWrites++;return {select:async()=>({data:[{business_id:row.business_id}]})};}}:({select(){return this;},eq(key){if(table==='businesses')return Promise.resolve({data:[{id:bid,name:'Synthetic Co'}]});return key==='status'?Promise.resolve({data:state.active?[{user_id:uid,business_id:bid,role:state.role,status:'active'}]:[]}):this;}})});
   const server=createStagingServer({createClient:factory,now:()=>state.time});await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
   try{await fn(base,state);}finally{await new Promise(r=>server.close(r));}
 }
@@ -280,3 +280,28 @@ test('shared picker modules are served and owner calendar/settings render custom
  const url=base+'/calendar?business='+bid+'&day=2026-10-19';const calendar=await(await fetch(url,{headers:{Cookie}})).text();assert.match(calendar,/data-picker="date"/);assert.match(calendar,/data-picker="datetime"/);
  assert.equal((await fetch(url+'&local_start=2026-10-19T24:00&duration_minutes=120',{headers:{Cookie}})).status,422);
 },{role:'owner'}));
+
+for(const role of ['owner','manager'])test(`recurring HTTP ${role} create, change and generation keep trusted business scope`,async()=>run(async(base,state)=>{
+ const source='60000000-0000-4000-8000-000000000001',schedule='80000000-0000-4000-8000-000000000001';
+ state.bookings.push({id:source,business_id:bid,local_start:'2026-10-20T09:00:00',status:'draft',customer_snapshot:{name:'Synthetic'},address_snapshot:{address_line:'Synthetic'},price_lines:[],total_cents:100,time_zone:'UTC',duration_minutes:120});
+ const Cookie=await signIn(base),url=base+'/recurring?business='+bid;
+ const post=(target,body,origin=base)=>fetch(target,{method:'POST',headers:{Cookie,Origin:origin,'Content-Type':'application/x-www-form-urlencoded'},body,redirect:'manual'});
+ let response=await fetch(url+'&source='+source,{headers:{Cookie}});assert.equal(response.status,200);assert.match(await response.text(),/original booking is the first visit/);
+ const create=new URLSearchParams({action:'create',request_key:'90000000-0000-4000-8000-000000000001',frequency:'weekly',short_month:'last_day',weekdays:'2'});
+ assert.equal((await post(url+'&source='+source,create)).status,303);assert.equal(state.rpcCalls[0].params.p_business_id,bid);assert.equal(state.rpcCalls[0].params.p_source_id,source);
+ assert.equal((await post(url+'&source='+source,create,'https://foreign.invalid')).status,403);assert.equal(state.rpcCalls.length,1);
+ assert.equal((await post(url+'&source='+source,'action=create')).status,422);
+ state.recurring.push({id:schedule,business_id:bid,source_booking_id:source,agreement:state.bookings[0],frequency:'weekly',weekdays:[2],start_date:'2026-10-20',local_time:'09:00:00',short_month:'last_day',end_date:null,status:'active',generated_through:'2026-10-20',version:1});
+ const target=url+'&schedule='+schedule;
+ response=await fetch(target,{headers:{Cookie}});assert.equal(response.status,200);let html=await response.text();assert.match(html,/Created visits keep their existing time and price/);assert.match(html,/Create draft visits/);
+ const change=new URLSearchParams({action:'change',version:'1',frequency:'monthly',short_month:'skip',local_time:'09:37',status:'paused',change_reason:'Owner request'});
+ assert.equal((await post(target,change)).status,303);assert.equal(state.rpcCalls.at(-1).params.p_local_time,'09:37');
+ response=await post(target,'action=generate&version=1&through=2026-11-15');assert.equal(response.status,303);assert.match(response.headers.get('location'),/created=3/);
+ assert.equal((await fetch(url+'&schedule=80000000-0000-4000-8000-999999999999',{headers:{Cookie}})).status,404);
+ assert.equal((await fetch(base+'/recurring?business=foreign',{headers:{Cookie}})).status,403);
+ assert.equal((await post(target,'x'.repeat(8193))).status,413);
+ assert.equal(state.bookings.length,1);state.active=false;assert.equal((await fetch(target,{headers:{Cookie}})).status,403);
+},{role}));
+test('recurring HTTP denies staff and anonymous access',async()=>run(async base=>{
+ const url=base+'/recurring?business='+bid;assert.equal((await fetch(url,{redirect:'manual'})).status,303);const Cookie=await signIn(base);assert.equal((await fetch(url,{headers:{Cookie}})).status,403);assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'action=generate'})).status,403);
+},{role:'staff'}));

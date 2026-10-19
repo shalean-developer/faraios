@@ -1,0 +1,45 @@
+# T17 — Recurring bookings
+
+Status: implementation candidate; not final acceptance. Owner: Codex. Approval authority: Farai. Baseline: main c8685113958c7bc54aac8b7c551734d76ff36d6a and tracker T17 after T16. Owner selected weekly, fortnightly and monthly plus multiple weekdays, and **keep created visits unchanged** in this task's clarification.
+
+## Behaviour and acceptance
+
+- An original non-cancelled business booking supplies the first visit and frozen agreement. Creating a schedule does not update that booking. A source can belong to one schedule only; generated visits cannot become new schedule sources.
+- Weekly or fortnightly schedules support several weekdays. Fortnightly means alternating Monday–Sunday weeks anchored to the source booking week. Include the original booking weekday. Monthly uses its original calendar day; choose the last day of a shorter month or skip that month. The original day is retained for later months, including leap years.
+- Agreement price lines, service/extras selection, scope, equipment/assessment, duration, required team size, timezone and customer/address snapshots come exclusively from the saved booking. Catalogue changes do not reprice visits. A new agreement requires a new schedule; T17 does not add subscriptions, discounts, billing or financial actions.
+- Office users explicitly generate future visits through an inclusive date within 90 days. Each visit starts as an unassigned Draft. The existing booking lifecycle confirms/assigns it and the T16 database constraint checks shared-cleaner overlaps at assignment or rescheduling. Drafts do not reserve staff. Automatic workers and notifications are outside this increment.
+- A schedule row lock, unique `(recurring_schedule_id, recurring_occurrence_date)` and processed-through date make retries and simultaneous generation safe. The source date is already processed. Rescheduling or cancelling an individual generated visit retains its original occurrence identity; regeneration does not recreate it.
+- Cadence, time, inclusive end date and active/paused/cancelled status can change with a reason and current version. Changes apply after `generated_through`, including processed days without visits. Already-created visits are never rewritten or bulk-cancelled. Pause/cancel stops new generation; cancel is terminal. Skipped past dates are not backfilled. The UI states the boundary and links to individual visits.
+- Generation inserts all visits and advances the cursor in one transaction. Invalid working-hours or inactive customer/address errors roll back all inserts, audit rows and cursor changes. Inherited agreement working-hours overrides are retained. Generated visits preserve their agreed timezone.
+
+Tracker acceptance maps to duplicate/retry/concurrent generation tests, source and generated-history digests, immutable snapshot/lifecycle checks, business access denial and real browser create/reload/change/generate/individual-cancel/stop checks for both businesses.
+
+## Security and implementation
+
+`recurring_schedules` has RLS and authenticated SELECT only for current active owners/managers in the owning active business. Public RPC wrappers are SECURITY INVOKER. Private audit-schema implementations use empty search paths, explicit membership checks, scoped row locks and revoked anonymous/PUBLIC execution. No platform or staff access is implied. Writes are audited with actor and old/new records. Error handling does not expose SQL details.
+
+Three nullable booking columns carry immutable schedule/date/revision identity, with a composite business FK. A dedicated frozen-agreement trigger handles recurring creation; existing one-off creation validators retain their original functions and conditions. All booking updates still use existing lifecycle, snapshot, hours and staff validation; reservation and audit triggers are retained. Direct Data API inserts of recurring identities receive the same schedule-lock, date, membership and frozen-snapshot validation.
+
+No credentials, accounts, memberships, external messages, production connections, invoices, payment/earnings/payout records or hosting resources are changed. Both live cleaning sites remain authoritative. Foundation hosting/restricted-link/recovery gates stay open separately.
+
+## Verification and rollout
+
+Local: syntax checks; full Node suite; isolated PGlite/PostgreSQL schema, RLS, audit, all cadence edges, original-history preservation, configured cleaning snapshot copying, stale writes, cancelled/paused generation, individual cancellation, and partial generation rollback. HTTP tests verify owner/manager actions, anonymous/staff/foreign/suspended denial, CSRF, missing IDs and body limits. Existing independent-connection PostgreSQL 17 CI test also holds an uncommitted recurring generation, observes a second connection blocked on the row lock, then verifies its retry returns zero and counts contain no duplicate dates. Local runs without the disposable PostgreSQL database explicitly skip that connection test; CI is required.
+
+Rollout: clean CI and review → capture FaraiOS staging booking digest excluding the three newly added nullable fields → apply `database/recurring-draft.sql` transactionally to xdmfyrsauvqznkloroxg only → verify unchanged records and access/schema/audit checks with rollback fixtures → merge bounded PR → owner pulls main and restarts the local port-3101 staging client → both-business desktop/mobile browser acceptance → record closeout. No production release is included.
+
+Recovery: failed migration rolls back atomically. For an application issue, stop recurrence writes and restore the previous application; retain additive columns, schedule history and constraints. Old one-off application inserts and updates remain supported. Do not drop populated recurrence records or disable duplicate protection as rollback. Full environment recovery remains T11.
+
+Gate: CONDITIONAL PASS for tested implementation preparation. T17 remains In progress until CI/review, staging verification and real browser acceptance are recorded.
+
+## Verified staging evidence — 19 October 2026
+
+PR54 implementation SHA `0900e808cd9d5199d59bcd9b2db50c8d7ff913c3`: syntax/diff checks and 113 local tests passed, with the independent PostgreSQL connection test skipped locally. Both GitHub policy-test runs passed all 114 tests; job 118192300764 explicitly passed the independent-connection cleaner-conflict and recurring-generation test (no skipped test). GitGuardian passed.
+
+Migration `recurring_bookings` applied successfully to FaraiOS staging `xdmfyrsauvqznkloroxg` only. All seven pre-existing bookings retained digest `86e064e552ce7cb1e10664eba5f2bd44`, computed from their original fields excluding the three new nullable recurrence columns. Existing booking functions are retained; their trigger routing is split only for the frozen recurrence insertion path.
+
+`scripts/verify-recurring-staging.sql` passed and rolled back. Both businesses' completed labelled source bookings supplied agreements without modifying those sources. Actual staging owner/manager/staff/anonymous database assertions verified generation, retries, saved price/scope/duration, unassigned Drafts, individual cancellation without recreation, future-only schedule change with unchanged created-history digest, stale-version denial, business-scoped manager reads, staff read/generation denial, foreign generation denial, cancellation stop and audit writes. No account, membership or business configuration was changed. Final readback: seven original bookings with matching digest; zero schedules, generated visits or recurring audit fixtures remain.
+
+Security advisors match the pre-migration baseline: no new warning/error. Existing private-table RLS-without-policy INFO entries and the pre-existing [leaked-password protection warning](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) remain outside this work. Technical review checked frozen snapshot provenance, direct-API insert enforcement, membership scope, lock ordering, immutable occurrence identity, trigger ordering and rollback compatibility; no unresolved implementation finding.
+
+Gate: CONDITIONAL PASS for merging the staging client. Real owner-PC desktop/mobile acceptance remains required after pulling main and restarting `npm run staging` on port 3101. Do not mark T17 Done until both businesses' actual create/reload/generate/retry/change/individual cancellation/stop workflows are verified and labelled fixture work is stopped afterwards. No production promotion is included.
