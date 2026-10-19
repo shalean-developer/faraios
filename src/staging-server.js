@@ -1,0 +1,43 @@
+import {createServer} from 'node:http';
+import {readFile} from 'node:fs/promises';
+import {createAuthSessions} from './auth-session.js';
+const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const html=(title,body)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS staging</title><link rel="stylesheet" href="/style.css"></head><body><div class="notice">FARAiOS STAGING · Real test-account sign-in · No production data</div><main class="login"><div class="brand">FaraiOS</div>${body}</main></body></html>`;
+const form=message=>html('Sign in',`<h1>Welcome back</h1><p>Use your FaraiOS staging test account.</p>${message?`<p role="alert">${esc(message)}</p>`:''}<form method="post" action="/login" class="panel"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" maxlength="254" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><button type="submit">Sign in</button><p class="muted">Accounts are provisioned in staging. Never enter a production password here.</p></form>`);
+
+export function createStagingServer({createClient,now=()=>Date.now()}){
+  if(process.env.NODE_ENV==='production')throw new Error('Local staging server cannot run in production');
+  const auth=createAuthSessions({createClient,now});let failures=[];
+  const server=createServer(async(req,res)=>{
+    const expected=`127.0.0.1:${server.address()?.port}`, origin=`http://${expected}`;
+    const send=(code,body,type='text/html; charset=utf-8')=>{res.writeHead(code,{'Content-Type':type,'Cache-Control':'no-store','Referrer-Policy':'same-origin','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; style-src 'self' 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"});res.end(body);};
+    const redirect=path=>{res.writeHead(303,{Location:path,'Cache-Control':'no-store'});res.end();};
+    const clear=()=>res.setHeader('Set-Cookie','faraios_staging=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
+    try{
+      if(req.headers.host!==expected||!['127.0.0.1','::ffff:127.0.0.1','::1'].includes(req.socket.remoteAddress))return send(403,'Local access only','text/plain');
+      const url=new URL(req.url,origin),id=req.headers.cookie?.match(/(?:^|;\s*)faraios_staging=([a-f0-9-]+)/)?.[1];
+      if(req.method==='GET'&&url.pathname==='/style.css')return send(200,await readFile(new URL('../public/style.css',import.meta.url),'utf8'),'text/css');
+      if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/'))return send(200,form(''));
+      if(req.method==='POST'){
+        if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
+        if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
+        let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>4096)return send(413,'Form too large','text/plain');}
+        if(url.pathname==='/logout'){clear();try{await auth.logout(id);}catch{return send(502,form('Local session cleared. Remote sign-out could not be confirmed.'));}return redirect('/login');}
+        if(url.pathname==='/login'){
+          failures=failures.filter(t=>t>now()-60000);if(failures.length>=5)return send(429,form('Too many attempts. Wait one minute.'));
+          const data=new URLSearchParams(body);
+          try{const session=await auth.login(data.get('email'),data.get('password'));if(id)await auth.logout(id);res.setHeader('Set-Cookie',`faraios_staging=${session.id}; HttpOnly; SameSite=Strict; Path=/; Max-Age=1800`);return redirect('/dashboard');}
+          catch{failures.push(now());return send(401,form('Unable to sign in. Check your staging account and try again.'));}
+        }
+      }
+      if(req.method!=='GET')return send(405,'Method not allowed','text/plain');
+      if(url.pathname!=='/dashboard')return send(404,'Not found','text/plain');
+      const identity=await auth.read(id);if(!identity){clear();return redirect('/login');}
+      const selected=url.searchParams.get('business')??'all';
+      if(selected!=='all'&&!identity.businessIds.includes(selected))return send(403,'You do not have access to this business.','text/plain');
+      const names=identity.businesses;
+      const visible=identity.memberships.filter(m=>selected==='all'||selected===m.businessId);
+      return send(200,html('Workspace',`<h1>Your workspace</h1><p>You are signed in with a verified staging account.</p><form method="post" action="/logout"><button>Sign out</button></form>${visible.length?`<section class="panel"><h2>Your businesses</h2><p>Only active memberships are shown.</p><a href="/dashboard">All authorised businesses</a>${visible.map(m=>`<div class="business-row"><div><strong>${esc(names.find(n=>n.id===m.businessId)?.name??m.businessId)}</strong><p>${esc(m.role)}</p></div><a href="/dashboard?business=${encodeURIComponent(m.businessId)}">Open workspace →</a></div>`).join('')}</section>`:'<section class="panel"><h2>No business access assigned</h2><p>Your sign-in works. An authorised owner must provision your business membership before business records are available.</p></section>'}<p class="muted">Bookings and finance are not connected yet. This local staging server requires sign-in again after 30 minutes or token expiry. Restarting it clears local sessions.</p>`));
+    }catch{return send(503,form('Staging service unavailable. Please try again later.'));}
+  });return server;
+}
