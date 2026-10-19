@@ -1,6 +1,8 @@
 import {validDate,validTime,validPickerValue} from './date-time-values.js';
 export {validDate,validTime,validPickerValue} from './date-time-values.js';
 import {enhanceDropdown} from './dropdown.js';
+export const canonicalPickerValue=(value,kind)=>kind==='datetime'?value.replace(' ','T'):value;
+export const displayPickerValue=(value,kind)=>kind==='datetime'?value.replace('T',' '):value;
 const pad=n=>String(n).padStart(2,'0');
 // Quarter-hour suggestions are presentation only; keep any exact existing value.
 export function timeChoices(value=''){
@@ -21,6 +23,13 @@ const button=(text,label)=>{const node=element('button','',text);node.type='butt
 export function enhancePicker(input){
  const kind=input.dataset.picker;
  if(input.dataset.pickerEnhanced||input.disabled||!['date','time','datetime'].includes(kind))return;
+ if(kind==='datetime'){
+  input.value=displayPickerValue(input.value,kind);
+  input.pattern='[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])[T ]([01][0-9]|2[0-3]):[0-5][0-9]';
+  input.placeholder='YYYY-MM-DD HH:mm (24-hour)';
+  const hint=document.getElementById?.(input.id+'-format');if(hint)hint.textContent=input.placeholder;
+  input.form?.addEventListener('formdata',event=>{if(input.name&&!input.disabled)event.formData.set(input.name,canonicalPickerValue(input.value,kind));});
+ }
  const root=element('div','date-time-picker'),control=element('div','picker-control'),trigger=button('',kind==='time'?'Choose time':kind==='datetime'?'Choose date and time':'Choose date');trigger.className='picker-toggle';
  const icon=element('span',kind==='time'?'picker-clock-icon':'picker-calendar-icon');icon.setAttribute('aria-hidden','true');trigger.append(icon);
  const popup=element('div','picker-popup');popup.id=input.id+'-picker';popup.hidden=true;popup.setAttribute('role','dialog');popup.setAttribute('aria-label',kind==='time'?'Choose time':kind==='datetime'?'Choose date and time':'Choose date');
@@ -33,8 +42,8 @@ export function enhancePicker(input){
  const title=element('p','picker-month');title.id=input.id+'-month';title.setAttribute('aria-live','polite');
  const grid=element('div','picker-grid');grid.setAttribute('role','grid');grid.setAttribute('aria-labelledby',title.id);
  const close=(restore=false)=>{timeDropdown?.close();popup.hidden=true;trigger.setAttribute('aria-expanded','false');if(restore)trigger.focus();};
- const validate=()=>{const bad=!!input.value&&!validPickerValue(input.value,kind);input.setCustomValidity(bad?'Enter a valid '+(kind==='datetime'?'date and time':kind)+'.':'');if(!bad){input.removeAttribute('aria-invalid');error.hidden=true;error.textContent='';}};
- const commit=()=>{input.value=kind==='date'?selected:kind==='time'?timeValue:selected+'T'+timeValue;validate();input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));close(true);};
+ const validate=()=>{const bad=!!input.value&&!validPickerValue(canonicalPickerValue(input.value,kind),kind);input.setCustomValidity(bad?'Enter a valid '+(kind==='datetime'?'date and time':kind)+'.':'');if(!bad){input.removeAttribute('aria-invalid');error.hidden=true;error.textContent='';}};
+ const commit=()=>{input.value=kind==='date'?selected:kind==='time'?timeValue:selected+' '+timeValue;validate();input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));close(true);};
  const renderDays=()=>{
   title.textContent=new Intl.DateTimeFormat('en-ZA',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(month+'-01T12:00:00Z'));
   grid.replaceChildren();const headings=element('div','picker-weekdays');headings.setAttribute('role','row');
@@ -73,7 +82,7 @@ export function enhancePicker(input){
  actions.append(cancel);if(kind!=='date')actions.append(done);popup.append(actions);
  const open=()=>{
   document.dispatchEvent(new CustomEvent('faraios:picker-open',{detail:root}));
-  const valid=validPickerValue(input.value,kind);selected=valid&&kind!=='time'?input.value.slice(0,10):today();focused=selected;month=selected.slice(0,7);
+  const valid=validPickerValue(canonicalPickerValue(input.value,kind),kind);selected=valid&&kind!=='time'?input.value.slice(0,10):today();focused=selected;month=selected.slice(0,7);
   timeValue=valid&&kind!=='date'?input.value.slice(-5):'00:00';
   if(timeSelect){populateTimes(timeValue);timeDropdown.refreshOptions();}
   if(kind!=='time')renderDays();popup.hidden=false;trigger.setAttribute('aria-expanded','true');
@@ -94,9 +103,9 @@ export function enhancePicker(input){
  document.addEventListener('pointerdown',event=>{if(!root.contains(event.target))close();});
  document.addEventListener('faraios:picker-open',event=>{if(event.detail!==root)close();});window.addEventListener('resize',()=>close());
  document.addEventListener('scroll',event=>{if(!popup.contains(event.target))close();},true);
- input.addEventListener('input',validate);input.addEventListener('change',validate);
- input.addEventListener('invalid',event=>{event.preventDefault();input.setAttribute('aria-invalid','true');error.textContent='Enter '+(kind==='datetime'?'a valid date and time (YYYY-MM-DDTHH:mm).':kind==='date'?'a valid date (YYYY-MM-DD).':'a valid 24-hour time (HH:mm).');error.hidden=false;input.focus();});
- input.form?.addEventListener('reset',()=>setTimeout(()=>{close();input.setCustomValidity('');input.removeAttribute('aria-invalid');error.hidden=true;error.textContent='';},0));
+ input.addEventListener('input',validate);input.addEventListener('change',()=>{if(kind==='datetime')input.value=displayPickerValue(input.value,kind);validate();});
+ input.addEventListener('invalid',event=>{event.preventDefault();input.setAttribute('aria-invalid','true');error.textContent='Enter '+(kind==='datetime'?'a valid date and time (YYYY-MM-DD HH:mm).':kind==='date'?'a valid date (YYYY-MM-DD).':'a valid 24-hour time (HH:mm).');error.hidden=false;input.focus();});
+ input.form?.addEventListener('reset',()=>setTimeout(()=>{close();input.value=displayPickerValue(input.value,kind);input.setCustomValidity('');input.removeAttribute('aria-invalid');error.hidden=true;error.textContent='';},0));
  input.dataset.pickerEnhanced='true';validate();return {root,open,close};
 }
 if(typeof document!=='undefined')document.querySelectorAll('input[data-picker]').forEach(enhancePicker);
