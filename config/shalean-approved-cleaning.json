@@ -370,7 +370,8 @@
         },
         "manual_duration": false,
         "extras": [],
-        "extra_minutes": {}
+        "extra_minutes": {},
+        "linen_change_enabled": true
       }
     },
     "office": {
