@@ -6,7 +6,7 @@ Source entry points: https://shalean.co.za/book and the owner's Regular Cleaning
 
 | Service | Observed scope fields |
 | --- | --- |
-| Regular Cleaning | Property type (House/Apartment/Townhouse), bedrooms, bathrooms, extra rooms |
+| Regular Cleaning | Property type (House/Apartment/Townhouse), bedrooms, bathrooms, extra rooms; pets; equipment Yes/No with delivery/collection logistics fee |
 | Deep Cleaning | Property type, bedrooms, bathrooms, extra rooms |
 | Moving Cleaning | Property type, Move-in/Move-out, bedrooms, bathrooms, extra rooms |
 | Airbnb Cleaning | Property type, bedrooms, bathrooms, extra rooms |
@@ -17,7 +17,7 @@ Home room selectors offer bedrooms 0/1/2/custom 3+, bathrooms 1/2/3/custom 4+, a
 
 Regular Cleaning was followed through Details, Schedule and Review. Observed common journey: saved/new property address and contact phone, optional booking for someone else; property/scope; pets and equipment request; optional add-on extras; once-off versus repeat; date/time; cleaner quantity and preference (business chooses or named cleaners); review of scope, equipment, schedule, extras, estimated duration and itemised price. Applicability varies by service; these must not become universal rules for other FaraiOS industries.
 
-Regular extras observed: inside fridge, inside oven, laundry, ironing and interior windows. Office extras observed: kitchenette and sanitisation. Extras therefore need explicit service applicability rather than showing every active extra for every service. Equipment delivery states distance-based charging with a minimum; its exact formula was not inferred. Repeat bookings remain T17 and payment remains the finance stages.
+Regular extras observed: inside fridge, inside oven, laundry, ironing and interior windows. Office extras observed: kitchenette and sanitisation. Extras therefore need explicit service applicability rather than showing every active extra for every service. Regular Cleaning equipment was explicitly rechecked: a required Yes/No switch asks whether the business should bring equipment. Selecting Yes displays a delivery/collection logistics fee based on distance from the equipment base and changes the booking total. One observed address at 10.1 km showed R753 logistics (R500 base + R253 distance), increasing the R345 quote to R1,098. This single displayed example does not prove the complete rounding, minimum, route-distance or fee formula. The toggle was returned to No after inspection. Model equipment availability, base location and fee rules as business/service configuration; preserve the quoted equipment selection and charge in the booking snapshot. Repeat bookings remain T17 and payment remains the finance stages.
 
 An observed Regular quote with one bedroom/one bathroom/no extra rooms displayed base R250 + bedroom R30 + bathroom R35 + service fee R30 = R345 and estimated 4 hours. This is one observed quote, not a complete tariff/duration schedule. Do not seed these prices, delivery calculations, credits or operational rules into Bokkie or use them as universal defaults. Owner-controlled business/service configuration and versioned snapshots must define actual rates and duration rules.
 
