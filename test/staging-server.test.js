@@ -10,9 +10,18 @@ function catalogueClient(state){
    if(!item)return Promise.resolve({data:[]});if(deleting){state.catalogue.splice(state.catalogue.indexOf(item),1);state.catalogueWrites++;return Promise.resolve({data:[{id:item.id}]});}Object.assign(item,update,{version:item.version+1});state.catalogueWrites++;return Promise.resolve({data:[{id:item.id}]});
  },insert(row){const item={...row,id:'30000000-0000-4000-8000-'+String(state.catalogue.length+1).padStart(12,'0'),version:1};state.catalogue.push(item);state.catalogueWrites++;return {select:async()=>({data:[{id:item.id}]})};},delete(){deleting=true;return this;},update(row){update=row;return this;}};return builder;
 }
+function customerClient(state,table){
+ const rows=table==='business_customers'?state.customers:state.addresses;let filters=[],payload,updating=false;
+ const matches=row=>filters.every(([key,value])=>row[key]===value);
+ const query={eq(key,value){filters.push([key,value]);return this;},order(){return this;},limit:async()=>({data:rows.filter(matches)}),maybeSingle:async()=>({data:rows.find(matches)??null}),select(){
+  if(!payload)return this;
+  if(updating){const row=rows.find(matches);if(!row)return Promise.resolve({data:[]});Object.assign(row,payload,{version:row.version+1});return Promise.resolve({data:[{id:row.id}]});}
+  const row={...payload,id:'40000000-0000-4000-8000-'+String(rows.length+1).padStart(12,'0'),version:1};rows.push(row);return Promise.resolve({data:[{id:row.id}]});
+ },insert(row){payload=row;return this;},update(row){payload=row;updating=true;return this;}};return query;
+}
 async function run(fn, {role="manager"}={}){
-  const state={role,active:true,verified:true,time:Date.now(),settings:null,settingsWrites:0,catalogue:[],catalogueWrites:0};
-  const factory=()=>({auth:{signInWithPassword:async({password})=>password==='test-password'?{data:{session:{expires_at:Math.floor(state.time/1000)+3600}}}:{error:{message:'bad'}},getUser:async()=>state.verified?({data:{user:{id:uid}}}):({error:{message:'revoked'}}),signOut:async()=>({})},from:table=>table==='business_catalogue'?catalogueClient(state):table==='business_settings'?{select(){return this;},eq(){return this;},maybeSingle:async()=>({data:state.settings}),upsert(row){state.settings=row;state.settingsWrites++;return {select:async()=>({data:[{business_id:row.business_id}]})};}}:({select(){return this;},eq(key){if(table==='businesses')return Promise.resolve({data:[{id:bid,name:'Synthetic Co'}]});return key==='status'?Promise.resolve({data:state.active?[{user_id:uid,business_id:bid,role:state.role,status:'active'}]:[]}):this;}})});
+  const state={role,active:true,verified:true,time:Date.now(),settings:null,settingsWrites:0,catalogue:[],catalogueWrites:0,customers:[],addresses:[]};
+  const factory=()=>({auth:{signInWithPassword:async({password})=>password==='test-password'?{data:{session:{expires_at:Math.floor(state.time/1000)+3600}}}:{error:{message:'bad'}},getUser:async()=>state.verified?({data:{user:{id:uid}}}):({error:{message:'revoked'}}),signOut:async()=>({})},from:table=>['business_customers','customer_addresses'].includes(table)?customerClient(state,table):table==='business_catalogue'?catalogueClient(state):table==='business_settings'?{select(){return this;},eq(){return this;},maybeSingle:async()=>({data:state.settings}),upsert(row){state.settings=row;state.settingsWrites++;return {select:async()=>({data:[{business_id:row.business_id}]})};}}:({select(){return this;},eq(key){if(table==='businesses')return Promise.resolve({data:[{id:bid,name:'Synthetic Co'}]});return key==='status'?Promise.resolve({data:state.active?[{user_id:uid,business_id:bid,role:state.role,status:'active'}]:[]}):this;}})});
   const server=createStagingServer({createClient:factory,now:()=>state.time});await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
   try{await fn(base,state);}finally{await new Promise(r=>server.close(r));}
 }
@@ -99,3 +108,31 @@ for(const role of ['manager','staff'])test(`catalogue HTTP ${role} follows read/
  assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'action=delete&version=1'})).status,403);
  assert.equal(state.catalogueWrites,0);
 },{role}));
+
+for(const role of ['owner','manager'])test(`customer HTTP ${role} create/edit/address flow and stale/foreign denial`,async()=>run(async(base,state)=>{
+ const Cookie=await signIn(base),url=base+'/customers?business='+bid;
+ const post=(target,body,Origin=base)=>fetch(target,{method:'POST',headers:{Cookie,Origin,'Content-Type':'application/x-www-form-urlencoded'},body,redirect:'manual'});
+ assert.equal((await fetch(url,{headers:{Cookie}})).status,200);
+ assert.equal((await post(url,'action=customer&name=Test&email=test%40example.test&private_notes=Private&status=active')).status,303);
+ const customer=url+'&customer='+state.customers[0].id;
+ assert.match(await (await fetch(customer,{headers:{Cookie}})).text(),/Private/);
+ assert.equal((await post(customer,'action=customer&name=Edited&status=active&version=1')).status,303);
+ assert.equal((await post(customer,'action=customer&name=Stale&status=active&version=1')).status,409);
+ assert.equal((await post(customer,'action=address&label=Home&address_line=Test+street&status=active')).status,303);
+ const address=customer+'&address='+state.addresses[0].id;
+ assert.equal((await post(address,'action=address&label=Office&address_line=Edited+street&status=inactive&version=1')).status,303);
+ assert.equal(state.addresses[0].address_line,'Edited street');assert.equal(state.addresses[0].is_active,false);
+ assert.equal((await post(address,'action=address&label=Stale&address_line=X&status=active&version=1')).status,409);
+ assert.equal((await post(url,'action=customer&name=&status=active')).status,422);
+ assert.equal((await post(url,'action=customer&name=CSRF&status=active','https://foreign.invalid')).status,403);
+ assert.equal((await post(base+'/customers?business=foreign','action=customer&name=Foreign&status=active')).status,403);
+ assert.equal((await fetch(url+'&customer=40000000-0000-4000-8000-999999999999',{headers:{Cookie}})).status,404);
+ assert.equal((await fetch(base+'/customers?business=foreign',{headers:{Cookie}})).status,403);
+ state.active=false;assert.equal((await post(customer,'action=customer&name=Revoked&status=active&version=2')).status,403);
+},{role}));
+test('customer HTTP denies staff and anonymous reads/writes',async()=>run(async(base)=>{
+ const url=base+'/customers?business='+bid;
+ assert.equal((await fetch(url,{redirect:'manual'})).status,303);
+ const Cookie=await signIn(base);assert.equal((await fetch(url,{headers:{Cookie}})).status,403);
+ assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'action=customer&name=No&status=active'})).status,403);
+},{role:'staff'}));
