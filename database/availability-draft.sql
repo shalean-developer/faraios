@@ -1,5 +1,8 @@
 -- T16: atomic, cross-business cleaner reservations. FaraiOS staging only.
 begin;
+-- Close the backfill/trigger-install race against the currently running app.
+-- Readers may continue; booking writes wait until this transaction commits.
+lock table public.one_off_bookings in share row exclusive mode;
 create schema if not exists extensions;
 create extension if not exists btree_gist with schema extensions;
 set local search_path=public,extensions,pg_catalog;
