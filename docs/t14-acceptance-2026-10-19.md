@@ -47,3 +47,17 @@ At 390×844, inspected form controls had no right-edge overflow; page scroll wid
 5. Foundation hosting, restricted-link real HTTP and complete recovery gates remain separate.
 
 No production, payment, invoice, notification or earnings actions were performed.
+
+## Browser follow-up — after owner re-sign-in
+
+Owner explicitly authorised the existing Bokkie test cleaner to also hold an active Shalean staff membership. That grant was applied and its INSERT audit event verified. Both authorised booking_context responses list the cleaner.
+
+Real Chrome owner workflow passed for both businesses:
+- Bokkie: Regular, one bedroom/bathroom/extra room, fridge extra, customer equipment and explicit zero-charge assessment. Draft saved and reloaded at R410 / 330 minutes. Confirmed, rescheduled from 20 to 21 October 09:00, assigned the test cleaner, then En route → Arrived → In progress → Completed. Final version 8.
+- Shalean: medium Office, one bathroom, Kitchen extra, business equipment, explicit R75 assessed additional charge and final 240 minutes. Draft saved and reloaded at R875 / 240 minutes, then Confirmed → Assigned → En route → Arrived → In progress → Completed. Final version 7.
+- Switching businesses showed separate lists; the pre-existing Shalean draft was preserved unchanged.
+- Browser timeouts were followed by fresh DOM reads before taking another action. Audit history verified one draft and each lifecycle transition per test booking; Bokkie additionally had the reschedule event.
+- Two clearly labelled acceptance bookings intentionally remain completed in staging for audit evidence. No production action, customer message, invoice or earnings creation occurred. They are test records, not jobs to deliver.
+- The pre-existing booking digest remains 47cf1779785f8cf75bd80f47783ff4b8.
+
+This closes the staff-assignment and real browser save-to-completion blockers recorded above. T14 remains In progress for the outstanding business configuration review (zero-valued extra durations and equipment arrangements); do not treat this as production readiness. Cancellation and both-business rescheduling are covered by the prior actual database rollback checks and isolated HTTP tests, not claimed as separate browser cancellation checks.
