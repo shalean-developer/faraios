@@ -1,3 +1,4 @@
+import {validPickerValue} from '../public/date-time-values.js';
 import {dateTimeField} from './date-time-field.js';
 import {listStaffRecords,staffAccounts} from './staff-teams.js';
 import {parseCleaningScope,cleaningScopeForm} from './cleaning-profiles.js';
@@ -8,7 +9,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 export const bookingStatuses=Object.freeze({draft:'Draft',confirmed:'Confirmed',assigned:'Assigned',en_route:'En route',arrived:'Arrived',in_progress:'In progress',completed:'Completed',cancelled:'Cancelled'});
 const transitions={draft:['confirmed','cancelled'],confirmed:['assigned','cancelled'],assigned:['en_route','cancelled'],en_route:['arrived','cancelled'],arrived:['in_progress','cancelled'],in_progress:['completed'],completed:[],cancelled:[]};
 const text=(form,key,max=2000)=>{const value=(form.get(key)??'').trim();if(value.length>max)throw new Error(`Check ${key.replaceAll('_',' ')}.`);return value;};
-function schedule(form){const local_start=text(form,'local_start',16),raw=text(form,'duration_minutes',4),hours_override_reason=text(form,'hours_override_reason');if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local_start)||!/^\d+$/.test(raw)||Number(raw)<15||Number(raw)>1440)throw new Error('Enter a date/time and duration from 15 to 1440 minutes.');return {local_start,duration_minutes:Number(raw),hours_override_reason};}
+function schedule(form){const local_start=text(form,'local_start',16),raw=text(form,'duration_minutes',4),hours_override_reason=text(form,'hours_override_reason');if(!validPickerValue(local_start,'datetime')||!/^\d+$/.test(raw)||Number(raw)<15||Number(raw)>1440)throw new Error('Enter a date/time and duration from 15 to 1440 minutes.');return {local_start,duration_minutes:Number(raw),hours_override_reason};}
 export function parseBookingCreate(form,catalogue){
  const customer_id=text(form,'customer_id',36),address_id=text(form,'address_id',36),service_id=text(form,'service_id',36),request_key=text(form,'request_key',36);
  if(![customer_id,address_id,service_id,request_key].every(validCustomerId))throw new Error('Select a customer, address and service.');
