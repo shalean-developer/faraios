@@ -1,4 +1,5 @@
 import {randomUUID} from 'node:crypto';
+import {canAccess} from './access.js';
 import {resolveIdentity} from './identity.js';
 
 /** Short-lived local staging sessions; credentials/tokens never reach browser storage.
@@ -30,6 +31,12 @@ export function createAuthSessions({createClient,now=()=>Date.now()}) {
         const ids=new Set(businesses.map(b=>b.id));
         return {...identity,businesses,businessIds:identity.businessIds.filter(id=>ids.has(id)),memberships:identity.memberships.filter(m=>ids.has(m.businessId))};
       }catch{sessions.delete(id);return null;}
+    },
+    async withCatalogue(id,businessId,write,action){
+      const identity=await this.read(id);
+      if(!identity?.businessIds.includes(businessId)||!canAccess({userId:identity.userId,businessId,permission:write?'catalogue.manage':'catalogue.read',memberships:identity.memberships}))throw new Error('Catalogue access denied');
+      const session=sessions.get(id);if(!session)throw new Error('Catalogue access denied');
+      return action(session.client,identity.businesses.find(b=>b.id===businessId),identity.memberships.some(m=>m.businessId===businessId&&m.role==='owner'));
     },
     async withOwner(id,businessId,action){
       const identity=await this.read(id);
