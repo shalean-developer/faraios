@@ -1,0 +1,39 @@
+import {randomUUID} from 'node:crypto';
+import {resolveIdentity} from './identity.js';
+
+/** Short-lived local staging sessions; credentials/tokens never reach browser storage.
+ * No refresh yet: re-authenticate after token expiry or 30 minutes, whichever is first.
+ */
+export function createAuthSessions({createClient,now=()=>Date.now()}) {
+  const sessions=new Map();
+  const prune=()=>{for(const [id,s] of sessions)if(s.expires<=now())sessions.delete(id);};
+  return {
+    async login(email,password){
+      prune();if(sessions.size>=100)throw new Error('Sign-in unavailable');
+      if(typeof email!=='string'||!email.includes('@')||email.length>254||typeof password!=='string'||password.length<1||password.length>1024)throw new Error('Unable to sign in');
+      const client=createClient();
+      const {data,error}=await client.auth.signInWithPassword({email,password});
+      if(error||!data?.session||!Number.isFinite(data.session.expires_at))throw new Error('Unable to sign in');
+      // Verify against Auth server and database; do not authorise from session user metadata.
+      const identity=await resolveIdentity(client);
+      const expires=Math.min(now()+1800000,data.session.expires_at*1000);
+      if(expires<=now())throw new Error('Unable to sign in');
+      const id=randomUUID();sessions.set(id,{client,expires});return {id,identity};
+    },
+    async read(id){
+      prune();const session=sessions.get(id);if(!session)return null;
+      try{
+        const identity=await resolveIdentity(session.client);
+        const {data,error}=await session.client.from('businesses').select('id,name').eq('status','active');
+        if(error||!Array.isArray(data))throw new Error('Business lookup unavailable');
+        const businesses=data.filter(b=>identity.businessIds.includes(b.id)&&typeof b.name==='string');
+        const ids=new Set(businesses.map(b=>b.id));
+        return {...identity,businesses,businessIds:identity.businessIds.filter(id=>ids.has(id)),memberships:identity.memberships.filter(m=>ids.has(m.businessId))};
+      }catch{sessions.delete(id);return null;}
+    },
+    async logout(id){
+      const session=sessions.get(id);sessions.delete(id);
+      if(session){const result=await session.client.auth.signOut({scope:'local'});if(result?.error)throw new Error('Remote sign-out failed; local session cleared');}
+    }
+  };
+}
