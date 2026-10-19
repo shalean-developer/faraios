@@ -186,7 +186,9 @@
 .workspace-layout{display:flex;flex-direction:column;min-height:100vh}
 .workspace-layout>.workspace{flex:1 0 auto;min-height:auto}
 .workspace-topbar{width:100%;background:#fff;border-bottom:1px solid #dfe7e3}
-.workspace-topbar>.workspace-header{margin:0;padding:22px 32px;border-bottom:0;min-height:108px}
+.workspace-topbar>.workspace-header{margin:0;padding:12px 32px;border-bottom:0;min-height:80px}
 .workspace-layout>.workspace>aside{padding-top:24px}
 .workspace-layout>.workspace>aside>.side-label{margin-top:12px}
-@media(max-width:900px){.workspace-topbar>.workspace-header{padding:18px 20px;min-height:96px}.workspace-layout>.workspace>aside{padding-top:14px;padding-bottom:14px}}
+@media(max-width:900px){.workspace-topbar>.workspace-header{padding:12px 20px;min-height:80px}.workspace-layout>.workspace>aside{padding-top:14px;padding-bottom:14px}}
+
+.workspace-topbar>.workspace-header .muted{margin:4px 0 0;line-height:1.4}
