@@ -11,9 +11,9 @@ function catalogueClient(state){
  },insert(row){const item={...row,id:'30000000-0000-4000-8000-'+String(state.catalogue.length+1).padStart(12,'0'),version:1};state.catalogue.push(item);state.catalogueWrites++;return {select:async()=>({data:[{id:item.id}]})};},delete(){deleting=true;return this;},update(row){update=row;return this;}};return builder;
 }
 function customerClient(state,table){
- const rows=table==='business_customers'?state.customers:state.addresses;let filters=[],payload,updating=false;
+ const rows=table==='staff_profiles'?state.profiles:table==='staff_teams'?state.teams:table==='business_customers'?state.customers:state.addresses;let filters=[],payload,updating=false;
  const matches=row=>filters.every(([key,value])=>row[key]===value);
- const query={eq(key,value){filters.push([key,value]);return this;},order(){return this;},limit:async count=>({data:rows.filter(matches).slice(0,count)}),maybeSingle:async()=>({data:rows.find(matches)??null}),select(){
+ const query={eq(key,value){filters.push([key,value]);return this;},order(){return this;},range:async(start,end)=>({data:rows.filter(matches).slice(start,end+1)}),limit:async count=>({data:rows.filter(matches).slice(0,count)}),maybeSingle:async()=>({data:rows.find(matches)??null}),select(){
   if(!payload)return this;
   if(updating){const row=rows.find(matches);if(!row)return Promise.resolve({data:[]});Object.assign(row,payload,{version:row.version+1});return Promise.resolve({data:[{id:row.id}]});}
   const row={...payload,id:'40000000-0000-4000-8000-'+String(rows.length+1).padStart(12,'0'),version:1};rows.push(row);return Promise.resolve({data:[{id:row.id}]});
@@ -29,8 +29,8 @@ function bookingClient(state){
  },insert(r){payload=r;return this;},update(r){payload=r;updating=true;return this;}};return query;
 }
 async function run(fn, {role="manager"}={}){
-  const state={role,active:true,verified:true,time:Date.now(),settings:null,settingsWrites:0,catalogue:[],catalogueWrites:0,customers:[],addresses:[],bookings:[]};
-  const factory=()=>({rpc:async()=>({data:{time_zone:'UTC',working_days:[1,2,3,4,5],opens_at:'08:00',closes_at:'18:00',staff:[{user_id:uid,label:'Synthetic staff'}]}}),auth:{signInWithPassword:async({password})=>password==='test-password'?{data:{session:{expires_at:Math.floor(state.time/1000)+3600}}}:{error:{message:'bad'}},getUser:async()=>state.verified?({data:{user:{id:uid}}}):({error:{message:'revoked'}}),signOut:async()=>({})},from:table=>table==='one_off_bookings'?bookingClient(state):['business_customers','customer_addresses'].includes(table)?customerClient(state,table):table==='business_catalogue'?catalogueClient(state):table==='business_settings'?{select(){return this;},eq(){return this;},maybeSingle:async()=>({data:state.settings}),upsert(row){state.settings=row;state.settingsWrites++;return {select:async()=>({data:[{business_id:row.business_id}]})};}}:({select(){return this;},eq(key){if(table==='businesses')return Promise.resolve({data:[{id:bid,name:'Synthetic Co'}]});return key==='status'?Promise.resolve({data:state.active?[{user_id:uid,business_id:bid,role:state.role,status:'active'}]:[]}):this;}})});
+  const state={role,active:true,verified:true,time:Date.now(),settings:null,settingsWrites:0,catalogue:[],catalogueWrites:0,customers:[],addresses:[],bookings:[],profiles:[],teams:[]};
+  const factory=()=>({rpc:async name=>name==='staff_context'?({data:[{user_id:uid,label:'Synthetic staff'}]}):({data:{time_zone:'UTC',working_days:[1,2,3,4,5],opens_at:'08:00',closes_at:'18:00',staff:[{user_id:uid,label:'Synthetic staff'}]}}),auth:{signInWithPassword:async({password})=>password==='test-password'?{data:{session:{expires_at:Math.floor(state.time/1000)+3600}}}:{error:{message:'bad'}},getUser:async()=>state.verified?({data:{user:{id:uid}}}):({error:{message:'revoked'}}),signOut:async()=>({})},from:table=>table==='one_off_bookings'?bookingClient(state):['business_customers','customer_addresses','staff_profiles','staff_teams'].includes(table)?customerClient(state,table):table==='business_catalogue'?catalogueClient(state):table==='business_settings'?{select(){return this;},eq(){return this;},maybeSingle:async()=>({data:state.settings}),upsert(row){state.settings=row;state.settingsWrites++;return {select:async()=>({data:[{business_id:row.business_id}]})};}}:({select(){return this;},eq(key){if(table==='businesses')return Promise.resolve({data:[{id:bid,name:'Synthetic Co'}]});return key==='status'?Promise.resolve({data:state.active?[{user_id:uid,business_id:bid,role:state.role,status:'active'}]:[]}):this;}})});
   const server=createStagingServer({createClient:factory,now:()=>state.time});await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
   try{await fn(base,state);}finally{await new Promise(r=>server.close(r));}
 }
@@ -214,3 +214,35 @@ for(const role of ['manager','staff'])test(`catalogue ${role} cannot preview or 
  for(const action of ['configure','deactivate'])assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:catalogueForm+'&action='+action,redirect:'manual'})).status,403);
  assert.equal(state.catalogueWrites,0);
 },{role}));
+
+test('staff HTTP owner profile/team save, stale/tenant/CSRF guards and team assignment',async()=>run(async(base,state)=>{
+ const Cookie=await signIn(base),url=base+'/staff?business='+bid;
+ const post=(target,body,Origin=base)=>fetch(target,{method:'POST',headers:{Cookie,Origin,'Content-Type':'application/x-www-form-urlencoded'},body,redirect:'manual'});
+ assert.equal((await fetch(url,{headers:{Cookie}})).status,200);
+ assert.equal((await post(url,'kind=profile&user_id='+uid+'&display_name=Cleaner+One&phone=000')).status,303);
+ const profile=url+'&item='+state.profiles[0].id;
+ assert.equal((await post(profile,'kind=profile&user_id='+uid+'&display_name=Updated&version=1')).status,303);
+ assert.equal((await post(profile,'kind=profile&user_id='+uid+'&display_name=Stale&version=1')).status,409);
+ assert.equal((await post(url,'kind=profile&user_id=00000000-0000-4000-8000-999999999999&display_name=Foreign')).status,422);
+ assert.equal((await post(url,'kind=profile&user_id='+uid+'&display_name=CSRF','https://foreign.invalid')).status,403);
+ assert.equal((await post(base+'/staff?business=foreign','kind=profile&user_id='+uid+'&display_name=Foreign')).status,403);
+ assert.equal((await post(url+'&view=team','kind=team&name=Team+One&members='+uid+'&status=active')).status,303);
+ const tid=state.teams[0].id;
+ assert.equal((await post(url+'&view=team&item='+tid,'kind=team&name=Team+Two&members='+uid+'&status=active&version=1')).status,303);
+ assert.equal((await post(url+'&view=team&item='+tid,'kind=team&name=Stale&members='+uid+'&status=active&version=1')).status,409);
+ const booking='60000000-0000-4000-8000-000000000001';state.bookings.push({id:booking,business_id:bid,status:'confirmed',required_team_size:1,version:1,assigned_staff:[],customer_snapshot:{name:'Test'},address_snapshot:{},price_lines:[],total_cents:0});
+ const assign=base+'/bookings?business='+bid+'&booking='+booking;
+ assert.equal((await post(assign,'action=transition&status=assigned&version=1&team_id='+tid)).status,303);
+ assert.deepEqual(state.bookings[0].assigned_staff,[uid]);
+ assert.equal((await post(url+'&view=team&item='+tid,'kind=team&action=deactivate&version=2')).status,303);assert.equal(state.teams[0].is_active,false);assert.deepEqual(state.bookings[0].assigned_staff,[uid]);
+},{role:'owner'}));
+for(const role of ['manager','staff'])test(`staff HTTP ${role} read/write restrictions`,async()=>run(async(base)=>{
+ const Cookie=await signIn(base),url=base+'/staff?business='+bid;
+ assert.equal((await fetch(url,{headers:{Cookie}})).status,role==='manager'?200:403);
+ assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'kind=team&name=No&members='+uid+'&status=active'})).status,403);
+ assert.equal((await fetch(base+'/staff?business=foreign',{headers:{Cookie}})).status,403);
+},{role}));
+test('staff HTTP anonymous redirects to login',async()=>run(async base=>{
+ assert.equal((await fetch(base+'/staff?business='+bid,{redirect:'manual'})).status,303);
+}));
+
