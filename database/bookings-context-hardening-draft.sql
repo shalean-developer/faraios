@@ -67,7 +67,7 @@ begin
  new.ends_at:=new.starts_at+make_interval(mins=>new.duration_minutes);
  if not isfinite(new.local_start) then raise exception 'Enter a finite booking date';end if;
  local_end:=new.local_start+make_interval(mins=>new.duration_minutes);
- if tg_op='INSERT' or new.local_start<>old.local_start or new.duration_minutes<>old.duration_minutes then
+ if tg_op='INSERT' or new.local_start<>old.local_start or new.duration_minutes<>old.duration_minutes or new.hours_override_reason<>old.hours_override_reason then
   if (not (ctx->'working_days' @> to_jsonb(array[extract(dow from new.local_start)::integer])) or new.local_start::time<(ctx->>'opens_at')::time or local_end::date<>new.local_start::date or local_end::time>(ctx->>'closes_at')::time) and length(trim(new.hours_override_reason))=0 then raise exception 'Outside business working hours: enter an override reason';end if;
  end if;
  new.updated_at:=now();return new;
