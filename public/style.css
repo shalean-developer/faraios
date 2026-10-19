@@ -184,7 +184,7 @@
 @media(prefers-reduced-motion:reduce){.account-chevron{transition:none}}
 
 .workspace-layout{display:flex;flex-direction:column;min-height:100vh}
-.workspace-layout>.workspace{flex:1;min-height:0}
+.workspace-layout>.workspace{flex:1 0 auto;min-height:auto}
 .workspace-topbar{width:100%;background:#fff;border-bottom:1px solid #dfe7e3}
 .workspace-topbar>.workspace-header{margin:0;padding:22px 32px;border-bottom:0;min-height:108px}
 .workspace-layout>.workspace>aside{padding-top:24px}
