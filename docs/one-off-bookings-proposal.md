@@ -1,6 +1,6 @@
-# T14 — One-off bookings: proposed acceptance contract
+# T14 — One-off bookings: approved acceptance contract
 
-Prepared 19 October 2026 after owner instruction to proceed. T12 and T13 are accepted. This proposal does not activate booking operations or change business data. The approved blueprint explicitly leaves final lifecycle and financial policy choices open.
+Prepared 19 October 2026 after owner instruction to proceed. T12 and T13 are accepted. Owner subsequently approved proceeding, adding En route and Arrived on 19 October 2026. Payment/finance remain separate. This contract now governs the staging implementation.
 
 ## Proposed office flow
 
@@ -11,9 +11,9 @@ Prepared 19 October 2026 after owner instruction to proceed. T12 and T13 are acc
 5. Assign active staff explicitly belonging to the selected business. Remove/reassign before starting with audit history. No automatic cross-business sharing.
 6. Start the assigned booking, then mark it Completed. Completion requires a nonempty assignment. Staff self-service and detailed teams/availability are later stages.
 
-Proposed transitions: Draft → Confirmed → Assigned → In progress → Completed. Draft, Confirmed and Assigned may be Cancelled with a required reason. Completed and Cancelled are terminal; no silent reopen. Cancel/reschedule In progress is excluded until an exception process is approved. Cancellation records the operational result only; no fees/refunds are calculated.
+Proposed transitions: Draft → Confirmed → Assigned → En route → Arrived → In progress → Completed. Draft, Confirmed, Assigned, En route and Arrived may be Cancelled with a required reason. Completed and Cancelled are terminal; no silent reopen. Cancel/reschedule In progress is excluded until an exception process is approved. Cancellation records the operational result only; no fees/refunds are calculated.
 
-Allow rescheduling Draft, Confirmed or Assigned with required reason. Preserve old/new dates and assignments in audit history. No automatic customer messages. Assignment overlap detection/calendar acceptance remains T16; scheduling must not be represented as availability-verified before that work.
+Allow rescheduling Draft, Confirmed, Assigned, En route or Arrived with required reason. Preserve old/new dates and assignments in audit history. No automatic customer messages. Assignment overlap detection/calendar acceptance remains T16; scheduling must not be represented as availability-verified before that work.
 
 ## Proposed pricing
 
@@ -29,11 +29,11 @@ Owner/manager access only at this increment. Scope every customer, address, serv
 
 Prove office create/reload/confirm/assign/reschedule/start/complete and cancellation separately for Shalean and Bokkie. Test forged scope, foreign addresses/catalogue/assignees, staff/anonymous denial, inactive memberships, stale changes, duplicate submission, terminal transitions, immutable snapshots and audit. Real browser acceptance follows isolated tests, review and staging checks. No production migration or payment activation.
 
-## Decisions awaiting owner confirmation
+## Approved decisions
 
 - Use the proposed lifecycle, terminal states and pre-start-only reschedule/cancellation rules.
 - Permit office confirmation before payment, with payment state separate and no payment claims.
 - Use fixed rates once and explicit whole-number hours/units; extras selected explicitly.
 - Warn and require an override reason for office bookings outside working hours.
 
-Gate: implementation of these proposed business rules waits for owner confirmation. Existing foundations/customer records remain unchanged.
+Gate: approved for isolated implementation and staging verification. Production and financial activation require their separate gates.
