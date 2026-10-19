@@ -56,3 +56,12 @@
 
 .dropdown-arrow{display:block;width:9px;height:9px;flex:0 0 9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);margin:0 3px 0 8px;pointer-events:none}
 .dropdown-trigger[aria-expanded="true"] .dropdown-arrow{transform:translateY(2px) rotate(225deg)}
+
+/* Business picker must not resize when its selected label changes. */
+.intro{flex-wrap:wrap}
+.intro>form{width:360px;max-width:100%;flex:0 0 auto}
+.switch{flex-wrap:nowrap;align-items:stretch}
+.switch .dropdown{flex:1 1 0;max-width:none}
+.switch>button{flex:0 0 auto;white-space:nowrap;min-height:46px}
+.dropdown-trigger span:first-child{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:900px){.intro>form{width:100%}}
