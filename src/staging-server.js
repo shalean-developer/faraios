@@ -75,7 +75,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
             if(itemId&&items.find(i=>i.id===itemId).kind!==item.kind)return send(422,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},'Item type cannot be changed. Create another item instead.',true,view)));
             try{await saveCatalogueItem(client,businessId,item,{id:itemId,version:Number(data.get('version'))});}
             catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},error.message,true,view)));}
-            return redirect('/catalogue?business='+encodeURIComponent(businessId)+(view==='extra'?'&view=extra':'')+'&saved=1');
+            return redirect('/catalogue?business='+encodeURIComponent(businessId)+((itemId?view:item.kind)==='extra'?'&view=extra':'')+'&saved=1');
           });
         }
         if(url.pathname==='/settings'){
