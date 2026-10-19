@@ -245,4 +245,14 @@ for(const role of ['manager','staff'])test(`staff HTTP ${role} read/write restri
 test('staff HTTP anonymous redirects to login',async()=>run(async base=>{
  assert.equal((await fetch(base+'/staff?business='+bid,{redirect:'manual'})).status,303);
 }));
+test('staff list keeps creation collapsed and editors focused for both categories',async()=>run(async(base,state)=>{
+ const Cookie=await signIn(base),url=base+'/staff?business='+bid,get=target=>fetch(target,{headers:{Cookie}});
+ let html=await(await get(url)).text();assert.doesNotMatch(html,/id="staff-editor"/);assert.match(html,/create=profile/);
+ html=await(await get(url+'&create=profile')).text();assert.match(html,/<h1>Add staff profile/);assert.match(html,/id="staff-editor"/);assert.doesNotMatch(html,/catalogue-list/);
+ html=await(await get(url+'&view=team')).text();assert.doesNotMatch(html,/id="staff-editor"/);assert.match(html,/create=team/);
+ html=await(await get(url+'&view=team&create=team')).text();assert.match(html,/<h1>Add team/);assert.match(html,/Team members/);assert.doesNotMatch(html,/catalogue-list/);
+ state.profiles.push({id:'40000000-0000-4000-8000-000000000001',business_id:bid,user_id:uid,display_name:'Existing',version:1});
+ html=await(await get(url+'&create=profile')).text();assert.match(html,/already have profiles/);assert.doesNotMatch(html,/name="user_id"/);
+ assert.equal(state.teams.length,0);
+},{role:'owner'}));
 
