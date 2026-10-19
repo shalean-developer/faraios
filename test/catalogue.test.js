@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
-import {parseCatalogueItem,renderCatalogue,saveCatalogueItem} from '../src/catalogue.js';
+import {parseCatalogueItem,renderCatalogue,saveCatalogueItem,deleteCatalogueItem,renderCatalogueDelete} from '../src/catalogue.js';
 const owner='00000000-0000-4000-8000-000000000001',manager='00000000-0000-4000-8000-000000000002',staff='00000000-0000-4000-8000-000000000003';
 const a='10000000-0000-4000-8000-000000000001',b='10000000-0000-4000-8000-000000000002';
 const form=()=>new URLSearchParams({kind:'service',name:'Synthetic service',description:'',pricing_model:'fixed',unit_label:'visit',price:'250.01',team_size:'2',status:'inactive'});
@@ -23,7 +23,7 @@ test('catalogue updates use business, item and version predicates; conflicts fai
 test('catalogue Postgres separates businesses, limits manager/staff and preserves audit/version history',async()=>{
  const db=new PGlite();try{
  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated;`);
- for(const path of ['identity-draft.sql','audit-draft.sql','business-settings-draft.sql','catalogue-draft.sql'])await db.exec(await readFile(new URL('../database/'+path,import.meta.url),'utf8'));
+ for(const path of ['identity-draft.sql','audit-draft.sql','business-settings-draft.sql','catalogue-draft.sql','catalogue-delete-draft.sql'])await db.exec(await readFile(new URL('../database/'+path,import.meta.url),'utf8'));
  await db.query('insert into auth.users values($1),($2),($3)',[owner,manager,staff]);
  await db.query("insert into public.businesses(id,name,industry) values($1,'A','cleaning'),($2,'B','cleaning')",[a,b]);
  await db.query("insert into public.business_memberships(business_id,user_id,role) values($1,$3,'owner'),($2,$3,'owner'),($2,$4,'manager'),($2,$5,'staff')",[a,b,owner,manager,staff]);
@@ -39,6 +39,23 @@ test('catalogue Postgres separates businesses, limits manager/staff and preserve
  assert.equal((await asUser(owner,()=>db.query('update public.business_catalogue set price_cents=27000 where id=$1 and version=1 returning id',[first]))).rows.length,0);
  await assert.rejects(asUser(owner,()=>db.query('update public.business_catalogue set business_id=$1 where id=$2',[b,first])),/immutable/);
  const event=(await db.query("select * from audit.events where entity_table='business_catalogue' and operation='UPDATE'")).rows[0];assert.equal(event.actor_user_id,owner);assert.equal(event.old_record.price_cents,25000);assert.equal(event.new_record.price_cents,26000);
+ assert.equal((await asUser(manager,()=>db.query('delete from public.business_catalogue returning id'))).rows.length,0);
+ assert.equal((await asUser(staff,()=>db.query('delete from public.business_catalogue returning id'))).rows.length,0);
+ assert.equal((await asUser(owner,()=>db.query('delete from public.business_catalogue where id=$1 and business_id=$2 returning id',[first,b]))).rows.length,0);
+ assert.equal((await asUser(owner,()=>db.query('delete from public.business_catalogue where id=$1 and version=1 returning id',[first]))).rows.length,0);
+ assert.equal((await asUser(owner,()=>db.query('delete from public.business_catalogue where id=$1 and version=2 returning id',[first]))).rows.length,1);
+ const removed=(await db.query("select * from audit.events where entity_table='business_catalogue' and operation='DELETE'")).rows[0];assert.equal(removed.actor_user_id,owner);assert.equal(removed.old_record.id,first);assert.equal(removed.new_record,null);
  await db.query("update public.business_memberships set status='suspended' where user_id=$1",[owner]);assert.equal((await asUser(owner,()=>db.query('select * from public.business_catalogue'))).rows.length,0);
  }finally{await db.close();}
+});
+
+test('delete scopes requests and renders escaped owner confirmation',async()=>{
+ const filters=[];const query={eq(k,v){filters.push([k,v]);return this;},select:async()=>({data:[]})};
+ await assert.rejects(deleteCatalogueItem({from:()=>({delete:()=>query})},a,b,2),e=>e.status===409);
+ assert.deepEqual(filters,[['business_id',a],['id',b],['version',2]]);
+ const item={id:b,kind:'extra',name:'<script>',version:2};
+ assert.match(renderCatalogueDelete({id:a,name:'A'},item),/Confirm delete/);
+ assert.doesNotMatch(renderCatalogueDelete({id:a,name:'A'},item),/<script>/);
+ assert.match(renderCatalogue({id:a,name:'A'},[{...item,price_cents:0,pricing_model:'fixed'}],true),/Delete extra/);
+ assert.doesNotMatch(renderCatalogue({id:a,name:'A'},[{...item,price_cents:0,pricing_model:'fixed'}],false),/Delete extra/);
 });
