@@ -2,9 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createStagingServer} from '../src/staging-server.js';
 const uid='00000000-0000-4000-8000-000000000001',bid='10000000-0000-4000-8000-000000000001';
+function catalogueClient(state){
+ let update,filters=[];
+ const builder={eq(key,value){filters.push([key,value]);return this;},order(){return this;},limit:async()=>({data:state.catalogue}),select(){
+   if(!update)return this;
+   const item=state.catalogue.find(row=>filters.every(([key,value])=>row[key]===value));
+   if(!item)return Promise.resolve({data:[]});Object.assign(item,update,{version:item.version+1});state.catalogueWrites++;return Promise.resolve({data:[{id:item.id}]});
+ },insert(row){const item={...row,id:'30000000-0000-4000-8000-'+String(state.catalogue.length+1).padStart(12,'0'),version:1};state.catalogue.push(item);state.catalogueWrites++;return {select:async()=>({data:[{id:item.id}]})};},update(row){update=row;return this;}};return builder;
+}
 async function run(fn, {role="manager"}={}){
-  const state={role,active:true,verified:true,time:Date.now(),settings:null,settingsWrites:0};
-  const factory=()=>({auth:{signInWithPassword:async({password})=>password==='test-password'?{data:{session:{expires_at:Math.floor(state.time/1000)+3600}}}:{error:{message:'bad'}},getUser:async()=>state.verified?({data:{user:{id:uid}}}):({error:{message:'revoked'}}),signOut:async()=>({})},from:table=>table==='business_settings'?{select(){return this;},eq(){return this;},maybeSingle:async()=>({data:state.settings}),upsert(row){state.settings=row;state.settingsWrites++;return {select:async()=>({data:[{business_id:row.business_id}]})};}}:({select(){return this;},eq(key){if(table==='businesses')return Promise.resolve({data:[{id:bid,name:'Synthetic Co'}]});return key==='status'?Promise.resolve({data:state.active?[{user_id:uid,business_id:bid,role:state.role,status:'active'}]:[]}):this;}})});
+  const state={role,active:true,verified:true,time:Date.now(),settings:null,settingsWrites:0,catalogue:[],catalogueWrites:0};
+  const factory=()=>({auth:{signInWithPassword:async({password})=>password==='test-password'?{data:{session:{expires_at:Math.floor(state.time/1000)+3600}}}:{error:{message:'bad'}},getUser:async()=>state.verified?({data:{user:{id:uid}}}):({error:{message:'revoked'}}),signOut:async()=>({})},from:table=>table==='business_catalogue'?catalogueClient(state):table==='business_settings'?{select(){return this;},eq(){return this;},maybeSingle:async()=>({data:state.settings}),upsert(row){state.settings=row;state.settingsWrites++;return {select:async()=>({data:[{business_id:row.business_id}]})};}}:({select(){return this;},eq(key){if(table==='businesses')return Promise.resolve({data:[{id:bid,name:'Synthetic Co'}]});return key==='status'?Promise.resolve({data:state.active?[{user_id:uid,business_id:bid,role:state.role,status:'active'}]:[]}):this;}})});
   const server=createStagingServer({createClient:factory,now:()=>state.time});await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
   try{await fn(base,state);}finally{await new Promise(r=>server.close(r));}
 }
@@ -64,4 +72,24 @@ for(const role of ['manager','staff'])test(`settings HTTP denies ${role} reads a
  assert.equal((await fetch(url,{headers:{Cookie}})).status,403);
  assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:settingsForm})).status,403);
  assert.equal(state.settingsWrites,0);
+},{role}));
+
+const catalogueForm='kind=service&name=Synthetic&pricing_model=fixed&unit_label=visit&price=250.01&team_size=2&status=inactive';
+test('catalogue HTTP owner create/edit rejects stale versions and foreign scope',async()=>run(async(base,state)=>{
+ const Cookie=await signIn(base),url=base+'/catalogue?business='+bid;
+ const post=(target,body)=>fetch(target,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body,redirect:'manual'});
+ assert.equal((await post(url,catalogueForm)).status,303);assert.equal(state.catalogue[0].price_cents,25001);
+ const edit=url+'&item='+state.catalogue[0].id;
+ assert.equal((await post(edit,catalogueForm+'&version=1')).status,303);
+ assert.equal((await post(edit,catalogueForm+'&version=1')).status,409);
+ assert.equal((await post(url,catalogueForm.replace('250.01','1.001'))).status,422);
+ assert.equal((await post(base+'/catalogue?business=other',catalogueForm)).status,403);
+ assert.equal(state.catalogueWrites,2);
+},{role:'owner'}));
+for(const role of ['manager','staff'])test(`catalogue HTTP ${role} follows read/write restrictions`,async()=>run(async(base,state)=>{
+ const Cookie=await signIn(base),url=base+'/catalogue?business='+bid;
+ const response=await fetch(url,{headers:{Cookie}});assert.equal(response.status,role==='manager'?200:403);
+ if(role==='manager'){const html=await response.text();assert.match(html,/Read-only catalogue/);assert.doesNotMatch(html,/<form/);}
+ assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:catalogueForm})).status,403);
+ assert.equal(state.catalogueWrites,0);
 },{role}));
