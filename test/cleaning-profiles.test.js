@@ -46,3 +46,10 @@ test('profile changes clear old configuration and pet choices remain service-spe
  const pets=formFor('regular');pets.set('scope_pets','Dogs');assert.throws(()=>parseCleaningScope(pets,regular),/Select pets/);pets.set('scope_pets','Birds present');assert.equal(parseCleaningScope(pets,regular).pets,'Birds present');
  pets.set('pet_label_1','No animals');assert.throws(()=>parseCleaningConfig(pets,'service'),/distinct pet choices/);
 });
+
+test('office assessment parsing requires explicit charge, duration and reason and linen availability',()=>{
+ const f=formFor('moving'),service=parseCleaningConfig(f,'service');service.cleaning_config.equipment={policy:'assessed'};f.set('scope_equipment_arrangement','Business supplies equipment');assert.throws(()=>parseCleaningScope(f,service),/office assessment/);
+ f.set('assessment_cents','0');f.set('assessment_minutes','120');f.set('assessment_reason','Equipment assessed and included for this job');assert.equal(parseCleaningScope(f,service).assessment.additional_cents,0);
+ f.set('assessment_reason','');assert.throws(()=>parseCleaningScope(f,service),/assessment/);
+ const air=formFor('airbnb'),airService=parseCleaningConfig(air,'service');air.set('scope_linen','No linen change');air.set('scope_linen_change','Yes');assert.throws(()=>parseCleaningScope(air,airService),/Fresh linen/);
+});
