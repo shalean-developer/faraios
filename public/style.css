@@ -65,3 +65,24 @@
 .switch>button{flex:0 0 auto;white-space:nowrap;min-height:46px}
 .dropdown-trigger span:first-child{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:900px){.intro>form{width:100%}}
+
+/* Catalogue item hierarchy and compact grouped actions. */
+.catalogue-row{padding:20px 0}
+.catalogue-row:last-child{padding-bottom:0}
+.catalogue-row-heading{align-items:flex-start;gap:16px}
+.catalogue-row-heading h3{flex:1 1 180px;font-size:18px;line-height:1.4;padding-top:8px}
+.catalogue-actions{display:flex;gap:8px;flex:0 1 auto;flex-wrap:wrap}
+.catalogue-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;white-space:nowrap}
+.catalogue-actions .catalogue-edit{background:white;border:1px solid #cbdad3;color:#16654f}
+.catalogue-actions .catalogue-edit:hover{background:#edf5f0}
+.catalogue-delete{background:white;border:1px solid #e5caca;color:#9c3030}
+.catalogue-delete:hover{background:#fff2f2;border-color:#bd7373}
+.catalogue-meta{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:12px 0}
+.catalogue-price{font-size:17px;font-weight:600;color:#17332e}
+.catalogue-price span{font-size:14px;font-weight:400;color:#527066}
+.catalogue-model{font-size:12px;color:#527066}
+.catalogue-status{padding:4px 8px;border-radius:20px;font-size:11px;font-weight:600;line-height:1.4}
+.catalogue-status.is-active{background:#e7f3ed;color:#12644f}
+.catalogue-status.is-inactive{background:#edf0ef;color:#586b64}
+.catalogue-row>p{font-size:14px;line-height:1.6;margin:8px 0}
+@media(max-width:560px){.catalogue-row-heading{display:block}.catalogue-row-heading h3{padding-top:0;margin-bottom:10px}.catalogue-actions{justify-content:flex-start}.catalogue-meta{gap:8px 10px}}
