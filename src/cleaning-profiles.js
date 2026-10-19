@@ -59,7 +59,7 @@ export function cleaningConfigForm(service,items){
  const profileSelect=`<label for="cleaning_profile">Booking questions</label><select data-dropdown id="cleaning_profile" name="cleaning_profile"><option value="">General service / extra</option>${Object.entries(profiles).map(([k,l])=>`<option value="${k}"${k===profile?' selected':''}>${l}</option>`).join('')}</select><p class="muted">The profile chooses the questions shown when booking. Changing it resets its pricing rules: save, then reopen to configure the new profile.</p>`;
  if(service.kind==='extra')return '<input type="hidden" name="cleaning_profile" value="">';
  let html=section('2. Booking questions',profiles[profile]??'Choose a profile',profileSelect,!profile).replace('<details','<details data-setup-service-only');
- if(!profile||!profileFields[profile])return html;
+ if(!profile||!profileFields[profile]||(raw&&!Object.hasOwn(raw,'base_minutes')))return html;
  const counts=profileFields[profile].filter(k=>definitions[k].count),other=profileFields[profile].filter(k=>!definitions[k].count&&!definitions[k].custom);
  const rateRow=(key,option,optional=false)=>{const d=definitions[key],prefix='rule_'+key+'_'+(d.count?'unit':d.options.indexOf(option)),r=config.rules?.[key]?.[option],label=d.count?d.label:option;
  return `<div class="setup-rate-row"><strong>${esc(label)}</strong>${money(prefix+'_cents',label+' - added price (R)',r?.cents,!optional)}${integer(prefix+'_minutes',label+' - added minutes',r?.minutes,!optional)}${tick(prefix+'_assessment','Assessment',r?.assessment)}</div>`;};
