@@ -256,3 +256,11 @@
 /* Keep enhanced fields aligned while retaining typed-format guidance for assistive technology. */
 .date-time-picker+.picker-format{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.picker-control input:focus-visible{outline:none}
 .picker-error{display:block;color:#a32323;font-size:13px;margin-top:8px}.picker-error[hidden]{display:none}.picker-control:has(input[aria-invalid=true]){border-color:#a32323;outline:2px solid #a32323;outline-offset:1px}
+
+/* Calendar navigation stays compact independently of sidebar navigation styles. */
+.calendar-navigation{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:8px;margin:16px 0 0;padding:14px 0 0;border-top:1px solid #dfe7e3;overflow:visible}
+.calendar-navigation>a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;margin:0;padding:10px 14px;border:1px solid #cbdad3;border-radius:8px;background:#fff;font-size:14px;line-height:1.4;white-space:nowrap}
+.calendar-navigation>a:hover{background:#edf5f0;border-color:#16654f}
+.calendar-guidance{max-width:80ch;margin:12px 0 0;font-size:13px;line-height:1.6}
+.calendar-travel-note{max-width:80ch;margin:6px 0 0;font-size:13px;line-height:1.6;color:#6e817b}
+@media(max-width:400px){.calendar-navigation{gap:6px}.calendar-navigation>a{flex:1 1 auto;padding:10px;font-size:13px}}
