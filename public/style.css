@@ -344,14 +344,82 @@
 .customer-list .record-row,.customer-list .record-columns{grid-template-columns:minmax(150px,1.3fr) minmax(150px,1.4fr) minmax(110px,1fr) 80px 76px}
 .recurring-list .record-row,.recurring-list .record-columns{grid-template-columns:minmax(150px,1.5fr) minmax(130px,1.2fr) 90px minmax(90px,1fr) 76px}
 .quote-list .record-row,.quote-list .record-columns{grid-template-columns:minmax(150px,1.6fr) minmax(100px,1fr) 105px minmax(90px,1fr) 76px}
-.quote-summary-top{display:flex;align-items:start;justify-content:space-between;gap:16px}
-.quote-summary-top h2{margin-bottom:0;min-width:0;overflow-wrap:anywhere}
-.quote-reference{overflow-wrap:anywhere}
-.quote-lines{border-top:1px solid #e4eae6;margin-top:20px}
-.quote-lines>p{display:flex;justify-content:space-between;align-items:start;gap:20px;border-bottom:1px solid #e4eae6;padding:12px 0;margin:0;font-size:14px}
-.quote-lines span{min-width:0;overflow-wrap:anywhere}
-.quote-lines small{display:block;color:#647b70;font-size:12px;margin-top:4px}
-.quote-lines strong{white-space:nowrap;color:#17332e;font-variant-numeric:tabular-nums}
+/* Quote detail: summary first, a compact saved price table and current context. */
+.quote-detail .panel{margin-top:20px;min-width:0}
+.quote-detail h2{font-size:18px;line-height:1.4;margin-bottom:16px}
+.quote-detail p,.quote-detail small,.quote-detail dt,.quote-detail .muted{color:#52685f}
+.quote-overview-head{display:flex;align-items:start;justify-content:space-between;gap:20px}
+.quote-overview-head>div{min-width:0}
+.quote-overview-head h2{font-size:21px;margin:0}
+.quote-display-reference{font-size:12px;margin:5px 0 0;letter-spacing:.4px}
+.quote-total{text-align:right;flex-shrink:0}
+.quote-total span{display:block;color:#52685f;font-size:12px;margin-bottom:5px}
+.quote-total strong{display:block;font-size:28px;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap}
+.quote-state-row{display:flex;flex-wrap:wrap;gap:14px;margin-top:18px;font-size:13px;align-items:center}
+.quote-state-row>span{display:flex;align-items:center;gap:8px}
+.quote-status-note{border-left:3px solid #16654f;background:#f0f7f3;padding:12px 14px;margin-top:16px;font-size:13px}
+.quote-status-note.is-warning{border-color:#996015;background:#fff5e4}
+.quote-status-note strong{color:#17332e}
+.quote-status-note p{margin:4px 0 0;line-height:1.5}
+.quote-summary-actions{display:flex;align-items:start;flex-wrap:wrap;gap:12px 20px;margin-top:18px}
+.quote-reference-control{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;min-width:0;flex:1}
+.quote-reference-control button{font-size:13px;min-height:44px}
+.quote-reference-control button[hidden]{display:none}
+.quote-reference-control button:hover{background:#edf5f0;color:#104d3c}
+.quote-reference-control button:disabled{opacity:.7;cursor:wait}
+.quote-copy-status{font-size:12px;color:#52685f;flex-basis:100%;order:1}
+.quote-copy-status:empty{display:none}
+.quote-reference-full{min-width:0}
+.quote-reference-full summary,.quote-actor-id summary,.quote-no-charge>summary{min-height:44px;padding:12px 0;cursor:pointer;color:#12644f;font-size:13px}
+.quote-reference-full[open]{flex-basis:100%;order:2}
+.quote-reference-full input{width:100%;max-width:410px;min-width:0;font:inherit;font-size:13px;border:1px solid #cbdad3;border-radius:6px;padding:10px;color:#17332e;background:#f8faf9}
+.quote-reference-full input:focus-visible,.quote-detail summary:focus-visible{outline:3px solid #bb7b22;outline-offset:3px}
+.quote-reference-full p{font-size:12px;margin:6px 0 0}
+.quote-detail-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,1fr);gap:20px;align-items:start}
+.quote-detail-grid>div{min-width:0}
+.quote-price-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.quote-price-table th,.quote-price-table td{padding:12px 6px;border-bottom:1px solid #e4eae6;vertical-align:top;overflow-wrap:anywhere}
+.quote-price-table thead th{font-size:11px;color:#52685f;font-weight:600}
+.quote-price-table th:first-child{padding-left:0;text-align:left;width:42%}
+.quote-price-table tbody th{font-weight:500;line-height:1.5}
+.quote-price-table .quote-quantity{text-align:center;width:12%}
+.quote-price-table .quote-rate,.quote-price-table .quote-amount{text-align:right;width:23%;font-variant-numeric:tabular-nums}
+.quote-price-table .quote-amount{padding-right:0;font-weight:600;white-space:nowrap}
+.quote-price-table small{display:block;font-size:11px;line-height:1.5;margin-top:4px}
+.quote-price-table .quote-mobile-rate{display:none}
+.quote-no-charge{margin-top:8px}
+.quote-price-total{display:flex;justify-content:space-between;gap:20px;border-top:2px solid #cbdad3;margin-top:16px;padding-top:16px;font-size:14px}
+.quote-price-total strong{font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.quote-snapshot-note{font-size:12px;margin:14px 0 0}
+.quote-address{font-size:14px;margin:0}
+.quote-contact{display:flex;flex-direction:column;gap:6px;font-size:13px;margin:12px 0 16px}
+.quote-contact a{overflow-wrap:anywhere;text-decoration:underline;text-underline-offset:3px}
+.quote-detail .quote-facts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0 0}
+.quote-facts>div{min-width:0}
+.quote-detail dt{font-size:12px;font-weight:500;margin:0 0 5px}
+.quote-detail dd{font-size:14px;margin:0;line-height:1.5;overflow-wrap:anywhere}
+.quote-detail .quote-acceptance dl{display:block;margin:0}
+.quote-acceptance dd{margin-bottom:16px}
+.quote-acceptance small{display:block;font-size:11px;margin-top:4px}
+.quote-evidence{white-space:pre-wrap}
+.quote-actor-id p{font-size:12px;margin:0;overflow-wrap:anywhere}
+.quote-next-step{scroll-margin-top:24px}
+@media(max-width:1100px){.quote-detail-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){
+ .quote-overview-head{gap:12px}
+ .quote-overview-head h2{font-size:18px}
+ .quote-total strong{font-size:23px}
+ .quote-total span,.quote-display-reference{font-size:11px}
+ .quote-summary-actions>.button{width:100%}
+ .quote-reference-control{flex-basis:100%}
+ .quote-detail .panel{padding:18px;margin-top:16px}
+ .quote-state-row{gap:10px}
+ .quote-price-table .quote-quantity,.quote-price-table .quote-rate{display:none}
+ .quote-price-table .quote-mobile-rate{display:block}
+ .quote-price-table th:first-child{width:70%}
+ .quote-price-table .quote-amount{width:30%}
+ .quote-detail-grid{gap:0}
+}
 .quote-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
 .quote-action{min-width:0}
 .quote-action h3{margin-top:0;font-size:17px}

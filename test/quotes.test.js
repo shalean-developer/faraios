@@ -22,7 +22,7 @@ test('quote input is date-independent and never submits client totals or accepta
 async function fixture({quotes=true}={}){
  const db=new PGlite({extensions:{btree_gist}});
  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated;`);
- for(const f of [...migrations,...(quotes?['quotes-draft.sql']:[])])await db.exec(await readFile(new URL('../database/'+f,import.meta.url),'utf8'));
+ for(const f of [...migrations,...(quotes?['quotes-draft.sql','quote-acceptance-actor-draft.sql']:[])])await db.exec(await readFile(new URL('../database/'+f,import.meta.url),'utf8'));
  await db.query("insert into auth.users values($1,'owner@test.invalid'),($2,'manager@test.invalid'),($3,'staff@test.invalid')",[owner,manager,staff]);
  await db.query("insert into public.businesses(id,name,industry) values($1,'A','cleaning'),($2,'B','cleaning')",[a,b]);
  await db.query("insert into public.business_memberships(business_id,user_id,role) values($1,$3,'owner'),($2,$3,'owner'),($2,$4,'manager'),($1,$5,'staff'),($2,$5,'staff')",[a,b,owner,manager,staff]);
@@ -182,5 +182,39 @@ test('rollback-only staging acceptance script leaves existing records intact',as
   await db.exec(await readFile(new URL('../scripts/verify-quotes-staging.sql',import.meta.url),'utf8'));
   assert.equal((await db.query("select md5(string_agg(to_jsonb(b)::text,',' order by id)) d from public.one_off_bookings b")).rows[0].d,before);
   assert.equal((await db.query('select count(*)::int n from public.business_quotes')).rows[0].n,0);
+ }finally{await db.close();}
+});
+
+
+test('recorded actor lookup authorises the current caller and exposes only one stored actor',async()=>{
+ const {db,as,create,accepted}=await fixture();
+ try{
+  const draft=(await as(owner,()=>create(a,10))).rows[0].id,q=await as(manager,()=>accepted(b,20));
+  const read=(schema,business,quote)=>db.query('select '+schema+'.quote_acceptance_actor($1,$2) actor',[business,quote]);
+  assert.equal((await as(owner,()=>read('public',a,draft))).rows[0].actor,null);
+  const expected={business_id:b,quote_id:q,actor_id:manager,label:'manager@test.invalid'};
+  assert.deepEqual((await as(owner,()=>read('public',b,q))).rows[0].actor,expected);
+  assert.deepEqual((await as(manager,()=>read('audit',b,q))).rows[0].actor,expected);
+  const before=(await db.query("select md5(string_agg(to_jsonb(q)::text,',' order by id)) digest from public.business_quotes q")).rows[0].digest;
+  const auditBefore=(await db.query('select count(*)::int n from audit.events')).rows[0].n;
+  for(const schema of ['public','audit']){
+   await assert.rejects(as(manager,()=>read(schema,a,draft)),e=>e.code==='42501');
+   await assert.rejects(as(staff,()=>read(schema,b,q)),e=>e.code==='42501');
+   await assert.rejects(as(owner,()=>read(schema,a,q)),e=>e.code==='42501');
+   await assert.rejects(as(owner,()=>read(schema,b,id(999))),e=>e.code==='42501');
+   await db.exec('set role anon');await assert.rejects(read(schema,b,q),e=>e.code==='42501');await db.exec('reset role');
+  }
+  await assert.rejects(as(owner,()=>db.query('select email from auth.users')),e=>e.code==='42501');
+  await db.query("update public.business_memberships set status='suspended' where business_id=$1 and user_id=$2",[b,manager]);
+  assert.deepEqual((await as(owner,()=>read('public',b,q))).rows[0].actor,expected);
+  await assert.rejects(as(manager,()=>read('public',b,q)),e=>e.code==='42501');
+  await db.query("update auth.users set email='renamed@test.invalid' where id=$1",[manager]);
+  assert.equal((await as(owner,()=>read('public',b,q))).rows[0].actor.label,'renamed@test.invalid');
+  await db.query('delete from public.business_memberships where business_id=$1 and user_id=$2',[b,manager]);
+  assert.deepEqual((await as(owner,()=>read('public',b,q))).rows[0].actor,{...expected,label:null});
+  assert.equal((await db.query("select md5(string_agg(to_jsonb(q)::text,',' order by id)) digest from public.business_quotes q")).rows[0].digest,before);
+  // Only the explicit membership test mutations can create audit records; lookup is read-only.
+  const count=(await db.query('select count(*)::int n from audit.events')).rows[0].n;
+  await as(owner,()=>read('public',b,q));assert.equal((await db.query('select count(*)::int n from audit.events')).rows[0].n,count);assert.ok(count>=auditBefore);
  }finally{await db.close();}
 });
