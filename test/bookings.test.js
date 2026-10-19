@@ -72,6 +72,11 @@ test('Postgres booking lifecycle, tenant links, snapshots, team and audit are en
  await asUser(manager,()=>transition(bb.id,'cancelled',null,'Customer cancelled'));
  await assert.rejects(asUser(manager,()=>transition(bb.id,'confirmed')),/cannot be changed/);
  const audit=(await db.query("select * from audit.events where entity_table='one_off_bookings' and new_record->>'id'=$1 and new_record->>'status'='en_route'",[ba.id])).rows[0];assert.equal(audit.actor_user_id,owner);assert.equal(audit.old_record.status,'assigned');
+ const staleTeam=await asUser(manager,()=>create(b,20,id(46)));
+ await asUser(manager,()=>transition(staleTeam.id,'confirmed'));await asUser(manager,()=>transition(staleTeam.id,'assigned',[staff],'Assign'));
+ await db.query("update public.business_memberships set status='suspended' where business_id=$1 and user_id=$2",[b,staff]);
+ await assert.rejects(asUser(manager,()=>transition(staleTeam.id,'en_route')),/active staff/);
+ await asUser(manager,()=>transition(staleTeam.id,'cancelled',null,'Cancel despite suspended team'));
  await assert.rejects(asUser(owner,()=>db.query('delete from public.one_off_bookings where id=$1',[ba.id])),/permission denied/);
  await db.query("update public.business_memberships set status='suspended' where business_id=$1 and user_id=$2",[b,manager]);assert.equal((await asUser(manager,()=>db.query('select * from public.one_off_bookings'))).rows.length,0);
  }finally{await db.close();}
