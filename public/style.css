@@ -529,3 +529,19 @@ input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px sol
  .module-content .catalogue-top>.catalogue-add-link{width:100%}
  .module-content .catalogue-filters{gap:12px}
 }
+
+/* Invoice drafts reuse the quote table and current-state hierarchy. */
+.invoice-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.invoice-metrics>.panel{padding:20px;min-width:0}
+.invoice-metrics span,.invoice-metrics small{display:block;font-size:12px;line-height:1.5;color:#52685f}
+.invoice-metrics strong{display:block;font-size:25px;font-variant-numeric:tabular-nums;margin:10px 0}
+.invoice-list .record-row,.invoice-list .record-columns{grid-template-columns:minmax(150px,1.6fr) minmax(140px,1fr) 110px 76px}
+.invoice-workspace p:not(.feedback),.invoice-workspace .muted{color:#52685f}
+.invoice-workspace .invoice-confirm{display:flex;align-items:start;gap:10px;line-height:1.5;margin:20px 0}
+.invoice-confirm input{flex:0 0 auto;margin-top:4px}
+.invoice-detail details>summary{cursor:pointer;min-height:44px;padding:12px 0;color:#12644f}
+.invoice-detail details:focus-within{outline-offset:3px}
+.invoice-detail .quote-detail-grid>.panel{margin-bottom:0}
+@media(max-width:700px){.invoice-metrics{grid-template-columns:minmax(0,1fr);gap:0}.invoice-metrics>.panel{margin-top:12px}.invoice-list .record-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.invoice-list .record-primary{grid-column:1/-1}.invoice-list .record-amount{text-align:right}.invoice-list .row-action{grid-column:1/-1}}
+
+.invoice-workspace .feedback-error{color:#8b2f2f}

@@ -74,6 +74,7 @@ export function renderBookings(business,bookings,ctx,{booking=null,customers=[],
    if(['draft','confirmed','assigned','en_route','arrived'].includes(b.status))content+=`<section class="panel"><h2>Reschedule</h2><form class="settings-form" method="post" action="${action}"><input type="hidden" name="action" value="reschedule">${hidden(b)}${scheduleFields(b)}${reason('reschedule')}<button>Save schedule</button></form></section>`;
    if(b.status==='assigned')content+=`<section class="panel"><h2>Change team</h2><form class="settings-form" method="post" action="${action}"><input type="hidden" name="action" value="reassign">${hidden(b)}${staffFields(b.assigned_staff)}${reason('reassign')}<button>Save team</button></form></section>`;
   }
+  content+=`<p><a class="button secondary" href="/invoices?business=${encodeURIComponent(business.id)}&amp;booking=${encodeURIComponent(b.id)}">Prepare or open invoice</a></p>`;
   if(b.source_quote_id)content+=`<p><a href="/quotes?business=${encodeURIComponent(business.id)}&amp;quote=${encodeURIComponent(b.source_quote_id)}">Open accepted quote and invoice handoff</a></p>`;
   content+=b.recurring_schedule_id?`<p><a href="/recurring?business=${encodeURIComponent(business.id)}&amp;schedule=${encodeURIComponent(b.recurring_schedule_id)}">Open recurring schedule</a></p>`:b.status!=='cancelled'?`<p><a href="/recurring?business=${encodeURIComponent(business.id)}&amp;source=${encodeURIComponent(b.id)}">Make recurring</a></p>`:'';
   content+=`<p><a href="${base}">Back to bookings</a></p>`;
