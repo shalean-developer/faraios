@@ -23,6 +23,8 @@ export function enhanceDropdown(select){
  const move=direction=>{let next=active;for(let n=0;n<options.length;n++){next=(next+direction+options.length)%options.length;if(!select.options[next].disabled){highlight(next);break;}}};
  trigger.addEventListener('click',()=>list.hidden?open():close());
  trigger.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&list.hidden)return;
+  if(event.key==='Escape')event.stopPropagation();
   if(['ArrowDown','ArrowUp','Home','End','Enter',' ','Escape'].includes(event.key)){
    event.preventDefault();
    if(event.key==='Escape'){close();return;}
@@ -47,6 +49,7 @@ export function enhanceDropdown(select){
  select.addEventListener('change',()=>trigger.removeAttribute('aria-invalid'));
  select.form?.addEventListener('reset',()=>setTimeout(()=>{sync();close();trigger.removeAttribute('aria-invalid');},0));
  label?.addEventListener('click',event=>{event.preventDefault();trigger.focus();});
- select.after(root);root.append(trigger,list);sync();select.hidden=true;select.dataset.enhanced='true';
+ select.after(root);root.append(trigger,list);sync();select.hidden=true;select.dataset.enhanced='true';return {open,close};
 }
 if(typeof document!=='undefined')document.querySelectorAll('select[data-dropdown]').forEach(enhanceDropdown);
+

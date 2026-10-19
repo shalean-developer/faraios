@@ -274,3 +274,9 @@ test('calendar HTTP denies staff and redirects anonymous users',async()=>run(asy
  assert.equal((await fetch(url,{redirect:'manual'})).status,303);const Cookie=await signIn(base);
  assert.equal((await fetch(url,{headers:{Cookie}})).status,403);
 },{role:'staff'}));
+test('shared picker modules are served and owner calendar/settings render custom controls',async()=>run(async base=>{
+ for(const path of ['/date-time-picker.js','/date-time-values.js']){const response=await fetch(base+path);assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/javascript/);}
+ const Cookie=await signIn(base);const settings=await(await fetch(base+'/settings?business='+bid,{headers:{Cookie}})).text();assert.match(settings,/data-picker="time"/);assert.match(settings,/src="\/date-time-picker.js"/);
+ const url=base+'/calendar?business='+bid+'&day=2026-10-19';const calendar=await(await fetch(url,{headers:{Cookie}})).text();assert.match(calendar,/data-picker="date"/);assert.match(calendar,/data-picker="datetime"/);
+ assert.equal((await fetch(url+'&local_start=2026-10-19T24:00&duration_minutes=120',{headers:{Cookie}})).status,422);
+},{role:'owner'}));
