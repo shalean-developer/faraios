@@ -26,6 +26,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
     try{
       if(req.headers.host!==expected||!['127.0.0.1','::ffff:127.0.0.1','::1'].includes(req.socket.remoteAddress))return send(403,'Local access only','text/plain');
       const url=new URL(req.url,origin),id=req.headers.cookie?.match(/(?:^|;\s*)faraios_staging=([a-f0-9-]+)/)?.[1];
+      if(req.method==='GET'&&url.pathname==='/date-time-values.js')return send(200,await readFile(new URL('../public/date-time-values.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/date-time-picker.js')return send(200,await readFile(new URL('../public/date-time-picker.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/dropdown.js')return send(200,await readFile(new URL('../public/dropdown.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/catalogue-setup.js')return send(200,await readFile(new URL('../public/catalogue-setup.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
