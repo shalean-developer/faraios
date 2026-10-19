@@ -33,8 +33,8 @@ export async function deleteCatalogueItem(client,businessId,id,version){
  if(error)throw new Error('Catalogue item could not be deleted');
  if(data?.length!==1){const conflict=new Error('This item changed or is unavailable. Reopen it before deleting.');conflict.status=409;throw conflict;}
 }
-export function renderCatalogueDelete(business,item){
- const base='/catalogue?business='+encodeURIComponent(business.id);
+export function renderCatalogueDelete(business,item,view='service'){
+ const base='/catalogue?business='+encodeURIComponent(business.id)+(view==='extra'?'&amp;view=extra':'');
  return `<h1>Delete ${item.kind==='extra'?'extra':'service'}?</h1><p>Delete <strong>${esc(item.name)}</strong> from ${esc(business.name)}? This removes the saved item. Its audit history is retained.</p><form method="post" action="${base}&amp;item=${encodeURIComponent(item.id)}"><input type="hidden" name="action" value="delete"><input type="hidden" name="version" value="${esc(item.version)}"><button>Confirm delete</button> <a href="${base}">Cancel</a></form>`;
 }
 export function renderCatalogue(business,items,canManage,editing=null,message='',error=false,view='service'){
