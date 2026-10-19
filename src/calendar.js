@@ -1,3 +1,4 @@
+import {validDate,validPickerValue} from '../public/date-time-values.js';
 import {dateTimeField} from './date-time-field.js';
 import {bookingStatuses} from './bookings.js';
 import {validCustomerId} from './customers.js';
@@ -6,7 +7,7 @@ const invalid=message=>Object.assign(new Error(message),{status:422});
 export function calendarOptions(params,timeZone,now=new Date()){
  const today=new Intl.DateTimeFormat('en-CA',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
  const day=params.get('day')||today,view=params.get('view')||'week';
- if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!Number.isFinite(Date.parse(day))||new Date(day).toISOString().slice(0,10)!==day||!['day','week'].includes(view))throw invalid('Choose a valid calendar date and view.');
+ if(!validDate(day)||!['day','week'].includes(view))throw invalid('Choose a valid calendar date and view.');
  return {day,view,days:view==='day'?1:7};
 }
 export async function readCalendar(client,businessId,options){
@@ -16,7 +17,7 @@ export async function readCalendar(client,businessId,options){
 }
 export async function checkAvailability(client,businessId,params){
  const local=params.get('local_start'),raw=params.get('duration_minutes'),booking=params.get('booking')||null;
- if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local??'')||!/^\d+$/.test(raw??'')||Number(raw)<15||Number(raw)>1440||booking&&!validCustomerId(booking))throw invalid('Enter a valid start time and duration from 15 to 1440 minutes.');
+ if(!validPickerValue(local,'datetime')||!/^\d+$/.test(raw??'')||Number(raw)<15||Number(raw)>1440||booking&&!validCustomerId(booking))throw invalid('Enter a valid start time and duration from 15 to 1440 minutes.');
  const {data,error}=await client.rpc('staff_availability',{p_business_id:businessId,p_local_start:local,p_minutes:Number(raw),p_booking_id:booking});
  if(error?.code==='42501')throw Object.assign(new Error('Booking access denied'),{status:403});
  if(error||!data?.time_zone||!Array.isArray(data.staff))throw invalid('Availability could not be checked. Check the date and try again.');
