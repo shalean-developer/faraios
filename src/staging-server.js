@@ -62,7 +62,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         }
       if(url.pathname==='/catalogue'){
           if(!await auth.read(id)){clear();return redirect('/login');}
-          const businessId=url.searchParams.get('business'),itemId=url.searchParams.get('item'),view=url.searchParams.get('view')==='extra'?'extra':'service';
+          const businessId=url.searchParams.get('business'),itemId=url.searchParams.get('item'),view=url.searchParams.get('view')==='extra'?'extra':'service',catalogueOptions={q:url.searchParams.get('q'),status:url.searchParams.get('status'),service:url.searchParams.get('service')};
           return await auth.withCatalogue(id,businessId,true,async(client,business)=>{
             const data=new URLSearchParams(body),items=await listCatalogue(client,businessId);
             if(itemId&&!items.some(i=>i.id===itemId))return send(404,html('Item unavailable','<h1>Item unavailable</h1><a href="/dashboard">Back to workspace</a>'));
@@ -70,7 +70,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
               const existing=items.find(i=>i.id===itemId);
               if(!existing)return send(404,'Item unavailable','text/plain');
               try{await saveCatalogueItem(client,businessId,{is_active:false},{id:itemId,version:Number(data.get('version'))});}
-              catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,null,error.message,true,view)));}
+              catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,null,error.message,true,view,catalogueOptions)));}
               return redirect('/catalogue?business='+encodeURIComponent(businessId)+(view==='extra'?'&view=extra':'')+'&saved=1');
             }
             if(data.get('action')==='configure'){
@@ -79,18 +79,18 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
               const same=profile===(values.configuration_profile??'');
               const retained=same?{...values,allowed_extra:data.getAll('allowed_extra')}:Object.fromEntries(Object.entries(values).filter(([key])=>['kind','name','description','price','pricing_model','unit_label','team_size','status','version','cleaning_profile'].includes(key)));
               if(profile)retained.pricing_model='fixed';
-              return send(200,html('Catalogue',renderCatalogue(business,items,true,{...previous,...retained,id:itemId,creating:!itemId,configure_profile:true,cleaning_config:same?previous?.cleaning_config:null,form_values:retained},'',false,view)));
+              return send(200,html('Catalogue',renderCatalogue(business,items,true,{...previous,...retained,id:itemId,creating:!itemId,configure_profile:true,cleaning_config:same&&profile===previous?.cleaning_profile?previous.cleaning_config:null,form_values:retained},'',false,view,catalogueOptions)));
             }
             if(data.get('action')==='delete'){
               if(!itemId)return send(400,'Item required','text/plain');
               try{await deleteCatalogueItem(client,businessId,itemId,Number(data.get('version')));}
-              catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,null,error.message,true,view)));}
+              catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,null,error.message,true,view,catalogueOptions)));}
               return redirect('/catalogue?business='+encodeURIComponent(businessId)+(view==='extra'?'&view=extra':'')+'&deleted=1');
             }
-            let item;try{item=parseCatalogueItem(data,items.find(i=>i.id===itemId));}catch(error){return send(422,html('Catalogue',renderCatalogue(business,items,true,{...items.find(i=>i.id===itemId),...Object.fromEntries(data),id:itemId,form_values:{...Object.fromEntries(data),allowed_extra:data.getAll('allowed_extra')}},error.message,true,view)));}
-            if(itemId&&items.find(i=>i.id===itemId).kind!==item.kind)return send(422,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},'Item type cannot be changed. Create another item instead.',true,view)));
+            let item;try{item=parseCatalogueItem(data,items.find(i=>i.id===itemId));}catch(error){return send(422,html('Catalogue',renderCatalogue(business,items,true,{...items.find(i=>i.id===itemId),...Object.fromEntries(data),id:itemId,form_values:{...Object.fromEntries(data),allowed_extra:data.getAll('allowed_extra')}},error.message,true,view,catalogueOptions)));}
+            if(itemId&&items.find(i=>i.id===itemId).kind!==item.kind)return send(422,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},'Item type cannot be changed. Create another item instead.',true,view,catalogueOptions)));
             try{await saveCatalogueItem(client,businessId,item,{id:itemId,version:Number(data.get('version'))});}
-            catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},error.message,true,view)));}
+            catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},error.message,true,view,catalogueOptions)));}
             return redirect('/catalogue?business='+encodeURIComponent(businessId)+((itemId?view:item.kind)==='extra'?'&view=extra':'')+'&saved=1');
           });
         }
