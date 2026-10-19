@@ -4,6 +4,8 @@ import {validDate,validTime,validPickerValue,shiftDate,shiftMonth,monthDays,enha
 import {dateTimeField} from '../src/date-time-field.js';
 import {renderBusinessSettings} from '../src/business-settings.js';
 import {renderBookings} from '../src/bookings.js';
+import {updateBooking} from '../src/bookings.js';
+import {checkAvailability} from '../src/calendar.js';
 import {renderCalendar} from '../src/calendar.js';
 class Element extends EventTarget{
  constructor(tag='div'){super();this.tagName=tag;this.children=[];this.dataset={};this.attrs={};this.style={};this.hidden=false;this._value='';this.selectedIndex=0;this.className='';this.classList={add:c=>this.className+=' '+c,toggle:()=>{}};}
@@ -39,6 +41,15 @@ test('booking, calendar and working-hours forms reuse the same field renderer wi
  const calendar=renderCalendar(business,ctx,{time_zone:'UTC',bookings:[],busy:[]},{day:'2026-10-19',view:'day',days:1});assert.match(calendar,/data-picker="date"/);assert.match(calendar,/data-picker="datetime"/);
  const booking=renderBookings(business,[],ctx,{booking:{id:'test',status:'assigned',version:1,local_start:'2026-10-19T09:37',duration_minutes:120,assigned_staff:[],customer_snapshot:{name:'Test'},address_snapshot:{},price_lines:[],required_team_size:1,total_cents:0}});assert.match(booking,/data-picker="datetime"[^>]*value="2026-10-19T09:37"/);
  for(const markup of [settings,calendar,booking])assert.doesNotMatch(markup,/type="(?:date|time|datetime-local)"/);
+});
+test('server rejects impossible or overflowing dates/times before any availability or booking write',async()=>{
+ let calls=0;const client={rpc:()=>{calls++;},from:()=>{calls++;}};
+ for(const value of ['2026-10-19T24:00','2026-10-19T23:60','2026-02-30T09:00','2026-02-29T09:00','0000-01-01T09:00']){
+  const params=new URLSearchParams({version:'1',action:'reschedule',local_start:value,duration_minutes:'120',change_reason:'Test'});
+  await assert.rejects(updateBooking(client,'test',{id:'test'},params),/date\/time/);
+  await assert.rejects(checkAvailability(client,'test',params),e=>e.status===422);
+ }
+ assert.equal(calls,0);
 });
 test('shared pickers commit canonical values, cancel, navigate with keyboard, reset and retain typed validation',async()=>{
  const previous={document:globalThis.document,window:globalThis.window};const doc=new Element();doc.createElement=tag=>new Element(tag);globalThis.document=doc;globalThis.window=Object.assign(new Element(),{innerWidth:390,innerHeight:844});
