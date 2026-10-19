@@ -81,7 +81,13 @@ export function enhancePicker(input){
  };
  trigger.addEventListener('click',()=>popup.hidden?open():close(true));input.addEventListener('keydown',event=>{if(event.key==='ArrowDown'){event.preventDefault();open();}});
  root.addEventListener('keydown',event=>{if(event.key==='Escape'&&!popup.hidden){event.preventDefault();event.stopPropagation();close(true);}});
- root.addEventListener('focusout',()=>queueMicrotask(()=>{if(!root.contains(document.activeElement))close();}));
+ // During a native pointer focus transition activeElement can briefly be body.
+ // Prefer the destination; wait a full task only when it is unavailable (e.g. rerender).
+ root.addEventListener('focusout',event=>{
+  if(root.contains(event.relatedTarget))return;
+  if(event.relatedTarget){close();return;}
+  setTimeout(()=>{if(!root.contains(document.activeElement))close();},0);
+ });
  document.addEventListener('pointerdown',event=>{if(!root.contains(event.target))close();});
  document.addEventListener('faraios:picker-open',event=>{if(event.detail!==root)close();});window.addEventListener('resize',()=>close());
  document.addEventListener('scroll',event=>{if(!popup.contains(event.target))close();},true);
