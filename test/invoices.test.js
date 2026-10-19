@@ -93,3 +93,19 @@ test('server orchestration cannot accept a foreign claim and UI connection paylo
  await assert.rejects(invoiceTotals({rpc:async()=>({data:{business_id:a,count:1,total_cents:100,matched_count:1,matched_cents:100,pending_count:1,review_count:0}})},a),/totals unavailable/);
  let sent;await saveAccountingConnection({rpc:async(name,params)=>{sent=params;return {data:1};}},a,new URLSearchParams({organization_id:'123',api_domain:'https://www.zohoapis.com',credential_key:'SYNTHETIC_TEST',version:'0',enabled:'no',client_secret:'NEVER_SEND'}));assert.doesNotMatch(JSON.stringify(sent),/NEVER_SEND|client_secret/);
 });
+
+test('accepted quote handoff becomes one explicit invoice with the same frozen agreement',async()=>{
+ const {db,as}=await fixture();
+ try{await as(owner,async()=>{
+  const q=(await db.query('select public.create_quote($1,$2,$3,$4,$5,null,120) id',[a,id(700),id(110),id(111),JSON.stringify([{catalogue_id:id(112),quantity:1}])])).rows[0].id;
+  await db.query("select public.change_quote($1,$2,1,'issued','Synthetic sharing')",[a,q]);await db.query("select public.change_quote($1,$2,2,'accepted','Synthetic acceptance')",[a,q]);
+  const receipt=(await db.query("select public.convert_quote($1,$2,3,'2026-11-03 09:00','') r",[a,q])).rows[0].r;
+  assert.equal((await db.query('select count(*)::int n from public.business_invoices')).rows[0].n,0,'Conversion alone must not bill');
+  const invoice=(await db.query('select public.prepare_invoice($1,$2) id',[a,receipt.booking_id])).rows[0].id;
+  assert.equal((await db.query('select public.prepare_invoice($1,$2) id',[a,receipt.booking_id])).rows[0].id,invoice);
+  const saved=(await db.query('select * from public.business_invoices where id=$1',[invoice])).rows[0],agreement=(await db.query('select agreement from public.business_quotes where id=$1',[q])).rows[0].agreement;
+  assert.equal(saved.source_quote_id,q);assert.equal(saved.booking_id,receipt.booking_id);assert.equal(saved.version,1);assert.equal(saved.total_cents,agreement.total_cents);assert.equal(saved.currency,agreement.currency);
+  for(const key of ['customer_snapshot','address_snapshot','price_lines'])assert.deepEqual(saved.snapshot[key],agreement[key]);
+  assert.equal((await db.query('select count(*)::int n from public.quote_invoice_handoffs where quote_id=$1 and booking_id=$2',[q,receipt.booking_id])).rows[0].n,1);
+ });}finally{await db.close();}
+});

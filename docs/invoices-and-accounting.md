@@ -74,7 +74,7 @@ The provider adapter follows the official [Zoho OAuth](https://www.zoho.com/book
 ## Local evidence before candidate freeze
 
 - Syntax and whitespace checks PASS.
-- Focused invoice SQL, provider contract, office HTTP and quote detail checks: 57/57 PASS, zero skips.
-- Full local suite: 142 discovered, 141 PASS, one explicit skip because the independent PostgreSQL service is not installed locally. CI must run all142 with its PostgreSQL17 service, including the added invoice-creation and worker-claim contention cases.
+- Focused invoice SQL, provider contract, office HTTP and quote detail checks: 58/58 PASS, zero skips.
+- Full local suite: 143 discovered, 142 PASS, one explicit skip because the independent PostgreSQL service is not installed locally. CI must run all143 with its PostgreSQL17 service, including the added invoice-creation and worker-claim contention cases.
 - Independent `QA-T19-LOCAL-20261019` v2 PASS for bounded local implementation/preparation. Reviewer made no edits/live mutations, independently ran the57 focused checks and a fake-provider token-refresh/reconciliation probe. Shared AI tooling disclosure applies. A reproduced NULL-attempt completion finding is fixed and regression-protected; no unresolved material code finding remains in that reviewed scope.
 - No real provider request, external invoice, financial activation or production action occurred. Real Zoho acceptance is NOT ASSESSED. Staging migration/readback, exact-head CI and browser gates remain pending in this record; later evidence must name the exact released candidate.
