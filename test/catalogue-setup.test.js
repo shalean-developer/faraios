@@ -67,3 +67,14 @@ test('read-only item links retain the catalogue and hourly services retain per-u
  const readonly=renderCatalogue({id:id(2),name:'Business'},[service],false,service);assert.match(readonly,/<h3>Hourly service<\/h3>/);assert.doesNotMatch(readonly,/<form/);
  const edit=renderCatalogue({id:id(2),name:'Business'},[service],true,service);assert.match(edit,/<span>Price \(R\)<\/span>/);assert.doesNotMatch(edit,/Base visit price/);
 });
+
+test('first-stage validation errors keep profile selection without requiring configuration',()=>{
+ for(const persisted of ['', 'regular']){
+  const html=cleaningConfigForm({kind:'service',cleaning_profile:persisted,form_values:{cleaning_profile:'deep',price:'12.345'}},[]);
+  assert.match(html,/<option value="deep" selected>/);
+  assert.doesNotMatch(html,/name="base_minutes"/);
+  assert.doesNotMatch(html,/3. Price and time/);
+ }
+ const html=cleaningConfigForm({kind:'service',cleaning_profile:'deep',form_values:{cleaning_profile:'deep',base_minutes:'240'}},[]);
+ assert.match(html,/name="base_minutes"/);
+});
