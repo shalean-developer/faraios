@@ -61,3 +61,17 @@ Real Chrome owner workflow passed for both businesses:
 - The pre-existing booking digest remains 47cf1779785f8cf75bd80f47783ff4b8.
 
 This closes the staff-assignment and real browser save-to-completion blockers recorded above. T14 remains In progress for the outstanding business configuration review (zero-valued extra durations and equipment arrangements); do not treat this as production readiness. Cancellation and both-business rescheduling are covered by the prior actual database rollback checks and isolated HTTP tests, not claimed as separate browser cancellation checks.
+
+## Approved setup and T14 closeout
+
+Final decision: PASS for T14 one-off booking acceptance. This supersedes the earlier In progress decisions. Foundation and production-readiness gates remain separate.
+
+On 19 October the owner approved these missing extra durations for both businesses: Cupboards, Interior Windows, Balcony cleaning, Ceiling cleaning, Kitchen and Sanitisation 30 minutes each; Walls, Garage and Mattress 45 each; Carpet cleaning and Outside windows 60 each; Stain treatment and Welcome Setup 20 each; Water plants and Post-clean Photos 10 each; Airbnb Inside Oven 20 and Laundry 22. Existing non-zero values were preserved (Regular Fridge60/Oven20/Ironing40/Laundry22).
+
+A guarded atomic transaction updated only cleaning_config.extra_minutes across 12 services / 58 previously zero links. Readback verified both businesses match, with zero linked extras still carrying zero duration. Equipment remains policy assessed: customer supplies or explicit business-equipment office assessment. No automatic delivery tariff was invented; assessed charge and final duration are mandatory when business equipment is selected. Office final duration remains explicitly assessed rather than a sum treated as authoritative.
+
+Post-save authenticated-owner regression transactions created all six profiles in each business with all applicable extras, then rolled back. Expected final minutes passed for both: Regular497, Deep695, Moving650, Airbnb322, Office240 (explicit assessment), Carpet245. Thus 12 actual database calculations passed after the change.
+
+All three existing booking records (including two labelled completed browser acceptance fixtures) remained unchanged: aggregate digest before/after 672089597ac392b146d2d6d1e9ab8ead. No test rows from the timing regression persisted. No price, equipment policy, membership, invoice, payment or production change was made by this final timing update.
+
+T14 is complete for its office one-off booking scope. Next tracker task: T15 Staff and teams. Availability/double-booking prevention remains T16, recurrence T17, and finance/portals/recovery/hosting retain their separate tasks.
