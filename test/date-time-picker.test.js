@@ -11,7 +11,7 @@ class Element extends EventTarget{
  constructor(tag='div'){super();this.tagName=tag;this.children=[];this.dataset={};this.attrs={};this.style={};this.hidden=false;this._value='';this.selectedIndex=0;this.className='';this.classList={add:c=>this.className+=' '+c,toggle:()=>{}};}
  append(...nodes){for(const node of nodes){if(node.parent)node.parent.children=node.parent.children.filter(n=>n!==node);this.children.push(node);node.parent=this;}}
  replaceChildren(...nodes){this.children=[];this.append(...nodes);}
- after(node){this.sibling=node;}
+ after(node){this.sibling=node;if(this.parent){node.parent=this.parent;this.parent.children.splice(this.parent.children.indexOf(this)+1,0,node);}}
  setAttribute(k,v){this.attrs[k]=String(v);}
  removeAttribute(k){delete this.attrs[k];}
  get options(){return this.children;}
@@ -28,6 +28,7 @@ class Element extends EventTarget{
 const walk=root=>root.children.flatMap(c=>[c,...walk(c)]);
 const key=(node,value)=>{const e=new Event('keydown',{cancelable:true});Object.defineProperty(e,'key',{value});node.dispatchEvent(e);};
 const click=node=>node.dispatchEvent(new Event('click'));
+const blurTo=(root,target)=>{const event=new Event('focusout');Object.defineProperty(event,'relatedTarget',{value:target});root.dispatchEvent(event);};
 test('calendar arithmetic handles leap dates, month ends and year changes without timezone conversion',()=>{
  assert.equal(validDate('2028-02-29'),true);for(const v of ['2026-02-29','2026-04-31','0000-01-01','bad'])assert.equal(validDate(v),false);
  assert.equal(shiftMonth('2028-01-31',1),'2028-02-29');assert.equal(shiftMonth('2026-03-31',-1),'2026-02-28');assert.equal(shiftDate('2026-12-31',1),'2027-01-01');
@@ -68,5 +69,24 @@ test('shared pickers commit canonical values, cancel, navigate with keyboard, re
   datetime.open();selects[0].value='18';selects[0].dispatchEvent(new Event('change'));click(walk(datetime.root).find(n=>n.textContent==='Cancel'));assert.equal(combined.value,'2026-10-19T15:47');
   const time=new Element('input');time.id='opening';time.value='08:17';time.dataset={picker:'time'};const clock=enhancePicker(time);clock.open();const timeSelects=walk(clock.root).filter(n=>n.tagName==='select');timeSelects[0].value='10';timeSelects[0].dispatchEvent(new Event('change'));click(walk(clock.root).find(n=>n.textContent==='Done'));assert.equal(time.value,'10:17');
   datetime.open();clock.open();assert.equal(datetime.root.children[1].hidden,true);assert.equal(clock.root.children[1].hidden,false);
+ }finally{globalThis.document=previous.document;globalThis.window=previous.window;}
+});
+test('pointer focus transitions keep dates and custom time options clickable before focus settles',async()=>{
+ const previous={document:globalThis.document,window:globalThis.window};const doc=new Element();doc.createElement=tag=>new Element(tag);globalThis.document=doc;globalThis.window=Object.assign(new Element(),{innerWidth:390,innerHeight:844});
+ try{
+  const input=new Element('input');input.id='date-pointer';input.value='2026-10-12';input.dataset={picker:'date',timeZone:'UTC'};
+  const picker=enhancePicker(input);picker.open();const popup=picker.root.children[1],target=popup.querySelector('[data-day="2026-10-20"]');
+  // Real browsers dispatch focusout while activeElement is temporarily body.
+  doc.activeElement=doc;blurTo(picker.root,target);await Promise.resolve();assert.equal(popup.hidden,false);
+  target.focus();click(target);assert.equal(input.value,'2026-10-20');assert.equal(popup.hidden,true);
+  const combined=new Element('input');combined.id='time-pointer';combined.value='2026-10-12T09:00';combined.dataset={picker:'datetime',timeZone:'UTC'};
+  const time=enhancePicker(combined);time.open();const timePopup=time.root.children[1],hourDropdown=walk(timePopup).find(n=>n.className==='dropdown'),hourTrigger=hourDropdown.children[0],hourOptions=hourDropdown.children[1];
+  doc.activeElement=doc;blurTo(time.root,hourTrigger);await Promise.resolve();assert.equal(timePopup.hidden,false);hourTrigger.focus();click(hourTrigger);
+  const selection=new Event('click');Object.defineProperty(selection,'target',{value:hourOptions.children[15]});hourOptions.dispatchEvent(selection);
+  const done=walk(timePopup).find(n=>n.textContent==='Done');doc.activeElement=doc;blurTo(time.root,done);await Promise.resolve();assert.equal(timePopup.hidden,false);done.focus();click(done);assert.equal(combined.value,'2026-10-12T15:00');
+  // A null destination during grid replacement must wait for the next focus.
+  picker.open();doc.activeElement=doc;blurTo(picker.root,null);await Promise.resolve();assert.equal(popup.hidden,false);popup.querySelector('[data-day="2026-10-20"]').focus();await new Promise(r=>setTimeout(r,5));assert.equal(popup.hidden,false);
+  // Genuine keyboard/pointer departure and null-target blur still dismiss.
+  blurTo(picker.root,new Element());assert.equal(popup.hidden,true);picker.open();doc.activeElement=doc;blurTo(picker.root,null);await new Promise(r=>setTimeout(r,5));assert.equal(popup.hidden,true);
  }finally{globalThis.document=previous.document;globalThis.window=previous.window;}
 });
