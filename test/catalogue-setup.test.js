@@ -53,7 +53,7 @@ test('setup enhancement reveals relevant controls, adds existing unused pet rows
 
 test('extras do not require a service team or cleaning profile',()=>{
  const business={id:id(2),name:'Business'};
- const create=renderCatalogue(business,[],true);assert.doesNotMatch(create,/<input[^>]*name="team_size"[^>]*\brequired\b/);
+ const create=renderCatalogue(business,[],true,{kind:'extra',creating:true});assert.doesNotMatch(create,/<input[^>]*name="team_size"[^>]*\brequired\b/);
  const form=fields(create);for(const [k,v] of Object.entries({kind:'extra',name:'Fridge',price:'25.00',pricing_model:'hourly',unit_label:'hour',status:'active'}))form.set(k,v);
  const extra=parseCatalogueItem(form);assert.equal(extra.team_size,null);assert.equal(extra.cleaning_profile,null);
  const edit=renderCatalogue(business,[],true,{...extra,id:id(3),version:1});assert.doesNotMatch(edit,/Cleaners required|Booking questions/);
@@ -64,7 +64,7 @@ test('extras do not require a service team or cleaning profile',()=>{
 
 test('read-only item links retain the catalogue and hourly services retain per-unit price wording',()=>{
  const service={id:id(1),kind:'service',name:'Hourly service',price_cents:2500,pricing_model:'hourly',unit_label:'hour',team_size:1,is_active:true,version:1};
- const readonly=renderCatalogue({id:id(2),name:'Business'},[service],false,service);assert.match(readonly,/<h3>Hourly service<\/h3>/);assert.doesNotMatch(readonly,/<form/);
+ const readonly=renderCatalogue({id:id(2),name:'Business'},[service],false,service);assert.match(readonly,/<h3>Hourly service<\/h3>/);assert.doesNotMatch(readonly,/<form[^>]*method="post"/);
  const edit=renderCatalogue({id:id(2),name:'Business'},[service],true,service);assert.match(edit,/<span>Price \(R\)<\/span>/);assert.doesNotMatch(edit,/Base visit price/);
 });
 
@@ -77,4 +77,18 @@ test('first-stage validation errors keep profile selection without requiring con
  }
  const html=cleaningConfigForm({kind:'service',cleaning_profile:'deep',form_values:{cleaning_profile:'deep',base_minutes:'240'}},[]);
  assert.match(html,/name="base_minutes"/);
+});
+
+test('category lists show applicability, correct base/rate labels and filtered results',()=>{
+ const service={id:id(1),kind:'service',name:'Regular',price_cents:25000,team_size:2,cleaning_profile:'regular',is_active:true,cleaning_config:{base_minutes:180,extras:[id(3)]}};
+ const extra={id:id(3),kind:'extra',name:'Fridge',price_cents:1500,pricing_model:'fixed',unit_label:'visit',is_active:true};
+ const other={...extra,id:id(4),name:'Oven',is_active:false};const business={id:id(2),name:'Business'};
+ let html=renderCatalogue(business,[service,extra,other],true,null,'',false,'extra',{service:service.id,status:'active'});
+ assert.match(html,/create=extra/);assert.match(html,/catalogue-service-chip">Regular/);assert.match(html,/<h3>Fridge/);assert.doesNotMatch(html,/<h3>Oven/);assert.match(html,/deactivate=1/);
+ html=renderCatalogue(business,[service],true);assert.match(html,/Base · room charges and extras added/);assert.match(html,/180 min base/);assert.doesNotMatch(html,/id="catalogue-editor"/);
+});
+test('selecting a profile previews fields without validating or saving the draft',()=>{
+ const form=new Node(),profile=new Node(),configure=new Node();let calls=0;
+ form.elements={namedItem:n=>n==='cleaning_profile'?profile:null};form.matches={'[data-configure-profile]':[configure]};form.requestSubmit=button=>{assert.equal(button,configure);calls++;};
+ enhanceCatalogueSetup(form);assert.equal(configure.hidden,true);profile.dispatchEvent(new Event('change'));assert.equal(calls,1);
 });
