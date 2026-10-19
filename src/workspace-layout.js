@@ -15,7 +15,7 @@ export function renderWorkspaceNavigation(identity,selected='all',active='/dashb
 }
 
 export function renderWorkspaceFrame(identity,business,body,active='/dashboard'){
- return `<a class="skip-link" href="#main-content">Skip to content</a><div class="workspace-topbar">${renderWorkspaceHeader({business})}</div><div class="workspace">${renderWorkspaceNavigation(identity,business?.id??'all',active)}<main id="main-content" class="content module-content">${body}</main></div>`;
+ return `<a class="skip-link" href="#main-content">Skip to content</a><div class="workspace-topbar">${renderWorkspaceHeader({business})}</div><div class="workspace">${renderWorkspaceNavigation(identity,business?.id??'all',active)}<main id="main-content" tabindex="-1" class="content module-content">${body}</main></div>`;
 }
 
 export function moduleHeading({title,business,description='',actions='',back=''}){
