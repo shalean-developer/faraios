@@ -21,6 +21,10 @@ test('reusable dropdown supports keyboard commit, cancellation, validation, rese
  let changes=0;select.addEventListener('change',()=>changes++);
  enhanceDropdown(select);const root=select.sibling,[trigger,list]=root.children;
  assert.equal(select.hidden,true);assert.equal(trigger.attrs['aria-expanded'],'false');
+ trigger.dispatchEvent(new Event('click'));assert.equal(list.hidden,false);
+ const down=new Event('mousedown',{cancelable:true});list.dispatchEvent(down);assert.equal(down.defaultPrevented,true);
+ const click=new Event('click');Object.defineProperty(click,'target',{value:list.children[2]});list.dispatchEvent(click);assert.equal(select.selectedIndex,2);assert.equal(list.hidden,true);assert.equal(changes,1);
+ select.selectedIndex=0;changes=0;select.dispatchEvent(new Event('change'));changes=0;
  key(trigger,'ArrowDown');assert.equal(list.hidden,false);key(trigger,'Enter');assert.equal(select.selectedIndex,1);assert.equal(changes,1);assert.equal(list.hidden,true);
  key(trigger,'ArrowDown');key(trigger,'Escape');assert.equal(select.selectedIndex,1);assert.equal(list.hidden,true);
  key(trigger,'b');key(trigger,'Enter');assert.equal(select.selectedIndex,2);
