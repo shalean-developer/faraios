@@ -178,3 +178,15 @@ for(const role of ['owner','manager'])test(`booking HTTP ${role} lifecycle, dupl
 test('booking HTTP denies staff and anonymous access',async()=>run(async(base)=>{
  const url=base+'/bookings?business='+bid;assert.equal((await fetch(url,{redirect:'manual'})).status,303);const Cookie=await signIn(base);assert.equal((await fetch(url,{headers:{Cookie}})).status,403);assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'action=create'})).status,403);
 },{role:'staff'}));
+
+test('catalogue HTTP profile changes reset the old configuration before rendering new rules',async()=>run(async(base,state)=>{
+ const Cookie=await signIn(base),url=base+'/catalogue?business='+bid;
+ const post=(target,body)=>fetch(target,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body,redirect:'manual'});
+ assert.equal((await post(url,catalogueForm+'&cleaning_profile=office')).status,303);
+ const item=state.catalogue[0],edit=url+'&item='+item.id;
+ const configure=catalogueForm+'&version=1&cleaning_profile=office&base_minutes=60&service_fee_cents=0&equipment_policy=included&rule_bathrooms_unit_cents=0&rule_bathrooms_unit_minutes=0'+[0,1,2,3].map(i=>'&rule_office_size_'+i+'_cents=0&rule_office_size_'+i+'_minutes=0').join('');
+ assert.equal((await post(edit,configure)).status,303);assert.equal(state.catalogue[0].cleaning_config.base_minutes,60);
+ assert.equal((await post(edit,configure.replace('version=1','version=2').replace('cleaning_profile=office','cleaning_profile=regular'))).status,303);
+ assert.equal(state.catalogue[0].cleaning_profile,'regular');assert.equal(state.catalogue[0].cleaning_config,null);
+ const markup=await (await fetch(edit,{headers:{Cookie}})).text();assert.match(markup,/pet_label_0/);assert.match(markup,/rule_bedrooms_unit_cents/);assert.doesNotMatch(markup,/rule_office_size_0_cents/);
+},{role:'owner'}));
