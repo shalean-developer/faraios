@@ -103,7 +103,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         return await auth.withBookings(id,url.searchParams.get('business'),async(client,business)=>{
           const ctx=await bookingContext(client,business.id),bookingId=url.searchParams.get('booking'),customerId=url.searchParams.get('customer'),booking=bookingId?await readBooking(client,business.id,bookingId):null,customer=customerId?await readCustomer(client,business.id,customerId):null;
           if(bookingId&&!booking||customerId&&!customer)return send(404,'Booking or customer unavailable','text/plain');
-          return send(200,html('Bookings',renderBookings(business,await listBookings(client,business.id),ctx,{booking,customer,customers:await listCustomers(client,business.id),addresses:customer?await listAddresses(client,business.id,customer.id):[],catalogue:await listCatalogue(client,business.id),message:url.searchParams.get('saved')==='1'?'Booking saved.':''})));
+          return send(200,html('Bookings',renderBookings(business,await listBookings(client,business.id),ctx,{booking,customer,customers:await listCustomers(client,business.id),addresses:customer?await listAddresses(client,business.id,customer.id):[],catalogue:await listCatalogue(client,business.id),values:{service_id:url.searchParams.get('service_id')??''},message:url.searchParams.get('saved')==='1'?'Booking saved.':''})));
         });
       }
         if(url.pathname==='/customers'){
