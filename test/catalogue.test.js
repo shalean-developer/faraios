@@ -56,6 +56,6 @@ test('delete scopes requests and renders escaped owner confirmation',async()=>{
  const item={id:b,kind:'extra',name:'<script>',version:2};
  assert.match(renderCatalogueDelete({id:a,name:'A'},item),/Confirm delete/);
  assert.doesNotMatch(renderCatalogueDelete({id:a,name:'A'},item),/<script>/);
- assert.match(renderCatalogue({id:a,name:'A'},[{...item,price_cents:0,pricing_model:'fixed'}],true),/Delete extra/);
+ assert.match(renderCatalogue({id:a,name:'A'},[{...item,price_cents:0,pricing_model:'fixed'}],true,null,'',false,'extra'),/Delete extra/);
  assert.doesNotMatch(renderCatalogue({id:a,name:'A'},[{...item,price_cents:0,pricing_model:'fixed'}],false),/Delete extra/);
 });
