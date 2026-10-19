@@ -16,20 +16,19 @@ Database change: database/staff-teams-draft.sql, additive tables/functions/polic
 
 T15 remains In progress until staging database and browser acceptance are recorded. Availability/overlap prevention is T16; cleaner portal is T24. No production readiness claim.
 
-+
-+## Acceptance — 19 October 2026
-+
-+Decision: PASS for T15. The pending acceptance statement above is superseded by this evidence. Implementation PR44 merged b7560b6; syntax, 38 focused local tests, CI437 and final review passed. Staging schema and actual owner/manager/staff/anonymous RLS/audit checks passed before browser work.
-+
-+After local pull/restart and owner sign-in, Chrome showed the new Staff & teams pages. The owner had already created one profile and one team per business. Both profiles reopened with independently saved business-specific names and contact details. Each display name was temporarily changed with a QA suffix, saved, reloaded and restored. Both contact numbers were preserved; profile versions advanced to 3. Profile INSERTs and four UPDATEs were verified in the audit log. Owner-created teams remained active at version1, unchanged.
-+
-+Browser-created separate labelled QA teams in each business, reloaded, renamed and reopened. Each team selected only that business's active staff account. Browser assignment dropdowns showed saved profile names. Selected the appropriate QA team, with no individual staff checkbox selection, for an independently prepared labelled draft fixture in each business. Both bookings advanced Confirmed → Assigned with the correct one-person assignment.
-+
-+Deactivated each QA team through the browser. It disappeared from the booking's saved-team selector, while the existing assigned_staff snapshot stayed intact. Both fixtures were then cancelled through the browser with explicit test-only reasons. Final fixture versions4, status cancelled, one assigned staff each. Two inactive QA teams remain (version3) for audit evidence. No live service is to be delivered for these fixtures.
-+
-+The pre-existing three bookings remained byte-for-byte unchanged: digest672089597ac392b146d2d6d1e9ab8ead. No new account, membership, message, invoice, payment, earnings or production action. New-table audit totals: profiles2 INSERT/4 UPDATE; teams4 INSERT/4 UPDATE (includes owner-created setup).
-+
-+Focused 390×844 inspection of the Shalean team editor found no control overflow; page scroll width375 against viewport390. Viewport override reset. This is focused responsive acceptance, not a claim of exhaustive device testing. Browser timeouts were followed by fresh state reads before proceeding.
-+
-+T15 is complete for existing explicitly authorised staff accounts, business-owned profiles/teams and saved-team assignment. Invitations/account creation and access-grant automation were not added by T15. T16 availability/calendar and overlap prevention is next; foundation hosting/recovery/restricted-link gates and T24 portals remain separate.
-+
+
+## Acceptance — 19 October 2026
+
+Decision: PASS for T15. The pending acceptance statement above is superseded by this evidence. Implementation PR44 merged b7560b6; syntax, 38 focused local tests, CI437 and final review passed. Staging schema and actual owner/manager/staff/anonymous RLS/audit checks passed before browser work.
+
+After local pull/restart and owner sign-in, Chrome showed the new Staff & teams pages. The owner had already created one profile and one team per business. Both profiles reopened with independently saved business-specific names and contact details. Each display name was temporarily changed with a QA suffix, saved, reloaded and restored. Both contact numbers were preserved; profile versions advanced to 3. Profile INSERTs and four UPDATEs were verified in the audit log. Owner-created teams remained active at version1, unchanged.
+
+Browser-created separate labelled QA teams in each business, reloaded, renamed and reopened. Each team selected only that business's active staff account. Browser assignment dropdowns showed saved profile names. Selected the appropriate QA team, with no individual staff checkbox selection, for an independently prepared labelled draft fixture in each business. Both bookings advanced Confirmed → Assigned with the correct one-person assignment.
+
+Deactivated each QA team through the browser. It disappeared from the booking's saved-team selector, while the existing assigned_staff snapshot stayed intact. Both fixtures were then cancelled through the browser with explicit test-only reasons. Final fixture versions4, status cancelled, one assigned staff each. Two inactive QA teams remain (version3) for audit evidence. No live service is to be delivered for these fixtures.
+
+The pre-existing three bookings remained byte-for-byte unchanged: digest672089597ac392b146d2d6d1e9ab8ead. No new account, membership, message, invoice, payment, earnings or production action. New-table audit totals: profiles2 INSERT/4 UPDATE; teams4 INSERT/4 UPDATE (includes owner-created setup).
+
+Focused 390×844 inspection of the Shalean team editor found no control overflow; page scroll width375 against viewport390. Viewport override reset. This is focused responsive acceptance, not a claim of exhaustive device testing. Browser timeouts were followed by fresh state reads before proceeding.
+
+T15 is complete for existing explicitly authorised staff accounts, business-owned profiles/teams and saved-team assignment. Invitations/account creation and access-grant automation were not added by T15. T16 availability/calendar and overlap prevention is next; foundation hosting/recovery/restricted-link gates and T24 portals remain separate.
