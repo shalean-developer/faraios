@@ -61,3 +61,9 @@ test('extras do not require a service team or cleaning profile',()=>{
  root.elements={namedItem:n=>n==='kind'?kind:null};teamGroup.matches={'input[name="team_size"]':[team]};profileGroup.matches={'select[name="cleaning_profile"]':[profile]};root.matches={'[data-setup-service-only]':[teamGroup,profileGroup]};
  enhanceCatalogueSetup(root);assert.equal(teamGroup.hidden,true);assert.equal(team.required,false);assert.equal(profile.value,'');kind.value='service';root.dispatchEvent(new Event('change'));assert.equal(teamGroup.hidden,false);assert.equal(team.required,true);
 });
+
+test('read-only item links retain the catalogue and hourly services retain per-unit price wording',()=>{
+ const service={id:id(1),kind:'service',name:'Hourly service',price_cents:2500,pricing_model:'hourly',unit_label:'hour',team_size:1,is_active:true,version:1};
+ const readonly=renderCatalogue({id:id(2),name:'Business'},[service],false,service);assert.match(readonly,/<h3>Hourly service<\/h3>/);assert.doesNotMatch(readonly,/<form/);
+ const edit=renderCatalogue({id:id(2),name:'Business'},[service],true,service);assert.match(edit,/<span>Price \(R\)<\/span>/);assert.doesNotMatch(edit,/Base visit price/);
+});
