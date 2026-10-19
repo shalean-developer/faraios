@@ -87,7 +87,7 @@ test('Postgres booking lifecycle, tenant links, snapshots, team and audit are en
  const configured=[];
  for(const [profile,keys] of Object.entries(profileFields)){
   const rules={},scope={};let additions=0,minutes=60;
-  for(const k of keys){const d=definitions[k];rules[k]={};for(const option of d.count?['unit']:d.options)rules[k][option]={cents:100,minutes:2};scope[k]=d.count?(['bedrooms','extra_rooms','rugs'].includes(k)?0:2):d.options.at(-1);const qty=d.count?scope[k]:1;additions+=100*qty;minutes+=2*qty;}
+  for(const k of keys){const d=definitions[k].custom?{...definitions[k],options:['No animals','Birds present']}:definitions[k];rules[k]={};for(const option of d.count?['unit']:d.options)rules[k][option]={cents:100,minutes:2};scope[k]=d.count?(['bedrooms','extra_rooms','rugs'].includes(k)?0:2):d.options.at(-1);const qty=d.count?scope[k]:1;additions+=100*qty;minutes+=2*qty;}
   if(profile==='airbnb')scope.access_instructions='Synthetic private lockbox instructions';
   const cfg={base_minutes:60,service_fee_cents:0,rules,equipment:{policy:profile==='regular'?'distance':'included',base:'Synthetic depot',base_cents:1000,per_km_cents:101,minimum_cents:1500,minutes:10},extras:[],extra_minutes:{}};
   if(profile==='regular'){scope.equipment='Yes';scope.distance_km=10.1;scope.distance_reason='Synthetic manual measurement';additions+=2021;minutes+=10;}
@@ -98,7 +98,8 @@ test('Postgres booking lifecycle, tenant links, snapshots, team and audit are en
   assert.equal(row.request_payload.cleaning_scope.property_type,scope.property_type);
   await assert.rejects(asUser(owner,()=>createScope({...scope,[keys[0]]:null})),/required service option|room counts/);
   await assert.rejects(asUser(owner,()=>createScope({...scope,unexpected:'value'})),/Unexpected service scope/);
-  for(const k of keys){const d=definitions[k];if(d.count){for(const invalid of [-1,1.5,101])await assert.rejects(asUser(owner,()=>createScope({...scope,[k]:invalid})),/room counts/);if(['bathrooms','carpet_rooms'].includes(k))await assert.rejects(asUser(owner,()=>createScope({...scope,[k]:0})),/room counts/);const large=await asUser(owner,()=>createScope({...scope,[k]:100}));assert.equal(large.cleaning_scope[k],100);}else for(const option of d.options){const variant=await asUser(owner,()=>createScope({...scope,[k]:option}));assert.equal(variant.cleaning_scope[k],option);}}
+  for(const k of keys){const d=definitions[k].custom?{...definitions[k],options:['No animals','Birds present']}:definitions[k];if(d.count){for(const invalid of [-1,1.5,101])await assert.rejects(asUser(owner,()=>createScope({...scope,[k]:invalid})),/room counts/);if(['bathrooms','carpet_rooms'].includes(k))await assert.rejects(asUser(owner,()=>createScope({...scope,[k]:0})),/room counts/);const large=await asUser(owner,()=>createScope({...scope,[k]:100}));assert.equal(large.cleaning_scope[k],100);}else for(const option of d.options){const variant=await asUser(owner,()=>createScope({...scope,[k]:option}));assert.equal(variant.cleaning_scope[k],option);}}
+  if(keys.includes('pets'))await assert.rejects(asUser(owner,()=>createScope({...scope,pets:'Dogs'})),/required service option/);
   if(profile==='regular'){
    const noEquipment=await asUser(owner,()=>createScope({...scope,equipment:'No',distance_km:undefined,distance_reason:undefined}));assert.equal(noEquipment.cleaning_snapshot.equipment_fee_cents,0);
    const minimum=await asUser(owner,()=>createScope({...scope,distance_km:0}));assert.equal(minimum.cleaning_snapshot.equipment_fee_cents,1500);
