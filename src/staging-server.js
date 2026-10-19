@@ -1,6 +1,7 @@
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {createAuthSessions} from './auth-session.js';
+import {parseBusinessSettings,readBusinessSettings,saveBusinessSettings,renderBusinessSettings} from './business-settings.js';
 import {renderWorkspace} from './workspace.js';
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const html=(title,body)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS staging</title><link rel="stylesheet" href="/style.css"></head><body><div class="notice">FARAiOS STAGING · Real test-account sign-in · No production data</div><main class="login"><div class="brand">FaraiOS</div>${body}</main></body></html>`;
@@ -22,7 +23,19 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       if(req.method==='POST'){
         if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
         if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
-        let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>4096)return send(413,'Form too large','text/plain');}
+        let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>(url.pathname==='/settings'?32768:4096))return send(413,'Form too large','text/plain');}
+        if(url.pathname==='/settings'){
+          const businessId=url.searchParams.get('business');
+          if(!await auth.read(id)){clear();return redirect('/login');}
+          return await auth.withOwner(id,businessId,async(client,business)=>{
+            const data=new URLSearchParams(body);let settings;
+            try{settings=parseBusinessSettings(data);}catch(error){
+              const values=Object.fromEntries(data);values.working_days=data.getAll('working_days').map(Number);
+              return send(422,html('Business settings',renderBusinessSettings(business,values,error.message,true)));
+            }
+            await saveBusinessSettings(client,businessId,settings);return redirect('/settings?business='+encodeURIComponent(businessId)+'&saved=1');
+          });
+        }
         if(url.pathname==='/logout'){clear();try{await auth.logout(id);}catch{return send(502,form('Local session cleared. Remote sign-out could not be confirmed.'));}return redirect('/login');}
         if(url.pathname==='/login'){
           failures=failures.filter(t=>t>now()-60000);if(failures.length>=5)return send(429,form('Too many attempts. Wait one minute.'));
@@ -32,11 +45,15 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         }
       }
       if(req.method!=='GET')return send(405,'Method not allowed','text/plain');
+      if(url.pathname==='/settings'){
+        if(!await auth.read(id)){clear();return redirect('/login');}
+        return await auth.withOwner(id,url.searchParams.get('business'),async(client,business)=>send(200,html('Business settings',renderBusinessSettings(business,await readBusinessSettings(client,business.id),url.searchParams.get('saved')==='1'?'Settings saved.':''))));
+      }
       if(url.pathname!=='/dashboard')return send(404,'Not found','text/plain');
       const identity=await auth.read(id);if(!identity){clear();return redirect('/login');}
       const selected=url.searchParams.get('business')??'all';
       if(selected!=='all'&&!identity.businessIds.includes(selected))return send(403,'You do not have access to this business.','text/plain');
       return send(200,renderWorkspace(identity,selected));
-    }catch{return send(503,form('Staging service unavailable. Please try again later.'));}
+    }catch(error){if(error.message==='Settings access denied')return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to manage these business settings.</p><a href="/dashboard">Back to workspace</a>'));return send(503,form('Staging service unavailable. Please try again later.'));}
   });return server;
 }
