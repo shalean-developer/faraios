@@ -127,7 +127,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
             if(!editing)return send(400,'Item required','text/plain');
             return send(200,html('Delete catalogue item',renderCatalogueDelete(business,editing)));
           }
-          return send(200,html('Catalogue',renderCatalogue(business,items,canManage,editing,url.searchParams.get('deleted')==='1'?'Item deleted.':url.searchParams.get('saved')==='1'?'Catalogue saved.':'')));
+          return send(200,html('Catalogue',renderCatalogue(business,items,canManage,editing,url.searchParams.get('deleted')==='1'?'Item deleted.':url.searchParams.get('saved')==='1'?'Catalogue saved.':'',false,url.searchParams.get('view'))));
         });
       }
       if(url.pathname==='/settings'){
