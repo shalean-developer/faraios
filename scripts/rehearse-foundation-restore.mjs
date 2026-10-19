@@ -21,7 +21,7 @@ try{
  }
  await db.exec('alter table public.businesses enable trigger audit_business_change; alter table public.business_memberships enable trigger audit_membership_change; commit;');
  const restored={businesses:(await db.query(`select id,name,industry,status,to_char(created_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') created_at from public.businesses order by id`)).rows,memberships:(await db.query(`select business_id,user_id,role,status,to_char(created_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') created_at from public.business_memberships order by business_id,user_id`)).rows,events:(await db.query(`select id,business_id,to_char(occurred_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') occurred_at,actor_user_id,database_role,transaction_id,entity_table,operation,old_record,new_record from audit.events order by id`)).rows};
- const source={businesses:snapshot.businesses,memberships:snapshot.memberships,events:snapshot.events};
+ const source={businesses:[...snapshot.businesses].sort((a,b)=>a.id.localeCompare(b.id)),memberships:[...snapshot.memberships].sort((a,b)=>a.business_id.localeCompare(b.business_id)||a.user_id.localeCompare(b.user_id)),events:[...snapshot.events].sort((a,b)=>a.id.localeCompare(b.id))};
  assert.equal(digest(restored),digest(source),'Snapshot mismatch after isolated restore');
  // Every member sees exactly their active businesses under the restored RLS policies.
  for(const id of new Set(snapshot.memberships.map(row=>row.user_id))){
@@ -32,6 +32,8 @@ try{
  }
  await db.exec("reset request.jwt.claim.sub");
  const before=(await db.query('select count(*)::int n from audit.events')).rows[0].n;
- if(snapshot.businesses.length){await db.query("update public.businesses set name='Isolated restore verification' where id=$1",[snapshot.businesses[0].id]);assert.equal((await db.query('select count(*)::int n from audit.events')).rows[0].n,before+1);}
+ if(snapshot.businesses.length){const first=snapshot.businesses[0];await db.query('update public.businesses set name=$1 where id=$2',[first.name==='Isolated restore verification'?'Different restore verification':'Isolated restore verification',first.id]);}
+ else{await db.query("insert into public.businesses(name,industry) values('Isolated audit probe','cleaning')");}
+ assert.equal((await db.query('select count(*)::int n from audit.events')).rows[0].n,before+1);
  console.log(JSON.stringify({result:'PASS',scope:'application data only; Auth identities are placeholders',counts:Object.fromEntries(Object.entries(source).map(([key,rows])=>[key,rows.length])),sha256:digest(source),rls:'PASS',auditAfterRestore:'PASS'}));
 }finally{await db.close();}
