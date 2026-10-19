@@ -27,3 +27,7 @@
  .mobile-navigation nav{display:block;overflow:visible;margin-top:16px}
  .mobile-navigation nav a,.mobile-navigation nav>span{margin:4px 0;font-size:15px}
 }
+@media(max-width:900px){
+ .mobile-navigation summary .brand{order:0}
+ .mobile-navigation summary .menu-icon{order:1;margin-left:auto;flex-shrink:0}
+}
