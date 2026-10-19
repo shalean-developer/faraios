@@ -178,3 +178,7 @@
 .account-dropdown button:hover{background:#fff0ed}
 @supports (top:anchor(bottom)){.account-dropdown{position-anchor:--workspace-account;top:calc(anchor(bottom) + 8px);right:anchor(right)}}
 @media(max-width:600px){.workspace-page{padding:20px}.workspace-header{gap:12px}.workspace-header .muted{font-size:12px}.workspace-home{font-size:21px}.account-trigger{padding:10px 12px}}
+
+.account-chevron{display:block;flex:0 0 9px;width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s ease}
+.workspace-header:has(.account-dropdown:popover-open) .account-chevron{transform:translateY(2px) rotate(225deg)}
+@media(prefers-reduced-motion:reduce){.account-chevron{transition:none}}
