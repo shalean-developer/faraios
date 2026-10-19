@@ -155,3 +155,10 @@
 .catalogue-add[open]>summary::before{content:'−'}
 .catalogue-add>summary:hover{background:#104d3c}
 .catalogue-add>summary:focus-visible{outline:3px solid #bb7b22;outline-offset:3px}
+
+.catalogue-header{margin-top:28px}
+.catalogue-header h2{margin-bottom:12px}
+.catalogue-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0}
+.catalogue-tabs a{display:inline-flex;align-items:center;gap:10px;margin:0;padding:11px 18px;min-height:44px;border:1px solid #cbdad3;background:#fff;color:#16654f;font-size:15px}
+.catalogue-tabs a[aria-current="page"]{background:#16654f;color:#fff;border-color:#16654f;font-weight:600}
+.catalogue-tabs a span{font-size:12px;opacity:.85}

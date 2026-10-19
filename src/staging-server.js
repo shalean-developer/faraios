@@ -61,21 +61,21 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         }
       if(url.pathname==='/catalogue'){
           if(!await auth.read(id)){clear();return redirect('/login');}
-          const businessId=url.searchParams.get('business'),itemId=url.searchParams.get('item');
+          const businessId=url.searchParams.get('business'),itemId=url.searchParams.get('item'),view=url.searchParams.get('view')==='extra'?'extra':'service';
           return await auth.withCatalogue(id,businessId,true,async(client,business)=>{
             const data=new URLSearchParams(body),items=await listCatalogue(client,businessId);
             if(itemId&&!items.some(i=>i.id===itemId))return send(404,html('Item unavailable','<h1>Item unavailable</h1><a href="/dashboard">Back to workspace</a>'));
             if(data.get('action')==='delete'){
               if(!itemId)return send(400,'Item required','text/plain');
               try{await deleteCatalogueItem(client,businessId,itemId,Number(data.get('version')));}
-              catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,null,error.message,true)));}
-              return redirect('/catalogue?business='+encodeURIComponent(businessId)+'&deleted=1');
+              catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,null,error.message,true,view)));}
+              return redirect('/catalogue?business='+encodeURIComponent(businessId)+(view==='extra'?'&view=extra':'')+'&deleted=1');
             }
-            let item;try{item=parseCatalogueItem(data,items.find(i=>i.id===itemId));}catch(error){return send(422,html('Catalogue',renderCatalogue(business,items,true,{...items.find(i=>i.id===itemId),...Object.fromEntries(data),id:itemId,form_values:{...Object.fromEntries(data),allowed_extra:data.getAll('allowed_extra')}},error.message,true)));}
-            if(itemId&&items.find(i=>i.id===itemId).kind!==item.kind)return send(422,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},'Item type cannot be changed. Create another item instead.',true)));
+            let item;try{item=parseCatalogueItem(data,items.find(i=>i.id===itemId));}catch(error){return send(422,html('Catalogue',renderCatalogue(business,items,true,{...items.find(i=>i.id===itemId),...Object.fromEntries(data),id:itemId,form_values:{...Object.fromEntries(data),allowed_extra:data.getAll('allowed_extra')}},error.message,true,view)));}
+            if(itemId&&items.find(i=>i.id===itemId).kind!==item.kind)return send(422,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},'Item type cannot be changed. Create another item instead.',true,view)));
             try{await saveCatalogueItem(client,businessId,item,{id:itemId,version:Number(data.get('version'))});}
-            catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},error.message,true)));}
-            return redirect('/catalogue?business='+encodeURIComponent(businessId)+'&saved=1');
+            catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},error.message,true,view)));}
+            return redirect('/catalogue?business='+encodeURIComponent(businessId)+((itemId?view:item.kind)==='extra'?'&view=extra':'')+'&saved=1');
           });
         }
         if(url.pathname==='/settings'){
@@ -125,9 +125,9 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
           if(url.searchParams.get('delete')==='1'){
             if(!canManage)throw new Error('Catalogue access denied');
             if(!editing)return send(400,'Item required','text/plain');
-            return send(200,html('Delete catalogue item',renderCatalogueDelete(business,editing)));
+            return send(200,html('Delete catalogue item',renderCatalogueDelete(business,editing,url.searchParams.get('view'))));
           }
-          return send(200,html('Catalogue',renderCatalogue(business,items,canManage,editing,url.searchParams.get('deleted')==='1'?'Item deleted.':url.searchParams.get('saved')==='1'?'Catalogue saved.':'')));
+          return send(200,html('Catalogue',renderCatalogue(business,items,canManage,editing,url.searchParams.get('deleted')==='1'?'Item deleted.':url.searchParams.get('saved')==='1'?'Catalogue saved.':'',false,url.searchParams.get('view'))));
         });
       }
       if(url.pathname==='/settings'){
