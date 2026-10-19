@@ -31,3 +31,15 @@ Rollout: clean CI and review → capture FaraiOS staging booking digest excludin
 Recovery: failed migration rolls back atomically. For an application issue, stop recurrence writes and restore the previous application; retain additive columns, schedule history and constraints. Old one-off application inserts and updates remain supported. Do not drop populated recurrence records or disable duplicate protection as rollback. Full environment recovery remains T11.
 
 Gate: CONDITIONAL PASS for tested implementation preparation. T17 remains In progress until CI/review, staging verification and real browser acceptance are recorded.
+
+## Verified staging evidence — 19 October 2026
+
+PR54 implementation SHA `0900e808cd9d5199d59bcd9b2db50c8d7ff913c3`: syntax/diff checks and 113 local tests passed, with the independent PostgreSQL connection test skipped locally. Both GitHub policy-test runs passed all 114 tests; job 118192300764 explicitly passed the independent-connection cleaner-conflict and recurring-generation test (no skipped test). GitGuardian passed.
+
+Migration `recurring_bookings` applied successfully to FaraiOS staging `xdmfyrsauvqznkloroxg` only. All seven pre-existing bookings retained digest `86e064e552ce7cb1e10664eba5f2bd44`, computed from their original fields excluding the three new nullable recurrence columns. Existing booking functions are retained; their trigger routing is split only for the frozen recurrence insertion path.
+
+`scripts/verify-recurring-staging.sql` passed and rolled back. Both businesses' completed labelled source bookings supplied agreements without modifying those sources. Actual staging owner/manager/staff/anonymous database assertions verified generation, retries, saved price/scope/duration, unassigned Drafts, individual cancellation without recreation, future-only schedule change with unchanged created-history digest, stale-version denial, business-scoped manager reads, staff read/generation denial, foreign generation denial, cancellation stop and audit writes. No account, membership or business configuration was changed. Final readback: seven original bookings with matching digest; zero schedules, generated visits or recurring audit fixtures remain.
+
+Security advisors match the pre-migration baseline: no new warning/error. Existing private-table RLS-without-policy INFO entries and the pre-existing [leaked-password protection warning](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) remain outside this work. Technical review checked frozen snapshot provenance, direct-API insert enforcement, membership scope, lock ordering, immutable occurrence identity, trigger ordering and rollback compatibility; no unresolved implementation finding.
+
+Gate: CONDITIONAL PASS for merging the staging client. Real owner-PC desktop/mobile acceptance remains required after pulling main and restarting `npm run staging` on port 3101. Do not mark T17 Done until both businesses' actual create/reload/generate/retry/change/individual cancellation/stop workflows are verified and labelled fixture work is stopped afterwards. No production promotion is included.
