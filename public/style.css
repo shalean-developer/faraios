@@ -264,3 +264,25 @@
 .calendar-guidance{max-width:80ch;margin:12px 0 0;font-size:13px;line-height:1.6}
 .calendar-travel-note{max-width:80ch;margin:6px 0 0;font-size:13px;line-height:1.6;color:#6e817b}
 @media(max-width:400px){.calendar-navigation{gap:6px}.calendar-navigation>a{flex:1 1 auto;padding:10px;font-size:13px}}
+
+/* Compact day cards with readable schedule and status hierarchy. */
+.calendar-days{align-items:start;gap:14px}
+.calendar-day{padding:18px}
+.calendar-day-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.calendar-day-heading h2{margin:0;font-size:17px;line-height:1.4}
+.calendar-day.is-today{border-color:#16654f;box-shadow:0 0 0 1px #16654f}
+.calendar-today,.calendar-status{display:inline-block;border-radius:20px;padding:4px 9px;font-size:12px;font-weight:600;line-height:1.4;background:#edf0ef;color:#40594f}
+.calendar-today,.calendar-status-completed{background:#e7f3ed;color:#12644f}
+.calendar-status-confirmed,.calendar-status-assigned{background:#eaf1fb;color:#244f80}
+.calendar-status-en_route,.calendar-status-arrived,.calendar-status-in_progress{background:#fff3d9;color:#65430b}
+.calendar-status-cancelled{background:#fff0ed;color:#943d32}
+.calendar-status-busy{background:#edf0ef;color:#40594f;flex-shrink:0}
+.calendar-entry{padding:12px 0}
+.calendar-entry:last-child{padding-bottom:0}
+.calendar-customer{display:inline-block;font-size:15px;line-height:1.5}
+.calendar-entry .calendar-time{margin:6px 0 8px;font-size:15px;font-weight:600;color:#17332e;font-variant-numeric:tabular-nums}
+.calendar-entry .calendar-team{font-size:12px;margin:7px 0 0}
+.calendar-busy{padding-left:12px}
+.calendar-busy-heading{display:flex;justify-content:space-between;align-items:start;gap:8px;font-size:14px;line-height:1.5}
+.calendar-empty{font-size:13px;margin:0;color:#6e817b}
+@media(max-width:600px){.calendar-day{padding:16px}.calendar-days{grid-template-columns:minmax(0,1fr)}}
