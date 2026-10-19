@@ -13,7 +13,7 @@ function catalogueClient(state){
 function customerClient(state,table){
  const rows=table==='business_customers'?state.customers:state.addresses;let filters=[],payload,updating=false;
  const matches=row=>filters.every(([key,value])=>row[key]===value);
- const query={eq(key,value){filters.push([key,value]);return this;},order(){return this;},limit:async()=>({data:rows.filter(matches)}),maybeSingle:async()=>({data:rows.find(matches)??null}),select(){
+ const query={eq(key,value){filters.push([key,value]);return this;},order(){return this;},limit:async count=>({data:rows.filter(matches).slice(0,count)}),maybeSingle:async()=>({data:rows.find(matches)??null}),select(){
   if(!payload)return this;
   if(updating){const row=rows.find(matches);if(!row)return Promise.resolve({data:[]});Object.assign(row,payload,{version:row.version+1});return Promise.resolve({data:[{id:row.id}]});}
   const row={...payload,id:'40000000-0000-4000-8000-'+String(rows.length+1).padStart(12,'0'),version:1};rows.push(row);return Promise.resolve({data:[{id:row.id}]});
@@ -123,6 +123,12 @@ for(const role of ['owner','manager'])test(`customer HTTP ${role} create/edit/ad
  assert.equal((await post(address,'action=address&label=Office&address_line=Edited+street&status=inactive&version=1')).status,303);
  assert.equal(state.addresses[0].address_line,'Edited street');assert.equal(state.addresses[0].is_active,false);
  assert.equal((await post(address,'action=address&label=Stale&address_line=X&status=active&version=1')).status,409);
+ const longNote=new URLSearchParams({action:'customer',name:'Edited',status:'active',version:'2',private_notes:'字'.repeat(4000)}).toString();
+ assert.ok(Buffer.byteLength(longNote)>32768);assert.equal((await post(customer,longNote)).status,303);assert.equal(state.customers[0].private_notes.length,4000);
+ for(let n=0;n<101;n++)state.addresses.push({id:'50000000-0000-4000-8000-'+String(n).padStart(12,'0'),business_id:bid,customer_id:state.customers[0].id,label:'Extra '+n,address_line:'Synthetic',version:1,is_active:true});
+ const beyond=customer+'&address='+state.addresses.at(-1).id;
+ assert.equal((await fetch(beyond,{headers:{Cookie}})).status,200);
+ assert.equal((await post(beyond,'action=address&label=Last&address_line=Edited&status=inactive&version=1')).status,303);assert.equal(state.addresses.at(-1).is_active,false);
  assert.equal((await post(url,'action=customer&name=&status=active')).status,422);
  assert.equal((await post(url,'action=customer&name=CSRF&status=active','https://foreign.invalid')).status,403);
  assert.equal((await post(base+'/customers?business=foreign','action=customer&name=Foreign&status=active')).status,403);
