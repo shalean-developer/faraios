@@ -99,3 +99,51 @@
 .panel dl{display:grid;grid-template-columns:minmax(100px,1fr) minmax(0,2fr);gap:9px 16px}
 .panel dt{font-weight:bold;text-transform:capitalize}.panel dd{margin:0;white-space:pre-wrap}
 @media(max-width:500px){.settings-form fieldset{padding:12px}.panel dl{grid-template-columns:1fr;gap:5px}.panel dd{margin-bottom:10px}}
+
+/* Service setup: compact, grouped controls instead of a continuous settings list. */
+.login:has(.catalogue-setup){max-width:1060px;margin-top:30px}
+.catalogue-setup .setup-section{border:1px solid #dbe5df;border-radius:12px;margin:14px 0;background:#fff;min-width:0}
+.catalogue-setup .setup-section>summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:17px 18px;cursor:pointer;font-weight:600;color:#173f33}
+.catalogue-setup .setup-section>summary::-webkit-details-marker{display:none}
+.catalogue-setup .setup-section>summary::after{content:'+';font-size:23px;font-weight:400;flex-shrink:0}
+.catalogue-setup .setup-section[open]>summary::after{content:'−'}
+.catalogue-setup .setup-section>summary small{font-size:12px;font-weight:400;color:#647b70;margin-left:auto;text-align:right}
+.catalogue-setup .setup-section>summary:focus-visible,.setup-subsection>summary:focus-visible{outline:3px solid #bb7b22;outline-offset:2px;border-radius:8px}
+.catalogue-setup .setup-body{border-top:1px solid #e6ece8;padding:16px 18px;min-width:0}
+.catalogue-setup .setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px;align-items:start}
+.catalogue-setup .setup-grid>label:not(.setup-field):not(.setup-check){grid-column:1/-1;margin:0 0 -6px;font-size:13px}
+.catalogue-setup .setup-grid>input,.catalogue-setup .setup-grid>select,.catalogue-setup .setup-grid>.dropdown{grid-column:1/-1}
+.catalogue-setup input:not([type="checkbox"]),.catalogue-setup textarea,.catalogue-setup select{width:100%;max-width:100%;padding:10px 11px;border:1px solid #cbdad3;border-radius:8px;font:inherit;margin:0}
+.catalogue-setup .setup-field{display:flex;flex-direction:column;gap:7px;min-width:0;font-size:12px;margin:0}
+.catalogue-setup .setup-check{display:flex;align-items:center;gap:9px;font-size:13px;line-height:1.5;min-height:44px;margin:0}
+.catalogue-setup .setup-check input[type="checkbox"]{width:18px;height:18px;flex-shrink:0}
+.catalogue-setup .setup-rate-row{display:grid;grid-template-columns:minmax(90px,1.1fr) minmax(100px,1fr) minmax(90px,.8fr) minmax(90px,.7fr);align-items:center;gap:12px;padding:13px 0;border-top:1px solid #e6ece8}
+.catalogue-setup .setup-rate-row>strong{font-size:14px;line-height:1.5}
+.catalogue-setup .setup-rates{margin-top:15px}
+.catalogue-setup .setup-subsection{margin:18px 0 4px;padding:12px 14px;border:1px solid #e0e8e3;border-radius:8px;background:#f8faf9;min-width:0}
+.catalogue-setup .setup-subsection>summary{cursor:pointer;font-size:13px;font-weight:600;color:#315c48;min-height:30px;line-height:1.6}
+.catalogue-setup .setup-option-group{margin:16px 0;padding:10px 12px;background:#fff}
+.catalogue-setup .setup-option-group legend{font-size:14px;font-weight:600;padding:0 6px}
+.catalogue-setup .setup-pet-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:16px;margin:14px 0}
+.catalogue-setup .setup-pet-pricing{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.catalogue-setup .setup-pet-row:has([data-pet-pricing][hidden]){grid-template-columns:minmax(0,1fr)}
+.catalogue-setup .setup-extra{padding:12px 0;border-top:1px solid #e6ece8}
+.catalogue-setup .setup-extra .setup-check{flex-wrap:wrap}
+.catalogue-setup [data-extra-minutes]{max-width:240px;padding-top:8px}
+.catalogue-setup .setup-save{position:sticky;bottom:0;background:#fff;padding:14px 0 4px;border-top:1px solid #dbe5df;margin-top:18px;z-index:5;box-shadow:0 -8px 15px #ffffffc9}
+.catalogue-setup .setup-save p{margin:0 0 10px}
+.catalogue-setup [hidden]{display:none!important}
+@media(max-width:680px){
+ .login:has(.catalogue-setup){padding:0 12px;margin-top:20px}
+ #catalogue-editor{padding:16px 12px}
+ .catalogue-setup .setup-section>summary{padding:14px 12px;flex-wrap:wrap;gap:5px 10px}
+ .catalogue-setup .setup-section>summary small{order:2;flex-basis:100%;margin:0;text-align:left}
+ .catalogue-setup .setup-section>summary::after{margin-left:auto}
+ .catalogue-setup .setup-body{padding:14px 12px}
+ .catalogue-setup .setup-rate-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .catalogue-setup .setup-rate-row>strong{grid-column:1/-1}
+ .catalogue-setup .setup-rate-row>.setup-check{grid-column:1/-1}
+ .catalogue-setup .setup-grid,.catalogue-setup .setup-pet-row{grid-template-columns:minmax(0,1fr)}
+ .catalogue-setup .setup-subsection{padding:10px}
+ .catalogue-setup .setup-option-group{padding:10px;margin:14px 0}
+}
