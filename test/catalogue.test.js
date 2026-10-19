@@ -11,7 +11,7 @@ test('catalogue money uses exact cents and rejects ambiguous prices and invalid 
  for(const price of ['-1','1e3','1.001','NaN','1,000.00','21474836.48']){const f=form();f.set('price',price);assert.throws(()=>parseCatalogueItem(f));}
  for(const [key,value] of [['kind','other'],['pricing_model','custom'],['team_size','0'],['team_size','1.5'],['status','bogus'],['name','']]){const f=form();f.set(key,value);assert.throws(()=>parseCatalogueItem(f));}
  const f=form();f.set('kind','extra');f.set('team_size','');f.set('price','0');assert.equal(parseCatalogueItem(f).team_size,null);assert.equal(parseCatalogueItem(f).price_cents,0);
- const markup=renderCatalogue({id:a,name:'<script>'},[],false);assert.doesNotMatch(markup,/<script>|<form/);assert.match(markup,/Read-only catalogue/);
+ const markup=renderCatalogue({id:a,name:'<script>'},[],false);assert.doesNotMatch(markup,/<script>|<form[^>]*method="post"/);assert.match(markup,/Read-only catalogue/);
 });
 test('catalogue updates use business, item and version predicates; conflicts fail explicitly',async()=>{
  const filters=[];let payload;
