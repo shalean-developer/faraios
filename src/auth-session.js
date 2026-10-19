@@ -44,6 +44,12 @@ export function createAuthSessions({createClient,now=()=>Date.now()}) {
       const session=sessions.get(id);if(!session)throw new Error('Staff access denied');
       return action(session.client,identity.businesses.find(b=>b.id===businessId),identity.memberships.some(m=>m.businessId===businessId&&m.role==='owner'));
     },
+    async withQuotes(id,businessId,action){
+      const identity=await this.read(id);
+      if(!identity?.businessIds.includes(businessId)||!canAccess({userId:identity.userId,businessId,permission:'quotes.manage',memberships:identity.memberships}))throw new Error('Quote access denied');
+      const session=sessions.get(id);if(!session)throw new Error('Quote access denied');
+      return action(session.client,identity.businesses.find(b=>b.id===businessId));
+    },
     async withBookings(id,businessId,action){
       const identity=await this.read(id);
       if(!identity?.businessIds.includes(businessId)||!canAccess({userId:identity.userId,businessId,permission:'bookings.manage',memberships:identity.memberships}))throw new Error('Booking access denied');

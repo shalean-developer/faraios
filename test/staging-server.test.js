@@ -11,7 +11,7 @@ function catalogueClient(state){
  },insert(row){const item={...row,id:'30000000-0000-4000-8000-'+String(state.catalogue.length+1).padStart(12,'0'),version:1};state.catalogue.push(item);state.catalogueWrites++;return {select:async()=>({data:[{id:item.id}]})};},delete(){deleting=true;return this;},update(row){update=row;return this;}};return builder;
 }
 function customerClient(state,table){
- const rows=table==='recurring_schedules'?state.recurring:table==='staff_profiles'?state.profiles:table==='staff_teams'?state.teams:table==='business_customers'?state.customers:state.addresses;let filters=[],payload,updating=false;
+ const rows=table==='business_quotes'?state.quotes:table==='quote_invoice_handoffs'?state.handoffs:table==='recurring_schedules'?state.recurring:table==='staff_profiles'?state.profiles:table==='staff_teams'?state.teams:table==='business_customers'?state.customers:state.addresses;let filters=[],payload,updating=false;
  const matches=row=>filters.every(([key,value])=>row[key]===value);
  const query={eq(key,value){filters.push([key,value]);return this;},order(){return this;},range:async(start,end)=>({data:rows.filter(matches).slice(start,end+1)}),limit:async count=>({data:rows.filter(matches).slice(0,count)}),maybeSingle:async()=>({data:rows.find(matches)??null}),select(){
   if(!payload)return this;
@@ -29,8 +29,8 @@ function bookingClient(state){
  },insert(r){payload=r;return this;},update(r){payload=r;updating=true;return this;}};return query;
 }
 async function run(fn, {role="manager"}={}){
-  const state={role,active:true,verified:true,time:Date.now(),settings:null,settingsWrites:0,catalogue:[],catalogueWrites:0,customers:[],addresses:[],bookings:[],profiles:[],teams:[],recurring:[],rpcCalls:[]};
-  const factory=()=>({rpc:async (name,params)=>name.endsWith('_recurring')?(state.rpcCalls.push({name,params}),{data:name==='generate_recurring'?3:'80000000-0000-4000-8000-000000000001'}):name==='calendar_window'?({data:{time_zone:'UTC',starts_at:'2026-10-20T00:00:00Z',ends_at:'2026-10-27T00:00:00Z',bookings:state.bookings.map(b=>({...b,name:b.customer_snapshot.name})),busy:[]}}):name==='staff_availability'?({data:{time_zone:'UTC',starts_at:'2026-10-20T09:00:00Z',ends_at:'2026-10-20T11:00:00Z',staff:[{user_id:uid,busy:true}]}}):name==='staff_context'?({data:[{user_id:uid,label:'Synthetic staff'}]}):({data:{time_zone:'UTC',working_days:[1,2,3,4,5],opens_at:'08:00',closes_at:'18:00',staff:[{user_id:uid,label:'Synthetic staff'}]}}),auth:{signInWithPassword:async({password})=>password==='test-password'?{data:{session:{expires_at:Math.floor(state.time/1000)+3600}}}:{error:{message:'bad'}},getUser:async()=>state.verified?({data:{user:{id:uid}}}):({error:{message:'revoked'}}),signOut:async()=>({})},from:table=>table==='one_off_bookings'?bookingClient(state):['business_customers','customer_addresses','staff_profiles','staff_teams','recurring_schedules'].includes(table)?customerClient(state,table):table==='business_catalogue'?catalogueClient(state):table==='business_settings'?{select(){return this;},eq(){return this;},maybeSingle:async()=>({data:state.settings}),upsert(row){state.settings=row;state.settingsWrites++;return {select:async()=>({data:[{business_id:row.business_id}]})};}}:({select(){return this;},eq(key){if(table==='businesses')return Promise.resolve({data:[{id:bid,name:'Synthetic Co'}]});return key==='status'?Promise.resolve({data:state.active?[{user_id:uid,business_id:bid,role:state.role,status:'active'}]:[]}):this;}})});
+  const state={role,active:true,verified:true,time:Date.now(),settings:null,settingsWrites:0,catalogue:[],catalogueWrites:0,customers:[],addresses:[],bookings:[],profiles:[],teams:[],recurring:[],quotes:[],handoffs:[],quoteRPC:null,rpcCalls:[]};
+  const factory=()=>({rpc:async (name,params)=>name.endsWith('_quote')?(state.rpcCalls.push({name,params}),state.quoteRPC?state.quoteRPC(name,params):{data:'90000000-0000-4000-8000-000000000001'}):name.endsWith('_recurring')?(state.rpcCalls.push({name,params}),{data:name==='generate_recurring'?3:'80000000-0000-4000-8000-000000000001'}):name==='calendar_window'?({data:{time_zone:'UTC',starts_at:'2026-10-20T00:00:00Z',ends_at:'2026-10-27T00:00:00Z',bookings:state.bookings.map(b=>({...b,name:b.customer_snapshot.name})),busy:[]}}):name==='staff_availability'?({data:{time_zone:'UTC',starts_at:'2026-10-20T09:00:00Z',ends_at:'2026-10-20T11:00:00Z',staff:[{user_id:uid,busy:true}]}}):name==='staff_context'?({data:[{user_id:uid,label:'Synthetic staff'}]}):({data:{time_zone:'UTC',working_days:[1,2,3,4,5],opens_at:'08:00',closes_at:'18:00',staff:[{user_id:uid,label:'Synthetic staff'}]}}),auth:{signInWithPassword:async({password})=>password==='test-password'?{data:{session:{expires_at:Math.floor(state.time/1000)+3600}}}:{error:{message:'bad'}},getUser:async()=>state.verified?({data:{user:{id:uid}}}):({error:{message:'revoked'}}),signOut:async()=>({})},from:table=>table==='one_off_bookings'?bookingClient(state):['business_customers','customer_addresses','staff_profiles','staff_teams','recurring_schedules','business_quotes','quote_invoice_handoffs'].includes(table)?customerClient(state,table):table==='business_catalogue'?catalogueClient(state):table==='business_settings'?{select(){return this;},eq(){return this;},maybeSingle:async()=>({data:state.settings}),upsert(row){state.settings=row;state.settingsWrites++;return {select:async()=>({data:[{business_id:row.business_id}]})};}}:({select(){return this;},eq(key){if(table==='businesses')return Promise.resolve({data:[{id:bid,name:'Synthetic Co'}]});return key==='status'?Promise.resolve({data:state.active?[{user_id:uid,business_id:bid,role:state.role,status:'active'}]:[]}):this;}})});
   const server=createStagingServer({createClient:factory,now:()=>state.time});await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
   try{await fn(base,state);}finally{await new Promise(r=>server.close(r));}
 }
@@ -304,6 +304,51 @@ for(const role of ['owner','manager'])test(`recurring HTTP ${role} create, chang
 },{role}));
 test('recurring HTTP denies staff and anonymous access',async()=>run(async base=>{
  const url=base+'/recurring?business='+bid;assert.equal((await fetch(url,{redirect:'manual'})).status,303);const Cookie=await signIn(base);assert.equal((await fetch(url,{headers:{Cookie}})).status,403);assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'action=generate'})).status,403);
+},{role:'staff'}));
+
+for(const role of ['owner','manager'])test(`quote HTTP ${role} forms and RPCs keep scope and distinguish the invoice handoff`,async()=>run(async(base,state)=>{
+ const customer='40000000-0000-4000-8000-000000000001',address='40000000-0000-4000-8000-000000000002',service='30000000-0000-4000-8000-000000000001',quote='90000000-0000-4000-8000-000000000001',booking='60000000-0000-4000-8000-000000000009',handoff='90000000-0000-4000-8000-000000000002';
+ state.customers.push({id:customer,business_id:bid,name:'Synthetic customer',is_active:true});state.addresses.push({id:address,business_id:bid,customer_id:customer,label:'Home',address_line:'Synthetic street',is_active:true});state.catalogue.push({id:service,business_id:bid,kind:'service',name:'Synthetic service',is_active:true,pricing_model:'fixed',price_cents:10000,unit_label:'visit',team_size:1,version:1});
+ const q={id:quote,business_id:bid,customer_id:customer,address_id:address,status:'draft',version:1,created_at:'2026-10-19T09:00:00Z',agreement:{customer_snapshot:{name:'Synthetic <customer>',email:'test@example.invalid',phone:'0000000000'},address_snapshot:{address_line:'Synthetic street'},price_lines:[{name:'Synthetic service',quantity:1,rate_cents:10000,total_cents:10000,unit_label:'visit'}],total_cents:10000,duration_minutes:120,required_team_size:1,currency:'ZAR',time_zone:'UTC'}};
+ state.quotes.push(q);
+ state.quoteRPC=(name)=>({data:name==='convert_quote'?{booking_id:booking,handoff_id:handoff}:quote});
+ const url=base+'/quotes?business='+bid;
+ assert.equal((await fetch(url,{redirect:'manual'})).status,303);
+ const Cookie=await signIn(base),post=(target,body,origin=base,type='application/x-www-form-urlencoded')=>fetch(target,{method:'POST',headers:{Cookie,Origin:origin,'Content-Type':type},body,redirect:'manual'});
+ let result=await fetch(url,{headers:{Cookie}}),html=await result.text();assert.equal(result.status,200);assert.match(html,/aria-current="page"[^>]*>Quotes/);assert.match(html,/Synthetic &lt;customer&gt;/);assert.doesNotMatch(html,/<customer>/);
+ html=await(await fetch(url+'&create=1&customer='+customer+'&service='+service,{headers:{Cookie}})).text();assert.match(html,/Save draft quote/);assert.doesNotMatch(html,/name="local_start"/);assert.equal(state.rpcCalls.length,0);
+ const create=new URLSearchParams({action:'create',customer_id:customer,address_id:address,service_id:service,service_quantity:'1',request_key:'70000000-0000-4000-8000-000000000001',duration_minutes:'120',business_id:'forged'});
+ result=await post(url,create);assert.equal(result.status,303);assert.match(result.headers.get('location'),/quote=/);assert.equal(state.rpcCalls.at(-1).name,'create_quote');assert.equal(state.rpcCalls.at(-1).params.p_business_id,bid);assert.equal(state.rpcCalls.at(-1).params.p_duration_minutes,120);assert.equal(Object.hasOwn(state.rpcCalls.at(-1).params,'p_local_start'),false);
+ const detail=url+'&quote='+quote;
+ assert.equal((await post(detail,'action=change&status=issued&version=1&reference=Shared')).status,303);assert.equal(state.rpcCalls.at(-1).params.p_status,'issued');
+ q.status='issued';q.version=2;
+ const calls=state.rpcCalls.length;
+ assert.equal((await post(detail,'action=change&status=accepted&version=2&reference=')).status,422);assert.equal(state.rpcCalls.length,calls);
+ assert.equal((await post(detail,'action=change&status=accepted&version=2&reference=Customer+approval')).status,303);assert.equal(state.rpcCalls.at(-1).params.p_reference,'Customer approval');
+ q.status='accepted';q.version=3;q.accepted_at='2026-10-19T09:10:00Z';q.acceptance_reference='<script>evidence</script>';
+ html=await(await fetch(detail,{headers:{Cookie}})).text();assert.match(html,/Acceptance recorded by the office/);assert.match(html,/&lt;script&gt;evidence&lt;\/script&gt;/);assert.doesNotMatch(html,/<script>evidence/);assert.match(html,/data-picker="datetime"/);
+ assert.equal((await post(detail,'action=convert&version=3&local_start=2026-02-30T09%3A00')).status,422);
+ assert.equal((await post(detail,'action=convert&version=3&local_start=2026-10-20T09%3A00')).status,303);assert.equal(state.rpcCalls.at(-1).name,'convert_quote');assert.equal(state.rpcCalls.at(-1).params.p_quote_id,quote);assert.equal(state.rpcCalls.at(-1).params.p_business_id,bid);
+ q.status='converted';q.version=4;q.converted_booking_id=booking;state.handoffs.push({id:handoff,business_id:bid,quote_id:quote,booking_id:booking});state.bookings.push({id:booking,business_id:bid,source_quote_id:quote,status:'draft'});
+ html=await(await fetch(detail,{headers:{Cookie}})).text();assert.match(html,/Awaiting invoicing/);assert.match(html,/Open booking/);assert.match(html,/No invoice number or payment/);assert.doesNotMatch(html,/name="action" value="convert"/);
+ state.bookings.at(-1).status='cancelled';html=await(await fetch(detail,{headers:{Cookie}})).text();assert.match(html,/Invoicing needs review/);assert.doesNotMatch(html,/Awaiting invoicing/);
+ state.quoteRPC=()=>({error:{code:'40001',message:'Sensitive SQL detail'}});
+ result=await post(detail,'action=convert&version=3&local_start=2026-10-20T10%3A00');assert.equal(result.status,409);assert.doesNotMatch(await result.text(),/Sensitive SQL detail/);
+ const before=state.rpcCalls.length;
+ assert.equal((await post(url,create,'https://foreign.invalid')).status,403);assert.equal((await post(url,create,base,'application/json')).status,415);assert.equal((await post(url,'x='.padEnd(65540,'x'))).status,413);
+ assert.equal((await fetch(base+'/quotes?business=foreign&role=owner',{headers:{Cookie}})).status,403);assert.equal((await fetch(url+'&quote=bad',{headers:{Cookie}})).status,404);assert.equal(state.rpcCalls.length,before);
+ state.handoffs.length=0;result=await fetch(detail,{headers:{Cookie}});assert.ok(result.status>=500);assert.doesNotMatch(await result.text(),/Awaiting invoicing/);
+ state.active=false;assert.equal((await post(detail,'action=convert&version=3&local_start=2026-10-20T09%3A00')).status,403);
+},{role}));
+
+test('quote HTTP denies staff and anonymous reads and writes',async()=>run(async(base,state)=>{
+ const url=base+'/quotes?business='+bid;
+ assert.equal((await fetch(url,{redirect:'manual'})).status,303);
+ const Cookie=await signIn(base);
+ assert.equal((await fetch(url,{headers:{Cookie}})).status,403);
+ assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'action=create',redirect:'manual'})).status,403);
+ assert.equal(state.rpcCalls.length,0);
+ const html=await(await fetch(base+'/dashboard?business='+bid,{headers:{Cookie}})).text();assert.doesNotMatch(html,/href="\/quotes/);
 },{role:'staff'}));
 
 for(const role of ['owner','manager'])test(`module UI ${role} keeps business navigation, filtered lists and creation steps scoped`,async()=>run(async(base,state)=>{
