@@ -8,13 +8,15 @@ import {parseCustomerForm,listCustomers,readCustomer,listAddresses,readAddress,s
 import {bookingContext,listBookings,readBooking,parseBookingCreate,createBooking,updateBooking,renderBookings} from './bookings.js';
 import {renderWorkspace} from './workspace.js';
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const html=(title,body)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS staging</title><link rel="stylesheet" href="/style.css"><script type="module" src="/dropdown.js"></script><script type="module" src="/catalogue-setup.js"></script></head><body><div class="notice">FARAiOS STAGING · Real test-account sign-in · No production data</div>${title==='Sign in'?'':`<div class="workspace-topbar">${renderWorkspaceHeader()}</div>`}<main class="${title==='Sign in'?'login':'workspace-page'}">${title==='Sign in'?'<div class="brand">FaraiOS</div>':''}${body}</main></body></html>`;
-const form=message=>html('Sign in',`<h1>Welcome back</h1><p>Use your FaraiOS staging test account.</p>${message?`<p role="alert">${esc(message)}</p>`:''}<form method="post" action="/login" class="panel"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" maxlength="254" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><button type="submit">Sign in</button><p class="muted">Accounts are provisioned in staging. Never enter a production password here.</p></form>`);
+const pageHtml=(title,body,business=null)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS staging</title><link rel="stylesheet" href="/style.css"><script type="module" src="/dropdown.js"></script><script type="module" src="/catalogue-setup.js"></script></head><body><div class="notice">FARAiOS STAGING · Real test-account sign-in · No production data</div>${title==='Sign in'?'':`<div class="workspace-topbar">${renderWorkspaceHeader({business})}</div>`}<main class="${title==='Sign in'?'login':'workspace-page'}">${title==='Sign in'?'<div class="brand">FaraiOS</div>':''}${body}</main></body></html>`;
+const form=message=>pageHtml('Sign in',`<h1>Welcome back</h1><p>Use your FaraiOS staging test account.</p>${message?`<p role="alert">${esc(message)}</p>`:''}<form method="post" action="/login" class="panel"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" maxlength="254" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><button type="submit">Sign in</button><p class="muted">Accounts are provisioned in staging. Never enter a production password here.</p></form>`);
 
 export function createStagingServer({createClient,now=()=>Date.now()}){
   if(process.env.NODE_ENV==='production')throw new Error('Local staging server cannot run in production');
   const auth=createAuthSessions({createClient,now});let failures=[];
   const server=createServer(async(req,res)=>{
+    let headerBusiness=null;
+    const html=(title,body)=>pageHtml(title,body,headerBusiness);
     const expected=`127.0.0.1:${server.address()?.port}`, origin=`http://${expected}`;
     const send=(code,body,type='text/html; charset=utf-8')=>{res.writeHead(code,{'Content-Type':type,'Cache-Control':'no-store','Referrer-Policy':'same-origin','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"});res.end(body);};
     const redirect=path=>{res.writeHead(303,{Location:path,'Cache-Control':'no-store'});res.end();};
@@ -33,6 +35,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         if(url.pathname==='/bookings'){
           if(!await auth.read(id)){clear();return redirect('/login');}
           return await auth.withBookings(id,url.searchParams.get('business'),async(client,business)=>{
+            headerBusiness=business;
             const data=new URLSearchParams(body),bookingId=url.searchParams.get('booking'),ctx=await bookingContext(client,business.id),booking=bookingId?await readBooking(client,business.id,bookingId):null;
             if(bookingId&&!booking)return send(404,'Booking unavailable','text/plain');
             const customerId=data.get('customer_id'),customer=!booking&&customerId?await readCustomer(client,business.id,customerId):null;
@@ -48,6 +51,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         if(url.pathname==='/customers'){
           if(!await auth.read(id)){clear();return redirect('/login');}
           return await auth.withCustomers(id,url.searchParams.get('business'),async(client,business)=>{
+            headerBusiness=business;
             const customerId=url.searchParams.get('customer'),addressId=url.searchParams.get('address'),data=new URLSearchParams(body),action=data.get('action');
             if(!['customer','address'].includes(action))return send(400,'Invalid action','text/plain');
             const customer=customerId?await readCustomer(client,business.id,customerId):null;
@@ -64,6 +68,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
           if(!await auth.read(id)){clear();return redirect('/login');}
           const businessId=url.searchParams.get('business'),itemId=url.searchParams.get('item'),view=url.searchParams.get('view')==='extra'?'extra':'service',catalogueOptions={q:url.searchParams.get('q'),status:url.searchParams.get('status'),service:url.searchParams.get('service')};
           return await auth.withCatalogue(id,businessId,true,async(client,business)=>{
+            headerBusiness=business;
             const data=new URLSearchParams(body),items=await listCatalogue(client,businessId);
             if(itemId&&!items.some(i=>i.id===itemId))return send(404,html('Item unavailable','<h1>Item unavailable</h1><a href="/dashboard">Back to workspace</a>'));
             if(data.get('action')==='deactivate'){
@@ -98,6 +103,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
           const businessId=url.searchParams.get('business');
           if(!await auth.read(id)){clear();return redirect('/login');}
           return await auth.withOwner(id,businessId,async(client,business)=>{
+            headerBusiness=business;
             const data=new URLSearchParams(body);let settings;
             try{settings=parseBusinessSettings(data);}catch(error){
               const values=Object.fromEntries(data);values.working_days=data.getAll('working_days').map(Number);
@@ -118,6 +124,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       if(url.pathname==='/bookings'){
         if(!await auth.read(id)){clear();return redirect('/login');}
         return await auth.withBookings(id,url.searchParams.get('business'),async(client,business)=>{
+            headerBusiness=business;
           const ctx=await bookingContext(client,business.id),bookingId=url.searchParams.get('booking'),customerId=url.searchParams.get('customer'),booking=bookingId?await readBooking(client,business.id,bookingId):null,customer=customerId?await readCustomer(client,business.id,customerId):null;
           if(bookingId&&!booking||customerId&&!customer)return send(404,'Booking or customer unavailable','text/plain');
           return send(200,html('Bookings',renderBookings(business,await listBookings(client,business.id),ctx,{booking,customer,customers:await listCustomers(client,business.id),addresses:customer?await listAddresses(client,business.id,customer.id):[],catalogue:await listCatalogue(client,business.id),values:{service_id:url.searchParams.get('service_id')??''},message:url.searchParams.get('saved')==='1'?'Booking saved.':''})));
@@ -126,6 +133,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         if(url.pathname==='/customers'){
         if(!await auth.read(id)){clear();return redirect('/login');}
         return await auth.withCustomers(id,url.searchParams.get('business'),async(client,business)=>{
+            headerBusiness=business;
           const customerId=url.searchParams.get('customer'),addressId=url.searchParams.get('address'),customer=customerId?await readCustomer(client,business.id,customerId):null;
           if(customerId&&!customer)return send(404,'Customer unavailable','text/plain');
           const addresses=customer?await listAddresses(client,business.id,customer.id):[],address=addressId?await readAddress(client,business.id,customerId,addressId):null;
@@ -136,6 +144,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       if(url.pathname==='/catalogue'){
         if(!await auth.read(id)){clear();return redirect('/login');}
         return await auth.withCatalogue(id,url.searchParams.get('business'),false,async(client,business,canManage)=>{
+          headerBusiness=business;
           const items=await listCatalogue(client,business.id),itemId=url.searchParams.get('item'),create=url.searchParams.get('create'),editing=itemId?items.find(i=>i.id===itemId):canManage&&['service','extra'].includes(create)?{kind:create,creating:true}:null;
           if(itemId&&!editing)return send(404,html('Item unavailable','<h1>Item unavailable</h1><a href="/dashboard">Back to workspace</a>'));
           if(url.searchParams.get('deactivate')==='1'){
@@ -153,7 +162,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       }
       if(url.pathname==='/settings'){
         if(!await auth.read(id)){clear();return redirect('/login');}
-        return await auth.withOwner(id,url.searchParams.get('business'),async(client,business)=>send(200,html('Business settings',renderBusinessSettings(business,await readBusinessSettings(client,business.id),url.searchParams.get('saved')==='1'?'Settings saved.':''))));
+        return await auth.withOwner(id,url.searchParams.get('business'),async(client,business)=>{headerBusiness=business;return send(200,html('Business settings',renderBusinessSettings(business,await readBusinessSettings(client,business.id),url.searchParams.get('saved')==='1'?'Settings saved.':'')));});
       }
       if(url.pathname!=='/dashboard')return send(404,'Not found','text/plain');
       const identity=await auth.read(id);if(!identity){clear();return redirect('/login');}
