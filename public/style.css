@@ -147,3 +147,11 @@
  .catalogue-setup .setup-subsection{padding:10px}
  .catalogue-setup .setup-option-group{padding:10px;margin:14px 0}
 }
+
+.catalogue-add{margin-top:20px}
+.catalogue-add>summary{display:inline-flex;align-items:center;gap:10px;list-style:none;background:#16654f;color:#fff;border:1px solid #16654f;border-radius:8px;padding:11px 15px;min-height:44px;cursor:pointer}
+.catalogue-add>summary::-webkit-details-marker{display:none}
+.catalogue-add>summary::before{content:'+';font-size:20px;line-height:1}
+.catalogue-add[open]>summary::before{content:'−'}
+.catalogue-add>summary:hover{background:#104d3c}
+.catalogue-add>summary:focus-visible{outline:3px solid #bb7b22;outline-offset:3px}
