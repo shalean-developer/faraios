@@ -89,3 +89,13 @@
 .booking-state{display:inline-block;padding:6px 12px;border-radius:20px;background:#e7f3ed;color:#12644f;font-weight:600}
 #address-editor,#customer-editor{scroll-margin-top:20px}
 .settings-form fieldset input[type="number"]{display:block;width:100%;padding:11px;border:1px solid #cbdad3;border-radius:8px;font:inherit;margin:8px 0 16px}
+
+/* Scope and configuration fields use the same spacing inside grouped questions. */
+.settings-form fieldset{min-width:0;padding:16px}
+.settings-form fieldset>label{display:block;margin:14px 0 7px}
+.settings-form fieldset>input:not([type="checkbox"]),.settings-form fieldset>textarea,.settings-form fieldset>select{display:block;width:100%;max-width:100%;padding:11px;border:1px solid #cbdad3;border-radius:8px;font:inherit}
+.settings-form fieldset>label:has(input[type="checkbox"]){display:flex;align-items:center;gap:10px;min-height:44px}
+.settings-form fieldset>label input[type="checkbox"]{width:20px;height:20px;flex-shrink:0}
+.panel dl{display:grid;grid-template-columns:minmax(100px,1fr) minmax(0,2fr);gap:9px 16px}
+.panel dt{font-weight:bold;text-transform:capitalize}.panel dd{margin:0;white-space:pre-wrap}
+@media(max-width:500px){.settings-form fieldset{padding:12px}.panel dl{grid-template-columns:1fr;gap:5px}.panel dd{margin-bottom:10px}}

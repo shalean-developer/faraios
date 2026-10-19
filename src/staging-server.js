@@ -70,7 +70,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
               catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,null,error.message,true)));}
               return redirect('/catalogue?business='+encodeURIComponent(businessId)+'&deleted=1');
             }
-            let item;try{item=parseCatalogueItem(data);}catch(error){return send(422,html('Catalogue',renderCatalogue(business,items,true,{...Object.fromEntries(data),id:itemId},error.message,true)));}
+            let item;try{item=parseCatalogueItem(data,items.find(i=>i.id===itemId));}catch(error){return send(422,html('Catalogue',renderCatalogue(business,items,true,{...Object.fromEntries(data),id:itemId},error.message,true)));}
             if(itemId&&items.find(i=>i.id===itemId).kind!==item.kind)return send(422,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},'Item type cannot be changed. Create another item instead.',true)));
             try{await saveCatalogueItem(client,businessId,item,{id:itemId,version:Number(data.get('version'))});}
             catch(error){return send(error.status??502,html('Catalogue',renderCatalogue(business,items,true,{...item,id:itemId,version:data.get('version')},error.message,true)));}
@@ -103,7 +103,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         return await auth.withBookings(id,url.searchParams.get('business'),async(client,business)=>{
           const ctx=await bookingContext(client,business.id),bookingId=url.searchParams.get('booking'),customerId=url.searchParams.get('customer'),booking=bookingId?await readBooking(client,business.id,bookingId):null,customer=customerId?await readCustomer(client,business.id,customerId):null;
           if(bookingId&&!booking||customerId&&!customer)return send(404,'Booking or customer unavailable','text/plain');
-          return send(200,html('Bookings',renderBookings(business,await listBookings(client,business.id),ctx,{booking,customer,customers:await listCustomers(client,business.id),addresses:customer?await listAddresses(client,business.id,customer.id):[],catalogue:await listCatalogue(client,business.id),message:url.searchParams.get('saved')==='1'?'Booking saved.':''})));
+          return send(200,html('Bookings',renderBookings(business,await listBookings(client,business.id),ctx,{booking,customer,customers:await listCustomers(client,business.id),addresses:customer?await listAddresses(client,business.id,customer.id):[],catalogue:await listCatalogue(client,business.id),values:{service_id:url.searchParams.get('service_id')??''},message:url.searchParams.get('saved')==='1'?'Booking saved.':''})));
         });
       }
         if(url.pathname==='/customers'){
