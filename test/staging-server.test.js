@@ -305,3 +305,24 @@ for(const role of ['owner','manager'])test(`recurring HTTP ${role} create, chang
 test('recurring HTTP denies staff and anonymous access',async()=>run(async base=>{
  const url=base+'/recurring?business='+bid;assert.equal((await fetch(url,{redirect:'manual'})).status,303);const Cookie=await signIn(base);assert.equal((await fetch(url,{headers:{Cookie}})).status,403);assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'action=generate'})).status,403);
 },{role:'staff'}));
+
+for(const role of ['owner','manager'])test(`module UI ${role} keeps business navigation, filtered lists and creation steps scoped`,async()=>run(async(base,state)=>{
+ const customer='70000000-0000-4000-8000-000000000001',service='70000000-0000-4000-8000-000000000003';
+ state.customers.push({id:customer,business_id:bid,name:'Ada Example',email:'ada@example.invalid',phone:'000',is_active:true,version:1});
+ state.customers.push({id:'70000000-0000-4000-8000-000000000002',business_id:bid,name:'Other Customer',is_active:false,version:1});
+ state.catalogue.push({id:service,business_id:bid,kind:'service',name:'Regular clean',price_cents:25000,pricing_model:'fixed',unit_label:'visit',is_active:true});
+ state.bookings.push({id:'60000000-0000-4000-8000-000000000001',business_id:bid,local_start:'2026-10-21T09:00:00',time_zone:'UTC',status:'completed',assigned_staff:[],required_team_size:1,customer_snapshot:{name:'Ada Example'},address_snapshot:{address_line:'Example street'},price_lines:[{name:'Regular clean'}],total_cents:25000,version:1});
+ state.bookings.push({...state.bookings[0],id:'60000000-0000-4000-8000-000000000002',status:'cancelled',customer_snapshot:{name:'Other Customer'}});
+ const Cookie=await signIn(base),get=async path=>{const response=await fetch(base+path,{headers:{Cookie}});assert.equal(response.status,200);return response.text();};
+ const bookings='/bookings?business='+bid,customers='/customers?business='+bid;
+ let html=await get(bookings);assert.match(html,/href="\/bookings\?business=[^"]+" class="active" aria-current="page"/);assert.match(html,/href="\/catalogue\?business=/);assert.match(html,/Skip to content/);assert.doesNotMatch(html,/name="customer"/);assert.match(html,/create=1/);
+ if(role==='manager')assert.doesNotMatch(html,/Business settings|Team access/);else assert.match(html,/Business settings/);
+ html=await get(bookings+'&q=Ada&status=completed');assert.match(html,/<h2>Ada Example<\/h2>/);assert.doesNotMatch(html,/<h2>Other Customer<\/h2>/);assert.match(html,/1 of 2 bookings/);
+ html=await get(bookings+'&q=%3Cscript%3E');assert.match(html,/value="&lt;script&gt;"/);assert.doesNotMatch(html,/<script>/);assert.match(html,/No matching bookings/);
+ html=await get(bookings+'&create=1');assert.match(html,/<h1>New booking/);assert.match(html,/name="create" value="1"/);assert.match(html,/name="customer"/);assert.doesNotMatch(html,/record-list/);
+ html=await get(bookings+'&create=1&customer='+customer+'&service_id='+service);assert.match(html,/Save draft booking/);assert.match(html,/name="customer_id" value="70000000-0000-4000-8000-000000000001"/);assert.match(html,/name="service_id" value="70000000-0000-4000-8000-000000000003"/);
+ html=await get(customers);assert.doesNotMatch(html,/id="customer-editor"/);assert.match(html,/create=1/);
+ html=await get(customers+'&q=ada&status=active');assert.match(html,/<h2>Ada Example<\/h2>/);assert.doesNotMatch(html,/<h2>Other Customer<\/h2>/);
+ html=await get(customers+'&create=1');assert.match(html,/id="customer-editor"/);assert.doesNotMatch(html,/record-list/);assert.match(html,/action="\/customers\?business=/);
+ assert.equal(state.bookings.length,2);assert.equal(state.bookings[0].version,1);assert.equal(state.customers.length,2);assert.equal(state.catalogueWrites,0);assert.equal(state.settingsWrites,0);
+},{role}));
