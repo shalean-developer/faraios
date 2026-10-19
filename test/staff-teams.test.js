@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
 import {parseStaffRecord,resolveAssignedTeam,renderStaffTeams} from '../src/staff-teams.js';
+import {bookingContext,renderBookings} from '../src/bookings.js';
 const owner='00000000-0000-4000-8000-000000000001',manager='00000000-0000-4000-8000-000000000002',staff='00000000-0000-4000-8000-000000000003',foreign='00000000-0000-4000-8000-000000000004';
 const a='10000000-0000-4000-8000-000000000001',b='10000000-0000-4000-8000-000000000002';
 test('staff teams enforce tenant, owner writes, membership, immutable identity and audit in Postgres',async()=>{
@@ -42,4 +43,10 @@ test('saved team assignment replaces manual choices and rejects revoked members'
  client.rpc=async()=>({data:[]});await assert.rejects(resolveAssignedTeam(client,b,form),/without active/);
  assert.throws(()=>parseStaffRecord(new URLSearchParams({name:'X',status:'active',members:'bad'}),'team'));
  assert.doesNotMatch(renderStaffTeams({id:a,name:'<script>'},[],[],[],false),/<script>|method="post"/);
+});
+test('booking assignment uses the business-specific profile label',async()=>{
+ const client={rpc:async name=>({data:name==='staff_context'?[{user_id:staff,label:'Business cleaner name'}]:{time_zone:'UTC',staff:[{user_id:staff,label:'auth-email@test.invalid'}]}}),from:()=>({select(){return this;},eq(){return this;},order(){return this;},range:async()=>({data:[]})})};
+ const ctx=await bookingContext(client,a);assert.equal(ctx.staff[0].label,'Business cleaner name');
+ const html=renderBookings({id:a,name:'A'},[],ctx,{booking:{id:b,version:1,status:'confirmed',assigned_staff:[],required_team_size:1,customer_snapshot:{name:'Test'},address_snapshot:{},price_lines:[],total_cents:0}});
+ assert.match(html,/Business cleaner name/);assert.doesNotMatch(html,/auth-email@test.invalid/);
 });
