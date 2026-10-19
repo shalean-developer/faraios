@@ -1,7 +1,7 @@
 import {listRecurring,readRecurring,recurringVisits,createRecurring,changeRecurring,generateRecurring,renderRecurring} from './recurring.js';
 import {calendarOptions,readCalendar,checkAvailability,renderCalendar} from './calendar.js';
 import {staffAccounts,listStaffRecords,parseStaffRecord,saveStaffRecord,resolveAssignedTeam,renderStaffTeams} from './staff-teams.js';
-import {renderWorkspaceHeader} from './workspace-header.js';
+import {renderWorkspaceFrame} from './workspace-layout.js';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {createAuthSessions} from './auth-session.js';
@@ -11,15 +11,16 @@ import {parseCustomerForm,listCustomers,readCustomer,listAddresses,readAddress,s
 import {bookingContext,listBookings,readBooking,parseBookingCreate,createBooking,updateBooking,renderBookings} from './bookings.js';
 import {renderWorkspace} from './workspace.js';
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const pageHtml=(title,body,business=null)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS staging</title><link rel="stylesheet" href="/style.css"><script type="module" src="/dropdown.js"></script><script type="module" src="/date-time-picker.js"></script><script type="module" src="/catalogue-setup.js"></script></head><body><div class="notice">FARAiOS STAGING · Real test-account sign-in · No production data</div>${title==='Sign in'?'':`<div class="workspace-topbar">${renderWorkspaceHeader({business})}</div>`}<main class="${title==='Sign in'?'login':'workspace-page'}">${title==='Sign in'?'<div class="brand">FaraiOS</div>':''}${body}</main></body></html>`;
+const pageHtml=(title,body,business=null,identity=null,active='/dashboard')=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS staging</title><link rel="stylesheet" href="/style.css"><script type="module" src="/dropdown.js"></script><script type="module" src="/date-time-picker.js"></script><script type="module" src="/catalogue-setup.js"></script></head><body${business&&identity?' class="workspace-layout"':''}><div class="notice">FaraiOS STAGING · Test workspace · No production data</div>${business&&identity?renderWorkspaceFrame(identity,business,body,active):`<main class="${title==='Sign in'?'login':'workspace-page'}">${title==='Sign in'?'<div class="brand">FaraiOS</div>':''}${body}</main>`}</body></html>`;
 const form=message=>pageHtml('Sign in',`<h1>Welcome back</h1><p>Use your FaraiOS staging test account.</p>${message?`<p role="alert">${esc(message)}</p>`:''}<form method="post" action="/login" class="panel"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" maxlength="254" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><button type="submit">Sign in</button><p class="muted">Accounts are provisioned in staging. Never enter a production password here.</p></form>`);
 
 export function createStagingServer({createClient,now=()=>Date.now()}){
   if(process.env.NODE_ENV==='production')throw new Error('Local staging server cannot run in production');
   const auth=createAuthSessions({createClient,now});let failures=[];
   const server=createServer(async(req,res)=>{
-    let headerBusiness=null;
-    const html=(title,body)=>pageHtml(title,body,headerBusiness);
+    let headerBusiness=null,headerIdentity=null,activePath='/dashboard';
+    const readIdentity=async sessionId=>(headerIdentity=await auth.read(sessionId));
+    const html=(title,body)=>pageHtml(title,body,headerBusiness,headerIdentity,activePath);
     const expected=`127.0.0.1:${server.address()?.port}`, origin=`http://${expected}`;
     const send=(code,body,type='text/html; charset=utf-8')=>{res.writeHead(code,{'Content-Type':type,'Cache-Control':'no-store','Referrer-Policy':'same-origin','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"});res.end(body);};
     const redirect=path=>{res.writeHead(303,{Location:path,'Cache-Control':'no-store'});res.end();};
@@ -27,6 +28,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
     try{
       if(req.headers.host!==expected||!['127.0.0.1','::ffff:127.0.0.1','::1'].includes(req.socket.remoteAddress))return send(403,'Local access only','text/plain');
       const url=new URL(req.url,origin),id=req.headers.cookie?.match(/(?:^|;\s*)faraios_staging=([a-f0-9-]+)/)?.[1];
+      activePath=url.pathname;
       if(req.method==='GET'&&url.pathname==='/date-time-values.js')return send(200,await readFile(new URL('../public/date-time-values.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/date-time-picker.js')return send(200,await readFile(new URL('../public/date-time-picker.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/dropdown.js')return send(200,await readFile(new URL('../public/dropdown.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
@@ -34,7 +36,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       if(req.method==='GET'&&url.pathname==='/style.css')return send(200,await readFile(new URL('../public/style.css',import.meta.url),'utf8'),'text/css');
       if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/'))return send(200,form(''));
       if(url.pathname==='/recurring'&&['GET','POST'].includes(req.method)){
-        if(!await auth.read(id)){clear();return redirect('/login');}
+        if(!await readIdentity(id)){clear();return redirect('/login');}
         return await auth.withBookings(id,url.searchParams.get('business'),async(client,business)=>{
           headerBusiness=business;
           const scheduleId=url.searchParams.get('schedule'),sourceId=url.searchParams.get('source');
@@ -57,7 +59,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         });
       }
       if(url.pathname==='/staff'&&['GET','POST'].includes(req.method)){
-        if(!await auth.read(id)){clear();return redirect('/login');}
+        if(!await readIdentity(id)){clear();return redirect('/login');}
         return await auth.withStaff(id,url.searchParams.get('business'),req.method==='POST',async(client,business,canManage)=>{
           headerBusiness=business;
           const kind=url.searchParams.get('view')==='team'?'team':'profile',itemId=url.searchParams.get('item');
@@ -84,7 +86,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
         let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>(['/customers','/bookings'].includes(url.pathname)?65536:['/settings','/catalogue'].includes(url.pathname)?32768:4096))return send(413,'Form too large','text/plain');}
         if(url.pathname==='/bookings'){
-          if(!await auth.read(id)){clear();return redirect('/login');}
+          if(!await readIdentity(id)){clear();return redirect('/login');}
           return await auth.withBookings(id,url.searchParams.get('business'),async(client,business)=>{
             headerBusiness=business;
             const data=new URLSearchParams(body),bookingId=url.searchParams.get('booking'),ctx=await bookingContext(client,business.id),booking=bookingId?await readBooking(client,business.id,bookingId):null;
@@ -96,11 +98,11 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
               if(data.get('action')!=='create'||!customer?.is_active)throw new Error('Select an active customer.');
               const row=parseBookingCreate(data,catalogue),saved=await createBooking(client,business.id,row);
               return redirect('/bookings?business='+encodeURIComponent(business.id)+'&booking='+encodeURIComponent(saved)+'&saved=1');
-            }catch(error){return send(error.status??422,html('Bookings',renderBookings(business,await listBookings(client,business.id),ctx,{booking,customers:await listCustomers(client,business.id),customer,addresses:customer?await listAddresses(client,business.id,customer.id):[],catalogue,values:Object.fromEntries(data),message:error.message,error:true})));}
+            }catch(error){return send(error.status??422,html('Bookings',renderBookings(business,await listBookings(client,business.id),ctx,{booking,customers:await listCustomers(client,business.id),customer,addresses:customer?await listAddresses(client,business.id,customer.id):[],catalogue,values:Object.fromEntries(data),message:error.message,error:true,creating:!booking})));}
           });
         }
         if(url.pathname==='/customers'){
-          if(!await auth.read(id)){clear();return redirect('/login');}
+          if(!await readIdentity(id)){clear();return redirect('/login');}
           return await auth.withCustomers(id,url.searchParams.get('business'),async(client,business)=>{
             headerBusiness=business;
             const customerId=url.searchParams.get('customer'),addressId=url.searchParams.get('address'),data=new URLSearchParams(body),action=data.get('action');
@@ -116,7 +118,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
           });
         }
       if(url.pathname==='/catalogue'){
-          if(!await auth.read(id)){clear();return redirect('/login');}
+          if(!await readIdentity(id)){clear();return redirect('/login');}
           const businessId=url.searchParams.get('business'),itemId=url.searchParams.get('item'),view=url.searchParams.get('view')==='extra'?'extra':'service',catalogueOptions={q:url.searchParams.get('q'),status:url.searchParams.get('status'),service:url.searchParams.get('service')};
           return await auth.withCatalogue(id,businessId,true,async(client,business)=>{
             headerBusiness=business;
@@ -152,7 +154,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         }
         if(url.pathname==='/settings'){
           const businessId=url.searchParams.get('business');
-          if(!await auth.read(id)){clear();return redirect('/login');}
+          if(!await readIdentity(id)){clear();return redirect('/login');}
           return await auth.withOwner(id,businessId,async(client,business)=>{
             headerBusiness=business;
             const data=new URLSearchParams(body);let settings;
@@ -173,7 +175,7 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       }
       if(req.method!=='GET')return send(405,'Method not allowed','text/plain');
       if(url.pathname==='/calendar'){
-        if(!await auth.read(id)){clear();return redirect('/login');}
+        if(!await readIdentity(id)){clear();return redirect('/login');}
         return await auth.withBookings(id,url.searchParams.get('business'),async(client,business)=>{
           headerBusiness=business;
           const ctx=await bookingContext(client,business.id);let options;
@@ -186,27 +188,27 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         });
       }
       if(url.pathname==='/bookings'){
-        if(!await auth.read(id)){clear();return redirect('/login');}
+        if(!await readIdentity(id)){clear();return redirect('/login');}
         return await auth.withBookings(id,url.searchParams.get('business'),async(client,business)=>{
             headerBusiness=business;
           const ctx=await bookingContext(client,business.id),bookingId=url.searchParams.get('booking'),customerId=url.searchParams.get('customer'),booking=bookingId?await readBooking(client,business.id,bookingId):null,customer=customerId?await readCustomer(client,business.id,customerId):null;
           if(bookingId&&!booking||customerId&&!customer)return send(404,'Booking or customer unavailable','text/plain');
-          return send(200,html('Bookings',renderBookings(business,await listBookings(client,business.id),ctx,{booking,customer,customers:await listCustomers(client,business.id),addresses:customer?await listAddresses(client,business.id,customer.id):[],catalogue:await listCatalogue(client,business.id),values:{service_id:url.searchParams.get('service_id')??''},message:url.searchParams.get('saved')==='1'?'Booking saved.':''})));
+          return send(200,html('Bookings',renderBookings(business,await listBookings(client,business.id),ctx,{booking,customer,customers:await listCustomers(client,business.id),addresses:customer?await listAddresses(client,business.id,customer.id):[],catalogue:await listCatalogue(client,business.id),values:{service_id:url.searchParams.get('service_id')??''},creating:url.searchParams.get('create')==='1',filters:{q:url.searchParams.get('q'),status:url.searchParams.get('status')},message:url.searchParams.get('saved')==='1'?'Booking saved.':''})));
         });
       }
         if(url.pathname==='/customers'){
-        if(!await auth.read(id)){clear();return redirect('/login');}
+        if(!await readIdentity(id)){clear();return redirect('/login');}
         return await auth.withCustomers(id,url.searchParams.get('business'),async(client,business)=>{
             headerBusiness=business;
           const customerId=url.searchParams.get('customer'),addressId=url.searchParams.get('address'),customer=customerId?await readCustomer(client,business.id,customerId):null;
           if(customerId&&!customer)return send(404,'Customer unavailable','text/plain');
           const addresses=customer?await listAddresses(client,business.id,customer.id):[],address=addressId?await readAddress(client,business.id,customerId,addressId):null;
           if(addressId&&!address)return send(404,'Address unavailable','text/plain');
-          return send(200,html('Customers',renderCustomers(business,await listCustomers(client,business.id),customer,addresses,address,url.searchParams.get('saved')==='1'?'Record saved.':'')));
+          return send(200,html('Customers',renderCustomers(business,await listCustomers(client,business.id),customer,addresses,address,url.searchParams.get('saved')==='1'?'Record saved.':'',false,{creating:url.searchParams.get('create')==='1',q:url.searchParams.get('q'),status:url.searchParams.get('status')})));
         });
       }
       if(url.pathname==='/catalogue'){
-        if(!await auth.read(id)){clear();return redirect('/login');}
+        if(!await readIdentity(id)){clear();return redirect('/login');}
         return await auth.withCatalogue(id,url.searchParams.get('business'),false,async(client,business,canManage)=>{
           headerBusiness=business;
           const items=await listCatalogue(client,business.id),itemId=url.searchParams.get('item'),create=url.searchParams.get('create'),editing=itemId?items.find(i=>i.id===itemId):canManage&&['service','extra'].includes(create)?{kind:create,creating:true}:null;
@@ -225,11 +227,11 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         });
       }
       if(url.pathname==='/settings'){
-        if(!await auth.read(id)){clear();return redirect('/login');}
+        if(!await readIdentity(id)){clear();return redirect('/login');}
         return await auth.withOwner(id,url.searchParams.get('business'),async(client,business)=>{headerBusiness=business;return send(200,html('Business settings',renderBusinessSettings(business,await readBusinessSettings(client,business.id),url.searchParams.get('saved')==='1'?'Settings saved.':'')));});
       }
       if(url.pathname!=='/dashboard')return send(404,'Not found','text/plain');
-      const identity=await auth.read(id);if(!identity){clear();return redirect('/login');}
+      const identity=await readIdentity(id);if(!identity){clear();return redirect('/login');}
       const selected=url.searchParams.get('business')??'all';
       if(selected!=='all'&&!identity.businessIds.includes(selected))return send(403,'You do not have access to this business.','text/plain');
       return send(200,renderWorkspace(identity,selected));
