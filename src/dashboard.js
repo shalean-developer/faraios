@@ -14,7 +14,7 @@ export function createDashboardServer({demo=false,now=()=>Date.now()}={}) {
   const server=createServer(async(req,res)=>{
     const host=req.headers.host;
     const expected=`127.0.0.1:${server.address()?.port}`;
-    const send=(status,body,type='text/html; charset=utf-8')=>{res.writeHead(status,{'Content-Type':type,'Cache-Control':'no-store','Content-Security-Policy':"default-src 'none'; style-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});res.end(body);};
+    const send=(status,body,type='text/html; charset=utf-8')=>{res.writeHead(status,{'Content-Type':type,'Cache-Control':'no-store','Content-Security-Policy':"default-src 'none'; style-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",'X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin'});res.end(body);};
     try {
       if(!demo || process.env.NODE_ENV==='production')return send(503,'Local demo disabled. Real authentication is not configured.','text/plain');
       // Reject DNS rebinding and accidental non-loopback exposure, even if caller binds elsewhere.
