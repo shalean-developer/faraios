@@ -8,10 +8,14 @@
   },
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/access.js && node --check src/cleaning-rules.js && node --check src/dashboard.js && node --check src/identity.js && node --check dev.mjs",
-    "dev": "node dev.mjs"
+    "check": "node --check src/access.js && node --check src/cleaning-rules.js && node --check src/dashboard.js && node --check src/identity.js && node --check dev.mjs && node --check src/auth-session.js && node --check src/staging-server.js && node --check staging.mjs",
+    "dev": "node dev.mjs",
+    "staging": "node staging.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.10"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.118.0"
   }
 }
