@@ -3,13 +3,16 @@ begin;
 alter table public.business_catalogue add constraint catalogue_business_id_unique unique(business_id,id);
 alter table public.customer_addresses add constraint address_parent_id_unique unique(business_id,customer_id,id);
 -- Narrow read bridge for office scheduling. It exposes no contact/settings secrets.
-create function public.booking_context(p_business_id uuid) returns jsonb language plpgsql stable security definer set search_path='' as $ctx$
+create function audit.booking_context(p_business_id uuid) returns jsonb language plpgsql stable security definer set search_path='' as $ctx$
 declare result jsonb;
 begin
  if not exists(select 1 from public.business_memberships m join public.businesses b on b.id=m.business_id where m.business_id=p_business_id and m.user_id=auth.uid() and m.status='active' and m.role in ('owner','manager') and b.status='active') then raise exception 'Booking access denied' using errcode='42501';end if;
  select jsonb_build_object('time_zone',s.time_zone,'working_days',s.working_days,'opens_at',s.opens_at,'closes_at',s.closes_at,'staff',coalesce((select jsonb_agg(jsonb_build_object('user_id',m.user_id,'label',coalesce(u.email,'Staff account')) order by m.user_id) from public.business_memberships m join auth.users u on u.id=m.user_id where m.business_id=p_business_id and m.role='staff' and m.status='active'),'[]'::jsonb)) into result from public.business_settings s where s.business_id=p_business_id;
  if result is null then raise exception 'Configure business working hours before booking';end if;return result;
 end;$ctx$;
+revoke all on function audit.booking_context(uuid) from public,anon,authenticated;
+grant execute on function audit.booking_context(uuid) to authenticated;
+create function public.booking_context(p_business_id uuid) returns jsonb language sql stable security invoker set search_path='' as $wrapper$select audit.booking_context(p_business_id)$wrapper$;
 revoke all on function public.booking_context(uuid) from public,anon,authenticated;
 grant execute on function public.booking_context(uuid) to authenticated;
 create table public.one_off_bookings(
