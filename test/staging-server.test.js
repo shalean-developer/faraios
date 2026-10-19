@@ -188,5 +188,8 @@ test('catalogue HTTP profile changes reset the old configuration before renderin
  assert.equal((await post(edit,configure)).status,303);assert.equal(state.catalogue[0].cleaning_config.base_minutes,60);
  assert.equal((await post(edit,configure.replace('version=1','version=2').replace('cleaning_profile=office','cleaning_profile=regular'))).status,303);
  assert.equal(state.catalogue[0].cleaning_profile,'regular');assert.equal(state.catalogue[0].cleaning_config,null);
- const markup=await (await fetch(edit,{headers:{Cookie}})).text();assert.match(markup,/pet_label_0/);assert.match(markup,/rule_bedrooms_unit_cents/);assert.doesNotMatch(markup,/rule_office_size_0_cents/);
+ const markup=await (await fetch(edit,{headers:{Cookie}})).text();assert.match(markup,/pet_label_0/);assert.match(markup,/rule_bedrooms_unit_rand/);assert.doesNotMatch(markup,/rule_office_size_0_cents/);
+ assert.equal((await fetch(base+'/catalogue-setup.js')).status,200);
+ const invalid=configure.replace('version=1','version=3').replace('cleaning_profile=office','cleaning_profile=regular')+'&rule_bedrooms_unit_rand=12.345&pet_label_5=Cats%20%26%20dogs&pet_5_rand=25.50&pet_5_minutes=15';
+ const failed=await post(edit,invalid);assert.equal(failed.status,422);const body=await failed.text();assert.match(body,/value="12.345"/);assert.match(body,/value="Cats &amp; dogs"/);assert.equal(state.catalogue[0].version,3);
 },{role:'owner'}));

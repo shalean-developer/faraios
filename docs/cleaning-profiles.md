@@ -45,3 +45,11 @@ Before saving these cases, the office records an explicit additional charge in c
 Only existing, active, applicable extras are enabled. The existing Shalean Fridge hourly rate is retained for Regular and Airbnb; one whole-hour quantity adds 60 minutes. Other extras need explicit catalogue prices and durations before they can be enabled. This is not an import of any other business's catalogue.
 
 Apply `database/cleaning-assessments-draft.sql` after the cleaning profile migrations. Update/restart the local application before browser acceptance: older application code cannot render the new assessment controls. Availability, recurring bookings, payments and public booking pages remain separate stages.
+
+## Compact service setup
+
+The owner editor now shows one service at a time. Basic name/price/team/status fields are separate from expandable booking questions, price/time rules, pets, equipment and allowed extras. Room additions use compact rows; descriptive-answer charges and assessment flags remain editable under advanced rules. Prices are entered in Rand, converted server-side to integer cents with the existing limits; legacy cent-based submissions remain supported. Existing profile configuration and booking calculations do not change.
+
+Pets can be recorded with an explicit no-added-charge/time checkbox. Only configured answers are initially expanded; Add pet answer reveals another existing unused row up to the current limit of 20. Businesses with paid pet options keep their amounts and minutes. Without JavaScript, remaining answer rows are available through the Add more pet answers disclosure. Optional delivery fields and linen-change charges are progressively shown when relevant; selected extras expose their additional duration. Unused controls retain their values, and server validation remains authoritative. Invalid native controls expand their enclosing sections; rejected submissions keep entered prices, answers and checked extras.
+
+No database migration or rate update is required. Round-trip tests cover every accepted service and confirm that the rendered form retains prices, duration, assessment flags, optional linen, equipment and extras. Browser layout/interaction acceptance still requires pulling and restarting the local application.
