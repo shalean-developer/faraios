@@ -7,7 +7,7 @@ export function enhanceDropdown(select){
  const label=select.labels?.[0];
  if(label){label.id ||= select.id+'-label';trigger.setAttribute('aria-labelledby',label.id+' '+select.id+'-value');list.setAttribute('aria-labelledby',label.id);}
  const value=document.createElement('span');value.id=select.id+'-value';trigger.append(value);
- const arrow=document.createElement('span');arrow.textContent='⌄';arrow.setAttribute('aria-hidden','true');trigger.append(arrow);
+ const arrow=document.createElement('span');arrow.className='dropdown-arrow';arrow.setAttribute('aria-hidden','true');trigger.append(arrow);
  trigger.setAttribute('role','combobox');trigger.setAttribute('aria-haspopup','listbox');trigger.setAttribute('aria-controls',list.id);trigger.setAttribute('aria-expanded','false');
  if(select.required)trigger.setAttribute('aria-required','true');
  const options=Array.from(select.options).map((option,index)=>{
