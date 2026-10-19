@@ -1,3 +1,4 @@
+import {calendarOptions,readCalendar,checkAvailability,renderCalendar} from './calendar.js';
 import {staffAccounts,listStaffRecords,parseStaffRecord,saveStaffRecord,resolveAssignedTeam,renderStaffTeams} from './staff-teams.js';
 import {renderWorkspaceHeader} from './workspace-header.js';
 import {createServer} from 'node:http';
@@ -145,6 +146,19 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         }
       }
       if(req.method!=='GET')return send(405,'Method not allowed','text/plain');
+      if(url.pathname==='/calendar'){
+        if(!await auth.read(id)){clear();return redirect('/login');}
+        return await auth.withBookings(id,url.searchParams.get('business'),async(client,business)=>{
+          headerBusiness=business;
+          const ctx=await bookingContext(client,business.id);let options;
+          try{options=calendarOptions(url.searchParams,ctx.time_zone,new Date(now()));}
+          catch(error){return send(error.status??422,html('Calendar',`<h1>Calendar</h1><p role="alert">${esc(error.message)}</p><a href="/calendar?business=${encodeURIComponent(business.id)}">Open calendar</a>`));}
+          const data=await readCalendar(client,business.id,options);let availability=null,message='',error=false;
+          try{if(url.searchParams.has('local_start'))availability=await checkAvailability(client,business.id,url.searchParams);}
+          catch(e){if(e.status===403)throw e;message=e.message;error=true;}
+          return send(error?422:200,html('Calendar',renderCalendar(business,ctx,data,options,{availability,values:Object.fromEntries(url.searchParams),message,error})));
+        });
+      }
       if(url.pathname==='/bookings'){
         if(!await auth.read(id)){clear();return redirect('/login');}
         return await auth.withBookings(id,url.searchParams.get('business'),async(client,business)=>{

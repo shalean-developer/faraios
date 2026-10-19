@@ -30,7 +30,7 @@ function bookingClient(state){
 }
 async function run(fn, {role="manager"}={}){
   const state={role,active:true,verified:true,time:Date.now(),settings:null,settingsWrites:0,catalogue:[],catalogueWrites:0,customers:[],addresses:[],bookings:[],profiles:[],teams:[]};
-  const factory=()=>({rpc:async name=>name==='staff_context'?({data:[{user_id:uid,label:'Synthetic staff'}]}):({data:{time_zone:'UTC',working_days:[1,2,3,4,5],opens_at:'08:00',closes_at:'18:00',staff:[{user_id:uid,label:'Synthetic staff'}]}}),auth:{signInWithPassword:async({password})=>password==='test-password'?{data:{session:{expires_at:Math.floor(state.time/1000)+3600}}}:{error:{message:'bad'}},getUser:async()=>state.verified?({data:{user:{id:uid}}}):({error:{message:'revoked'}}),signOut:async()=>({})},from:table=>table==='one_off_bookings'?bookingClient(state):['business_customers','customer_addresses','staff_profiles','staff_teams'].includes(table)?customerClient(state,table):table==='business_catalogue'?catalogueClient(state):table==='business_settings'?{select(){return this;},eq(){return this;},maybeSingle:async()=>({data:state.settings}),upsert(row){state.settings=row;state.settingsWrites++;return {select:async()=>({data:[{business_id:row.business_id}]})};}}:({select(){return this;},eq(key){if(table==='businesses')return Promise.resolve({data:[{id:bid,name:'Synthetic Co'}]});return key==='status'?Promise.resolve({data:state.active?[{user_id:uid,business_id:bid,role:state.role,status:'active'}]:[]}):this;}})});
+  const factory=()=>({rpc:async name=>name==='calendar_window'?({data:{time_zone:'UTC',starts_at:'2026-10-20T00:00:00Z',ends_at:'2026-10-27T00:00:00Z',bookings:state.bookings.map(b=>({...b,name:b.customer_snapshot.name})),busy:[]}}):name==='staff_availability'?({data:{time_zone:'UTC',starts_at:'2026-10-20T09:00:00Z',ends_at:'2026-10-20T11:00:00Z',staff:[{user_id:uid,busy:true}]}}):name==='staff_context'?({data:[{user_id:uid,label:'Synthetic staff'}]}):({data:{time_zone:'UTC',working_days:[1,2,3,4,5],opens_at:'08:00',closes_at:'18:00',staff:[{user_id:uid,label:'Synthetic staff'}]}}),auth:{signInWithPassword:async({password})=>password==='test-password'?{data:{session:{expires_at:Math.floor(state.time/1000)+3600}}}:{error:{message:'bad'}},getUser:async()=>state.verified?({data:{user:{id:uid}}}):({error:{message:'revoked'}}),signOut:async()=>({})},from:table=>table==='one_off_bookings'?bookingClient(state):['business_customers','customer_addresses','staff_profiles','staff_teams'].includes(table)?customerClient(state,table):table==='business_catalogue'?catalogueClient(state):table==='business_settings'?{select(){return this;},eq(){return this;},maybeSingle:async()=>({data:state.settings}),upsert(row){state.settings=row;state.settingsWrites++;return {select:async()=>({data:[{business_id:row.business_id}]})};}}:({select(){return this;},eq(key){if(table==='businesses')return Promise.resolve({data:[{id:bid,name:'Synthetic Co'}]});return key==='status'?Promise.resolve({data:state.active?[{user_id:uid,business_id:bid,role:state.role,status:'active'}]:[]}):this;}})});
   const server=createStagingServer({createClient:factory,now:()=>state.time});await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
   try{await fn(base,state);}finally{await new Promise(r=>server.close(r));}
 }
@@ -256,3 +256,21 @@ test('staff list keeps creation collapsed and editors focused for both categorie
  assert.equal(state.teams.length,0);
 },{role:'owner'}));
 
+
+for(const role of ['owner','manager'])test(`calendar HTTP permits ${role}, validates dates and checks availability without writes`,async()=>run(async(base,state)=>{
+ const Cookie=await signIn(base),url=base+'/calendar?business='+bid+'&day=2026-10-20';
+ const dashboard=await(await fetch(base+'/dashboard?business='+bid,{headers:{Cookie}})).text();assert.match(dashboard,/Availability &amp; calendar/);
+ let response=await fetch(url,{headers:{Cookie}});assert.equal(response.status,200);let html=await response.text();assert.match(html,/Check cleaner availability/);assert.equal((html.match(/class="panel calendar-day"/g)||[]).length,7);
+ response=await fetch(url+'&view=day&local_start=2026-10-20T09:00&duration_minutes=120',{headers:{Cookie}});assert.equal(response.status,200);html=await response.text();assert.match(html,/>Busy</);assert.equal((html.match(/class="panel calendar-day"/g)||[]).length,1);
+ for(const suffix of ['&view=month','&local_start=bad&duration_minutes=120','&local_start=2026-10-20T09:00&duration_minutes=0'])assert.equal((await fetch(url+suffix,{headers:{Cookie}})).status,422);
+ assert.equal((await fetch(base+'/calendar?business='+bid+'&day=2026-02-30',{headers:{Cookie}})).status,422);
+ assert.equal((await fetch(base+'/calendar?business=foreign&day=2026-10-20',{headers:{Cookie}})).status,403);
+ assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:''})).status,405);
+ assert.equal(state.bookings.length,0);assert.equal(state.settingsWrites,0);
+ state.active=false;assert.equal((await fetch(url,{headers:{Cookie}})).status,403);
+},{role}));
+test('calendar HTTP denies staff and redirects anonymous users',async()=>run(async base=>{
+ const url=base+'/calendar?business='+bid;
+ assert.equal((await fetch(url,{redirect:'manual'})).status,303);const Cookie=await signIn(base);
+ assert.equal((await fetch(url,{headers:{Cookie}})).status,403);
+},{role:'staff'}));
