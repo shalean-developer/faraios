@@ -31,3 +31,39 @@ An observed Regular quote with one bedroom/one bathroom/no extra rooms displayed
 - Test room/size/type variants, large exact counts, zero bedrooms/extra rooms where supported, invalid/foreign scope, service-extra applicability, price/duration snapshots and old-booking compatibility.
 
 Current PR25 provides lifecycle, assignment, schedule and catalogue snapshots. It does not yet implement this service-specific Cleaning scope or its pricing/duration extensions. No live booking was submitted during inspection.
+
+## Expanded per-service field inventory — rechecked 19 October 2026
+
+The six detail journeys were rechecked beyond the first room screen. This inventory confirms visible fields/options and conditional detail screens; it is not a claim that all tariffs, duration formulas, recurrence branches, slot-availability rules or checkout behaviour have been reverse-engineered or implemented.
+
+| Service | Property/scope | Further required/detail questions | Observed optional extras |
+| --- | --- | --- | --- |
+| Regular | House/Apartment/Townhouse; exact bedrooms, bathrooms, extra rooms | Pets; bring equipment Yes/No; Yes adds distance-based delivery/collection quote | Inside Fridge, Inside Oven, Laundry, Ironing, Interior Windows |
+| Deep | House/Apartment/Townhouse; exact bedrooms, bathrooms, extra rooms | Last professional clean: Never/unsure, 6+ months, 3–6 months, 1–3 months; pets | Balcony cleaning, Garage, Outside windows |
+| Moving | House/Apartment/Townhouse; Move-in or Move-out; exact bedrooms, bathrooms, extra rooms | Furnished/empty; pets present during the clean. Both Move-in and Move-out detail branches inspected | Balcony cleaning, Garage, Outside windows |
+| Airbnb | House/Apartment/Townhouse; exact bedrooms, bathrooms, extra rooms | Fresh linen available or no linen change; key/access method; optional access instructions | Inside Oven, Laundry, Interior Windows, Welcome Setup, Post-clean Photos |
+| Office | Office size: Small 1–5 desks, Medium 6–20, Large 21–50, Enterprise 50+; exact bathrooms | Scope and applicable extras share the details screen | Kitchen (shared kitchenette), Sanitisation |
+| Carpet | House/Apartment/Townhouse; exact carpeted rooms and rugs; carpet type | Visible stains Yes/No; observed Yes updates the estimate | Mattress |
+
+Pet choices observed in Regular: No pets, Dogs, Cats, Dogs & Cats, Snakes, Lizards. Other services' pet option lists must be validated against their configured choices before implementation; their pet fields were observed but not every option menu repeated.
+
+Airbnb key/access choices: Lockbox, Smart lock/code, Meet in person, Managed by agent. Instructions support arrival, parking, concierge, key-return and access notes. Treat access instructions as sensitive operational information.
+
+Carpet type choices: Standard pile, Thick/shag pile, Berber/loop, Persian/delicate. Carpeted rooms offer 1–5 and custom 6+; rugs offer 0–3 and custom 4+. Exact counts are pricing/duration inputs. Carpet scheduling goes directly to date/time and explicitly states that time is calculated from carpeted rooms and rugs; do not assume it uses Regular's frequency screen.
+
+Only Regular's equipment toggle was observed. Other service detail screens had no equivalent equipment selector in the checked paths; this does not establish whether equipment is included, unavailable or governed by another policy. Equipment policy/availability must be explicit per service and business.
+
+### Shared booking record requirements
+
+- Selected business and service/profile/configuration version.
+- Customer or booking-for-someone-else contact, property address and contact phone; private access instructions where applicable.
+- Exact service-specific scope and optional extras with quantities where supported.
+- Explicit equipment selection when offered, equipment base/distance/fee quote evidence and immutable fee snapshot.
+- Service-appropriate frequency (one-off first; recurrence T17), date, start time and timezone.
+- Required/selected cleaner quantity, automatic business allocation or named preference, subject to future availability validation.
+- Estimated duration and itemised, versioned price (base, scope adjustments, extras, equipment logistics, service fee, applicable adjustments), reviewed before confirmation/payment.
+- Booking lifecycle/assignment/history from PR25, kept independent of payment and invoice status.
+
+### Remaining verification before a full parity claim
+
+Confirm authoritative business/service pricing and duration configuration, exact custom-count bounds, equipment distance/minimum/rounding policy, service-specific recurrence availability, all pet choices, availability/cleaner-slot logic and checkout validation/payment outcomes. No production booking/payment was submitted in this inspection. The field inventory is recorded; the Cleaning-form implementation and those acceptance checks remain open.
