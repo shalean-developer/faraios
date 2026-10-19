@@ -10,13 +10,15 @@ export function enhanceDropdown(select){
  const arrow=document.createElement('span');arrow.className='dropdown-arrow';arrow.setAttribute('aria-hidden','true');trigger.append(arrow);
  trigger.setAttribute('role','combobox');trigger.setAttribute('aria-haspopup','listbox');trigger.setAttribute('aria-controls',list.id);trigger.setAttribute('aria-expanded','false');
  if(select.required)trigger.setAttribute('aria-required','true');
- const options=Array.from(select.options).map((option,index)=>{
+ const optionRow=(option,index)=>{
   const row=document.createElement('div');row.role='option';row.id=list.id+'-'+index;row.textContent=option.textContent;row.dataset.index=String(index);
   row.setAttribute('aria-disabled',String(option.disabled));list.append(row);return row;
- });
+ };
+ let options=Array.from(select.options).map(optionRow);
  let active=select.selectedIndex,search='',lastKey=0;
  const sync=()=>{value.textContent=select.options[select.selectedIndex]?.textContent??'';options.forEach((row,i)=>row.setAttribute('aria-selected',String(i===select.selectedIndex)));};
  const highlight=index=>{active=index;options.forEach((row,i)=>row.classList.toggle('highlighted',i===active));if(options[active]){trigger.setAttribute('aria-activedescendant',options[active].id);options[active].scrollIntoView({block:'nearest'});}};
+ const refreshOptions=()=>{list.replaceChildren();options=Array.from(select.options).map(optionRow);active=select.selectedIndex;search='';lastKey=0;sync();close();};
  const close=()=>{list.hidden=true;trigger.setAttribute('aria-expanded','false');trigger.removeAttribute('aria-activedescendant');};
  const open=()=>{list.hidden=false;trigger.setAttribute('aria-expanded','true');highlight(select.selectedIndex);};
  const choose=index=>{if(!select.options[index]||select.options[index].disabled)return;select.selectedIndex=index;select.dispatchEvent(new Event('input',{bubbles:true}));select.dispatchEvent(new Event('change',{bubbles:true}));sync();close();trigger.focus();};
@@ -49,7 +51,7 @@ export function enhanceDropdown(select){
  select.addEventListener('change',()=>trigger.removeAttribute('aria-invalid'));
  select.form?.addEventListener('reset',()=>setTimeout(()=>{sync();close();trigger.removeAttribute('aria-invalid');},0));
  label?.addEventListener('click',event=>{event.preventDefault();trigger.focus();});
- select.after(root);root.append(trigger,list);sync();select.hidden=true;select.dataset.enhanced='true';return {open,close};
+ select.after(root);root.append(trigger,list);sync();select.hidden=true;select.dataset.enhanced='true';return {open,close,refreshOptions};
 }
 if(typeof document!=='undefined')document.querySelectorAll('select[data-dropdown]').forEach(enhanceDropdown);
 
