@@ -1,0 +1,69 @@
+import {randomUUID} from 'node:crypto';
+import {validCustomerId} from './customers.js';
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+export const bookingStatuses=Object.freeze({draft:'Draft',confirmed:'Confirmed',assigned:'Assigned',en_route:'En route',arrived:'Arrived',in_progress:'In progress',completed:'Completed',cancelled:'Cancelled'});
+const transitions={draft:['confirmed','cancelled'],confirmed:['assigned','cancelled'],assigned:['en_route','cancelled'],en_route:['arrived','cancelled'],arrived:['in_progress','cancelled'],in_progress:['completed'],completed:[],cancelled:[]};
+const text=(form,key,max=2000)=>{const value=(form.get(key)??'').trim();if(value.length>max)throw new Error(`Check ${key.replaceAll('_',' ')}.`);return value;};
+function schedule(form){const local_start=text(form,'local_start',16),raw=text(form,'duration_minutes',4),hours_override_reason=text(form,'hours_override_reason');if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local_start)||!/^\d+$/.test(raw)||Number(raw)<15||Number(raw)>1440)throw new Error('Enter a date/time and duration from 15 to 1440 minutes.');return {local_start,duration_minutes:Number(raw),hours_override_reason};}
+export function parseBookingCreate(form,catalogue){
+ const customer_id=text(form,'customer_id',36),address_id=text(form,'address_id',36),service_id=text(form,'service_id',36),request_key=text(form,'request_key',36);
+ if(![customer_id,address_id,service_id,request_key].every(validCustomerId))throw new Error('Select a customer, address and service.');
+ const quantity=value=>{if(!/^[1-9]\d{0,5}$/.test(value))throw new Error('Use positive whole-number quantities.');return Number(value);};
+ const service=catalogue.find(r=>r.id===service_id&&r.kind==='service'&&r.is_active);if(!service)throw new Error('Select an active service.');
+ const selection=[{catalogue_id:service_id,quantity:quantity(text(form,'service_quantity',6))}];
+ for(const extra of catalogue.filter(r=>r.kind==='extra'&&r.is_active)){const raw=text(form,'extra_'+extra.id,6);if(raw&&raw!=='0')selection.push({catalogue_id:extra.id,quantity:quantity(raw)});}
+ if(selection.length>51)throw new Error('Select at most 50 extras.');
+ for(const line of selection){const item=catalogue.find(r=>r.id===line.catalogue_id);if(item.pricing_model==='fixed'&&line.quantity!==1)throw new Error('Fixed-price items require quantity one.');}
+ return {customer_id,address_id,request_key,selection,...schedule(form)};
+}
+const fields='id,business_id,request_key,customer_id,address_id,local_start,duration_minutes,time_zone,starts_at,ends_at,status,assigned_staff,customer_snapshot,address_snapshot,price_lines,total_cents,currency,required_team_size,version,change_reason,hours_override_reason,created_at,updated_at';
+export async function bookingContext(client,businessId){const {data,error}=await client.rpc('booking_context',{p_business_id:businessId});if(error||!data?.time_zone||!Array.isArray(data.staff))throw new Error('Configure business working hours before creating bookings.');return data;}
+export async function listBookings(client,businessId){const {data,error}=await client.from('one_off_bookings').select(fields).eq('business_id',businessId).order('starts_at',{ascending:false}).limit(200);if(error||!Array.isArray(data)||data.some(r=>r.business_id!==businessId))throw new Error('Bookings unavailable');return data;}
+export async function readBooking(client,businessId,id){if(!validCustomerId(id))return null;const {data,error}=await client.from('one_off_bookings').select(fields).eq('business_id',businessId).eq('id',id).maybeSingle();if(error||data&&data.business_id!==businessId)throw new Error('Booking unavailable');return data;}
+function databaseError(error){const result=new Error(['42501'].includes(error?.code)?'Booking access denied':error?.message??'Booking could not be saved');result.status=error?.code==='42501'?403:422;return result;}
+export async function createBooking(client,businessId,row){
+ const {data,error}=await client.from('one_off_bookings').insert({...row,business_id:businessId}).select('id');
+ if(error?.code==='23505'){
+  const existing=await client.from('one_off_bookings').select('id,request_payload').eq('business_id',businessId).eq('request_key',row.request_key).maybeSingle();
+  const p=existing.data?.request_payload;
+  if(p&&p.customer_id===row.customer_id&&p.address_id===row.address_id&&p.local_start.slice(0,16)===row.local_start&&p.duration_minutes===row.duration_minutes&&Array.isArray(p.selection)&&p.selection.length===row.selection.length&&p.selection.every((l,i)=>l.catalogue_id===row.selection[i].catalogue_id&&l.quantity===row.selection[i].quantity)&&p.hours_override_reason===row.hours_override_reason)return existing.data.id;
+  const conflict=new Error('This request was already used with different details. Open the bookings page again.');conflict.status=409;throw conflict;
+ }
+ if(error)throw databaseError(error);if(data?.length!==1)throw new Error('Booking could not be saved');return data[0].id;
+}
+export async function updateBooking(client,businessId,booking,form){
+ const version=Number(form.get('version')),action=form.get('action');if(!Number.isSafeInteger(version)||version<1)throw new Error('Invalid booking version');
+ const change_reason=text(form,'change_reason');let row;
+ if(action==='reschedule'){if(!change_reason)throw new Error('Enter a rescheduling reason.');row={...schedule(form),change_reason};}
+ else if(action==='transition'){
+  const status=text(form,'status',20);if(!transitions[booking.status]?.includes(status))throw new Error('Invalid booking transition.');
+  if(status==='cancelled'&&!change_reason)throw new Error('Enter a cancellation reason.');row={status,change_reason};
+  if(status==='assigned'){const ids=form.getAll('assigned_staff');if(!ids.every(validCustomerId)||new Set(ids).size!==ids.length||ids.length<booking.required_team_size)throw new Error('Select the required number of staff.');row.assigned_staff=ids;row.change_reason=change_reason||'Initial team assignment';}
+ }else if(action==='reassign'){
+  const ids=form.getAll('assigned_staff');if(!change_reason||!ids.every(validCustomerId)||new Set(ids).size!==ids.length||ids.length<booking.required_team_size)throw new Error('Select the required team and enter a reason.');row={assigned_staff:ids,change_reason};
+ }else throw new Error('Invalid booking action');
+ const {data,error}=await client.from('one_off_bookings').update(row).eq('business_id',businessId).eq('id',booking.id).eq('version',version).select('id');if(error)throw databaseError(error);if(data?.length!==1){const conflict=new Error('This booking changed. Reopen it before saving.');conflict.status=409;throw conflict;}
+}
+export function renderBookings(business,bookings,ctx,{booking=null,customers=[],customer=null,addresses=[],catalogue=[],values={},message='',error=false}={}){
+ const base='/bookings?business='+encodeURIComponent(business.id),money=n=>new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR'}).format(n/100);
+ const input=(key,label,type='text',value='',required=true,fieldId=key)=>`<label for="${fieldId}">${label}</label><input id="${fieldId}" name="${key}" type="${type}" value="${esc(value)}"${required?' required':''}${type==='number'?` min="${key.startsWith('extra_')?0:key==='duration_minutes'?15:1}" max="${key==='duration_minutes'?1440:999999}" step="1"`:''}${type==='text'?' maxlength="2000"':''}>`;
+ const select=(key,label,choices,value='')=>`<label for="${key}">${label}</label><select data-dropdown id="${key}" name="${key}" required>${choices.map(([id,text])=>`<option value="${esc(id)}"${id===value?' selected':''}>${esc(text)}</option>`).join('')}</select>`;
+ const local=v=>String(v??'').slice(0,16),scheduleFields=(v,prefix='')=>`${input('local_start','Start time ('+ctx.time_zone+')','datetime-local',local(v.local_start))}${input('duration_minutes','Estimated duration (minutes)','number',v.duration_minutes??'')}${input('hours_override_reason','Reason for booking outside working hours (if applicable)','text',v.hours_override_reason??'',false)}`;
+ const staffFields=(selected=[])=>`<fieldset><legend>Select staff</legend>${ctx.staff.length?ctx.staff.map(s=>`<label class="day"><input type="checkbox" name="assigned_staff" value="${esc(s.user_id)}"${selected.includes(s.user_id)?' checked':''}> ${esc(s.label)}</label>`).join(''):'<p>No active staff memberships in this business. Add staff before assigning.</p>'}</fieldset>`;
+ const reason=prefix=>input('change_reason','Reason','text','',true,prefix+'-reason');
+ const hidden=b=>`<input type="hidden" name="version" value="${b.version}">`;
+ let content;
+ if(booking){const b=booking,action=base+'&amp;booking='+encodeURIComponent(b.id),next=transitions[b.status]??[],terminal=!next.length;
+  content=`<section class="panel"><h2>${esc(b.customer_snapshot.name)}</h2><p class="booking-state">${esc(bookingStatuses[b.status])}</p><p>${esc([b.address_snapshot.address_line,b.address_snapshot.suburb,b.address_snapshot.city,b.address_snapshot.postal_code].filter(Boolean).join(', '))}</p><p>${esc(local(b.local_start).replace('T',' '))} · ${esc(b.time_zone)} · ${b.duration_minutes} minutes</p><p>Required team: ${b.required_team_size} · Assigned: ${b.assigned_staff.length}</p>${b.price_lines.map(l=>`<p>${esc(l.name)} · ${l.quantity} × ${esc(money(l.rate_cents))} / ${esc(l.unit_label)} = ${esc(money(l.total_cents))}</p>`).join('')}<p class="catalogue-price">Total: ${esc(money(b.total_cents))}</p><p class="muted">Payment is not recorded by this booking status. No invoice or earnings have been created.</p></section>`;
+  if(!terminal){content+=`<section class="panel"><h2>Update booking status</h2><form class="settings-form" method="post" action="${action}"><input type="hidden" name="action" value="transition">${hidden(b)}${select('status','Next status',next.map(s=>[s,bookingStatuses[s]]))}${next.includes('assigned')?staffFields():''}${input('change_reason','Reason — required for cancellation','text','',false)}<button>Update status</button></form></section>`;
+   if(['draft','confirmed','assigned','en_route','arrived'].includes(b.status))content+=`<section class="panel"><h2>Reschedule</h2><form class="settings-form" method="post" action="${action}"><input type="hidden" name="action" value="reschedule">${hidden(b)}${scheduleFields(b)}${reason('reschedule')}<button>Save schedule</button></form></section>`;
+   if(b.status==='assigned')content+=`<section class="panel"><h2>Change team</h2><form class="settings-form" method="post" action="${action}"><input type="hidden" name="action" value="reassign">${hidden(b)}${staffFields(b.assigned_staff)}${reason('reassign')}<button>Save team</button></form></section>`;
+  }
+  content+=`<p><a href="${base}">Back to bookings</a></p>`;
+ }else{
+  content=`<section class="panel"><h2>Bookings</h2>${bookings.length>=200?'<p>Showing the latest 200 bookings.</p>':''}${bookings.length?bookings.map(b=>`<article class="catalogue-row"><h3>${esc(b.customer_snapshot.name)}</h3><p>${esc(local(b.local_start).replace('T',' '))} · ${esc(bookingStatuses[b.status])} · ${esc(money(b.total_cents))}</p><a class="catalogue-edit" href="${base}&amp;booking=${encodeURIComponent(b.id)}">Open booking</a></article>`).join(''):'<p>No bookings yet.</p>'}</section><section class="panel"><h2>Create a one-off booking</h2><form class="settings-form" method="get" action="/bookings"><input type="hidden" name="business" value="${esc(business.id)}">${select('customer','Customer',[['','Select customer'],...customers.filter(c=>c.is_active).map(c=>[c.id,c.name])],customer?.id??'')}<button>Choose customer</button></form>`;
+  if(customer)content+=`<form class="settings-form" method="post" action="${base}"><input type="hidden" name="action" value="create"><input type="hidden" name="request_key" value="${esc(values.request_key??randomUUID())}"><input type="hidden" name="customer_id" value="${esc(customer.id)}">${select('address_id','Address',[['','Select address'],...addresses.filter(a=>a.is_active).map(a=>[a.id,[a.label,a.address_line].join(' · ')])],values.address_id)}${select('service_id','Service',[['','Select service'],...catalogue.filter(i=>i.kind==='service'&&i.is_active).map(i=>[i.id,`${i.name} · ${money(i.price_cents)} / ${i.unit_label} · ${i.pricing_model==='fixed'?'Fixed price':i.pricing_model==='hourly'?'Per hour':'Per unit'}`])],values.service_id)}${input('service_quantity','Service quantity — fixed price: 1; otherwise whole hours/units','number',values.service_quantity??'1')}<fieldset><legend>Optional extras — quantity 0 means excluded</legend>${catalogue.filter(i=>i.kind==='extra'&&i.is_active).map(i=>`${input('extra_'+i.id,`${i.name} · ${money(i.price_cents)} / ${i.unit_label} · ${i.pricing_model==='fixed'?'Fixed price (quantity 1)':'Whole hours/units'}`,'number',values['extra_'+i.id]??'0',false)}`).join('')||'<p>No active extras.</p>'}</fieldset>${scheduleFields(values)}<p class="muted">Review the selected rates and quantities before saving. A Draft stores the catalogue prices as a snapshot. Availability checks and calendar are coming in T16.</p><button>Save draft booking</button></form>`;
+  content+='</section>';
+ }
+ return `<a href="/dashboard?business=${encodeURIComponent(business.id)}">← Back to ${esc(business.name)}</a><h1>One-off bookings</h1><p>${esc(business.name)} · Office booking workspace</p>${message?`<p role="${error?'alert':'status'}">${esc(message)}</p>`:''}<p class="muted">${esc(ctx.time_zone)} · Working hours ${esc(ctx.opens_at)}–${esc(ctx.closes_at)}. No customer messages are sent.</p>${content}`;
+}
