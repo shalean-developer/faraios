@@ -1,3 +1,4 @@
+import {listStaffRecords} from './staff-teams.js';
 import {parseCleaningScope,cleaningScopeForm} from './cleaning-profiles.js';
 import {isDeepStrictEqual} from 'node:util';
 import {randomUUID} from 'node:crypto';
@@ -21,7 +22,7 @@ export function parseBookingCreate(form,catalogue){
  return {customer_id,address_id,request_key,selection,...timed,...(cleaning_scope?{cleaning_scope}:{} )};
 }
 const fields='id,business_id,request_key,customer_id,address_id,local_start,duration_minutes,time_zone,starts_at,ends_at,status,assigned_staff,customer_snapshot,address_snapshot,price_lines,total_cents,currency,required_team_size,version,change_reason,hours_override_reason,created_at,updated_at,cleaning_scope,cleaning_snapshot';
-export async function bookingContext(client,businessId){const {data,error}=await client.rpc('booking_context',{p_business_id:businessId});if(error||!data?.time_zone||!Array.isArray(data.staff))throw new Error('Configure business working hours before creating bookings.');return data;}
+export async function bookingContext(client,businessId){const {data,error}=await client.rpc('booking_context',{p_business_id:businessId});if(error||!data?.time_zone||!Array.isArray(data.staff))throw new Error('Configure business working hours before creating bookings.');return {...data,teams:await listStaffRecords(client,businessId,'team')};}
 export async function listBookings(client,businessId){const {data,error}=await client.from('one_off_bookings').select(fields).eq('business_id',businessId).order('starts_at',{ascending:false}).limit(200);if(error||!Array.isArray(data)||data.some(r=>r.business_id!==businessId))throw new Error('Bookings unavailable');return data;}
 export async function readBooking(client,businessId,id){if(!validCustomerId(id))return null;const {data,error}=await client.from('one_off_bookings').select(fields).eq('business_id',businessId).eq('id',id).maybeSingle();if(error||data&&data.business_id!==businessId)throw new Error('Booking unavailable');return data;}
 function databaseError(error){const result=new Error(['42501'].includes(error?.code)?'Booking access denied':error?.message??'Booking could not be saved');result.status=error?.code==='42501'?403:422;return result;}
@@ -55,7 +56,7 @@ export function renderBookings(business,bookings,ctx,{booking=null,customers=[],
  const input=(key,label,type='text',value='',required=true,fieldId=key)=>`<label for="${fieldId}">${label}</label><input id="${fieldId}" name="${key}" type="${type}" value="${esc(value)}"${required?' required':''}${type==='number'?` min="${key.startsWith('extra_')?0:key==='duration_minutes'?15:1}" max="${key==='duration_minutes'?1440:999999}" step="1"`:''}${type==='text'?' maxlength="2000"':''}>`;
  const select=(key,label,choices,value='')=>`<label for="${key}">${label}</label><select data-dropdown id="${key}" name="${key}" required>${choices.map(([id,text])=>`<option value="${esc(id)}"${id===value?' selected':''}>${esc(text)}</option>`).join('')}</select>`;
  const local=v=>String(v??'').slice(0,16),scheduleFields=(v,prefix='')=>`${input('local_start','Start time ('+ctx.time_zone+')','datetime-local',local(v.local_start))}${input('duration_minutes','Estimated duration (minutes)','number',v.duration_minutes??'')}${input('hours_override_reason','Reason for booking outside working hours (if applicable)','text',v.hours_override_reason??'',false)}`;
- const staffFields=(selected=[])=>`<fieldset><legend>Select staff</legend>${ctx.staff.length?ctx.staff.map(s=>`<label class="day"><input type="checkbox" name="assigned_staff" value="${esc(s.user_id)}"${selected.includes(s.user_id)?' checked':''}> ${esc(s.label)}</label>`).join(''):'<p>No active staff memberships in this business. Add staff before assigning.</p>'}</fieldset>`;
+ const staffFields=(selected=[])=>`${ctx.teams?.some(t=>t.is_active)?`<label for="team_id">Saved team (optional)</label><select data-dropdown id="team_id" name="team_id"><option value="">Choose staff individually below</option>${ctx.teams.filter(t=>t.is_active&&t.members.every(id=>ctx.staff.some(s=>s.user_id===id))).map(t=>`<option value="${esc(t.id)}">${esc(t.name)} · ${t.members.length} staff</option>`).join('')}</select><p class="muted">Selecting a saved team replaces the individual selections below. Later team edits do not change this booking.</p>`:''}<fieldset><legend>Select staff</legend>${ctx.staff.length?ctx.staff.map(s=>`<label class="day"><input type="checkbox" name="assigned_staff" value="${esc(s.user_id)}"${selected.includes(s.user_id)?' checked':''}> ${esc(s.label)}</label>`).join(''):'<p>No active staff memberships in this business. Add staff before assigning.</p>'}</fieldset>`;
  const reason=prefix=>input('change_reason','Reason','text','',true,prefix+'-reason');
  const hidden=b=>`<input type="hidden" name="version" value="${b.version}">`;
  let content;
@@ -75,3 +76,4 @@ export function renderBookings(business,bookings,ctx,{booking=null,customers=[],
  }
  return `<a href="/dashboard?business=${encodeURIComponent(business.id)}">← Back to ${esc(business.name)}</a><h1>One-off bookings</h1><p>${esc(business.name)} · Office booking workspace</p>${message?`<p role="${error?'alert':'status'}">${esc(message)}</p>`:''}<p class="muted">${esc(ctx.time_zone)} · Working hours ${esc(ctx.opens_at)}–${esc(ctx.closes_at)}. No customer messages are sent.</p>${content}`;
 }
+
