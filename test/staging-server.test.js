@@ -112,7 +112,7 @@ test('catalogue HTTP owner create/edit rejects stale versions and foreign scope'
 for(const role of ['manager','staff'])test(`catalogue HTTP ${role} follows read/write restrictions`,async()=>run(async(base,state)=>{
  const Cookie=await signIn(base),url=base+'/catalogue?business='+bid;
  const response=await fetch(url,{headers:{Cookie}});assert.equal(response.status,role==='manager'?200:403);
- if(role==='manager'){const html=await response.text();assert.match(html,/Read-only catalogue/);assert.doesNotMatch(html,/<form/);}
+ if(role==='manager'){const html=await response.text();assert.match(html,/Read-only catalogue/);assert.deepEqual([...html.matchAll(/<form[^>]*action="([^"]+)"/g)].map(m=>m[1]),['/logout']);assert.match(html,/<a href="\/dashboard">Home<\/a>/);assert.doesNotMatch(html,/catalogue-editor/);}
  assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:catalogueForm})).status,403);
  assert.equal((await fetch(url,{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'action=delete&version=1'})).status,403);
  assert.equal(state.catalogueWrites,0);

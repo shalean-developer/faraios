@@ -1,0 +1,5 @@
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Shared navigation only. Each destination still enforces its own access policy.
+export function renderWorkspaceHeader({subtitle='Verified staging account'}={}){
+ return `<header class="workspace-header"><div><a class="workspace-home" href="/dashboard" aria-label="FaraiOS home">Farai<span>OS</span></a><p class="muted">${esc(subtitle)}</p></div><button class="secondary account-trigger" type="button" popovertarget="workspace-account-menu">Account <span aria-hidden="true">⌄</span></button><div id="workspace-account-menu" class="account-dropdown" popover><nav aria-label="Account navigation"><a href="/dashboard">Home</a><a href="/dashboard?business=all#business">Switch business</a></nav><form method="post" action="/logout"><button type="submit">Sign out</button></form></div></header>`;
+}

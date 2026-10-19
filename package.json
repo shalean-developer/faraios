@@ -8,7 +8,7 @@
   },
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/access.js && node --check src/cleaning-rules.js && node --check src/dashboard.js && node --check src/identity.js && node --check dev.mjs && node --check src/auth-session.js && node --check src/staging-server.js && node --check staging.mjs && node --check src/business-settings.js && node --check src/workspace.js && node --check scripts/rehearse-foundation-restore.mjs && node --check src/catalogue.js && node --check src/customers.js && node --check src/bookings.js && node --check src/cleaning-profiles.js && node --check public/catalogue-setup.js",
+    "check": "node --check src/workspace-header.js && node --check src/access.js && node --check src/cleaning-rules.js && node --check src/dashboard.js && node --check src/identity.js && node --check dev.mjs && node --check src/auth-session.js && node --check src/staging-server.js && node --check staging.mjs && node --check src/business-settings.js && node --check src/workspace.js && node --check scripts/rehearse-foundation-restore.mjs && node --check src/catalogue.js && node --check src/customers.js && node --check src/bookings.js && node --check src/cleaning-profiles.js && node --check public/catalogue-setup.js",
     "dev": "node dev.mjs",
     "staging": "node staging.mjs"
   },
