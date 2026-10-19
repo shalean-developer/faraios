@@ -239,3 +239,10 @@
 .catalogue-filter-field>label{flex:0 0 auto;font-size:13px}
 .catalogue-filter-field .dropdown-trigger{font-size:15px;font-weight:400}
 @media(max-width:600px){.catalogue-filter-field{flex-basis:100%}}
+
+.catalogue-back{display:inline-flex;align-items:center;min-height:36px;font-size:14px}
+.catalogue-editor-top{margin-top:8px;gap:12px}
+.catalogue-editor-top .catalogue-intro h1{font-size:28px;margin-bottom:6px}
+.catalogue-editor-top .catalogue-intro p{font-size:14px}
+.catalogue-editor-top~#catalogue-editor{margin-top:18px}
+@media(max-width:600px){.catalogue-editor-top .catalogue-intro h1{font-size:25px}}
