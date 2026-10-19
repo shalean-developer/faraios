@@ -25,7 +25,7 @@ test('booking input, duplicate submission comparison and optimistic mutations',a
 test('Postgres booking lifecycle, tenant links, snapshots, team and audit are enforced',async()=>{
  const db=new PGlite();try{
  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated;`);
- for(const path of ['identity-draft.sql','audit-draft.sql','business-settings-draft.sql','catalogue-draft.sql','customers-draft.sql','bookings-draft.sql','bookings-context-hardening-draft.sql','cleaning-profiles-draft.sql'])await db.exec(await readFile(new URL('../database/'+path,import.meta.url),'utf8'));
+ for(const path of ['identity-draft.sql','audit-draft.sql','business-settings-draft.sql','catalogue-draft.sql','customers-draft.sql','bookings-draft.sql','bookings-context-hardening-draft.sql','cleaning-profiles-draft.sql','cleaning-assessments-draft.sql','cleaning-assessment-review-hardening-draft.sql'])await db.exec(await readFile(new URL('../database/'+path,import.meta.url),'utf8'));
  await db.query("insert into auth.users values($1,'owner@example.test'),($2,'manager@example.test'),($3,'staff@example.test')",[owner,manager,staff]);
  await db.query("insert into public.businesses(id,name,industry) values($1,'A','cleaning'),($2,'B','cleaning')",[a,b]);
  await db.query("insert into public.business_memberships(business_id,user_id,role) values($1,$3,'owner'),($2,$3,'owner'),($2,$4,'manager'),($1,$5,'staff'),($2,$5,'staff')",[a,b,owner,manager,staff]);
@@ -88,7 +88,7 @@ test('Postgres booking lifecycle, tenant links, snapshots, team and audit are en
  for(const [profile,keys] of Object.entries(profileFields)){
   const rules={},scope={};let additions=0,minutes=60;
   for(const k of keys){const d=definitions[k].custom?{...definitions[k],options:['No animals','Birds present']}:definitions[k];rules[k]={};for(const option of d.count?['unit']:d.options)rules[k][option]={cents:100,minutes:2};scope[k]=d.count?(['bedrooms','extra_rooms','rugs'].includes(k)?0:2):d.options.at(-1);const qty=d.count?scope[k]:1;additions+=100*qty;minutes+=2*qty;}
-  if(profile==='airbnb')scope.access_instructions='Synthetic private lockbox instructions';
+  if(profile==='airbnb'){scope.linen='Fresh linen available';}if(profile==='airbnb')scope.access_instructions='Synthetic private lockbox instructions';
   const cfg={base_minutes:60,service_fee_cents:0,rules,equipment:{policy:profile==='regular'?'distance':'included',base:'Synthetic depot',base_cents:1000,per_km_cents:101,minimum_cents:1500,minutes:10},extras:[],extra_minutes:{}};
   if(profile==='regular'){scope.equipment='Yes';scope.distance_km=10.1;scope.distance_reason='Synthetic manual measurement';additions+=2021;minutes+=10;}
   await asUser(owner,()=>db.query('update public.business_catalogue set price_cents=10000,cleaning_profile=$2,cleaning_config=$3 where id=$1',[id(12),profile,JSON.stringify(cfg)]));
@@ -98,7 +98,7 @@ test('Postgres booking lifecycle, tenant links, snapshots, team and audit are en
   assert.equal(row.request_payload.cleaning_scope.property_type,scope.property_type);
   await assert.rejects(asUser(owner,()=>createScope({...scope,[keys[0]]:null})),/required service option|room counts/);
   await assert.rejects(asUser(owner,()=>createScope({...scope,unexpected:'value'})),/Unexpected service scope/);
-  for(const k of keys){const d=definitions[k].custom?{...definitions[k],options:['No animals','Birds present']}:definitions[k];if(d.count){for(const invalid of [-1,1.5,101])await assert.rejects(asUser(owner,()=>createScope({...scope,[k]:invalid})),/room counts/);if(['bathrooms','carpet_rooms'].includes(k))await assert.rejects(asUser(owner,()=>createScope({...scope,[k]:0})),/room counts/);const large=await asUser(owner,()=>createScope({...scope,[k]:100}));assert.equal(large.cleaning_scope[k],100);}else for(const option of d.options){const variant=await asUser(owner,()=>createScope({...scope,[k]:option}));assert.equal(variant.cleaning_scope[k],option);}}
+  for(const k of keys){const d=definitions[k].custom?{...definitions[k],options:['No animals','Birds present']}:definitions[k];if(d.count){for(const invalid of [-1,1.5,101])await assert.rejects(asUser(owner,()=>createScope({...scope,[k]:invalid})),/room counts/);if(['bathrooms','carpet_rooms'].includes(k))await assert.rejects(asUser(owner,()=>createScope({...scope,[k]:0})),/room counts/);const large=await asUser(owner,()=>createScope({...scope,[k]:100}));assert.equal(large.cleaning_scope[k],100);}else for(const option of d.options){if(profile==='airbnb'&&k==='linen'&&option==='No linen change'&&scope.linen_change==='Yes')continue;const variant=await asUser(owner,()=>createScope({...scope,[k]:option}));assert.equal(variant.cleaning_scope[k],option);}}
   if(keys.includes('pets'))await assert.rejects(asUser(owner,()=>createScope({...scope,pets:'Dogs'})),/required service option/);
   if(profile==='regular'){
    const noEquipment=await asUser(owner,()=>createScope({...scope,equipment:'No',distance_km:undefined,distance_reason:undefined}));assert.equal(noEquipment.cleaning_snapshot.equipment_fee_cents,0);
@@ -124,6 +124,28 @@ test('Postgres booking lifecycle, tenant links, snapshots, team and audit are en
  const withExtra=await asUser(owner,async()=> (await db.query("insert into public.one_off_bookings(business_id,request_key,customer_id,address_id,local_start,duration_minutes,selection,cleaning_scope) values($1,gen_random_uuid(),$2,$3,'2026-10-20 09:00',15,$4,$5) returning *",[a,id(10),id(11),JSON.stringify([{catalogue_id:id(12),quantity:1},{catalogue_id:extraId,quantity:1}]),JSON.stringify(configured.at(-1).cleaning_scope)])).rows[0]);
  assert.equal(withExtra.total_cents,configured.at(-1).total_cents+500);assert.equal(withExtra.duration_minutes,configured.at(-1).duration_minutes+20);
  await assert.rejects(asUser(owner,()=>db.query("update public.business_catalogue set cleaning_config=jsonb_set(cleaning_config,'{rules}','{}') where id=$1",[id(12)])),/every service option/);
+
+ // Owner-approved tariff examples: real trigger calculations and assessment gates.
+ const approved=JSON.parse(await readFile(new URL('../config/shalean-approved-cleaning.json',import.meta.url),'utf8')).services;
+ for(const [profile,item] of Object.entries(approved)){
+  const sc={};for(const k of profileFields[profile]){const d=definitions[k];sc[k]=d.count?(['rugs'].includes(k)?1:['carpet_rooms'].includes(k)?2:1):d.custom?'Dogs':d.options[0];}
+  sc.equipment_arrangement='Customer supplies equipment';if(profile==='airbnb')sc.linen_change='Yes';if(profile==='moving')sc.furnishing='Empty';if(profile==='carpet')sc.stains='Yes';if(profile==='office')sc.office_size='Medium: 6–20 desks';
+  if(profile==='deep')sc.assessment={additional_cents:0,duration_minutes:375,reason:'Condition assessed; no additional work needed'};
+  if(profile==='office')sc.assessment={additional_cents:20000,duration_minutes:180,reason:'Size and bathrooms assessed, R200 additional work'};
+  await asUser(owner,()=>db.query('update public.business_catalogue set cleaning_profile=$2,cleaning_config=$3,price_cents=$4 where id=$1',[id(12),profile,JSON.stringify(item.cleaning_config),item.price_cents]));
+  const insert=async(scope=sc)=>(await db.query("insert into public.one_off_bookings(business_id,request_key,customer_id,address_id,local_start,duration_minutes,selection,cleaning_scope) values($1,gen_random_uuid(),$2,$3,'2026-10-20 09:00',15,$4,$5) returning *",[a,id(10),id(11),JSON.stringify([{catalogue_id:id(12),quantity:1}]),JSON.stringify(scope)])).rows[0];
+  const row=await asUser(owner,()=>insert());const expected={regular:[35500,270],deep:[152000,375],moving:[152000,375],airbnb:[42000,240],office:[80000,180],carpet:[88000,140]}[profile];assert.equal(row.total_cents,expected[0],profile);assert.equal(row.duration_minutes,expected[1],profile);
+  if(sc.assessment){assert.equal(row.cleaning_snapshot.assessed_by,owner);assert.ok(row.cleaning_snapshot.assessed_at);await assert.rejects(asUser(owner,()=>insert({...sc,assessment:undefined})),/Office assessment/);}
+  await assert.rejects(asUser(owner,()=>insert({...sc,equipment_arrangement:'Business supplies equipment',assessment:undefined})),/Office assessment/);
+  const assessed=await asUser(owner,()=>insert({...sc,equipment_arrangement:'Business supplies equipment',assessment:{additional_cents:10000,duration_minutes:expected[1],reason:'Additional equipment and delivery assessed'}}));
+  assert.equal(assessed.total_cents,row.total_cents-(sc.assessment?.additional_cents??0)+10000);
+  await assert.rejects(asUser(owner,()=>insert({...sc,assessment:{additional_cents:0,duration_minutes:expected[1],reason:''}})),/explicit assessment/);
+  if(profile!=='office')await assert.rejects(asUser(owner,()=>insert({...sc,assessment:{additional_cents:0,duration_minutes:15,reason:'Attempt to shorten estimate'}})),/cannot be shorter/);
+  if(profile==='deep'){const longer=await asUser(owner,()=>insert({...sc,assessment:{additional_cents:10000,duration_minutes:450,reason:'Condition requires additional work'}}));assert.equal(longer.cleaning_snapshot.configured_duration_minutes,375);assert.equal(longer.cleaning_snapshot.assessed_duration_minutes,450);assert.equal(longer.duration_minutes,450);}
+  if(profile==='moving')await assert.rejects(asUser(owner,()=>insert({...sc,furnishing:'Furnished'})),/Office assessment/);
+  if(profile==='office'){const enterprise=await asUser(owner,()=>insert({...sc,office_size:'Enterprise: 50+ desks',assessment:{additional_cents:250000,duration_minutes:480,reason:'Enterprise site assessment completed'}}));assert.equal(enterprise.total_cents,280000);}
+  if(profile==='airbnb')await assert.rejects(asUser(owner,()=>insert({...sc,linen:'No linen change'})),/Fresh linen/);
+ }
  await asUser(owner,()=>db.query('update public.business_catalogue set price_cents=1,cleaning_config=null where id=$1',[id(12)]));
  for(const row of configured){const saved=(await db.query('select * from public.one_off_bookings where id=$1',[row.id])).rows[0];assert.equal(saved.total_cents,row.total_cents);assert.deepEqual(saved.cleaning_snapshot,row.cleaning_snapshot);}
  assert.equal((await db.query('select cleaning_scope from public.one_off_bookings where id=$1',[ba.id])).rows[0].cleaning_scope,null);

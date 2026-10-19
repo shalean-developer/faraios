@@ -1,0 +1,506 @@
+{
+  "approved_on": "2026-10-19",
+  "source": "Owner-accepted Shalean_Service_Pricing_and_Timings.pdf in this conversation",
+  "services": {
+    "regular": {
+      "price_cents": 25000,
+      "pricing_model": "fixed",
+      "unit_label": "visit",
+      "cleaning_profile": "regular",
+      "cleaning_config": {
+        "base_minutes": 180,
+        "service_fee_cents": 0,
+        "rules": {
+          "property_type": {
+            "House": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Apartment": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Townhouse": {
+              "cents": 0,
+              "minutes": 0
+            }
+          },
+          "bedrooms": {
+            "unit": {
+              "cents": 3000,
+              "minutes": 30
+            }
+          },
+          "bathrooms": {
+            "unit": {
+              "cents": 3500,
+              "minutes": 30
+            }
+          },
+          "extra_rooms": {
+            "unit": {
+              "cents": 4000,
+              "minutes": 30
+            }
+          },
+          "pets": {
+            "No pets": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Dogs": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Cats": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Dogs & Cats": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Snakes": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Lizards": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Other pets": {
+              "cents": 0,
+              "minutes": 0
+            }
+          }
+        },
+        "equipment": {
+          "policy": "assessed"
+        },
+        "manual_duration": false,
+        "extras": [],
+        "extra_minutes": {}
+      }
+    },
+    "deep": {
+      "price_cents": 120000,
+      "pricing_model": "fixed",
+      "unit_label": "visit",
+      "cleaning_profile": "deep",
+      "cleaning_config": {
+        "base_minutes": 240,
+        "service_fee_cents": 0,
+        "rules": {
+          "property_type": {
+            "House": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Apartment": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Townhouse": {
+              "cents": 0,
+              "minutes": 0
+            }
+          },
+          "bedrooms": {
+            "unit": {
+              "cents": 10000,
+              "minutes": 45
+            }
+          },
+          "bathrooms": {
+            "unit": {
+              "cents": 12000,
+              "minutes": 45
+            }
+          },
+          "extra_rooms": {
+            "unit": {
+              "cents": 10000,
+              "minutes": 45
+            }
+          },
+          "last_cleaned": {
+            "Never / unsure": {
+              "cents": 0,
+              "minutes": 0,
+              "assessment": true
+            },
+            "6+ months": {
+              "cents": 0,
+              "minutes": 0,
+              "assessment": true
+            },
+            "3–6 months": {
+              "cents": 0,
+              "minutes": 0,
+              "assessment": true
+            },
+            "1–3 months": {
+              "cents": 0,
+              "minutes": 0,
+              "assessment": true
+            }
+          },
+          "pets": {
+            "No pets": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Dogs": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Cats": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Dogs & Cats": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Snakes": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Lizards": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Other pets": {
+              "cents": 0,
+              "minutes": 0
+            }
+          }
+        },
+        "equipment": {
+          "policy": "assessed"
+        },
+        "manual_duration": false,
+        "extras": [],
+        "extra_minutes": {}
+      }
+    },
+    "moving": {
+      "price_cents": 120000,
+      "pricing_model": "fixed",
+      "unit_label": "visit",
+      "cleaning_profile": "moving",
+      "cleaning_config": {
+        "base_minutes": 240,
+        "service_fee_cents": 0,
+        "rules": {
+          "property_type": {
+            "House": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Apartment": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Townhouse": {
+              "cents": 0,
+              "minutes": 0
+            }
+          },
+          "bedrooms": {
+            "unit": {
+              "cents": 10000,
+              "minutes": 45
+            }
+          },
+          "bathrooms": {
+            "unit": {
+              "cents": 12000,
+              "minutes": 45
+            }
+          },
+          "extra_rooms": {
+            "unit": {
+              "cents": 10000,
+              "minutes": 45
+            }
+          },
+          "move_type": {
+            "Move-in": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Move-out": {
+              "cents": 0,
+              "minutes": 0
+            }
+          },
+          "furnishing": {
+            "Furnished": {
+              "cents": 0,
+              "minutes": 0,
+              "assessment": true
+            },
+            "Empty": {
+              "cents": 0,
+              "minutes": 0
+            }
+          },
+          "pets": {
+            "No pets": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Dogs": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Cats": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Dogs & Cats": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Snakes": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Lizards": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Other pets": {
+              "cents": 0,
+              "minutes": 0
+            }
+          }
+        },
+        "equipment": {
+          "policy": "assessed"
+        },
+        "manual_duration": false,
+        "extras": [],
+        "extra_minutes": {}
+      }
+    },
+    "airbnb": {
+      "price_cents": 25000,
+      "pricing_model": "fixed",
+      "unit_label": "visit",
+      "cleaning_profile": "airbnb",
+      "cleaning_config": {
+        "base_minutes": 120,
+        "service_fee_cents": 0,
+        "rules": {
+          "property_type": {
+            "House": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Apartment": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Townhouse": {
+              "cents": 0,
+              "minutes": 0
+            }
+          },
+          "bedrooms": {
+            "unit": {
+              "cents": 4000,
+              "minutes": 30
+            }
+          },
+          "bathrooms": {
+            "unit": {
+              "cents": 4000,
+              "minutes": 30
+            }
+          },
+          "extra_rooms": {
+            "unit": {
+              "cents": 4000,
+              "minutes": 30
+            }
+          },
+          "linen": {
+            "Fresh linen available": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "No linen change": {
+              "cents": 0,
+              "minutes": 0
+            }
+          },
+          "linen_change": {
+            "No": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Yes": {
+              "cents": 5000,
+              "minutes": 30
+            }
+          },
+          "access_method": {
+            "Lockbox": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Smart lock / code": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Meet in person": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Managed by agent": {
+              "cents": 0,
+              "minutes": 0
+            }
+          }
+        },
+        "equipment": {
+          "policy": "assessed"
+        },
+        "manual_duration": false,
+        "extras": [],
+        "extra_minutes": {},
+        "linen_change_enabled": true
+      }
+    },
+    "office": {
+      "price_cents": 30000,
+      "pricing_model": "fixed",
+      "unit_label": "visit",
+      "cleaning_profile": "office",
+      "cleaning_config": {
+        "base_minutes": 0,
+        "service_fee_cents": 0,
+        "rules": {
+          "office_size": {
+            "Small: 1–5 desks": {
+              "cents": 0,
+              "minutes": 0,
+              "assessment": false
+            },
+            "Medium: 6–20 desks": {
+              "cents": 30000,
+              "minutes": 0,
+              "assessment": false
+            },
+            "Large: 21–50 desks": {
+              "cents": 90000,
+              "minutes": 0,
+              "assessment": false
+            },
+            "Enterprise: 50+ desks": {
+              "cents": 0,
+              "minutes": 0,
+              "assessment": true
+            }
+          },
+          "bathrooms": {
+            "unit": {
+              "cents": 0,
+              "minutes": 0
+            }
+          }
+        },
+        "equipment": {
+          "policy": "assessed"
+        },
+        "manual_duration": true,
+        "extras": [],
+        "extra_minutes": {}
+      }
+    },
+    "carpet": {
+      "price_cents": 50000,
+      "pricing_model": "fixed",
+      "unit_label": "visit",
+      "cleaning_profile": "carpet",
+      "cleaning_config": {
+        "base_minutes": 60,
+        "service_fee_cents": 0,
+        "rules": {
+          "property_type": {
+            "House": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Apartment": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Townhouse": {
+              "cents": 0,
+              "minutes": 0
+            }
+          },
+          "carpet_rooms": {
+            "unit": {
+              "cents": 10000,
+              "minutes": 30
+            }
+          },
+          "rugs": {
+            "unit": {
+              "cents": 8000,
+              "minutes": 20
+            }
+          },
+          "carpet_type": {
+            "Standard pile": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Thick / shag pile": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Berber / loop": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Persian / delicate": {
+              "cents": 0,
+              "minutes": 0
+            }
+          },
+          "stains": {
+            "No": {
+              "cents": 0,
+              "minutes": 0
+            },
+            "Yes": {
+              "cents": 10000,
+              "minutes": 0
+            }
+          }
+        },
+        "equipment": {
+          "policy": "assessed"
+        },
+        "manual_duration": false,
+        "extras": [],
+        "extra_minutes": {}
+      }
+    }
+  },
+  "applicable_existing_extras": {
+    "Fridge": {
+      "profiles": [
+        "regular",
+        "airbnb"
+      ],
+      "minutes_per_hour_quantity": 60,
+      "rate": "preserve existing business catalogue hourly rate"
+    }
+  }
+}

@@ -27,3 +27,21 @@ Apply `database/cleaning-profiles-draft.sql` after the existing catalogue, custo
 Tests cover all six profiles and every listed choice, count boundaries, service-specific form rendering, explicit configuration, tenant/role denials, allowed extras, extra duration, equipment distance evidence/minimum/rounding, calculated-duration working-hours rejection, duplicate-request scope comparison, immutable snapshots and compatibility with legacy bookings.
 
 Visible field inventory is in `cleaning-booking-requirements.md`. This implementation does not claim full parity with live pricing formulas, route calculation, recurring availability, checkout or payment outcomes. Owner-entered prices/durations and real staging browser acceptance remain necessary before T14 is accepted.
+
+## Owner-accepted Shalean rules - 19 October 2026
+
+The owner accepted the attached pricing/timing PDF and requested implementation. `config/shalean-approved-cleaning.json` records the six approved tariff configurations as business-specific data; the shared engine does not choose businesses or infer service profiles from names. Configuration is applied only to explicitly identified Shalean services using expected versions. Bokkie is unchanged. Carpet becomes a fixed R500 base visit with separate carpet-room/rug charges; Office's base becomes R300.
+
+No additional service fee is introduced. Room charges apply to every entered count; no first-room allowance is deducted. Stains add R100 once per Carpet booking, with no extra duration specified. Shalean explicitly enables the optional linen-change feature for its Airbnb service. Other businesses retain their existing Airbnb questions and rules unless they enable and price that feature themselves. When enabled, the explicit linen-change Yes/No question applies: Yes adds R50 and 30 minutes and requires fresh linen availability. Pets are recorded with zero surcharge/minutes. Unpriced descriptive choices have zero automatic additions; assessment requirements still apply.
+
+### Office assessments
+
+A service can require office-estimated duration on every booking and mark individual scope answers as requiring assessment. The accepted Shalean configuration requires assessment for all Deep condition choices, furnished Moving jobs, and every Office booking (Office duration has no approved numeric formula). Enterprise Office quotes require the assessed additional amount. The configured subtotal is a starting price, not a completed assessment.
+
+Equipment uses an explicit per-booking arrangement until a per-service included/customer-supplied policy or delivery tariff is approved. Customer-supplied equipment has no automatic delivery charge. Business-supplied equipment requires an office assessment covering the equipment/delivery decision and charge. No delivery base, per-km fee or minimum is guessed.
+
+Before saving these cases, the office records an explicit additional charge in cents (including zero when assessment finds no extra charge), final total duration and assessment notes. The database validates these values, adds the charge to the configured subtotal, uses the final duration for working-hours checks, and snapshots the actor/time. It preserves the configured pre-assessment estimate separately from the final assessed duration; manually estimated Office jobs have no invented automatic estimate. For automatically timed services, assessment cannot shorten the configured estimate. The scope and assessment are immutable; correcting a quote requires cancelling/recreating the draft. Existing bookings remain unchanged.
+
+Only existing, active, applicable extras are enabled. The existing Shalean Fridge hourly rate is retained for Regular and Airbnb; one whole-hour quantity adds 60 minutes. Other extras need explicit catalogue prices and durations before they can be enabled. This is not an import of any other business's catalogue.
+
+Apply `database/cleaning-assessments-draft.sql` after the cleaning profile migrations. Update/restart the local application before browser acceptance: older application code cannot render the new assessment controls. Availability, recurring bookings, payments and public booking pages remain separate stages.
