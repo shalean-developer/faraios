@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {createAuthSessions} from './auth-session.js';
 import {parseBusinessSettings,readBusinessSettings,saveBusinessSettings,renderBusinessSettings} from './business-settings.js';
 import {parseCatalogueItem,listCatalogue,saveCatalogueItem,deleteCatalogueItem,renderCatalogueDelete,renderCatalogue} from './catalogue.js';
+import {parseCustomerForm,listCustomers,readCustomer,listAddresses,readAddress,saveCustomerRecord,renderCustomers} from './customers.js';
 import {renderWorkspace} from './workspace.js';
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const html=(title,body)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS staging</title><link rel="stylesheet" href="/style.css"><script type="module" src="/dropdown.js"></script></head><body><div class="notice">FARAiOS STAGING · Real test-account sign-in · No production data</div><main class="login"><div class="brand">FaraiOS</div>${body}</main></body></html>`;
@@ -25,8 +26,23 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       if(req.method==='POST'){
         if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
         if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
-        let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>(['/settings','/catalogue'].includes(url.pathname)?32768:4096))return send(413,'Form too large','text/plain');}
-        if(url.pathname==='/catalogue'){
+        let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>(url.pathname==='/customers'?65536:['/settings','/catalogue'].includes(url.pathname)?32768:4096))return send(413,'Form too large','text/plain');}
+        if(url.pathname==='/customers'){
+          if(!await auth.read(id)){clear();return redirect('/login');}
+          return await auth.withCustomers(id,url.searchParams.get('business'),async(client,business)=>{
+            const customerId=url.searchParams.get('customer'),addressId=url.searchParams.get('address'),data=new URLSearchParams(body),action=data.get('action');
+            if(!['customer','address'].includes(action))return send(400,'Invalid action','text/plain');
+            const customer=customerId?await readCustomer(client,business.id,customerId):null;
+            if((customerId&&!customer)||(action==='address'&&!customer))return send(404,'Customer unavailable','text/plain');
+            if(action==='customer'&&addressId)return send(400,'Invalid address action','text/plain');
+            const addresses=customer?await listAddresses(client,business.id,customer.id):[],address=addressId?await readAddress(client,business.id,customerId,addressId):null;
+            if(addressId&&!address)return send(404,'Address unavailable','text/plain');
+            let row;
+            try{row=parseCustomerForm(data,action==='address');const saved=await saveCustomerRecord(client,business.id,row,{id:action==='address'?addressId:customerId,version:Number(data.get('version')),...(action==='address'?{customerId}: {})});return redirect('/customers?business='+encodeURIComponent(business.id)+'&customer='+encodeURIComponent(action==='address'?customerId:saved)+'&saved=1');}
+            catch(error){const values={...Object.fromEntries(data),...row,id:action==='address'?addressId:customerId,version:data.get('version')};if(values.is_active===undefined)values.is_active=data.get('status')==='active';return send(error.status??(row?502:422),html('Customers',renderCustomers(business,await listCustomers(client,business.id),action==='address'?customer:values,addresses,action==='address'?values:null,error.message,true)));}
+          });
+        }
+      if(url.pathname==='/catalogue'){
           if(!await auth.read(id)){clear();return redirect('/login');}
           const businessId=url.searchParams.get('business'),itemId=url.searchParams.get('item');
           return await auth.withCatalogue(id,businessId,true,async(client,business)=>{
@@ -66,6 +82,16 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
         }
       }
       if(req.method!=='GET')return send(405,'Method not allowed','text/plain');
+        if(url.pathname==='/customers'){
+        if(!await auth.read(id)){clear();return redirect('/login');}
+        return await auth.withCustomers(id,url.searchParams.get('business'),async(client,business)=>{
+          const customerId=url.searchParams.get('customer'),addressId=url.searchParams.get('address'),customer=customerId?await readCustomer(client,business.id,customerId):null;
+          if(customerId&&!customer)return send(404,'Customer unavailable','text/plain');
+          const addresses=customer?await listAddresses(client,business.id,customer.id):[],address=addressId?await readAddress(client,business.id,customerId,addressId):null;
+          if(addressId&&!address)return send(404,'Address unavailable','text/plain');
+          return send(200,html('Customers',renderCustomers(business,await listCustomers(client,business.id),customer,addresses,address,url.searchParams.get('saved')==='1'?'Record saved.':'')));
+        });
+      }
       if(url.pathname==='/catalogue'){
         if(!await auth.read(id)){clear();return redirect('/login');}
         return await auth.withCatalogue(id,url.searchParams.get('business'),false,async(client,business,canManage)=>{
@@ -88,6 +114,6 @@ export function createStagingServer({createClient,now=()=>Date.now()}){
       const selected=url.searchParams.get('business')??'all';
       if(selected!=='all'&&!identity.businessIds.includes(selected))return send(403,'You do not have access to this business.','text/plain');
       return send(200,renderWorkspace(identity,selected));
-    }catch(error){if(['Settings access denied','Catalogue access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,form('Staging service unavailable. Please try again later.'));}
+    }catch(error){if(['Settings access denied','Catalogue access denied','Customer access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,form('Staging service unavailable. Please try again later.'));}
   });return server;
 }

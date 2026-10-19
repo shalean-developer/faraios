@@ -38,6 +38,12 @@ export function createAuthSessions({createClient,now=()=>Date.now()}) {
       const session=sessions.get(id);if(!session)throw new Error('Catalogue access denied');
       return action(session.client,identity.businesses.find(b=>b.id===businessId),identity.memberships.some(m=>m.businessId===businessId&&m.role==='owner'));
     },
+    async withCustomers(id,businessId,action){
+      const identity=await this.read(id);
+      if(!identity?.businessIds.includes(businessId)||!canAccess({userId:identity.userId,businessId,permission:'customers.manage',memberships:identity.memberships}))throw new Error('Customer access denied');
+      const session=sessions.get(id);if(!session)throw new Error('Customer access denied');
+      return action(session.client,identity.businesses.find(b=>b.id===businessId));
+    },
     async withOwner(id,businessId,action){
       const identity=await this.read(id);
       if(!identity?.businessIds.includes(businessId)||!identity.memberships.some(m=>m.businessId===businessId&&m.role==='owner'))throw new Error('Settings access denied');
