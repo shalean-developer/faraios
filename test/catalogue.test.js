@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
-import {parseCatalogueItem,renderCatalogue,saveCatalogueItem,deleteCatalogueItem,renderCatalogueDelete} from '../src/catalogue.js';
+import {listCatalogue,parseCatalogueItem,renderCatalogue,saveCatalogueItem,deleteCatalogueItem,renderCatalogueDelete} from '../src/catalogue.js';
 const owner='00000000-0000-4000-8000-000000000001',manager='00000000-0000-4000-8000-000000000002',staff='00000000-0000-4000-8000-000000000003';
 const a='10000000-0000-4000-8000-000000000001',b='10000000-0000-4000-8000-000000000002';
 const form=()=>new URLSearchParams({kind:'service',name:'Synthetic service',description:'',pricing_model:'fixed',unit_label:'visit',price:'250.01',team_size:'2',status:'inactive'});
@@ -11,7 +11,7 @@ test('catalogue money uses exact cents and rejects ambiguous prices and invalid 
  for(const price of ['-1','1e3','1.001','NaN','1,000.00','21474836.48']){const f=form();f.set('price',price);assert.throws(()=>parseCatalogueItem(f));}
  for(const [key,value] of [['kind','other'],['pricing_model','custom'],['team_size','0'],['team_size','1.5'],['status','bogus'],['name','']]){const f=form();f.set(key,value);assert.throws(()=>parseCatalogueItem(f));}
  const f=form();f.set('kind','extra');f.set('team_size','');f.set('price','0');assert.equal(parseCatalogueItem(f).team_size,null);assert.equal(parseCatalogueItem(f).price_cents,0);
- const markup=renderCatalogue({id:a,name:'<script>'},[],false);assert.doesNotMatch(markup,/<script>|<form/);assert.match(markup,/Read-only catalogue/);
+ const markup=renderCatalogue({id:a,name:'<script>'},[],false);assert.doesNotMatch(markup,/<script>|<form[^>]*method="post"/);assert.match(markup,/Read-only catalogue/);
 });
 test('catalogue updates use business, item and version predicates; conflicts fail explicitly',async()=>{
  const filters=[];let payload;
@@ -58,4 +58,14 @@ test('delete scopes requests and renders escaped owner confirmation',async()=>{
  assert.doesNotMatch(renderCatalogueDelete({id:a,name:'A'},item),/<script>/);
  assert.match(renderCatalogue({id:a,name:'A'},[{...item,price_cents:0,pricing_model:'fixed'}],true,null,'',false,'extra'),/Delete extra/);
  assert.doesNotMatch(renderCatalogue({id:a,name:'A'},[{...item,price_cents:0,pricing_model:'fixed'}],false),/Delete extra/);
+});
+
+
+test('catalogue reads every scoped page before filtering and resolving applicability',async()=>{
+ const rows=Array.from({length:600},(_,i)=>({id:'item-'+i,business_id:a,kind:'extra',name:'Extra '+String(i).padStart(3,'0'),price_cents:100,is_active:true,unit_label:'visit',pricing_model:'fixed'}));
+ const service={id:'last-service',business_id:a,kind:'service',name:'Z service',cleaning_config:{extras:['item-599'],base_minutes:60},price_cents:100,is_active:true,team_size:1};rows.push(service);
+ const ranges=[];const client={from:table=>{assert.equal(table,'business_catalogue');return {select(){return this;},eq(k,v){assert.equal(k,'business_id');assert.equal(v,a);return this;},order(){return this;},async range(start,end){ranges.push([start,end]);return {data:rows.slice(start,end+1)};}};}};
+ const loaded=await listCatalogue(client,a);assert.equal(loaded.length,601);assert.deepEqual(ranges,[[0,499],[500,999]]);
+ const html=renderCatalogue({id:a,name:'A'},loaded,true,null,'',false,'extra',{q:'Extra 599',service:'last-service'});assert.match(html,/<h3>Extra 599/);assert.match(html,/catalogue-service-chip">Z service/);assert.match(html,/1 of 600 extras/);
+ rows[600]={...service,business_id:'foreign'};await assert.rejects(()=>listCatalogue(client,a),/Catalogue unavailable/);
 });

@@ -4,9 +4,9 @@ Implementation for the T14 extension. This is an office one-off booking flow, wi
 
 ## Configure a service
 
-In Services, prices and extras, edit a service, choose the relevant cleaning profile and save. Reopen it to enter its pricing and duration rules. Profiles require fixed base pricing. The catalogue price is the base visit price; the service fee is separate. Every option and count requires explicit additional cents and minutes, including zero when no addition applies. A saved profile without configuration is blocked from new bookings.
+In Services, prices and extras, add or edit a service and choose the relevant cleaning profile. Its fields load without saving a catalogue record; enter its pricing and duration rules, then save once. With JavaScript disabled, use Load profile fields. Profiles require fixed base pricing. The catalogue price is the base visit price; the service fee is separate. Every option and count requires explicit additional cents and minutes, including zero when no addition applies. A saved profile without configuration is blocked from new bookings.
 
-For profiles with pets, enter the service’s allowed pet answers and their rates/minutes explicitly. These choices are specific to that business-owned service; no pet menu is imported from Regular into Deep or Moving. Changing a profile clears its configuration and requires reopening the new profile before entering its rates.
+For profiles with pets, enter the service’s allowed pet answers and their rates/minutes explicitly. These choices are specific to that business-owned service; no pet menu is imported from Regular into Deep or Moving. Changing a profile clears the previous profile’s draft configuration and loads fields for the new profile before saving. Saved bookings retain their snapshots.
 
 Choose the allowed active extras from the same business and enter additional minutes for each. Extras use their own catalogue rates, quantities and version snapshots. Deleting/deactivating an extra prevents new selection; old bookings remain unchanged. Managers can book with the configured rules; only owners can change catalogue configuration.
 
@@ -53,3 +53,7 @@ The owner editor now shows one service at a time. Basic name/price/team/status f
 Pets can be recorded with an explicit no-added-charge/time checkbox. Only configured answers are initially expanded; Add pet answer reveals another existing unused row up to the current limit of 20. Businesses with paid pet options keep their amounts and minutes. Without JavaScript, remaining answer rows are available through the Add more pet answers disclosure. Optional delivery fields and linen-change charges are progressively shown when relevant; selected extras expose their additional duration. Unused controls retain their values, and server validation remains authoritative. Invalid native controls expand their enclosing sections; rejected submissions keep entered prices, answers and checked extras.
 
 No database migration or rate update is required. Round-trip tests cover every accepted service and confirm that the rendered form retains prices, duration, assessment flags, optional linen, equipment and extras. Browser layout/interaction acceptance still requires pulling and restarting the local application.
+
+## Catalogue management
+
+Services and Extras have compact comparison rows, category-specific Add actions, search/status filters and an applicability filter for Extras. Profile service prices are labelled as base prices. Confirmed Deactivate and Delete actions remain owner-only and version-checked. Focused creation/edit screens hide the list and offer Save and Cancel. No tariffs or business configurations are automatically changed by these UI improvements.

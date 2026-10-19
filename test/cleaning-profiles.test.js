@@ -58,3 +58,10 @@ test('optional linen changes stay scoped to the configured business service',()=
  const oldForm=formFor('airbnb'),oldService=parseCleaningConfig(oldForm,'service');assert.equal(oldService.cleaning_config.linen_change_enabled,false);assert.doesNotMatch(cleaningScopeForm(oldService),/name="scope_linen_change"/);assert.equal(parseCleaningScope(oldForm,oldService).linen_change,undefined);
  const form=formFor('airbnb');form.set('linen_change_enabled','on');for(const i of [0,1]){form.set('rule_linen_change_'+i+'_cents',String(i*5000));form.set('rule_linen_change_'+i+'_minutes',String(i*30));}const configured=parseCleaningConfig(form,'service');assert.match(cleaningScopeForm(configured),/name="scope_linen_change"/);assert.throws(()=>parseCleaningScope(form,configured),/change linen/);form.set('scope_linen_change','Yes');assert.equal(parseCleaningScope(form,configured).linen_change,'Yes');assert.doesNotMatch(cleaningScopeForm(oldService),/name="scope_linen_change"/);
 });
+
+test('profile preview marker accepts complete new-profile configuration in a single save',()=>{
+ const previous={cleaning_profile:'regular',cleaning_config:{base_minutes:900}};
+ const form=formFor('office');form.set('configuration_profile','office');
+ const parsed=parseCleaningConfig(form,'service',previous);assert.equal(parsed.cleaning_profile,'office');assert.equal(parsed.cleaning_config.base_minutes,60);assert.equal(parsed.cleaning_config.rules.bedrooms,undefined);
+ form.set('rule_bathrooms_unit_cents','');assert.throws(()=>parseCleaningConfig(form,'service',previous),/explicit whole number/);
+});
