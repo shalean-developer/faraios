@@ -37,3 +37,19 @@
 .catalogue-row{padding:16px 0;border-top:1px solid #dfe7e3}.catalogue-row h3{margin:0}.catalogue-row p{margin:7px 0}
 
 .catalogue-row-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.catalogue-edit{display:inline-flex;align-items:center;min-height:44px;padding:10px 14px;border:1px solid #16654f;border-radius:8px;background:#edf5f0;font-weight:bold}.catalogue-edit:hover{background:#dceee3}#catalogue-editor{scroll-margin-top:20px}
+
+/* Reusable, progressively enhanced single-choice dropdown. */
+.dropdown{position:relative;min-width:0;width:100%;max-width:100%}
+.dropdown-trigger{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:46px;width:100%;background:white;color:#17332e;border:1px solid #cbdad3;text-align:left}
+.dropdown-trigger:hover{background:#f5f9f7;border-color:#16654f}
+.dropdown-trigger[aria-expanded="true"]{border-color:#16654f;box-shadow:0 0 0 3px #16654f18}
+.dropdown-trigger[aria-invalid="true"]{border-color:#a32727}
+.dropdown-trigger span:first-child{min-width:0;overflow-wrap:anywhere}
+.dropdown-options{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;padding:6px;background:white;border:1px solid #cbdad3;border-radius:10px;box-shadow:0 12px 30px #17332e26;max-height:min(280px,40vh);overflow-y:auto;overscroll-behavior:contain}
+.dropdown-options[hidden]{display:none}
+.dropdown-options [role="option"]{padding:12px;min-height:44px;border-radius:6px;cursor:pointer;overflow-wrap:anywhere}
+.dropdown-options [role="option"][aria-selected="true"]{background:#e7f3ed;color:#104d3c;font-weight:bold}
+.dropdown-options [role="option"]:hover,.dropdown-options .highlighted{outline:2px solid #16654f;outline-offset:-2px;background:#f0f7f3}
+.dropdown-options [aria-disabled="true"]{opacity:.5;cursor:default}
+.switch .dropdown{flex:1;min-width:0;max-width:320px}
+.settings-form select[hidden]{display:none}
