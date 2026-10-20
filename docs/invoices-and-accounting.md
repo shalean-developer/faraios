@@ -108,12 +108,12 @@ The owner verified Zoho in a new API Console tab. The console lists an existing 
 
 `scripts/setup-zoho-staging.mjs` is an operator-only helper for the existing private credential-file contract. It adds no office endpoint, worker activation, database write or provider invoice call. Official [client registration](https://www.zoho.com/developer/oauth/register-app.html) and [Books OAuth](https://www.zoho.com/books/api/v3/oauth/) contracts were checked on20October2026.
 
-After review/merge, register each client with these public values:
+The general server-client registration below was superseded after actual consent inspection. Use the documented ORG registration page, `https://api-console.zoho.com/add?client_type=ORG`, and the corrected public values below. New credential creation requires owner action-time confirmation.
 
 | Field | Shalean test client | Bokkie test client |
 |---|---|---|
-| Type | Server-based Applications | Server-based Applications |
-| Name | FaraiOS Shalean TEST | FaraiOS Bokkie TEST |
+| Type | ORG | ORG |
+| Name | FaraiOS Shalean TEST ORG | FaraiOS Bokkie TEST ORG |
 | Homepage URL | `http://127.0.0.1:3101` | `http://127.0.0.1:3101` |
 | Authorized Redirect URI | `http://127.0.0.1:3102/zoho/callback` | `http://127.0.0.1:3102/zoho/callback` |
 | FaraiOS business UUID | `612be091-b1d7-4911-9c3b-143446a9fe27` | `0cc3f518-d64e-40c2-8817-bc14d1ef1420` |
@@ -124,7 +124,7 @@ After review/merge, register each client with these public values:
 
 Run `npm run setup:zoho-staging` in the owner's local checkout, once per business. Enter the public bindings above; type TEST only for the dedicated test organisation. Use a private folder outside all Git checkouts. The default is `.faraios-staging/zoho-credentials.json` under the current user's profile. Check that Windows folder/file access is limited to the intended local operator and normal system administrators; POSIX new files use0600 and existing broadly readable files are rejected. This helper does not claim to configure Windows ACLs.
 
-Paste the **new** client's ID/secret only at the hidden terminal prompts. Do not send them to chat or capture terminal/browser secret screens. The helper prints the official authorization URL with the public client ID and fresh random state. Open it in the same browser; review and personally accept only the correct TEST organisation and these exact scopes: `ZohoBooks.settings.READ,ZohoBooks.contacts.READ,ZohoBooks.invoices.READ,ZohoBooks.invoices.CREATE`. If organisation selection is absent, wrong or includes live organisations, **deny and stop**. Do not infer a provider restriction from the client name or local pins.
+Paste the **new ORG** client's ID/secret only at the hidden terminal prompts, once each, then press Enter. Do not send them to chat or capture terminal/browser secret screens. The helper prints the official organisation-bound authorization URL (`/oauth/v2/org/auth`) with the public client ID and fresh random state. Open it in the same browser; review and personally accept only the correct TEST organisation and these exact scopes: `ZohoBooks.settings.READ,ZohoBooks.contacts.READ,ZohoBooks.invoices.READ,ZohoBooks.invoices.CREATE`. If organisation selection is absent, wrong or includes live organisations, **deny and stop**. Do not infer a provider restriction from the client name or local pins.
 
 The callback listens only on127.0.0.1:3102, accepts one matching-state response, checks host/method/region, and redirects immediately to a clean local path. Secrets and the code are sent only in the token POST body; responses/errors are not logged. Before saving, a read-only organisations request must return exactly the expected sole organisation with its exact name and ZAR currency. Another accessible organisation causes failure, including any production organisation. This is a fail-closed check, not proof that untested provider behaviour supports the desired grant.
 
@@ -137,3 +137,11 @@ The server's Supabase service key must still be set privately for this staging p
 The owner pulled main8580733 and started the helper in PowerShell on20October2026, then confirmed that the first business-UUID prompt was absent after the two startup lines. The same startup printed the inline prompt under the isolated Linux PTY, so the precise owner-host cause was not reproduced. Prompt labels now end with a newline before readline waits on its separate input line, keeping each question on a completed console line. Hidden credential input remains muted; no secret, OAuth grant, filesystem pin or accounting activation rule is relaxed.
 
 An added subprocess regression exercises the real CLI/readline flow with synthetic terminal streams, verifies every public/hidden prompt label is a completed line, checks secret input is absent from output, and cancels during callback wait with no credential file or lock left behind. It performs no provider request. A bounded Windows Node24 CI job runs the helper checks as well as the existing full Linux job. This validates the Windows Node execution path with synthetic streams, not a physical PowerShell/ConPTY session; owner-host confirmation remains required.
+
+## Actual consent inspection and organisation-bound correction
+
+The owner confirmed visible PowerShell prompts and reached hidden Client ID entry at07:56SAST. The first authorization request returned Invalid Client; its public Client ID parameter contained four concatenated copies. A clean private-entry retry reached the real consent page at08:07SAST. The page showed the correct Shalean TEST client and exact four capabilities, but only account-level consent and no organisation selector. Nothing was accepted. Reject was clicked; Chrome then displayed ERR_BLOCKED_BY_CLIENT for the return to the loopback helper. No callback completion, grant, token exchange, credential-file save or browser-block bypass is claimed. The local helper should be stopped before another attempt.
+
+The earlier choice of general server clients did not provide the required organisation-bound consent. Official [instance-level OAuth](https://www.zoho.com/developer/oauth/instance-level-oauth.html) explicitly includes Books organisations and requires an ORG client. Its [authorization-code endpoint](https://www.zoho.com/developer/oauth/instance-level-oauth/get-auth-code.html) is `/oauth/v2/org/auth`, and its administrator flow offers an instance picker. General server clients are rejected by that endpoint. Token exchange and refresh still use the documented `/oauth/v2/token` endpoint; scope, region, state, callback, file and sole-organisation checks remain unchanged. These contracts were verified on20October2026; actual Books ORG consent/provider isolation remains unassessed until exercised.
+
+The API Console's documented ORG registration page rendered successfully with Client Type ORG. A replacement form is prepared for owner review, not submitted. Use names ending ORG to distinguish the replacements from the two earlier ungranted general clients. Do not open, delete, revoke or rotate either pre-existing production client. No production change, permission expansion or final T19/UI-02 acceptance follows from this correction. Owner confirmation for new ORG credentials, actual org picker/consent, the Chrome-blocked loopback return and provider reconciliation remain open.
