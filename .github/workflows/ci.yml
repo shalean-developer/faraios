@@ -39,6 +39,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - run: npm ci --ignore-scripts
       - run: node --check scripts/setup-zoho-staging.mjs
       - run: node --check scripts/verify-staging-access.mjs
       - run: node --check scripts/backup-staging.mjs
