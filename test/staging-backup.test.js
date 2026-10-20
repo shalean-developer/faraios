@@ -222,3 +222,17 @@ test('cancellation during final workdir removal cannot return a PASSED report',a
  await assert.rejects(capture({home:p,password:'synthetic private password',npmPath:join(p,'npm-cli.js'),runner:mockRunner(),signal:controller.signal,removeWorkdir:async path=>{await rm(path,{recursive:true});cleanupRan=true;controller.abort();}}),{code:'BACKUP_CANCELLED'});
  assert.equal(cleanupRan,true);
 });
+
+
+test('abort during local preflight stops the next Docker or Windows ACL child',async t=>{
+ const p=await home(t),controller=new AbortController(),runner=mockRunner();let localCalls=0,dbCalls=0;
+ await assert.rejects(capture({home:p,password:'synthetic private password',npmPath:join(p,'npm-cli.js'),signal:controller.signal,runner:async(command,args,options)=>{
+  if(command===process.execPath)dbCalls++;
+  if(command==='docker'||command==='powershell.exe') {
+   localCalls++;assert.equal(options.signal,controller.signal);controller.abort();
+   return {stdout:command==='docker'?'desktop-linux':'PRIVATE_ACL_SET',stderr:''};
+  }
+  return runner(command,args,options);
+ }}),{code:'BACKUP_CANCELLED'});
+ assert.equal(localCalls,1);assert.equal(dbCalls,0);
+});

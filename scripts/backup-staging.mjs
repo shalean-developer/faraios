@@ -28,6 +28,7 @@ export const DUMPS = Object.freeze([
 const FILES = [...DUMPS.map(([name])=>name),'manifest.json'];
 export class BackupFailure extends Error { constructor(code) { super(code); this.code=code; } }
 const fail = code => { throw new BackupFailure(code); };
+const checkCancelled = signal => {if(signal?.aborted)fail('BACKUP_CANCELLED');};
 export const sha256 = value => createHash('sha256').update(value).digest('hex');
 const same = (a,b) => JSON.stringify(a)===JSON.stringify(b);
 const aad = header => Buffer.from(JSON.stringify(header));
@@ -166,58 +167,80 @@ export async function outsideGit(path) {
  }
 }
 
-export function directoryGuard() {
+export function directoryGuard(signal) {
  const snapshots=new Map();
  const check=async()=>{
+  checkCancelled(signal);
   for(const [path,expected] of snapshots) {
    await outsideGit(path);const now=await lstat(path);
    if(now.dev!==expected.dev||now.ino!==expected.ino)fail('PRIVATE_DIRECTORY_REPLACED');
   }
+  checkCancelled(signal);
  };
  return {check,async add(path){await check();await outsideGit(path);await plainDirectory(path);snapshots.set(path,await lstat(path));}};
 }
 
-export async function localDocker(env,runner=run) {
- const context=(await runner('docker',['context','show'],{env,timeout:15000})).stdout.trim();
+export async function localDocker(env,runner=run,signal) {
+ checkCancelled(signal);
+ const context=(await runner('docker',['context','show'],{env,timeout:15000,signal})).stdout.trim();
+ checkCancelled(signal);
  if(!/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(context))fail('DOCKER_CONTEXT_INVALID');
- const raw=(await runner('docker',['context','inspect',context,'--format','{{json .Endpoints.docker.Host}}'],{env,timeout:15000})).stdout;
+ const raw=(await runner('docker',['context','inspect',context,'--format','{{json .Endpoints.docker.Host}}'],{env,timeout:15000,signal})).stdout;
+ checkCancelled(signal);
  let endpoint;try{endpoint=JSON.parse(raw);}catch{fail('DOCKER_CONTEXT_INVALID');}
  const local=process.platform==='win32'?/^npipe:\/\/\/\/\.\/pipe\/[a-zA-Z0-9_.-]+$/:/^unix:\/\/\//;
  if(typeof endpoint!=='string'||!local.test(endpoint)||/[\r\n\0]/.test(endpoint))fail('DOCKER_CONTEXT_NOT_LOCAL');
  const pinned={...env,DOCKER_HOST:endpoint};delete pinned.DOCKER_CONTEXT;
- const os=(await runner('docker',['info','--format','{{.OSType}}'],{env:pinned,timeout:20000})).stdout.trim();
+ const os=(await runner('docker',['info','--format','{{.OSType}}'],{env:pinned,timeout:20000,signal})).stdout.trim();
+ checkCancelled(signal);
  if(os!=='linux')fail('DOCKER_LINUX_REQUIRED');return pinned;
 }
 
 // The read-only verifier never repairs permissions on an existing recovery key.
-export async function verifyWindowsACL(path,directory,runner=run) {
+export async function verifyWindowsACL(path,directory,runner=run,signal) {
+ checkCancelled(signal);
  const script="$ErrorActionPreference='Stop'; try { $p=$env:FARAIOS_BACKUP_ACL_PATH; $s=[System.Security.Principal.WindowsIdentity]::GetCurrent().User; $a=Get-Acl -LiteralPath $p; if($a.GetOwner([System.Security.Principal.SecurityIdentifier]).Value -ne $s.Value){'PRIVATE_ACL_OWNER_MISMATCH'; exit}; $rules=@($a.GetAccessRules($true,$true,[System.Security.Principal.SecurityIdentifier])); if(($env:FARAIOS_BACKUP_ACL_DIRECTORY -eq '1' -and !$a.AreAccessRulesProtected) -or $rules.Count -ne 1 -or $rules[0].IdentityReference.Value -ne $s.Value -or $rules[0].AccessControlType -ne 'Allow' -or ($rules[0].FileSystemRights -band [System.Security.AccessControl.FileSystemRights]::FullControl) -ne [System.Security.AccessControl.FileSystemRights]::FullControl){'PRIVATE_ACL_UNSAFE'; exit}; 'PRIVATE_ACL_OK' } catch { 'PRIVATE_ACL_FAILED' }";
- const result=await runner('powershell.exe',['-NoLogo','-NoProfile','-NonInteractive','-Command',script],{timeout:60000,env:{...process.env,FARAIOS_BACKUP_ACL_PATH:path,FARAIOS_BACKUP_ACL_DIRECTORY:directory?'1':'0'}});
+ const result=await runner('powershell.exe',['-NoLogo','-NoProfile','-NonInteractive','-Command',script],{timeout:60000,signal,env:{...process.env,FARAIOS_BACKUP_ACL_PATH:path,FARAIOS_BACKUP_ACL_DIRECTORY:directory?'1':'0'}});
+ checkCancelled(signal);
  if(result.stdout.trim()!=='PRIVATE_ACL_OK')fail(['PRIVATE_ACL_OWNER_MISMATCH','PRIVATE_ACL_UNSAFE'].includes(result.stdout.trim())?result.stdout.trim():'PRIVATE_ACL_FAILED');
 }
 
-export async function privateDirectory(path, runner=run) {
- let created=false;
+async function setWindowsPrivateACL(path,directory,created,runner,signal) {
+ checkCancelled(signal);
+ const labels=['PRIVATE_ACL_IDENTITY_FAILED','PRIVATE_ACL_READ_FAILED','PRIVATE_ACL_OWNER_MISMATCH','PRIVATE_ACL_BUILD_FAILED','PRIVATE_ACL_WRITE_FAILED'];
+ // Explicit .NET constructors avoid PowerShell New-Object overload coercion.
+ // Fixed phase labels diagnose local setup without returning paths or errors.
+ const script="$ErrorActionPreference='Stop'; $phase='PRIVATE_ACL_IDENTITY_FAILED'; try { $p=$env:FARAIOS_BACKUP_ACL_PATH; $s=[System.Security.Principal.WindowsIdentity]::GetCurrent().User; $phase='PRIVATE_ACL_READ_FAILED'; $old=Get-Acl -LiteralPath $p; if($env:FARAIOS_BACKUP_ACL_CREATED -ne '1' -and $old.GetOwner([System.Security.Principal.SecurityIdentifier]).Value -ne $s.Value){'PRIVATE_ACL_OWNER_MISMATCH'; exit}; $phase='PRIVATE_ACL_BUILD_FAILED'; if($env:FARAIOS_BACKUP_ACL_DIRECTORY -eq '1'){$a=[System.Security.AccessControl.DirectorySecurity]::new(); $inherit=[System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [System.Security.AccessControl.InheritanceFlags]::ObjectInherit}else{$a=[System.Security.AccessControl.FileSecurity]::new(); $inherit=[System.Security.AccessControl.InheritanceFlags]::None}; $a.SetOwner($s); $a.SetAccessRuleProtection($true,$false); $rule=[System.Security.AccessControl.FileSystemAccessRule]::new($s,[System.Security.AccessControl.FileSystemRights]::FullControl,$inherit,[System.Security.AccessControl.PropagationFlags]::None,[System.Security.AccessControl.AccessControlType]::Allow); $a.AddAccessRule($rule); $phase='PRIVATE_ACL_WRITE_FAILED'; Set-Acl -LiteralPath $p -AclObject $a; 'PRIVATE_ACL_SET' } catch { $phase }";
+ const result=await runner('powershell.exe',['-NoLogo','-NoProfile','-NonInteractive','-Command',script],{timeout:60000,signal,env:{...process.env,FARAIOS_BACKUP_ACL_PATH:path,FARAIOS_BACKUP_ACL_DIRECTORY:directory?'1':'0',FARAIOS_BACKUP_ACL_CREATED:created?'1':'0'}});
+ checkCancelled(signal);
+ if(result.stdout.trim()!=='PRIVATE_ACL_SET')fail(labels.includes(result.stdout.trim())?result.stdout.trim():'PRIVATE_ACL_SET_FAILED');
+ await verifyWindowsACL(path,directory,runner,signal);
+}
+
+export async function privateDirectory(path, runner=run,signal) {
+ checkCancelled(signal);let created=false;
  try { await mkdir(path,{mode:0o700});created=true; } catch(e) { if(e.code!=='EEXIST') fail('PRIVATE_DIRECTORY_FAILED'); }
- await plainDirectory(path);
+ await plainDirectory(path);checkCancelled(signal);
  if(process.platform==='win32') {
-  // A new directory created by an elevated Windows account may inherit the
-  // Administrators owner SID. Set its owner to that same current user; never
-  // take ownership of an existing directory belonging to somebody else.
-  const script="$ErrorActionPreference='Stop'; try { $p=$env:FARAIOS_BACKUP_ACL_PATH; $s=[System.Security.Principal.WindowsIdentity]::GetCurrent().User; $old=Get-Acl -LiteralPath $p; if($env:FARAIOS_BACKUP_ACL_CREATED -ne '1' -and $old.GetOwner([System.Security.Principal.SecurityIdentifier]).Value -ne $s.Value){'PRIVATE_ACL_OWNER_MISMATCH'; exit}; $a=New-Object System.Security.AccessControl.DirectorySecurity; $a.SetOwner($s); $a.SetAccessRuleProtection($true,$false); $rule=New-Object System.Security.AccessControl.FileSystemAccessRule($s,'FullControl','ContainerInherit,ObjectInherit','None','Allow'); $a.AddAccessRule($rule); Set-Acl -LiteralPath $p -AclObject $a; 'PRIVATE_ACL_SET' } catch { 'PRIVATE_ACL_SET_FAILED' }";
-  const result=await runner('powershell.exe',['-NoLogo','-NoProfile','-NonInteractive','-Command',script],{timeout:60000,env:{...process.env,FARAIOS_BACKUP_ACL_PATH:path,FARAIOS_BACKUP_ACL_CREATED:created?'1':'0'}});
-  if(result.stdout.trim()!=='PRIVATE_ACL_SET')fail(result.stdout.trim()==='PRIVATE_ACL_OWNER_MISMATCH'?'PRIVATE_ACL_OWNER_MISMATCH':'PRIVATE_ACL_SET_FAILED');
-  await verifyWindowsACL(path,true,runner);
+  // Set the current user as owner only for newly created objects. An existing
+  // foreign-owned directory is refused; existing key verification is read-only.
+  await setWindowsPrivateACL(path,true,created,runner,signal);
  } else {
   const s=await lstat(path);
   if((s.mode&0o077)!==0||s.uid!==process.getuid()) fail('PRIVATE_PERMISSIONS_FAILED');
  }
 }
 
-async function writePrivate(path,data,guard) {
+async function writePrivate(path,data,guard,runner,signal) {
  await guard?.check();
  const f=await open(path,'wx',0o600);
- try { await guard?.check();await f.writeFile(data); await f.sync();await guard?.check(); } finally { await f.close(); }
+ try {
+  await guard?.check();
+  // Elevated Windows tokens may default new files to Administrators ownership,
+  // even inside a user-owned directory. Pin this newly created file's ACL too.
+  if(process.platform==='win32')await setWindowsPrivateACL(path,false,true,runner,signal);
+  await guard?.check();await f.writeFile(data);await f.sync();await guard?.check();
+ } finally { await f.close(); }
 }
 
 export function sealBackup(payload,key,id) {
@@ -255,8 +278,9 @@ export function openBackup(bytes,key) {
  } catch { fail('ARCHIVE_VERIFICATION_FAILED'); }
 }
 
-export async function verifyFile(archive,keyRoot,runner=run) {
- await outsideGit(keyRoot);const guard=directoryGuard();await guard.add(keyRoot);
+export async function verifyFile(archive,keyRoot,runner=run,signal) {
+ checkCancelled(signal);
+ await outsideGit(keyRoot);const guard=directoryGuard(signal);await guard.add(keyRoot);
  const s=await lstat(archive);
  if(!s.isFile()||s.isSymbolicLink()||s.size>MAX_ARCHIVE) fail('ARCHIVE_INVALID');
  const bytes=await readFile(archive);
@@ -267,7 +291,7 @@ export async function verifyFile(archive,keyRoot,runner=run) {
  const keyPath=join(keyRoot,id+'.key'),k=await lstat(keyPath);
  if(!k.isFile()||k.isSymbolicLink()||k.size!==32) fail('KEY_FILE_INVALID');
  if(process.platform!=='win32'&&((k.mode&0o077)!==0||k.uid!==process.getuid()||((await lstat(keyRoot)).mode&0o077)!==0))fail('KEY_FILE_PERMISSIONS_UNSAFE');
- if(process.platform==='win32'){await verifyWindowsACL(keyRoot,true,runner);await verifyWindowsACL(keyPath,false,runner);}
+ if(process.platform==='win32'){await verifyWindowsACL(keyRoot,true,runner,signal);await verifyWindowsACL(keyPath,false,runner,signal);}
  await guard.check();
  const handle=await open(keyPath,'r');let key;
  try {
@@ -284,17 +308,17 @@ export async function capture({home=homedir(),password,npmPath=process.env.npm_e
  const root=join(home,'.faraios-backups'),keyRoot=join(home,'.faraios-recovery-keys');
  // Refuse command-line credentials, inherited project/host overrides and repo-local dumps.
  let env=cliEnvironment(password);commandArgs(npmPath,root,[]);
- const guard=directoryGuard();await guard.add(home);
- await privateDirectory(root,runner);await guard.add(root);
- await guard.check();await privateDirectory(keyRoot,runner);await guard.add(keyRoot);
- env=await localDocker(env,runner);
+ const guard=directoryGuard(signal);await guard.add(home);
+ await privateDirectory(root,runner,signal);await guard.add(root);
+ await guard.check();await privateDirectory(keyRoot,runner,signal);await guard.add(keyRoot);
+ env=await localDocker(env,runner,signal);
  const id=randomBytes(16).toString('hex'),work=join(root,id),temporary=join(work,'private-export');
- await guard.check();await privateDirectory(work,runner);await guard.add(work);
- await guard.check();await privateDirectory(temporary,runner);await guard.add(temporary);
- await guard.check();await privateDirectory(join(temporary,'supabase'),runner);await guard.add(join(temporary,'supabase'));
- await writePrivate(join(temporary,'supabase','config.toml'),'project_id = "faraios-t11-backup"\n[db]\nmajor_version = 17\n',guard);
+ await guard.check();await privateDirectory(work,runner,signal);await guard.add(work);
+ await guard.check();await privateDirectory(temporary,runner,signal);await guard.add(temporary);
+ await guard.check();await privateDirectory(join(temporary,'supabase'),runner,signal);await guard.add(join(temporary,'supabase'));
+ await writePrivate(join(temporary,'supabase','config.toml'),'project_id = "faraios-t11-backup"\n[db]\nmajor_version = 17\n',guard,runner,signal);
  const sql=await readFile(new URL('./staging-backup-manifest.sql',import.meta.url),'utf8');
- await writePrivate(join(temporary,'manifest-query.sql'),sql,guard);
+ await writePrivate(join(temporary,'manifest-query.sql'),sql,guard,runner,signal);
  const cli=async args=>{
   if(signal?.aborted) fail('BACKUP_CANCELLED');
   const heartbeat=setInterval(()=>progress('This backup step is still running...'),20000);
@@ -332,13 +356,13 @@ export async function capture({home=homedir(),password,npmPath=process.env.npm_e
   if(signal?.aborted) fail('BACKUP_CANCELLED');
   const key=randomBytes(32);
   try {
-   keyPath=join(keyRoot,id+'.key');await writePrivate(keyPath,key,guard);
+   keyPath=join(keyRoot,id+'.key');await writePrivate(keyPath,key,guard,runner,signal);
    const bytes=sealBackup({source:SOURCE,files},key,id);openBackup(bytes,key);
-   artifact=join(work,'faraios-staging-'+id+'.fbackup');await writePrivate(artifact,bytes,guard);
+   artifact=join(work,'faraios-staging-'+id+'.fbackup');await writePrivate(artifact,bytes,guard,runner,signal);
    await guard.check();
-   const result=await verifyFile(artifact,keyRoot,runner);
+   const result=await verifyFile(artifact,keyRoot,runner,signal);
    checksum=result.sha256;
-   await writePrivate(artifact+'.sha256',result.sha256+'\n',guard);
+   await writePrivate(artifact+'.sha256',result.sha256+'\n',guard,runner,signal);
   } finally { key.fill(0); }
   if(signal?.aborted) fail('BACKUP_CANCELLED');
   await guard.check();await removeWorkdir(temporary);
