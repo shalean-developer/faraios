@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {spawn} from 'node:child_process';
 import {connect} from 'node:net';
 import {fileURLToPath} from 'node:url';
-import {authorizationUrl,diagnosticAuthorizationUrl,diagnosticScopes,diagnoseTestOrganizations,diagnosticLabels,validateDiagnosticOther,exchangeAndVerify,callbackHandler,privateStore,redirectUri,scopes,validateBinding,setupFailureMessage,revokeUnsavedTokens} from '../scripts/setup-zoho-staging.mjs';
+import {authorizationUrl,diagnosticAuthorizationUrl,diagnosticScopes,diagnoseTestOrganizations,diagnosticLabels,standardDiagnosticAuthorizationUrl,standardDiagnosticScopes,diagnoseStandardOAuth,standardDiagnosticLabels,validateDiagnosticOther,exchangeAndVerify,callbackHandler,privateStore,redirectUri,scopes,validateBinding,setupFailureMessage,revokeUnsavedTokens} from '../scripts/setup-zoho-staging.mjs';
 
 const binding={business_id:'11111111-1111-4111-8111-111111111111',organization_id:'123456',organization_name:'Example TEST',alias:'EXAMPLE_TEST',api_domain:'https://www.zohoapis.com'};
 const credentials={clientId:'test-client',clientSecret:'private-test-secret',code:'private-test-code'};
@@ -269,6 +269,98 @@ test('real CLI rejects an existing private binding before credentials or consent
 });
 
 const diagnosticCredentials={...credentials,otherOrganizationId:'654321'};
+const invoiceList={code:0,invoices:[],page_context:{has_more_page:false}};
+const refreshedToken={access_token:'private-refreshed-access',api_domain:binding.api_domain,expires_in:3600};
+test('standard diagnostic uses regular OAuth with invoice READ only and validates both pins before network access',async()=>{
+ const url=new URL(standardDiagnosticAuthorizationUrl({...binding,api_domain:'https://www.zohoapis.eu'},credentials.clientId,'random-state'));
+ assert.equal(url.origin,'https://accounts.zoho.eu');assert.equal(url.pathname,'/oauth/v2/auth');assert.equal(url.searchParams.get('scope'),'ZohoBooks.invoices.READ');assert.equal(standardDiagnosticScopes,'ZohoBooks.invoices.READ');
+ assert.equal(url.searchParams.get('state'),'random-state');assert.equal(url.searchParams.get('redirect_uri'),redirectUri);assert.equal(url.searchParams.get('access_type'),'offline');assert.equal(url.searchParams.get('prompt'),'consent');
+ for(const otherOrganizationId of ['',binding.organization_id,'123&organization_id=999'])await assert.rejects(diagnoseStandardOAuth(binding,{...diagnosticCredentials,otherOrganizationId},()=>assert.fail('No network for invalid pins')));
+});
+test('standard diagnostic refreshes only its new grant, reads pinned lists with the refreshed access token and revokes the original refresh token',async()=>{
+ const calls=[];
+ const report=await diagnoseStandardOAuth(binding,diagnosticCredentials,async(url,options)=>{
+  calls.push({url,options});
+  if(String(url).endsWith('/oauth/v2/token'))return response(options.body.get('grant_type')==='authorization_code'?token:{...refreshedToken,refresh_token:'UNRELATED_RESPONSE_TOKEN'});
+  if(String(url).endsWith('/oauth/v2/revoke/token'))return response({status:'success'});
+  return String(url).includes('organization_id='+binding.organization_id+'&')?response({...invoiceList,invoices:[{invoice_id:'PRIVATE_INVOICE',customer_name:credentials.clientSecret}]}):{ok:false,status:403,text:async()=>JSON.stringify({code:57,message:credentials.clientSecret})};
+ });
+ assert.deepEqual(report,{refresh:'PASSED',target:{outcome:'READABLE'},other:{outcome:'REJECTED',httpStatus:403,providerCode:57},cleanup:'REFRESH_REVOKED'});
+ assert.equal(calls.length,5);assert.equal(calls[0].options.body.get('grant_type'),'authorization_code');assert.equal(calls[1].options.body.get('grant_type'),'refresh_token');assert.equal(calls[1].options.body.get('refresh_token'),token.refresh_token);assert.equal(calls[1].options.body.get('client_secret'),credentials.clientSecret);
+ for(const [n,id] of [[2,binding.organization_id],[3,'654321']]){
+  assert.equal(calls[n].url,binding.api_domain+'/books/v3/invoices?organization_id='+id+'&page=1&per_page=1');assert.equal(calls[n].options.method,'GET');assert.equal(calls[n].options.headers.Authorization,'Zoho-oauthtoken '+refreshedToken.access_token);
+ }
+ assert.equal(calls[4].options.body.get('token'),token.refresh_token);
+ for(const c of calls){assert.equal(c.options.redirect,'error');assert.ok(c.options.signal instanceof AbortSignal);assert.ok(!c.url.includes(credentials.clientSecret));assert.ok(!c.url.includes(token.refresh_token));}
+ for(const value of [...Object.values(credentials),token.access_token,token.refresh_token,refreshedToken.access_token,'PRIVATE_INVOICE','UNRELATED_RESPONSE_TOKEN',binding.organization_id,'654321'])assert.ok(!JSON.stringify(report).includes(value));
+ assert.deepEqual(standardDiagnosticLabels(report),['[STD_REFRESH_PASSED]','[STD_TARGET_INVOICES_READABLE]','[STD_OTHER_TEST_INVOICES_REJECTED]','[STD_OTHER_TEST_HTTP_403]','[STD_OTHER_TEST_BOOKS_CODE_57]','[CLEANUP_REFRESH_REVOKED]']);
+});
+test('standard invoice observations keep broad access adverse and failures inconclusive; failed target skips other TEST',async()=>{
+ for(const target of [true,false])for(const kind of ['ACCESSIBLE',401,403,404,500,'TRANSPORT','MALFORMED','BUSINESS_ERROR','NO_PAGE','NO_CODE']){
+  const calls=[];
+  const report=await diagnoseStandardOAuth(binding,diagnosticCredentials,async(url,options)=>{
+   calls.push({url,options});if(String(url).endsWith('/oauth/v2/token'))return response(options.body.get('grant_type')==='authorization_code'?token:refreshedToken);if(String(url).endsWith('/oauth/v2/revoke/token'))return response({status:'success'});
+   if(!target&&String(url).includes('organization_id='+binding.organization_id+'&'))return response(invoiceList);
+   if(kind==='ACCESSIBLE')return response(invoiceList);if(kind==='TRANSPORT')throw new Error(credentials.clientSecret);if(kind==='MALFORMED')return {ok:true,status:200,text:async()=>credentials.clientSecret};if(kind==='BUSINESS_ERROR')return response({...invoiceList,code:57,message:credentials.clientSecret});if(kind==='NO_PAGE')return response({code:0,invoices:[]});if(kind==='NO_CODE')return response({invoices:[],page_context:{has_more_page:false}});
+   return {ok:false,status:kind,text:async()=>JSON.stringify({code:1000,message:credentials.clientSecret})};
+  });
+  const part=target?report.target:report.other;assert.equal(part.outcome,kind==='ACCESSIBLE'?(target?'READABLE':'ACCESSIBLE'):!target&&kind===403?'REJECTED':'INCONCLUSIVE');assert.equal(report.cleanup,'REFRESH_REVOKED');
+  if(target&&kind!=='ACCESSIBLE'){assert.equal(report.other.outcome,'NOT_RUN');assert.equal(calls.length,4);}else assert.equal(calls.length,5);
+  assert.ok(!JSON.stringify(report).includes(credentials.clientSecret));
+ }
+ assert.deepEqual(standardDiagnosticLabels({refresh:credentials.clientSecret,target:{outcome:credentials.clientSecret,httpStatus:99999,providerCode:99999},other:{outcome:credentials.clientSecret},cleanup:credentials.clientSecret}),['[STD_REFRESH_INCONCLUSIVE]','[STD_TARGET_INVOICES_INCONCLUSIVE]','[STD_OTHER_TEST_INVOICES_INCONCLUSIVE]','[CLEANUP_UNAVAILABLE]']);
+});
+test('standard refresh failures, partial grants and cancellation preserve current-token cleanup and prevent subsequent reads',async()=>{
+ for(const mode of ['REFRESH_HTTP','REFRESH_NETWORK','REFRESH_RESPONSE','REFRESH_REJECTED','REFRESH_ACCESS_MISSING','REFRESH_DOMAIN','REFRESH_EXPIRY','TOKEN_REFRESH_MISSING','CANCEL_REFRESH','CANCEL_TARGET','CLEANUP_FAILED']){
+  const calls=[],controller=new AbortController();
+  const run=diagnoseStandardOAuth(binding,diagnosticCredentials,async(url,options)=>{
+   calls.push({url,options});
+   if(String(url).endsWith('/oauth/v2/revoke/token')){assert.equal(options.body.get('token'),mode==='TOKEN_REFRESH_MISSING'?token.access_token:token.refresh_token);assert.equal(options.signal.aborted,false);if(mode==='CLEANUP_FAILED')throw new Error(credentials.clientSecret);return response({status:'success'});}
+   if(options.body?.get('grant_type')==='authorization_code')return response(mode==='TOKEN_REFRESH_MISSING'?{...token,refresh_token:''}:token);
+   if(options.body?.get('grant_type')==='refresh_token'){
+    if(mode==='CANCEL_REFRESH')controller.abort();if(mode==='REFRESH_NETWORK')throw new Error(credentials.clientSecret);if(mode==='REFRESH_HTTP')return {ok:false,status:500,text:async()=>credentials.clientSecret};if(mode==='REFRESH_RESPONSE')return {ok:true,status:200,text:async()=>credentials.clientSecret};if(mode==='REFRESH_REJECTED')return response({error:credentials.clientSecret});
+    return response({...refreshedToken,...(mode==='REFRESH_ACCESS_MISSING'?{access_token:''}:mode==='REFRESH_DOMAIN'?{api_domain:'https://attacker.test'}:mode==='REFRESH_EXPIRY'?{expires_in:0}:{})});
+   }
+   if(mode==='CANCEL_TARGET')controller.abort();return response(invoiceList);
+  },{signal:controller.signal});
+  if(mode==='CLEANUP_FAILED'){const report=await run;assert.equal(report.cleanup,'FAILED');assert.equal(report.other.outcome,'ACCESSIBLE');}else await assert.rejects(run,error=>{const message=setupFailureMessage(error);assert.ok(message.includes('['+(mode.startsWith('CANCEL_')?'CANCELLED':mode)+']'));assert.ok(message.includes(mode==='TOKEN_REFRESH_MISSING'?'[CLEANUP_ACCESS_REVOKED]':'[CLEANUP_REFRESH_REVOKED]'));assert.ok(!message.includes(credentials.clientSecret));return true;});
+  assert.equal(calls.filter(c=>String(c.url).includes('/books/v3/')).length,mode==='CANCEL_TARGET'?1:mode==='CLEANUP_FAILED'?2:0);
+ }
+});
+
+test('standard CLI refuses an unconfirmed TEST-only account before credentials or consent',{timeout:10000},async t=>{
+ for(const acknowledgement of ['NO','']){
+ const {output}=await fixture(t),h=operatorHarness(t,'globalThis.fetch=async()=>{console.log("UNEXPECTED_PROVIDER_CALL");throw new Error();};',['--diagnose-standard-oauth']);
+ for(const [label,value] of [...publicAnswers(output).slice(0,5),['Other isolated TEST organisation ID (never a live organisation): ','654321'],['Confirm BOTH organisation IDs are isolated TEST organisations (type TEST): ','TEST'],['Confirm the Zoho login has access ONLY to the target TEST organisation, no live or other business organisations (type TEST_ONLY_ACCOUNT): ',acknowledgement]])await h.answer(label,value);
+ assert.equal(await h.finished,1);assert.ok(!h.transcript().includes('Client ID (hidden)'));assert.ok(!h.transcript().includes('Open this authorization URL'));assert.ok(!h.transcript().includes('UNEXPECTED_PROVIDER_CALL'));await assert.rejects(stat(output),{code:'ENOENT'});
+ }
+});
+
+test('real standard OAuth CLI keeps invoice data private, never opens a store and always cleans the fresh grant',{timeout:45000},async t=>{
+ for(const mode of ['REJECTED','ACCESSIBLE','TARGET_HTTP','REFRESH_HTTP','CLEANUP_FAILED','CANCELLED']){
+  const {output}=await fixture(t),original='UNRELATED_STANDARD_CREDENTIAL_FILE',marker='NEVER_PRINT_STANDARD_PROVIDER_SECRET';await mkdir(join(output,'..'),{recursive:true});await writeFile(output,original);
+  const extra=`import fp from 'node:fs/promises';import {syncBuiltinESMExports} from 'node:module';for(const key of ['open','mkdir','rename','unlink'])fp[key]=async()=>{console.log('STANDARD_FILE_ACCESS');throw new Error(${JSON.stringify(marker)});};syncBuiltinESMExports();const mode=${JSON.stringify(mode)};globalThis.fetch=async(url,options)=>{
+   if(options.body?.get('grant_type')==='authorization_code')return{ok:true,status:200,text:async()=>JSON.stringify(${JSON.stringify(token)})};
+   if(options.body?.get('grant_type')==='refresh_token'){console.log('STANDARD_REFRESH');if(mode==='REFRESH_HTTP')return{ok:false,status:403,text:async()=>${JSON.stringify(marker)}};return{ok:true,status:200,text:async()=>JSON.stringify(${JSON.stringify(refreshedToken)})};}
+   if(String(url).endsWith('/oauth/v2/revoke/token')){console.log('STANDARD_REVOKE');if(options.body.get('token')!==${JSON.stringify(token.refresh_token)}||options.signal.aborted)throw new Error(${JSON.stringify(marker)});if(mode==='CLEANUP_FAILED')throw new Error(${JSON.stringify(marker)});return{ok:true,status:200,text:async()=>JSON.stringify({status:'success'})};}
+   if(options.method!=='GET'||options.headers.Authorization!==${JSON.stringify('Zoho-oauthtoken '+refreshedToken.access_token)})throw new Error(${JSON.stringify(marker)});
+   if(String(url)===${JSON.stringify(binding.api_domain+'/books/v3/invoices?organization_id='+binding.organization_id+'&page=1&per_page=1')}){console.log('STANDARD_TARGET_GET');if(mode==='CANCELLED')process.emit('SIGTERM');if(mode==='TARGET_HTTP')return{ok:false,status:403,text:async()=>JSON.stringify({code:57,message:${JSON.stringify(marker)}})};return{ok:true,status:200,text:async()=>JSON.stringify({code:0,invoices:[{customer_name:${JSON.stringify(marker)}}],page_context:{has_more_page:false}})};}
+   if(String(url)===${JSON.stringify(binding.api_domain+'/books/v3/invoices?organization_id=654321&page=1&per_page=1')}){console.log('STANDARD_OTHER_GET');if(mode==='ACCESSIBLE')return{ok:true,status:200,text:async()=>JSON.stringify(${JSON.stringify(invoiceList)})};return{ok:false,status:403,text:async()=>JSON.stringify({code:57,message:${JSON.stringify(marker)}})};}
+   throw new Error(${JSON.stringify(marker)});};`;
+  const h=operatorHarness(t,extra,['--diagnose-standard-oauth']);
+  for(const [label,value] of [...publicAnswers(output).slice(0,5),['Other isolated TEST organisation ID (never a live organisation): ','654321'],['Confirm BOTH organisation IDs are isolated TEST organisations (type TEST): ','TEST'],['Confirm the Zoho login has access ONLY to the target TEST organisation, no live or other business organisations (type TEST_ONLY_ACCOUNT): ','TEST_ONLY_ACCOUNT'],['New dedicated Client ID (hidden): ','synthetic-client-id'],['New dedicated Client Secret (hidden): ',marker]])await h.answer(label,value);
+  await h.waitFor('If the signed-in account has live or other business organisation access, or the scope is wrong, deny and stop.');
+  const auth=new URL(h.transcript().match(/https:\/\/accounts\.zoho\.com\/oauth\/v2\/auth\?[^\r\n]+/)[0]);assert.equal(auth.searchParams.get('scope'),standardDiagnosticScopes);assert.ok(!h.transcript().includes('/oauth/v2/org/auth'));assert.ok(!h.transcript().includes('Private JSON path'));
+  const socket=connect(3102,'127.0.0.1');t.after(()=>socket.destroy());await new Promise((resolve,reject)=>{socket.once('connect',resolve);socket.once('error',reject);});socket.write('GET / HTTP/1.1\r\nHost:');
+  const callback=new URL(redirectUri);callback.search=new URLSearchParams({state:auth.searchParams.get('state'),code:'synthetic-standard-code'}).toString();const r=await fetch(callback,{redirect:'manual'});assert.equal(r.status,303);await r.text();
+  let deadline;try{assert.equal(await Promise.race([h.finished,new Promise((_,reject)=>{deadline=setTimeout(()=>reject(new Error('Standard CLI did not finish')),5000);})]),mode==='REJECTED'?0:1);}finally{clearTimeout(deadline);}
+  const all=h.transcript()+h.stderr();assert.equal((all.match(/STANDARD_REVOKE/g)||[]).length,1);assert.equal((all.match(/STANDARD_REFRESH/g)||[]).length,1);assert.equal((all.match(/STANDARD_OTHER_GET/g)||[]).length,['TARGET_HTTP','REFRESH_HTTP','CANCELLED'].includes(mode)?0:1);assert.ok(!all.includes('STANDARD_FILE_ACCESS'));
+  for(const value of [marker,token.access_token,token.refresh_token,refreshedToken.access_token,'synthetic-standard-code',original])assert.ok(!all.includes(value));
+  assert.ok(all.includes(mode==='CLEANUP_FAILED'?'[CLEANUP_FAILED]':'[CLEANUP_REFRESH_REVOKED]'));if(mode==='REFRESH_HTTP')assert.ok(h.stderr().includes('[REFRESH_HTTP]'));else if(mode==='CANCELLED')assert.ok(h.stderr().includes('[CANCELLED]'));else{assert.ok(all.includes('[STD_TARGET_INVOICES_'+(mode==='TARGET_HTTP'?'INCONCLUSIVE':'READABLE')+']'));assert.ok(all.includes('[STD_OTHER_TEST_INVOICES_'+(mode==='TARGET_HTTP'?'NOT_RUN':mode==='ACCESSIBLE'?'ACCESSIBLE':'REJECTED')+']'));assert.ok(all.includes('Full organisation isolation is not established'));}
+  assert.equal(await readFile(output,'utf8'),original);await assert.rejects(stat(output+'.lock'),{code:'ENOENT'});
+ }
+});
+
 test('diagnostic consent is settings-read-only and rejects invalid or duplicate test pins before any request',async()=>{
  const url=new URL(diagnosticAuthorizationUrl(binding,credentials.clientId,'random-state'));
  assert.equal(url.pathname,'/oauth/v2/org/auth');assert.equal(url.searchParams.get('scope'),diagnosticScopes);assert.equal(diagnosticScopes,'ZohoBooks.settings.READ');assert.equal(url.searchParams.get('redirect_uri'),redirectUri);
