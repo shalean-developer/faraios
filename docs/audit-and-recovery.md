@@ -1,6 +1,6 @@
 # T11 — Audit history and recovery
 
-19 October 2026. Scope: FaraiOS staging only (`xdmfyrsauvqznkloroxg`). Existing Shalean/Bokkie systems are unchanged.
+Updated 20 October 2026. Scope: FaraiOS staging only (`xdmfyrsauvqznkloroxg`). Existing Shalean/Bokkie systems are unchanged.
 
 ## Isolated recovery setup — 20 October 2026
 
@@ -20,20 +20,59 @@ The new destination is separate from the working source. Read-only checks found 
 
 Refreshed source inventory: 15 public tables and two audit tables, all 17 with RLS enabled; 3 Auth users; 21 migration records; 186 `audit.events` rows; 0 Storage buckets/objects; 0 Vault secrets; 0 deployed Edge Functions. Installed extensions are `btree_gist`, `pg_stat_statements`, `pgcrypto`, `plpgsql`, `supabase_vault` and `uuid-ossp`; neither `pg_cron` nor `pg_net` is installed. This is a point-in-time inventory, not the eventual backup's consistency manifest.
 
-**T11 remains In progress.** The folder is empty; it is not a protected backup. Full schema/roles/data/Auth export, configuration capture, encryption/checksum, off-site retrieval/decryption, import and restored sign-in/access/audit verification have not run. The connected Supabase tools cannot produce the supported full logical export and this agent runtime has no source database credential, Supabase CLI, Docker or PostgreSQL client tools. Do not substitute visible Auth/credential queries for a private backup or reset the source password just to obtain access.
+**T11 remains In progress.** The folder is empty; it is not a protected backup. Full schema/roles/data/Auth export, configuration capture, encryption/checksum, off-site retrieval/decryption, import and restored sign-in/access/audit verification have not run. The connected Supabase tools cannot produce the supported full logical export. The agent has inspected the pinned CLI but has no source database credential, Docker daemon or PostgreSQL clients for a real export; execution belongs in the owner's local terminal. Do not substitute visible Auth/credential queries for a private backup or reset the source password just to obtain access.
 
-### Immediate operator preflight
+### Private Windows capture helper — prepared 20 October
 
-Run this read-only check in the existing Windows PowerShell terminal and return only the availability table:
+`npm run backup:staging` runs `scripts/backup-staging.mjs`. This prepares an encrypted **logical database capture**, not a complete Supabase recovery. It has no restore, password-reset, project-link, network-ban clearing or application-repointing command.
+
+The source is fixed to `xdmfyrsauvqznkloroxg`; Supabase CLI is pinned to `2.121.0` and its official built-in `supabase` profile. The owner has Node, Docker Desktop with a Linux server and the pinned CLI available and completed private CLI sign-in. The previously suggested arbitrary `--profile faraios-recovery` was invalid: custom profiles are configuration files, not login labels. No second login is needed.
+
+In the source checkout, after pulling the merged helper:
 
 ```powershell
-'node','supabase','docker','psql','pg_dump' | ForEach-Object {
-  $t11Tool = Get-Command $_ -ErrorAction SilentlyContinue
-  [pscustomobject]@{ Tool = $_; Available = ($null -ne $t11Tool) }
-}
+git switch main
+git pull --ff-only
+npm run backup:staging
 ```
 
-This check installs nothing and makes no database request. The supported export/restore commands and private credential handling must be prepared after the operator tools are known. Keep database passwords, connection strings, Auth dumps and the encryption key out of chat and Git. Before import, separately verify destination outbound Auth/provider settings, database hooks/jobs and restore-only application configuration; an empty destination is not proof that every future import is safe.
+Stop the local FaraiOS staging app first. Type `QUIET` only when schema, account and business writes are paused until capture finishes. Enter the **existing staging database password** at the hidden prompt. This is distinct from the CLI login. If it is unknown, press Ctrl+C and report `PASSWORD_UNKNOWN`; do not reset it. Never paste passwords, keys, SQL, Auth records, connection strings or terminal captures into chat.
+
+The helper removes inherited project/PostgreSQL/Docker overrides, verifies a local Unix socket or Windows named pipe and Linux Docker server, then pins that endpoint for every export. The database password is passed in the child environment, not shell arguments; the npm invocation is shell-free. Telemetry opt-outs are forced. Linked query resolution uses the supplied password, avoiding the CLI's passwordless temporary-role fallback. No `--dry-run` is used because that path can print expanded credentials.
+
+**Capture contents and validation:**
+
+- Roles without role passwords; application schema; default data including Auth; separate `supabase_migrations` schema/data; and an Auth/Storage schema reference. The reference is for restoration review, never blanket replay over managed schemas.
+- A private manifest records PostgreSQL major, extension versions, exact business IDs, table counts/digests, RLS and a catalog digest covering constraints, grants/owners, role memberships, functions, triggers, policies, views, indexes, types and sequences. The final read-only manifest query was executed successfully against staging: 53 table fingerprints, 15 public and two audit tables, three Auth users and 21 migration rows. No table records or credentials were read into this evidence report.
+- Before/after row and catalog digests must agree. Each dump uses its own transaction: this is **not one global snapshot**. Operator write quiescence is essential; comparison cannot exclude a change that is later reversed.
+- Exactly one complete PostgreSQL dump banner pair is required per member; complete COPY blocks and exact exported row counts are checked, including Auth and migration history. Duplicate/partial retry output fails closed.
+- Unexpected business/schema scope, extension changes, lost application RLS, nonzero Storage buckets/objects, large objects or Vault secrets stop capture. The two excluded vector metadata tables must be empty. This first helper deliberately fails when the verified empty external-data assumptions change.
+
+Raw dump stdout stays in Node memory until compression and AES-256-GCM encryption. The helper writes no plaintext SQL dump files to its output directories. It writes only static config/query files in its temporary work directory, then removes that directory after archive verification. Canonical paths, Git ancestry, symlinks and directory replacement are checked at boundaries; POSIX owner/modes or Windows owner-only protected ACLs are enforced. These checks do not defeat a host owner/administrator moving paths between checks.
+
+The local Docker daemon and owner workstation remain trusted. The upstream CLI uses `docker run --rm` with default daemon logging. **No claim is made that plaintext can never reach daemon logs, swap, crash dumps or host-managed storage.** Process deadlines/cancellation stop the owned process tree and discard captured diagnostics, but do not prove daemon-side container cleanup. After an interrupted run, stop and have the exact leftover container reviewed privately; do not run broad Docker cleanup, alter global logging settings or upload incomplete output.
+
+A successful report includes `encryptedLocalVerification: PASSED`, `privateWorkdirCleanup: PASSED`, and `helperPlaintextSQLFiles: NEVER_WRITTEN`. The latter applies to helper-managed SQL output files only. It leaves:
+
+| Local location | Purpose |
+|---|---|
+| `%USERPROFILE%\\.faraios-backups\\<run-id>\\*.fbackup` | Authenticated encrypted archive with per-member SHA-256 |
+| Same archive path plus `.sha256` | Ciphertext SHA-256 |
+| `%USERPROFILE%\\.faraios-recovery-keys\\<run-id>.key` | Separate 32-byte decryption key; never upload beside the archive |
+
+Copy the key separately to protected offline storage and verify custody. Upload only the verified `.fbackup` and `.sha256` to the approved private Drive folder. A success report still says `offsiteBackup: PENDING`, `offlineKeyCopy: PENDING` and `restore: NOT_RUN`; it cannot attest to subsequent manual copies.
+
+Retrieve the encrypted file from Drive into a private folder and verify locally with the matching key still in its separate private directory:
+
+```powershell
+node scripts/backup-staging.mjs --verify-file 'C:\\private-retrieval\\faraios-staging-<run-id>.fbackup'
+```
+
+This decrypts and checks the archive in memory without executing SQL. Compare its reported SHA-256 to the original report/checksum. Off-site retrieval, offline key custody and an actual isolated restore require their own evidence. A safe failure returns only a fixed diagnostic label; share that label alone. Local incomplete work/key/archive files may remain after failure and are not approved uploads.
+
+Configuration/provider secrets, Edge Functions, Storage bytes and custom managed-schema recovery remain separate work. No recurring schedule, retention deletion, restore import or complete T11 acceptance is enabled by this helper.
+
+Primary implementation references: [CLI v2.121.0 dump](https://github.com/supabase/cli/tree/v2.121.0/apps/cli/src/commands/db/dump), [CLI export implementation](https://github.com/supabase/cli/blob/v2.121.0/apps/cli/src/command-internal/pg-dump.scripts.ts), [PostgreSQL 17 dump-all output](https://github.com/postgres/postgres/blob/REL_17_STABLE/src/bin/pg_dump/pg_dumpall.c), [Docker context inspection](https://docs.docker.com/reference/cli/docker/context/inspect/).
 
 ## Earlier assessment — 20 October 2026
 
@@ -51,7 +90,7 @@ T08–T10 staging access now has independent PASS; see [the closeout](staging-ro
 6. Compare schema/row counts, immutable agreement digests, audit continuity and RLS/grants. Privately verify restored owner/manager/shared-staff sign-in/denials, module reads and application health. The current launcher pins the source project: prepare/review an explicit isolated harness rather than silently repointing it.
 7. Record measured recovery-point and restoration time, gaps, independent QA and owner acceptance. T11 closes only after protected backup, isolated restore, sign-in/access and audit evidence pass. No promised RPO/RTO or ongoing backup operation exists yet.
 
-Primary sources rechecked 20 October: [database backups](https://supabase.com/docs/guides/platform/backups) and [CLI backup/restore](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore). Supabase recommends off-site CLI exports for free projects; database backups exclude Storage file bytes. Managed-schema customizations and environment-specific configuration need attention during manual restoration. Exact CLI/tool versions and encryption/storage procedures still require operator-environment validation before execution.
+Primary sources rechecked 20 October: [database backups](https://supabase.com/docs/guides/platform/backups) and [CLI backup/restore](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore). Supabase recommends off-site CLI exports for free projects; database backups exclude Storage file bytes. Managed-schema customizations and environment-specific configuration need attention during manual restoration. The helper above pins CLI/encryption procedures; an actual owner-terminal export, off-site retrieval and restore remain unverified.
 
 ## Implemented audit coverage
 
@@ -92,3 +131,4 @@ If staging identity changes start failing because of audit integration, investig
 PR #12 records live role resolution, suspension, logout and mobile-menu acceptance. Separate manager/staff test identities and fresh sign-in still need completing. Browser creation of credentials requires the user's private password entry. No Auth admin-create connector is exposed, so no accounts were fabricated through auth-table SQL.
 
 Decision: CONDITIONAL PASS for continued isolated development. T11 remains In progress until full backup/recovery acceptance. T12 settings implementation follows as a separate bounded package.
+
