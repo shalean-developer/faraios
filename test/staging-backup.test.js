@@ -4,7 +4,7 @@ import { mkdtemp, readFile, writeFile, readdir, rm, lstat, symlink, mkdir, renam
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { SOURCE, CLI, DUMPS, validateManifest, parseManifest, cliEnvironment, commandArgs, sealBackup, openBackup, sha256, capture, verifyFile, run, privateDirectory, assertDataCoverage, assertCompleteDump, outsideGit, localDocker } from '../scripts/backup-staging.mjs';
+import { SOURCE, CLI, DUMPS, validateManifest, parseManifest, cliEnvironment, commandArgs, sealBackup, openBackup, sha256, capture, verifyFile, run, privateDirectory, assertDataCoverage, assertCompleteDump, outsideGit, localDocker, windowsEnvironment } from '../scripts/backup-staging.mjs';
 
 function manifest() {
  const tables=[...Array.from({length:15},(_,i)=>({schema:'public',table:'t'+i,rls:true,rows:i===0?2:0,sha256:'a'.repeat(64)})),...Array.from({length:2},(_,i)=>({schema:'audit',table:'t'+i,rls:true,rows:0,sha256:'b'.repeat(64)})),{schema:'auth',table:'users',rls:true,rows:3,sha256:'c'.repeat(64)},{schema:'supabase_migrations',table:'schema_migrations',rls:false,rows:21,sha256:'d'.repeat(64)}];
@@ -86,6 +86,7 @@ test('cross-platform npm invocation uses shell-free Node argv and the built-in S
  assert.equal(args[0],npm);assert.ok(args.includes('--package=supabase@'+CLI));
  assert.equal(args[args.indexOf('--workdir')+1],work);assert.equal(args[args.indexOf('--profile')+1],'supabase');
  assert.throws(()=>commandArgs('relative/npm-cli.js',work,[]));
+ assert.deepEqual(windowsEnvironment({FARAIOS_BACKUP_ACL_PATH:'private'},{PSModulePath:'pwsh7',psmodulepath:'other',PATH:'trusted'}),{PATH:'trusted',FARAIOS_BACKUP_ACL_PATH:'private'});
 });
 
 test('authenticated encryption preserves Unicode SQL and rejects key, ciphertext, tag and source/header changes',()=>{
@@ -211,8 +212,8 @@ test('key boundary replacement stops before encryption and public key permission
  } else {
   // Deliberately loosen only this disposable synthetic key; verification must
   // refuse it without repairing its DACL or reading any key bytes.
-  const script="$ErrorActionPreference='Stop'; $a=Get-Acl -LiteralPath $env:FARAIOS_SYNTHETIC_KEY; $sid=New-Object System.Security.Principal.SecurityIdentifier('S-1-5-11'); $r=New-Object System.Security.AccessControl.FileSystemAccessRule($sid,'Read','Allow'); $a.AddAccessRule($r); Set-Acl -LiteralPath $env:FARAIOS_SYNTHETIC_KEY -AclObject $a; 'SYNTHETIC_ACL_LOOSENED'";
-  await run('powershell.exe',['-NoLogo','-NoProfile','-NonInteractive','-Command',script],{timeout:60000,env:{...process.env,FARAIOS_SYNTHETIC_KEY:report.keyPath}});
+  const script="$ErrorActionPreference='Stop'; $a=[System.IO.File]::GetAccessControl($env:FARAIOS_SYNTHETIC_KEY); $sid=[System.Security.Principal.SecurityIdentifier]::new('S-1-5-11'); $r=[System.Security.AccessControl.FileSystemAccessRule]::new($sid,[System.Security.AccessControl.FileSystemRights]::Read,[System.Security.AccessControl.AccessControlType]::Allow); $a.AddAccessRule($r); [System.IO.File]::SetAccessControl($env:FARAIOS_SYNTHETIC_KEY,$a); 'SYNTHETIC_ACL_LOOSENED'";
+  await run('powershell.exe',['-NoLogo','-NoProfile','-NonInteractive','-Command',script],{timeout:60000,env:windowsEnvironment({FARAIOS_SYNTHETIC_KEY:report.keyPath})});
   await assert.rejects(verifyFile(report.artifact,join(q,'.faraios-recovery-keys')),{code:'PRIVATE_ACL_UNSAFE'});
  }
 });
