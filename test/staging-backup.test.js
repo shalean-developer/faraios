@@ -4,7 +4,7 @@ import { mkdtemp, readFile, writeFile, readdir, rm, lstat, symlink, mkdir, renam
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { SOURCE, CLI, DUMPS, validateManifest, parseManifest, cliEnvironment, commandArgs, sealBackup, openBackup, sha256, capture, verifyFile, run, privateDirectory, assertDataCoverage, assertCompleteDump, outsideGit, localDocker, windowsEnvironment, metadataFailureLabel } from '../scripts/backup-staging.mjs';
+import { SOURCE, CLIENT_IMAGE, POOLER_HOST, DUMPS, validateManifest, parseManifest, clientEnvironment, clientArgs, dumpSpec, parsePgManifest, cleanupClient, terminalFailure, sealBackup, openBackup, sha256, capture, verifyFile, run, privateDirectory, assertDataCoverage, assertCompleteDump, outsideGit, localDocker, windowsEnvironment, metadataFailureLabel } from '../scripts/backup-staging.mjs';
 
 function manifest() {
  const tables=[...Array.from({length:15},(_,i)=>({schema:'public',table:'t'+i,rls:true,rows:i===0?2:0,sha256:'a'.repeat(64)})),...Array.from({length:2},(_,i)=>({schema:'audit',table:'t'+i,rls:true,rows:0,sha256:'b'.repeat(64)})),{schema:'auth',table:'users',rls:true,rows:3,sha256:'c'.repeat(64)},{schema:'supabase_migrations',table:'schema_migrations',rls:false,rows:21,sha256:'d'.repeat(64)}];
@@ -35,27 +35,29 @@ async function home(t) {
 function mockRunner({change=false,failName,missingAuth=false,calls=[]}={}) {
  let queries=0;
  return async (command,args,opts)=>{
-  if(command==='docker') {
-   if(args[0]==='info')return {stdout:'linux\n',stderr:''};
+  if(command!=='docker')return run(command,args,opts); // Real Windows ACL verification.
+  if(args[0]==='info')return {stdout:'linux\n',stderr:''};
+  if(args[0]==='ps'||args[0]==='rm')return {stdout:'',stderr:''};
+  if(args[0]==='context') {
    if(args[1]==='show')return {stdout:'desktop-linux\n',stderr:''};
    return {stdout:JSON.stringify(process.platform==='win32'?'npipe:////./pipe/dockerDesktopLinuxEngine':'unix:///var/run/docker.sock'),stderr:''};
   }
-  if(command!==process.execPath) return run(command,args,opts); // Real Windows ACL verification.
-  calls.push({command,args,env:opts.env,cwd:opts.cwd});
-  assert.equal(opts.env.SUPABASE_DB_PASSWORD,'synthetic private password');
-  assert.equal(opts.env.SUPABASE_TELEMETRY_DISABLED,'1');assert.equal(opts.env.DO_NOT_TRACK,'1');
+  assert.equal(args[0],'run');
+  calls.push({command,args,env:{...opts.env},cwd:opts.cwd});
+  assert.equal(opts.env.PGPASSWORD,'synthetic private password');
+  assert.equal(opts.env.PGSSLMODE,'verify-full');assert.equal(opts.env.PGSSLROOTCERT,'system');
+  assert.equal(opts.env.PGHOST,POOLER_HOST);assert.equal(opts.env.PGUSER,'postgres.'+SOURCE);assert.equal(opts.env.PGPORT,'5432');
   assert.ok(!args.some(a=>a.includes('synthetic private password')));
-  assert.ok(args.includes('--project-ref'));assert.equal(args[args.indexOf('--project-ref')+1],SOURCE);
+  assert.ok(args.includes(CLIENT_IMAGE));assert.equal(args[args.indexOf('--log-driver')+1],'none');
+  const step=args[args.indexOf('--name')+1].replace(/^faraios-t11-[a-f0-9]{32}-/,'');
   const m=manifest();
-  if(args.includes('query')) {
-   assert.equal(opts.failureContext,'metadata');
+  if(step==='metadata') {
+   assert.equal(opts.failureContext,'metadata');assert.ok(opts.input.startsWith('begin transaction'));
    if(change&&queries++>0)m.tables[0].sha256='f'.repeat(64);
-   return {stdout:JSON.stringify([{manifest:m}]),stderr:''};
+   return {stdout:JSON.stringify(m)+'\n',stderr:''};
   }
-  assert.equal(opts.failureContext,undefined);
-  assert.ok(args.includes('dump'));assert.ok(!args.includes('--dry-run'));
-  assert.ok(!args.includes('--file'),'raw SQL must never be written by the child');
-  const name=args.includes('--role-only')?'roles.sql':args.includes('--schema')?(args[args.indexOf('--schema')+1]==='auth,storage'?'managed-schema-reference.sql':args.includes('--data-only')?'migration-data.sql':'migration-schema.sql'):args.includes('--data-only')?'data.sql':'schema.sql';
+  assert.equal(opts.input,undefined);
+  const name=step+'.sql';assert.ok(DUMPS.some(([n])=>n===name));
   if(name===failName)throw new Error('untrusted error with synthetic private password');
   let text=sqlFile(name,m);if(missingAuth&&name==='data.sql')text='SELECT 1;';
   return {stdout:text,stderr:'sensitive child diagnostics are never printed'};
@@ -76,18 +78,23 @@ test('manifest parser accepts only the explicit single-row JSON contract',()=>{
 });
 
 test('password remains in child env; project, profile, PG, host and image overrides are removed',()=>{
- const env=cliEnvironment('secret',{PATH:'safe',SUPABASE_DB_PASSWORD:'old',SUPABASE_PROJECT_ID:'wrong',SUPABASE_PROFILE:'wrong.yaml',SUPABASE_API_URL:'https://wrong.invalid',SUPABASE_INTERNAL_IMAGE_REGISTRY:'wrong',PGHOST:'wrong',PGPASSWORD:'old',SUPABASE_HOME:'/private/cli-home'});
- assert.equal(env.SUPABASE_DB_PASSWORD,'secret');assert.equal(env.SUPABASE_HOME,'/private/cli-home');
- for(const k of ['PGHOST','PGPASSWORD','SUPABASE_PROJECT_ID','SUPABASE_PROFILE','SUPABASE_API_URL','SUPABASE_INTERNAL_IMAGE_REGISTRY'])assert.equal(env[k],undefined);
- for(const p of ['',null,'a\nb','a\0b'])assert.throws(()=>cliEnvironment(p));
+ const env=clientEnvironment('secret',{PATH:'safe',SUPABASE_DB_PASSWORD:'old',SUPABASE_PROJECT_ID:'wrong',SUPABASE_PROFILE:'wrong.yaml',SUPABASE_API_URL:'https://wrong.invalid',SUPABASE_INTERNAL_IMAGE_REGISTRY:'wrong',PGHOST:'wrong',PGPASSWORD:'old',SUPABASE_HOME:'/private/cli-home'});
+ assert.equal(env.PGPASSWORD,'secret');assert.equal(env.SUPABASE_HOME,undefined);assert.equal(env.PGHOST,POOLER_HOST);assert.equal(env.PGSSLMODE,'verify-full');assert.equal(env.PGSSLROOTCERT,'system');
+ for(const k of ['SUPABASE_PROJECT_ID','SUPABASE_PROFILE','SUPABASE_API_URL','SUPABASE_INTERNAL_IMAGE_REGISTRY'])assert.equal(env[k],undefined);
+ for(const p of ['',null,'a\nb','a\0b'])assert.throws(()=>clientEnvironment(p));
 });
 
-test('cross-platform npm invocation uses shell-free Node argv and the built-in Supabase endpoint profile',()=>{
- const npm=join(tmpdir(),'space & folder','npm-cli.js'),work=join(tmpdir(),'private & folder');
- const args=commandArgs(npm,work,['db','dump','--linked','--project-ref',SOURCE]);
- assert.equal(args[0],npm);assert.ok(args.includes('--package=supabase@'+CLI));
- assert.equal(args[args.indexOf('--workdir')+1],work);assert.equal(args[args.indexOf('--profile')+1],'supabase');
- assert.throws(()=>commandArgs('relative/npm-cli.js',work,[]));
+test('container commands enforce source-bound verified TLS, fixed image, no log output or credential arguments',()=>{
+ const env=clientEnvironment('secret',{PATH:'safe',pgsslmode:'disable',SSL_CERT_FILE:'/bad',PGSERVICE:'bad'});
+ assert.equal(env.pgsslmode,undefined);assert.equal(env.SSL_CERT_FILE,undefined);assert.equal(env.PGSERVICE,undefined);
+ for(const [name] of DUMPS) {
+  const spec=dumpSpec(name),args=clientArgs('a'.repeat(32),name.replace('.sql',''),spec.script,{...env,...spec.env});
+  assert.ok(!args.includes('secret'));assert.ok(args.includes('PGSSLMODE'));assert.ok(args.includes('PGSSLROOTCERT'));assert.ok(args.includes('PGGSSENCMODE'));
+  assert.equal(args[args.indexOf('--entrypoint')+1],'/bin/bash');assert.ok(args.includes('--read-only'));assert.ok(args.includes(CLIENT_IMAGE));
+ }
+ assert.throws(()=>dumpSpec('other.sql'));assert.throws(()=>clientArgs('invalid','metadata','',env));
+ assert.deepEqual(parsePgManifest(JSON.stringify(manifest())+'\n'),manifest());
+ for(const bad of ['not json',JSON.stringify(manifest())+'\n'+JSON.stringify(manifest()),JSON.stringify([manifest()])])assert.throws(()=>parsePgManifest(bad));
  assert.deepEqual(windowsEnvironment({FARAIOS_BACKUP_ACL_PATH:'private'},{PSModulePath:'pwsh7',psmodulepath:'other',PATH:'trusted'}),{PATH:'trusted',FARAIOS_BACKUP_ACL_PATH:'private'});
 });
 
@@ -122,7 +129,7 @@ test('successful capture verifies the encrypted archive, separates keys and remo
  assert.ok(report.keyPath.startsWith(join(p,'.faraios-recovery-keys')));assert.ok(!report.keyPath.startsWith(join(p,'.faraios-backups')));
  assert.equal((await verifyFile(report.artifact,join(p,'.faraios-recovery-keys'))).sha256,report.sha256);
  assert.deepEqual((await readdir(join(report.artifact,'..'))).sort(),[report.artifact.split(/[\\/]/).at(-1),report.artifact.split(/[\\/]/).at(-1)+'.sha256'].sort());
- assert.equal(calls.length,8);assert.equal(calls.filter(c=>c.args.includes('dump')).length,6);
+ assert.equal(calls.length,8);assert.equal(calls.filter(c=>!c.args[c.args.indexOf('--name')+1].endsWith('-metadata')).length,6);
  const key=await readFile(report.keyPath),opened=openBackup(await readFile(report.artifact),key);
  assert.ok(opened.payload.files.find(f=>f.name==='data.sql').content.includes('Réka 😀'));
 });
@@ -177,14 +184,14 @@ test('canonical private boundaries reject an ancestor Git checkout and directory
  await assert.rejects(outsideGit(nested),{code:'PRIVATE_PATH_IN_GIT'});
  const backupRoot=join(p,'.faraios-backups'),moved=join(p,'moved'),runner=mockRunner();let swapped=false;
  await assert.rejects(capture({home:p,password:'synthetic private password',npmPath:join(p,'npm-cli.js'),runner:async(command,args,opts)=>{
-  if(command===process.execPath&&args.includes('dump')&&!swapped){swapped=true;await rename(backupRoot,moved);await symlink(repo,backupRoot,process.platform==='win32'?'junction':'dir');}
+  if(command==='docker'&&args[0]==='run'&&!args[args.indexOf('--name')+1].endsWith('-metadata')&&!swapped){swapped=true;await rename(backupRoot,moved);await symlink(repo,backupRoot,process.platform==='win32'?'junction':'dir');}
   return runner(command,args,opts);
  }}));
  assert.deepEqual(await readdir(repo),['.git','home']);assert.deepEqual(await readdir(join(p,'.faraios-recovery-keys')),[]);
 });
 
 test('Docker environment overrides are removed and remote contexts fail before any credentialed database child',async()=>{
- const env=cliEnvironment('secret',{DOCKER_HOST:'tcp://remote:2375',DOCKER_CONTEXT:'remote',DOCKER_CONFIG:'/wrong',PATH:process.env.PATH});
+ const env=clientEnvironment('secret',{DOCKER_HOST:'tcp://remote:2375',DOCKER_CONTEXT:'remote',DOCKER_CONFIG:'/wrong',PATH:process.env.PATH});
  for(const k of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_CONFIG'])assert.equal(env[k],undefined);
  let calls=0;
  await assert.rejects(localDocker(env,async(command,args)=>{calls++;return {stdout:args[1]==='show'?'remote\n':JSON.stringify('ssh://remote.invalid'),stderr:''};}),{code:'DOCKER_CONTEXT_NOT_LOCAL'});
@@ -203,7 +210,7 @@ test('key boundary replacement stops before encryption and public key permission
  const p=await home(t),keyRoot=join(p,'.faraios-recovery-keys'),moved=join(p,'moved-keys'),foreign=join(p,'foreign');
  await mkdir(foreign,{mode:0o700});const runner=mockRunner();let swapped=false;
  await assert.rejects(capture({home:p,password:'synthetic private password',npmPath:join(p,'npm-cli.js'),runner:async(command,args,opts)=>{
-  if(command===process.execPath&&args.includes('dump')&&!swapped){swapped=true;await rename(keyRoot,moved);await symlink(foreign,keyRoot,process.platform==='win32'?'junction':'dir');}
+  if(command==='docker'&&args[0]==='run'&&!args[args.indexOf('--name')+1].endsWith('-metadata')&&!swapped){swapped=true;await rename(keyRoot,moved);await symlink(foreign,keyRoot,process.platform==='win32'?'junction':'dir');}
   return runner(command,args,opts);
  }}));
  assert.deepEqual(await readdir(foreign),[]);assert.deepEqual(await readdir(moved),[]);
@@ -230,7 +237,7 @@ test('cancellation during final workdir removal cannot return a PASSED report',a
 test('abort during local preflight stops the next Docker or Windows ACL child',async t=>{
  const p=await home(t),controller=new AbortController(),runner=mockRunner();let localCalls=0,dbCalls=0;
  await assert.rejects(capture({home:p,password:'synthetic private password',npmPath:join(p,'npm-cli.js'),signal:controller.signal,runner:async(command,args,options)=>{
-  if(command===process.execPath)dbCalls++;
+  if(command==='docker'&&args[0]==='run')dbCalls++;
   if(command==='docker'||command==='powershell.exe') {
    localCalls++;assert.equal(options.signal,controller.signal);controller.abort();
    return {stdout:command==='docker'?'desktop-linux':'PRIVATE_ACL_SET',stderr:''};
@@ -281,8 +288,8 @@ test('real child metadata failures expose no raw output and preserve timeout/can
 test('a metadata diagnostic stops capture before dumps, keys or archives',async t=>{
  const p=await home(t),runner=mockRunner();let databaseCalls=0;
  await assert.rejects(capture({home:p,password:'synthetic private password',npmPath:join(p,'npm-cli.js'),runner:async(command,args,options)=>{
-  if(command===process.execPath) {
-   databaseCalls++;assert.equal(options.failureContext,'metadata');assert.ok(args.includes('query'));
+  if(command==='docker'&&args[0]==='run') {
+   databaseCalls++;assert.equal(options.failureContext,'metadata');assert.ok(options.input.startsWith('begin transaction'));
    return run(process.execPath,['-e','console.error("request failed: ECONNRESET private request details");process.exit(1)'],{failureContext:options.failureContext});
   }
   return runner(command,args,options);
@@ -290,4 +297,47 @@ test('a metadata diagnostic stops capture before dumps, keys or archives',async 
  assert.equal(databaseCalls,1);assert.deepEqual(await readdir(join(p,'.faraios-recovery-keys')),[]);
  const work=join(p,'.faraios-backups',(await readdir(join(p,'.faraios-backups')))[0]);
  assert.deepEqual(await readdir(work),['private-export']);
+});
+
+
+test('owned container cleanup is bounded, checks exact run/name and refuses ambiguous matches',async()=>{
+ const id='a'.repeat(32),calls=[];let lists=0;
+ await cleanupClient(id,'metadata',{},async(cmd,args,opts)=>{
+  calls.push(args);assert.equal(cmd,'docker');assert.equal(opts.signal,undefined);assert.equal(opts.timeout,10000);
+  return {stdout:args[0]==='ps'&&lists++===0?'b'.repeat(12):'',stderr:''};
+ });
+ assert.ok(calls[0].includes('label=com.faraios.t11.run='+id));assert.ok(calls[0].includes('name=^/faraios-t11-'+id+'-metadata$'));
+ assert.deepEqual(calls[1],['rm','--force','b'.repeat(12)]);
+ await assert.rejects(cleanupClient(id,'metadata',{},async()=>({stdout:'ambiguous\nmatch'})),{code:'CONTAINER_CLEANUP_FAILED'});
+});
+
+test('stdin-only query runner accepts input and does not place query bytes into argv',async()=>{
+ const text='private synthetic input';
+ const result=await run(process.execPath,['-e','process.stdin.pipe(process.stdout)'],{input:text});assert.equal(result.stdout,text);
+});
+
+
+test('daemon cleanup failure blocks capture before keys or a success report',async t=>{
+ const p=await home(t),runner=mockRunner();
+ await assert.rejects(capture({home:p,password:'synthetic private password',runner:async(command,args,options)=>{
+  if(command==='docker'&&args[0]==='ps')throw new Error('private daemon response');
+  return runner(command,args,options);
+ }}),{code:'CONTAINER_CLEANUP_FAILED'});
+ assert.deepEqual(await readdir(join(p,'.faraios-recovery-keys')),[]);
+});
+
+
+test('cleanup failure retains its operator label after cancellation while other aborted errors are normalized',async t=>{
+ const p=await home(t),runner=mockRunner(),controller=new AbortController();
+ let observed;
+ try {
+  await capture({home:p,password:'synthetic private password',signal:controller.signal,runner:async(command,args,options)=>{
+   if(command==='docker'&&args[0]==='run')controller.abort();
+   if(command==='docker'&&args[0]==='ps')throw new Error('private daemon response');
+   return runner(command,args,options);
+  }});
+ } catch(error) {observed=terminalFailure(error,controller.signal);}
+ assert.equal(observed?.code,'CONTAINER_CLEANUP_FAILED');assert.equal(observed.message,observed.code);
+ assert.equal(terminalFailure(new Error('private aborted detail'),controller.signal).code,'BACKUP_CANCELLED');
+ assert.deepEqual(await readdir(join(p,'.faraios-recovery-keys')),[]);
 });

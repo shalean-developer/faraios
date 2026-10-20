@@ -5,11 +5,14 @@ import { join, resolve, basename, isAbsolute, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { spawn } from 'node:child_process';
+import { dumpSchemaScript, dumpDataScript, dumpRoleScript, INTERNAL_SCHEMAS, EXCLUDED_SCHEMAS, RESERVED_ROLES, ALLOWED_CONFIGS } from './vendor/supabase-pg-dump.mjs';
 import { createInterface } from 'node:readline/promises';
 import { Writable } from 'node:stream';
 
 export const SOURCE = 'xdmfyrsauvqznkloroxg';
-export const CLI = '2.121.0';
+export const CLI = '2.121.0'; // Vendored filter provenance, not an executed CLI.
+export const CLIENT_IMAGE = 'postgres:17.11-bookworm@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826';
+export const POOLER_HOST = 'aws-0-eu-west-1.pooler.supabase.com';
 const FORMAT = 'faraios-staging-logical-backup-v1';
 const MAX_FILE = 128 * 1024 * 1024;
 const MAX_ARCHIVE = 256 * 1024 * 1024;
@@ -89,23 +92,49 @@ export function parseManifest(stdout) {
  return validateManifest(rows[0].manifest);
 }
 
-export function cliEnvironment(password, original=process.env) {
+export function clientEnvironment(password, original=process.env) {
  if(typeof password!=='string'||password.length===0||password.length>4096||/[\r\n\0]/.test(password)) fail('EMPTY_OR_INVALID_PASSWORD');
  const env={...original};
- for(const key of Object.keys(env)) {
-  if(key.startsWith('PG') || key.startsWith('SUPABASE_') || key.startsWith('DOCKER_')) delete env[key];
- }
- // Retain a user-chosen credential home, but never a project/host/profile override.
- if(original.SUPABASE_HOME) env.SUPABASE_HOME=original.SUPABASE_HOME;
- env.SUPABASE_DB_PASSWORD=password;
- env.SUPABASE_TELEMETRY_DISABLED='1';
- env.DO_NOT_TRACK='1';
- return env;
+ for(const key of Object.keys(env))if(/^(PG|SUPABASE_|DOCKER_|SSL_CERT_)/i.test(key))delete env[key];
+ return {...env,PGHOST:POOLER_HOST,PGPORT:'5432',PGUSER:'postgres.'+SOURCE,PGPASSWORD:password,PGDATABASE:'postgres',
+  PGSSLMODE:'verify-full',PGSSLROOTCERT:'system',PGGSSENCMODE:'disable',PGCONNECT_TIMEOUT:'15',
+  PGOPTIONS:'-c default_transaction_read_only=on -c statement_timeout=600000 -c lock_timeout=10000',PGAPPNAME:'faraios-t11-backup'};
 }
 
-export function commandArgs(npmPath, workdir, args) {
- if(!isAbsolute(npmPath||'')||basename(npmPath)!=='npm-cli.js') fail('RUN_WITH_NPM');
- return [npmPath,'exec','--yes','--package=supabase@'+CLI,'--','supabase',...args,'--workdir',workdir,'--profile','supabase','--agent','no'];
+// Only fixed modes and reviewed filters enter the container command/environment.
+export function dumpSpec(name) {
+ if(!DUMPS.some(([allowed])=>allowed===name))fail('DUMP_MODE_INVALID');
+ if(name==='roles.sql')return {script:dumpRoleScript,env:{RESERVED_ROLES:RESERVED_ROLES.join('|'),ALLOWED_CONFIGS:ALLOWED_CONFIGS.join('|')}};
+ const schema=name.startsWith('migration-')?'supabase_migrations':name==='managed-schema-reference.sql'?'auth|storage':null;
+ if(name.endsWith('data.sql'))return {script:dumpDataScript,env:{INCLUDED_SCHEMAS:schema??'*',...(schema?{}:{EXCLUDED_SCHEMAS:EXCLUDED_SCHEMAS.join('|'),EXTRA_FLAGS:'--exclude-table "storage"."buckets_vectors" --exclude-table "storage"."vector_indexes"'})}};
+ return {script:dumpSchemaScript,env:schema?{EXTRA_FLAGS:'--schema='+schema}:{EXCLUDED_SCHEMAS:INTERNAL_SCHEMAS.join('|')}};
+}
+
+export function clientArgs(id,step,script,env,input=false) {
+ if(!/^[a-f0-9]{32}$/.test(id)||!/^([a-z]+-?)+$/.test(step))fail('CONTAINER_ID_INVALID');
+ const keys=Object.keys(env).filter(k=>k.startsWith('PG')||['RESERVED_ROLES','ALLOWED_CONFIGS','INCLUDED_SCHEMAS','EXCLUDED_SCHEMAS','EXTRA_FLAGS'].includes(k));
+ return ['run','--rm','--name','faraios-t11-'+id+'-'+step,'--label','com.faraios.t11.run='+id,
+  '--log-driver','none','--read-only','--cap-drop','ALL','--security-opt','no-new-privileges','--user','65534:65534',
+  ...(input?['--interactive']:[]),...keys.flatMap(k=>['--env',k]),'--entrypoint','/bin/bash',CLIENT_IMAGE,'-c',script];
+}
+
+export function parsePgManifest(stdout) {
+ let m;try{m=JSON.parse(stdout);}catch{fail('MANIFEST_OUTPUT_INVALID');}
+ return validateManifest(m);
+}
+
+// Remove only containers bearing this exact random run label and exact name.
+// Cleanup has its own bounded deadline and still runs after operator cancellation.
+export async function cleanupClient(id,step,env,runner=run) {
+ const name='faraios-t11-'+id+'-'+step;
+ const list=['ps','--all','--filter','label=com.faraios.t11.run='+id,'--filter','name=^/'+name+'$','--format','{{.ID}}'];
+ try {
+  const found=(await runner('docker',list,{env,timeout:10000,maxOutput:4096})).stdout.trim();
+  if(!found)return;
+  if(!/^[a-f0-9]{12,64}$/.test(found))fail('CONTAINER_CLEANUP_FAILED');
+  await runner('docker',['rm','--force',found],{env,timeout:10000,maxOutput:4096});
+  if((await runner('docker',list,{env,timeout:10000,maxOutput:4096})).stdout.trim())fail('CONTAINER_CLEANUP_FAILED');
+ } catch {fail('CONTAINER_CLEANUP_FAILED');}
 }
 
 // These are observations of the pinned CLI's failure text, not proof of cause.
@@ -117,8 +146,8 @@ export function metadataFailureLabel(stderr) {
   ['METADATA_API_ACCESS_DENIED',/unexpected(?: [a-z]+){0,4} status(?: code)?\s*[:=]?\s*(?:401|403)\b|\b(?:unauthorized|forbidden)\b/i],
   ['METADATA_PROJECT_NOT_FOUND',/unexpected status\s*[:=]?\s*404\b|project (?:not found|does not exist)/i],
   ['METADATA_IPV6_UNAVAILABLE',/IPv6 is not supported on your current network|DbConfigIpv6Error/],
-  ['METADATA_TLS_FAILED',/CERT_HAS_EXPIRED|UNABLE_TO_VERIFY_LEAF_SIGNATURE|SELF_SIGNED_CERT_IN_CHAIN|unable to verify (?:the first certificate|leaf signature)|certificate (?:has expired|verify failed)/i],
-  ['METADATA_NETWORK_FAILED',/\b(?:ETIMEDOUT|ECONNRESET|ENETUNREACH|ENOTFOUND|EAI_AGAIN|ECONNREFUSED|EHOSTUNREACH|UND_ERR_CONNECT_TIMEOUT)\b|failed to (?:resolve host|fetch)|network (?:is unreachable|request failed)/i],
+  ['METADATA_TLS_FAILED',/CERT_HAS_EXPIRED|UNABLE_TO_VERIFY_LEAF_SIGNATURE|SELF_SIGNED_CERT_IN_CHAIN|unable to verify (?:the first certificate|leaf signature)|certificate (?:has expired|verify failed)|server certificate .*does not match host name|server does not support SSL/i],
+  ['METADATA_NETWORK_FAILED',/\b(?:ETIMEDOUT|ECONNRESET|ENETUNREACH|ENOTFOUND|EAI_AGAIN|ECONNREFUSED|EHOSTUNREACH|UND_ERR_CONNECT_TIMEOUT)\b|failed to (?:resolve host|fetch)|could not translate host name|connection (?:timed out|refused)|network (?:is unreachable|request failed)/i],
   ['METADATA_DATABASE_AUTH_FAILED',/password authentication failed|SQLSTATE\s*[:=]?\s*28P01\b/i],
   ['METADATA_SQL_FILE_UNREADABLE',/failed to read SQL file|DbQueryReadFileError/i],
   ['METADATA_CONFIG_INVALID',/DbConfigLoadError|failed to (?:load|parse|read) (?:project )?config|failed to read profile|Unsupported Config Type/i],
@@ -149,12 +178,12 @@ export function run(command,args,options={}) {
    }
    // Close inherited pipes even when an already-exited Windows parent prevents
    // taskkill from finding descendants. No dump files are ever child-writable.
-   child.stdout.destroy();child.stderr.destroy();child.unref();settle(error(code));
+   child.stdin?.destroy();child.stdout.destroy();child.stderr.destroy();child.unref();settle(error(code));
   };
   const abort=()=>void stop('BACKUP_CANCELLED');
   if(options.signal?.aborted){settle(error('BACKUP_CANCELLED'));return;}
   const processFailure=()=>error(options.failureContext==='metadata'?'METADATA_PROCESS_FAILED':'CHILD_FAILED');
-  try { child=spawn(command,args,{cwd:options.cwd,env:options.env,stdio:['ignore','pipe','pipe'],shell:false,windowsHide:true,detached:process.platform!=='win32'}); } catch { settle(processFailure()); return; }
+  try { child=spawn(command,args,{cwd:options.cwd,env:options.env,stdio:[options.input===undefined?'ignore':'pipe','pipe','pipe'],shell:false,windowsHide:true,detached:process.platform!=='win32'}); } catch { settle(processFailure()); return; }
   options.signal?.addEventListener('abort',abort,{once:true});
   timer=setTimeout(()=>void stop('CHILD_TIMEOUT'),options.timeout??900000);
   const collect=destination=>chunk=>{
@@ -162,6 +191,7 @@ export function run(command,args,options={}) {
    if(size>(options.maxOutput??8*1024*1024)){void stop('CHILD_OUTPUT_TOO_LARGE');return;}
    destination.push(chunk);
   };
+  if(options.input!==undefined){child.stdin.on('error',()=>{});child.stdin.end(options.input);}
   child.stdout.on('data',collect(stdout));child.stderr.on('data',collect(stderr));
   child.once('error',()=>{if(!stopping)settle(processFailure());});
   child.once('close',code=>{
@@ -333,11 +363,11 @@ export async function verifyFile(archive,keyRoot,runner=run,signal) {
  finally { key.fill(0); }
 }
 
-export async function capture({home=homedir(),password,npmPath=process.env.npm_execpath,runner=run,progress=()=>{},signal,removeWorkdir=path=>rm(path,{recursive:true})}) {
+export async function capture({home=homedir(),password,runner=run,progress=()=>{},signal,removeWorkdir=path=>rm(path,{recursive:true})}) {
  if(signal?.aborted) fail('BACKUP_CANCELLED');
  const root=join(home,'.faraios-backups'),keyRoot=join(home,'.faraios-recovery-keys');
  // Refuse command-line credentials, inherited project/host overrides and repo-local dumps.
- let env=cliEnvironment(password);commandArgs(npmPath,root,[]);
+ let env=clientEnvironment(password);
  const guard=directoryGuard(signal);await guard.add(home);
  await privateDirectory(root,runner,signal);await guard.add(root);
  await guard.check();await privateDirectory(keyRoot,runner,signal);await guard.add(keyRoot);
@@ -345,28 +375,33 @@ export async function capture({home=homedir(),password,npmPath=process.env.npm_e
  const id=randomBytes(16).toString('hex'),work=join(root,id),temporary=join(work,'private-export');
  await guard.check();await privateDirectory(work,runner,signal);await guard.add(work);
  await guard.check();await privateDirectory(temporary,runner,signal);await guard.add(temporary);
- await guard.check();await privateDirectory(join(temporary,'supabase'),runner,signal);await guard.add(join(temporary,'supabase'));
- await writePrivate(join(temporary,'supabase','config.toml'),'project_id = "faraios-t11-backup"\n[db]\nmajor_version = 17\n',guard,runner,signal);
  const sql=await readFile(new URL('./staging-backup-manifest.sql',import.meta.url),'utf8');
- await writePrivate(join(temporary,'manifest-query.sql'),sql,guard,runner,signal);
- const cli=async (args,failureContext)=>{
-  if(signal?.aborted) fail('BACKUP_CANCELLED');
+ const client=async (step,script,extra={},input)=>{
+  checkCancelled(signal);
   const heartbeat=setInterval(()=>progress('This backup step is still running...'),20000);
-  try { await guard.check();const result=await runner(process.execPath,commandArgs(npmPath,temporary,args),{cwd:temporary,env,signal,maxOutput:MAX_FILE,failureContext});await guard.check();return result; }
-  finally { clearInterval(heartbeat); }
+  const childEnv={...env,...extra};
+  try {
+   await guard.check();
+   const result=await runner('docker',clientArgs(id,step,script,childEnv,input!==undefined),{cwd:temporary,env:childEnv,signal,input,maxOutput:MAX_FILE,failureContext:'metadata'});
+   await guard.check();return result;
+  } finally {
+   clearInterval(heartbeat);
+   await cleanupClient(id,step,env,runner);
+   delete childEnv.PGPASSWORD;
+  }
  };
  let artifact,keyPath,checksum,completed=false,cleanup='NOT_RUN';
  const started=new Date().toISOString();
  try {
   progress('Checking source metadata');
-  const readManifest=async()=>parseManifest((await cli(['db','query','--linked','--project-ref',SOURCE,'--file','manifest-query.sql','--output','json'],'metadata')).stdout);
+  const readManifest=async()=>parsePgManifest((await client('metadata','exec psql -X -w -q -A -t --set=ON_ERROR_STOP=1',{},sql)).stdout);
   const before=await readManifest();
   const files=[];let totalBytes=0;
-  for(const [name,args] of DUMPS) {
+  for(const [name] of DUMPS) {
    progress('Exporting '+name);
    let result;
-   try { result=await cli(['db','dump','--linked','--project-ref',SOURCE,...args]); }
-   catch { fail('DUMP_'+name.replace(/\.sql$/,'').replaceAll('-','_').toUpperCase()+'_FAILED'); }
+   try { const spec=dumpSpec(name);result=await client(name.replace('.sql',''),spec.script,spec.env); }
+   catch(error) { if(['BACKUP_CANCELLED','CONTAINER_CLEANUP_FAILED','CHILD_TIMEOUT','CHILD_OUTPUT_TOO_LARGE'].includes(error.code))throw error;fail('DUMP_'+name.replace(/\.sql$/,'').replaceAll('-','_').toUpperCase()+'_FAILED'); }
    const bytes=result.stdoutBytes??Buffer.from(result.stdout,'utf8'),content=bytes.toString('utf8');
    totalBytes+=bytes.length;
    if(bytes.length===0||bytes.length>MAX_FILE||totalBytes>MAX_PAYLOAD/2)fail('BACKUP_TOO_LARGE');
@@ -378,7 +413,7 @@ export async function capture({home=homedir(),password,npmPath=process.env.npm_e
   const after=await readManifest();
   if(signal?.aborted) fail('BACKUP_CANCELLED');
   if(!same(before,after)) fail('SOURCE_CHANGED_DURING_BACKUP');
-  const manifest={version:1,source:SOURCE,cli:CLI,started,finished:new Date().toISOString(),consistency:'Operator-confirmed write freeze plus before/after row and catalog SHA-256 comparison; individual pg_dump transactions.',before,after,scope:'Logical database export with Auth data and separate migration history. Platform configuration, custom managed-schema replay, Storage bytes and provider secrets require separate recovery treatment.'};
+  const manifest={version:1,source:SOURCE,filterSource:'supabase/cli@'+CLI,clientImage:CLIENT_IMAGE,transport:{host:POOLER_HOST,port:5432,sslmode:'verify-full',sslrootcert:'system'},started,finished:new Date().toISOString(),consistency:'Operator-confirmed write freeze plus before/after row and catalog SHA-256 comparison; individual pg_dump transactions.',before,after,scope:'Logical database export with Auth data and separate migration history. Platform configuration, custom managed-schema replay, Storage bytes and provider secrets require separate recovery treatment.'};
   const content=JSON.stringify(manifest);files.push({name:'manifest.json',content,sha256:sha256(content)});
   assertDataCoverage(files,before);
   if(Buffer.byteLength(JSON.stringify(files))>MAX_PAYLOAD/2) fail('BACKUP_TOO_LARGE');
@@ -400,12 +435,17 @@ export async function capture({home=homedir(),password,npmPath=process.env.npm_e
   cleanup='PASSED';completed=true;
   return {source:SOURCE,artifact,keyPath,sha256:checksum,privateWorkdirCleanup:cleanup,helperPlaintextSQLFiles:'NEVER_WRITTEN',encryptedLocalVerification:'PASSED',offsiteBackup:'PENDING',offlineKeyCopy:'PENDING',restore:'NOT_RUN'};
  } finally {
-  delete env.SUPABASE_DB_PASSWORD;
+  delete env.PGPASSWORD;
   if(!completed) {
    // SQL was captured only in memory; no child can write plaintext dump files.
    progress('Stopped. Incomplete local backup setup may remain in '+work+'. Do not upload it.');
   }
  }
+}
+
+// Preserve an unresolved daemon cleanup even when Ctrl+C caused the interruption.
+export function terminalFailure(error,signal) {
+ return signal?.aborted&&error?.code!=='CONTAINER_CLEANUP_FAILED'?new BackupFailure('BACKUP_CANCELLED'):error;
 }
 
 async function main() {
@@ -414,8 +454,7 @@ async function main() {
   const result=await verifyFile(resolve(argv[1]),keyRoot);
   console.log(JSON.stringify({encryptedBackupVerification:'PASSED',...result},null,2));return;
  }
- if(argv.length!==0||!process.stdin.isTTY||!process.stdout.isTTY) fail('RUN_INTERACTIVELY_WITH_NPM');
- commandArgs(process.env.npm_execpath,home,[]);
+ if(argv.length!==0||!process.stdin.isTTY||!process.stdout.isTTY) fail('RUN_INTERACTIVELY');
  let muted=false;
  const output=new Writable({write(chunk,encoding,done){if(!muted)process.stdout.write(chunk,encoding);done();}});
  const terminal=createInterface({input:process.stdin,output,terminal:true,historySize:0});
@@ -434,7 +473,7 @@ async function main() {
   console.log(JSON.stringify(report,null,2));
   console.log('Keep the .key file separate and copy it to protected offline storage. Upload only the .fbackup and .sha256 files to the approved private Drive folder.');
   console.log('T11 remains In progress: off-site retrieval/decryption, isolated restore and access/audit acceptance are pending.');
- } catch(error) { if(cancellation.signal.aborted) fail('BACKUP_CANCELLED');throw error; }
+ } catch(error) { throw terminalFailure(error,cancellation.signal); }
  finally { terminal.close();process.removeListener('SIGINT',cancel);process.removeListener('SIGTERM',cancel); }
 }
 

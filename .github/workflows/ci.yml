@@ -44,3 +44,13 @@ jobs:
       - run: node --check scripts/backup-staging.mjs
       - run: node --test test/zoho-setup.test.js test/staging-access-verifier.test.js test/staging-backup.test.js
 
+
+  backup-transport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node scripts/check-backup-transport.mjs
