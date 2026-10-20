@@ -184,6 +184,7 @@ export function metadataFailureLabel(stderr) {
  const rules=[
   ['RESTORE_SEQUENCE_STATE_PENDING',/\bERROR:\s+RESTORE_SEQUENCE_STATE_PENDING\b/],
   ['RESTORE_CATALOG_MISMATCH',/\bERROR:\s+RESTORE_CATALOG_MISMATCH\b/],
+  ['RESTORE_DATA_MISMATCH',/\bERROR:\s+RESTORE_DATA_MISMATCH\b/],
   ['METADATA_LOGIN_REQUIRED',/Access token not provided|DbQueryLoginRequiredError|not logged in/i],
   ['METADATA_API_ACCESS_DENIED',/unexpected(?: [a-z]+){0,4} status(?: code)?\s*[:=]?\s*(?:401|403)\b|\b(?:unauthorized|forbidden)\b/i],
   ['METADATA_PROJECT_NOT_FOUND',/unexpected status\s*[:=]?\s*404\b|project (?:not found|does not exist)/i],

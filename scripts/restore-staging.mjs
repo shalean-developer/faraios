@@ -10,7 +10,7 @@ import {SOURCE,CLI,CLIENT_IMAGE,BackupFailure,readVerifiedBackup,clientEnvironme
 export const DESTINATION='zrlojsvkqipuwkkyfrkn';
 export const RESTORE_CONFIG=JSON.parse(await readFile(new URL('../config/restore-test.json',import.meta.url),'utf8'));
 export const MANAGED_PARAMETER_GRANT='GRANT SET ON PARAMETER "log_min_messages" TO "supabase_realtime_admin";';
-const causeLabels=new Set(['METADATA_PERMISSION_DENIED','METADATA_NETWORK_FAILED','METADATA_TLS_FAILED','METADATA_DATABASE_AUTH_FAILED','METADATA_QUERY_FAILED','METADATA_UNCLASSIFIED','RESTORE_CATALOG_MISMATCH','CHILD_TIMEOUT','BACKUP_CANCELLED','RESTORE_VALIDATION_MARKER_MISSING']);
+const causeLabels=new Set(['METADATA_PERMISSION_DENIED','METADATA_NETWORK_FAILED','METADATA_TLS_FAILED','METADATA_DATABASE_AUTH_FAILED','METADATA_QUERY_FAILED','METADATA_UNCLASSIFIED','RESTORE_CATALOG_MISMATCH','RESTORE_DATA_MISMATCH','CHILD_TIMEOUT','BACKUP_CANCELLED','RESTORE_VALIDATION_MARKER_MISSING']);
 export class RestoreOutcomeFailure extends BackupFailure {
  constructor(code,error){super(code);this.causeLabel=error instanceof BackupFailure&&causeLabels.has(error.code)?error.code:'RESTORE_CAUSE_UNCLASSIFIED';}
 }

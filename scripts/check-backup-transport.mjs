@@ -78,7 +78,7 @@ async function exerciseRestore(manifest,files){
  };
  const catalog=async host=>JSON.parse((await query(host,"SET LOCAL search_path='';"+catalogSQL)).stdout);
  const sourceCatalog=await catalog(tlsServer);
- for(const mutation of ['create domain public.t11_domain as text;','grant select(content) on public.sample to anon;','alter role faraios_synthetic bypassrls;','grant faraios_synthetic to authenticated;','alter default privileges grant select on tables to anon;']){
+ for(const mutation of ['create domain public.t11_domain as text;','grant select(content) on public.sample to anon;','alter role anon bypassrls;','grant anon to authenticated;','alter default privileges grant select on tables to anon;']){
   const changed=JSON.parse((await query(tlsServer,"savepoint catalog_probe;"+mutation+"set local search_path='';"+catalogSQL+'rollback to savepoint catalog_probe;',true,true)).stdout);
   assert.notEqual(changed.application,sourceCatalog.application);
  }
@@ -99,10 +99,17 @@ async function exerciseRestore(manifest,files){
   console.log('T11_RESTORE_PARAMETER_ACL_DRIFT_REFUSED=PASS (before import; provider grant preserved)');
   // Exercise actual pg_dump -> generated import -> PostgreSQL, not a SQL-shaped mock.
   const broken=structuredClone(wrapped);broken.before.tables.find(t=>t.schema==='public'&&t.table==='sample').sha256='0'.repeat(64);
-  await assert.rejects(query(restoreServer,importSQL(backup,broken,catalogSQL,preflightSQL),true));
+  // The approved real capture has no custom roles. Inject a transactional
+  // CREATE-only probe in the failed variant to test role rollback without
+  // claiming stock-PG non-superusers can replay privileged ALTER ROLE flags.
+  const probeSQL='CREATE ROLE "faraios_rollback_probe";';
+  const probeCatalog=JSON.parse((await query(tlsServer,'savepoint role_probe;'+probeSQL+"set local search_path='';"+catalogSQL+'rollback to savepoint role_probe;',true)).stdout);
+  const brokenBackup=structuredClone(backup);brokenBackup.payload.files.find(f=>f.name==='roles.sql').content+='\n'+probeSQL;
+  RESTORE_CONFIG.applicationCatalogSha256=probeCatalog.application;
+  try{await assert.rejects(query(restoreServer,importSQL(brokenBackup,broken,catalogSQL,preflightSQL),true),{code:'RESTORE_DATA_MISMATCH'});}finally{RESTORE_CONFIG.applicationCatalogSha256=sourceCatalog.application;}
   assert.equal((await catalog(restoreServer)).application,empty.application);
   const check=JSON.parse((await query(restoreServer,preflightSQL)).stdout);assert.equal(check.managed_data_rows,0);assert.equal(check.application_objects,0);
-  assert.equal((await query(restoreServer,"select count(*) from pg_roles where rolname='faraios_synthetic';")).stdout.trim(),'0');
+  assert.equal((await query(restoreServer,"select count(*) from pg_roles where rolname='faraios_rollback_probe';")).stdout.trim(),'0');
   assert.equal((await query(restoreServer,'select last_value,is_called from auth.refresh_tokens_id_seq;')).stdout.trim(),'11|t');
   console.log('T11_RESTORE_NATIVE_FAILURE_ROLLBACK=PASS (schema, Auth rows and role creation rolled back)');
   const imported=await query(restoreServer,importSQL(backup,wrapped,catalogSQL,preflightSQL),true);assert.ok(imported.stdout.includes('FARAIOS_T11_RESTORE_VALIDATED'));
@@ -151,7 +158,7 @@ try {
  create table auth.schema_migrations(version text); create table storage.migrations(id int);
  create table storage.buckets(id int); create table storage.objects(id int); create table storage.buckets_vectors(id int); create table storage.vector_indexes(id int);
  create table supabase_migrations.schema_migrations(version text); insert into supabase_migrations.schema_migrations values ('synthetic'); create table vault.secrets(id int);
- create role anon; create role authenticated; create role faraios_synthetic;
+ create role anon; create role authenticated;
  create table public.business_memberships(user_id int,business_id uuid,role text);
  insert into public.business_memberships values(1,'0cc3f518-d64e-40c2-8817-bc14d1ef1420','owner'),(1,'612be091-b1d7-4911-9c3b-143446a9fe27','owner'),(2,'0cc3f518-d64e-40c2-8817-bc14d1ef1420','manager'),(3,'0cc3f518-d64e-40c2-8817-bc14d1ef1420','staff'),(3,'612be091-b1d7-4911-9c3b-143446a9fe27','staff');
  alter table public.business_memberships enable row level security;
@@ -170,7 +177,7 @@ try {
   const content=(await invoke(name.replace('.sql',''))).stdout;assertCompleteDump(name,content);dumpFiles.push({name,content});
   if(name==='schema.sql'){assert.ok(content.includes('ENABLE ROW LEVEL SECURITY'));assert.ok(!content.includes('CREATE SCHEMA IF NOT EXISTS "auth"'));}
   if(name==='data.sql'){assert.ok(content.includes('Réka 😀'));assert.ok(content.includes('COPY "auth"."users"'));assert.ok(!content.includes('COPY "supabase_migrations"'));assert.ok(!content.includes('COPY "storage"."buckets_vectors"'));}
-  if(name==='roles.sql'){assert.ok(content.includes('-- CREATE ROLE "anon"'));assert.ok(content.includes('CREATE ROLE "faraios_synthetic"'));assert.ok(!/PASSWORD/.test(content));}
+  if(name==='roles.sql'){assert.ok(content.includes('-- CREATE ROLE "anon"'));assert.ok(content.includes(MANAGED_PARAMETER_GRANT));assert.ok(!/PASSWORD/.test(content));}
   if(name==='migration-data.sql')assert.ok(content.includes('COPY "supabase_migrations"."schema_migrations"'));
   if(name==='managed-schema-reference.sql')assert.ok(content.includes('CREATE SCHEMA IF NOT EXISTS "auth"'));
  }
