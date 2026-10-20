@@ -7,6 +7,7 @@ import {restoreEnvironment,DESTINATION,RESTORE_CONFIG,validateRestoreBackup,vali
 import {SOURCE,CLI,CLIENT_IMAGE,DUMPS,capture,run,BackupFailure,CLIENT_STARTED,metadataFailureLabel} from '../scripts/backup-staging.mjs';
 import {restoreFetch,createRestoreServer} from '../restore-rehearsal.mjs';
 import {createStagingServer} from '../src/staging-server.js';
+import {COMPONENT_PREFIX,ROLLBACK_MARKER} from '../scripts/restore-diagnostic.mjs';
 const versions={btree_gist:'1.7',pg_stat_statements:'1.11',pgcrypto:'1.3',plpgsql:'1.0',supabase_vault:'0.3.1','uuid-ossp':'1.1'};
 function manifest(){return {version:1,source:SOURCE,filterSource:'supabase/cli@'+CLI,clientImage:CLIENT_IMAGE,finished:'2026-10-20T18:17:00Z',before:{catalog_sha256:RESTORE_CONFIG.captureCatalogSha256,extension_versions:{...versions},tables:[{schema:'public',table:'businesses',rows:2,sha256:'a'.repeat(64)},{schema:'auth',table:'users',rows:3,sha256:'b'.repeat(64)},{schema:'auth',table:'schema_migrations',rows:10,sha256:'c'.repeat(64)}]}};}
 function backup(m=manifest()){return {id:RESTORE_CONFIG.captureId,sha256:RESTORE_CONFIG.archiveSha256,payload:{files:[...['roles.sql','schema.sql','migration-schema.sql','data.sql','migration-data.sql','managed-schema-reference.sql'].map(name=>({name,content:'-- '+name+(name==='roles.sql'?'\n'+MANAGED_PARAMETER_GRANT:'')+(name==='data.sql'?`\nSELECT pg_catalog.setval('\"auth\".\"refresh_tokens_id_seq\"', 50, true);`:'')})),{name:'manifest.json',content:JSON.stringify(m)}]}};}
@@ -28,6 +29,7 @@ test('existing application/Auth/Vault/network state, structural drift and extens
 test('import checks empty destination again, never replays managed reference and validates before psql commits',async()=>{
  const [c,p]=await Promise.all(['restore-catalog.sql','restore-preflight.sql'].map(f=>readFile(new URL('../scripts/'+f,import.meta.url),'utf8')));
  const sql=importSQL(backup(),manifest(),c,p);
+ assert.ok(sql.startsWith('SAVEPOINT faraios_t11_replay;'));
  assert.ok(sql.indexOf('RESTORE_DESTINATION_NOT_EMPTY')<sql.indexOf('-- roles.sql'));
  assert.ok(sql.indexOf('-- migration-schema.sql')<sql.indexOf('-- data.sql'));
  assert.ok(!sql.includes('-- managed-schema-reference.sql'));
@@ -46,6 +48,7 @@ test('only the exact existing managed parameter grant is omitted; unexpected ACL
  assert.doesNotThrow(()=>preserveManagedParameterGrant('-- PARAMETER in comment\n'+MANAGED_PARAMETER_GRANT+"\nALTER ROLE \"postgres\" SET \"pgrst.test\" TO 'ON PARAMETER; -- ''';"));
  for(const inert of ['/*\n'+MANAGED_PARAMETER_GRANT+'\n*/',`ALTER ROLE "postgres" SET "pgrst.test" TO 'first\n${MANAGED_PARAMETER_GRANT}\nlast';`])assert.throws(()=>preserveManagedParameterGrant(inert+'\nGRANT SET ON PARAMETER "work_mem" TO "anon";'),{code:'RESTORE_PARAMETER_GRANT_UNREVIEWED'});
  const b=backup();b.payload.files.find(f=>f.name==='roles.sql').content+='\nGRANT SET ON PARAMETER "work_mem" TO "anon";';assert.throws(()=>validateRestoreBackup(b),{code:'RESTORE_PARAMETER_GRANT_UNREVIEWED'});
+ assert.throws(()=>preserveManagedParameterGrant(MANAGED_PARAMETER_GRANT+'\n-- comment\rGRANT SET ON PARAMETER "work_mem" TO "anon";'),{code:'RESTORE_PARAMETER_GRANT_UNREVIEWED'});
 });
 test('uncertain outcome retains only allowlisted cause observations',()=>{
  const known=new RestoreOutcomeFailure('RESTORE_OUTCOME_UNCONFIRMED',new BackupFailure('METADATA_PERMISSION_DENIED'));assert.equal(known.causeLabel,'METADATA_PERMISSION_DENIED');
@@ -92,7 +95,7 @@ test('restore launcher ignores accounting credentials and creates only its pinne
 test('private file/key loading and restore orchestration keep every destination client fixed and sanitize uncertain imports',async t=>{
  const home=await realpath(await mkdtemp(join(tmpdir(),'faraios-restore-test-')));t.after(()=>rm(home,{recursive:true,force:true}));
  const m={database_major:17,business_ids:['0cc3f518-d64e-40c2-8817-bc14d1ef1420','612be091-b1d7-4911-9c3b-143446a9fe27'],extensions:Object.keys(versions).sort(),extension_versions:versions,vault_secrets:0,storage_objects:0,storage_buckets:0,large_objects:0,unexpected_schemas:[],catalog_sha256:RESTORE_CONFIG.captureCatalogSha256,tables:[...Array.from({length:15},(_,i)=>({schema:'public',table:'t'+i,rls:true,rows:0,sha256:'a'.repeat(64)})),...Array.from({length:2},(_,i)=>({schema:'audit',table:'t'+i,rls:true,rows:0,sha256:'b'.repeat(64)})),{schema:'auth',table:'users',rls:true,rows:3,sha256:'c'.repeat(64)},{schema:'supabase_migrations',table:'schema_migrations',rls:false,rows:21,sha256:'d'.repeat(64)}]};
- let restoring=false,sequencePending=false,uncertain=false,cancelAfterStep=null,cleanupAfterStep=null,pendingStep=null,controller;const calls=[];
+ let restoring=false,sequencePending=false,uncertain=false,diagnosticFault=null,cancelAfterStep=null,cleanupAfterStep=null,pendingStep=null,controller;const calls=[];
  const runner=async(command,args,opts)=>{
   if(command!=='docker')return run(command,args,opts); // Use real Windows key/ACL checks.
   if(args[0]==='image')return {stdout:'sha256:'+'a'.repeat(64)};
@@ -104,13 +107,26 @@ test('private file/key loading and restore orchestration keep every destination 
   if(restoring){
    calls.push(step);pendingStep=step;assert.equal(opts.env.PGUSER,'postgres.'+DESTINATION);assert.equal(opts.env.PGSSLMODE,'verify-full');assert.ok(!args.some(x=>x.includes('synthetic-private-password')));assert.ok(args.includes('--single-transaction')||args.at(-1).includes('--single-transaction'));
    if(step==='restore-preflight')return {stdout:JSON.stringify(metadata())};
+   if(step.startsWith('diagnostic-')){
+    assert.match(opts.env.PGOPTIONS,step==='diagnostic-schema'?/read_only=off/:/read_only=on/);
+    if(step!=='diagnostic-schema'){
+     const data={...metadata(),sequence_state:['11',true]};
+     if(step==='diagnostic-postcheck'&&diagnosticFault==='nonempty')data.preflight.application_objects=1;
+     if(step==='diagnostic-postcheck'&&diagnosticFault==='sequence')data.sequence_state=['12',true];
+     return {stdout:JSON.stringify(data)};
+    }
+    assert.ok(!opts.input.includes('COPY '));assert.ok(!opts.input.includes('setval('));assert.match(opts.input,/ROLLBACK;/);
+    if(diagnosticFault==='network')throw new BackupFailure('METADATA_NETWORK_FAILED');
+    const actual=structuredClone(RESTORE_CONFIG.catalogComponents);actual.application.components.functions='0'.repeat(64);actual.application.sha256='1'.repeat(64);
+    return {stdout:COMPONENT_PREFIX+JSON.stringify(actual)+'\n'+(diagnosticFault==='ack'?'':ROLLBACK_MARKER+'\n')};
+   }
    assert.ok(['restore-verify','restore-import','restore-sequences','restore-verify-sequences'].includes(step));assert.match(opts.env.PGOPTIONS,['restore-import','restore-sequences'].includes(step)?/read_only=off/:/read_only=on/);
    if(sequencePending&&step==='restore-verify-sequences')throw new BackupFailure('RESTORE_SEQUENCE_STATE_PENDING');
    if(uncertain&&step==='restore-import')throw new BackupFailure('METADATA_NETWORK_FAILED');
    return {stdout:'FARAIOS_T11_RESTORE_VALIDATED\nFARAIOS_T11_SEQUENCES_VALIDATED\n'};
   }
   if(step==='metadata')return {stdout:JSON.stringify(m)};
-  const name=step+'.sql';assert.ok(DUMPS.some(([n])=>n===name));let body='SELECT 1;';
+  const name=step+'.sql';assert.ok(DUMPS.some(([n])=>n===name));let body="SELECT pg_catalog.set_config('search_path', '', false);";
   if(name==='schema.sql')body=m.tables.filter(t=>['public','audit'].includes(t.schema)).map(t=>`ALTER TABLE "${t.schema}"."${t.table}" ENABLE ROW LEVEL SECURITY;`).join('\n');
   if(name==='data.sql'||name==='migration-data.sql')body=m.tables.filter(t=>name==='migration-data.sql'?t.schema==='supabase_migrations':t.schema!=='supabase_migrations').map(t=>`COPY "${t.schema}"."${t.table}" (id) FROM stdin;\n`+Array.from({length:t.rows},(_,i)=>String(i)).join('\n')+(t.rows?'\n':'')+'\\.\n').join('');
   if(name==='roles.sql')body+='\n'+MANAGED_PARAMETER_GRANT;
@@ -118,7 +134,7 @@ test('private file/key loading and restore orchestration keep every destination 
   const banner='-- PostgreSQL database '+(name==='roles.sql'?'cluster ':'')+'dump';return {stdout:banner+'\n'+body+'\n'+banner+' complete\n'};
  };
  const captured=await capture({home,password:'synthetic-private-password',runner});
- const saved={...RESTORE_CONFIG};Object.assign(RESTORE_CONFIG,{captureId:JSON.parse(await readFile(captured.artifact,'utf8')).id,archiveSha256:captured.sha256});
+ const saved={...RESTORE_CONFIG};Object.assign(RESTORE_CONFIG,{captureId:JSON.parse(await readFile(captured.artifact,'utf8')).id,archiveSha256:captured.sha256,importEnabled:true});
  restoring=true;
  try{
   for(const mode of ['preflight','verify','restore']){
@@ -132,5 +148,16 @@ test('private file/key loading and restore orchestration keep every destination 
   uncertain=false;
   for(const [mode,step,code] of [['preflight','restore-preflight','BACKUP_CANCELLED'],['verify','restore-verify','BACKUP_CANCELLED'],['restore','restore-import','RESTORE_OUTCOME_UNCONFIRMED'],['restore','restore-sequences','RESTORE_SEQUENCE_OUTCOME_UNCONFIRMED']]){controller=new AbortController();cancelAfterStep=step;calls.length=0;await assert.rejects(restoreArchive({home,archive:captured.artifact,password:'synthetic-private-password',runner,mode,signal:controller.signal}),{code});assert.equal(calls.at(-1),step);}
   cancelAfterStep=null;controller=null;cleanupAfterStep='restore-import';await assert.rejects(restoreArchive({home,archive:captured.artifact,password:'synthetic-private-password',runner}),{code:'CONTAINER_CLEANUP_FAILED'});
+  cleanupAfterStep=null;RESTORE_CONFIG.importEnabled=false;calls.length=0;
+  const diagnostic=await restoreArchive({home,archive:captured.artifact,password:'synthetic-private-password',runner,mode:'diagnose'});
+  assert.deepEqual(calls,['diagnostic-preflight','diagnostic-schema','diagnostic-postcheck']);
+  assert.equal(diagnostic.restore,'NOT_RUN');assert.equal(diagnostic.diagnostic,'ROLLED_BACK');assert.equal(diagnostic.sequenceUnchanged,'PASSED');assert.deepEqual(diagnostic.catalogMismatchComponents,['APPLICATION_FUNCTIONS']);
+  assert.ok(!JSON.stringify(diagnostic).includes('synthetic-private-password'));
+  for(const [fault,causeLabel] of [['ack','RESTORE_DIAGNOSTIC_ACK_MISSING'],['network','METADATA_NETWORK_FAILED'],['nonempty','RESTORE_DESTINATION_NOT_EMPTY'],['sequence','RESTORE_DIAGNOSTIC_SEQUENCE_CHANGED']]){
+   diagnosticFault=fault;await assert.rejects(restoreArchive({home,archive:captured.artifact,password:'synthetic-private-password',runner,mode:'diagnose'}),{code:'RESTORE_DIAGNOSTIC_OUTCOME_UNCONFIRMED',causeLabel});
+  }
+  diagnosticFault=null;
+  for(const step of ['diagnostic-preflight','diagnostic-schema','diagnostic-postcheck']){controller=new AbortController();cancelAfterStep=step;await assert.rejects(restoreArchive({home,archive:captured.artifact,password:'synthetic-private-password',runner,mode:'diagnose',signal:controller.signal}),{code:step==='diagnostic-preflight'?'BACKUP_CANCELLED':'RESTORE_DIAGNOSTIC_OUTCOME_UNCONFIRMED'});}
+  cancelAfterStep=null;controller=null;cleanupAfterStep='diagnostic-schema';await assert.rejects(restoreArchive({home,archive:captured.artifact,password:'synthetic-private-password',runner,mode:'diagnose'}),{code:'CONTAINER_CLEANUP_FAILED'});
  }finally{Object.assign(RESTORE_CONFIG,saved);}
 });

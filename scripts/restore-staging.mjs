@@ -6,6 +6,7 @@ import {randomBytes} from 'node:crypto';
 import {createInterface} from 'node:readline/promises';
 import {Writable} from 'node:stream';
 import {SOURCE,CLI,CLIENT_IMAGE,BackupFailure,readVerifiedBackup,clientEnvironment,clientArgs,localDocker,ensureClientImage,verifyProviderCertificate,cleanupClient,run} from './backup-staging.mjs';
+import {ACTOR_SQL,validateSchemaReplay,diagnosticSQL,diagnosticMetadataSQL,parseDiagnosticOutput,compareCatalogComponents,validateSequenceState} from './restore-diagnostic.mjs';
 
 export const DESTINATION='zrlojsvkqipuwkkyfrkn';
 export const RESTORE_CONFIG=JSON.parse(await readFile(new URL('../config/restore-test.json',import.meta.url),'utf8'));
@@ -16,7 +17,7 @@ export const MANAGED_PARAMETER_GRANT='GRANT SET ON PARAMETER "log_min_messages" 
 // the import transaction. The unmodified dump restores it before catalog checks.
 export const RESTORE_CREATION_DEFAULTS_SQL=['TABLES','SEQUENCES','FUNCTIONS'].map(kind=>
  `ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON ${kind} FROM "postgres", "anon", "authenticated", "service_role";\n`).join('');
-const causeLabels=new Set(['METADATA_PERMISSION_DENIED','METADATA_NETWORK_FAILED','METADATA_TLS_FAILED','METADATA_DATABASE_AUTH_FAILED','METADATA_QUERY_FAILED','METADATA_UNCLASSIFIED','RESTORE_CATALOG_MISMATCH','RESTORE_DATA_MISMATCH','CHILD_TIMEOUT','BACKUP_CANCELLED','RESTORE_VALIDATION_MARKER_MISSING']);
+const causeLabels=new Set(['METADATA_PERMISSION_DENIED','METADATA_NETWORK_FAILED','METADATA_TLS_FAILED','METADATA_DATABASE_AUTH_FAILED','METADATA_QUERY_FAILED','METADATA_UNCLASSIFIED','RESTORE_CATALOG_MISMATCH','RESTORE_DATA_MISMATCH','CHILD_TIMEOUT','BACKUP_CANCELLED','RESTORE_VALIDATION_MARKER_MISSING','RESTORE_TRANSACTION_REQUIRED','RESTORE_ACTOR_CHANGED','RESTORE_DIAGNOSTIC_ACK_MISSING','RESTORE_DIAGNOSTIC_COMPONENTS_INVALID','RESTORE_DIAGNOSTIC_COMPONENTS_INCONSISTENT','RESTORE_DIAGNOSTIC_SEQUENCE_INVALID','RESTORE_DIAGNOSTIC_SEQUENCE_CHANGED','RESTORE_DESTINATION_NOT_EMPTY','RESTORE_DESTINATION_SCHEMA_CHANGED','RESTORE_EXTENSION_VERSION_CHANGED','RESTORE_SEQUENCE_PRIVILEGES_CHANGED']);
 export class RestoreOutcomeFailure extends BackupFailure {
  constructor(code,error){super(code);this.causeLabel=error instanceof BackupFailure&&causeLabels.has(error.code)?error.code:'RESTORE_CAUSE_UNCLASSIFIED';}
 }
@@ -30,7 +31,7 @@ const sqlFile=name=>readFile(new URL(name,import.meta.url),'utf8');
 
 export function restoreEnvironment(password,original=process.env,write=false){
  const env=clientEnvironment(password,original);
- return {...env,PGUSER:'postgres.'+DESTINATION,PGAPPNAME:'faraios-t11-restore-test',PGOPTIONS:'-c default_transaction_read_only='+(write?'off':'on')+' -c statement_timeout=600000 -c lock_timeout=10000'};
+ return {...env,PGUSER:'postgres.'+DESTINATION,PGAPPNAME:'faraios-t11-restore-test',PGOPTIONS:'-c default_transaction_read_only='+(write?'off':'on')+' -c statement_timeout=600000 -c lock_timeout=10000 -c standard_conforming_strings=on -c client_encoding=UTF8'};
 }
 
 export function validateRestoreBackup(backup){
@@ -66,7 +67,7 @@ function roleKeywords(sql){
   const ch=sql[i],next=sql[i+1];
   if(block){if(ch==='/'&&next==='*'){block++;i++;}else if(ch==='*'&&next==='/'){block--;i++;}code+=' ';continue;}
   if(quote){if(escaped&&ch==='\\'){i++;code+='  ';continue;}if(ch===quote){if(next===quote)i++;else quote=null;}code+=' ';continue;}
-  if(ch==='-'&&next==='-'){while(i<sql.length&&sql[i]!=='\n')i++;code+='\n';continue;}
+  if(ch==='-'&&next==='-'){while(i<sql.length&&sql[i]!=='\n'&&sql[i]!=='\r')i++;code+='\n';continue;}
   if(ch==='/'&&next==='*'){block=1;i++;code+=' ';continue;}
   if(ch==="'"||ch==='"'){quote=ch;escaped=ch==="'"&&/[eE]/.test(sql[i-1]??'')&&!/[a-z0-9_$]/i.test(sql[i-2]??'');code+=' ';continue;}
   code+=ch;
@@ -149,25 +150,33 @@ export function verificationSQL(manifest,catalogSQL){
  END $t11_rows$;\nSELECT 'FARAIOS_T11_RESTORE_VALIDATED';\n`;
 }
 
-export function importSQL(backup,manifest,catalogSQL,preflightSQL){
+export function schemaReplaySQL(backup,catalogSQL,preflightSQL){
  const content=Object.fromEntries(backup.payload.files.map(f=>[f.name,f.content]));
  content['roles.sql']=preserveManagedParameterGrant(content['roles.sql']);
- Object.assign(content,sequenceAssignments(backup.payload.files,false).rewritten);
- // Only the five supported import members run. Managed schemas are never replayed.
- const ordered=['roles.sql','schema.sql','migration-schema.sql','data.sql','migration-data.sql'];
- const members=ordered.map(name=>limits+content[name]+'\n');
- return limits+"SELECT pg_advisory_xact_lock(1711,20261020);\n"+emptyCheck(preflightSQL)+catalogCheck(catalogSQL,RESTORE_CONFIG.emptyApplicationCatalogSha256)+
-  RESTORE_CREATION_DEFAULTS_SQL+'CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA extensions;\n'+members.join('\n')+verificationSQL(manifest,catalogSQL);
+ const members=['roles.sql','schema.sql','migration-schema.sql'].map(name=>limits+validateSchemaReplay(content[name])+'\n');
+ // SAVEPOINT fails before any write if the caller omitted an explicit transaction.
+ return 'SAVEPOINT faraios_t11_replay;\n'+limits+"SELECT pg_advisory_xact_lock(1711,20261020);\n"+emptyCheck(preflightSQL)+catalogCheck(catalogSQL,RESTORE_CONFIG.emptyApplicationCatalogSha256)+
+  ACTOR_SQL+RESTORE_CREATION_DEFAULTS_SQL+'CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA extensions;\n'+members.join('\n');
+}
+export function importSQL(backup,manifest,catalogSQL,preflightSQL){
+ const {rewritten}=sequenceAssignments(backup.payload.files,false);
+ return schemaReplaySQL(backup,catalogSQL,preflightSQL)+['data.sql','migration-data.sql'].map(name=>limits+rewritten[name]+'\n').join('\n')+verificationSQL(manifest,catalogSQL);
 }
 
 export async function restoreArchive({archive,password,mode='restore',home=homedir(),runner=run,signal,progress=()=>{}}){
- if(!['restore','preflight','verify','finish-sequences'].includes(mode))fail('RESTORE_MODE_INVALID');
+ if(!['restore','preflight','verify','finish-sequences','diagnose'].includes(mode))fail('RESTORE_MODE_INVALID');
+ if(['restore','finish-sequences'].includes(mode)&&RESTORE_CONFIG.importEnabled!==true)fail('RESTORE_IMPORT_ON_HOLD');
+ if(mode==='diagnose'){
+  compareCatalogComponents(RESTORE_CONFIG.catalogComponents,RESTORE_CONFIG.catalogComponents);
+  if(RESTORE_CONFIG.catalogComponents.application.sha256!==RESTORE_CONFIG.applicationCatalogSha256||RESTORE_CONFIG.catalogComponents.managed.sha256!==RESTORE_CONFIG.managedCatalogSha256||JSON.stringify(RESTORE_CONFIG.sequences)!=='["auth.refresh_tokens_id_seq"]')fail('RESTORE_DIAGNOSTIC_PINS_INVALID');
+ }
  cancelled(signal);
  const backup=await readVerifiedBackup(resolve(archive),join(home,'.faraios-recovery-keys'),runner,signal);
  const manifest=validateRestoreBackup(backup),started=Date.now();
  const {states}=sequenceAssignments(backup.payload.files);
  const [catalogSQL,preflightSQL]=await Promise.all([sqlFile('./restore-catalog.sql'),sqlFile('./restore-preflight.sql')]);
- let env=restoreEnvironment(password),importStarted=false,sequenceStarted=false;
+ const schemaOnly=mode==='diagnose'?schemaReplaySQL(backup,catalogSQL,preflightSQL):null;
+ let env=restoreEnvironment(password),importStarted=false,sequenceStarted=false,diagnosticStarted=false;
  const id=randomBytes(16).toString('hex');
  try{
   await verifyProviderCertificate();env=await localDocker(env,runner,signal);await ensureClientImage(env,runner,signal);
@@ -180,6 +189,20 @@ export async function restoreArchive({archive,password,mode='restore',home=homed
    finally{clearInterval(heartbeat);try{await cleanupClient(id,step,env,runner);}finally{delete childEnv.PGPASSWORD;}}
    cancelled(signal);return result;
   };
+  if(mode==='diagnose'){
+   const metadataQuery=diagnosticMetadataSQL(catalogSQL,preflightSQL,limits);
+   const metadata=async step=>{let data;try{data=JSON.parse((await client(step,metadataQuery)).stdout);}catch(error){if(error instanceof BackupFailure)throw error;fail('RESTORE_PREFLIGHT_INVALID');}validateDestination(data,manifest);validateSequenceState(data);return data;};
+   progress('Checking exact empty diagnostic destination and sequence state');
+   const before=await metadata('diagnostic-preflight');
+   progress('Comparing schema-only catalog components; all replay changes will be rolled back');
+   diagnosticStarted=true;
+   const result=await client('diagnostic-schema',diagnosticSQL(schemaOnly,catalogSQL,limits),true);
+   const actual=parseDiagnosticOutput(result.stdout),comparison=compareCatalogComponents(actual,RESTORE_CONFIG.catalogComponents);
+   progress('Checking rollback on a fresh read-only connection');
+   const after=await metadata('diagnostic-postcheck');
+   if(JSON.stringify(before.sequence_state)!==JSON.stringify(after.sequence_state))fail('RESTORE_DIAGNOSTIC_SEQUENCE_CHANGED');
+   return {destination:DESTINATION,restore:'NOT_RUN',diagnostic:'ROLLED_BACK',emptyDestinationVerification:'PASSED',sequenceUnchanged:'PASSED',...comparison,fullRestore:'ON_HOLD'};
+  }
   if(['restore','preflight'].includes(mode)){
    progress('Checking exact empty restore destination');
    const query=limits+`SELECT jsonb_build_object('catalog',(SELECT catalog FROM (${trimSQL(catalogSQL)}) c),'preflight',(SELECT preflight FROM (${trimSQL(preflightSQL)}) p));\n`;
@@ -208,6 +231,7 @@ export async function restoreArchive({archive,password,mode='restore',home=homed
   return {destination:DESTINATION,captureId:backup.id,sha256:backup.sha256,restore:mode==='verify'?'VERIFIED_READ_ONLY':mode==='finish-sequences'?'SEQUENCES_COMPLETED':'COMMITTED',dataVerification:'PASSED',catalogVerification:'PASSED',sequenceVerification:'PASSED',captureFinished:manifest.finished,elapsedMs:Date.now()-started,helperPlaintextSQLFiles:'NEVER_WRITTEN',restoredAppAcceptance:'NOT_RUN',offlineKeyCopy:'PENDING'};
  }catch(error){
   // A broken connection can lose the commit acknowledgement. Never retry blindly.
+  if(diagnosticStarted&&error.code!=='CONTAINER_CLEANUP_FAILED')throw new RestoreOutcomeFailure('RESTORE_DIAGNOSTIC_OUTCOME_UNCONFIRMED',error);
   if(sequenceStarted&&error.code!=='CONTAINER_CLEANUP_FAILED')throw new RestoreOutcomeFailure('RESTORE_SEQUENCE_OUTCOME_UNCONFIRMED',error);
   if(importStarted&&error.code!=='CONTAINER_CLEANUP_FAILED')throw new RestoreOutcomeFailure('RESTORE_OUTCOME_UNCONFIRMED',error);
   throw error;
@@ -224,8 +248,9 @@ async function pickArchive(signal){
 async function main(){
  const args=process.argv.slice(2);
  if(!process.stdin.isTTY||!process.stdout.isTTY)fail('RUN_INTERACTIVELY');
- if(args.length&&!(args.length===2&&['--restore-file','--preflight-file','--verify-restored-file','--finish-sequences-file'].includes(args[0])))fail('RESTORE_OPTIONS_INVALID');
- const mode=args[0]==='--preflight-file'?'preflight':args[0]==='--verify-restored-file'?'verify':args[0]==='--finish-sequences-file'?'finish-sequences':'restore';
+ if(args.length&&!(args.length===1&&args[0]==='--diagnose-catalog')&&!(args.length===2&&['--restore-file','--preflight-file','--verify-restored-file','--finish-sequences-file','--diagnose-catalog-file'].includes(args[0])))fail('RESTORE_OPTIONS_INVALID');
+ const mode=args[0]==='--preflight-file'?'preflight':args[0]==='--verify-restored-file'?'verify':args[0]==='--finish-sequences-file'?'finish-sequences':args[0]?.startsWith('--diagnose-catalog')?'diagnose':'restore';
+ if(['restore','finish-sequences'].includes(mode)&&RESTORE_CONFIG.importEnabled!==true)fail('RESTORE_IMPORT_ON_HOLD');
  const cancellation=new AbortController(),cancel=()=>cancellation.abort();let muted=false;
  const output=new Writable({write(chunk,encoding,done){if(!muted)process.stdout.write(chunk,encoding);done();}});
  const terminal=createInterface({input:process.stdin,output,terminal:true,historySize:0});
@@ -235,7 +260,8 @@ async function main(){
   console.log('FaraiOS isolated restore only: faraios-restore-test '+DESTINATION+'.');
   console.log('Source staging is never connected. Keep restore-project apps, signups, email/SMS, providers and jobs isolated.');
   const archive=args[1]??await pickArchive(cancellation.signal);
-  if(['restore','finish-sequences'].includes(mode)&&(await ask('Confirm the isolated destination is unused and outbound integrations are disabled (type RESTORE_TEST):')).trim()!=='RESTORE_TEST')fail('RESTORE_ISOLATION_NOT_CONFIRMED');
+  if(mode==='diagnose')console.log('Schema-only rollback diagnostic. No accounts/business rows are imported; normal restore remains on hold.');
+  if(['restore','finish-sequences','diagnose'].includes(mode)&&(await ask('Confirm the isolated destination is unused and outbound integrations are disabled (type RESTORE_TEST):')).trim()!=='RESTORE_TEST')fail('RESTORE_ISOLATION_NOT_CONFIRMED');
   const password=await ask('Existing faraios-restore-test DATABASE password (hidden; never paste in chat):',true);
   console.log(JSON.stringify(await restoreArchive({archive,password,mode,signal:cancellation.signal,progress:console.log}),null,2));
   console.log('T11 remains In progress: restored sign-in/access/audit acceptance and offline key custody are separate checks.');

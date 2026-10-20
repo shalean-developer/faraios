@@ -16,6 +16,7 @@
     "diagnose:zoho-standard-test": "node scripts/setup-zoho-staging.mjs --diagnose-standard-oauth",
     "backup:staging": "node scripts/backup-staging.mjs",
     "restore:test": "node scripts/restore-staging.mjs",
+    "diagnose:restore": "node scripts/restore-staging.mjs --diagnose-catalog",
     "restore:app": "node restore-rehearsal.mjs"
   },
   "devDependencies": {
