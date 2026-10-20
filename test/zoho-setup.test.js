@@ -4,6 +4,7 @@ import {mkdtemp,mkdir,readFile,writeFile,rm,symlink,stat,chmod,rename,readdir} f
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawn} from 'node:child_process';
+import {connect} from 'node:net';
 import {fileURLToPath} from 'node:url';
 import {authorizationUrl,exchangeAndVerify,callbackHandler,privateStore,redirectUri,scopes,validateBinding,setupFailureMessage,revokeUnsavedTokens} from '../scripts/setup-zoho-staging.mjs';
 
@@ -207,7 +208,7 @@ function operatorHarness(t,extra=''){
 }
 const publicAnswers=output=>[['FaraiOS business UUID: ',binding.business_id],['New Zoho TEST organisation ID: ',binding.organization_id],['Exact TEST organisation name: ',binding.organization_name],['Credential alias: ',binding.alias],['API domain (e.g. https://www.zohoapis.com): ',binding.api_domain],['Confirm this is an isolated test organisation (type TEST): ','TEST'],['Private JSON path (Enter for your profile default): ',output]];
 
-test('real CLI cleans only unsaved current tokens, preserves files and never revokes committed credentials',{timeout:30000},async t=>{
+test('real CLI closes unused local connections, cleans only unsaved tokens and preserves committed credentials',{timeout:60000},async t=>{
  for(const mode of ['TOKEN_CLIENT_SECRET','TOKEN_REJECTED','ORG_COUNT','ORG_HTTP','CLEANUP_FAILED','PRIVATE_FILE_SAVE','CANCELLED','SUCCESS','LOCAL_CLEANUP']){
   const {output}=await fixture(t),marker='NEVER_PRINT_PROVIDER_OR_FILE_VALUE';
   const unrelated={business_id:'22222222-2222-4222-8222-222222222222',organization_id:'234567',refresh_token:'UNRELATED_PRIVATE_REFRESH'};
@@ -230,10 +231,19 @@ test('real CLI cleans only unsaved current tokens, preserves files and never rev
   assert.ok(h.transcript().indexOf('attempt to revoke only those tokens')<h.transcript().indexOf('FaraiOS business UUID'));
   if(mode==='PRIVATE_FILE_SAVE')await writeFile(output,marker,{mode:0o600});
   const auth=new URL(h.transcript().match(/https:\/\/accounts\.zoho\.com\/oauth\/v2\/org\/auth\?[^\r\n]+/)[0]);
+  const heldConnections=['SUCCESS','ORG_HTTP','CANCELLED'].includes(mode);
+  if(heldConnections)for(const partial of ['', 'GET / HTTP/1.1\r\nHost:']){
+   const socket=connect(3102,'127.0.0.1');t.after(()=>socket.destroy());
+   await new Promise((resolve,reject)=>{socket.once('connect',resolve);socket.once('error',reject);});
+   if(partial)socket.write(partial);
+  }
   const callback=new URL(redirectUri);callback.search=new URLSearchParams({state:auth.searchParams.get('state'),code:'synthetic-one-use-code','accounts-server':'https://accounts.zoho.com'}).toString();
   const result=await fetch(callback,{redirect:'manual'});assert.equal(result.status,303);assert.equal(result.headers.get('location'),'/complete');await result.text();
   const saved=['SUCCESS','LOCAL_CLEANUP'].includes(mode),revoked=!saved&&!['TOKEN_CLIENT_SECRET','TOKEN_REJECTED'].includes(mode);
-  assert.equal(await h.finished,mode==='SUCCESS'?0:1);
+  let deadline;
+  try{assert.equal(await Promise.race([h.finished,new Promise((_,reject)=>{deadline=setTimeout(()=>reject(new Error('CLI did not finish with unused callback connections')),5000);})]),mode==='SUCCESS'?0:1);}finally{clearTimeout(deadline);}
+  assert.ok(h.transcript().includes('Callback received. Verifying the TEST organisation...'));
+  assert.ok(h.transcript().includes('Closing local callback listener...'));
   if(mode==='SUCCESS')assert.ok(h.transcript().includes('Private credentials saved.'));else{assert.ok(h.stderr().includes('Setup stopped ['+(mode==='CLEANUP_FAILED'?'ORG_HTTP':mode)+']'));assert.ok(!h.transcript().includes('Private credentials saved.'));}
   assert.equal((h.transcript().match(/SYNTHETIC_REVOKE/g)||[]).length,revoked?1:0);
   if(revoked)assert.ok(h.stderr().includes(mode==='CLEANUP_FAILED'?'[CLEANUP_FAILED]':'[CLEANUP_REFRESH_REVOKED]'));

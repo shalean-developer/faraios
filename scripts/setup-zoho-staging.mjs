@@ -164,6 +164,18 @@ export async function privateStore(output,{repoRoot=repository}={}){
  }catch(error){await release();throw error;}
 }
 
+async function closeCallbackServer(server){
+ if(!server)return;
+ let force;
+ try{await new Promise((resolveClose,rejectClose)=>{
+  // Stop accepting connections first; a browser may leave an unused socket or
+  // incomplete request open. Give responses a short grace period, then close
+  // only this helper's loopback connections so final output is not held back.
+  force=setTimeout(()=>{try{server.closeAllConnections();}catch{rejectClose(new SetupFailure('LOCAL_CLEANUP'));}},1000);
+  server.close(error=>error?rejectClose(error):resolveClose());
+ });}finally{clearTimeout(force);}
+}
+
 async function main(){
  if(!process.stdin.isTTY||!process.stdout.isTTY||process.argv.length>2)throw new Error('Run interactively without command-line secrets');
  let muted=false;const output=new Writable({write(chunk,encoding,done){if(!muted)process.stdout.write(chunk,encoding);done();}});
@@ -199,6 +211,7 @@ async function main(){
    timer=setTimeout(()=>rejectCode(new SetupFailure('CALLBACK_EXPIRED')),10*60*1000);
   });
   clearTimeout(timer);
+  console.log('Callback received. Verifying the TEST organisation...');
   entry=await exchangeAndVerify(binding,{clientId,clientSecret,code});
   if(cancellation.signal.aborted)fail('CANCELLED');
   await atStage('PRIVATE_FILE_SAVE',()=>store.save(binding.alias,entry));
@@ -207,7 +220,8 @@ async function main(){
   failure=entry&&!saved?withCleanup(error,await revokeUnsavedTokens(binding,{clientId:entry.client_id,clientSecret:entry.client_secret,refreshToken:entry.refresh_token})):error;
  }finally{
   clearTimeout(timer);
-  for(const close of [()=>server&&new Promise((resolveClose,rejectClose)=>server.close(error=>error?rejectClose(error):resolveClose())),()=>store?.close(),()=>terminal.close()])try{await close();}catch{failure??=new SetupFailure('LOCAL_CLEANUP');}
+  if(server)console.log('Closing local callback listener...');
+  for(const close of [()=>closeCallbackServer(server),()=>store?.close(),()=>terminal.close()])try{await close();}catch{failure??=new SetupFailure('LOCAL_CLEANUP');}
   process.removeListener('SIGINT',cancel);process.removeListener('SIGTERM',cancel);
  }
  if(failure){if(saved){failure=failure instanceof SetupFailure?failure:new SetupFailure('LOCAL_CLEANUP');failure.saved=true;}throw failure;}
