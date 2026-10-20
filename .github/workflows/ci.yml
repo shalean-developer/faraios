@@ -42,7 +42,7 @@ jobs:
       - run: node --check scripts/setup-zoho-staging.mjs
       - run: node --check scripts/verify-staging-access.mjs
       - run: node --check scripts/backup-staging.mjs
-      - run: node --test test/zoho-setup.test.js test/staging-access-verifier.test.js test/staging-backup.test.js
+      - run: node --test test/zoho-setup.test.js test/staging-access-verifier.test.js test/staging-backup.test.js test/isolated-restore.test.js
 
 
   backup-transport:

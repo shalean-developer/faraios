@@ -8,13 +8,15 @@
   },
   "scripts": {
     "test": "node --test",
-    "check": "node --check scripts/backup-staging.mjs && node --check scripts/setup-zoho-staging.mjs && node --check src/invoices.js && node --check src/zoho-books.js && node --check public/quote-detail.js && node --check public/date-time-values.js && node --check public/date-time-picker.js && node --check src/date-time-field.js && node --check src/quotes.js && node --check src/recurring.js && node --check src/calendar.js && node --check src/staff-teams.js && node --check src/workspace-layout.js && node --check src/workspace-header.js && node --check src/access.js && node --check src/cleaning-rules.js && node --check src/dashboard.js && node --check src/identity.js && node --check dev.mjs && node --check src/auth-session.js && node --check src/staging-server.js && node --check staging.mjs && node --check src/business-settings.js && node --check src/workspace.js && node --check scripts/rehearse-foundation-restore.mjs && node --check src/catalogue.js && node --check src/customers.js && node --check src/bookings.js && node --check src/cleaning-profiles.js && node --check public/catalogue-setup.js",
+    "check": "node --check scripts/restore-staging.mjs && node --check restore-rehearsal.mjs && node --check scripts/backup-staging.mjs && node --check scripts/setup-zoho-staging.mjs && node --check src/invoices.js && node --check src/zoho-books.js && node --check public/quote-detail.js && node --check public/date-time-values.js && node --check public/date-time-picker.js && node --check src/date-time-field.js && node --check src/quotes.js && node --check src/recurring.js && node --check src/calendar.js && node --check src/staff-teams.js && node --check src/workspace-layout.js && node --check src/workspace-header.js && node --check src/access.js && node --check src/cleaning-rules.js && node --check src/dashboard.js && node --check src/identity.js && node --check dev.mjs && node --check src/auth-session.js && node --check src/staging-server.js && node --check staging.mjs && node --check src/business-settings.js && node --check src/workspace.js && node --check scripts/rehearse-foundation-restore.mjs && node --check src/catalogue.js && node --check src/customers.js && node --check src/bookings.js && node --check src/cleaning-profiles.js && node --check public/catalogue-setup.js",
     "dev": "node dev.mjs",
     "staging": "node staging.mjs",
     "setup:zoho-staging": "node scripts/setup-zoho-staging.mjs",
     "diagnose:zoho-test": "node scripts/setup-zoho-staging.mjs --diagnose-test-orgs",
     "diagnose:zoho-standard-test": "node scripts/setup-zoho-staging.mjs --diagnose-standard-oauth",
-    "backup:staging": "node scripts/backup-staging.mjs"
+    "backup:staging": "node scripts/backup-staging.mjs",
+    "restore:test": "node scripts/restore-staging.mjs",
+    "restore:app": "node restore-rehearsal.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.10"

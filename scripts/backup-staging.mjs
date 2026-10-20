@@ -182,6 +182,7 @@ export async function cleanupClient(id,step,env,runner=run) {
 export function metadataFailureLabel(stderr) {
  const message=stderr.slice(-65536).replace(/\u001b\[[0-?]*[ -/]*[@-~]/g,'');
  const rules=[
+  ['RESTORE_SEQUENCE_STATE_PENDING',/\bERROR:\s+RESTORE_SEQUENCE_STATE_PENDING\b/],
   ['METADATA_LOGIN_REQUIRED',/Access token not provided|DbQueryLoginRequiredError|not logged in/i],
   ['METADATA_API_ACCESS_DENIED',/unexpected(?: [a-z]+){0,4} status(?: code)?\s*[:=]?\s*(?:401|403)\b|\b(?:unauthorized|forbidden)\b/i],
   ['METADATA_PROJECT_NOT_FOUND',/unexpected status\s*[:=]?\s*404\b|project (?:not found|does not exist)/i],
@@ -382,7 +383,8 @@ export function openBackup(bytes,key) {
  } catch { fail('ARCHIVE_VERIFICATION_FAILED'); }
 }
 
-export async function verifyFile(archive,keyRoot,runner=run,signal) {
+// Private in-memory API for the isolated restore helper. Never log its payload.
+export async function readVerifiedBackup(archive,keyRoot,runner=run,signal) {
  checkCancelled(signal);
  await outsideGit(keyRoot);const guard=directoryGuard(signal);await guard.add(keyRoot);
  const s=await lstat(archive);
@@ -403,8 +405,13 @@ export async function verifyFile(archive,keyRoot,runner=run,signal) {
   if(!opened.isFile()||current.isSymbolicLink()||opened.dev!==k.dev||opened.ino!==k.ino||current.dev!==k.dev||current.ino!==k.ino)fail('KEY_FILE_CHANGED');
   key=await handle.readFile();await guard.check();
  } finally {await handle.close();}
- try { const result=openBackup(bytes,key);return {id:result.id,sha256:sha256(bytes),fileCount:result.payload.files.length}; }
+ try { const result=openBackup(bytes,key);return {id:result.id,sha256:sha256(bytes),fileCount:result.payload.files.length,payload:result.payload}; }
  finally { key.fill(0); }
+}
+
+export async function verifyFile(archive,keyRoot,runner=run,signal) {
+ const {id,sha256,fileCount}=await readVerifiedBackup(archive,keyRoot,runner,signal);
+ return {id,sha256,fileCount};
 }
 
 export async function capture({home=homedir(),password,runner=run,progress=()=>{},signal,removeWorkdir=path=>rm(path,{recursive:true})}) {
