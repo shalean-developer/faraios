@@ -1,5 +1,11 @@
 # Separate staging role acceptance — 19 October 2026
 
+## 20 October operator result and diagnostic follow-up
+
+At 16:09 SAST the owner supplied the manager verifier result after pulling main `e469ddd`. Login, exact Bokkie-only selector/role, Bokkie dashboard, direct Shalean dashboard denial (with a client role claim), owner settings denial, Shalean customers/bookings/catalogue/staff/quotes denials and permitted Bokkie customers/bookings/catalogue/staff reads all passed with actual HTTP responses. The run then stopped with `REQUEST_FAILED` before an `OWN_QUOTES` result. The original report cannot distinguish a deadline, connection or incomplete-body failure; no cause is established. Later recurring/calendar/invoices checks did not run. Its own sign-out and post-sign-out redirect checks passed; cleanup was `PASSED`, overall result was false.
+
+The follow-up adds fixed request check names, HEADERS/BODY phase, a nullable received HTTP status, elapsed milliseconds and the deadline to failure reports. Only the helper's own expired deadline is labelled `REQUEST_TIMEOUT`; arbitrary transport error names/codes/messages remain private. Main-request and cleanup failures are recorded separately. A received status with an incomplete body cannot become a passing read. The default ten-second helper deadline, fixed loopback destination, access criteria, fail-fast behaviour and independent cleanup stay the same; no automatic retry is added. This is diagnostic preparation, not an application root-cause fix or a completed operator rerun. T08–T10 remain in progress; shared-staff checks and T11 recovery remain separate.
+
 20 October follow-up: the real Bokkie-only manager dashboard was observed again. Chrome still blocked the direct Shalean request with ERR_BLOCKED_BY_CLIENT before an application response could be established. This is a browser observation, not proof of HTTP403. The operator-run verifier below is prepared to obtain real local HTTP evidence; it does not itself close T08–T10 until actual results and independent acceptance are recorded.
 
 Current fixture scope: the manager QA account has one active membership, Bokkie manager, and is the account for the next operator run. The existing cleaner QA account now has active staff memberships in both Bokkie and Shalean; the earlier Bokkie-only cleaner observation below is historical. That shared cleaner is not a valid single-business fixture for this verifier. Staff mode requires a separately verified single-business staff fixture; no membership change is part of this work. Current shared-staff access remains separately unassessed.
@@ -36,7 +42,9 @@ User reported sign-in at 03:36 SAST; browser and Auth session verification confi
 
 Mobile menu previously passed click open/close and keyboard open at 390 x 844, with logo left, burger right and no horizontal overflow. Live SQL RLS assertions for each QA identity confirmed only Bokkie was readable. Earlier owner-session tests verified membership suspension and logout. Local HTTP tests cover direct foreign-business 403 responses using a simulated authentication provider.
 
-## Remaining limitation
+## Historical browser-only limitation and decision (19 October)
+
+The following two paragraphs retain the earlier browser-only evidence and decision. The 20 October operator run now supplies actual manager HTTP403 evidence for the Shalean dashboard and tested modules above. Current remaining acceptance gates are the unresolved `OWN_QUOTES` request, later recurring/calendar/invoices reads, current shared-staff checks and final independent acceptance; full T11 recovery is also open.
 
 Browser navigation to the restricted Shalean business URL reports ERR_BLOCKED_BY_CLIENT. This does not prove the application's real HTTP status or denial body. The live direct-link response remains unverified; do not close that criterion merely because the selector excludes Shalean. No browser security restriction was bypassed.
 
