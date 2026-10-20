@@ -130,8 +130,10 @@ async function exerciseRestore(manifest,files){
   await query(restoreServer,verificationSQL(wrapped,catalogSQL));
   console.log('T11_RESTORE_NONEMPTY_RETRY_REFUSED=PASS');
   for(const [subject,businesses,samples] of [[1,2,2],[2,1,1],[3,2,0]]){
-   const r=await query(restoreServer,`set local role authenticated;set local request.jwt.claim.sub='${subject}';select count(*) from public.businesses;select count(*) from public.sample;`);
-   assert.equal(r.stdout.trim(),businesses+'\n'+samples);
+   // Bootstrap admin may SET this role without widening the restore actor's
+   // membership. The effective read role itself must have no bypass privilege.
+   const r=await query(restoreServer,`set local role authenticated;set local request.jwt.claim.sub='${subject}';select current_user,rolsuper or rolbypassrls from pg_roles where rolname=current_user;select count(*) from public.businesses;select count(*) from public.sample;`,false,true);
+   assert.equal(r.stdout.trim(),'authenticated|f\n'+businesses+'\n'+samples);
   }
   const before=(await query(restoreServer,'select count(*) from audit.events;')).stdout.trim();
   const audit=await query(restoreServer,"savepoint t11_probe;update public.businesses set name=name||' probe' where id='0cc3f518-d64e-40c2-8817-bc14d1ef1420';select count(*) from audit.events;rollback to savepoint t11_probe;select count(*) from audit.events;",true);
