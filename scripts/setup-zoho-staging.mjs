@@ -93,7 +93,9 @@ async function main(){
  const terminal=createInterface({input:process.stdin,output,terminal:true,historySize:0});
  const cancellation=new AbortController(),cancel=()=>cancellation.abort();
  terminal.on('SIGINT',cancel);process.once('SIGINT',cancel);process.once('SIGTERM',cancel);
- const ask=async(prompt,hidden=false)=>{process.stdout.write(prompt);muted=hidden;try{return(await terminal.question('',{signal:cancellation.signal})).trim();}finally{muted=false;if(hidden)process.stdout.write('\n');}};
+ // Keep the label on its own completed console line. PowerShell can redraw the
+ // empty readline input line; that must not hide the question above it.
+ const ask=async(prompt,hidden=false)=>{process.stdout.write(prompt+'\n');muted=hidden;try{return(await terminal.question('',{signal:cancellation.signal})).trim();}finally{muted=false;if(hidden)process.stdout.write('\n');}};
  let store,server,timer;
  try{
   console.log('FaraiOS STAGING only. Use a newly registered dedicated client. Keep existing clients unchanged.');

@@ -31,3 +31,13 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run check
       - run: npm test
+  zoho-setup-windows:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --check scripts/setup-zoho-staging.mjs
+      - run: node --test test/zoho-setup.test.js
