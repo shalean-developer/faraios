@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import {importSQL,schemaReplaySQL,verificationSQL,sequenceAssignments,sequenceVerificationSQL,finishSequencesSQL,RESTORE_CONFIG,MANAGED_PARAMETER_GRANT,RESTORE_CREATION_DEFAULTS_SQL} from './restore-staging.mjs';
 import {catalogComponentsSQL,diagnosticSQL,diagnosticMetadataSQL,parseDiagnosticOutput,compareCatalogComponents,validateSequenceState} from './restore-diagnostic.mjs';
+import {WORKING_DAYS_SOURCE_DEF,WORKING_DAYS_CHECK,RECONSTRUCT_WORKING_DAYS_SQL} from './restore-constraint.mjs';
 import { mkdtemp, writeFile, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -111,6 +112,21 @@ async function exerciseRestore(manifest,files){
   await assert.rejects(query(restoreServer,diagnosticSQL(replay,catalogSQL,diagnosticLimits),true,false,false),{code:'RESTORE_TRANSACTION_REQUIRED'});
   assert.deepEqual(await diagnosticMetadata(),beforeDiagnostic);
   console.log('T11_DIAGNOSTIC_REQUIRES_EXPLICIT_TRANSACTION=PASS (missing psql transaction flag rejected before writes; fresh baseline unchanged)');
+  assert.equal((await query(tlsServer,"select pg_get_constraintdef(oid) from pg_constraint where conrelid='public.business_settings'::regclass and conname='business_settings_working_days_check';")).stdout.trim(),WORKING_DAYS_SOURCE_DEF);
+  assert.equal(replay.split(RECONSTRUCT_WORKING_DAYS_SQL).length,2);
+  const uncorrected=replay.replace(RECONSTRUCT_WORKING_DAYS_SQL,'');
+  const originalMismatch=await query(restoreServer,diagnosticSQL(uncorrected,catalogSQL,diagnosticLimits),true);
+  assert.deepEqual(compareCatalogComponents(parseDiagnosticOutput(originalMismatch.stdout),componentPins),{matchingComponents:33,catalogMismatchComponents:['APPLICATION_CONSTRAINTS']});
+  assert.deepEqual(await diagnosticMetadata(),beforeDiagnostic);
+  const beforeRowsProbe=structuredClone(backup);
+  beforeRowsProbe.payload.files.find(f=>f.name==='data.sql').content='SELECT 1/0;\n'+beforeRowsProbe.payload.files.find(f=>f.name==='data.sql').content;
+  await assert.rejects(query(restoreServer,importSQL(beforeRowsProbe,wrapped,catalogSQL,preflightSQL).replace(RECONSTRUCT_WORKING_DAYS_SQL,''),true),{code:'RESTORE_CATALOG_MISMATCH'});
+  assert.deepEqual(await diagnosticMetadata(),beforeDiagnostic);
+  console.log('T11_NATIVE_CHECK_ROUNDTRIP_MISMATCH_REPRODUCED=PASS (original BETWEEN becomes flattened AND after real dump/replay; sole constraints component; full fingerprints stop before data probe; rollback verified)');
+  const changed=uncorrected+"COMMENT ON CONSTRAINT business_settings_working_days_check ON public.business_settings IS 'fixture metadata drift';\n"+RECONSTRUCT_WORKING_DAYS_SQL;
+  await assert.rejects(query(restoreServer,diagnosticSQL(changed,catalogSQL,diagnosticLimits),true),{code:'RESTORE_CHECK_RECONSTRUCTION_REFUSED'});
+  assert.deepEqual(await diagnosticMetadata(),beforeDiagnostic);
+  console.log('T11_CHECK_RECONSTRUCTION_METADATA_DRIFT_REFUSED=PASS (unknown metadata stops transaction and fresh empty baseline/sequence unchanged)');
   for(const drift of [false,true]){
    const sql=diagnosticSQL(replay+(drift?'ALTER TABLE public.sample DISABLE ROW LEVEL SECURITY;\n':''),catalogSQL,diagnosticLimits);
    const output=await query(restoreServer,sql,true);
@@ -189,6 +205,8 @@ try {
  create table auth.schema_migrations(version text); create table storage.migrations(id int);
  create table storage.buckets(id int); create table storage.objects(id int); create table storage.buckets_vectors(id int); create table storage.vector_indexes(id int);
  create table supabase_migrations.schema_migrations(version text); insert into supabase_migrations.schema_migrations values ('synthetic'); create table vault.secrets(id int);
+ create table public.business_settings(id int,working_days smallint[] NOT NULL,CONSTRAINT business_settings_working_days_check ${WORKING_DAYS_CHECK});
+ alter table public.business_settings enable row level security;
  create table public.business_memberships(user_id int,business_id uuid,role text);
  insert into public.business_memberships values(1,'0cc3f518-d64e-40c2-8817-bc14d1ef1420','owner'),(1,'612be091-b1d7-4911-9c3b-143446a9fe27','owner'),(2,'0cc3f518-d64e-40c2-8817-bc14d1ef1420','manager'),(3,'0cc3f518-d64e-40c2-8817-bc14d1ef1420','staff'),(3,'612be091-b1d7-4911-9c3b-143446a9fe27','staff');
  alter table public.business_memberships enable row level security;

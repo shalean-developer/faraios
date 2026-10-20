@@ -5,8 +5,10 @@ import {COMPONENTS,COMPONENT_PREFIX,ROLLBACK_MARKER,validateSchemaReplay,catalog
 import {RESTORE_CONFIG,restoreArchive} from '../scripts/restore-staging.mjs';
 
 test('normal import and sequence completion are held before any file, key or network access',async()=>{
- assert.equal(RESTORE_CONFIG.importEnabled,false);
- for(const mode of ['restore','finish-sequences'])await assert.rejects(restoreArchive({archive:'never-read',password:'never-used',mode,runner:()=>{throw Error('must not run');}}),{code:'RESTORE_IMPORT_ON_HOLD'});
+ assert.equal(RESTORE_CONFIG.importEnabled,true);
+ const enabled=RESTORE_CONFIG.importEnabled;RESTORE_CONFIG.importEnabled=false;
+ try{for(const mode of ['restore','finish-sequences'])await assert.rejects(restoreArchive({archive:'never-read',password:'never-used',mode,runner:()=>{throw Error('must not run');}}),{code:'RESTORE_IMPORT_ON_HOLD'});
+ }finally{RESTORE_CONFIG.importEnabled=enabled;}
 });
 test('native schema envelope ignores quoted bodies/comments but rejects transaction, role, connection and data commands',()=>{
  const safe=`-- COMMIT; \\connect private\n/* outer /* END; */ ABORT; */\nCREATE FUNCTION public.example() RETURNS text LANGUAGE plpgsql AS $fn$ BEGIN RETURN 'COMMIT; SET ROLE other;'; END $fn$;

@@ -4,6 +4,7 @@ import {readFile,mkdtemp,realpath,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {restoreEnvironment,DESTINATION,RESTORE_CONFIG,validateRestoreBackup,validateDestination,importSQL,verificationSQL,restoreArchive,sequenceAssignments,preserveManagedParameterGrant,MANAGED_PARAMETER_GRANT,RestoreOutcomeFailure,RESTORE_CREATION_DEFAULTS_SQL} from '../scripts/restore-staging.mjs';
+import {RECONSTRUCT_WORKING_DAYS_SQL} from '../scripts/restore-constraint.mjs';
 import {SOURCE,CLI,CLIENT_IMAGE,DUMPS,capture,run,BackupFailure,CLIENT_STARTED,metadataFailureLabel} from '../scripts/backup-staging.mjs';
 import {restoreFetch,createRestoreServer} from '../restore-rehearsal.mjs';
 import {createStagingServer} from '../src/staging-server.js';
@@ -31,7 +32,10 @@ test('import checks empty destination again, never replays managed reference and
  const sql=importSQL(backup(),manifest(),c,p);
  assert.ok(sql.startsWith('SAVEPOINT faraios_t11_replay;'));
  assert.ok(sql.indexOf('RESTORE_DESTINATION_NOT_EMPTY')<sql.indexOf('-- roles.sql'));
- assert.ok(sql.indexOf('-- migration-schema.sql')<sql.indexOf('-- data.sql'));
+ assert.ok(sql.indexOf('-- migration-schema.sql')<sql.indexOf(RECONSTRUCT_WORKING_DAYS_SQL));
+ const beforeRows=sql.slice(sql.indexOf(RECONSTRUCT_WORKING_DAYS_SQL)+RECONSTRUCT_WORKING_DAYS_SQL.length,sql.indexOf('-- data.sql'));
+ assert.match(beforeRows,/RESTORE_CATALOG_MISMATCH/);
+ assert.ok(beforeRows.includes(RESTORE_CONFIG.applicationCatalogSha256));assert.ok(beforeRows.includes(RESTORE_CONFIG.managedCatalogSha256));
  assert.ok(!sql.includes('-- managed-schema-reference.sql'));
  assert.ok(sql.indexOf('RESTORE_DATA_MISMATCH')>sql.indexOf('-- migration-data.sql'));
  assert.match(sql,/RESTORE_CATALOG_MISMATCH/);assert.match(sql,/RESTORE_ACCOUNTING_ENABLED/);assert.match(sql,/CREATE EXTENSION IF NOT EXISTS btree_gist/);assert.ok(!/\bCOMMIT\b/i.test(sql));
@@ -51,6 +55,7 @@ test('only the exact existing managed parameter grant is omitted; unexpected ACL
  assert.throws(()=>preserveManagedParameterGrant(MANAGED_PARAMETER_GRANT+'\n-- comment\rGRANT SET ON PARAMETER "work_mem" TO "anon";'),{code:'RESTORE_PARAMETER_GRANT_UNREVIEWED'});
 });
 test('uncertain outcome retains only allowlisted cause observations',()=>{
+ assert.equal(new RestoreOutcomeFailure('RESTORE_OUTCOME_UNCONFIRMED',new BackupFailure('RESTORE_CHECK_RECONSTRUCTION_REFUSED')).causeLabel,'RESTORE_CHECK_RECONSTRUCTION_REFUSED');
  const known=new RestoreOutcomeFailure('RESTORE_OUTCOME_UNCONFIRMED',new BackupFailure('METADATA_PERMISSION_DENIED'));assert.equal(known.causeLabel,'METADATA_PERMISSION_DENIED');
  for(const error of [new Error('private-password'),{code:'METADATA_PERMISSION_DENIED',message:'private-password'},new BackupFailure('private-password')]){
   const failure=new RestoreOutcomeFailure('RESTORE_OUTCOME_UNCONFIRMED',error);assert.equal(failure.causeLabel,'RESTORE_CAUSE_UNCLASSIFIED');assert.ok(!JSON.stringify(failure).includes('private-password'));
