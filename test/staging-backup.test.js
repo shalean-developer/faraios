@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, writeFile, readdir, rm, lstat, symlink, mkdir, rename } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, readdir, rm, lstat, symlink, mkdir, rename, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -26,7 +26,9 @@ function payload(m=manifest()) {
 }
 
 async function home(t) {
- const p=await mkdtemp(join(tmpdir(),'faraios-backup-test-'));
+ // Windows runner TEMP uses an 8.3 alias; production intentionally requires a
+ // canonical private root, so resolve the synthetic fixture before testing it.
+ const p=await realpath(await mkdtemp(join(tmpdir(),'faraios-backup-test-')));
  t.after(()=>rm(p,{recursive:true,force:true}));return p;
 }
 
