@@ -1,6 +1,20 @@
 # UI-02 — Quote detail
 
-20 October follow-up status: browser checks are partial; final acceptance remains open for the small corrections and real host clipboard confirmation described below.
+## Current acceptance — 20 October 2026
+
+UI-02 is **closed for bounded FaraiOS staging quote-detail acceptance**. The owner authorised this follow-up and completed the final Windows Copy → Ctrl+V check at15:25:20SAST. Independent `QA-UI02-ACCEPTANCE-20261020` v1: **PASS** against the eight recorded defects.
+
+- After the owner pulled/restarted the local staging server and signed in, Bokkie's address displayed Century City once on desktop and mobile; Shalean's address presentation remained correct. The merged PR65 Unicode-whitespace correction is demonstrated by the observed output. No exact running process SHA was independently obtained.
+- Both existing converted/cancelled QA quotes retain their R410/R875 saved totals and the cancellation/invoicing-review warning. At1280×575, both Open booking actions are44px high and end at573.54px. At390×844, the page width is375px and price tables305.33px, without horizontal overflow; the fresh Bokkie action document bottom is653.83px. Temporary viewport overrides were reset and verified1280×575.
+- Exact no-charge rows remain available (Bokkie3, Shalean2). The recorded account label, historical actor disclosure, local timestamp/timezone, scoped contrast and service disclosures retain the earlier acceptance evidence. Full reference opens by keyboard for both36-character canonical IDs.
+- Both Copy buttons announce Reference copied. In response to the explicit two-business manual test, the owner pasted both canonical UUIDs into the conversation with the correct business labels; each exactly matches its quote URL and Full reference input. This closes the host clipboard gate through an owner-performed test. The earlier empty automation clipboard is retained as a tooling limitation, not an application failure.
+- Root and independent focused checks each passed10/10 with zero skips. Retained PR65 exact-candidate CI passed143/143 with zero skips; the prior implementation/SQL/HTTP evidence below remains historical evidence, not newly rerun production verification.
+
+QA was performed by a separate read-only agent using shared AI tooling. Browser observations are the delivery agent's; host clipboard evidence is owner-reported. The sampled converted/cancelled quotes do not establish every possible visual state or production readiness. Reassess material rendering, clipboard or relevant access changes. No quote/booking save, agreement edit, invoice action or OAuth operation was invoked during this acceptance phase. T19 remains In progress with accounting activation NO-GO pending Zoho clarification; T20 remains Not started.
+
+## Historical implementation and verification record
+
+Earlier open-gate statements below are preserved as dated history. The current acceptance above records their bounded UI-02 resolution; `QA-UI02-STATUS-20261020` v1 remains historical NOT ASSESSED.
 
 20 October06:40SAST follow-up: after the owner restarted PR64, both businesses show12px action spacing and the44px primary action ends at573.5px in document coordinates, within the575px desktop viewport. Bokkie's displayed locality still repeats because one saved component contains a non-breaking space while its neighbour uses an ordinary space. The follow-up collapses Unicode whitespace in display components before comparing them; the regression includes U+00A0 and U+202F, repeated spaces, and unchanged source text. This is presentation only; no stored address, agreement, invoice or financial state is changed. Corrected address runtime acceptance and exact host clipboard contents remain open. T19's actual isolated Zoho setup/reconciliation remains a separate open gate.
 
