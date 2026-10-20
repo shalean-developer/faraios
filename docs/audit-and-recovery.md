@@ -70,6 +70,23 @@ node scripts/backup-staging.mjs --verify-file 'C:\\private-retrieval\\faraios-st
 
 This decrypts and checks the archive in memory without executing SQL. Compare its reported SHA-256 to the original report/checksum. Off-site retrieval, offline key custody and an actual isolated restore require their own evidence. A safe failure returns only a fixed diagnostic label; share that label alone. Local incomplete work/key/archive files may remain after failure and are not approved uploads.
 
+### Metadata failure diagnostics — 20 October
+
+The first owner-operated Windows attempt reached `Checking source metadata`, then stopped with the original generic `CHILD_FAILED`. No dump step, encryption key or ready archive was reached. The source project was independently rechecked as ACTIVE_HEALTHY; this does not establish CLI access or network reachability from the owner workstation. The actual failure cause remains unconfirmed.
+
+Metadata children now inspect failure stderr **in memory** and emit only fixed observation labels. They never attach or print raw error text, SQL, provider responses, paths or credentials. Ordinary child errors retain their existing behavior; cancellation, timeout and output-limit labels take precedence. Both initial and final manifest reads use these diagnostics. No retries or alternate connection/permission paths are enabled.
+
+| Observation | Next investigation |
+|---|---|
+| `METADATA_LOGIN_REQUIRED` | Stored CLI login availability |
+| `METADATA_API_ACCESS_DENIED` / `METADATA_PROJECT_NOT_FOUND` | CLI account/project access; project identity |
+| `METADATA_IPV6_UNAVAILABLE` / `METADATA_NETWORK_FAILED` / `METADATA_TLS_FAILED` | Direct/pooler resolution, workstation connectivity or certificate trust |
+| `METADATA_SQL_FILE_UNREADABLE` / `METADATA_CONFIG_INVALID` / `METADATA_CLI_COMMAND_INVALID` / `METADATA_CLI_LAUNCH_FAILED` | Local helper/CLI invocation and files |
+| `METADATA_DATABASE_AUTH_FAILED` / `METADATA_QUERY_FAILED` | Pinned query/preflight failure; do not infer the password was wrong from a generic failure |
+| `METADATA_PROCESS_FAILED` / `METADATA_UNCLASSIFIED` | Further safe local diagnostics needed; raw output remains private |
+
+These labels classify observed error text, not a proved root cause. Keep the incomplete run directory private and do not upload it. After pulling this diagnostic update, run the same private helper once and return only the new fixed label, or `encryptedLocalVerification: PASSED`. Do not use `--debug`, reset the source password, weaken permissions, repoint the app or enable a restore to diagnose this failure. T11 remains In progress.
+
 Configuration/provider secrets, Edge Functions, Storage bytes and custom managed-schema recovery remain separate work. No recurring schedule, retention deletion, restore import or complete T11 acceptance is enabled by this helper.
 
 Primary implementation references: [CLI v2.121.0 dump](https://github.com/supabase/cli/tree/v2.121.0/apps/cli/src/commands/db/dump), [CLI export implementation](https://github.com/supabase/cli/blob/v2.121.0/apps/cli/src/command-internal/pg-dump.scripts.ts), [PostgreSQL 17 dump-all output](https://github.com/postgres/postgres/blob/REL_17_STABLE/src/bin/pg_dump/pg_dumpall.c), [Docker context inspection](https://docs.docker.com/reference/cli/docker/context/inspect/), [Windows ACL retrieval](https://learn.microsoft.com/en-us/dotnet/api/system.io.directory.getaccesscontrol?view=netframework-4.8.1), [PowerShell module-path inheritance](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_psmodulepath).

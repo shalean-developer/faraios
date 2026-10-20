@@ -108,6 +108,27 @@ export function commandArgs(npmPath, workdir, args) {
  return [npmPath,'exec','--yes','--package=supabase@'+CLI,'--','supabase',...args,'--workdir',workdir,'--profile','supabase','--agent','no'];
 }
 
+// These are observations of the pinned CLI's failure text, not proof of cause.
+// Return constants only: upstream messages/bodies may contain credentials or SQL.
+export function metadataFailureLabel(stderr) {
+ const message=stderr.slice(-65536).replace(/\u001b\[[0-?]*[ -/]*[@-~]/g,'');
+ const rules=[
+  ['METADATA_LOGIN_REQUIRED',/Access token not provided|DbQueryLoginRequiredError|not logged in/i],
+  ['METADATA_API_ACCESS_DENIED',/unexpected(?: [a-z]+){0,4} status(?: code)?\s*[:=]?\s*(?:401|403)\b|\b(?:unauthorized|forbidden)\b/i],
+  ['METADATA_PROJECT_NOT_FOUND',/unexpected status\s*[:=]?\s*404\b|project (?:not found|does not exist)/i],
+  ['METADATA_IPV6_UNAVAILABLE',/IPv6 is not supported on your current network|DbConfigIpv6Error/],
+  ['METADATA_TLS_FAILED',/CERT_HAS_EXPIRED|UNABLE_TO_VERIFY_LEAF_SIGNATURE|SELF_SIGNED_CERT_IN_CHAIN|unable to verify (?:the first certificate|leaf signature)|certificate (?:has expired|verify failed)/i],
+  ['METADATA_NETWORK_FAILED',/\b(?:ETIMEDOUT|ECONNRESET|ENETUNREACH|ENOTFOUND|EAI_AGAIN|ECONNREFUSED|EHOSTUNREACH|UND_ERR_CONNECT_TIMEOUT)\b|failed to (?:resolve host|fetch)|network (?:is unreachable|request failed)/i],
+  ['METADATA_DATABASE_AUTH_FAILED',/password authentication failed|SQLSTATE\s*[:=]?\s*28P01\b/i],
+  ['METADATA_SQL_FILE_UNREADABLE',/failed to read SQL file|DbQueryReadFileError/i],
+  ['METADATA_CONFIG_INVALID',/DbConfigLoadError|failed to (?:load|parse|read) (?:project )?config|failed to read profile|Unsupported Config Type/i],
+  ['METADATA_CLI_COMMAND_INVALID',/unknown (?:command|flag)|unrecognized (?:command|option)|DbQueryMutuallyExclusiveFlagsError/i],
+  ['METADATA_CLI_LAUNCH_FAILED',/Cannot find module|MODULE_NOT_FOUND|ERR_MODULE_NOT_FOUND/i],
+  ['METADATA_QUERY_FAILED',/DbQueryExecError|DbQueryUnexpectedStatusError|failed to execute query|unexpected status\s*[:=]?\s*(?:400|408|429|5\d\d)\b|SQLSTATE\s*[:=]?\s*[0-9A-Z]{5}\b/i],
+ ];
+ return rules.find(([,pattern])=>pattern.test(message))?.[0]??'METADATA_UNCLASSIFIED';
+}
+
 // Child output stays in memory; callers receive only fixed failure labels on error.
 export function run(command,args,options={}) {
  return new Promise((resolveRun,rejectRun)=>{
@@ -132,7 +153,8 @@ export function run(command,args,options={}) {
   };
   const abort=()=>void stop('BACKUP_CANCELLED');
   if(options.signal?.aborted){settle(error('BACKUP_CANCELLED'));return;}
-  try { child=spawn(command,args,{cwd:options.cwd,env:options.env,stdio:['ignore','pipe','pipe'],shell:false,windowsHide:true,detached:process.platform!=='win32'}); } catch { settle(error('CHILD_FAILED')); return; }
+  const processFailure=()=>error(options.failureContext==='metadata'?'METADATA_PROCESS_FAILED':'CHILD_FAILED');
+  try { child=spawn(command,args,{cwd:options.cwd,env:options.env,stdio:['ignore','pipe','pipe'],shell:false,windowsHide:true,detached:process.platform!=='win32'}); } catch { settle(processFailure()); return; }
   options.signal?.addEventListener('abort',abort,{once:true});
   timer=setTimeout(()=>void stop('CHILD_TIMEOUT'),options.timeout??900000);
   const collect=destination=>chunk=>{
@@ -141,10 +163,10 @@ export function run(command,args,options={}) {
    destination.push(chunk);
   };
   child.stdout.on('data',collect(stdout));child.stderr.on('data',collect(stderr));
-  child.once('error',()=>{if(!stopping)settle(error('CHILD_FAILED'));});
+  child.once('error',()=>{if(!stopping)settle(processFailure());});
   child.once('close',code=>{
    if(stopping)return;
-   if(code!==0){settle(error('CHILD_FAILED'));return;}
+   if(code!==0){settle(error(options.failureContext==='metadata'?metadataFailureLabel(Buffer.concat(stderr).toString('utf8')):'CHILD_FAILED'));return;}
    const stdoutBytes=Buffer.concat(stdout);
    settle(null,{stdout:stdoutBytes.toString('utf8'),stdoutBytes,stderr:Buffer.concat(stderr).toString('utf8')});
   });
@@ -327,17 +349,17 @@ export async function capture({home=homedir(),password,npmPath=process.env.npm_e
  await writePrivate(join(temporary,'supabase','config.toml'),'project_id = "faraios-t11-backup"\n[db]\nmajor_version = 17\n',guard,runner,signal);
  const sql=await readFile(new URL('./staging-backup-manifest.sql',import.meta.url),'utf8');
  await writePrivate(join(temporary,'manifest-query.sql'),sql,guard,runner,signal);
- const cli=async args=>{
+ const cli=async (args,failureContext)=>{
   if(signal?.aborted) fail('BACKUP_CANCELLED');
   const heartbeat=setInterval(()=>progress('This backup step is still running...'),20000);
-  try { await guard.check();const result=await runner(process.execPath,commandArgs(npmPath,temporary,args),{cwd:temporary,env,signal,maxOutput:MAX_FILE});await guard.check();return result; }
+  try { await guard.check();const result=await runner(process.execPath,commandArgs(npmPath,temporary,args),{cwd:temporary,env,signal,maxOutput:MAX_FILE,failureContext});await guard.check();return result; }
   finally { clearInterval(heartbeat); }
  };
  let artifact,keyPath,checksum,completed=false,cleanup='NOT_RUN';
  const started=new Date().toISOString();
  try {
   progress('Checking source metadata');
-  const readManifest=async()=>parseManifest((await cli(['db','query','--linked','--project-ref',SOURCE,'--file','manifest-query.sql','--output','json'])).stdout);
+  const readManifest=async()=>parseManifest((await cli(['db','query','--linked','--project-ref',SOURCE,'--file','manifest-query.sql','--output','json'],'metadata')).stdout);
   const before=await readManifest();
   const files=[];let totalBytes=0;
   for(const [name,args] of DUMPS) {
