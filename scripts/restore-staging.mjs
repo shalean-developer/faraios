@@ -7,6 +7,7 @@ import {createInterface} from 'node:readline/promises';
 import {Writable} from 'node:stream';
 import {SOURCE,CLI,CLIENT_IMAGE,BackupFailure,readVerifiedBackup,clientEnvironment,clientArgs,localDocker,ensureClientImage,verifyProviderCertificate,cleanupClient,run} from './backup-staging.mjs';
 import {ACTOR_SQL,validateSchemaReplay,diagnosticSQL,diagnosticMetadataSQL,parseDiagnosticOutput,compareCatalogComponents,validateSequenceState} from './restore-diagnostic.mjs';
+import {RECONSTRUCT_WORKING_DAYS_SQL} from './restore-constraint.mjs';
 
 export const DESTINATION='zrlojsvkqipuwkkyfrkn';
 export const RESTORE_CONFIG=JSON.parse(await readFile(new URL('../config/restore-test.json',import.meta.url),'utf8'));
@@ -17,7 +18,7 @@ export const MANAGED_PARAMETER_GRANT='GRANT SET ON PARAMETER "log_min_messages" 
 // the import transaction. The unmodified dump restores it before catalog checks.
 export const RESTORE_CREATION_DEFAULTS_SQL=['TABLES','SEQUENCES','FUNCTIONS'].map(kind=>
  `ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON ${kind} FROM "postgres", "anon", "authenticated", "service_role";\n`).join('');
-const causeLabels=new Set(['METADATA_PERMISSION_DENIED','METADATA_NETWORK_FAILED','METADATA_TLS_FAILED','METADATA_DATABASE_AUTH_FAILED','METADATA_QUERY_FAILED','METADATA_UNCLASSIFIED','RESTORE_CATALOG_MISMATCH','RESTORE_DATA_MISMATCH','CHILD_TIMEOUT','BACKUP_CANCELLED','RESTORE_VALIDATION_MARKER_MISSING','RESTORE_TRANSACTION_REQUIRED','RESTORE_ACTOR_CHANGED','RESTORE_DIAGNOSTIC_ACK_MISSING','RESTORE_DIAGNOSTIC_COMPONENTS_INVALID','RESTORE_DIAGNOSTIC_COMPONENTS_INCONSISTENT','RESTORE_DIAGNOSTIC_SEQUENCE_INVALID','RESTORE_DIAGNOSTIC_SEQUENCE_CHANGED','RESTORE_DESTINATION_NOT_EMPTY','RESTORE_DESTINATION_SCHEMA_CHANGED','RESTORE_EXTENSION_VERSION_CHANGED','RESTORE_SEQUENCE_PRIVILEGES_CHANGED']);
+const causeLabels=new Set(['RESTORE_CHECK_RECONSTRUCTION_REFUSED','METADATA_PERMISSION_DENIED','METADATA_NETWORK_FAILED','METADATA_TLS_FAILED','METADATA_DATABASE_AUTH_FAILED','METADATA_QUERY_FAILED','METADATA_UNCLASSIFIED','RESTORE_CATALOG_MISMATCH','RESTORE_DATA_MISMATCH','CHILD_TIMEOUT','BACKUP_CANCELLED','RESTORE_VALIDATION_MARKER_MISSING','RESTORE_TRANSACTION_REQUIRED','RESTORE_ACTOR_CHANGED','RESTORE_DIAGNOSTIC_ACK_MISSING','RESTORE_DIAGNOSTIC_COMPONENTS_INVALID','RESTORE_DIAGNOSTIC_COMPONENTS_INCONSISTENT','RESTORE_DIAGNOSTIC_SEQUENCE_INVALID','RESTORE_DIAGNOSTIC_SEQUENCE_CHANGED','RESTORE_DESTINATION_NOT_EMPTY','RESTORE_DESTINATION_SCHEMA_CHANGED','RESTORE_EXTENSION_VERSION_CHANGED','RESTORE_SEQUENCE_PRIVILEGES_CHANGED']);
 export class RestoreOutcomeFailure extends BackupFailure {
  constructor(code,error){super(code);this.causeLabel=error instanceof BackupFailure&&causeLabels.has(error.code)?error.code:'RESTORE_CAUSE_UNCLASSIFIED';}
 }
@@ -156,11 +157,13 @@ export function schemaReplaySQL(backup,catalogSQL,preflightSQL){
  const members=['roles.sql','schema.sql','migration-schema.sql'].map(name=>limits+validateSchemaReplay(content[name])+'\n');
  // SAVEPOINT fails before any write if the caller omitted an explicit transaction.
  return 'SAVEPOINT faraios_t11_replay;\n'+limits+"SELECT pg_advisory_xact_lock(1711,20261020);\n"+emptyCheck(preflightSQL)+catalogCheck(catalogSQL,RESTORE_CONFIG.emptyApplicationCatalogSha256)+
-  ACTOR_SQL+RESTORE_CREATION_DEFAULTS_SQL+'CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA extensions;\n'+members.join('\n');
+  ACTOR_SQL+RESTORE_CREATION_DEFAULTS_SQL+'CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA extensions;\n'+members.join('\n')+limits+ACTOR_SQL+RECONSTRUCT_WORKING_DAYS_SQL;
 }
 export function importSQL(backup,manifest,catalogSQL,preflightSQL){
  const {rewritten}=sequenceAssignments(backup.payload.files,false);
- return schemaReplaySQL(backup,catalogSQL,preflightSQL)+['data.sql','migration-data.sql'].map(name=>limits+rewritten[name]+'\n').join('\n')+verificationSQL(manifest,catalogSQL);
+ // The complete unchanged schema/role/ACL fingerprints must pass BEFORE the
+ // first account/business row is replayed, then again with row digests at end.
+ return schemaReplaySQL(backup,catalogSQL,preflightSQL)+catalogCheck(catalogSQL,RESTORE_CONFIG.applicationCatalogSha256)+['data.sql','migration-data.sql'].map(name=>limits+rewritten[name]+'\n').join('\n')+verificationSQL(manifest,catalogSQL);
 }
 
 export async function restoreArchive({archive,password,mode='restore',home=homedir(),runner=run,signal,progress=()=>{}}){
@@ -201,7 +204,7 @@ export async function restoreArchive({archive,password,mode='restore',home=homed
    progress('Checking rollback on a fresh read-only connection');
    const after=await metadata('diagnostic-postcheck');
    if(JSON.stringify(before.sequence_state)!==JSON.stringify(after.sequence_state))fail('RESTORE_DIAGNOSTIC_SEQUENCE_CHANGED');
-   return {destination:DESTINATION,restore:'NOT_RUN',diagnostic:'ROLLED_BACK',emptyDestinationVerification:'PASSED',sequenceUnchanged:'PASSED',...comparison,fullRestore:'ON_HOLD'};
+   return {destination:DESTINATION,restore:'NOT_RUN',diagnostic:'ROLLED_BACK',emptyDestinationVerification:'PASSED',sequenceUnchanged:'PASSED',...comparison,fullRestore:RESTORE_CONFIG.importEnabled===true?'NOT_RUN':'ON_HOLD'};
   }
   if(['restore','preflight'].includes(mode)){
    progress('Checking exact empty restore destination');
@@ -260,7 +263,7 @@ async function main(){
   console.log('FaraiOS isolated restore only: faraios-restore-test '+DESTINATION+'.');
   console.log('Source staging is never connected. Keep restore-project apps, signups, email/SMS, providers and jobs isolated.');
   const archive=args[1]??await pickArchive(cancellation.signal);
-  if(mode==='diagnose')console.log('Schema-only rollback diagnostic. No accounts/business rows are imported; normal restore remains on hold.');
+  if(mode==='diagnose')console.log('Schema-only rollback diagnostic. No accounts/business rows are imported; full restore is not run.');
   if(['restore','finish-sequences','diagnose'].includes(mode)&&(await ask('Confirm the isolated destination is unused and outbound integrations are disabled (type RESTORE_TEST):')).trim()!=='RESTORE_TEST')fail('RESTORE_ISOLATION_NOT_CONFIRMED');
   const password=await ask('Existing faraios-restore-test DATABASE password (hidden; never paste in chat):',true);
   console.log(JSON.stringify(await restoreArchive({archive,password,mode,signal:cancellation.signal,progress:console.log}),null,2));

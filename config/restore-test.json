@@ -9,7 +9,7 @@
   "applicationCatalogSha256": "e73bde7740e11fe985d33c710f0654774a5dc9caa6d2e46af522973340817d03",
   "managedCatalogSha256": "b190886ca97fdc83673380fef8b846a9f372ace520fa49df1c8cd6dfd6366f23",
   "emptyApplicationCatalogSha256": "a2db5f018fe0ff409b195fce506b169d7b3ea2546096ad7a15ca5926c319655c",
-  "importEnabled": false,
+  "importEnabled": true,
   "catalogComponents": {
     "managed": {
       "sha256": "b190886ca97fdc83673380fef8b846a9f372ace520fa49df1c8cd6dfd6366f23",
