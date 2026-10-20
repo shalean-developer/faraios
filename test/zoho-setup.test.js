@@ -310,6 +310,15 @@ test('standard invoice observations keep broad access adverse and failures incon
  }
  assert.deepEqual(standardDiagnosticLabels({refresh:credentials.clientSecret,target:{outcome:credentials.clientSecret,httpStatus:99999,providerCode:99999},other:{outcome:credentials.clientSecret},cleanup:credentials.clientSecret}),['[STD_REFRESH_INCONCLUSIVE]','[STD_TARGET_INVOICES_INCONCLUSIVE]','[STD_OTHER_TEST_INVOICES_INCONCLUSIVE]','[CLEANUP_UNAVAILABLE]']);
 });
+test('standard invoice reads accept documented pagination shapes and refuse ambiguous or malformed contexts',async()=>{
+ for(const page_context of [{has_more_page:false},[{has_more_page:true}],[],[{has_more_page:false},{has_more_page:true}],[{has_more_page:'false'}],[[{has_more_page:false}]],null]){
+  const readable=!Array.isArray(page_context)&&page_context!==null||Array.isArray(page_context)&&page_context.length===1&&typeof page_context[0]?.has_more_page==='boolean';
+  const report=await diagnoseStandardOAuth(binding,diagnosticCredentials,async(url,options)=>{
+   if(String(url).endsWith('/oauth/v2/token'))return response(options.body.get('grant_type')==='authorization_code'?token:refreshedToken);if(String(url).endsWith('/oauth/v2/revoke/token'))return response({status:'success'});return response({code:0,invoices:[],page_context});
+  });
+  assert.equal(report.target.outcome,readable?'READABLE':'INCONCLUSIVE');assert.equal(report.other.outcome,readable?'ACCESSIBLE':'NOT_RUN');assert.equal(report.cleanup,'REFRESH_REVOKED');
+ }
+});
 test('standard refresh failures, partial grants and cancellation preserve current-token cleanup and prevent subsequent reads',async()=>{
  for(const mode of ['REFRESH_HTTP','REFRESH_NETWORK','REFRESH_RESPONSE','REFRESH_REJECTED','REFRESH_ACCESS_MISSING','REFRESH_DOMAIN','REFRESH_EXPIRY','TOKEN_REFRESH_MISSING','CANCEL_REFRESH','CANCEL_TARGET','CLEANUP_FAILED']){
   const calls=[],controller=new AbortController();

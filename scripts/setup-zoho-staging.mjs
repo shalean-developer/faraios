@@ -184,7 +184,9 @@ async function diagnosticInvoices(binding,organizationId,accessToken,target,fetc
   const result=await safeJson(fetchImpl,binding.api_domain+'/books/v3/invoices?'+new URLSearchParams({organization_id:organizationId,page:'1',per_page:'1'}),{method:'GET',headers:{Authorization:'Zoho-oauthtoken '+accessToken}},'ORG');
   // Discard all invoice/customer data. This proves only a readable request,
   // including an empty list, never an exact organisation identity or boundary.
-  if(result.code!==0||!Array.isArray(result.invoices)||typeof result.page_context?.has_more_page!=='boolean')return {outcome:'INCONCLUSIVE'};
+  // Books examples use both an object and a singleton array for page_context.
+  const page=Array.isArray(result.page_context)?result.page_context.length===1?result.page_context[0]:null:result.page_context;
+  if(result.code!==0||!Array.isArray(result.invoices)||!page||Array.isArray(page)||typeof page.has_more_page!=='boolean')return {outcome:'INCONCLUSIVE'};
   return {outcome:target?'READABLE':'ACCESSIBLE'};
  }catch(error){
   const report={outcome:!target&&error instanceof SetupFailure&&error.diagnostic==='ORG_HTTP'&&error.httpStatus===403?'REJECTED':'INCONCLUSIVE'};
