@@ -4,7 +4,7 @@ import { mkdtemp, readFile, writeFile, readdir, rm, lstat, symlink, mkdir, renam
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { SOURCE, CLIENT_IMAGE, POOLER_HOST, DUMPS, validateManifest, parseManifest, clientEnvironment, clientArgs, dumpSpec, parsePgManifest, cleanupClient, sealBackup, openBackup, sha256, capture, verifyFile, run, privateDirectory, assertDataCoverage, assertCompleteDump, outsideGit, localDocker, windowsEnvironment, metadataFailureLabel } from '../scripts/backup-staging.mjs';
+import { SOURCE, CLIENT_IMAGE, POOLER_HOST, DUMPS, validateManifest, parseManifest, clientEnvironment, clientArgs, dumpSpec, parsePgManifest, cleanupClient, terminalFailure, sealBackup, openBackup, sha256, capture, verifyFile, run, privateDirectory, assertDataCoverage, assertCompleteDump, outsideGit, localDocker, windowsEnvironment, metadataFailureLabel } from '../scripts/backup-staging.mjs';
 
 function manifest() {
  const tables=[...Array.from({length:15},(_,i)=>({schema:'public',table:'t'+i,rls:true,rows:i===0?2:0,sha256:'a'.repeat(64)})),...Array.from({length:2},(_,i)=>({schema:'audit',table:'t'+i,rls:true,rows:0,sha256:'b'.repeat(64)})),{schema:'auth',table:'users',rls:true,rows:3,sha256:'c'.repeat(64)},{schema:'supabase_migrations',table:'schema_migrations',rls:false,rows:21,sha256:'d'.repeat(64)}];
@@ -323,5 +323,21 @@ test('daemon cleanup failure blocks capture before keys or a success report',asy
   if(command==='docker'&&args[0]==='ps')throw new Error('private daemon response');
   return runner(command,args,options);
  }}),{code:'CONTAINER_CLEANUP_FAILED'});
+ assert.deepEqual(await readdir(join(p,'.faraios-recovery-keys')),[]);
+});
+
+
+test('cleanup failure retains its operator label after cancellation while other aborted errors are normalized',async t=>{
+ const p=await home(t),runner=mockRunner(),controller=new AbortController();
+ let observed;
+ try {
+  await capture({home:p,password:'synthetic private password',signal:controller.signal,runner:async(command,args,options)=>{
+   if(command==='docker'&&args[0]==='run')controller.abort();
+   if(command==='docker'&&args[0]==='ps')throw new Error('private daemon response');
+   return runner(command,args,options);
+  }});
+ } catch(error) {observed=terminalFailure(error,controller.signal);}
+ assert.equal(observed?.code,'CONTAINER_CLEANUP_FAILED');assert.equal(observed.message,observed.code);
+ assert.equal(terminalFailure(new Error('private aborted detail'),controller.signal).code,'BACKUP_CANCELLED');
  assert.deepEqual(await readdir(join(p,'.faraios-recovery-keys')),[]);
 });

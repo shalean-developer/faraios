@@ -443,6 +443,11 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
  }
 }
 
+// Preserve an unresolved daemon cleanup even when Ctrl+C caused the interruption.
+export function terminalFailure(error,signal) {
+ return signal?.aborted&&error?.code!=='CONTAINER_CLEANUP_FAILED'?new BackupFailure('BACKUP_CANCELLED'):error;
+}
+
 async function main() {
  const argv=process.argv.slice(2),home=homedir(),keyRoot=join(home,'.faraios-recovery-keys');
  if(argv[0]==='--verify-file'&&argv.length===2) {
@@ -468,7 +473,7 @@ async function main() {
   console.log(JSON.stringify(report,null,2));
   console.log('Keep the .key file separate and copy it to protected offline storage. Upload only the .fbackup and .sha256 files to the approved private Drive folder.');
   console.log('T11 remains In progress: off-site retrieval/decryption, isolated restore and access/audit acceptance are pending.');
- } catch(error) { if(cancellation.signal.aborted) fail('BACKUP_CANCELLED');throw error; }
+ } catch(error) { throw terminalFailure(error,cancellation.signal); }
  finally { terminal.close();process.removeListener('SIGINT',cancel);process.removeListener('SIGTERM',cancel); }
 }
 
