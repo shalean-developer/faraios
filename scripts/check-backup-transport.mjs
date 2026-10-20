@@ -1,7 +1,8 @@
 // CI-only disposable PostgreSQL tests plus a credential-free public pooler TLS handshake.
 // The public handshake closes before PostgreSQL startup/authentication/query traffic.
 import assert from 'node:assert/strict';
-import {importSQL,verificationSQL,sequenceAssignments,sequenceVerificationSQL,finishSequencesSQL,RESTORE_CONFIG,MANAGED_PARAMETER_GRANT,RESTORE_CREATION_DEFAULTS_SQL} from './restore-staging.mjs';
+import {importSQL,schemaReplaySQL,verificationSQL,sequenceAssignments,sequenceVerificationSQL,finishSequencesSQL,RESTORE_CONFIG,MANAGED_PARAMETER_GRANT,RESTORE_CREATION_DEFAULTS_SQL} from './restore-staging.mjs';
+import {catalogComponentsSQL,diagnosticSQL,diagnosticMetadataSQL,parseDiagnosticOutput,compareCatalogComponents,validateSequenceState} from './restore-diagnostic.mjs';
 import { mkdtemp, writeFile, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -101,6 +102,20 @@ async function exerciseRestore(manifest,files){
   await assert.rejects(query(restoreServer,'revoke set on parameter log_min_messages from supabase_realtime_admin;set local role postgres;'+importSQL(backup,wrapped,catalogSQL,preflightSQL),true,true),{code:'RESTORE_CATALOG_MISMATCH'});
   assert.equal((await catalog(restoreServer)).application,empty.application);
   console.log('T11_RESTORE_PARAMETER_ACL_DRIFT_REFUSED=PASS (before import; provider grant preserved)');
+  const diagnosticLimits="SET LOCAL search_path='';SET LOCAL timezone='UTC';\n";
+  const componentPins=JSON.parse((await query(tlsServer,diagnosticLimits+catalogComponentsSQL(catalogSQL))).stdout);
+  const diagnosticMetadata=async()=>JSON.parse((await query(restoreServer,diagnosticMetadataSQL(catalogSQL,preflightSQL,diagnosticLimits))).stdout);
+  const beforeDiagnostic=await diagnosticMetadata();validateSequenceState(beforeDiagnostic);
+  const replay=schemaReplaySQL(backup,catalogSQL,preflightSQL);
+  assert.ok(!replay.includes('COPY '));assert.ok(!replay.includes('setval('));
+  for(const drift of [false,true]){
+   const sql=diagnosticSQL(replay+(drift?'ALTER TABLE public.sample DISABLE ROW LEVEL SECURITY;\n':''),catalogSQL,diagnosticLimits);
+   const output=await query(restoreServer,sql,true);
+   const comparison=compareCatalogComponents(parseDiagnosticOutput(output.stdout),componentPins);
+   assert.deepEqual(comparison,{matchingComponents:drift?33:34,catalogMismatchComponents:drift?['APPLICATION_RELATIONS']:[]});
+   assert.deepEqual(await diagnosticMetadata(),beforeDiagnostic);
+  }
+  console.log('T11_SCHEMA_ONLY_COMPONENT_DIAGNOSTIC_AND_ROLLBACK=PASS (34 matches or exact RLS component; fresh empty catalog/defaults/extensions/sequence unchanged; no data replay)');
   const unprepared=importSQL(backup,wrapped,catalogSQL,preflightSQL);
   assert.equal(unprepared.split(RESTORE_CREATION_DEFAULTS_SQL).length,2);
   await assert.rejects(query(restoreServer,unprepared.replace(RESTORE_CREATION_DEFAULTS_SQL,'-- Reproduce the original creation-default defect.\n'),true),{code:'RESTORE_CATALOG_MISMATCH'});
