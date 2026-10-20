@@ -1,6 +1,14 @@
 # Separate staging role acceptance — 19 October 2026
 
-## Current manager result and shared-staff follow-up — 20 October
+## T08–T10 staging closeout — 20 October 2026
+
+Independent outcome **QA-ACCESS-T08-T10-ACCEPTANCE-20261020 v1 — PASS** supports marking T08, T09 and T10 Done for their bounded staging criteria, dated 20 October 2026. A separate read-only reviewer assessed the evidence using shared AI tooling; that limitation remains disclosed. The owner supplied the manager's complete 31-check PASS at 16:22:26 SAST and the explicitly shared cleaner's complete 35-check PASS at 16:34:27 SAST; both reports have `passed:true` and cleanup `PASSED`. The shared profile was introduced in merged PR77 (`6f7c02e8`); no running-process SHA is independently attested by these reports.
+
+The manager's selector exposes only Bokkie, its own dashboard/eight office modules return HTTP200, and the Shalean dashboard/eight modules plus owner settings return HTTP403. The shared cleaner's selector exposes exactly Bokkie and Shalean; both selected dashboards return HTTP200 with staff role and assignment/earnings wording. Both sets of owner settings and all eight office modules return HTTP403. A supplied owner role cannot elevate access. Both helpers logged out their own sessions and verified redirect to login using their invalidated cookies. Retained owner-switching, mobile and live RLS evidence supports the combined result.
+
+No further manager/staff rerun is required for this acceptance. The earlier request failure did not recur and its cause remains unknown. This is independently reviewed owner-host local STAGING evidence, not reviewer live replay or production approval. Future cleaner/customer record-level portals, T11 full recovery, T04 policy and production hosting/environment/security gates remain separate. T19 activation stays held; T20 remains unstarted. Reassess after relevant access, membership, authentication or environment changes, contradictory evidence or recurrence of the failure.
+
+## Historical 16:22 manager result and shared-staff preparation
 
 At 16:22:26 SAST the owner supplied a complete successful manager rerun using the helper from main `8f8ec5a`. All 31 reported checks passed; `passed` was true and cleanup was `PASSED`. The Bokkie-only selector, verified manager role and Bokkie dashboard passed. The Shalean dashboard returned HTTP403 despite a client-supplied owner role. Bokkie owner-only settings returned HTTP403. Customers, bookings, catalogue, staff, quotes, recurring, calendar and invoices each returned HTTP200 for Bokkie and HTTP403 for Shalean. Logout and the same helper session's post-logout redirect to login passed. This is owner-supplied local STAGING HTTP evidence, not an agent live replay or a verified server process SHA. No business writes, payment actions or Zoho calls were exercised.
 
