@@ -1,7 +1,7 @@
 // CI-only disposable PostgreSQL tests plus a credential-free public pooler TLS handshake.
 // The public handshake closes before PostgreSQL startup/authentication/query traffic.
 import assert from 'node:assert/strict';
-import {importSQL,verificationSQL,sequenceAssignments,sequenceVerificationSQL,finishSequencesSQL,RESTORE_CONFIG,MANAGED_PARAMETER_GRANT} from './restore-staging.mjs';
+import {importSQL,verificationSQL,sequenceAssignments,sequenceVerificationSQL,finishSequencesSQL,RESTORE_CONFIG,MANAGED_PARAMETER_GRANT,RESTORE_CREATION_DEFAULTS_SQL} from './restore-staging.mjs';
 import { mkdtemp, writeFile, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -21,8 +21,12 @@ const owned=[];
 // Stock PostgreSQL lacks Supabase's privileged-setting extension. This one
 // fixture-only grant lets the non-superuser actor replay native data settings.
 const fixtureReplicaGrant='GRANT SET ON PARAMETER "session_replication_role" TO "postgres";';
+// Model the reviewed provider's existing defaults, including grants later
+// revoked on individual protected objects in the source.
+const providerDefaults=['TABLES','SEQUENCES','FUNCTIONS'].map(kind=>
+ `ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON ${kind} TO postgres,anon,authenticated,service_role;`).join('\n');
 async function bootstrapRestrictedActor(name){
- const sql=`create role postgres login createrole createdb password '${password}';alter database postgres owner to postgres;create role supabase_realtime_admin;${MANAGED_PARAMETER_GRANT}${fixtureReplicaGrant}`;
+ const sql=`create role postgres login createrole createdb password '${password}';alter database postgres owner to postgres;create role supabase_realtime_admin;create role anon;create role authenticated;create role service_role;${MANAGED_PARAMETER_GRANT}${fixtureReplicaGrant}`;
  await docker(['exec','--interactive',name,'psql','-U','supabase_admin','-d','postgres','-v','ON_ERROR_STOP=1','-q'],{input:sql});
 }
 async function ready(name) {
@@ -85,7 +89,7 @@ async function exerciseRestore(manifest,files){
  console.log('T11_RESTORE_PORTABLE_SECURITY_MUTATIONS_DETECTED=PASS (domain, column ACL, role capability/membership and global defaults)');
  await docker(['run','--detach','--rm','--name',restoreServer,'--network',network,'--log-driver','none','--env','POSTGRES_USER=supabase_admin','--env','POSTGRES_DB=postgres','--env','POSTGRES_PASSWORD='+password,'--mount','type=bind,src='+resolve(fixture)+',dst=/input,readonly','--entrypoint','/bin/bash',CLIENT_IMAGE,'-c','install -o postgres -g postgres -m 600 /input/server.key /tmp/server.key; install -o postgres -g postgres -m 644 /input/server.crt /tmp/server.crt; exec docker-entrypoint.sh postgres -c ssl=on -c ssl_cert_file=/tmp/server.crt -c ssl_key_file=/tmp/server.key']);owned.push(restoreServer);await ready(restoreServer);await bootstrapRestrictedActor(restoreServer);
  const managed=`create schema extensions;create extension pgcrypto schema extensions;create schema auth;create schema storage;create schema vault;
- create table auth.users(id int);create sequence auth.refresh_tokens_id_seq;select setval('auth.refresh_tokens_id_seq',11,true);create table auth.schema_migrations(version text);create table storage.migrations(id int);create table storage.buckets(id int);create table storage.objects(id int);create table storage.buckets_vectors(id int);create table storage.vector_indexes(id int);create table vault.secrets(id int);create role anon;create role authenticated;`;
+ create table auth.users(id int);create sequence auth.refresh_tokens_id_seq;select setval('auth.refresh_tokens_id_seq',11,true);create table auth.schema_migrations(version text);create table storage.migrations(id int);create table storage.buckets(id int);create table storage.objects(id int);create table storage.buckets_vectors(id int);create table storage.vector_indexes(id int);create table vault.secrets(id int);${providerDefaults}`;
  await query(restoreServer,managed,true);
  const empty=await catalog(restoreServer);assert.equal(empty.managed,sourceCatalog.managed);
  const saved={...RESTORE_CONFIG};Object.assign(RESTORE_CONFIG,{applicationCatalogSha256:sourceCatalog.application,managedCatalogSha256:sourceCatalog.managed,emptyApplicationCatalogSha256:empty.application});
@@ -97,6 +101,11 @@ async function exerciseRestore(manifest,files){
   await assert.rejects(query(restoreServer,'revoke set on parameter log_min_messages from supabase_realtime_admin;set local role postgres;'+importSQL(backup,wrapped,catalogSQL,preflightSQL),true,true),{code:'RESTORE_CATALOG_MISMATCH'});
   assert.equal((await catalog(restoreServer)).application,empty.application);
   console.log('T11_RESTORE_PARAMETER_ACL_DRIFT_REFUSED=PASS (before import; provider grant preserved)');
+  const unprepared=importSQL(backup,wrapped,catalogSQL,preflightSQL);
+  assert.equal(unprepared.split(RESTORE_CREATION_DEFAULTS_SQL).length,2);
+  await assert.rejects(query(restoreServer,unprepared.replace(RESTORE_CREATION_DEFAULTS_SQL,'-- Reproduce the original creation-default defect.\n'),true),{code:'RESTORE_CATALOG_MISMATCH'});
+  assert.deepEqual(await catalog(restoreServer),empty);
+  console.log('T11_RESTORE_INHERITED_DEFAULT_ACL_FAILURE_REPRODUCED=PASS (native object replay retains excess grants without preparation; transaction rolled back)');
   // Exercise actual pg_dump -> generated import -> PostgreSQL, not a SQL-shaped mock.
   const broken=structuredClone(wrapped);broken.before.tables.find(t=>t.schema==='public'&&t.table==='sample').sha256='0'.repeat(64);
   // The approved real capture has no custom roles. Inject a transactional
@@ -114,6 +123,8 @@ async function exerciseRestore(manifest,files){
   console.log('T11_RESTORE_NATIVE_FAILURE_ROLLBACK=PASS (schema, Auth rows and role creation rolled back)');
   const imported=await query(restoreServer,importSQL(backup,wrapped,catalogSQL,preflightSQL),true);assert.ok(imported.stdout.includes('FARAIOS_T11_RESTORE_VALIDATED'));
   await query(restoreServer,verificationSQL(wrapped,catalogSQL));
+  assert.equal((await query(restoreServer,"select has_table_privilege('anon','public.sample','SELECT'),has_table_privilege('service_role','public.sample','SELECT'),has_table_privilege('authenticated','public.sample','INSERT'),has_table_privilege('authenticated','public.sample','SELECT'),has_function_privilege('anon','public.owner_only()','EXECUTE'),has_function_privilege('authenticated','public.owner_only()','EXECUTE'),has_function_privilege('service_role','public.owner_only()','EXECUTE');")).stdout.trim(),'f|f|f|t|f|f|f');
+  console.log('T11_RESTORE_EXACT_OBJECT_AND_CREATION_DEFAULT_ACLS=PASS (protected table/function grants restored; final defaults included in exact catalog)');
   assert.equal((await query(restoreServer,'select last_value,is_called from auth.refresh_tokens_id_seq;')).stdout.trim(),'11|t');
   const {states}=sequenceAssignments(files);
   await assert.rejects(query(restoreServer,sequenceVerificationSQL(states)));
@@ -151,7 +162,7 @@ try {
  await docker(['network','create',network]);
  await docker(['run','--detach','--rm','--name',tlsServer,'--network',network,'--network-alias',wrongHost,'--log-driver','none','--env','POSTGRES_USER=supabase_admin','--env','POSTGRES_DB=postgres','--env','POSTGRES_PASSWORD='+password,'--mount','type=bind,src='+resolve(fixture)+',dst=/input,readonly','--entrypoint','/bin/bash',CLIENT_IMAGE,'-c','install -o postgres -g postgres -m 600 /input/server.key /tmp/server.key; install -o postgres -g postgres -m 644 /input/server.crt /tmp/server.crt; exec docker-entrypoint.sh postgres -c ssl=on -c ssl_cert_file=/tmp/server.crt -c ssl_key_file=/tmp/server.key']);owned.push(tlsServer);
  await ready(tlsServer);await bootstrapRestrictedActor(tlsServer);
- const setup=`create schema extensions; create extension pgcrypto schema extensions;
+ const setup=`${providerDefaults}\ncreate schema extensions; create extension pgcrypto schema extensions;
  create extension btree_gist schema extensions; create schema audit; create schema auth; create schema storage; create schema supabase_migrations; create schema vault;
  create table public.businesses(id uuid primary key,name text); insert into public.businesses values ('0cc3f518-d64e-40c2-8817-bc14d1ef1420','Synthetic A'),('612be091-b1d7-4911-9c3b-143446a9fe27','Synthetic B'); alter table public.businesses enable row level security;
  create table public.sample(id int, content text,business_id uuid); insert into public.sample values(1,'Réka 😀','0cc3f518-d64e-40c2-8817-bc14d1ef1420'),(2,'Synthetic second business','612be091-b1d7-4911-9c3b-143446a9fe27'); alter table public.sample enable row level security;
@@ -160,11 +171,13 @@ try {
  create table auth.schema_migrations(version text); create table storage.migrations(id int);
  create table storage.buckets(id int); create table storage.objects(id int); create table storage.buckets_vectors(id int); create table storage.vector_indexes(id int);
  create table supabase_migrations.schema_migrations(version text); insert into supabase_migrations.schema_migrations values ('synthetic'); create table vault.secrets(id int);
- create role anon; create role authenticated;
  create table public.business_memberships(user_id int,business_id uuid,role text);
  insert into public.business_memberships values(1,'0cc3f518-d64e-40c2-8817-bc14d1ef1420','owner'),(1,'612be091-b1d7-4911-9c3b-143446a9fe27','owner'),(2,'0cc3f518-d64e-40c2-8817-bc14d1ef1420','manager'),(3,'0cc3f518-d64e-40c2-8817-bc14d1ef1420','staff'),(3,'612be091-b1d7-4911-9c3b-143446a9fe27','staff');
  alter table public.business_memberships enable row level security;
+ revoke all on all tables in schema public from anon,authenticated,service_role;
  grant select on public.businesses,public.business_memberships,public.sample to authenticated;
+ create function public.owner_only() returns int language sql as 'select 1';
+ revoke all on function public.owner_only() from public,anon,authenticated,service_role;
  create policy memberships_self on public.business_memberships to authenticated using(user_id=current_setting('request.jwt.claim.sub',true)::int);
  create policy businesses_member on public.businesses to authenticated using(id in(select business_id from public.business_memberships));
  create policy sample_office on public.sample to authenticated using(business_id in(select business_id from public.business_memberships where role in('owner','manager')));

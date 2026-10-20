@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile,mkdtemp,realpath,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {restoreEnvironment,DESTINATION,RESTORE_CONFIG,validateRestoreBackup,validateDestination,importSQL,verificationSQL,restoreArchive,sequenceAssignments,preserveManagedParameterGrant,MANAGED_PARAMETER_GRANT,RestoreOutcomeFailure} from '../scripts/restore-staging.mjs';
+import {restoreEnvironment,DESTINATION,RESTORE_CONFIG,validateRestoreBackup,validateDestination,importSQL,verificationSQL,restoreArchive,sequenceAssignments,preserveManagedParameterGrant,MANAGED_PARAMETER_GRANT,RestoreOutcomeFailure,RESTORE_CREATION_DEFAULTS_SQL} from '../scripts/restore-staging.mjs';
 import {SOURCE,CLI,CLIENT_IMAGE,DUMPS,capture,run,BackupFailure,CLIENT_STARTED,metadataFailureLabel} from '../scripts/backup-staging.mjs';
 import {restoreFetch,createRestoreServer} from '../restore-rehearsal.mjs';
 import {createStagingServer} from '../src/staging-server.js';
@@ -33,7 +33,11 @@ test('import checks empty destination again, never replays managed reference and
  assert.ok(!sql.includes('-- managed-schema-reference.sql'));
  assert.ok(sql.indexOf('RESTORE_DATA_MISMATCH')>sql.indexOf('-- migration-data.sql'));
  assert.match(sql,/RESTORE_CATALOG_MISMATCH/);assert.match(sql,/RESTORE_ACCOUNTING_ENABLED/);assert.match(sql,/CREATE EXTENSION IF NOT EXISTS btree_gist/);assert.ok(!/\bCOMMIT\b/i.test(sql));
+ assert.equal(sql.split(RESTORE_CREATION_DEFAULTS_SQL).length,2);
+ assert.ok(sql.indexOf(RESTORE_CREATION_DEFAULTS_SQL)>sql.indexOf('RESTORE_CATALOG_MISMATCH'));
+ assert.ok(sql.indexOf(RESTORE_CREATION_DEFAULTS_SQL)<sql.indexOf('-- roles.sql'));
  const verify=verificationSQL(manifest(),c);assert.ok(!verify.includes('CREATE EXTENSION'));assert.ok(!verify.includes('FROM "auth"."schema_migrations"'));assert.match(verify,/FROM "auth"."users"/);
+ assert.ok(!verify.includes('ALTER DEFAULT PRIVILEGES'));
 });
 test('only the exact existing managed parameter grant is omitted; unexpected ACL statements stop before connection',()=>{
  const original='-- Native cluster dump\n'+MANAGED_PARAMETER_GRANT+"\nALTER ROLE \"postgres\" SET \"statement_timeout\" TO '10s';";

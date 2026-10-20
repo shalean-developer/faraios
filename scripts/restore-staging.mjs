@@ -10,6 +10,12 @@ import {SOURCE,CLI,CLIENT_IMAGE,BackupFailure,readVerifiedBackup,clientEnvironme
 export const DESTINATION='zrlojsvkqipuwkkyfrkn';
 export const RESTORE_CONFIG=JSON.parse(await readFile(new URL('../config/restore-test.json',import.meta.url),'utf8'));
 export const MANAGED_PARAMETER_GRANT='GRANT SET ON PARAMETER "log_min_messages" TO "supabase_realtime_admin";';
+// The reviewed empty destination already has these per-schema additions.
+// pg_dump's object ACLs assume clean creation defaults; otherwise inherited
+// grants can survive its replay. Clear only this actor/schema baseline inside
+// the import transaction. The unmodified dump restores it before catalog checks.
+export const RESTORE_CREATION_DEFAULTS_SQL=['TABLES','SEQUENCES','FUNCTIONS'].map(kind=>
+ `ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON ${kind} FROM "postgres", "anon", "authenticated", "service_role";\n`).join('');
 const causeLabels=new Set(['METADATA_PERMISSION_DENIED','METADATA_NETWORK_FAILED','METADATA_TLS_FAILED','METADATA_DATABASE_AUTH_FAILED','METADATA_QUERY_FAILED','METADATA_UNCLASSIFIED','RESTORE_CATALOG_MISMATCH','RESTORE_DATA_MISMATCH','CHILD_TIMEOUT','BACKUP_CANCELLED','RESTORE_VALIDATION_MARKER_MISSING']);
 export class RestoreOutcomeFailure extends BackupFailure {
  constructor(code,error){super(code);this.causeLabel=error instanceof BackupFailure&&causeLabels.has(error.code)?error.code:'RESTORE_CAUSE_UNCLASSIFIED';}
@@ -151,7 +157,7 @@ export function importSQL(backup,manifest,catalogSQL,preflightSQL){
  const ordered=['roles.sql','schema.sql','migration-schema.sql','data.sql','migration-data.sql'];
  const members=ordered.map(name=>limits+content[name]+'\n');
  return limits+"SELECT pg_advisory_xact_lock(1711,20261020);\n"+emptyCheck(preflightSQL)+catalogCheck(catalogSQL,RESTORE_CONFIG.emptyApplicationCatalogSha256)+
-  'CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA extensions;\n'+members.join('\n')+verificationSQL(manifest,catalogSQL);
+  RESTORE_CREATION_DEFAULTS_SQL+'CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA extensions;\n'+members.join('\n')+verificationSQL(manifest,catalogSQL);
 }
 
 export async function restoreArchive({archive,password,mode='restore',home=homedir(),runner=run,signal,progress=()=>{}}){
