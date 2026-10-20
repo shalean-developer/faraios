@@ -10,10 +10,11 @@ const business='10000000-0000-4000-8000-000000000001',foreign='20000000-0000-400
 const cookie='faraios_staging=12345678-1234-4234-8234-123456789012';
 const password=' synthetic secret with spaces ';
 const options=role=>({role,business,'denied-business':foreign,email:role+'.qa@faraios.test'});
+const sharedOptions=()=>({role:'staff',business,'shared-business':foreign,email:'staff.qa@faraios.test'});
 const args=role=>Object.entries(options(role)).map(([key,value])=>`--${key}=${value}`);
-const page=(role,all=false,extra=false)=>renderWorkspace({userId:'00000000-0000-4000-8000-000000000001',businessIds:[business],memberships:[{userId:'00000000-0000-4000-8000-000000000001',businessId:business,role,status:'active'},...(extra?[{userId:'00000000-0000-4000-8000-000000000001',businessId:foreign,role,status:'active'}]:[])],businesses:[{id:business,name:'Synthetic QA business'},...(extra?[{id:foreign,name:'Synthetic other business'}]:[])]},all?'all':business);
+const page=(role,all=false,extra=false,selected=business)=>renderWorkspace({userId:'00000000-0000-4000-8000-000000000001',businessIds:[business],memberships:[{userId:'00000000-0000-4000-8000-000000000001',businessId:business,role,status:'active'},...(extra?[{userId:'00000000-0000-4000-8000-000000000001',businessId:foreign,role,status:'active'}]:[])],businesses:[{id:business,name:'Synthetic QA business'},...(extra?[{id:foreign,name:'Synthetic other business'}]:[])]},all?'all':selected);
 
-function fixture(role,{allowForeign=false,authStatus=303,ownerSettings=403,moduleStatus,extraBusiness=false,badLocation=false,logoutStatus=303,throwOnModule=false,largePage=false}={}){
+function fixture(role,{allowForeign=false,sharedBusiness=false,authStatus=303,ownerSettings=403,moduleStatus,extraBusiness=false,badLocation=false,logoutStatus=303,throwOnModule=false,largePage=false}={}){
  const calls=[];let loggedIn=false,ended=false;
  const transport=async(url,init)=>{
   calls.push({url,init});assert.equal(new URL(url).origin,stagingOrigin);assert.equal(init.redirect,'manual');
@@ -32,7 +33,7 @@ function fixture(role,{allowForeign=false,authStatus=303,ownerSettings=403,modul
   assert.equal(init.headers.Cookie,cookie);assert.equal(loggedIn,true);
   if(ended)return new Response('',{status:303,headers:{Location:'/login'}});
   const denied=path.searchParams.get('business')===foreign;
-  if(path.pathname==='/dashboard')return new Response(denied?'private denied body':page(role,path.searchParams.get('business')==='all',extraBusiness),{status:denied?(allowForeign?200:403):200});
+  if(path.pathname==='/dashboard')return new Response(denied&&!sharedBusiness?'private denied body':page(role,path.searchParams.get('business')==='all',extraBusiness||sharedBusiness,denied?foreign:business),{status:denied&&!sharedBusiness?(allowForeign?200:403):200});
   if(path.pathname==='/settings')return new Response('private settings body',{status:ownerSettings});
   if(throwOnModule)throw new Error('transport error with '+password+' '+cookie);
   return new Response('private module body',{status:moduleStatus??(denied||role==='staff'?403:200)});
@@ -46,6 +47,40 @@ for(const role of ['manager','staff'])test(role+' verifier requires permitted re
  assert.deepEqual(f.calls.filter(c=>c.init.method==='POST').map(c=>new URL(c.url).pathname),['/login','/logout']);
  assert.ok(f.calls.some(c=>new URL(c.url).searchParams.get('role')==='owner'));
  const serialized=JSON.stringify(r);for(const secret of [password,cookie,'private module body','private denied body'])assert.ok(!serialized.includes(secret));
+});
+
+test('shared staff must have both exact dashboard memberships while all office modules and settings stay denied',async()=>{
+ const f=fixture('staff',{sharedBusiness:true}),r=await verifyStagingAccess(sharedOptions(),password,{fetchImpl:f.transport});
+ assert.equal(r.passed,true);assert.equal(r.cleanup,'PASSED');assert.equal(r.checks.length,35);
+ for(const name of ['SHARED_BUSINESS_SCOPE','VERIFIED_ROLE','STAFF_DASHBOARD_SCOPE','SHARED_VERIFIED_ROLE','SHARED_STAFF_DASHBOARD_SCOPE'])assert.ok(r.checks.some(c=>c.name===name&&c.pass));
+ for(const name of ['OWN_DASHBOARD','SHARED_DASHBOARD'])assert.ok(r.checks.some(c=>c.name===name&&c.actual===200&&c.pass));
+ const modules=['CUSTOMERS','BOOKINGS','CATALOGUE','STAFF','QUOTES','RECURRING','CALENDAR','INVOICES'];
+ for(const prefix of ['OWN','SHARED'])for(const module of [...modules,'OWNER_SETTINGS'])assert.ok(r.checks.some(c=>c.name===prefix+'_'+module&&c.actual===403&&c.pass));
+ assert.ok(!r.checks.some(c=>c.name.startsWith('OTHER_')));
+ assert.deepEqual(f.calls.filter(c=>c.init.method==='POST').map(c=>new URL(c.url).pathname),['/login','/logout']);
+ assert.ok(f.calls.filter(c=>new URL(c.url).searchParams.get('business')===foreign).every(c=>new URL(c.url).searchParams.get('role')==='owner'));
+ for(const secret of [password,cookie,'private module body'])assert.ok(!JSON.stringify(r).includes(secret));
+});
+
+test('shared staff cannot pass with missing/extra membership, elevated role or exposed office access',async()=>{
+ for(const change of ['missing','extra','role','office']){
+  const f=fixture('staff',{sharedBusiness:change!=='missing'});
+  const r=await verifyStagingAccess(sharedOptions(),password,{fetchImpl:async(url,init)=>{
+   const path=new URL(url);
+   if(change==='extra'&&path.pathname==='/dashboard'&&path.searchParams.get('business')==='all')return new Response(page('staff',true,true).replace('</select>','<option value="30000000-0000-4000-8000-000000000003">Unexpected business</option></select>'));
+   if(change==='role'&&path.pathname==='/dashboard'&&path.searchParams.get('business')===foreign)return new Response(page('manager',false,true,foreign));
+   if(change==='office'&&path.pathname==='/invoices'&&path.searchParams.get('business')===foreign)return new Response('private invoice body');
+   return f.transport(url,init);
+  }});
+  assert.equal(r.passed,false);assert.equal(r.failure,'CHECK_FAILED');assert.equal(r.cleanup,'PASSED');assert.ok(r.checks.some(c=>!c.pass));assert.ok(!JSON.stringify(r).includes('private invoice body'));
+ }
+ const f=fixture('staff',{sharedBusiness:true});const r=await verifyStagingAccess(options('staff'),password,{fetchImpl:f.transport});assert.equal(r.passed,false);assert.equal(r.checks.find(c=>!c.pass).name,'SINGLE_BUSINESS_SCOPE');assert.equal(r.cleanup,'PASSED');
+});
+
+test('shared mode rejects ambiguous boundaries and manager use before any request',async()=>{
+ for(const invalid of [{...sharedOptions(),role:'manager'},{...sharedOptions(),'denied-business':business},{...sharedOptions(),'shared-business':business},{...sharedOptions(),'shared-business':'invalid'},{...sharedOptions(),'shared-business':undefined}]){
+  let calls=0;await assert.rejects(verifyStagingAccess(invalid,password,{fetchImpl:async()=>{calls++;}}),/INVALID_OPTIONS/);assert.equal(calls,0);
+ }
 });
 
 test('a foreign allow, extra business, owner access, wrong role or module failure cannot pass',async()=>{

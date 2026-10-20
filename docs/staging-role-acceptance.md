@@ -1,6 +1,14 @@
 # Separate staging role acceptance — 19 October 2026
 
-## 20 October operator result and diagnostic follow-up
+## Current manager result and shared-staff follow-up — 20 October
+
+At 16:22:26 SAST the owner supplied a complete successful manager rerun using the helper from main `8f8ec5a`. All 31 reported checks passed; `passed` was true and cleanup was `PASSED`. The Bokkie-only selector, verified manager role and Bokkie dashboard passed. The Shalean dashboard returned HTTP403 despite a client-supplied owner role. Bokkie owner-only settings returned HTTP403. Customers, bookings, catalogue, staff, quotes, recurring, calendar and invoices each returned HTTP200 for Bokkie and HTTP403 for Shalean. Logout and the same helper session's post-logout redirect to login passed. This is owner-supplied local STAGING HTTP evidence, not an agent live replay or a verified server process SHA. No business writes, payment actions or Zoho calls were exercised.
+
+The earlier `OWN_QUOTES` transport/body failure did not recur: the complete Bokkie quotes response returned HTTP200 and later modules passed. Its original cause remains unknown; a successful rerun is not a root-cause fix claim. Keep that partial run below as history. The manager boundary criterion now has real HTTP evidence. Current shared-staff acceptance and final task-level independent acceptance remain separate; T11 recovery, T04 policy, T19 provider hold and later record-level cleaner portal tasks are unchanged.
+
+The shared-staff verifier profile uses `--role=staff --business=<first-authorised-uuid> --shared-business=<second-authorised-uuid> --email=<staff-qa-address.test>`. It requires the exact two businesses in the selector, staff role and assignment/earnings wording on both dashboards, denied owner settings and all eight office modules in both businesses, and its own logout/invalidation. The second dashboard and module/settings requests include `role=owner` to check that client claims cannot elevate staff. Shared mode cannot be combined with `--denied-business` or manager mode. It does not treat either authorised business as foreign, change membership or create a new account. Existing single-business manager/staff profiles retain their foreign-business checks. Actual shared-staff operator evidence is pending; fixture checks are preparation only. Assignment/earnings dashboard wording does not prove future cleaner record-level views.
+
+## Earlier 16:09 operator result and diagnostic follow-up
 
 At 16:09 SAST the owner supplied the manager verifier result after pulling main `e469ddd`. Login, exact Bokkie-only selector/role, Bokkie dashboard, direct Shalean dashboard denial (with a client role claim), owner settings denial, Shalean customers/bookings/catalogue/staff/quotes denials and permitted Bokkie customers/bookings/catalogue/staff reads all passed with actual HTTP responses. The run then stopped with `REQUEST_FAILED` before an `OWN_QUOTES` result. The original report cannot distinguish a deadline, connection or incomplete-body failure; no cause is established. Later recurring/calendar/invoices checks did not run. Its own sign-out and post-sign-out redirect checks passed; cleanup was `PASSED`, overall result was false.
 
@@ -8,7 +16,7 @@ The follow-up adds fixed request check names, HEADERS/BODY phase, a nullable rec
 
 20 October follow-up: the real Bokkie-only manager dashboard was observed again. Chrome still blocked the direct Shalean request with ERR_BLOCKED_BY_CLIENT before an application response could be established. This is a browser observation, not proof of HTTP403. The operator-run verifier below is prepared to obtain real local HTTP evidence; it does not itself close T08–T10 until actual results and independent acceptance are recorded.
 
-Current fixture scope: the manager QA account has one active membership, Bokkie manager, and is the account for the next operator run. The existing cleaner QA account now has active staff memberships in both Bokkie and Shalean; the earlier Bokkie-only cleaner observation below is historical. That shared cleaner is not a valid single-business fixture for this verifier. Staff mode requires a separately verified single-business staff fixture; no membership change is part of this work. Current shared-staff access remains separately unassessed.
+Current fixture scope: the manager QA account has one active membership, Bokkie manager, and its complete operator run is recorded above. The existing cleaner QA account has active staff memberships in both Bokkie and Shalean; the earlier Bokkie-only cleaner observation below is historical. The single-business staff profile requires a separately verified single-business fixture. The shared-staff profile supports the current two-business cleaner fixture; no membership change is part of this work. Actual current shared-staff acceptance remains pending its operator run.
 
 ## Local HTTP verification
 
@@ -44,7 +52,7 @@ Mobile menu previously passed click open/close and keyboard open at 390 x 844, w
 
 ## Historical browser-only limitation and decision (19 October)
 
-The following two paragraphs retain the earlier browser-only evidence and decision. The 20 October operator run now supplies actual manager HTTP403 evidence for the Shalean dashboard and tested modules above. Current remaining acceptance gates are the unresolved `OWN_QUOTES` request, later recurring/calendar/invoices reads, current shared-staff checks and final independent acceptance; full T11 recovery is also open.
+The following two paragraphs retain the earlier browser-only evidence and decision. The earlier 16:09 run's `OWN_QUOTES` and later-module gaps were superseded by the complete 16:22 manager result above. Current shared-staff checks and final combined task acceptance remain pending; full T11 recovery is also open.
 
 Browser navigation to the restricted Shalean business URL reports ERR_BLOCKED_BY_CLIENT. This does not prove the application's real HTTP status or denial body. The live direct-link response remains unverified; do not close that criterion merely because the selector excludes Shalean. No browser security restriction was bypassed.
 

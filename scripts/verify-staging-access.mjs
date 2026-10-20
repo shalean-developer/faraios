@@ -10,9 +10,10 @@ class AccessFailure extends Error{constructor(code){super(code);this.code=code;}
 const deny=code=>{throw new AccessFailure(code);};
 const publicFailure=(error,fallback)=>error instanceof AccessFailure?error.code:fallback;
 export function accessOptions(args){
- const keys=['role','business','denied-business','email'],options={};
+ const keys=['role','business','denied-business','shared-business','email'],options={};
  for(const arg of args){const match=/^--([a-z-]+)=(.+)$/.exec(arg);if(!match||!keys.includes(match[1])||Object.hasOwn(options,match[1]))deny('INVALID_OPTIONS');options[match[1]]=match[2];}
- if(keys.some(key=>!options[key])||!['manager','staff'].includes(options.role)||!uuid.test(options.business)||!uuid.test(options['denied-business'])||options.business.toLowerCase()===options['denied-business'].toLowerCase()||options.email.length>254||!/^\S+@[^\s@]+\.test$/i.test(options.email))deny('INVALID_OPTIONS');
+ const other=options['denied-business']??options['shared-business'];
+ if(['role','business','email'].some(key=>!options[key])||!['manager','staff'].includes(options.role)||!uuid.test(options.business)||!uuid.test(other)||Boolean(options['denied-business'])===Boolean(options['shared-business'])||options['shared-business']&&options.role!=='staff'||options.business.toLowerCase()===other.toLowerCase()||options.email.length>254||!/^\S+@[^\s@]+\.test$/i.test(options.email))deny('INVALID_OPTIONS');
  return options;
 }
 
@@ -68,16 +69,24 @@ export async function verifyStagingAccess(options,password,{fetchImpl=fetch,sign
   const all=await read('ALL_BUSINESSES','/dashboard?business=all',200);
   const selector=/<select\b[^>]*\bid="business"[^>]*>([\s\S]*?)<\/select>/.exec(all)?.[1]??'';
   const selected=[...selector.matchAll(/<option\b[^>]*\bvalue="([^"]+)"/g)].map(match=>match[1]);
-  check('SINGLE_BUSINESS_SCOPE',selected.length===2&&selected.includes('all')&&selected.includes(o.business)&&!all.includes(o['denied-business']),true);
+  const shared=o['shared-business'],allowed=[o.business,...(shared?[shared]:[])];
+  check(shared?'SHARED_BUSINESS_SCOPE':'SINGLE_BUSINESS_SCOPE',selected.length===allowed.length+1&&selected.includes('all')&&allowed.every(id=>selected.includes(id))&&(!o['denied-business']||!all.includes(o['denied-business'])),true);
   const own=await read('OWN_DASHBOARD','/dashboard?business='+o.business,200);
   check('VERIFIED_ROLE',own.includes(`<p>${o.role}</p>`)&&!own.includes('Owner controls include'),true);
-  await read('OTHER_DASHBOARD','/dashboard?business='+o['denied-business']+'&role=owner',403);
+  if(o['denied-business'])await read('OTHER_DASHBOARD','/dashboard?business='+o['denied-business']+'&role=owner',403);
   await read('OWN_OWNER_SETTINGS','/settings?business='+o.business,403);
   for(const module of ['customers','bookings','catalogue','staff','quotes','recurring','calendar','invoices']){
-   await read('OTHER_'+module.toUpperCase(),'/'+module+'?business='+o['denied-business'],403);
+   if(o['denied-business'])await read('OTHER_'+module.toUpperCase(),'/'+module+'?business='+o['denied-business'],403);
    await read('OWN_'+module.toUpperCase(),'/'+module+'?business='+o.business,o.role==='manager'?200:403);
   }
   if(o.role==='staff')check('STAFF_DASHBOARD_SCOPE',own.includes('My assignments')&&own.includes('My earnings')&&!own.includes('Business finances'),true);
+  if(shared){
+   const dashboard=await read('SHARED_DASHBOARD','/dashboard?business='+shared+'&role=owner',200);
+   check('SHARED_VERIFIED_ROLE',dashboard.includes('<p>staff</p>')&&!dashboard.includes('Owner controls include'),true);
+   check('SHARED_STAFF_DASHBOARD_SCOPE',dashboard.includes('My assignments')&&dashboard.includes('My earnings')&&!dashboard.includes('Business finances'),true);
+   await read('SHARED_OWNER_SETTINGS','/settings?business='+shared+'&role=owner',403);
+   for(const module of ['customers','bookings','catalogue','staff','quotes','recurring','calendar','invoices'])await read('SHARED_'+module.toUpperCase(),'/'+module+'?business='+shared+'&role=owner',403);
+  }
  }catch(error){report.failure=signal?.aborted?'CANCELLED':publicFailure(error,'REQUEST_FAILED');}
  finally{
   if(cookie){
