@@ -23,6 +23,9 @@ test('address presentation removes only adjacent equal components',()=>{
  const address={address_line:'1 Example, North Bank Lane, Century City',suburb:' century city ',city:'Cape Town',postal_code:'7441'};
  assert.equal(quoteAddress(address),'1 Example, North Bank Lane, Century City, Cape Town, 7441');
  assert.equal(address.address_line,'1 Example, North Bank Lane, Century City');
+ const unicodeAddress={address_line:'1 Example, Century\u00a0City',suburb:'Century  City',city:' Century\u202fCity '};
+ assert.equal(quoteAddress(unicodeAddress),'1 Example, Century City');
+ assert.equal(unicodeAddress.address_line,'1 Example, Century\u00a0City');
  assert.equal(quoteAddress({address_line:'A, B, A',suburb:'C'}),'A, B, A, C');
 });
 test('actor resolver binds every returned identity and degrades only unavailable labels',async()=>{

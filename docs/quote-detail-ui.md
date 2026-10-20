@@ -2,6 +2,8 @@
 
 20 October follow-up status: browser checks are partial; final acceptance remains open for the small corrections and real host clipboard confirmation described below.
 
+20 October06:40SAST follow-up: after the owner restarted PR64, both businesses show12px action spacing and the44px primary action ends at573.5px in document coordinates, within the575px desktop viewport. Bokkie's displayed locality still repeats because one saved component contains a non-breaking space while its neighbour uses an ordinary space. The follow-up collapses Unicode whitespace in display components before comparing them; the regression includes U+00A0 and U+202F, repeated spaces, and unchanged source text. This is presentation only; no stored address, agreement, invoice or financial state is changed. Corrected address runtime acceptance and exact host clipboard contents remain open. T19's actual isolated Zoho setup/reconciliation remains a separate open gate.
+
 19 October 2026. Engineering owner: Codex. Authority: the owner's “fix them” instruction after the eight-defect quote-detail review. Baseline main `3b3ddb1297031b5751d887c804f67c4a4c5962f1`, tree `dac50670f4a70e074ada1e2011ea283ca27e233f`. This is a bounded follow-up to completed T18, before unstarted T19. Status: implementation independently reviewed; exact-head CI, staging reader verification and final browser acceptance are release gates below.
 
 ## Scope and traceability
