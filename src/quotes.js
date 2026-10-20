@@ -67,7 +67,7 @@ const hidden=(name,value)=>`<input type="hidden" name="${name}" value="${esc(val
 function quantity(name,label,value='0'){return `<label for="${name}">${esc(label)}</label><input id="${name}" name="${name}" type="number" min="0" max="999999" step="1" value="${esc(value)}" required>`;}
 function quoteDate(value,tz){return new Intl.DateTimeFormat('en-ZA',{day:'numeric',month:'short',year:'numeric',timeZone:tz??'UTC'}).format(new Date(value));}
 export function quoteAddress(address){
- const parts=[address.address_line,address.suburb,address.city,address.postal_code].flatMap(v=>String(v??'').split(',')).map(v=>v.trim()).filter(Boolean);
+ const parts=[address.address_line,address.suburb,address.city,address.postal_code].flatMap(v=>String(v??'').split(',')).map(v=>v.trim().replace(/\s+/gu,' ')).filter(Boolean);
  return parts.filter((v,i)=>i===0||v.toLocaleLowerCase()!==parts[i-1].toLocaleLowerCase()).join(', ');
 }
 const durationLabel=minutes=>`${Math.floor(minutes/60)?Math.floor(minutes/60)+'h ':''}${minutes%60?minutes%60+'m':''}`.trim();
