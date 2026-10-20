@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,readFile,writeFile,rm,symlink,stat,chmod,rename,readdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {spawn} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {authorizationUrl,exchangeAndVerify,callbackHandler,privateStore,redirectUri,scopes,validateBinding} from '../scripts/setup-zoho-staging.mjs';
 
 const binding={business_id:'11111111-1111-4111-8111-111111111111',organization_id:'123456',organization_name:'Example TEST',alias:'EXAMPLE_TEST',api_domain:'https://www.zohoapis.com'};
@@ -84,4 +86,38 @@ test('moving the private parent and replacing it with a repo symlink cannot writ
  await writeFile(join(repo,'zoho.json.lock'),'unrelated-lock');
  await assert.rejects(store.save('EXAMPLE_TEST',{client_secret:'synthetic-private-value'}));await store.close();
  assert.deepEqual(await readdir(repo),['zoho.json.lock']);assert.equal(await readFile(join(repo,'zoho.json.lock'),'utf8'),'unrelated-lock');
+});
+test('operator CLI prints complete prompt lines, hides secret input and cancels without saving', {timeout:30000}, async t=>{
+ const {output}=await fixture(t);
+ // A test-only terminal stream enables the real CLI/readline path under Linux
+ // and Windows CI, without a display server or any provider request.
+ const preload="Object.defineProperty(process.stdin,'isTTY',{value:true});process.stdin.setRawMode=()=>process.stdin;Object.defineProperty(process.stdout,'isTTY',{value:true});process.stdout.columns=100;";
+ const child=spawn(process.execPath,['--import','data:text/javascript,'+encodeURIComponent(preload),fileURLToPath(new URL('../scripts/setup-zoho-staging.mjs',import.meta.url))],{stdio:['pipe','pipe','pipe']});
+ let transcript='',stderr='',exited=false;
+ const finished=new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',(code,signal)=>{exited=true;resolve({code,signal});});});
+ child.stdout.on('data',data=>{transcript+=data;});child.stderr.on('data',data=>{stderr+=data;});
+ t.after(()=>{if(!exited)child.kill();});
+ const waitFor=async text=>{
+  const end=Date.now()+5000;
+  while(!transcript.includes(text)){
+   if(exited)throw new Error('CLI ended before its next prompt');
+   if(Date.now()>end)throw new Error('CLI prompt did not become visible');
+   await new Promise(r=>setTimeout(r,10));
+  }
+ };
+ const answer=async(label,value)=>{await waitFor(label+'\n');child.stdin.write(value+'\n');};
+ await answer('FaraiOS business UUID: ',binding.business_id);
+ await answer('New Zoho TEST organisation ID: ',binding.organization_id);
+ await answer('Exact TEST organisation name: ',binding.organization_name);
+ await answer('Credential alias: ',binding.alias);
+ await answer('API domain (e.g. https://www.zohoapis.com): ',binding.api_domain);
+ await answer('Confirm this is an isolated test organisation (type TEST): ','TEST');
+ await answer('Private JSON path (Enter for your profile default): ',output);
+ await answer('New dedicated Client ID (hidden): ','synthetic-client-id');
+ await answer('New dedicated Client Secret (hidden): ','NEVER_ECHO_SYNTHETIC_SECRET');
+ await waitFor('If Zoho offers all organisations or the wrong organisation, deny and stop.');
+ assert.ok(!transcript.includes('NEVER_ECHO_SYNTHETIC_SECRET'));assert.ok(!stderr.includes('NEVER_ECHO_SYNTHETIC_SECRET'));
+ assert.ok(!transcript.slice(0,transcript.indexOf('Open this authorization URL')).includes('synthetic-client-id'));
+ child.stdin.write('\u0003');const result=await finished;assert.equal(result.code,1);assert.match(stderr,/Setup stopped/);
+ await assert.rejects(stat(output),{code:'ENOENT'});await assert.rejects(stat(output+'.lock'),{code:'ENOENT'});
 });
