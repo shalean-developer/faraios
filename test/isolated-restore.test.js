@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import {readFile,mkdtemp,realpath,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {restoreEnvironment,DESTINATION,RESTORE_CONFIG,validateRestoreBackup,validateDestination,importSQL,verificationSQL,restoreArchive,sequenceAssignments} from '../scripts/restore-staging.mjs';
+import {restoreEnvironment,DESTINATION,RESTORE_CONFIG,validateRestoreBackup,validateDestination,importSQL,verificationSQL,restoreArchive,sequenceAssignments,preserveManagedParameterGrant,MANAGED_PARAMETER_GRANT,RestoreOutcomeFailure} from '../scripts/restore-staging.mjs';
 import {SOURCE,CLI,CLIENT_IMAGE,DUMPS,capture,run,BackupFailure,CLIENT_STARTED,metadataFailureLabel} from '../scripts/backup-staging.mjs';
 import {restoreFetch,createRestoreServer} from '../restore-rehearsal.mjs';
 import {createStagingServer} from '../src/staging-server.js';
 const versions={btree_gist:'1.7',pg_stat_statements:'1.11',pgcrypto:'1.3',plpgsql:'1.0',supabase_vault:'0.3.1','uuid-ossp':'1.1'};
 function manifest(){return {version:1,source:SOURCE,filterSource:'supabase/cli@'+CLI,clientImage:CLIENT_IMAGE,finished:'2026-10-20T18:17:00Z',before:{catalog_sha256:RESTORE_CONFIG.captureCatalogSha256,extension_versions:{...versions},tables:[{schema:'public',table:'businesses',rows:2,sha256:'a'.repeat(64)},{schema:'auth',table:'users',rows:3,sha256:'b'.repeat(64)},{schema:'auth',table:'schema_migrations',rows:10,sha256:'c'.repeat(64)}]}};}
-function backup(m=manifest()){return {id:RESTORE_CONFIG.captureId,sha256:RESTORE_CONFIG.archiveSha256,payload:{files:[...['roles.sql','schema.sql','migration-schema.sql','data.sql','migration-data.sql','managed-schema-reference.sql'].map(name=>({name,content:'-- '+name+(name==='data.sql'?`\nSELECT pg_catalog.setval('\"auth\".\"refresh_tokens_id_seq\"', 50, true);`:'')})),{name:'manifest.json',content:JSON.stringify(m)}]}};}
+function backup(m=manifest()){return {id:RESTORE_CONFIG.captureId,sha256:RESTORE_CONFIG.archiveSha256,payload:{files:[...['roles.sql','schema.sql','migration-schema.sql','data.sql','migration-data.sql','managed-schema-reference.sql'].map(name=>({name,content:'-- '+name+(name==='roles.sql'?'\n'+MANAGED_PARAMETER_GRANT:'')+(name==='data.sql'?`\nSELECT pg_catalog.setval('\"auth\".\"refresh_tokens_id_seq\"', 50, true);`:'')})),{name:'manifest.json',content:JSON.stringify(m)}]}};}
 function metadata(){const e={...versions};delete e.btree_gist;return {catalog:{application:RESTORE_CONFIG.emptyApplicationCatalogSha256,managed:RESTORE_CONFIG.managedCatalogSha256},preflight:{database_major:17,database:'postgres',role:'postgres',application_objects:0,managed_data_rows:0,large_objects:0,vault_secrets:0,foreign_servers:0,unexpected_schemas:[],extension_versions:e,btree_gist_default:'1.7',sequence_privileges:[{name:'auth.refresh_tokens_id_seq',can_select:true,can_update:true}]}};}
 
 test('restore transport has one fixed destination and refuses inherited project/credential/trust overrides',()=>{
@@ -35,6 +35,20 @@ test('import checks empty destination again, never replays managed reference and
  assert.match(sql,/RESTORE_CATALOG_MISMATCH/);assert.match(sql,/RESTORE_ACCOUNTING_ENABLED/);assert.match(sql,/CREATE EXTENSION IF NOT EXISTS btree_gist/);assert.ok(!/\bCOMMIT\b/i.test(sql));
  const verify=verificationSQL(manifest(),c);assert.ok(!verify.includes('CREATE EXTENSION'));assert.ok(!verify.includes('FROM "auth"."schema_migrations"'));assert.match(verify,/FROM "auth"."users"/);
 });
+test('only the exact existing managed parameter grant is omitted; unexpected ACL statements stop before connection',()=>{
+ const original='-- Native cluster dump\n'+MANAGED_PARAMETER_GRANT+"\nALTER ROLE \"postgres\" SET \"statement_timeout\" TO '10s';";
+ const rewritten=preserveManagedParameterGrant(original);assert.ok(!rewritten.includes(MANAGED_PARAMETER_GRANT));assert.ok(rewritten.includes('ALTER ROLE "postgres" SET "statement_timeout"'));
+ for(const grant of ['',MANAGED_PARAMETER_GRANT+'\n'+MANAGED_PARAMETER_GRANT,MANAGED_PARAMETER_GRANT.replace('SET ON','ALTER SYSTEM ON'),MANAGED_PARAMETER_GRANT.replace(' TO ','\nTO '),MANAGED_PARAMETER_GRANT+'\nGRANT SET ON /*blocked*/ PARAMETER "work_mem" TO "anon";',MANAGED_PARAMETER_GRANT+'\nGRANT SET ON\nPARAMETER "work_mem" TO "anon";',MANAGED_PARAMETER_GRANT.replace('supabase_realtime_admin','anon'),MANAGED_PARAMETER_GRANT+'\nREVOKE SET ON PARAMETER "log_min_messages" FROM "supabase_realtime_admin";'])assert.throws(()=>preserveManagedParameterGrant(grant),{code:'RESTORE_PARAMETER_GRANT_UNREVIEWED'});
+ assert.doesNotThrow(()=>preserveManagedParameterGrant('-- PARAMETER in comment\n'+MANAGED_PARAMETER_GRANT+"\nALTER ROLE \"postgres\" SET \"pgrst.test\" TO 'ON PARAMETER; -- ''';"));
+ for(const inert of ['/*\n'+MANAGED_PARAMETER_GRANT+'\n*/',`ALTER ROLE "postgres" SET "pgrst.test" TO 'first\n${MANAGED_PARAMETER_GRANT}\nlast';`])assert.throws(()=>preserveManagedParameterGrant(inert+'\nGRANT SET ON PARAMETER "work_mem" TO "anon";'),{code:'RESTORE_PARAMETER_GRANT_UNREVIEWED'});
+ const b=backup();b.payload.files.find(f=>f.name==='roles.sql').content+='\nGRANT SET ON PARAMETER "work_mem" TO "anon";';assert.throws(()=>validateRestoreBackup(b),{code:'RESTORE_PARAMETER_GRANT_UNREVIEWED'});
+});
+test('uncertain outcome retains only allowlisted cause observations',()=>{
+ const known=new RestoreOutcomeFailure('RESTORE_OUTCOME_UNCONFIRMED',new BackupFailure('METADATA_PERMISSION_DENIED'));assert.equal(known.causeLabel,'METADATA_PERMISSION_DENIED');
+ for(const error of [new Error('private-password'),{code:'METADATA_PERMISSION_DENIED',message:'private-password'},new BackupFailure('private-password')]){
+  const failure=new RestoreOutcomeFailure('RESTORE_OUTCOME_UNCONFIRMED',error);assert.equal(failure.causeLabel,'RESTORE_CAUSE_UNCLASSIFIED');assert.ok(!JSON.stringify(failure).includes('private-password'));
+ }
+});
 test('sequence parsing preserves COPY records and rejects missing, duplicate, unknown or malformed assignments',()=>{
  const row="SELECT pg_catalog.setval('\"auth\".\"refresh_tokens_id_seq\"', 999, true);";
  const files=backup().payload.files;
@@ -46,6 +60,8 @@ test('native sequence-pending stderr remains a fixed diagnostic through the prod
  const stderr='psql:<stdin>:8: ERROR: RESTORE_SEQUENCE_STATE_PENDING';
  assert.equal(metadataFailureLabel(stderr),'RESTORE_SEQUENCE_STATE_PENDING');
  await assert.rejects(run(process.execPath,['-e',"process.stderr.write(process.argv[1]);process.exit(1)",CLIENT_STARTED+'\n'+stderr],{failureContext:'pg-client'}),{code:'RESTORE_SEQUENCE_STATE_PENDING'});
+ const denied='psql:<stdin>:8: ERROR: permission denied for parameter private-parameter';
+ await assert.rejects(run(process.execPath,['-e',"process.stderr.write(process.argv[1]);process.exit(1)",CLIENT_STARTED+'\n'+denied],{failureContext:'pg-client'}),{code:'METADATA_PERMISSION_DENIED'});
 });
 test('restore outbound adapter permits destination reads and password/local logout only',async()=>{
  const calls=[],adapter=restoreFetch(async(...a)=>{calls.push(a);return new Response('{}');});
@@ -93,6 +109,7 @@ test('private file/key loading and restore orchestration keep every destination 
   const name=step+'.sql';assert.ok(DUMPS.some(([n])=>n===name));let body='SELECT 1;';
   if(name==='schema.sql')body=m.tables.filter(t=>['public','audit'].includes(t.schema)).map(t=>`ALTER TABLE "${t.schema}"."${t.table}" ENABLE ROW LEVEL SECURITY;`).join('\n');
   if(name==='data.sql'||name==='migration-data.sql')body=m.tables.filter(t=>name==='migration-data.sql'?t.schema==='supabase_migrations':t.schema!=='supabase_migrations').map(t=>`COPY "${t.schema}"."${t.table}" (id) FROM stdin;\n`+Array.from({length:t.rows},(_,i)=>String(i)).join('\n')+(t.rows?'\n':'')+'\\.\n').join('');
+  if(name==='roles.sql')body+='\n'+MANAGED_PARAMETER_GRANT;
   if(name==='data.sql')body+=`SELECT pg_catalog.setval('\"auth\".\"refresh_tokens_id_seq\"', 50, true);\n`;
   const banner='-- PostgreSQL database '+(name==='roles.sql'?'cluster ':'')+'dump';return {stdout:banner+'\n'+body+'\n'+banner+' complete\n'};
  };
@@ -107,7 +124,7 @@ test('private file/key loading and restore orchestration keep every destination 
    assert.ok(!JSON.stringify(report).includes('synthetic-private-password'));assert.ok(!JSON.stringify(report).includes('COPY'));
   }
   sequencePending=true;await assert.rejects(restoreArchive({home,archive:captured.artifact,password:'synthetic-private-password',runner,mode:'verify'}),{code:'RESTORE_DATA_VALID_SEQUENCES_UNVERIFIED'});sequencePending=false;
-  calls.length=0;uncertain=true;await assert.rejects(restoreArchive({home,archive:captured.artifact,password:'synthetic-private-password',runner}),{code:'RESTORE_OUTCOME_UNCONFIRMED'});assert.deepEqual(calls,['restore-preflight','restore-import']);
+  calls.length=0;uncertain=true;await assert.rejects(restoreArchive({home,archive:captured.artifact,password:'synthetic-private-password',runner}),{code:'RESTORE_OUTCOME_UNCONFIRMED',causeLabel:'METADATA_NETWORK_FAILED'});assert.deepEqual(calls,['restore-preflight','restore-import']);
   uncertain=false;
   for(const [mode,step,code] of [['preflight','restore-preflight','BACKUP_CANCELLED'],['verify','restore-verify','BACKUP_CANCELLED'],['restore','restore-import','RESTORE_OUTCOME_UNCONFIRMED'],['restore','restore-sequences','RESTORE_SEQUENCE_OUTCOME_UNCONFIRMED']]){controller=new AbortController();cancelAfterStep=step;calls.length=0;await assert.rejects(restoreArchive({home,archive:captured.artifact,password:'synthetic-private-password',runner,mode,signal:controller.signal}),{code});assert.equal(calls.at(-1),step);}
   cancelAfterStep=null;controller=null;cleanupAfterStep='restore-import';await assert.rejects(restoreArchive({home,archive:captured.artifact,password:'synthetic-private-password',runner}),{code:'CONTAINER_CLEANUP_FAILED'});

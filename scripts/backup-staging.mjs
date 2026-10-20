@@ -183,6 +183,8 @@ export function metadataFailureLabel(stderr) {
  const message=stderr.slice(-65536).replace(/\u001b\[[0-?]*[ -/]*[@-~]/g,'');
  const rules=[
   ['RESTORE_SEQUENCE_STATE_PENDING',/\bERROR:\s+RESTORE_SEQUENCE_STATE_PENDING\b/],
+  ['RESTORE_CATALOG_MISMATCH',/\bERROR:\s+RESTORE_CATALOG_MISMATCH\b/],
+  ['RESTORE_DATA_MISMATCH',/\bERROR:\s+RESTORE_DATA_MISMATCH\b/],
   ['METADATA_LOGIN_REQUIRED',/Access token not provided|DbQueryLoginRequiredError|not logged in/i],
   ['METADATA_API_ACCESS_DENIED',/unexpected(?: [a-z]+){0,4} status(?: code)?\s*[:=]?\s*(?:401|403)\b|\b(?:unauthorized|forbidden)\b/i],
   ['METADATA_PROJECT_NOT_FOUND',/unexpected status\s*[:=]?\s*404\b|project (?:not found|does not exist)/i],
@@ -190,6 +192,7 @@ export function metadataFailureLabel(stderr) {
   ['METADATA_TLS_FAILED',/CERT_HAS_EXPIRED|UNABLE_TO_VERIFY_LEAF_SIGNATURE|SELF_SIGNED_CERT_IN_CHAIN|unable to verify (?:the first certificate|leaf signature)|certificate (?:has expired|verify failed)|server certificate .*does not match host name|server does not support SSL/i],
   ['METADATA_NETWORK_FAILED',/\b(?:ETIMEDOUT|ECONNRESET|ENETUNREACH|ENOTFOUND|EAI_AGAIN|ECONNREFUSED|EHOSTUNREACH|UND_ERR_CONNECT_TIMEOUT)\b|failed to (?:resolve host|fetch)|could not translate host name|connection (?:timed out|refused)|network (?:is unreachable|request failed)/i],
   ['METADATA_DATABASE_AUTH_FAILED',/password authentication failed|SQLSTATE\s*[:=]?\s*28P01\b/i],
+  ['METADATA_PERMISSION_DENIED',/\bERROR:\s+(?:permission denied for|must be owner of)|SQLSTATE\s*[:=]?\s*42501\b/i],
   ['METADATA_SQL_FILE_UNREADABLE',/failed to read SQL file|DbQueryReadFileError/i],
   ['METADATA_CONFIG_INVALID',/DbConfigLoadError|failed to (?:load|parse|read) (?:project )?config|failed to read profile|Unsupported Config Type/i],
   ['METADATA_CLI_COMMAND_INVALID',/unknown (?:command|flag)|unrecognized (?:command|option)|DbQueryMutuallyExclusiveFlagsError/i],

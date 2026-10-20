@@ -1,7 +1,7 @@
 // CI-only disposable PostgreSQL tests plus a credential-free public pooler TLS handshake.
 // The public handshake closes before PostgreSQL startup/authentication/query traffic.
 import assert from 'node:assert/strict';
-import {importSQL,verificationSQL,sequenceAssignments,sequenceVerificationSQL,finishSequencesSQL,RESTORE_CONFIG} from './restore-staging.mjs';
+import {importSQL,verificationSQL,sequenceAssignments,sequenceVerificationSQL,finishSequencesSQL,RESTORE_CONFIG,MANAGED_PARAMETER_GRANT} from './restore-staging.mjs';
 import { mkdtemp, writeFile, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -18,6 +18,13 @@ const password=randomBytes(24).toString('hex');
 const env={...process.env};for(const k of Object.keys(env))if(/^(PG|SUPABASE_|DOCKER_)/i.test(k))delete env[k];
 const docker=(args,options={})=>run('docker',args,{env,timeout:180000,maxOutput:8*1024*1024,...options});
 const owned=[];
+// Stock PostgreSQL lacks Supabase's privileged-setting extension. This one
+// fixture-only grant lets the non-superuser actor replay native data settings.
+const fixtureReplicaGrant='GRANT SET ON PARAMETER "session_replication_role" TO "postgres";';
+async function bootstrapRestrictedActor(name){
+ const sql=`create role postgres login createrole createdb password '${password}';alter database postgres owner to postgres;create role supabase_realtime_admin;${MANAGED_PARAMETER_GRANT}${fixtureReplicaGrant}`;
+ await docker(['exec','--interactive',name,'psql','-U','supabase_admin','-d','postgres','-v','ON_ERROR_STOP=1','-q'],{input:sql});
+}
 async function ready(name) {
  for(let attempt=0;attempt<60;attempt++) {
   try{await docker(['exec',name,'pg_isready','-h','127.0.0.1','-U','postgres']);return;}catch{}
@@ -63,20 +70,20 @@ async function publicPoolerTLS() {
 async function exerciseRestore(manifest,files){
  const catalogSQL=await readFile(new URL('./restore-catalog.sql',import.meta.url),'utf8');
  const preflightSQL=await readFile(new URL('./restore-preflight.sql',import.meta.url),'utf8');
- const query=async(host,input,write=false)=>{
-  const pg={...clientEnvironment(password,env),PGHOST:host,PGUSER:'postgres',PGOPTIONS:'-c default_transaction_read_only='+(write?'off':'on')};
+ const query=async(host,input,write=false,admin=false)=>{
+  const pg={...clientEnvironment(password,env),PGHOST:host,PGUSER:admin?'supabase_admin':'postgres',PGOPTIONS:'-c default_transaction_read_only='+(write?'off':'on')};
   const args=clientArgs(id,'restore-ci','exec psql -X -w -q -A -t --set=ON_ERROR_STOP=1 --single-transaction --file=-',pg,true);
   args[args.indexOf('--mount')+1]=certificateMount(join(fixture,'ca.crt'));args.splice(1,0,'--network',network);
   return docker(args,{env:{...env,...pg},input,failureContext:'pg-client'});
  };
  const catalog=async host=>JSON.parse((await query(host,"SET LOCAL search_path='';"+catalogSQL)).stdout);
  const sourceCatalog=await catalog(tlsServer);
- for(const mutation of ['create domain public.t11_domain as text;','grant select(content) on public.sample to anon;','alter role faraios_synthetic bypassrls;','grant faraios_synthetic to authenticated;','alter default privileges grant select on tables to anon;']){
-  const changed=JSON.parse((await query(tlsServer,"savepoint catalog_probe;"+mutation+"set local search_path='';"+catalogSQL+'rollback to savepoint catalog_probe;',true)).stdout);
+ for(const mutation of ['create domain public.t11_domain as text;','grant select(content) on public.sample to anon;','alter role anon bypassrls;','grant anon to authenticated;','alter default privileges grant select on tables to anon;']){
+  const changed=JSON.parse((await query(tlsServer,"savepoint catalog_probe;"+mutation+"set local search_path='';"+catalogSQL+'rollback to savepoint catalog_probe;',true,true)).stdout);
   assert.notEqual(changed.application,sourceCatalog.application);
  }
  console.log('T11_RESTORE_PORTABLE_SECURITY_MUTATIONS_DETECTED=PASS (domain, column ACL, role capability/membership and global defaults)');
- await docker(['run','--detach','--rm','--name',restoreServer,'--network',network,'--log-driver','none','--env','POSTGRES_PASSWORD='+password,'--mount','type=bind,src='+resolve(fixture)+',dst=/input,readonly','--entrypoint','/bin/bash',CLIENT_IMAGE,'-c','install -o postgres -g postgres -m 600 /input/server.key /tmp/server.key; install -o postgres -g postgres -m 644 /input/server.crt /tmp/server.crt; exec docker-entrypoint.sh postgres -c ssl=on -c ssl_cert_file=/tmp/server.crt -c ssl_key_file=/tmp/server.key']);owned.push(restoreServer);await ready(restoreServer);
+ await docker(['run','--detach','--rm','--name',restoreServer,'--network',network,'--log-driver','none','--env','POSTGRES_USER=supabase_admin','--env','POSTGRES_DB=postgres','--env','POSTGRES_PASSWORD='+password,'--mount','type=bind,src='+resolve(fixture)+',dst=/input,readonly','--entrypoint','/bin/bash',CLIENT_IMAGE,'-c','install -o postgres -g postgres -m 600 /input/server.key /tmp/server.key; install -o postgres -g postgres -m 644 /input/server.crt /tmp/server.crt; exec docker-entrypoint.sh postgres -c ssl=on -c ssl_cert_file=/tmp/server.crt -c ssl_key_file=/tmp/server.key']);owned.push(restoreServer);await ready(restoreServer);await bootstrapRestrictedActor(restoreServer);
  const managed=`create schema extensions;create extension pgcrypto schema extensions;create schema auth;create schema storage;create schema vault;
  create table auth.users(id int);create sequence auth.refresh_tokens_id_seq;select setval('auth.refresh_tokens_id_seq',11,true);create table auth.schema_migrations(version text);create table storage.migrations(id int);create table storage.buckets(id int);create table storage.objects(id int);create table storage.buckets_vectors(id int);create table storage.vector_indexes(id int);create table vault.secrets(id int);create role anon;create role authenticated;`;
  await query(restoreServer,managed,true);
@@ -84,12 +91,25 @@ async function exerciseRestore(manifest,files){
  const saved={...RESTORE_CONFIG};Object.assign(RESTORE_CONFIG,{applicationCatalogSha256:sourceCatalog.application,managedCatalogSha256:sourceCatalog.managed,emptyApplicationCatalogSha256:empty.application});
  try{
   const wrapped={before:manifest},backup={payload:{files}};
+  const privilegeState=(await query(restoreServer,"select rolsuper,pg_has_role('postgres','supabase_admin','MEMBER'),has_parameter_privilege('postgres','log_min_messages','SET WITH GRANT OPTION') from pg_roles where rolname='postgres';")).stdout.trim();assert.equal(privilegeState,'f|f|f');
+  await assert.rejects(query(restoreServer,MANAGED_PARAMETER_GRANT,true),{code:'METADATA_PERMISSION_DENIED'});
+  console.log('T11_RESTORE_RESTRICTED_PARAMETER_PERMISSION=PASS (non-superuser, no provider-admin membership; fixture-only replica-setting permission)');
+  await assert.rejects(query(restoreServer,'revoke set on parameter log_min_messages from supabase_realtime_admin;set local role postgres;'+importSQL(backup,wrapped,catalogSQL,preflightSQL),true,true),{code:'RESTORE_CATALOG_MISMATCH'});
+  assert.equal((await catalog(restoreServer)).application,empty.application);
+  console.log('T11_RESTORE_PARAMETER_ACL_DRIFT_REFUSED=PASS (before import; provider grant preserved)');
   // Exercise actual pg_dump -> generated import -> PostgreSQL, not a SQL-shaped mock.
   const broken=structuredClone(wrapped);broken.before.tables.find(t=>t.schema==='public'&&t.table==='sample').sha256='0'.repeat(64);
-  await assert.rejects(query(restoreServer,importSQL(backup,broken,catalogSQL,preflightSQL),true));
+  // The approved real capture has no custom roles. Inject a transactional
+  // CREATE-only probe in the failed variant to test role rollback without
+  // claiming stock-PG non-superusers can replay privileged ALTER ROLE flags.
+  const probeSQL='CREATE ROLE "faraios_rollback_probe";';
+  const probeCatalog=JSON.parse((await query(tlsServer,'savepoint role_probe;'+probeSQL+"set local search_path='';"+catalogSQL+'rollback to savepoint role_probe;',true)).stdout);
+  const brokenBackup=structuredClone(backup);brokenBackup.payload.files.find(f=>f.name==='roles.sql').content+='\n'+probeSQL;
+  RESTORE_CONFIG.applicationCatalogSha256=probeCatalog.application;
+  try{await assert.rejects(query(restoreServer,importSQL(brokenBackup,broken,catalogSQL,preflightSQL),true),{code:'RESTORE_DATA_MISMATCH'});}finally{RESTORE_CONFIG.applicationCatalogSha256=sourceCatalog.application;}
   assert.equal((await catalog(restoreServer)).application,empty.application);
   const check=JSON.parse((await query(restoreServer,preflightSQL)).stdout);assert.equal(check.managed_data_rows,0);assert.equal(check.application_objects,0);
-  assert.equal((await query(restoreServer,"select count(*) from pg_roles where rolname='faraios_synthetic';")).stdout.trim(),'0');
+  assert.equal((await query(restoreServer,"select count(*) from pg_roles where rolname='faraios_rollback_probe';")).stdout.trim(),'0');
   assert.equal((await query(restoreServer,'select last_value,is_called from auth.refresh_tokens_id_seq;')).stdout.trim(),'11|t');
   console.log('T11_RESTORE_NATIVE_FAILURE_ROLLBACK=PASS (schema, Auth rows and role creation rolled back)');
   const imported=await query(restoreServer,importSQL(backup,wrapped,catalogSQL,preflightSQL),true);assert.ok(imported.stdout.includes('FARAIOS_T11_RESTORE_VALIDATED'));
@@ -110,8 +130,10 @@ async function exerciseRestore(manifest,files){
   await query(restoreServer,verificationSQL(wrapped,catalogSQL));
   console.log('T11_RESTORE_NONEMPTY_RETRY_REFUSED=PASS');
   for(const [subject,businesses,samples] of [[1,2,2],[2,1,1],[3,2,0]]){
-   const r=await query(restoreServer,`set local role authenticated;set local request.jwt.claim.sub='${subject}';select count(*) from public.businesses;select count(*) from public.sample;`);
-   assert.equal(r.stdout.trim(),businesses+'\n'+samples);
+   // Bootstrap admin may SET this role without widening the restore actor's
+   // membership. The effective read role itself must have no bypass privilege.
+   const r=await query(restoreServer,`set local role authenticated;set local request.jwt.claim.sub='${subject}';select current_user,rolsuper or rolbypassrls from pg_roles where rolname=current_user;select count(*) from public.businesses;select count(*) from public.sample;`,false,true);
+   assert.equal(r.stdout.trim(),'authenticated|f\n'+businesses+'\n'+samples);
   }
   const before=(await query(restoreServer,'select count(*) from audit.events;')).stdout.trim();
   const audit=await query(restoreServer,"savepoint t11_probe;update public.businesses set name=name||' probe' where id='0cc3f518-d64e-40c2-8817-bc14d1ef1420';select count(*) from audit.events;rollback to savepoint t11_probe;select count(*) from audit.events;",true);
@@ -127,8 +149,8 @@ try {
  await writeFile(join(fixture,'server.ext'),'subjectAltName=DNS:'+tlsServer+',DNS:'+restoreServer+'\nextendedKeyUsage=serverAuth\n');
  await run('openssl',['x509','-req','-in',join(fixture,'server.csr'),'-CA',join(fixture,'ca.crt'),'-CAkey',join(fixture,'ca.key'),'-CAcreateserial','-out',join(fixture,'server.crt'),'-days','1','-extfile',join(fixture,'server.ext')],{env});
  await docker(['network','create',network]);
- await docker(['run','--detach','--rm','--name',tlsServer,'--network',network,'--network-alias',wrongHost,'--log-driver','none','--env','POSTGRES_PASSWORD='+password,'--mount','type=bind,src='+resolve(fixture)+',dst=/input,readonly','--entrypoint','/bin/bash',CLIENT_IMAGE,'-c','install -o postgres -g postgres -m 600 /input/server.key /tmp/server.key; install -o postgres -g postgres -m 644 /input/server.crt /tmp/server.crt; exec docker-entrypoint.sh postgres -c ssl=on -c ssl_cert_file=/tmp/server.crt -c ssl_key_file=/tmp/server.key']);owned.push(tlsServer);
- await ready(tlsServer);
+ await docker(['run','--detach','--rm','--name',tlsServer,'--network',network,'--network-alias',wrongHost,'--log-driver','none','--env','POSTGRES_USER=supabase_admin','--env','POSTGRES_DB=postgres','--env','POSTGRES_PASSWORD='+password,'--mount','type=bind,src='+resolve(fixture)+',dst=/input,readonly','--entrypoint','/bin/bash',CLIENT_IMAGE,'-c','install -o postgres -g postgres -m 600 /input/server.key /tmp/server.key; install -o postgres -g postgres -m 644 /input/server.crt /tmp/server.crt; exec docker-entrypoint.sh postgres -c ssl=on -c ssl_cert_file=/tmp/server.crt -c ssl_key_file=/tmp/server.key']);owned.push(tlsServer);
+ await ready(tlsServer);await bootstrapRestrictedActor(tlsServer);
  const setup=`create schema extensions; create extension pgcrypto schema extensions;
  create extension btree_gist schema extensions; create schema audit; create schema auth; create schema storage; create schema supabase_migrations; create schema vault;
  create table public.businesses(id uuid primary key,name text); insert into public.businesses values ('0cc3f518-d64e-40c2-8817-bc14d1ef1420','Synthetic A'),('612be091-b1d7-4911-9c3b-143446a9fe27','Synthetic B'); alter table public.businesses enable row level security;
@@ -138,7 +160,7 @@ try {
  create table auth.schema_migrations(version text); create table storage.migrations(id int);
  create table storage.buckets(id int); create table storage.objects(id int); create table storage.buckets_vectors(id int); create table storage.vector_indexes(id int);
  create table supabase_migrations.schema_migrations(version text); insert into supabase_migrations.schema_migrations values ('synthetic'); create table vault.secrets(id int);
- create role anon; create role authenticated; create role faraios_synthetic;
+ create role anon; create role authenticated;
  create table public.business_memberships(user_id int,business_id uuid,role text);
  insert into public.business_memberships values(1,'0cc3f518-d64e-40c2-8817-bc14d1ef1420','owner'),(1,'612be091-b1d7-4911-9c3b-143446a9fe27','owner'),(2,'0cc3f518-d64e-40c2-8817-bc14d1ef1420','manager'),(3,'0cc3f518-d64e-40c2-8817-bc14d1ef1420','staff'),(3,'612be091-b1d7-4911-9c3b-143446a9fe27','staff');
  alter table public.business_memberships enable row level security;
@@ -157,11 +179,15 @@ try {
   const content=(await invoke(name.replace('.sql',''))).stdout;assertCompleteDump(name,content);dumpFiles.push({name,content});
   if(name==='schema.sql'){assert.ok(content.includes('ENABLE ROW LEVEL SECURITY'));assert.ok(!content.includes('CREATE SCHEMA IF NOT EXISTS "auth"'));}
   if(name==='data.sql'){assert.ok(content.includes('Réka 😀'));assert.ok(content.includes('COPY "auth"."users"'));assert.ok(!content.includes('COPY "supabase_migrations"'));assert.ok(!content.includes('COPY "storage"."buckets_vectors"'));}
-  if(name==='roles.sql'){assert.ok(content.includes('-- CREATE ROLE "anon"'));assert.ok(content.includes('CREATE ROLE "faraios_synthetic"'));assert.ok(!/PASSWORD/.test(content));}
+  if(name==='roles.sql'){assert.ok(content.includes('-- CREATE ROLE "anon"'));assert.ok(content.includes(MANAGED_PARAMETER_GRANT));assert.ok(!/PASSWORD/.test(content));}
   if(name==='migration-data.sql')assert.ok(content.includes('COPY "supabase_migrations"."schema_migrations"'));
   if(name==='managed-schema-reference.sql')assert.ok(content.includes('CREATE SCHEMA IF NOT EXISTS "auth"'));
  }
  console.log('T11_TRANSPORT_TRUSTED_DUMPS=PASS (6 modes)');
+ // The real native role dump also contains stock-PG fixture permission above.
+ // Remove exactly that one fixture-only statement; production accepts no such
+ // omission. Both catalogs still include/check its ACL throughout the test.
+ const roles=dumpFiles.find(f=>f.name==='roles.sql');assert.equal(roles.content.split(fixtureReplicaGrant).length,2);roles.content=roles.content.replace(fixtureReplicaGrant,'-- Fixture-only replica-setting grant already provisioned.');
  await exerciseRestore(metadata,dumpFiles);
  await docker(['run','--detach','--rm','--name',plainServer,'--network',network,'--log-driver','none','--env','POSTGRES_PASSWORD='+password,CLIENT_IMAGE]);owned.push(plainServer);await ready(plainServer);
  for(const mode of ['metadata',...DUMPS.map(([n])=>n.replace('.sql',''))]) {

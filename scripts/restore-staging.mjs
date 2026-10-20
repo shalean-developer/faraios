@@ -9,6 +9,11 @@ import {SOURCE,CLI,CLIENT_IMAGE,BackupFailure,readVerifiedBackup,clientEnvironme
 
 export const DESTINATION='zrlojsvkqipuwkkyfrkn';
 export const RESTORE_CONFIG=JSON.parse(await readFile(new URL('../config/restore-test.json',import.meta.url),'utf8'));
+export const MANAGED_PARAMETER_GRANT='GRANT SET ON PARAMETER "log_min_messages" TO "supabase_realtime_admin";';
+const causeLabels=new Set(['METADATA_PERMISSION_DENIED','METADATA_NETWORK_FAILED','METADATA_TLS_FAILED','METADATA_DATABASE_AUTH_FAILED','METADATA_QUERY_FAILED','METADATA_UNCLASSIFIED','RESTORE_CATALOG_MISMATCH','RESTORE_DATA_MISMATCH','CHILD_TIMEOUT','BACKUP_CANCELLED','RESTORE_VALIDATION_MARKER_MISSING']);
+export class RestoreOutcomeFailure extends BackupFailure {
+ constructor(code,error){super(code);this.causeLabel=error instanceof BackupFailure&&causeLabels.has(error.code)?error.code:'RESTORE_CAUSE_UNCLASSIFIED';}
+}
 const fail=code=>{throw new BackupFailure(code);};
 const cancelled=signal=>{if(signal?.aborted)fail('BACKUP_CANCELLED');};
 const literal=s=>"'"+String(s).replaceAll("'","''")+"'";
@@ -30,6 +35,7 @@ export function validateRestoreBackup(backup){
  if(m.version!==1||m.source!==SOURCE||m.filterSource!=='supabase/cli@'+CLI||m.clientImage!==CLIENT_IMAGE||!Number.isFinite(Date.parse(m.finished)))fail('RESTORE_MANIFEST_INVALID');
  if(m.before.catalog_sha256!==c.captureCatalogSha256)fail('RESTORE_CAPTURE_CATALOG_NOT_REVIEWED');
  sequenceAssignments(backup.payload.files);
+ preserveManagedParameterGrant(backup.payload.files.find(f=>f.name==='roles.sql')?.content);
  return m;
 }
 
@@ -44,6 +50,31 @@ export function validateDestination(metadata,manifest){
  const privileges=p.sequence_privileges??[];
  if(JSON.stringify(privileges.map(x=>x.name).sort())!==JSON.stringify(RESTORE_CONFIG.sequences)||privileges.some(x=>x.can_select!==true||x.can_update!==true))fail('RESTORE_SEQUENCE_PRIVILEGES_CHANGED');
  return metadata;
+}
+
+// Only keyword detection uses this lexical view. Quoted text and SQL comments
+// cannot masquerade as parameter statements; the replayed bytes stay unchanged.
+function roleKeywords(sql){
+ let code='',quote=null,escaped=false,block=0;
+ for(let i=0;i<sql.length;i++){
+  const ch=sql[i],next=sql[i+1];
+  if(block){if(ch==='/'&&next==='*'){block++;i++;}else if(ch==='*'&&next==='/'){block--;i++;}code+=' ';continue;}
+  if(quote){if(escaped&&ch==='\\'){i++;code+='  ';continue;}if(ch===quote){if(next===quote)i++;else quote=null;}code+=' ';continue;}
+  if(ch==='-'&&next==='-'){while(i<sql.length&&sql[i]!=='\n')i++;code+='\n';continue;}
+  if(ch==='/'&&next==='*'){block=1;i++;code+=' ';continue;}
+  if(ch==="'"||ch==='"'){quote=ch;escaped=ch==="'"&&/[eE]/.test(sql[i-1]??'')&&!/[a-z0-9_$]/i.test(sql[i-2]??'');code+=' ';continue;}
+  code+=ch;
+ }
+ if(quote||block)fail('RESTORE_ROLE_DUMP_INVALID');return code;
+}
+
+export function preserveManagedParameterGrant(sql){
+ if(typeof sql!=='string')fail('RESTORE_ROLE_DUMP_INVALID');
+ const keywords=roleKeywords(sql).match(/\bPARAMETER\b/gi)??[];
+ const lines=sql.split('\n');let seen=0;
+ const rewritten=lines.map(line=>{if(line.replace(/\r$/,'')!==MANAGED_PARAMETER_GRANT)return line;seen++;return '-- Existing provider parameter grant preserved; full parameter ACL equality is required.';}).join('\n');
+ if(keywords.length!==1||seen!==1||/\bPARAMETER\b/i.test(roleKeywords(rewritten)))fail('RESTORE_PARAMETER_GRANT_UNREVIEWED');
+ return rewritten;
 }
 
 // Native data dumps only. COPY rows can contain arbitrary text, including SQL.
@@ -114,6 +145,7 @@ export function verificationSQL(manifest,catalogSQL){
 
 export function importSQL(backup,manifest,catalogSQL,preflightSQL){
  const content=Object.fromEntries(backup.payload.files.map(f=>[f.name,f.content]));
+ content['roles.sql']=preserveManagedParameterGrant(content['roles.sql']);
  Object.assign(content,sequenceAssignments(backup.payload.files,false).rewritten);
  // Only the five supported import members run. Managed schemas are never replayed.
  const ordered=['roles.sql','schema.sql','migration-schema.sql','data.sql','migration-data.sql'];
@@ -170,8 +202,8 @@ export async function restoreArchive({archive,password,mode='restore',home=homed
   return {destination:DESTINATION,captureId:backup.id,sha256:backup.sha256,restore:mode==='verify'?'VERIFIED_READ_ONLY':mode==='finish-sequences'?'SEQUENCES_COMPLETED':'COMMITTED',dataVerification:'PASSED',catalogVerification:'PASSED',sequenceVerification:'PASSED',captureFinished:manifest.finished,elapsedMs:Date.now()-started,helperPlaintextSQLFiles:'NEVER_WRITTEN',restoredAppAcceptance:'NOT_RUN',offlineKeyCopy:'PENDING'};
  }catch(error){
   // A broken connection can lose the commit acknowledgement. Never retry blindly.
-  if(sequenceStarted&&error.code!=='CONTAINER_CLEANUP_FAILED')fail('RESTORE_SEQUENCE_OUTCOME_UNCONFIRMED');
-  if(importStarted&&error.code!=='CONTAINER_CLEANUP_FAILED')fail('RESTORE_OUTCOME_UNCONFIRMED');
+  if(sequenceStarted&&error.code!=='CONTAINER_CLEANUP_FAILED')throw new RestoreOutcomeFailure('RESTORE_SEQUENCE_OUTCOME_UNCONFIRMED',error);
+  if(importStarted&&error.code!=='CONTAINER_CLEANUP_FAILED')throw new RestoreOutcomeFailure('RESTORE_OUTCOME_UNCONFIRMED',error);
   throw error;
  }finally{delete env.PGPASSWORD;}
 }
@@ -203,4 +235,4 @@ async function main(){
   console.log('T11 remains In progress: restored sign-in/access/audit acceptance and offline key custody are separate checks.');
  }finally{terminal.close();process.removeListener('SIGINT',cancel);process.removeListener('SIGTERM',cancel);}
 }
-if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href)main().catch(error=>{console.error('Restore stopped ['+(error instanceof BackupFailure?error.code:'LOCAL_FAILURE')+']. Share only this label. If import started, verify the outcome read-only before any retry.');process.exitCode=1;});
+if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href)main().catch(error=>{console.error('Restore stopped ['+(error instanceof BackupFailure?error.code:'LOCAL_FAILURE')+']. Share only fixed labels. If import started, verify the outcome read-only before any retry.');if(error instanceof RestoreOutcomeFailure)console.error('Restore observation ['+error.causeLabel+'].');process.exitCode=1;});
