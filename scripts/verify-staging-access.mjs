@@ -34,28 +34,37 @@ async function boundedText(response){
  return Buffer.concat(chunks).toString('utf8');
 }
 
-export async function verifyStagingAccess(options,password,{fetchImpl=fetch,signal}={}){
+export async function verifyStagingAccess(options,password,{fetchImpl=fetch,signal,timeoutMs=10_000}={}){
  // Validate before issuing any request. CLI arguments must never carry secrets.
  const o=accessOptions(Object.entries(options).map(([key,value])=>`--${key}=${value}`));
  if(typeof password!=='string'||!password.length||password.length>1024)deny('INVALID_PASSWORD');
+ if(!Number.isSafeInteger(timeoutMs)||timeoutMs<1||timeoutMs>10_000)deny('INVALID_TIMEOUT');
  const report={role:o.role,checks:[],cleanup:'NOT_NEEDED',passed:false};
  let cookie=null,loginInFlight=false;
- const request=async(path,{method='GET',body,cleanup=false}={})=>{
-  const timeout=AbortSignal.timeout(10_000);
-  return fetchImpl(stagingOrigin+path,{method,redirect:'manual',signal:!cleanup&&signal?AbortSignal.any([signal,timeout]):timeout,headers:{...(cookie?{Cookie:cookie}:{}),...(method==='POST'?{Origin:stagingOrigin,'Content-Type':'application/x-www-form-urlencoded'}:{})},...(body?{body}:{})});
+ const request=async(name,path,{method='GET',body,cleanup=false}={})=>{
+  const started=performance.now(),timeout=AbortSignal.timeout(timeoutMs);
+  const fail=(error,phase,response)=>{
+   const key=cleanup?'cleanupFailure':'requestFailure';
+   report[key]??={check:name,phase,httpStatus:Number.isInteger(response?.status)&&response.status>=100&&response.status<=599?response.status:null,elapsedMs:Math.max(0,Math.round(performance.now()-started)),timeoutMs};
+   deny(!cleanup&&signal?.aborted?'CANCELLED':timeout.aborted?'REQUEST_TIMEOUT':publicFailure(error,'REQUEST_FAILED'));
+  };
+  let response;
+  try{response=await fetchImpl(stagingOrigin+path,{method,redirect:'manual',signal:!cleanup&&signal?AbortSignal.any([signal,timeout]):timeout,headers:{...(cookie?{Cookie:cookie}:{}),...(method==='POST'?{Origin:stagingOrigin,'Content-Type':'application/x-www-form-urlencoded'}:{})},...(body?{body}:{})});}
+  catch(error){fail(error,'HEADERS');}
+  return {response,readBody:async()=>{try{return await boundedText(response);}catch(error){fail(error,'BODY',response);}}};
  };
  const check=(name,actual,expected)=>{const pass=actual===expected;report.checks.push({name,actual,expected,pass});if(!pass)deny('CHECK_FAILED');};
- const read=async(name,path,expected)=>{const response=await request(path);const body=await boundedText(response);check(name,response.status,expected);return body;};
+ const read=async(name,path,expected)=>{const {response,readBody}=await request(name,path);const body=await readBody();check(name,response.status,expected);return body;};
  try{
   const loginPage=await read('STAGING_LOGIN','/login',200);
   check('STAGING_MARKER',loginPage.includes('FaraiOS STAGING')&&loginPage.includes('No production data')&&loginPage.includes('action="/login"'),true);
   loginInFlight=true;
-  const login=await request('/login',{method:'POST',body:new URLSearchParams({email:o.email,password})});
+  const {response:login,readBody:readLogin}=await request('SIGN_IN','/login',{method:'POST',body:new URLSearchParams({email:o.email,password})});
   const cookies=login.headers.getSetCookie();
   const session=cookies.map(value=>/^(faraios_staging=[0-9a-f-]{36});/i.exec(value)?.[1]).filter(Boolean);
   if(session.length===1){cookie=session[0];report.cleanup='PENDING';loginInFlight=false;}
   else if([401,403,429].includes(login.status)){loginInFlight=false;}
-  await boundedText(login);check('SIGN_IN',login.status,303);check('SESSION_COOKIE',Boolean(cookie),true);check('SIGN_IN_REDIRECT',login.headers.get('location')==='/dashboard',true);
+  await readLogin();check('SIGN_IN',login.status,303);check('SESSION_COOKIE',Boolean(cookie),true);check('SIGN_IN_REDIRECT',login.headers.get('location')==='/dashboard',true);
   const all=await read('ALL_BUSINESSES','/dashboard?business=all',200);
   const selector=/<select\b[^>]*\bid="business"[^>]*>([\s\S]*?)<\/select>/.exec(all)?.[1]??'';
   const selected=[...selector.matchAll(/<option\b[^>]*\bvalue="([^"]+)"/g)].map(match=>match[1]);
@@ -73,10 +82,10 @@ export async function verifyStagingAccess(options,password,{fetchImpl=fetch,sign
  finally{
   if(cookie){
    try{
-    const logout=await request('/logout',{method:'POST',body:new URLSearchParams(),cleanup:true});
-    await boundedText(logout);check('SIGN_OUT',logout.status,303);check('SIGN_OUT_REDIRECT',logout.headers.get('location')==='/login',true);
+    const {response:logout,readBody:readLogout}=await request('SIGN_OUT','/logout',{method:'POST',body:new URLSearchParams(),cleanup:true});
+    await readLogout();check('SIGN_OUT',logout.status,303);check('SIGN_OUT_REDIRECT',logout.headers.get('location')==='/login',true);
     // Reuse only this helper's now-invalid cookie to verify local invalidation.
-    const after=await request('/dashboard',{cleanup:true});await boundedText(after);
+    const {response:after,readBody:readAfter}=await request('AFTER_SIGN_OUT','/dashboard',{cleanup:true});await readAfter();
     check('AFTER_SIGN_OUT',after.status,303);check('AFTER_SIGN_OUT_REDIRECT',after.headers.get('location')==='/login',true);report.cleanup='PASSED';
    }catch{report.cleanup='UNCONFIRMED';report.failure??='CLEANUP_UNCONFIRMED';}
   }else if(loginInFlight){report.cleanup='UNCONFIRMED';report.failure??='CLEANUP_UNCONFIRMED';}

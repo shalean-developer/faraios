@@ -80,6 +80,55 @@ test('foreign diagnostic/code/message properties cannot leak through the public 
   return f.transport(url,init);
  }});
  assert.equal(r.failure,'REQUEST_FAILED');assert.equal(r.cleanup,'PASSED');assert.ok(!JSON.stringify(r).includes(sentinel));assert.ok(!JSON.stringify(r).includes(password));assert.ok(!JSON.stringify(r).includes(cookie));
+ assert.equal(r.requestFailure.check,'OTHER_CATALOGUE');assert.equal(r.requestFailure.phase,'HEADERS');assert.equal(r.requestFailure.httpStatus,null);
+});
+
+test('a failed own quote request retains earlier denial evidence and identifies only safe request metadata',async()=>{
+ const f=fixture('manager'),sentinel=password+' '+cookie;
+ const r=await verifyStagingAccess(options('manager'),password,{fetchImpl:async(url,init)=>{
+  const path=new URL(url);if(path.pathname==='/quotes'&&path.searchParams.get('business')===business)throw Object.assign(new Error(sentinel),{code:sentinel,name:'TimeoutError'});
+  return f.transport(url,init);
+ }});
+ assert.equal(r.passed,false);assert.equal(r.failure,'REQUEST_FAILED');assert.equal(r.cleanup,'PASSED');
+ assert.deepEqual(r.requestFailure,{check:'OWN_QUOTES',phase:'HEADERS',httpStatus:null,elapsedMs:r.requestFailure.elapsedMs,timeoutMs:10_000});assert.ok(Number.isSafeInteger(r.requestFailure.elapsedMs)&&r.requestFailure.elapsedMs>=0);
+ assert.ok(r.checks.some(c=>c.name==='OTHER_QUOTES'&&c.actual===403&&c.pass));assert.ok(!r.checks.some(c=>c.name==='OWN_QUOTES'||c.name.includes('RECURRING')));
+ for(const secret of [password,cookie,sentinel])assert.ok(!JSON.stringify(r).includes(secret));
+});
+
+test('only an expired local deadline is classified as a request timeout and cleanup gets a fresh deadline',async()=>{
+ const f=fixture('manager');
+ const r=await verifyStagingAccess(options('manager'),password,{timeoutMs:50,fetchImpl:async(url,init)=>{
+  const path=new URL(url);
+  if(path.pathname==='/quotes'&&path.searchParams.get('business')===business)return new Promise((resolve,reject)=>{
+   const timer=setTimeout(()=>resolve(new Response('late')),500);init.signal.addEventListener('abort',()=>{clearTimeout(timer);reject(init.signal.reason);},{once:true});
+  });
+  if(path.pathname==='/logout')assert.equal(init.signal.aborted,false);
+  return f.transport(url,init);
+ }});
+ assert.equal(r.failure,'REQUEST_TIMEOUT');assert.equal(r.requestFailure.check,'OWN_QUOTES');assert.equal(r.requestFailure.phase,'HEADERS');assert.equal(r.requestFailure.httpStatus,null);assert.equal(r.requestFailure.timeoutMs,50);assert.equal(r.cleanup,'PASSED');assert.equal(r.passed,false);
+});
+
+test('body failures retain a received HTTP status without passing an incomplete response',async()=>{
+ for(const timedOut of [false,true]){
+  const f=fixture('manager');
+  const r=await verifyStagingAccess(options('manager'),password,{timeoutMs:50,fetchImpl:async(url,init)=>{
+   const path=new URL(url);
+   if(path.pathname==='/quotes'&&path.searchParams.get('business')===business)return new Response(new ReadableStream({start(controller){
+    if(!timedOut){controller.error(new Error(password+' '+cookie));return;}
+    const timer=setTimeout(()=>controller.close(),500);init.signal.addEventListener('abort',()=>{clearTimeout(timer);controller.error(init.signal.reason);},{once:true});
+   }}),{status:200});
+   return f.transport(url,init);
+  }});
+  assert.equal(r.failure,timedOut?'REQUEST_TIMEOUT':'REQUEST_FAILED');assert.equal(r.requestFailure.check,'OWN_QUOTES');assert.equal(r.requestFailure.phase,'BODY');assert.equal(r.requestFailure.httpStatus,200);assert.equal(r.cleanup,'PASSED');assert.equal(r.passed,false);assert.ok(!r.checks.some(c=>c.name==='OWN_QUOTES'));assert.ok(!JSON.stringify(r).includes(password));assert.ok(!JSON.stringify(r).includes(cookie));
+ }
+});
+
+test('cleanup transport diagnostics cannot overwrite the original failure or disclose transport errors',async()=>{
+ const f=fixture('manager');
+ const r=await verifyStagingAccess(options('manager'),password,{fetchImpl:async(url,init)=>{
+  const path=new URL(url);if(path.pathname==='/logout'||path.pathname==='/quotes')throw new Error(password+' '+cookie);return f.transport(url,init);
+ }});
+ assert.equal(r.failure,'REQUEST_FAILED');assert.equal(r.cleanup,'UNCONFIRMED');assert.equal(r.requestFailure.check,'OTHER_QUOTES');assert.equal(r.cleanupFailure.check,'SIGN_OUT');assert.equal(r.cleanupFailure.phase,'HEADERS');assert.equal(r.cleanupFailure.httpStatus,null);assert.equal(r.passed,false);assert.ok(!JSON.stringify(r).includes(password));assert.ok(!JSON.stringify(r).includes(cookie));
 });
 
 test('cancellation after sign-in still uses a fresh cleanup request',async()=>{
@@ -101,6 +150,7 @@ test('ambiguous login outcomes report unconfirmed cleanup rather than inventing 
 test('invalid options cannot send credentials to a configurable origin or accept secrets in arguments',async()=>{
  for(const input of [[...args('manager'),'--origin=https://example.com'],[...args('manager'),'--password=private'],args('manager').map(v=>v.replace('--role=manager','--role=owner')),args('manager').map(v=>v.replace(foreign,business)),args('manager').map(v=>v.replace('@faraios.test','@example.com'))])assert.throws(()=>accessOptions(input),/INVALID_OPTIONS/);
  let calls=0;await assert.rejects(verifyStagingAccess({...options('manager'),origin:'https://example.com'},password,{fetchImpl:async()=>{calls++;}}),/INVALID_OPTIONS/);assert.equal(calls,0);
+ for(const timeoutMs of [0,10_001,Infinity,NaN,1.5])await assert.rejects(verifyStagingAccess(options('manager'),password,{timeoutMs,fetchImpl:async()=>{calls++;}}),/INVALID_TIMEOUT/);assert.equal(calls,0);
 });
 
 test('hidden terminal input preserves password whitespace and never echoes it',async()=>{
