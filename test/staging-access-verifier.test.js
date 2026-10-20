@@ -4,7 +4,7 @@ import {createServer} from 'node:http';
 import {PassThrough,Writable} from 'node:stream';
 import {spawnSync} from 'node:child_process';
 import {renderWorkspace} from '../src/workspace.js';
-import {accessOptions,askPassword,verifyStagingAccess,stagingOrigin} from '../scripts/verify-staging-access.mjs';
+import {accessOptions,askPassword,verifyStagingAccess,stagingOrigin,restoreOrigin} from '../scripts/verify-staging-access.mjs';
 
 const business='10000000-0000-4000-8000-000000000001',foreign='20000000-0000-4000-8000-000000000002';
 const cookie='faraios_staging=12345678-1234-4234-8234-123456789012';
@@ -12,9 +12,25 @@ const password=' synthetic secret with spaces ';
 const options=role=>({role,business,'denied-business':foreign,email:role+'.qa@faraios.test'});
 const sharedOptions=()=>({role:'staff',business,'shared-business':foreign,email:'staff.qa@faraios.test'});
 const args=role=>Object.entries(options(role)).map(([key,value])=>`--${key}=${value}`);
-const page=(role,all=false,extra=false,selected=business)=>renderWorkspace({userId:'00000000-0000-4000-8000-000000000001',businessIds:[business],memberships:[{userId:'00000000-0000-4000-8000-000000000001',businessId:business,role,status:'active'},...(extra?[{userId:'00000000-0000-4000-8000-000000000001',businessId:foreign,role,status:'active'}]:[])],businesses:[{id:business,name:'Synthetic QA business'},...(extra?[{id:foreign,name:'Synthetic other business'}]:[])]},all?'all':selected);
+const page=(role,all=false,extra=false,selected=business,restoreTest=false)=>renderWorkspace({userId:'00000000-0000-4000-8000-000000000001',businessIds:[business],memberships:[{userId:'00000000-0000-4000-8000-000000000001',businessId:business,role,status:'active'},...(extra?[{userId:'00000000-0000-4000-8000-000000000001',businessId:foreign,role,status:'active'}]:[])],businesses:[{id:business,name:'Synthetic QA business'},...(extra?[{id:foreign,name:'Synthetic other business'}]:[])]},all?'all':selected,{restoreTest});
 
-function fixture(role,{allowForeign=false,sharedBusiness=false,authStatus=303,ownerSettings=403,moduleStatus,extraBusiness=false,badLocation=false,logoutStatus=303,throwOnModule=false,largePage=false}={}){
+test('restore verifier uses only its fixed port/cookie and requires isolation before credential submission',async()=>{
+ for(const role of ['manager','staff'])for(const missingMarker of [false,true]){
+  const f=fixture(role,{sharedBusiness:role==='staff',restoreTest:!missingMarker}),calls=[];
+  const transport=async(url,init)=>{
+   calls.push(url);assert.equal(new URL(url).origin,restoreOrigin);
+   if(new URL(url).pathname==='/restore-health')return Response.json({environment:'restore-test',businessWrites:'disabled',accountingWorker:'disabled'});
+   const headers={...init.headers};if(headers.Origin)headers.Origin=stagingOrigin;if(headers.Cookie)headers.Cookie=headers.Cookie.replace('faraios_restore_test=','faraios_staging=');
+   const response=await f.transport(url.replace(restoreOrigin,stagingOrigin),{...init,headers});
+   const rh=new Headers(response.headers);const cookie=rh.get('set-cookie');if(cookie)rh.set('set-cookie',cookie.replace('faraios_staging=','faraios_restore_test='));
+   return new Response((await response.text()).replace('FaraiOS STAGING · No production data','FaraiOS RESTORE TEST · Integrations disabled'),{status:response.status,headers:rh});
+  };
+  const report=await verifyStagingAccess(role==='staff'?sharedOptions():options(role),password,{restoreTest:true,fetchImpl:transport});assert.equal(report.passed,!missingMarker);assert.equal(report.cleanup,'PASSED');if(missingMarker)assert.ok(report.checks.some(c=>c.name==='ALL_BUSINESSES_RESTORE_MARKER'&&!c.pass));assert.equal(report.environment,'restore-test');assert.equal(calls[0],restoreOrigin+'/restore-health');
+ }
+ let count=0;const report=await verifyStagingAccess(options('manager'),password,{restoreTest:true,fetchImpl:async()=>{count++;return Response.json({environment:'staging',businessWrites:'enabled',accountingWorker:'enabled'});}});assert.equal(report.passed,false);assert.equal(count,1);
+});
+
+function fixture(role,{restoreTest=false,allowForeign=false,sharedBusiness=false,authStatus=303,ownerSettings=403,moduleStatus,extraBusiness=false,badLocation=false,logoutStatus=303,throwOnModule=false,largePage=false}={}){
  const calls=[];let loggedIn=false,ended=false;
  const transport=async(url,init)=>{
   calls.push({url,init});assert.equal(new URL(url).origin,stagingOrigin);assert.equal(init.redirect,'manual');
@@ -33,7 +49,7 @@ function fixture(role,{allowForeign=false,sharedBusiness=false,authStatus=303,ow
   assert.equal(init.headers.Cookie,cookie);assert.equal(loggedIn,true);
   if(ended)return new Response('',{status:303,headers:{Location:'/login'}});
   const denied=path.searchParams.get('business')===foreign;
-  if(path.pathname==='/dashboard')return new Response(denied&&!sharedBusiness?'private denied body':page(role,path.searchParams.get('business')==='all',extraBusiness||sharedBusiness,denied?foreign:business),{status:denied&&!sharedBusiness?(allowForeign?200:403):200});
+  if(path.pathname==='/dashboard')return new Response(denied&&!sharedBusiness?'private denied body':page(role,path.searchParams.get('business')==='all',extraBusiness||sharedBusiness,denied?foreign:business,restoreTest),{status:denied&&!sharedBusiness?(allowForeign?200:403):200});
   if(path.pathname==='/settings')return new Response('private settings body',{status:ownerSettings});
   if(throwOnModule)throw new Error('transport error with '+password+' '+cookie);
   return new Response('private module body',{status:moduleStatus??(denied||role==='staff'?403:200)});

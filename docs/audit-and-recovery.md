@@ -2,9 +2,13 @@
 
 Updated 20 October 2026. Scope: FaraiOS staging only (`xdmfyrsauvqznkloroxg`). Existing Shalean/Bokkie systems are unchanged.
 
-## Isolated recovery setup — 20 October 2026
+## Current capture/retrieval checkpoint — 20 October 2026
 
-The owner accepted the recommended encrypted private Google Drive backup and separate temporary Supabase restore project in `shalean-developer`. The encryption key is to be kept separately with an offline copy; key creation and custody verification have not happened yet. This authorizes the one-off recovery exercise, not a recurring backup schedule or retention/deletion policy.
+Local logical capture and authenticated reread passed. The encrypted archive/checksum were uploaded to the approved private Drive folder and independently retrieved with matching SHA-256. The owner then reported downloaded-file `encryptedBackupVerification: PASSED`. No key was transmitted. The owner clarified **NO_OFFLINE_COPY**, with no removable drive available; offline key custody remains pending. No full restore has run. See [the isolated restore work package](isolated-restore.md) for current bindings, two-phase sequence treatment, isolation prerequisites, private execution and remaining acceptance. T11 remains In progress; T04/T19 decisions are unchanged.
+
+## Historical isolated recovery setup — 20 October 2026
+
+The owner accepted the recommended encrypted private Google Drive backup and separate temporary Supabase restore project in `shalean-developer`. The encryption key is to be kept separately with an offline copy. At setup no key had been created; the checkpoint above supersedes that state, while offline custody remains pending. This authorizes the one-off recovery exercise, not a recurring backup schedule or retention/deletion policy.
 
 Supabase's organization-specific project quote returned **$0 monthly** before creation. The connector permits creation at a zero quote without a cost-confirmation form. This is the returned additional-project quote, not a guarantee about future usage, plan changes or storage charges.
 
@@ -20,7 +24,7 @@ The new destination is separate from the working source. Read-only checks found 
 
 Refreshed source inventory: 15 public tables and two audit tables, all 17 with RLS enabled; 3 Auth users; 21 migration records; 186 `audit.events` rows; 0 Storage buckets/objects; 0 Vault secrets; 0 deployed Edge Functions. Installed extensions are `btree_gist`, `pg_stat_statements`, `pgcrypto`, `plpgsql`, `supabase_vault` and `uuid-ossp`; neither `pg_cron` nor `pg_net` is installed. This is a point-in-time inventory, not the eventual backup's consistency manifest.
 
-**T11 remains In progress.** The folder is empty; it is not a protected backup. Full schema/roles/data/Auth export, configuration capture, encryption/checksum, off-site retrieval/decryption, import and restored sign-in/access/audit verification have not run. The connected Supabase tools cannot produce the supported full logical export. The agent has inspected the pinned CLI but has no source database credential, Docker daemon or PostgreSQL clients for a real export; execution belongs in the owner's local terminal. Do not substitute visible Auth/credential queries for a private backup or reset the source password just to obtain access.
+**At this setup checkpoint T11 remained In progress.** The folder was empty; it was not yet a protected backup. Full schema/roles/data/Auth export, configuration capture, encryption/checksum, off-site retrieval/decryption, import and restored sign-in/access/audit verification have not run. The connected Supabase tools cannot produce the supported full logical export. The agent has inspected the pinned CLI but has no source database credential, Docker daemon or PostgreSQL clients for a real export; execution belongs in the owner's local terminal. Do not substitute visible Auth/credential queries for a private backup or reset the source password just to obtain access.
 
 ### Private Windows capture helper — prepared 20 October
 

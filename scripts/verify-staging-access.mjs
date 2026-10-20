@@ -5,6 +5,7 @@ import {pathToFileURL} from 'node:url';
 // Operator-run evidence only. This never changes a business record or connects
 // directly to Supabase/Zoho. Its only POSTs are its own local login and logout.
 export const stagingOrigin='http://127.0.0.1:3101';
+export const restoreOrigin='http://127.0.0.1:3103';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 class AccessFailure extends Error{constructor(code){super(code);this.code=code;}}
 const deny=code=>{throw new AccessFailure(code);};
@@ -17,10 +18,11 @@ export function accessOptions(args){
  return options;
 }
 
-export async function askPassword({input=process.stdin,output=process.stdout,signal}={}){
+export async function askPassword({input=process.stdin,output=process.stdout,signal,label='STAGING'}={}){
+ if(!['STAGING','RESTORE TEST'].includes(label))deny('INVALID_OPTIONS');
  if(!input.isTTY||!output.isTTY)deny('INTERACTIVE_TERMINAL_REQUIRED');
  const cancellation=new AbortController(),sink=new Writable({write(_chunk,_encoding,done){done();}});
- output.write('Existing FaraiOS STAGING QA password (hidden):\n');
+ output.write('Existing FaraiOS '+label+' QA password (hidden):\n');
  const terminal=createInterface({input,output:sink,terminal:true,historySize:0});
  const cancel=()=>cancellation.abort();terminal.on('SIGINT',cancel);terminal.on('close',cancel);
  try{return await terminal.question('',{signal:signal?AbortSignal.any([signal,cancellation.signal]):cancellation.signal});}
@@ -35,12 +37,14 @@ async function boundedText(response){
  return Buffer.concat(chunks).toString('utf8');
 }
 
-export async function verifyStagingAccess(options,password,{fetchImpl=fetch,signal,timeoutMs=10_000}={}){
+export async function verifyStagingAccess(options,password,{fetchImpl=fetch,signal,timeoutMs=10_000,restoreTest=false}={}){
  // Validate before issuing any request. CLI arguments must never carry secrets.
  const o=accessOptions(Object.entries(options).map(([key,value])=>`--${key}=${value}`));
  if(typeof password!=='string'||!password.length||password.length>1024)deny('INVALID_PASSWORD');
  if(!Number.isSafeInteger(timeoutMs)||timeoutMs<1||timeoutMs>10_000)deny('INVALID_TIMEOUT');
- const report={role:o.role,checks:[],cleanup:'NOT_NEEDED',passed:false};
+ if(typeof restoreTest!=='boolean')deny('INVALID_OPTIONS');
+ const targetOrigin=restoreTest?restoreOrigin:stagingOrigin,cookieName=restoreTest?'faraios_restore_test':'faraios_staging';
+ const report={...(restoreTest?{environment:'restore-test'}:{}),role:o.role,checks:[],cleanup:'NOT_NEEDED',passed:false};
  let cookie=null,loginInFlight=false;
  const request=async(name,path,{method='GET',body,cleanup=false}={})=>{
   const started=performance.now(),timeout=AbortSignal.timeout(timeoutMs);
@@ -50,19 +54,20 @@ export async function verifyStagingAccess(options,password,{fetchImpl=fetch,sign
    deny(!cleanup&&signal?.aborted?'CANCELLED':timeout.aborted?'REQUEST_TIMEOUT':publicFailure(error,'REQUEST_FAILED'));
   };
   let response;
-  try{response=await fetchImpl(stagingOrigin+path,{method,redirect:'manual',signal:!cleanup&&signal?AbortSignal.any([signal,timeout]):timeout,headers:{...(cookie?{Cookie:cookie}:{}),...(method==='POST'?{Origin:stagingOrigin,'Content-Type':'application/x-www-form-urlencoded'}:{})},...(body?{body}:{})});}
+  try{response=await fetchImpl(targetOrigin+path,{method,redirect:'manual',signal:!cleanup&&signal?AbortSignal.any([signal,timeout]):timeout,headers:{...(cookie?{Cookie:cookie}:{}),...(method==='POST'?{Origin:targetOrigin,'Content-Type':'application/x-www-form-urlencoded'}:{})},...(body?{body}:{})});}
   catch(error){fail(error,'HEADERS');}
   return {response,readBody:async()=>{try{return await boundedText(response);}catch(error){fail(error,'BODY',response);}}};
  };
  const check=(name,actual,expected)=>{const pass=actual===expected;report.checks.push({name,actual,expected,pass});if(!pass)deny('CHECK_FAILED');};
- const read=async(name,path,expected)=>{const {response,readBody}=await request(name,path);const body=await readBody();check(name,response.status,expected);return body;};
+ const read=async(name,path,expected)=>{const {response,readBody}=await request(name,path);const body=await readBody();check(name,response.status,expected);if(restoreTest&&expected===200&&path.startsWith('/dashboard'))check(name+'_RESTORE_MARKER',body.includes('FaraiOS RESTORE TEST')&&body.includes('Read-only recovery workspace')&&body.includes('Integrations disabled'),true);return body;};
  try{
-  const loginPage=await read('STAGING_LOGIN','/login',200);
-  check('STAGING_MARKER',loginPage.includes('FaraiOS STAGING')&&loginPage.includes('No production data')&&loginPage.includes('action="/login"'),true);
+  if(restoreTest){const health=JSON.parse(await read('RESTORE_HEALTH','/restore-health',200));check('RESTORE_ISOLATION',health.environment==='restore-test'&&health.businessWrites==='disabled'&&health.accountingWorker==='disabled',true);}
+  const loginPage=await read(restoreTest?'RESTORE_LOGIN':'STAGING_LOGIN','/login',200);
+  check(restoreTest?'RESTORE_MARKER':'STAGING_MARKER',loginPage.includes(restoreTest?'FaraiOS RESTORE TEST':'FaraiOS STAGING')&&loginPage.includes(restoreTest?'Integrations disabled':'No production data')&&loginPage.includes('action="/login"'),true);
   loginInFlight=true;
   const {response:login,readBody:readLogin}=await request('SIGN_IN','/login',{method:'POST',body:new URLSearchParams({email:o.email,password})});
   const cookies=login.headers.getSetCookie();
-  const session=cookies.map(value=>/^(faraios_staging=[0-9a-f-]{36});/i.exec(value)?.[1]).filter(Boolean);
+  const session=cookies.map(value=>new RegExp('^('+cookieName+'=[0-9a-f-]{36});','i').exec(value)?.[1]).filter(Boolean);
   if(session.length===1){cookie=session[0];report.cleanup='PENDING';loginInFlight=false;}
   else if([401,403,429].includes(login.status)){loginInFlight=false;}
   await readLogin();check('SIGN_IN',login.status,303);check('SESSION_COOKIE',Boolean(cookie),true);check('SIGN_IN_REDIRECT',login.headers.get('location')==='/dashboard',true);
@@ -105,13 +110,15 @@ export async function verifyStagingAccess(options,password,{fetchImpl=fetch,sign
 }
 
 async function main(){
- const options=accessOptions(process.argv.slice(2)),cancellation=new AbortController();
+ const rawArgs=process.argv.slice(2),restoreTest=rawArgs.includes('--restore-test');
+ if(rawArgs.filter(x=>x==='--restore-test').length>1)deny('INVALID_OPTIONS');
+ const options=accessOptions(rawArgs.filter(x=>x!=='--restore-test')),cancellation=new AbortController();
  if(!process.stdin.isTTY||!process.stdout.isTTY)deny('INTERACTIVE_TERMINAL_REQUIRED');
  const cancel=()=>cancellation.abort();process.once('SIGINT',cancel);process.once('SIGTERM',cancel);
- console.log('FaraiOS local STAGING access verification. Existing .test QA account only. No business writes or Zoho requests.');
+ console.log('FaraiOS local '+(restoreTest?'RESTORE TEST':'STAGING')+' access verification. Existing .test QA account only. No business writes or Zoho requests.');
  try{
-  const password=await askPassword({signal:cancellation.signal});
-  const result=await verifyStagingAccess(options,password,{signal:cancellation.signal});
+  const password=await askPassword({signal:cancellation.signal,label:restoreTest?'RESTORE TEST':'STAGING'});
+  const result=await verifyStagingAccess(options,password,{signal:cancellation.signal,restoreTest});
   console.log(JSON.stringify({...result,checks:result.checks.map(({name,actual,expected,pass})=>`${name}=${actual} expected=${expected} ${pass?'PASS':'FAIL'}`)},null,2));process.exitCode=result.passed?0:1;
  }finally{process.removeListener('SIGINT',cancel);process.removeListener('SIGTERM',cancel);}
 }
