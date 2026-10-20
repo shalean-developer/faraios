@@ -99,3 +99,35 @@ Browser review found misleading booking text that unconditionally claimed no inv
 Follow-up local full suite:143 discovered,142 PASS, one explicit PostgreSQL-service skip, zero failures. Independent bounded correction QA:52/52 focused invoice/quote/HTTP tests PASS, syntax and whitespace PASS; shared AI tooling disclosure applies. Independent staging corroboration PASS at20Oct2026 04:24:32UTC: all12 original business-table baselines and the original182-event audit digest remain unchanged; both version1 drafts also preserve currency/visit time/timezone/source links and have no provider/attempt fields. No independent live writes or browser replay were performed. Final exact-candidate CI is recorded in the follow-up PR.
 
 T19 remains **In progress**. Actual separate isolated Zoho organisations, private server credentials, customer bindings, real draft reconciliation/failure acceptance and final independent closure remain open. The owner's Zoho organisation-setup tab was inspected read-only and reloaded. After loading it showed an organisation picker with three existing Shalean-named organisations and no visibly identified FaraiOS test organisation. None was selected or assumed isolated. New Organization was clicked for owner handoff, but the destination remained blank; no setup form rendered. Actual isolation/region/currency and successful setup remain unverified. No form, agreement, OAuth grant or organisation configuration was submitted. No production cutover, issuance, sending, payment or T20 work occurred.
+
+## 20 October dedicated test organisations and private setup
+
+The owner subsequently created **FaraiOS - Shalean TEST (943440851)** and **FaraiOS - Bokkie TEST (943440162)** as new organisations. Browser names/IDs were verified. Both owner connection metadata rows were saved as staging, version1, **disabled**, using `https://www.zohoapis.com` and aliases `FARAIOS_SHALEAN_TEST` / `FARAIOS_BOKKIE_TEST`. Independent read-only verification at `2026-10-20T05:09:41Z` passed the bounded metadata gate: exactly two owner connection INSERTs (audit184→186), no updates; original business-table/audit baselines and both internal draft snapshots unchanged; no provider binding or attempt. Organisation creation and saved metadata do not prove provider isolation or successful integration.
+
+The owner verified Zoho in a new API Console tab. The console lists an existing Shalean App and Self Client. Add Client explicitly reports that a client of the Self Client type already exists and must be reused to generate codes. Existing clients/secrets were not opened or changed. To maintain separate staging credentials, prepare **new server-based clients**, one per test organisation. Registration and OAuth consent still require the owner's action-time approval; no new client/grant is implied by this preparation.
+
+`scripts/setup-zoho-staging.mjs` is an operator-only helper for the existing private credential-file contract. It adds no office endpoint, worker activation, database write or provider invoice call. Official [client registration](https://www.zoho.com/developer/oauth/register-app.html) and [Books OAuth](https://www.zoho.com/books/api/v3/oauth/) contracts were checked on20October2026.
+
+After review/merge, register each client with these public values:
+
+| Field | Shalean test client | Bokkie test client |
+|---|---|---|
+| Type | Server-based Applications | Server-based Applications |
+| Name | FaraiOS Shalean TEST | FaraiOS Bokkie TEST |
+| Homepage URL | `http://127.0.0.1:3101` | `http://127.0.0.1:3101` |
+| Authorized Redirect URI | `http://127.0.0.1:3102/zoho/callback` | `http://127.0.0.1:3102/zoho/callback` |
+| FaraiOS business UUID | `612be091-b1d7-4911-9c3b-143446a9fe27` | `0cc3f518-d64e-40c2-8817-bc14d1ef1420` |
+| Zoho organisation ID | `943440851` | `943440162` |
+| Exact organisation name | FaraiOS - Shalean TEST | FaraiOS - Bokkie TEST |
+| Alias | `FARAIOS_SHALEAN_TEST` | `FARAIOS_BOKKIE_TEST` |
+| API domain | `https://www.zohoapis.com` | `https://www.zohoapis.com` |
+
+Run `npm run setup:zoho-staging` in the owner's local checkout, once per business. Enter the public bindings above; type TEST only for the dedicated test organisation. Use a private folder outside all Git checkouts. The default is `.faraios-staging/zoho-credentials.json` under the current user's profile. Check that Windows folder/file access is limited to the intended local operator and normal system administrators; POSIX new files use0600 and existing broadly readable files are rejected. This helper does not claim to configure Windows ACLs.
+
+Paste the **new** client's ID/secret only at the hidden terminal prompts. Do not send them to chat or capture terminal/browser secret screens. The helper prints the official authorization URL with the public client ID and fresh random state. Open it in the same browser; review and personally accept only the correct TEST organisation and these exact scopes: `ZohoBooks.settings.READ,ZohoBooks.contacts.READ,ZohoBooks.invoices.READ,ZohoBooks.invoices.CREATE`. If organisation selection is absent, wrong or includes live organisations, **deny and stop**. Do not infer a provider restriction from the client name or local pins.
+
+The callback listens only on127.0.0.1:3102, accepts one matching-state response, checks host/method/region, and redirects immediately to a clean local path. Secrets and the code are sent only in the token POST body; responses/errors are not logged. Before saving, a read-only organisations request must return exactly the expected sole organisation with its exact name and ZAR currency. Another accessible organisation causes failure, including any production organisation. This is a fail-closed check, not proof that untested provider behaviour supports the desired grant.
+
+The private file is locked during setup and replaced atomically, preserving other aliases. Existing aliases/business/organisation bindings cannot be overwritten. The second successful run adds the other business to the same file. A failed exchange, isolation check or save cannot enable accounting. If consent succeeded but saving failed, the operator must revoke only the newly registered test application in Zoho before retrying; do not revoke or rotate either existing client. A failed setup may leave a new grant at Zoho even though no file was saved.
+
+The server's Supabase service key must still be set privately for this staging project, and the existing credential-file environment variable must point to the saved JSON. Restarting the server, enabling each owner connection, customer binding and actual draft/retry/failure/totals acceptance remain separate pending steps. T19 remains **In progress**; UI-02 final address runtime/host clipboard checks and T20 remain unchanged.
