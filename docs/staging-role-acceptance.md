@@ -42,7 +42,9 @@ User reported sign-in at 03:36 SAST; browser and Auth session verification confi
 
 Mobile menu previously passed click open/close and keyboard open at 390 x 844, with logo left, burger right and no horizontal overflow. Live SQL RLS assertions for each QA identity confirmed only Bokkie was readable. Earlier owner-session tests verified membership suspension and logout. Local HTTP tests cover direct foreign-business 403 responses using a simulated authentication provider.
 
-## Remaining limitation
+## Historical browser-only limitation and decision (19 October)
+
+The following two paragraphs retain the earlier browser-only evidence and decision. The 20 October operator run now supplies actual manager HTTP403 evidence for the Shalean dashboard and tested modules above. Current remaining acceptance gates are the unresolved `OWN_QUOTES` request, later recurring/calendar/invoices reads, current shared-staff checks and final independent acceptance; full T11 recovery is also open.
 
 Browser navigation to the restricted Shalean business URL reports ERR_BLOCKED_BY_CLIENT. This does not prove the application's real HTTP status or denial body. The live direct-link response remains unverified; do not close that criterion merely because the selector excludes Shalean. No browser security restriction was bypassed.
 
