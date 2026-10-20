@@ -1,5 +1,11 @@
 # Foundation access verification — 19 October 2026
 
+## Current outcome — 20 October 2026
+
+T08–T10 pass their bounded staging criteria under independent assessment **QA-ACCESS-T08-T10-ACCEPTANCE-20261020 v1**. Separate manager and shared-staff Auth sessions are now evidenced by owner-supplied complete 31-check and 35-check HTTP reports with cleanup PASSED. Actual manager foreign-business HTTP403 and current shared-staff role/settings/office denials are established. See [the staging closeout](staging-role-acceptance.md) for evidence, dates and limits. The earlier missing-account and restricted-link limitations below are historical; production, T11 full recovery and future record-level portal acceptance remain open separately.
+
+## Historical 19 October evidence
+
 Scope: T08–T10 verification, no deployment or live-business changes.
 
 ## Automated evidence
