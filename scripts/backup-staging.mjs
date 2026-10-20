@@ -189,15 +189,25 @@ export async function localDocker(env,runner=run) {
  if(os!=='linux')fail('DOCKER_LINUX_REQUIRED');return pinned;
 }
 
+// The read-only verifier never repairs permissions on an existing recovery key.
+export async function verifyWindowsACL(path,directory,runner=run) {
+ const script="$ErrorActionPreference='Stop'; try { $p=$env:FARAIOS_BACKUP_ACL_PATH; $s=[System.Security.Principal.WindowsIdentity]::GetCurrent().User; $a=Get-Acl -LiteralPath $p; if($a.GetOwner([System.Security.Principal.SecurityIdentifier]).Value -ne $s.Value){'PRIVATE_ACL_OWNER_MISMATCH'; exit}; $rules=@($a.GetAccessRules($true,$true,[System.Security.Principal.SecurityIdentifier])); if(($env:FARAIOS_BACKUP_ACL_DIRECTORY -eq '1' -and !$a.AreAccessRulesProtected) -or $rules.Count -ne 1 -or $rules[0].IdentityReference.Value -ne $s.Value -or $rules[0].AccessControlType -ne 'Allow' -or ($rules[0].FileSystemRights -band [System.Security.AccessControl.FileSystemRights]::FullControl) -ne [System.Security.AccessControl.FileSystemRights]::FullControl){'PRIVATE_ACL_UNSAFE'; exit}; 'PRIVATE_ACL_OK' } catch { 'PRIVATE_ACL_FAILED' }";
+ const result=await runner('powershell.exe',['-NoLogo','-NoProfile','-NonInteractive','-Command',script],{timeout:60000,env:{...process.env,FARAIOS_BACKUP_ACL_PATH:path,FARAIOS_BACKUP_ACL_DIRECTORY:directory?'1':'0'}});
+ if(result.stdout.trim()!=='PRIVATE_ACL_OK')fail(['PRIVATE_ACL_OWNER_MISMATCH','PRIVATE_ACL_UNSAFE'].includes(result.stdout.trim())?result.stdout.trim():'PRIVATE_ACL_FAILED');
+}
+
 export async function privateDirectory(path, runner=run) {
- try { await mkdir(path,{mode:0o700}); } catch(e) { if(e.code!=='EEXIST') fail('PRIVATE_DIRECTORY_FAILED'); }
+ let created=false;
+ try { await mkdir(path,{mode:0o700});created=true; } catch(e) { if(e.code!=='EEXIST') fail('PRIVATE_DIRECTORY_FAILED'); }
  await plainDirectory(path);
  if(process.platform==='win32') {
-  // Replace the ACL, including any explicit other-user entries; /inheritance:r alone
-  // would leave explicit broad grants behind. The path is data in an environment value.
-  const script="$ErrorActionPreference='Stop'; $p=$env:FARAIOS_BACKUP_ACL_PATH; $s=[System.Security.Principal.WindowsIdentity]::GetCurrent().User; $old=Get-Acl -LiteralPath $p; if($old.GetOwner([System.Security.Principal.SecurityIdentifier]).Value -ne $s.Value){throw 'owner'}; $a=New-Object System.Security.AccessControl.DirectorySecurity; $a.SetOwner($s); $a.SetAccessRuleProtection($true,$false); $rule=New-Object System.Security.AccessControl.FileSystemAccessRule($s,'FullControl','ContainerInherit,ObjectInherit','None','Allow'); $a.AddAccessRule($rule); Set-Acl -LiteralPath $p -AclObject $a; $check=Get-Acl -LiteralPath $p; $rules=@($check.GetAccessRules($true,$true,[System.Security.Principal.SecurityIdentifier])); if(!$check.AreAccessRulesProtected -or $rules.Count -ne 1 -or $rules[0].IdentityReference.Value -ne $s.Value -or $rules[0].AccessControlType -ne 'Allow' -or ($rules[0].FileSystemRights -band [System.Security.AccessControl.FileSystemRights]::FullControl) -ne [System.Security.AccessControl.FileSystemRights]::FullControl){throw 'acl'}; 'PRIVATE_ACL_OK'";
-  const result=await runner('powershell.exe',['-NoProfile','-NonInteractive','-Command',script],{timeout:15000,env:{...process.env,FARAIOS_BACKUP_ACL_PATH:path}});
-  if(result.stdout.trim()!=='PRIVATE_ACL_OK') fail('PRIVATE_ACL_FAILED');
+  // A new directory created by an elevated Windows account may inherit the
+  // Administrators owner SID. Set its owner to that same current user; never
+  // take ownership of an existing directory belonging to somebody else.
+  const script="$ErrorActionPreference='Stop'; try { $p=$env:FARAIOS_BACKUP_ACL_PATH; $s=[System.Security.Principal.WindowsIdentity]::GetCurrent().User; $old=Get-Acl -LiteralPath $p; if($env:FARAIOS_BACKUP_ACL_CREATED -ne '1' -and $old.GetOwner([System.Security.Principal.SecurityIdentifier]).Value -ne $s.Value){'PRIVATE_ACL_OWNER_MISMATCH'; exit}; $a=New-Object System.Security.AccessControl.DirectorySecurity; $a.SetOwner($s); $a.SetAccessRuleProtection($true,$false); $rule=New-Object System.Security.AccessControl.FileSystemAccessRule($s,'FullControl','ContainerInherit,ObjectInherit','None','Allow'); $a.AddAccessRule($rule); Set-Acl -LiteralPath $p -AclObject $a; 'PRIVATE_ACL_SET' } catch { 'PRIVATE_ACL_SET_FAILED' }";
+  const result=await runner('powershell.exe',['-NoLogo','-NoProfile','-NonInteractive','-Command',script],{timeout:60000,env:{...process.env,FARAIOS_BACKUP_ACL_PATH:path,FARAIOS_BACKUP_ACL_CREATED:created?'1':'0'}});
+  if(result.stdout.trim()!=='PRIVATE_ACL_SET')fail(result.stdout.trim()==='PRIVATE_ACL_OWNER_MISMATCH'?'PRIVATE_ACL_OWNER_MISMATCH':'PRIVATE_ACL_SET_FAILED');
+  await verifyWindowsACL(path,true,runner);
  } else {
   const s=await lstat(path);
   if((s.mode&0o077)!==0||s.uid!==process.getuid()) fail('PRIVATE_PERMISSIONS_FAILED');
@@ -245,7 +255,7 @@ export function openBackup(bytes,key) {
  } catch { fail('ARCHIVE_VERIFICATION_FAILED'); }
 }
 
-export async function verifyFile(archive,keyRoot) {
+export async function verifyFile(archive,keyRoot,runner=run) {
  await outsideGit(keyRoot);const guard=directoryGuard();await guard.add(keyRoot);
  const s=await lstat(archive);
  if(!s.isFile()||s.isSymbolicLink()||s.size>MAX_ARCHIVE) fail('ARCHIVE_INVALID');
@@ -257,6 +267,7 @@ export async function verifyFile(archive,keyRoot) {
  const keyPath=join(keyRoot,id+'.key'),k=await lstat(keyPath);
  if(!k.isFile()||k.isSymbolicLink()||k.size!==32) fail('KEY_FILE_INVALID');
  if(process.platform!=='win32'&&((k.mode&0o077)!==0||k.uid!==process.getuid()||((await lstat(keyRoot)).mode&0o077)!==0))fail('KEY_FILE_PERMISSIONS_UNSAFE');
+ if(process.platform==='win32'){await verifyWindowsACL(keyRoot,true,runner);await verifyWindowsACL(keyPath,false,runner);}
  await guard.check();
  const handle=await open(keyPath,'r');let key;
  try {
@@ -268,7 +279,7 @@ export async function verifyFile(archive,keyRoot) {
  finally { key.fill(0); }
 }
 
-export async function capture({home=homedir(),password,npmPath=process.env.npm_execpath,runner=run,progress=()=>{},signal}) {
+export async function capture({home=homedir(),password,npmPath=process.env.npm_execpath,runner=run,progress=()=>{},signal,removeWorkdir=path=>rm(path,{recursive:true})}) {
  if(signal?.aborted) fail('BACKUP_CANCELLED');
  const root=join(home,'.faraios-backups'),keyRoot=join(home,'.faraios-recovery-keys');
  // Refuse command-line credentials, inherited project/host overrides and repo-local dumps.
@@ -325,12 +336,14 @@ export async function capture({home=homedir(),password,npmPath=process.env.npm_e
    const bytes=sealBackup({source:SOURCE,files},key,id);openBackup(bytes,key);
    artifact=join(work,'faraios-staging-'+id+'.fbackup');await writePrivate(artifact,bytes,guard);
    await guard.check();
-   const result=await verifyFile(artifact,keyRoot);
+   const result=await verifyFile(artifact,keyRoot,runner);
    checksum=result.sha256;
    await writePrivate(artifact+'.sha256',result.sha256+'\n',guard);
   } finally { key.fill(0); }
   if(signal?.aborted) fail('BACKUP_CANCELLED');
-  await guard.check();await rm(temporary,{recursive:true});cleanup='PASSED';completed=true;
+  await guard.check();await removeWorkdir(temporary);
+  if(signal?.aborted)fail('BACKUP_CANCELLED');
+  cleanup='PASSED';completed=true;
   return {source:SOURCE,artifact,keyPath,sha256:checksum,privateWorkdirCleanup:cleanup,helperPlaintextSQLFiles:'NEVER_WRITTEN',encryptedLocalVerification:'PASSED',offsiteBackup:'PENDING',offlineKeyCopy:'PENDING',restore:'NOT_RUN'};
  } finally {
   delete env.SUPABASE_DB_PASSWORD;
@@ -363,6 +376,7 @@ async function main() {
   if((await ask('Confirm writes are paused for this capture (type QUIET):')).trim()!=='QUIET') fail('WRITE_FREEZE_NOT_CONFIRMED');
   const password=await ask('Existing FaraiOS STAGING database password (hidden; never paste in chat):',true);
   const report=await capture({password,progress:message=>console.log(message),signal:cancellation.signal});
+  if(cancellation.signal.aborted)fail('BACKUP_CANCELLED');
   console.log(JSON.stringify(report,null,2));
   console.log('Keep the .key file separate and copy it to protected offline storage. Upload only the .fbackup and .sha256 files to the approved private Drive folder.');
   console.log('T11 remains In progress: off-site retrieval/decryption, isolated restore and access/audit acceptance are pending.');

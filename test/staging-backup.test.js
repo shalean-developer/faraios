@@ -204,9 +204,21 @@ test('key boundary replacement stops before encryption and public key permission
   return runner(command,args,opts);
  }}));
  assert.deepEqual(await readdir(foreign),[]);assert.deepEqual(await readdir(moved),[]);
+ const q=await home(t),report=await capture({home:q,password:'synthetic private password',npmPath:join(q,'npm-cli.js'),runner:mockRunner()});
  if(process.platform!=='win32') {
-  const q=await home(t),report=await capture({home:q,password:'synthetic private password',npmPath:join(q,'npm-cli.js'),runner:mockRunner()});
   const {chmod}=await import('node:fs/promises');await chmod(report.keyPath,0o644);
   await assert.rejects(verifyFile(report.artifact,join(q,'.faraios-recovery-keys')),{code:'KEY_FILE_PERMISSIONS_UNSAFE'});
+ } else {
+  // Deliberately loosen only this disposable synthetic key; verification must
+  // refuse it without repairing its DACL or reading any key bytes.
+  const script="$ErrorActionPreference='Stop'; $a=Get-Acl -LiteralPath $env:FARAIOS_SYNTHETIC_KEY; $sid=New-Object System.Security.Principal.SecurityIdentifier('S-1-5-11'); $r=New-Object System.Security.AccessControl.FileSystemAccessRule($sid,'Read','Allow'); $a.AddAccessRule($r); Set-Acl -LiteralPath $env:FARAIOS_SYNTHETIC_KEY -AclObject $a; 'SYNTHETIC_ACL_LOOSENED'";
+  await run('powershell.exe',['-NoLogo','-NoProfile','-NonInteractive','-Command',script],{timeout:60000,env:{...process.env,FARAIOS_SYNTHETIC_KEY:report.keyPath}});
+  await assert.rejects(verifyFile(report.artifact,join(q,'.faraios-recovery-keys')),{code:'PRIVATE_ACL_UNSAFE'});
  }
+});
+
+test('cancellation during final workdir removal cannot return a PASSED report',async t=>{
+ const p=await home(t),controller=new AbortController();let cleanupRan=false;
+ await assert.rejects(capture({home:p,password:'synthetic private password',npmPath:join(p,'npm-cli.js'),runner:mockRunner(),signal:controller.signal,removeWorkdir:async path=>{await rm(path,{recursive:true});cleanupRan=true;controller.abort();}}),{code:'BACKUP_CANCELLED'});
+ assert.equal(cleanupRan,true);
 });
