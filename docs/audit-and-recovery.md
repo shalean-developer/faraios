@@ -4,7 +4,7 @@ Updated 20 October 2026. Scope: FaraiOS staging only (`xdmfyrsauvqznkloroxg`). E
 
 ## Current capture/retrieval checkpoint — 20 October 2026
 
-Local logical capture and authenticated reread passed. The encrypted archive/checksum were uploaded to the approved private Drive folder and independently retrieved with matching SHA-256. The owner then reported downloaded-file `encryptedBackupVerification: PASSED`. No key was transmitted. The owner clarified **NO_OFFLINE_COPY**, with no removable drive available; offline key custody remains pending. No full restore has run. See [the isolated restore work package](isolated-restore.md) for current bindings, two-phase sequence treatment, isolation prerequisites, private execution and remaining acceptance. T11 remains In progress; T04/T19 decisions are unchanged.
+Local logical capture and authenticated reread passed. The encrypted archive/checksum were uploaded to the approved private Drive folder and independently retrieved with matching SHA-256. The owner then reported downloaded-file `encryptedBackupVerification: PASSED`. No key was transmitted. The owner clarified **NO_OFFLINE_COPY**, with no removable drive available; offline key custody remains pending. The first restore attempt stopped at a provider-managed parameter grant; read-only checks confirmed the original empty destination catalog. No full restore has committed. See [the isolated restore work package](isolated-restore.md) for current bindings, two-phase sequence treatment, isolation prerequisites, private execution and remaining acceptance. T11 remains In progress; T04/T19 decisions are unchanged.
 
 ## Historical isolated recovery setup — 20 October 2026
 

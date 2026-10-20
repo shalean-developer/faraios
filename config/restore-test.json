@@ -6,9 +6,9 @@
   "captureId": "6d6642b010653cc4a83adc3a56b40734",
   "archiveSha256": "53672bbedb8de3d6faa5b1e7830558d6dd5b84bfb1d9d40335e2d433725e18f6",
   "captureCatalogSha256": "7ff6cd5d2b82acecbf07e61b5e9041604087d298687278f0f1569bc749d4fc2c",
-  "applicationCatalogSha256": "28194616eb6745d0a16e01536d42163f4f51fa9bd8ed139ab6442a84e09ec06c",
-  "managedCatalogSha256": "c4a519adf544d23fb426dd92382071dfe0e14deeee22ccb33fc5c6006928f050",
-  "emptyApplicationCatalogSha256": "aae2beaa2b8116f391b7883f1eaa4dc21f37db8447ab9bfbb5040cb1e349880b",
+  "applicationCatalogSha256": "e73bde7740e11fe985d33c710f0654774a5dc9caa6d2e46af522973340817d03",
+  "managedCatalogSha256": "b190886ca97fdc83673380fef8b846a9f372ace520fa49df1c8cd6dfd6366f23",
+  "emptyApplicationCatalogSha256": "a2db5f018fe0ff409b195fce506b169d7b3ea2546096ad7a15ca5926c319655c",
   "sequences": [
     "auth.refresh_tokens_id_seq"
   ]
