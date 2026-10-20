@@ -12,7 +12,24 @@ import {zohoDomains} from '../src/zoho-books.js';
 export const redirectUri='http://127.0.0.1:3102/zoho/callback';
 export const scopes='ZohoBooks.settings.READ,ZohoBooks.contacts.READ,ZohoBooks.invoices.READ,ZohoBooks.invoices.CREATE';
 const repository=fileURLToPath(new URL('..',import.meta.url));
-const fail=()=>{throw new Error('Private setup validation failed');};
+const failures=Object.freeze({
+ VALIDATION_FAILED:'Local input or setup validation failed',
+ TOKEN_NETWORK:'The token request failed during transport',TOKEN_HTTP:'Zoho rejected the token HTTP request',TOKEN_RESPONSE:'The token response was malformed',TOKEN_REJECTED:'Zoho rejected the token request',
+ TOKEN_CLIENT_ID:'Zoho returned invalid_client; check the dedicated client and pinned region',TOKEN_CLIENT_SECRET:'Zoho rejected the dedicated client secret',TOKEN_REDIRECT:'Zoho rejected the registered redirect URI',TOKEN_CODE:'Zoho rejected the one-use authorization code',TOKEN_DENIED:'Zoho denied the token request',
+ TOKEN_ACCESS_MISSING:'The token response had no valid access token',TOKEN_REFRESH_MISSING:'The token response had no valid refresh token',TOKEN_DOMAIN:'The token API domain did not match the pinned region',TOKEN_EXPIRY:'The token expiry was invalid',
+ ORG_NETWORK:'The organisation request failed during transport',ORG_HTTP:'Zoho rejected the organisation HTTP request',ORG_RESPONSE:'The organisation response was malformed',ORG_REJECTED:'Zoho rejected the organisation request',
+ ORG_COUNT:'The grant did not return exactly one organisation',ORG_ID:'The organisation ID did not match',ORG_NAME:'The organisation name did not match',ORG_CURRENCY:'The organisation currency was not ZAR',ORG_INACTIVE:'The organisation was inactive',
+ PRIVATE_FILE_OPEN:'The private file or lock could not be opened safely',PRIVATE_FILE_SAVE:'The verified credentials could not be saved safely',
+ CANCELLED:'Setup was cancelled',CALLBACK_UNAVAILABLE:'The local callback could not start',CALLBACK_EXPIRED:'The callback wait expired',UNEXPECTED:'An unexpected local setup failure occurred'
+});
+class SetupFailure extends Error{constructor(code){super('Private setup validation failed');this.diagnostic=code;}}
+const fail=(code='VALIDATION_FAILED')=>{throw new SetupFailure(code);};
+// Never print provider bodies, native errors, paths, identifiers or credentials.
+export function setupFailureMessage(error){
+ const code=error instanceof SetupFailure&&Object.hasOwn(failures,error.diagnostic)?error.diagnostic:'UNEXPECTED';
+ return 'Setup stopped ['+code+']. '+failures[code]+'. No connection was enabled. Share only this fixed diagnostic label, not secrets or terminal captures. If consent was granted, revoke only this new test application grant in Zoho before retrying.';
+}
+async function atStage(code,operation){try{return await operation();}catch(error){if(error instanceof SetupFailure&&error.diagnostic!=='VALIDATION_FAILED')throw error;fail(code);}}
 const inside=(root,path)=>{const r=relative(root,path);return r!=='..'&&!r.startsWith('..'+sep)&&!isAbsolute(r);};
 const id=v=>typeof v==='string'&&/^[0-9]{1,30}$/.test(v);
 const secret=v=>typeof v==='string'&&v.length>0&&v.length<4096&&!/\s/.test(v);
@@ -30,21 +47,31 @@ export function authorizationUrl(binding,clientId,state){
  url.search=new URLSearchParams({scope:scopes,client_id:clientId,state,response_type:'code',redirect_uri:redirectUri,access_type:'offline',prompt:'consent'}).toString();
  return url.href;
 }
-async function safeJson(fetchImpl,url,options){
- let response;try{response=await fetchImpl(url,{...options,redirect:'error',signal:AbortSignal.timeout(12000)});}catch{fail();}
- if(!response.ok)fail();let data;
- try{const raw=await response.text();if(raw.length>100000)fail();data=JSON.parse(raw);}catch{fail();}
- if(!data||data.error||data.code!==undefined&&data.code!==0)fail();return data;
+async function safeJson(fetchImpl,url,options,stage){
+ let response;try{response=await fetchImpl(url,{...options,redirect:'error',signal:AbortSignal.timeout(12000)});}catch{fail(stage+'_NETWORK');}
+ if(!response?.ok)fail(stage+'_HTTP');let data;
+ try{const raw=await response.text();if(raw.length>100000)fail();data=JSON.parse(raw);}catch{fail(stage+'_RESPONSE');}
+ if(!data||typeof data!=='object'||Array.isArray(data))fail(stage+'_RESPONSE');
+ const tokenErrors={invalid_client:'TOKEN_CLIENT_ID',invalid_client_secret:'TOKEN_CLIENT_SECRET',invalid_redirect_uri:'TOKEN_REDIRECT',invalid_code:'TOKEN_CODE',access_denied:'TOKEN_DENIED'};
+ if(stage==='TOKEN'&&typeof data.error==='string'&&Object.hasOwn(tokenErrors,data.error))fail(tokenErrors[data.error]);
+ if(data.error||data.code!==undefined&&data.code!==0)fail(stage+'_REJECTED');return data;
 }
 export async function exchangeAndVerify(binding,{clientId,clientSecret,code},fetchImpl=fetch){
  validateBinding(binding);if(![clientId,clientSecret,code].every(secret))fail();
- const token=await safeJson(fetchImpl,zohoDomains[binding.api_domain]+'/oauth/v2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'authorization_code',client_id:clientId,client_secret:clientSecret,redirect_uri:redirectUri,code})});
- if(!secret(token.access_token)||!secret(token.refresh_token)||token.api_domain!==binding.api_domain||!Number.isFinite(token.expires_in)||token.expires_in<=0)fail();
+ const token=await safeJson(fetchImpl,zohoDomains[binding.api_domain]+'/oauth/v2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'authorization_code',client_id:clientId,client_secret:clientSecret,redirect_uri:redirectUri,code})},'TOKEN');
+ if(!secret(token.access_token))fail('TOKEN_ACCESS_MISSING');
+ if(!secret(token.refresh_token))fail('TOKEN_REFRESH_MISSING');
+ if(token.api_domain!==binding.api_domain)fail('TOKEN_DOMAIN');
+ if(!Number.isFinite(token.expires_in)||token.expires_in<=0)fail('TOKEN_EXPIRY');
  // A client name or an application-side pin does not prove provider isolation.
  // Stop if this grant can see another organisation, including a live business.
- const result=await safeJson(fetchImpl,binding.api_domain+'/books/v3/organizations',{headers:{Authorization:'Zoho-oauthtoken '+token.access_token}});
+ const result=await safeJson(fetchImpl,binding.api_domain+'/books/v3/organizations',{headers:{Authorization:'Zoho-oauthtoken '+token.access_token}},'ORG');
  const org=result.organizations?.[0];
- if(!Array.isArray(result.organizations)||result.organizations.length!==1||String(org?.organization_id)!==binding.organization_id||org.name?.trim()!==binding.organization_name.trim()||org.currency_code!=='ZAR'||org.is_org_active===false)fail();
+ if(!Array.isArray(result.organizations)||result.organizations.length!==1)fail('ORG_COUNT');
+ if(String(org?.organization_id)!==binding.organization_id)fail('ORG_ID');
+ if(typeof org?.name!=='string'||org.name.trim()!==binding.organization_name.trim())fail('ORG_NAME');
+ if(org.currency_code!=='ZAR')fail('ORG_CURRENCY');
+ if(org.is_org_active===false)fail('ORG_INACTIVE');
  return {business_id:binding.business_id,organization_id:binding.organization_id,api_domain:binding.api_domain,environment:'staging',staging_organization_confirmed:true,client_id:clientId,client_secret:clientSecret,refresh_token:token.refresh_token};
 }
 
@@ -105,27 +132,27 @@ async function main(){
   const binding=validateBinding({business_id:await ask('FaraiOS business UUID: '),organization_id:await ask('New Zoho TEST organisation ID: '),organization_name:await ask('Exact TEST organisation name: '),alias:await ask('Credential alias: '),api_domain:await ask('API domain (e.g. https://www.zohoapis.com): ')});
   if(await ask('Confirm this is an isolated test organisation (type TEST): ')!=='TEST')fail();
   const target=await ask('Private JSON path (Enter for your profile default): ')||join(homedir(),'.faraios-staging','zoho-credentials.json');
-  store=await privateStore(target);
+  store=await atStage('PRIVATE_FILE_OPEN',()=>privateStore(target));
   const clientId=await ask('New dedicated Client ID (hidden): ',true),clientSecret=await ask('New dedicated Client Secret (hidden): ',true);
   if(![clientId,clientSecret].every(secret))fail();
   const state=randomBytes(32).toString('hex');
   const consentUrl=authorizationUrl(binding,clientId,state);
   const code=await new Promise((resolveCode,rejectCode)=>{
-   if(cancellation.signal.aborted){rejectCode(new Error('Setup cancelled'));return;}
-   cancellation.signal.addEventListener('abort',()=>rejectCode(new Error('Setup cancelled')),{once:true});
-   server=createServer(callbackHandler(state,zohoDomains[binding.api_domain],resolveCode));server.once('error',()=>rejectCode(new Error('Local callback unavailable')));
+   if(cancellation.signal.aborted){rejectCode(new SetupFailure('CANCELLED'));return;}
+   cancellation.signal.addEventListener('abort',()=>rejectCode(new SetupFailure('CANCELLED')),{once:true});
+   server=createServer(callbackHandler(state,zohoDomains[binding.api_domain],resolveCode));server.once('error',()=>rejectCode(new SetupFailure('CALLBACK_UNAVAILABLE')));
    server.listen(3102,'127.0.0.1',()=>{
     console.log('Open this authorization URL in your browser. Accept only the named TEST organisation and these four scopes:');
     console.log(scopes);console.log(consentUrl);
     console.log('If Zoho offers all organisations or the wrong organisation, deny and stop.');
    });
-   timer=setTimeout(()=>rejectCode(new Error('Authorization expired')),10*60*1000);
+   timer=setTimeout(()=>rejectCode(new SetupFailure('CALLBACK_EXPIRED')),10*60*1000);
   });
   clearTimeout(timer);
   const entry=await exchangeAndVerify(binding,{clientId,clientSecret,code});
-  if(cancellation.signal.aborted)fail();
-  await store.save(binding.alias,entry);
+  if(cancellation.signal.aborted)fail('CANCELLED');
+  await atStage('PRIVATE_FILE_SAVE',()=>store.save(binding.alias,entry));
   console.log('Private credentials saved. Exactly one TEST organisation verified. No connection enabled or invoice synced.');
  }finally{clearTimeout(timer);if(server)await new Promise(r=>server.close(r));await store?.close();terminal.close();process.removeListener('SIGINT',cancel);process.removeListener('SIGTERM',cancel);}
 }
-if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))main().catch(()=>{console.error('Setup stopped. No connection was enabled. Check the dedicated test client and local settings; do not share secrets or terminal captures. If consent was granted but saving failed, revoke only this new test application in Zoho before retrying.');process.exitCode=1;});
+if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))main().catch(error=>{console.error(setupFailureMessage(error));process.exitCode=1;});
