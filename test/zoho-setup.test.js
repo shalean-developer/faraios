@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {authorizationUrl,exchangeAndVerify,callbackHandler,privateStore,redirectUri,scopes,validateBinding} from '../scripts/setup-zoho-staging.mjs';
+import {authorizationUrl,exchangeAndVerify,callbackHandler,privateStore,redirectUri,scopes,validateBinding,setupFailureMessage} from '../scripts/setup-zoho-staging.mjs';
 
 const binding={business_id:'11111111-1111-4111-8111-111111111111',organization_id:'123456',organization_name:'Example TEST',alias:'EXAMPLE_TEST',api_domain:'https://www.zohoapis.com'};
 const credentials={clientId:'test-client',clientSecret:'private-test-secret',code:'private-test-code'};
@@ -40,6 +40,30 @@ test('a grant seeing another organisation or a mismatched test profile is reject
 test('token errors, region mismatch, malformed data and transport errors remain redacted',async()=>{
  for(const t of [{...token,error:credentials.clientSecret},{...token,api_domain:'https://attacker.test'},{...token,refresh_token:''},{...token,expires_in:0}])await assert.rejects(exchangeAndVerify(binding,credentials,fake(undefined,t).fetch),/^Error: Private setup validation failed$/);
  for(const fetcher of [async()=>{throw new Error(credentials.clientSecret);},async()=>({ok:false}),async()=>({ok:true,text:async()=>credentials.clientSecret})])await assert.rejects(exchangeAndVerify(binding,credentials,fetcher),/^Error: Private setup validation failed$/);
+});
+test('fixed diagnostics distinguish token and organisation failures without revealing provider data',async()=>{
+ const cases=[
+  [{error:'invalid_client'},undefined,'TOKEN_CLIENT_ID'],[{error:'invalid_client_secret'},undefined,'TOKEN_CLIENT_SECRET'],
+  [{error:'invalid_redirect_uri'},undefined,'TOKEN_REDIRECT'],[{error:'invalid_code'},undefined,'TOKEN_CODE'],[{error:'access_denied'},undefined,'TOKEN_DENIED'],
+  [{error:credentials.clientSecret},undefined,'TOKEN_REJECTED'],[{...token,access_token:''},undefined,'TOKEN_ACCESS_MISSING'],
+  [{...token,refresh_token:''},undefined,'TOKEN_REFRESH_MISSING'],[{...token,api_domain:'https://private-region.test'},undefined,'TOKEN_DOMAIN'],[{...token,expires_in:0},undefined,'TOKEN_EXPIRY'],
+  [token,{code:0,organizations:[org,{...org,organization_id:'999'}]},'ORG_COUNT'],[token,{code:0,organizations:[{...org,organization_id:'999'}]},'ORG_ID'],
+  [token,{code:0,organizations:[{...org,name:credentials.clientSecret}]},'ORG_NAME'],[token,{code:0,organizations:[{...org,currency_code:'USD'}]},'ORG_CURRENCY'],[token,{code:0,organizations:[{...org,is_org_active:false}]},'ORG_INACTIVE'],
+  [token,{error:credentials.clientSecret},'ORG_REJECTED']
+ ];
+ for(const [t,o,expected] of cases){
+  await assert.rejects(exchangeAndVerify(binding,credentials,fake(o,t).fetch),error=>{
+   const message=setupFailureMessage(error);assert.ok(message.includes('['+expected+']'));
+   for(const privateValue of [...Object.values(credentials),token.access_token,token.refresh_token,'https://private-region.test'])assert.ok(!message.includes(privateValue));
+   return true;
+  });
+ }
+ for(const error of [new Error(credentials.clientSecret),{diagnostic:'TOKEN_CLIENT_SECRET',message:token.refresh_token},null]){
+  const message=setupFailureMessage(error);assert.ok(message.includes('[UNEXPECTED]'));assert.ok(!message.includes(credentials.clientSecret));assert.ok(!message.includes(token.refresh_token));
+ }
+ for(const [fetcher,expected] of [[async()=>{throw new Error(credentials.clientSecret);},'TOKEN_NETWORK'],[async()=>({ok:false}),'TOKEN_HTTP'],[async()=>({ok:true,text:async()=>credentials.clientSecret}),'TOKEN_RESPONSE']]){
+  await assert.rejects(exchangeAndVerify(binding,credentials,fetcher),error=>setupFailureMessage(error).includes('['+expected+']'));
+ }
 });
 
 function request(handler,url,headers={host:'127.0.0.1:3102'},method='GET'){
@@ -121,4 +145,31 @@ test('operator CLI prints complete prompt lines, hides secret input and cancels 
  assert.ok(!transcript.slice(0,transcript.indexOf('Open this authorization URL')).includes('synthetic-client-id'));
  child.stdin.write('\u0003');const result=await finished;assert.equal(result.code,1);assert.match(stderr,/Setup stopped/);
  await assert.rejects(stat(output),{code:'ENOENT'});await assert.rejects(stat(output+'.lock'),{code:'ENOENT'});
+});
+
+test('real CLI reports redacted post-callback stages and preserves private files on failure',{timeout:30000},async t=>{
+ for(const mode of ['TOKEN_CLIENT_SECRET','TOKEN_REJECTED','ORG_COUNT','PRIVATE_FILE_SAVE']){
+  const {output}=await fixture(t),marker='NEVER_PRINT_PROVIDER_OR_FILE_VALUE';
+  const tokenResult=mode==='TOKEN_CLIENT_SECRET'?{error:'invalid_client_secret',details:marker}:mode==='TOKEN_REJECTED'?{error:marker}:token;
+  const orgResult={code:0,organizations:mode==='ORG_COUNT'?[org,{...org,organization_id:'999',name:marker}]:[org]};
+  const preload="Object.defineProperty(process.stdin,'isTTY',{value:true});process.stdin.setRawMode=()=>process.stdin;Object.defineProperty(process.stdout,'isTTY',{value:true});process.stdout.columns=100;globalThis.fetch=async url=>({ok:true,text:async()=>JSON.stringify(String(url).endsWith('/token')?"+JSON.stringify(tokenResult)+":"+JSON.stringify(orgResult)+")});";
+  const child=spawn(process.execPath,['--import','data:text/javascript,'+encodeURIComponent(preload),fileURLToPath(new URL('../scripts/setup-zoho-staging.mjs',import.meta.url))],{stdio:['pipe','pipe','pipe']});
+  let transcript='',stderr='',exited=false;
+  const finished=new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',code=>{exited=true;resolve(code);});});
+  child.stdout.on('data',data=>{transcript+=data;});child.stderr.on('data',data=>{stderr+=data;});t.after(()=>{if(!exited)child.kill();});
+  const waitFor=async text=>{const end=Date.now()+5000;while(!transcript.includes(text)){if(exited||Date.now()>end)throw new Error('CLI did not reach the expected stage');await new Promise(r=>setTimeout(r,10));}};
+  for(const [label,value] of [['FaraiOS business UUID: ',binding.business_id],['New Zoho TEST organisation ID: ',binding.organization_id],['Exact TEST organisation name: ',binding.organization_name],['Credential alias: ',binding.alias],['API domain (e.g. https://www.zohoapis.com): ',binding.api_domain],['Confirm this is an isolated test organisation (type TEST): ','TEST'],['Private JSON path (Enter for your profile default): ',output],['New dedicated Client ID (hidden): ','synthetic-client-id'],['New dedicated Client Secret (hidden): ',marker]]){
+   await waitFor(label+'\n');child.stdin.write(value+'\n');
+  }
+  await waitFor('If Zoho offers all organisations or the wrong organisation, deny and stop.');
+  if(mode==='PRIVATE_FILE_SAVE')await writeFile(output,marker,{mode:0o600});
+  const auth=new URL(transcript.match(/https:\/\/accounts\.zoho\.com\/oauth\/v2\/org\/auth\?[^\r\n]+/)[0]);
+  const callback=new URL(redirectUri);callback.search=new URLSearchParams({state:auth.searchParams.get('state'),code:'synthetic-one-use-code','accounts-server':'https://accounts.zoho.com'}).toString();
+  const result=await fetch(callback,{redirect:'manual'});assert.equal(result.status,303);assert.equal(result.headers.get('location'),'/complete');await result.text();
+  assert.equal(await finished,1);assert.ok(stderr.includes('Setup stopped ['+mode+']'));assert.ok(!transcript.includes('Private credentials saved.'));
+  for(const privateValue of [marker,'synthetic-one-use-code',token.access_token,token.refresh_token,output])assert.ok(!stderr.includes(privateValue));
+  assert.ok(!transcript.includes(marker));
+  if(mode==='PRIVATE_FILE_SAVE')assert.equal(await readFile(output,'utf8'),marker);else await assert.rejects(readFile(output),{code:'ENOENT'});
+  await assert.rejects(stat(output+'.lock'),{code:'ENOENT'});
+ }
 });
