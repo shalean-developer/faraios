@@ -4,7 +4,7 @@ import { mkdtemp, writeFile, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { CLIENT_IMAGE, DUMPS, SOURCE, clientEnvironment, clientArgs, dumpSpec, assertCompleteDump, run } from './backup-staging.mjs';
+import { CLIENT_IMAGE, DUMPS, SOURCE, clientEnvironment, clientArgs, dumpSpec, assertCompleteDump, cleanupClient, run } from './backup-staging.mjs';
 
 const id=randomBytes(16).toString('hex'),network='faraios-t11-ci-'+id;
 const tlsServer='t11-db-'+id,plainServer='t11-plain-'+id,wrongHost='t11-wrong-'+id;
@@ -15,10 +15,17 @@ const docker=(args,options={})=>run('docker',args,{env,timeout:180000,maxOutput:
 const owned=[];
 async function ready(name) {
  for(let attempt=0;attempt<60;attempt++) {
-  try{await docker(['exec',name,'pg_isready','-U','postgres']);return;}catch{}
+  try{await docker(['exec',name,'pg_isready','-h','127.0.0.1','-U','postgres']);return;}catch{}
   await new Promise(done=>setTimeout(done,500));
  }
  throw new Error('Synthetic database readiness failed');
+}
+async function running(name) {
+ for(let attempt=0;attempt<60;attempt++) {
+  if((await docker(['ps','--filter','name=^/'+name+'$','--format','{{.Names}}'])).stdout.trim()===name)return;
+  await new Promise(done=>setTimeout(done,100));
+ }
+ throw new Error('Disposable client was not observed running');
 }
 async function invoke(mode,{host=tlsServer,trust=true}={}) {
  const spec=mode==='metadata'?{script:'exec psql -X -w -q -A -t --set=ON_ERROR_STOP=1',env:{}}:dumpSpec(mode+'.sql');
@@ -66,6 +73,25 @@ try {
  console.log('T11_TRANSPORT_UNTRUSTED_CA=PASS (7 clients refused)');
  console.log('T11_TRANSPORT_WRONG_HOSTNAME=PASS (7 clients refused)');
  console.log('T11_TRANSPORT_PLAINTEXT_SERVER=PASS (7 clients refused)');
+ const pg={...clientEnvironment(password,env),PGHOST:tlsServer,PGUSER:'postgres'};
+ const sentinel='faraios-t11-'+id+'-sentinel';
+ const sentinelArgs=clientArgs(id,'sentinel','exec sleep 60',pg);sentinelArgs.splice(1,0,'--detach','--network',network);
+ await docker(sentinelArgs,{env:{...env,...pg}});owned.push(sentinel);await running(sentinel);
+ for(const cancelled of [false,true]) {
+  const step=cancelled?'cleanup-cancel':'cleanup-timeout',name='faraios-t11-'+id+'-'+step;
+  const args=clientArgs(id,step,'exec sleep 60',pg);args.splice(1,0,'--network',network);
+  const controller=new AbortController();
+  const result=docker(args,{env:{...env,...pg},signal:controller.signal,timeout:cancelled?30000:10000}).then(value=>({value}),error=>({error}));
+  await running(name); // Cleanup cannot pass merely because no container started.
+  if(cancelled)controller.abort();
+  const outcome=await result;assert.equal(outcome.error?.code,cancelled?'BACKUP_CANCELLED':'CHILD_TIMEOUT');
+  await cleanupClient(id,step,pg,async(command,arguments_,options)=>{assert.equal(command,'docker');return docker(arguments_,options);});
+  assert.equal((await docker(['ps','--all','--filter','name=^/'+name+'$','--format','{{.Names}}'])).stdout.trim(),'');
+  assert.equal((await docker(['ps','--filter','name=^/'+sentinel+'$','--format','{{.Names}}'])).stdout.trim(),sentinel);
+  console.log('T11_OWNED_'+(cancelled?'CANCEL':'TIMEOUT')+'_CLEANUP=PASS');
+ }
+ console.log('T11_OWNED_UNRELATED_SENTINEL_PRESERVED=PASS');
+
 } finally {
  let cleanupFailed=false;
  for(const name of owned)try{await docker(['rm','--force',name]);}catch{cleanupFailed=true;}

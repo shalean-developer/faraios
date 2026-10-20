@@ -315,3 +315,13 @@ test('stdin-only query runner accepts input and does not place query bytes into 
  const text='private synthetic input';
  const result=await run(process.execPath,['-e','process.stdin.pipe(process.stdout)'],{input:text});assert.equal(result.stdout,text);
 });
+
+
+test('daemon cleanup failure blocks capture before keys or a success report',async t=>{
+ const p=await home(t),runner=mockRunner();
+ await assert.rejects(capture({home:p,password:'synthetic private password',runner:async(command,args,options)=>{
+  if(command==='docker'&&args[0]==='ps')throw new Error('private daemon response');
+  return runner(command,args,options);
+ }}),{code:'CONTAINER_CLEANUP_FAILED'});
+ assert.deepEqual(await readdir(join(p,'.faraios-recovery-keys')),[]);
+});
