@@ -2,7 +2,7 @@
 
 Status: consolidated engineering record, 20 October 2026. T04 remains In progress for the financial choices below. Existing owner-approved tariffs and delivered recurrence decisions are carried forward; no new policy, rate or financial formula is activated here. `src/cleaning-rules.js` remains an isolated synthetic helper, distinct from the persisted booking/quote engines.
 
-Every configuration belongs to one business and has a version. Bookings retain an agreed price snapshot, currency, quantity, unit rate and policy references. Changes to a catalogue must not rewrite booked prices. Database immutability and rule-version uniqueness require later persistence constraints; Object.freeze is only in-process protection.
+Every configuration belongs to one business and has a version. Bookings retain an agreed price snapshot, currency, quantity, unit rate and policy references. Changes to a catalogue must not rewrite booked prices. The isolated cleaning-rules helper does not persist or enforce database immutability/rule-version uniqueness; Object.freeze is only in-process protection. Persisted booking, quote and recurring snapshots already have their separately reviewed database guards.
 
 ## Initial isolated helper contracts
 
