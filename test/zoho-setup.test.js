@@ -5,14 +5,14 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {authorizationUrl,exchangeAndVerify,callbackHandler,privateStore,redirectUri,scopes,validateBinding,setupFailureMessage} from '../scripts/setup-zoho-staging.mjs';
+import {authorizationUrl,exchangeAndVerify,callbackHandler,privateStore,redirectUri,scopes,validateBinding,setupFailureMessage,revokeUnsavedTokens} from '../scripts/setup-zoho-staging.mjs';
 
 const binding={business_id:'11111111-1111-4111-8111-111111111111',organization_id:'123456',organization_name:'Example TEST',alias:'EXAMPLE_TEST',api_domain:'https://www.zohoapis.com'};
 const credentials={clientId:'test-client',clientSecret:'private-test-secret',code:'private-test-code'};
 const token={access_token:'private-access',refresh_token:'private-refresh',api_domain:binding.api_domain,expires_in:3600};
 const org={organization_id:binding.organization_id,name:binding.organization_name,currency_code:'ZAR',is_org_active:true};
-const response=data=>({ok:true,text:async()=>JSON.stringify(data)});
-const fake=(organizationResponse={code:0,organizations:[org]},tokenResponse=token)=>{const calls=[];return {calls,fetch:async(url,options)=>{calls.push({url,options});return response(calls.length===1?tokenResponse:organizationResponse);}};};
+const response=data=>({ok:true,status:200,text:async()=>JSON.stringify(data)});
+const fake=(organizationResponse={code:0,organizations:[org]},tokenResponse=token)=>{const calls=[];return {calls,fetch:async(url,options)=>{calls.push({url,options});return response(String(url).endsWith('/revoke/token')?{status:'success'}:calls.length===1?tokenResponse:organizationResponse);}};};
 
 test('private setup uses only the four required scopes and fixed loopback callback',()=>{
  const url=new URL(authorizationUrl(binding,credentials.clientId,'random-state'));
@@ -65,6 +65,54 @@ test('fixed diagnostics distinguish token and organisation failures without reve
   await assert.rejects(exchangeAndVerify(binding,credentials,fetcher),error=>setupFailureMessage(error).includes('['+expected+']'));
  }
 });
+test('organisation HTTP diagnostics retain only literal status/code metadata and preserve the primary failure',async()=>{
+ for(const [status,code,expected] of [[403,57,'[HTTP_403] [BOOKS_CODE_57]'],[400,6024,'[HTTP_400] [BOOKS_CODE_6024]'],[401,'private-data','[HTTP_401]'],[99999,99999,'']]){
+  const calls=[];
+  const fetcher=async(url,options)=>{calls.push({url,options});if(calls.length===1)return response(token);if(calls.length===2)return {ok:false,status,text:async()=>JSON.stringify({code,message:credentials.clientSecret,organization_id:binding.organization_id})};if(String(url).includes('/organizations/'))return response({code:0,organization:org});return response({status:'success'});};
+  await assert.rejects(exchangeAndVerify(binding,credentials,fetcher),error=>{
+   const message=setupFailureMessage(error);assert.ok(message.includes('[ORG_HTTP]'));assert.ok(message.includes(expected));assert.ok(message.includes('[CLEANUP_REFRESH_REVOKED]'));
+   for(const value of [credentials.clientSecret,binding.organization_id,'private-data','99999'])assert.ok(!message.includes(value));return true;
+  });
+  assert.equal(calls.length,[400,403].includes(status)?4:3);assert.equal(calls.at(-1).url,'https://accounts.zoho.com/oauth/v2/revoke/token');
+  if([400,403].includes(status))assert.equal(calls[2].url,binding.api_domain+'/books/v3/organizations/'+binding.organization_id+'?organization_id='+binding.organization_id);
+ }
+ const calls=[];
+ await assert.rejects(exchangeAndVerify(binding,credentials,async(url,options)=>{calls.push({url,options});if(calls.length===1)return response(token);if(calls.length===2)return {ok:false,status:403,text:async()=>{throw new Error(credentials.clientSecret);}};throw new Error(credentials.clientSecret);}),error=>{
+  const message=setupFailureMessage(error);assert.ok(message.includes('[ORG_HTTP] [HTTP_403]'));assert.ok(message.includes('[CLEANUP_FAILED]'));assert.ok(!message.includes(credentials.clientSecret));return true;
+ });
+});
+test('a diagnostic single-org match never passes isolation or triggers more than one pinned probe',async()=>{
+ for(const [profile,expected] of [[org,'MATCHED'],[{...org,currency_code:'USD'},'MISMATCH'],[null,'MISMATCH']]){
+  const calls=[];
+  await assert.rejects(exchangeAndVerify(binding,credentials,async(url,options)=>{
+   calls.push({url,options});if(String(url).endsWith('/oauth/v2/revoke/token'))return response({status:'success'});if(String(url).endsWith('/oauth/v2/token'))return response(token);if(String(url).includes('/organizations/'))return response({code:0,organization:profile});return{ok:false,status:403,text:async()=>JSON.stringify({code:57,message:credentials.clientSecret})};
+  }),error=>{const m=setupFailureMessage(error);assert.ok(m.includes('[ORG_HTTP] [HTTP_403]'));assert.ok(m.includes('[PINNED_ORG_'+expected+']'));assert.ok(m.includes('[CLEANUP_REFRESH_REVOKED]'));assert.ok(!m.includes(credentials.clientSecret));return true;});
+  assert.equal(calls.length,4);assert.ok(calls[2].url.includes('/organizations/'+binding.organization_id+'?organization_id='+binding.organization_id));
+ }
+});
+test('unsaved token cleanup is pinned, client-authenticated, bounded and limited to known current tokens',async()=>{
+ const calls=[],fetcher=async(url,options)=>{calls.push({url,options});return response({status:'success'});};
+ const own={...credentials,refreshToken:token.refresh_token,accessToken:token.access_token};
+ assert.equal(await revokeUnsavedTokens(binding,own,fetcher),'REFRESH_REVOKED');
+ assert.equal(calls[0].url,'https://accounts.zoho.com/oauth/v2/revoke/token');assert.equal(calls[0].options.method,'POST');assert.equal(calls[0].options.redirect,'error');
+ assert.equal(calls[0].options.headers.Authorization,'Basic '+Buffer.from(credentials.clientId+':'+credentials.clientSecret).toString('base64'));
+ assert.deepEqual([...calls[0].options.body],[['token',token.refresh_token],['token_type','refresh_token']]);assert.equal(calls[0].options.signal.aborted,false);
+ for(const value of [credentials.clientId,credentials.clientSecret,token.refresh_token,token.access_token])assert.ok(!calls[0].url.includes(value));
+ assert.equal(await revokeUnsavedTokens(binding,{...own,refreshToken:''},fetcher),'ACCESS_REVOKED');assert.equal(calls[1].options.body.get('token'),token.access_token);assert.equal(calls[1].options.body.get('token_type'),'access_token');
+ for(const [b,c] of [[{...binding,api_domain:'https://private.test'},own],[binding,{...own,clientSecret:''}],[binding,{...own,refreshToken:'',accessToken:''}]])assert.equal(await revokeUnsavedTokens(b,c,()=>{throw new Error('Must not request');}),'UNAVAILABLE');
+ for(const fetcher of [async()=>{throw new Error(credentials.clientSecret);},async()=>({status:400}),async()=>({status:302}),async()=>({status:200,text:async()=>JSON.stringify({error:credentials.clientSecret})}),async()=>({status:200,text:async()=>'malformed'}),async()=>({status:200,text:async()=>JSON.stringify({unexpected:true})})])assert.equal(await revokeUnsavedTokens(binding,own,fetcher),'FAILED');
+ assert.equal(await revokeUnsavedTokens(binding,own,async()=>({status:200,text:async()=>''})),'REFRESH_REVOKED');
+});
+test('verification failure cleanup uses only current exchange tokens; missing refresh stays a partial cleanup',async()=>{
+ for(const t of [{...token,refresh_token:''},{...token,api_domain:'https://wrong-region.test'},{...token,expires_in:0},{...token,access_token:''}]){
+  const f=fake(undefined,t);
+  await assert.rejects(exchangeAndVerify(binding,credentials,f.fetch),error=>{
+   const message=setupFailureMessage(error);assert.ok(message.includes(t.refresh_token?'[CLEANUP_REFRESH_REVOKED]':'[CLEANUP_ACCESS_REVOKED]'));
+   if(!t.refresh_token)assert.ok(message.includes('Refresh-token cleanup is unverified'));return true;
+  });
+  assert.equal(f.calls.at(-1).options.body.get('token'),t.refresh_token||t.access_token);
+ }
+});
 
 function request(handler,url,headers={host:'127.0.0.1:3102'},method='GET'){
  const result={headers:{},status:null,body:''};
@@ -85,6 +133,7 @@ test('private store preserves other aliases, uses restrictive POSIX mode and nev
  const first=await privateStore(output,{repoRoot:repo});await first.save(binding.alias,entry);await first.close();
  if(process.platform!=='win32')assert.equal((await stat(output)).mode&0o777,0o600);
  const second=await privateStore(output,{repoRoot:repo});await assert.rejects(second.save(binding.alias,entry));await assert.rejects(second.save('DUPLICATE',entry));
+ assert.throws(()=>second.assertAvailable(binding.alias,entry));assert.throws(()=>second.assertAvailable('NEW_ALIAS',entry));
  await second.save('ANOTHER_TEST',{business_id:'22222222-2222-4222-8222-222222222222',organization_id:'234567'});await second.close();
  assert.deepEqual(JSON.parse(await readFile(output,'utf8')),{[binding.alias]:entry,ANOTHER_TEST:{business_id:'22222222-2222-4222-8222-222222222222',organization_id:'234567'}});
 });
@@ -147,29 +196,64 @@ test('operator CLI prints complete prompt lines, hides secret input and cancels 
  await assert.rejects(stat(output),{code:'ENOENT'});await assert.rejects(stat(output+'.lock'),{code:'ENOENT'});
 });
 
-test('real CLI reports redacted post-callback stages and preserves private files on failure',{timeout:30000},async t=>{
- for(const mode of ['TOKEN_CLIENT_SECRET','TOKEN_REJECTED','ORG_COUNT','PRIVATE_FILE_SAVE']){
+function operatorHarness(t,extra=''){
+ const preload="Object.defineProperty(process.stdin,'isTTY',{value:true});process.stdin.setRawMode=()=>process.stdin;Object.defineProperty(process.stdout,'isTTY',{value:true});process.stdout.columns=100;"+extra;
+ const child=spawn(process.execPath,['--import','data:text/javascript,'+encodeURIComponent(preload),fileURLToPath(new URL('../scripts/setup-zoho-staging.mjs',import.meta.url))],{stdio:['pipe','pipe','pipe']});
+ let transcript='',stderr='',exited=false;
+ const finished=new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',code=>{exited=true;resolve(code);});});
+ child.stdout.on('data',data=>{transcript+=data;});child.stderr.on('data',data=>{stderr+=data;});t.after(()=>{if(!exited)child.kill();});
+ const waitFor=async text=>{const end=Date.now()+5000;while(!transcript.includes(text)){if(exited||Date.now()>end)throw new Error('CLI did not reach the expected stage');await new Promise(r=>setTimeout(r,10));}};
+ return {child,finished,waitFor,transcript:()=>transcript,stderr:()=>stderr,async answer(label,value){await waitFor(label+'\n');child.stdin.write(value+'\n');}};
+}
+const publicAnswers=output=>[['FaraiOS business UUID: ',binding.business_id],['New Zoho TEST organisation ID: ',binding.organization_id],['Exact TEST organisation name: ',binding.organization_name],['Credential alias: ',binding.alias],['API domain (e.g. https://www.zohoapis.com): ',binding.api_domain],['Confirm this is an isolated test organisation (type TEST): ','TEST'],['Private JSON path (Enter for your profile default): ',output]];
+
+test('real CLI cleans only unsaved current tokens, preserves files and never revokes committed credentials',{timeout:30000},async t=>{
+ for(const mode of ['TOKEN_CLIENT_SECRET','TOKEN_REJECTED','ORG_COUNT','ORG_HTTP','CLEANUP_FAILED','PRIVATE_FILE_SAVE','CANCELLED','SUCCESS','LOCAL_CLEANUP']){
   const {output}=await fixture(t),marker='NEVER_PRINT_PROVIDER_OR_FILE_VALUE';
+  const unrelated={business_id:'22222222-2222-4222-8222-222222222222',organization_id:'234567',refresh_token:'UNRELATED_PRIVATE_REFRESH'};
+  const original=JSON.stringify({OTHER_TEST:unrelated})+'\n';await mkdir(join(output,'..'),{recursive:true});await writeFile(output,original,{mode:0o600});
   const tokenResult=mode==='TOKEN_CLIENT_SECRET'?{error:'invalid_client_secret',details:marker}:mode==='TOKEN_REJECTED'?{error:marker}:token;
   const orgResult={code:0,organizations:mode==='ORG_COUNT'?[org,{...org,organization_id:'999',name:marker}]:[org]};
-  const preload="Object.defineProperty(process.stdin,'isTTY',{value:true});process.stdin.setRawMode=()=>process.stdin;Object.defineProperty(process.stdout,'isTTY',{value:true});process.stdout.columns=100;globalThis.fetch=async url=>({ok:true,text:async()=>JSON.stringify(String(url).endsWith('/token')?"+JSON.stringify(tokenResult)+":"+JSON.stringify(orgResult)+")});";
-  const child=spawn(process.execPath,['--import','data:text/javascript,'+encodeURIComponent(preload),fileURLToPath(new URL('../scripts/setup-zoho-staging.mjs',import.meta.url))],{stdio:['pipe','pipe','pipe']});
-  let transcript='',stderr='',exited=false;
-  const finished=new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',code=>{exited=true;resolve(code);});});
-  child.stdout.on('data',data=>{transcript+=data;});child.stderr.on('data',data=>{stderr+=data;});t.after(()=>{if(!exited)child.kill();});
-  const waitFor=async text=>{const end=Date.now()+5000;while(!transcript.includes(text)){if(exited||Date.now()>end)throw new Error('CLI did not reach the expected stage');await new Promise(r=>setTimeout(r,10));}};
-  for(const [label,value] of [['FaraiOS business UUID: ',binding.business_id],['New Zoho TEST organisation ID: ',binding.organization_id],['Exact TEST organisation name: ',binding.organization_name],['Credential alias: ',binding.alias],['API domain (e.g. https://www.zohoapis.com): ',binding.api_domain],['Confirm this is an isolated test organisation (type TEST): ','TEST'],['Private JSON path (Enter for your profile default): ',output],['New dedicated Client ID (hidden): ','synthetic-client-id'],['New dedicated Client Secret (hidden): ',marker]]){
-   await waitFor(label+'\n');child.stdin.write(value+'\n');
-  }
-  await waitFor('If Zoho offers all organisations or the wrong organisation, deny and stop.');
+  const extra=`import fp from 'node:fs/promises';import {syncBuiltinESMExports} from 'node:module';
+   const mode=${JSON.stringify(mode)},marker=${JSON.stringify(marker)};
+   if(mode==='LOCAL_CLEANUP'){const originalOpen=fp.open;fp.open=async(...args)=>{const h=await originalOpen(...args);if(String(args[0]).endsWith('.lock')){const close=h.close.bind(h);h.close=async()=>{await close();throw new Error(marker);};}return h;};syncBuiltinESMExports();}
+   globalThis.fetch=async(url,options)=>{
+    if(String(url).endsWith('/oauth/v2/revoke/token')){console.log('SYNTHETIC_REVOKE');if(options.body.get('token')!==${JSON.stringify(token.refresh_token)}||options.body.get('token_type')!=='refresh_token'||options.signal.aborted||options.headers.Authorization!=='Basic '+Buffer.from('synthetic-client-id:'+marker).toString('base64'))throw new Error(marker);if(mode==='CLEANUP_FAILED')throw new Error(marker);return{ok:true,status:200,text:async()=>JSON.stringify({status:'success'})};}
+    if(String(url).endsWith('/oauth/v2/token'))return{ok:true,status:200,text:async()=>JSON.stringify(${JSON.stringify(tokenResult)})};
+    if(String(url).includes('/books/v3/organizations/')){console.log('SYNTHETIC_PINNED_PROBE');if(String(url)!==${JSON.stringify(binding.api_domain+'/books/v3/organizations/'+binding.organization_id+'?organization_id='+binding.organization_id)})throw new Error(marker);return{ok:true,status:200,text:async()=>JSON.stringify({code:0,organization:${JSON.stringify(org)}})};}
+    if(String(url).endsWith('/books/v3/organizations')){if(mode==='CANCELLED')process.emit('SIGTERM');const bad=['ORG_HTTP','CLEANUP_FAILED'].includes(mode);return{ok:!bad,status:bad?403:200,text:async()=>JSON.stringify(bad?{code:57,message:marker}:${JSON.stringify(orgResult)})};}
+    throw new Error(marker);
+   };`;
+  const h=operatorHarness(t,extra);
+  for(const [label,value] of [...publicAnswers(output),['New dedicated Client ID (hidden): ','synthetic-client-id'],['New dedicated Client Secret (hidden): ',marker]])await h.answer(label,value);
+  await h.waitFor('If Zoho offers all organisations or the wrong organisation, deny and stop.');
+  assert.ok(h.transcript().indexOf('attempt to revoke only those tokens')<h.transcript().indexOf('FaraiOS business UUID'));
   if(mode==='PRIVATE_FILE_SAVE')await writeFile(output,marker,{mode:0o600});
-  const auth=new URL(transcript.match(/https:\/\/accounts\.zoho\.com\/oauth\/v2\/org\/auth\?[^\r\n]+/)[0]);
+  const auth=new URL(h.transcript().match(/https:\/\/accounts\.zoho\.com\/oauth\/v2\/org\/auth\?[^\r\n]+/)[0]);
   const callback=new URL(redirectUri);callback.search=new URLSearchParams({state:auth.searchParams.get('state'),code:'synthetic-one-use-code','accounts-server':'https://accounts.zoho.com'}).toString();
   const result=await fetch(callback,{redirect:'manual'});assert.equal(result.status,303);assert.equal(result.headers.get('location'),'/complete');await result.text();
-  assert.equal(await finished,1);assert.ok(stderr.includes('Setup stopped ['+mode+']'));assert.ok(!transcript.includes('Private credentials saved.'));
-  for(const privateValue of [marker,'synthetic-one-use-code',token.access_token,token.refresh_token,output])assert.ok(!stderr.includes(privateValue));
-  assert.ok(!transcript.includes(marker));
-  if(mode==='PRIVATE_FILE_SAVE')assert.equal(await readFile(output,'utf8'),marker);else await assert.rejects(readFile(output),{code:'ENOENT'});
-  await assert.rejects(stat(output+'.lock'),{code:'ENOENT'});
+  const saved=['SUCCESS','LOCAL_CLEANUP'].includes(mode),revoked=!saved&&!['TOKEN_CLIENT_SECRET','TOKEN_REJECTED'].includes(mode);
+  assert.equal(await h.finished,mode==='SUCCESS'?0:1);
+  if(mode==='SUCCESS')assert.ok(h.transcript().includes('Private credentials saved.'));else{assert.ok(h.stderr().includes('Setup stopped ['+(mode==='CLEANUP_FAILED'?'ORG_HTTP':mode)+']'));assert.ok(!h.transcript().includes('Private credentials saved.'));}
+  assert.equal((h.transcript().match(/SYNTHETIC_REVOKE/g)||[]).length,revoked?1:0);
+  if(revoked)assert.ok(h.stderr().includes(mode==='CLEANUP_FAILED'?'[CLEANUP_FAILED]':'[CLEANUP_REFRESH_REVOKED]'));
+  if(['ORG_HTTP','CLEANUP_FAILED'].includes(mode))assert.ok(h.stderr().includes('[HTTP_403] [BOOKS_CODE_57]'));
+  assert.equal((h.transcript().match(/SYNTHETIC_PINNED_PROBE/g)||[]).length,['ORG_HTTP','CLEANUP_FAILED'].includes(mode)?1:0);
+  if(['ORG_HTTP','CLEANUP_FAILED'].includes(mode))assert.ok(h.stderr().includes('[PINNED_ORG_MATCHED]'));
+  if(mode==='LOCAL_CLEANUP')assert.ok(h.stderr().includes('Verified credentials were saved. Do not repeat setup or revoke them'));
+  for(const value of [marker,'synthetic-one-use-code',token.access_token,token.refresh_token,unrelated.refresh_token,output])assert.ok(!h.stderr().includes(value));
+  assert.ok(!h.transcript().includes(marker));
+  const file=await readFile(output,'utf8');
+  if(saved){const entries=JSON.parse(file);assert.deepEqual(entries.OTHER_TEST,unrelated);assert.equal(entries[binding.alias].refresh_token,token.refresh_token);}else assert.equal(file,mode==='PRIVATE_FILE_SAVE'?marker:original);
+  if(mode==='LOCAL_CLEANUP')assert.ok(await stat(output+'.lock'));else await assert.rejects(stat(output+'.lock'),{code:'ENOENT'});
  }
+});
+test('real CLI rejects an existing private binding before credentials or consent and leaves the file unchanged',{timeout:10000},async t=>{
+ const {output}=await fixture(t),original=JSON.stringify({[binding.alias]:{...binding,refresh_token:'EXISTING_PRIVATE_REFRESH'}})+'\n';
+ await mkdir(join(output,'..'),{recursive:true});await writeFile(output,original,{mode:0o600});
+ const h=operatorHarness(t,"globalThis.fetch=()=>{throw new Error('Must never request');};");
+ for(const [label,value] of publicAnswers(output))await h.answer(label,value);
+ assert.equal(await h.finished,1);assert.ok(h.stderr().includes('[PRIVATE_BINDING_EXISTS]'));
+ assert.ok(!h.transcript().includes('New dedicated Client ID'));assert.ok(!h.transcript().includes('/oauth/v2/org/auth?'));assert.ok(!h.stderr().includes('EXISTING_PRIVATE_REFRESH'));
+ assert.equal(await readFile(output,'utf8'),original);await assert.rejects(stat(output+'.lock'),{code:'ENOENT'});
 });
