@@ -2,7 +2,40 @@
 
 19 October 2026. Scope: FaraiOS staging only (`xdmfyrsauvqznkloroxg`). Existing Shalean/Bokkie systems are unchanged.
 
-## Current assessment — 20 October 2026
+## Isolated recovery setup — 20 October 2026
+
+The owner accepted the recommended encrypted private Google Drive backup and separate temporary Supabase restore project in `shalean-developer`. The encryption key is to be kept separately with an offline copy; key creation and custody verification have not happened yet. This authorizes the one-off recovery exercise, not a recurring backup schedule or retention/deletion policy.
+
+Supabase's organization-specific project quote returned **$0 monthly** before creation. The connector permits creation at a zero quote without a cost-confirmation form. This is the returned additional-project quote, not a guarantee about future usage, plan changes or storage charges.
+
+| Resource | Verified identity / state |
+|---|---|
+| Source | `faraios-staging` — `xdmfyrsauvqznkloroxg`, ACTIVE_HEALTHY |
+| Restore destination | `faraios-restore-test` — `zrlojsvkqipuwkkyfrkn`, ACTIVE_HEALTHY |
+| Organization | `shalean-developer` — `lypbvtudsbxxdcnzbqwc` |
+| Region / database | Both `eu-west-1`, PostgreSQL 17.11.0.003 |
+| Backup folder | [FaraiOS Recovery Backups](https://drive.google.com/drive/folders/1Jd6uqTW3uHAnEX1-2ouc4paga7ebyXuu); metadata reports `shared:false` and one owner permission |
+
+The new destination is separate from the working source. Read-only checks found zero public tables, Auth users, Storage buckets and Storage objects there. No data has been imported and no application has been pointed at it. No staging database password was reset.
+
+Refreshed source inventory: 15 public tables and two audit tables, all 17 with RLS enabled; 3 Auth users; 21 migration records; 186 `audit.events` rows; 0 Storage buckets/objects; 0 Vault secrets; 0 deployed Edge Functions. Installed extensions are `btree_gist`, `pg_stat_statements`, `pgcrypto`, `plpgsql`, `supabase_vault` and `uuid-ossp`; neither `pg_cron` nor `pg_net` is installed. This is a point-in-time inventory, not the eventual backup's consistency manifest.
+
+**T11 remains In progress.** The folder is empty; it is not a protected backup. Full schema/roles/data/Auth export, configuration capture, encryption/checksum, off-site retrieval/decryption, import and restored sign-in/access/audit verification have not run. The connected Supabase tools cannot produce the supported full logical export and this agent runtime has no source database credential, Supabase CLI, Docker or PostgreSQL client tools. Do not substitute visible Auth/credential queries for a private backup or reset the source password just to obtain access.
+
+### Immediate operator preflight
+
+Run this read-only check in the existing Windows PowerShell terminal and return only the availability table:
+
+```powershell
+'node','supabase','docker','psql','pg_dump' | ForEach-Object {
+  $t11Tool = Get-Command $_ -ErrorAction SilentlyContinue
+  [pscustomobject]@{ Tool = $_; Available = ($null -ne $t11Tool) }
+}
+```
+
+This check installs nothing and makes no database request. The supported export/restore commands and private credential handling must be prepared after the operator tools are known. Keep database passwords, connection strings, Auth dumps and the encryption key out of chat and Git. Before import, separately verify destination outbound Auth/provider settings, database hooks/jobs and restore-only application configuration; an empty destination is not proof that every future import is safe.
+
+## Earlier assessment — 20 October 2026
 
 T11 remains In progress. The existing restore covers a historical identity/audit subset, while the read-only current inventory includes 15 public tables (each RLS enabled), 3 Auth users and no Storage buckets/objects. Current modules include catalogue, customers/addresses, bookings, teams, recurring schedules, quotes, handoffs, invoices and accounting connection metadata. A passing subset rehearsal does not establish recovery for these modules or actual Auth sign-in. No full export, cloud upload, new project or restore was performed by this assessment.
 
