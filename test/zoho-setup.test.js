@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {spawn} from 'node:child_process';
 import {connect} from 'node:net';
 import {fileURLToPath} from 'node:url';
-import {authorizationUrl,exchangeAndVerify,callbackHandler,privateStore,redirectUri,scopes,validateBinding,setupFailureMessage,revokeUnsavedTokens} from '../scripts/setup-zoho-staging.mjs';
+import {authorizationUrl,diagnosticAuthorizationUrl,diagnosticScopes,diagnoseTestOrganizations,diagnosticLabels,validateDiagnosticOther,exchangeAndVerify,callbackHandler,privateStore,redirectUri,scopes,validateBinding,setupFailureMessage,revokeUnsavedTokens} from '../scripts/setup-zoho-staging.mjs';
 
 const binding={business_id:'11111111-1111-4111-8111-111111111111',organization_id:'123456',organization_name:'Example TEST',alias:'EXAMPLE_TEST',api_domain:'https://www.zohoapis.com'};
 const credentials={clientId:'test-client',clientSecret:'private-test-secret',code:'private-test-code'};
@@ -197,9 +197,9 @@ test('operator CLI prints complete prompt lines, hides secret input and cancels 
  await assert.rejects(stat(output),{code:'ENOENT'});await assert.rejects(stat(output+'.lock'),{code:'ENOENT'});
 });
 
-function operatorHarness(t,extra=''){
+function operatorHarness(t,extra='',args=[]){
  const preload="Object.defineProperty(process.stdin,'isTTY',{value:true});process.stdin.setRawMode=()=>process.stdin;Object.defineProperty(process.stdout,'isTTY',{value:true});process.stdout.columns=100;"+extra;
- const child=spawn(process.execPath,['--import','data:text/javascript,'+encodeURIComponent(preload),fileURLToPath(new URL('../scripts/setup-zoho-staging.mjs',import.meta.url))],{stdio:['pipe','pipe','pipe']});
+ const child=spawn(process.execPath,['--import','data:text/javascript,'+encodeURIComponent(preload),fileURLToPath(new URL('../scripts/setup-zoho-staging.mjs',import.meta.url)),...args],{stdio:['pipe','pipe','pipe']});
  let transcript='',stderr='',exited=false;
  const finished=new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',code=>{exited=true;resolve(code);});});
  child.stdout.on('data',data=>{transcript+=data;});child.stderr.on('data',data=>{stderr+=data;});t.after(()=>{if(!exited)child.kill();});
@@ -266,4 +266,114 @@ test('real CLI rejects an existing private binding before credentials or consent
  assert.equal(await h.finished,1);assert.ok(h.stderr().includes('[PRIVATE_BINDING_EXISTS]'));
  assert.ok(!h.transcript().includes('New dedicated Client ID'));assert.ok(!h.transcript().includes('/oauth/v2/org/auth?'));assert.ok(!h.stderr().includes('EXISTING_PRIVATE_REFRESH'));
  assert.equal(await readFile(output,'utf8'),original);await assert.rejects(stat(output+'.lock'),{code:'ENOENT'});
+});
+
+const diagnosticCredentials={...credentials,otherOrganizationId:'654321'};
+test('diagnostic consent is settings-read-only and rejects invalid or duplicate test pins before any request',async()=>{
+ const url=new URL(diagnosticAuthorizationUrl(binding,credentials.clientId,'random-state'));
+ assert.equal(url.pathname,'/oauth/v2/org/auth');assert.equal(url.searchParams.get('scope'),diagnosticScopes);assert.equal(diagnosticScopes,'ZohoBooks.settings.READ');assert.equal(url.searchParams.get('redirect_uri'),redirectUri);
+ for(const other of [binding.organization_id,'','1?organization_id=2','not-an-id']){
+  assert.throws(()=>validateDiagnosticOther(binding,other));
+  await assert.rejects(diagnoseTestOrganizations(binding,{...diagnosticCredentials,otherOrganizationId:other},()=>{assert.fail('No request before validation');}));
+ }
+});
+test('diagnostic reads only two pinned test profiles and revokes its current token without returning secrets',async()=>{
+ const calls=[];
+ const report=await diagnoseTestOrganizations(binding,diagnosticCredentials,async(url,options)=>{
+  calls.push({url,options});
+  if(String(url).endsWith('/oauth/v2/token'))return response(token);
+  if(String(url).endsWith('/oauth/v2/revoke/token'))return response({status:'success'});
+  if(String(url).includes('/organizations/'+binding.organization_id+'?'))return response({code:0,organization:org});
+  return {ok:false,status:403,text:async()=>JSON.stringify({code:57,message:credentials.clientSecret})};
+ });
+ assert.deepEqual(report,{target:{outcome:'MATCHED'},other:{outcome:'REJECTED',httpStatus:403,providerCode:57},cleanup:'REFRESH_REVOKED'});
+ assert.equal(calls.length,4);
+ assert.equal(calls[1].url,binding.api_domain+'/books/v3/organizations/'+binding.organization_id+'?organization_id='+binding.organization_id);
+ assert.equal(calls[2].url,binding.api_domain+'/books/v3/organizations/654321?organization_id=654321');
+ for(const call of calls.slice(1,3)){assert.equal(call.options.method,'GET');assert.equal(call.options.redirect,'error');assert.equal(call.options.headers.Authorization,'Zoho-oauthtoken '+token.access_token);assert.ok(call.options.signal instanceof AbortSignal);assert.ok(!call.url.includes(token.access_token));}
+ assert.equal(calls.at(-1).url,'https://accounts.zoho.com/oauth/v2/revoke/token');assert.equal(calls.at(-1).options.body.get('token'),token.refresh_token);
+ for(const value of [binding.organization_id,diagnosticCredentials.otherOrganizationId,...Object.values(credentials),token.access_token,token.refresh_token])assert.ok(!JSON.stringify(report).includes(value));
+ assert.deepEqual(diagnosticLabels(report),['[DIAG_TARGET_MATCHED]','[DIAG_OTHER_TEST_REJECTED]','[DIAG_OTHER_TEST_HTTP_403]','[DIAG_OTHER_TEST_BOOKS_CODE_57]','[CLEANUP_REFRESH_REVOKED]']);
+});
+test('diagnostic never mistakes token, missing-resource, transport or server errors for cross-test rejection',async()=>{
+ for(const kind of ['ACCESSIBLE',401,404,500,'TRANSPORT','MALFORMED','BUSINESS_ERROR']){
+  let calls=0;
+  const report=await diagnoseTestOrganizations(binding,diagnosticCredentials,async(url)=>{
+   calls++;
+   if(String(url).endsWith('/oauth/v2/token'))return response(token);
+   if(String(url).endsWith('/oauth/v2/revoke/token'))return response({status:'success'});
+   if(String(url).includes('/organizations/'+binding.organization_id+'?'))return response({code:0,organization:org});
+   if(kind==='ACCESSIBLE')return response({code:0,organization:{...org,organization_id:'654321',name:credentials.clientSecret}});
+   if(kind==='TRANSPORT')throw new Error(credentials.clientSecret);
+   if(kind==='MALFORMED')return {ok:true,status:200,text:async()=>credentials.clientSecret};
+   if(kind==='BUSINESS_ERROR')return response({code:57,message:credentials.clientSecret});
+   return {ok:false,status:kind,text:async()=>JSON.stringify({code:1000,message:credentials.clientSecret})};
+  });
+  assert.equal(calls,4);assert.equal(report.other.outcome,kind==='ACCESSIBLE'?'ACCESSIBLE':'INCONCLUSIVE');assert.equal(report.cleanup,'REFRESH_REVOKED');
+  assert.ok(!diagnosticLabels(report).includes('[DIAG_OTHER_TEST_REJECTED]'));assert.ok(!JSON.stringify(report).includes(credentials.clientSecret));
+ }
+});
+test('diagnostic skips the other test after a failed target profile and preserves cleanup-failure evidence',async()=>{
+ for(const kind of ['MISMATCH','TARGET_HTTP','CLEANUP_FAILED']){
+  const calls=[];
+  const report=await diagnoseTestOrganizations(binding,diagnosticCredentials,async(url)=>{
+   calls.push(String(url));if(String(url).endsWith('/oauth/v2/token'))return response(token);
+   if(String(url).endsWith('/oauth/v2/revoke/token')){if(kind==='CLEANUP_FAILED')throw new Error(credentials.clientSecret);return response({status:'success'});}
+   if(kind==='TARGET_HTTP')return {ok:false,status:500,text:async()=>JSON.stringify({code:1000,message:credentials.clientSecret})};
+   return response({code:0,organization:{...org,name:'Wrong profile'}});
+  });
+  assert.equal(calls.length,3);assert.equal(report.other.outcome,'NOT_RUN');assert.equal(report.target.outcome,kind==='TARGET_HTTP'?'INCONCLUSIVE':'MISMATCH');assert.equal(report.cleanup,kind==='CLEANUP_FAILED'?'FAILED':'REFRESH_REVOKED');
+ }
+ const labels=diagnosticLabels({target:{outcome:credentials.clientSecret,httpStatus:99999,providerCode:99999},other:{outcome:credentials.clientSecret},cleanup:credentials.clientSecret});
+ assert.deepEqual(labels,['[DIAG_TARGET_INCONCLUSIVE]','[DIAG_OTHER_TEST_INCONCLUSIVE]','[CLEANUP_UNAVAILABLE]']);
+});
+test('diagnostic cancellation and malformed token responses still clean only newly received usable tokens',async()=>{
+ const cancellation=new AbortController(),calls=[];
+ await assert.rejects(diagnoseTestOrganizations(binding,diagnosticCredentials,async(url,options)=>{
+  calls.push({url,options});if(String(url).endsWith('/oauth/v2/token'))return response(token);
+  if(String(url).endsWith('/oauth/v2/revoke/token')){assert.equal(options.signal.aborted,false);return response({status:'success'});}
+  cancellation.abort();return response({code:0,organization:org});
+ },{signal:cancellation.signal}),error=>setupFailureMessage(error).includes('[CANCELLED]')&&setupFailureMessage(error).includes('[CLEANUP_REFRESH_REVOKED]'));
+ assert.equal(calls.length,3);assert.ok(!calls.some(c=>String(c.url).includes('/organizations/654321')));
+ const partial=[];
+ await assert.rejects(diagnoseTestOrganizations(binding,diagnosticCredentials,async(url,options)=>{
+  partial.push({url,options});return response(String(url).endsWith('/oauth/v2/token')?{...token,refresh_token:''}:{status:'success'});
+ }),error=>setupFailureMessage(error).includes('[TOKEN_REFRESH_MISSING]')&&setupFailureMessage(error).includes('[CLEANUP_ACCESS_REVOKED]'));
+ assert.equal(partial.length,2);assert.equal(partial[1].options.body.get('token'),token.access_token);assert.equal(partial[1].options.body.get('token_type'),'access_token');
+});
+
+test('real diagnostic CLI is read-only, prints short labels, cleans each exchange and never opens a credential store',{timeout:45000},async t=>{
+ for(const mode of ['REJECTED','ACCESSIBLE','TARGET_HTTP','OTHER_401','CLEANUP_FAILED','CANCELLED']){
+  const {output}=await fixture(t),original='UNRELATED_EXISTING_CREDENTIAL_FILE',marker='NEVER_PRINT_DIAGNOSTIC_PROVIDER_SECRET';await mkdir(join(output,'..'),{recursive:true});await writeFile(output,original);
+  const extra=`import fp from 'node:fs/promises';import {syncBuiltinESMExports} from 'node:module';
+   for(const key of ['open','mkdir','rename','unlink'])fp[key]=async()=>{console.log('SYNTHETIC_FILE_ACCESS');throw new Error(${JSON.stringify(marker)});};syncBuiltinESMExports();
+   const mode=${JSON.stringify(mode)};
+   globalThis.fetch=async(url,options)=>{
+    if(String(url).endsWith('/oauth/v2/token'))return{ok:true,status:200,text:async()=>JSON.stringify(${JSON.stringify(token)})};
+    if(String(url).endsWith('/oauth/v2/revoke/token')){console.log('SYNTHETIC_REVOKE');if(options.body.get('token')!==${JSON.stringify(token.refresh_token)}||options.signal.aborted)throw new Error(${JSON.stringify(marker)});if(mode==='CLEANUP_FAILED')throw new Error(${JSON.stringify(marker)});return{ok:true,status:200,text:async()=>JSON.stringify({status:'success'})};}
+    if(String(url)===${JSON.stringify(binding.api_domain+'/books/v3/organizations/'+binding.organization_id+'?organization_id='+binding.organization_id)}){console.log('SYNTHETIC_TARGET_GET');if(mode==='CANCELLED')process.emit('SIGTERM');if(mode==='TARGET_HTTP')return{ok:false,status:500,text:async()=>JSON.stringify({code:1000,message:${JSON.stringify(marker)}})};return{ok:true,status:200,text:async()=>JSON.stringify({code:0,organization:${JSON.stringify(org)}})};}
+    if(String(url)===${JSON.stringify(binding.api_domain+'/books/v3/organizations/654321?organization_id=654321')}){console.log('SYNTHETIC_OTHER_GET');if(mode==='ACCESSIBLE')return{ok:true,status:200,text:async()=>JSON.stringify({code:0,organization:{organization_id:'654321',name:${JSON.stringify(marker)}}})};return{ok:false,status:mode==='OTHER_401'?401:403,text:async()=>JSON.stringify({code:57,message:${JSON.stringify(marker)}})};}
+    throw new Error(${JSON.stringify(marker)});
+   };`;
+  const h=operatorHarness(t,extra,['--diagnose-test-orgs']);
+  for(const [label,value] of [...publicAnswers(output).slice(0,5),['Other isolated TEST organisation ID (never a live organisation): ','654321'],['Confirm BOTH organisation IDs are isolated TEST organisations (type TEST): ','TEST'],['New dedicated Client ID (hidden): ','synthetic-client-id'],['New dedicated Client Secret (hidden): ',marker]])await h.answer(label,value);
+  await h.waitFor('If Zoho offers all organisations or the wrong organisation, deny and stop.');
+  assert.ok(!h.transcript().includes('Private JSON path'));assert.ok(h.transcript().includes('No credential file will be opened or saved.'));
+  const auth=new URL(h.transcript().match(/https:\/\/accounts\.zoho\.com\/oauth\/v2\/org\/auth\?[^\r\n]+/)[0]);assert.equal(auth.searchParams.get('scope'),diagnosticScopes);
+  const socket=connect(3102,'127.0.0.1');t.after(()=>socket.destroy());await new Promise((resolve,reject)=>{socket.once('connect',resolve);socket.once('error',reject);});socket.write('GET / HTTP/1.1\r\nHost:');
+  const callback=new URL(redirectUri);callback.search=new URLSearchParams({state:auth.searchParams.get('state'),code:'synthetic-diagnostic-code'}).toString();
+  const r=await fetch(callback,{redirect:'manual'});assert.equal(r.status,303);await r.text();
+  let deadline;try{assert.equal(await Promise.race([h.finished,new Promise((_,reject)=>{deadline=setTimeout(()=>reject(new Error('Diagnostic CLI did not finish')),5000);})]),mode==='REJECTED'?0:1);}finally{clearTimeout(deadline);}
+  assert.equal((h.transcript().match(/SYNTHETIC_REVOKE/g)||[]).length,1);assert.ok(!h.transcript().includes('SYNTHETIC_FILE_ACCESS'));
+  assert.equal((h.transcript().match(/SYNTHETIC_OTHER_GET/g)||[]).length,['TARGET_HTTP','CANCELLED'].includes(mode)?0:1);
+  const all=h.transcript()+h.stderr();
+  for(const value of [marker,token.access_token,token.refresh_token,'synthetic-diagnostic-code',original])assert.ok(!all.includes(value));
+  assert.ok(all.includes(mode==='CLEANUP_FAILED'?'[CLEANUP_FAILED]':'[CLEANUP_REFRESH_REVOKED]'));
+  if(mode==='CANCELLED')assert.ok(h.stderr().includes('[CANCELLED]'));else{
+   assert.ok(h.transcript().includes('[DIAG_TARGET_'+(mode==='TARGET_HTTP'?'INCONCLUSIVE':'MATCHED')+']'));
+   assert.ok(h.transcript().includes('[DIAG_OTHER_TEST_'+(mode==='TARGET_HTTP'?'NOT_RUN':mode==='OTHER_401'?'INCONCLUSIVE':mode==='ACCESSIBLE'?'ACCESSIBLE':'REJECTED')+']'));
+   assert.ok(h.transcript().includes('Full organisation isolation is not established'));
+  }
+  assert.equal(await readFile(output,'utf8'),original);await assert.rejects(stat(output+'.lock'),{code:'ENOENT'});
+ }
 });

@@ -11,6 +11,7 @@ import {zohoDomains} from '../src/zoho-books.js';
 
 export const redirectUri='http://127.0.0.1:3102/zoho/callback';
 export const scopes='ZohoBooks.settings.READ,ZohoBooks.contacts.READ,ZohoBooks.invoices.READ,ZohoBooks.invoices.CREATE';
+export const diagnosticScopes='ZohoBooks.settings.READ';
 const repository=fileURLToPath(new URL('..',import.meta.url));
 const failures=Object.freeze({
  VALIDATION_FAILED:'Local input or setup validation failed',
@@ -57,6 +58,9 @@ export function authorizationUrl(binding,clientId,state){
  const url=new URL(zohoDomains[binding.api_domain]+'/oauth/v2/org/auth');
  url.search=new URLSearchParams({scope:scopes,client_id:clientId,state,response_type:'code',redirect_uri:redirectUri,access_type:'offline',prompt:'consent'}).toString();
  return url.href;
+}
+export function diagnosticAuthorizationUrl(binding,clientId,state){
+ const url=new URL(authorizationUrl(binding,clientId,state));url.searchParams.set('scope',diagnosticScopes);return url.href;
 }
 async function safeJson(fetchImpl,url,options,stage){
  let response;try{response=await fetchImpl(url,{...options,redirect:'error',signal:AbortSignal.timeout(12000)});}catch{fail(stage+'_NETWORK');}
@@ -119,6 +123,57 @@ export async function exchangeAndVerify(binding,{clientId,clientSecret,code},fet
  }
 }
 
+// Observation only. This path never opens a credential store, returns tokens or
+// supplies an alternative way to pass the normal sole-organisation setup gate.
+export function validateDiagnosticOther(binding,otherOrganizationId){
+ validateBinding(binding);if(!id(otherOrganizationId)||otherOrganizationId===binding.organization_id)fail();return otherOrganizationId;
+}
+async function diagnosticProfile(binding,organizationId,accessToken,target,fetchImpl){
+ try{
+  const result=await safeJson(fetchImpl,binding.api_domain+'/books/v3/organizations/'+organizationId+'?'+new URLSearchParams({organization_id:organizationId}),{method:'GET',headers:{Authorization:'Zoho-oauthtoken '+accessToken}},'ORG');
+  const org=result.organization;
+  if(!org||String(org.organization_id)!==organizationId)return {outcome:'INCONCLUSIVE'};
+  return {outcome:target?(typeof org.name==='string'&&org.name.trim()===binding.organization_name.trim()&&org.currency_code==='ZAR'&&org.is_org_active!==false?'MATCHED':'MISMATCH'):'ACCESSIBLE'};
+ }catch(error){
+  // A 401/404/5xx, transport error or malformed response is not evidence of an
+  // organisation boundary. Even a 403 is reported only as a rejected request.
+  const report={outcome:!target&&error instanceof SetupFailure&&error.diagnostic==='ORG_HTTP'&&error.httpStatus===403?'REJECTED':'INCONCLUSIVE'};
+  if(error instanceof SetupFailure){if(httpStatuses.includes(error.httpStatus))report.httpStatus=error.httpStatus;if(booksCodes.includes(error.providerCode))report.providerCode=error.providerCode;}
+  return report;
+ }
+}
+export async function diagnoseTestOrganizations(binding,{clientId,clientSecret,code,otherOrganizationId},fetchImpl=fetch,{signal}={}){
+ validateDiagnosticOther(binding,otherOrganizationId);if(![clientId,clientSecret,code].every(secret))fail();
+ let token,report,failure;
+ const cancelled=()=>{if(signal?.aborted)fail('CANCELLED');};
+ try{
+  cancelled();
+  token=await safeJson(fetchImpl,zohoDomains[binding.api_domain]+'/oauth/v2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'authorization_code',client_id:clientId,client_secret:clientSecret,redirect_uri:redirectUri,code})},'TOKEN');
+  if(!secret(token.access_token))fail('TOKEN_ACCESS_MISSING');
+  if(!secret(token.refresh_token))fail('TOKEN_REFRESH_MISSING');
+  if(token.api_domain!==binding.api_domain)fail('TOKEN_DOMAIN');
+  if(!Number.isFinite(token.expires_in)||token.expires_in<=0)fail('TOKEN_EXPIRY');
+  cancelled();
+  report={target:await diagnosticProfile(binding,binding.organization_id,token.access_token,true,fetchImpl),other:{outcome:'NOT_RUN'}};
+  cancelled();
+  if(report.target.outcome==='MATCHED')report.other=await diagnosticProfile(binding,otherOrganizationId,token.access_token,false,fetchImpl);
+  cancelled();
+ }catch(error){failure=error;}
+ // Cleanup uses a fresh timeout, even on cancellation, and only this exchange.
+ const cleanup=await revokeUnsavedTokens(binding,{clientId,clientSecret,refreshToken:token?.refresh_token,accessToken:token?.access_token},fetchImpl);
+ if(failure)throw withCleanup(failure,cleanup);
+ return {...report,cleanup};
+}
+export function diagnosticLabels(report){
+ const labels=[];
+ for(const [name,allowed] of [['TARGET',['MATCHED','MISMATCH','INCONCLUSIVE']],['OTHER_TEST',['REJECTED','ACCESSIBLE','INCONCLUSIVE','NOT_RUN']]]){
+  const part=report?.[name==='TARGET'?'target':'other'];labels.push('[DIAG_'+name+'_'+(allowed.includes(part?.outcome)?part.outcome:'INCONCLUSIVE')+']');
+  if(httpStatuses.includes(part?.httpStatus))labels.push('[DIAG_'+name+'_HTTP_'+part.httpStatus+']');
+  if(booksCodes.includes(part?.providerCode))labels.push('[DIAG_'+name+'_BOOKS_CODE_'+part.providerCode+']');
+ }
+ labels.push('[CLEANUP_'+(Object.hasOwn(cleanupMessages,report?.cleanup)?report.cleanup:'UNAVAILABLE')+']');return labels;
+}
+
 export function callbackHandler(state,accountsServer,complete){
  let used=false;
  return (req,res)=>{
@@ -177,7 +232,8 @@ async function closeCallbackServer(server){
 }
 
 async function main(){
- if(!process.stdin.isTTY||!process.stdout.isTTY||process.argv.length>2)throw new Error('Run interactively without command-line secrets');
+ const diagnostic=process.argv.length===3&&process.argv[2]==='--diagnose-test-orgs';
+ if(!process.stdin.isTTY||!process.stdout.isTTY||process.argv.length>2&&!diagnostic)throw new Error('Run interactively without command-line secrets');
  let muted=false;const output=new Writable({write(chunk,encoding,done){if(!muted)process.stdout.write(chunk,encoding);done();}});
  const terminal=createInterface({input:process.stdin,output,terminal:true,historySize:0});
  const cancellation=new AbortController(),cancel=()=>cancellation.abort();
@@ -185,46 +241,63 @@ async function main(){
  // Keep the label on its own completed console line. PowerShell can redraw the
  // empty readline input line; that must not hide the question above it.
  const ask=async(prompt,hidden=false)=>{process.stdout.write(prompt+'\n');muted=hidden;try{return(await terminal.question('',{signal:cancellation.signal})).trim();}finally{muted=false;if(hidden)process.stdout.write('\n');}};
- let store,server,timer,binding,entry,failure,saved=false;
+ let store,server,timer,binding,entry,failure,diagnosticReport,otherOrganizationId,saved=false;
  try{
-  console.log('FaraiOS STAGING only. Use a newly registered ORG client for the TEST organisation.');
+  console.log(diagnostic?'FaraiOS TEST diagnostic only. Use the dedicated TEST ORG client. No credential file will be opened or saved.':'FaraiOS STAGING only. Use a newly registered ORG client for the TEST organisation.');
   console.log('Register Homepage URL http://127.0.0.1:3101 and Redirect URI '+redirectUri);
-  console.log('If newly received tokens cannot be verified or saved, this helper will attempt to revoke only those tokens with this dedicated client.');
+  console.log(diagnostic?'Only organisation settings READ is requested. After the diagnostic, always attempt to revoke only this newly received token.':'If newly received tokens cannot be verified or saved, this helper will attempt to revoke only those tokens with this dedicated client.');
   binding=validateBinding({business_id:await ask('FaraiOS business UUID: '),organization_id:await ask('New Zoho TEST organisation ID: '),organization_name:await ask('Exact TEST organisation name: '),alias:await ask('Credential alias: '),api_domain:await ask('API domain (e.g. https://www.zohoapis.com): ')});
-  if(await ask('Confirm this is an isolated test organisation (type TEST): ')!=='TEST')fail();
-  const target=await ask('Private JSON path (Enter for your profile default): ')||join(homedir(),'.faraios-staging','zoho-credentials.json');
-  store=await atStage('PRIVATE_FILE_OPEN',()=>privateStore(target));
-  store.assertAvailable(binding.alias,binding);
+  if(diagnostic)otherOrganizationId=validateDiagnosticOther(binding,await ask('Other isolated TEST organisation ID (never a live organisation): '));
+  if(await ask(diagnostic?'Confirm BOTH organisation IDs are isolated TEST organisations (type TEST): ':'Confirm this is an isolated test organisation (type TEST): ')!=='TEST')fail();
+  if(!diagnostic){
+   const target=await ask('Private JSON path (Enter for your profile default): ')||join(homedir(),'.faraios-staging','zoho-credentials.json');
+   store=await atStage('PRIVATE_FILE_OPEN',()=>privateStore(target));store.assertAvailable(binding.alias,binding);
+  }
   const clientId=await ask('New dedicated Client ID (hidden): ',true),clientSecret=await ask('New dedicated Client Secret (hidden): ',true);
   if(![clientId,clientSecret].every(secret))fail();
   const state=randomBytes(32).toString('hex');
-  const consentUrl=authorizationUrl(binding,clientId,state);
+  const consentUrl=diagnostic?diagnosticAuthorizationUrl(binding,clientId,state):authorizationUrl(binding,clientId,state);
   const code=await new Promise((resolveCode,rejectCode)=>{
    if(cancellation.signal.aborted){rejectCode(new SetupFailure('CANCELLED'));return;}
    cancellation.signal.addEventListener('abort',()=>rejectCode(new SetupFailure('CANCELLED')),{once:true});
    server=createServer(callbackHandler(state,zohoDomains[binding.api_domain],resolveCode));server.once('error',()=>rejectCode(new SetupFailure('CALLBACK_UNAVAILABLE')));
    server.listen(3102,'127.0.0.1',()=>{
-    console.log('Open this authorization URL in your browser. Accept only the named TEST organisation and these four scopes:');
-    console.log(scopes);console.log(consentUrl);
+    console.log(diagnostic?'Open this authorization URL in your browser. Accept only the named TEST organisation and this read-only scope:':'Open this authorization URL in your browser. Accept only the named TEST organisation and these four scopes:');
+    console.log(diagnostic?diagnosticScopes:scopes);console.log(consentUrl);
     console.log('If Zoho offers all organisations or the wrong organisation, deny and stop.');
    });
    timer=setTimeout(()=>rejectCode(new SetupFailure('CALLBACK_EXPIRED')),10*60*1000);
   });
   clearTimeout(timer);
-  console.log('Callback received. Verifying the TEST organisation...');
-  entry=await exchangeAndVerify(binding,{clientId,clientSecret,code});
-  if(cancellation.signal.aborted)fail('CANCELLED');
-  await atStage('PRIVATE_FILE_SAVE',()=>store.save(binding.alias,entry));
-  saved=true;
+  console.log(diagnostic?'Callback received. Reading only the two configured TEST organisation profiles...':'Callback received. Verifying the TEST organisation...');
+  if(diagnostic){
+   diagnosticReport=await diagnoseTestOrganizations(binding,{clientId,clientSecret,code,otherOrganizationId},fetch,{signal:cancellation.signal});
+   if(cancellation.signal.aborted)throw withCleanup(new SetupFailure('CANCELLED'),diagnosticReport.cleanup);
+  }else{
+   entry=await exchangeAndVerify(binding,{clientId,clientSecret,code});
+   if(cancellation.signal.aborted)fail('CANCELLED');
+   await atStage('PRIVATE_FILE_SAVE',()=>store.save(binding.alias,entry));saved=true;
+  }
  }catch(error){
   failure=entry&&!saved?withCleanup(error,await revokeUnsavedTokens(binding,{clientId:entry.client_id,clientSecret:entry.client_secret,refreshToken:entry.refresh_token})):error;
  }finally{
   clearTimeout(timer);
   if(server)console.log('Closing local callback listener...');
-  for(const close of [()=>closeCallbackServer(server),()=>store?.close(),()=>terminal.close()])try{await close();}catch{failure??=new SetupFailure('LOCAL_CLEANUP');}
+  for(const close of [()=>closeCallbackServer(server),()=>store?.close(),()=>terminal.close()])try{await close();}catch{failure??=diagnosticReport?withCleanup(new SetupFailure('LOCAL_CLEANUP'),diagnosticReport.cleanup):new SetupFailure('LOCAL_CLEANUP');}
   process.removeListener('SIGINT',cancel);process.removeListener('SIGTERM',cancel);
  }
  if(failure){if(saved){failure=failure instanceof SetupFailure?failure:new SetupFailure('LOCAL_CLEANUP');failure.saved=true;}throw failure;}
+ if(diagnostic){
+  console.log('TEST diagnostic observations only. No credentials saved, connection enabled or invoice synced. Full organisation isolation is not established by these observations.');
+  for(const label of diagnosticLabels(diagnosticReport))console.log(label);
+  if(diagnosticReport.cleanup!=='REFRESH_REVOKED')console.log('Cleanup is partial or unconfirmed. Stop for manual cleanup of only this diagnostic grant before retrying.');
+  if(diagnosticReport.target.outcome!=='MATCHED'||diagnosticReport.other.outcome!=='REJECTED'||diagnosticReport.cleanup!=='REFRESH_REVOKED')process.exitCode=1;
+  return;
+ }
  console.log('Private credentials saved. Exactly one TEST organisation verified. No connection enabled or invoice synced.');
 }
-if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))main().catch(error=>{console.error(setupFailureMessage(error));process.exitCode=1;});
+if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))main().catch(error=>{
+ const message=setupFailureMessage(error);
+ if(process.argv[2]==='--diagnose-test-orgs'){console.error('TEST diagnostic stopped. No credentials saved or connection enabled.');for(const label of message.match(/\[[A-Z][A-Z0-9_]*\]/g)??[])console.error(label);console.error('If consent was granted and cleanup is not REFRESH_REVOKED, stop for manual cleanup of only this diagnostic grant.');}else console.error(message);
+ process.exitCode=1;
+});
