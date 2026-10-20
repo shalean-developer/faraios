@@ -4,7 +4,7 @@ import { mkdtemp, readFile, writeFile, readdir, rm, lstat, symlink, mkdir, renam
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { SOURCE, CLIENT_IMAGE, POOLER_HOST, DUMPS, validateManifest, parseManifest, clientEnvironment, clientArgs, dumpSpec, parsePgManifest, cleanupClient, terminalFailure, sealBackup, openBackup, sha256, capture, verifyFile, run, privateDirectory, assertDataCoverage, assertCompleteDump, outsideGit, localDocker, windowsEnvironment, metadataFailureLabel } from '../scripts/backup-staging.mjs';
+import { SOURCE, CLIENT_IMAGE, POOLER_HOST, ROOT_CERT_CONTAINER, ROOT_CERT_PATH, ROOT_CERT_SHA256, CLIENT_STARTED, verifyProviderCertificate, certificateMount, ensureClientImage, DUMPS, validateManifest, parseManifest, clientEnvironment, clientArgs, dumpSpec, parsePgManifest, cleanupClient, terminalFailure, sealBackup, openBackup, sha256, capture, verifyFile, run, privateDirectory, assertDataCoverage, assertCompleteDump, outsideGit, localDocker, windowsEnvironment, metadataFailureLabel } from '../scripts/backup-staging.mjs';
 
 function manifest() {
  const tables=[...Array.from({length:15},(_,i)=>({schema:'public',table:'t'+i,rls:true,rows:i===0?2:0,sha256:'a'.repeat(64)})),...Array.from({length:2},(_,i)=>({schema:'audit',table:'t'+i,rls:true,rows:0,sha256:'b'.repeat(64)})),{schema:'auth',table:'users',rls:true,rows:3,sha256:'c'.repeat(64)},{schema:'supabase_migrations',table:'schema_migrations',rls:false,rows:21,sha256:'d'.repeat(64)}];
@@ -36,6 +36,7 @@ function mockRunner({change=false,failName,missingAuth=false,calls=[]}={}) {
  let queries=0;
  return async (command,args,opts)=>{
   if(command!=='docker')return run(command,args,opts); // Real Windows ACL verification.
+  if(args[0]==='image')return {stdout:'sha256:'+'a'.repeat(64)+'\n',stderr:''};
   if(args[0]==='info')return {stdout:'linux\n',stderr:''};
   if(args[0]==='ps'||args[0]==='rm')return {stdout:'',stderr:''};
   if(args[0]==='context') {
@@ -45,14 +46,14 @@ function mockRunner({change=false,failName,missingAuth=false,calls=[]}={}) {
   assert.equal(args[0],'run');
   calls.push({command,args,env:{...opts.env},cwd:opts.cwd});
   assert.equal(opts.env.PGPASSWORD,'synthetic private password');
-  assert.equal(opts.env.PGSSLMODE,'verify-full');assert.equal(opts.env.PGSSLROOTCERT,'system');
+  assert.equal(opts.env.PGSSLMODE,'verify-full');assert.equal(opts.env.PGSSLROOTCERT,ROOT_CERT_CONTAINER);
   assert.equal(opts.env.PGHOST,POOLER_HOST);assert.equal(opts.env.PGUSER,'postgres.'+SOURCE);assert.equal(opts.env.PGPORT,'5432');
   assert.ok(!args.some(a=>a.includes('synthetic private password')));
   assert.ok(args.includes(CLIENT_IMAGE));assert.equal(args[args.indexOf('--log-driver')+1],'none');
   const step=args[args.indexOf('--name')+1].replace(/^faraios-t11-[a-f0-9]{32}-/,'');
   const m=manifest();
   if(step==='metadata') {
-   assert.equal(opts.failureContext,'metadata');assert.ok(opts.input.startsWith('begin transaction'));
+   assert.equal(opts.failureContext,'pg-client');assert.ok(opts.input.startsWith('begin transaction'));
    if(change&&queries++>0)m.tables[0].sha256='f'.repeat(64);
    return {stdout:JSON.stringify(m)+'\n',stderr:''};
   }
@@ -79,7 +80,7 @@ test('manifest parser accepts only the explicit single-row JSON contract',()=>{
 
 test('password remains in child env; project, profile, PG, host and image overrides are removed',()=>{
  const env=clientEnvironment('secret',{PATH:'safe',SUPABASE_DB_PASSWORD:'old',SUPABASE_PROJECT_ID:'wrong',SUPABASE_PROFILE:'wrong.yaml',SUPABASE_API_URL:'https://wrong.invalid',SUPABASE_INTERNAL_IMAGE_REGISTRY:'wrong',PGHOST:'wrong',PGPASSWORD:'old',SUPABASE_HOME:'/private/cli-home'});
- assert.equal(env.PGPASSWORD,'secret');assert.equal(env.SUPABASE_HOME,undefined);assert.equal(env.PGHOST,POOLER_HOST);assert.equal(env.PGSSLMODE,'verify-full');assert.equal(env.PGSSLROOTCERT,'system');
+ assert.equal(env.PGPASSWORD,'secret');assert.equal(env.SUPABASE_HOME,undefined);assert.equal(env.PGHOST,POOLER_HOST);assert.equal(env.PGSSLMODE,'verify-full');assert.equal(env.PGSSLROOTCERT,ROOT_CERT_CONTAINER);
  for(const k of ['SUPABASE_PROJECT_ID','SUPABASE_PROFILE','SUPABASE_API_URL','SUPABASE_INTERNAL_IMAGE_REGISTRY'])assert.equal(env[k],undefined);
  for(const p of ['',null,'a\nb','a\0b'])assert.throws(()=>clientEnvironment(p));
 });
@@ -289,8 +290,8 @@ test('a metadata diagnostic stops capture before dumps, keys or archives',async 
  const p=await home(t),runner=mockRunner();let databaseCalls=0;
  await assert.rejects(capture({home:p,password:'synthetic private password',npmPath:join(p,'npm-cli.js'),runner:async(command,args,options)=>{
   if(command==='docker'&&args[0]==='run') {
-   databaseCalls++;assert.equal(options.failureContext,'metadata');assert.ok(options.input.startsWith('begin transaction'));
-   return run(process.execPath,['-e','console.error("request failed: ECONNRESET private request details");process.exit(1)'],{failureContext:options.failureContext});
+   databaseCalls++;assert.equal(options.failureContext,'pg-client');assert.ok(options.input.startsWith('begin transaction'));
+   return run(process.execPath,['-e','console.error("FARAIOS_T11_POSTGRES_CLIENT_STARTED\\nrequest failed: ECONNRESET private request details");process.exit(1)'],{failureContext:options.failureContext});
   }
   return runner(command,args,options);
  }}),{code:'METADATA_NETWORK_FAILED'});
@@ -340,4 +341,38 @@ test('cleanup failure retains its operator label after cancellation while other 
  assert.equal(observed?.code,'CONTAINER_CLEANUP_FAILED');assert.equal(observed.message,observed.code);
  assert.equal(terminalFailure(new Error('private aborted detail'),controller.signal).code,'BACKUP_CANCELLED');
  assert.deepEqual(await readdir(join(p,'.faraios-recovery-keys')),[]);
+});
+
+
+test('provider CA is pinned, self-signed, current and mounted read-only without accepting another trust anchor',async t=>{
+ const result=await verifyProviderCertificate();assert.equal(result.sha256,ROOT_CERT_SHA256);
+ const p=await home(t),copy=join(p,'other.crt');await writeFile(copy,(await readFile(ROOT_CERT_PATH,'utf8')).replace('MIID','NIID'));
+ await assert.rejects(verifyProviderCertificate(copy),{code:'PROVIDER_CA_INVALID'});
+ await assert.rejects(verifyProviderCertificate(ROOT_CERT_PATH,Date.parse('2032-01-01')),{code:'PROVIDER_CA_INVALID'});
+ await writeFile(copy,(await readFile(ROOT_CERT_PATH,'utf8'))+(await readFile(ROOT_CERT_PATH,'utf8')));
+ await assert.rejects(verifyProviderCertificate(copy),{code:'PROVIDER_CA_INVALID'});
+ const special=join(p,'comma, and "quote".crt'),mount=certificateMount(special);
+ assert.ok(mount.includes('"src='+special.replaceAll('"','""')+'"'));assert.ok(mount.endsWith(',dst='+ROOT_CERT_CONTAINER+',readonly'));
+ assert.throws(()=>certificateMount('relative.crt'));
+ const args=clientArgs('a'.repeat(32),'metadata','exec psql',clientEnvironment('secret'));
+ assert.equal(args[args.indexOf('--mount')+1],certificateMount());
+});
+
+test('image acquisition is credential-free and registry certificate errors retain an image-stage label',async()=>{
+ const env=clientEnvironment('private-password');let calls=0;
+ await assert.rejects(ensureClientImage(env,async(command,args,options)=>{
+  calls++;assert.equal(command,'docker');assert.ok(!Object.keys(options.env).some(k=>/^PG/i.test(k)));
+  assert.ok(!args.includes('private-password'));
+  throw new Error('certificate verify failed private registry diagnostics');
+ }),{code:'CLIENT_IMAGE_FETCH_FAILED'});
+ assert.equal(calls,2);
+});
+
+test('only a started container can classify PostgreSQL TLS text; raw output stays private',async()=>{
+ const body='console.error("certificate verify failed private details");process.exit(1)';
+ await assert.rejects(run(process.execPath,['-e',body],{failureContext:'pg-client'}),{code:'CLIENT_CONTAINER_START_FAILED'});
+ const started='console.error('+JSON.stringify(CLIENT_STARTED)+');'+body;
+ await assert.rejects(run(process.execPath,['-e',started],{failureContext:'pg-client'}),{code:'METADATA_TLS_FAILED'});
+ // The command text alone is not the standalone runtime marker.
+ await assert.rejects(run(process.execPath,['-e','console.error('+JSON.stringify("printf '%s\\n' '"+CLIENT_STARTED+"' >&2")+');'+body],{failureContext:'pg-client'}),{code:'CLIENT_CONTAINER_START_FAILED'});
 });

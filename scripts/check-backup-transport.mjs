@@ -1,10 +1,13 @@
-// CI-only disposable PostgreSQL transport check. Never connects to a cloud project.
+// CI-only disposable PostgreSQL tests plus a credential-free public pooler TLS handshake.
+// The public handshake closes before PostgreSQL startup/authentication/query traffic.
 import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import net from 'node:net';
+import tls from 'node:tls';
 import { randomBytes } from 'node:crypto';
-import { CLIENT_IMAGE, DUMPS, SOURCE, clientEnvironment, clientArgs, dumpSpec, assertCompleteDump, cleanupClient, run } from './backup-staging.mjs';
+import { CLIENT_IMAGE, DUMPS, POOLER_HOST, ROOT_CERT_PATH, ROOT_CERT_CONTAINER, verifyProviderCertificate, certificateMount, clientEnvironment, clientArgs, dumpSpec, assertCompleteDump, cleanupClient, run } from './backup-staging.mjs';
 
 const id=randomBytes(16).toString('hex'),network='faraios-t11-ci-'+id;
 const tlsServer='t11-db-'+id,plainServer='t11-plain-'+id,wrongHost='t11-wrong-'+id;
@@ -32,10 +35,30 @@ async function invoke(mode,{host=tlsServer,trust=true}={}) {
  const pg={...clientEnvironment(password,env),...spec.env,PGHOST:host,PGUSER:'postgres'};
  const args=clientArgs(id,mode,spec.script,pg,mode==='metadata');
  // CI-only endpoint/trust substitution; production exposes no host/CA override.
- args.splice(1,0,'--network',network,...(trust?['--mount','type=bind,src='+join(fixture,'ca.crt')+',dst=/etc/ssl/certs/ca-certificates.crt,readonly']:[]));
+ if(trust)args[args.indexOf('--mount')+1]=certificateMount(join(fixture,'ca.crt'));
+ args.splice(1,0,'--network',network);
  const input=mode==='metadata'?await readFile(new URL('./staging-backup-manifest.sql',import.meta.url),'utf8'):undefined;
- return docker(args,{env:{...env,...pg},input,failureContext:'metadata'});
+ return docker(args,{env:{...env,...pg},input,failureContext:'pg-client'});
 }
+async function publicPoolerTLS() {
+ await verifyProviderCertificate();const ca=await readFile(ROOT_CERT_PATH,'utf8');
+ await new Promise((resolveProbe,rejectProbe)=>{
+  let secure,settled=false;
+  const socket=net.connect({host:POOLER_HOST,port:5432});
+  const finish=error=>{if(settled)return;settled=true;clearTimeout(deadline);secure?.destroy();socket.destroy();error?rejectProbe(new Error('PROVIDER_TLS_PROBE_FAILED')):resolveProbe();};
+  const deadline=setTimeout(()=>finish(true),20000);
+  socket.once('error',()=>finish(true));
+  socket.once('connect',()=>{const request=Buffer.alloc(8);request.writeInt32BE(8,0);request.writeInt32BE(80877103,4);socket.write(request);});
+  socket.once('data',reply=>{
+   if(reply.length!==1||reply[0]!==83){finish(true);return;}
+   secure=tls.connect({socket,servername:POOLER_HOST,ca,rejectUnauthorized:true,minVersion:'TLSv1.2'});
+   secure.once('error',()=>finish(true));
+   secure.once('secureConnect',()=>finish(!secure.authorized));
+  });
+ });
+ console.log('T11_PUBLIC_POOLER_CA_AND_HOSTNAME=PASS (TLS handshake only; no database startup/auth/query)');
+}
+await publicPoolerTLS();
 try {
  await run('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout',join(fixture,'ca.key'),'-out',join(fixture,'ca.crt'),'-days','1','-subj','/CN=FaraiOS Disposable Test CA'],{env});
  await run('openssl',['req','-newkey','rsa:2048','-nodes','-keyout',join(fixture,'server.key'),'-out',join(fixture,'server.csr'),'-subj','/CN='+tlsServer],{env});

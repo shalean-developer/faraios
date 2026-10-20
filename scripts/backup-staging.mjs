@@ -1,9 +1,9 @@
-import { createHash, randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
+import { createHash, randomBytes, createCipheriv, createDecipheriv, X509Certificate } from 'node:crypto';
 import { gzipSync, gunzipSync } from 'node:zlib';
 import { mkdir, lstat, open, readFile, rm, realpath } from 'node:fs/promises';
 import { join, resolve, basename, isAbsolute, dirname } from 'node:path';
 import { homedir } from 'node:os';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { dumpSchemaScript, dumpDataScript, dumpRoleScript, INTERNAL_SCHEMAS, EXCLUDED_SCHEMAS, RESERVED_ROLES, ALLOWED_CONFIGS } from './vendor/supabase-pg-dump.mjs';
 import { createInterface } from 'node:readline/promises';
@@ -13,6 +13,10 @@ export const SOURCE = 'xdmfyrsauvqznkloroxg';
 export const CLI = '2.121.0'; // Vendored filter provenance, not an executed CLI.
 export const CLIENT_IMAGE = 'postgres:17.11-bookworm@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826';
 export const POOLER_HOST = 'aws-0-eu-west-1.pooler.supabase.com';
+export const ROOT_CERT_PATH = fileURLToPath(new URL('./vendor/supabase-root-2021.crt',import.meta.url));
+export const ROOT_CERT_CONTAINER = '/faraios-ca.crt';
+export const ROOT_CERT_SHA256 = '807025ad50d4ed219d2c9c7d299c004f824eb00cf7f65afef607d07b72e6cafa';
+export const CLIENT_STARTED = 'FARAIOS_T11_POSTGRES_CLIENT_STARTED';
 const FORMAT = 'faraios-staging-logical-backup-v1';
 const MAX_FILE = 128 * 1024 * 1024;
 const MAX_ARCHIVE = 256 * 1024 * 1024;
@@ -97,8 +101,44 @@ export function clientEnvironment(password, original=process.env) {
  const env={...original};
  for(const key of Object.keys(env))if(/^(PG|SUPABASE_|DOCKER_|SSL_CERT_)/i.test(key))delete env[key];
  return {...env,PGHOST:POOLER_HOST,PGPORT:'5432',PGUSER:'postgres.'+SOURCE,PGPASSWORD:password,PGDATABASE:'postgres',
-  PGSSLMODE:'verify-full',PGSSLROOTCERT:'system',PGGSSENCMODE:'disable',PGCONNECT_TIMEOUT:'15',
+  PGSSLMODE:'verify-full',PGSSLROOTCERT:ROOT_CERT_CONTAINER,PGGSSENCMODE:'disable',PGCONNECT_TIMEOUT:'15',
   PGOPTIONS:'-c default_transaction_read_only=on -c statement_timeout=600000 -c lock_timeout=10000',PGAPPNAME:'faraios-t11-backup'};
+}
+
+// Public trust anchor downloaded from the source Dashboard's certificate link.
+// No peer-leaf trust, custom CA override or runtime certificate download is allowed.
+export async function verifyProviderCertificate(path=ROOT_CERT_PATH,now=Date.now()) {
+ try {
+  const stat=await lstat(path);if(!stat.isFile()||stat.isSymbolicLink()||stat.size>8192)fail('PROVIDER_CA_INVALID');
+  const pem=await readFile(path,'utf8');
+  if(!/^-----BEGIN CERTIFICATE-----\r?\n[A-Za-z0-9+/=\r\n]+-----END CERTIFICATE-----\r?\n?$/.test(pem))fail('PROVIDER_CA_INVALID');
+  const cert=new X509Certificate(pem);
+  if(sha256(cert.raw)!==ROOT_CERT_SHA256||!cert.ca||cert.subject!==cert.issuer||!cert.verify(cert.publicKey)||now<Date.parse(cert.validFrom)||now>=Date.parse(cert.validTo))fail('PROVIDER_CA_INVALID');
+  return {sha256:ROOT_CERT_SHA256,validTo:cert.validTo};
+ } catch {fail('PROVIDER_CA_INVALID');}
+}
+
+// Docker --mount uses CSV fields: quote the whole src field, including commas.
+export function certificateMount(path=ROOT_CERT_PATH) {
+ if(!isAbsolute(path)||/[\r\n\0]/.test(path))fail('PROVIDER_CA_PATH_INVALID');
+ return 'type=bind,"src='+path.replaceAll('"','""')+'",dst='+ROOT_CERT_CONTAINER+',readonly';
+}
+
+// Image acquisition has no PostgreSQL credentials or query and its own labels.
+export async function ensureClientImage(env,runner=run,signal) {
+ checkCancelled(signal);
+ const clean={...env};for(const key of Object.keys(clean))if(/^PG/i.test(key))delete clean[key];
+ const inspect=()=>runner('docker',['image','inspect',CLIENT_IMAGE,'--format','{{.Id}}'],{env:clean,signal,timeout:20000,maxOutput:4096});
+ const interrupted=e=>['BACKUP_CANCELLED','CHILD_TIMEOUT','CHILD_OUTPUT_TOO_LARGE'].includes(e.code);
+ let result;
+ try {result=await inspect();}
+ catch(error) {
+  if(interrupted(error))throw error;
+  try {await runner('docker',['pull',CLIENT_IMAGE],{env:clean,signal,timeout:900000,maxOutput:1024*1024});result=await inspect();}
+  catch(error){if(interrupted(error))throw error;fail('CLIENT_IMAGE_FETCH_FAILED');}
+ }
+ checkCancelled(signal);
+ if(!/^sha256:[a-f0-9]{64}$/.test(result.stdout.trim()))fail('CLIENT_IMAGE_INVALID');
 }
 
 // Only fixed modes and reviewed filters enter the container command/environment.
@@ -114,8 +154,8 @@ export function clientArgs(id,step,script,env,input=false) {
  if(!/^[a-f0-9]{32}$/.test(id)||!/^([a-z]+-?)+$/.test(step))fail('CONTAINER_ID_INVALID');
  const keys=Object.keys(env).filter(k=>k.startsWith('PG')||['RESERVED_ROLES','ALLOWED_CONFIGS','INCLUDED_SCHEMAS','EXCLUDED_SCHEMAS','EXTRA_FLAGS'].includes(k));
  return ['run','--rm','--name','faraios-t11-'+id+'-'+step,'--label','com.faraios.t11.run='+id,
-  '--log-driver','none','--read-only','--cap-drop','ALL','--security-opt','no-new-privileges','--user','65534:65534',
-  ...(input?['--interactive']:[]),...keys.flatMap(k=>['--env',k]),'--entrypoint','/bin/bash',CLIENT_IMAGE,'-c',script];
+  '--log-driver','none','--mount',certificateMount(),'--read-only','--cap-drop','ALL','--security-opt','no-new-privileges','--user','65534:65534',
+  ...(input?['--interactive']:[]),...keys.flatMap(k=>['--env',k]),'--entrypoint','/bin/bash',CLIENT_IMAGE,'-c',"printf '%s\\n' '"+CLIENT_STARTED+"' >&2\n"+script];
 }
 
 export function parsePgManifest(stdout) {
@@ -137,7 +177,7 @@ export async function cleanupClient(id,step,env,runner=run) {
  } catch {fail('CONTAINER_CLEANUP_FAILED');}
 }
 
-// These are observations of the pinned CLI's failure text, not proof of cause.
+// These are observations of allowlisted failure text, not proof of cause.
 // Return constants only: upstream messages/bodies may contain credentials or SQL.
 export function metadataFailureLabel(stderr) {
  const message=stderr.slice(-65536).replace(/\u001b\[[0-?]*[ -/]*[@-~]/g,'');
@@ -182,7 +222,7 @@ export function run(command,args,options={}) {
   };
   const abort=()=>void stop('BACKUP_CANCELLED');
   if(options.signal?.aborted){settle(error('BACKUP_CANCELLED'));return;}
-  const processFailure=()=>error(options.failureContext==='metadata'?'METADATA_PROCESS_FAILED':'CHILD_FAILED');
+  const processFailure=()=>error(options.failureContext==='pg-client'?'CLIENT_CONTAINER_PROCESS_FAILED':options.failureContext==='metadata'?'METADATA_PROCESS_FAILED':'CHILD_FAILED');
   try { child=spawn(command,args,{cwd:options.cwd,env:options.env,stdio:[options.input===undefined?'ignore':'pipe','pipe','pipe'],shell:false,windowsHide:true,detached:process.platform!=='win32'}); } catch { settle(processFailure()); return; }
   options.signal?.addEventListener('abort',abort,{once:true});
   timer=setTimeout(()=>void stop('CHILD_TIMEOUT'),options.timeout??900000);
@@ -196,7 +236,11 @@ export function run(command,args,options={}) {
   child.once('error',()=>{if(!stopping)settle(processFailure());});
   child.once('close',code=>{
    if(stopping)return;
-   if(code!==0){settle(error(options.failureContext==='metadata'?metadataFailureLabel(Buffer.concat(stderr).toString('utf8')):'CHILD_FAILED'));return;}
+   if(code!==0){
+    const text=Buffer.concat(stderr).toString('utf8');
+    const label=options.failureContext==='pg-client'?(text.split(/\r?\n/).includes(CLIENT_STARTED)?metadataFailureLabel(text):'CLIENT_CONTAINER_START_FAILED'):options.failureContext==='metadata'?metadataFailureLabel(text):'CHILD_FAILED';
+    settle(error(label));return;
+   }
    const stdoutBytes=Buffer.concat(stdout);
    settle(null,{stdout:stdoutBytes.toString('utf8'),stdoutBytes,stderr:Buffer.concat(stderr).toString('utf8')});
   });
@@ -371,6 +415,7 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
  const guard=directoryGuard(signal);await guard.add(home);
  await privateDirectory(root,runner,signal);await guard.add(root);
  await guard.check();await privateDirectory(keyRoot,runner,signal);await guard.add(keyRoot);
+ await verifyProviderCertificate();
  env=await localDocker(env,runner,signal);
  const id=randomBytes(16).toString('hex'),work=join(root,id),temporary=join(work,'private-export');
  await guard.check();await privateDirectory(work,runner,signal);await guard.add(work);
@@ -381,8 +426,8 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
   const heartbeat=setInterval(()=>progress('This backup step is still running...'),20000);
   const childEnv={...env,...extra};
   try {
-   await guard.check();
-   const result=await runner('docker',clientArgs(id,step,script,childEnv,input!==undefined),{cwd:temporary,env:childEnv,signal,input,maxOutput:MAX_FILE,failureContext:'metadata'});
+   await guard.check();await verifyProviderCertificate();checkCancelled(signal);
+   const result=await runner('docker',clientArgs(id,step,script,childEnv,input!==undefined),{cwd:temporary,env:childEnv,signal,input,maxOutput:MAX_FILE,failureContext:'pg-client'});
    await guard.check();return result;
   } finally {
    clearInterval(heartbeat);
@@ -393,6 +438,9 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
  let artifact,keyPath,checksum,completed=false,cleanup='NOT_RUN';
  const started=new Date().toISOString();
  try {
+  progress('Checking pinned PostgreSQL client image');
+  const imageHeartbeat=setInterval(()=>progress('This backup step is still running...'),20000);
+  try{await ensureClientImage(env,runner,signal);}finally{clearInterval(imageHeartbeat);}
   progress('Checking source metadata');
   const readManifest=async()=>parsePgManifest((await client('metadata','exec psql -X -w -q -A -t --set=ON_ERROR_STOP=1',{},sql)).stdout);
   const before=await readManifest();
@@ -401,7 +449,7 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
    progress('Exporting '+name);
    let result;
    try { const spec=dumpSpec(name);result=await client(name.replace('.sql',''),spec.script,spec.env); }
-   catch(error) { if(['BACKUP_CANCELLED','CONTAINER_CLEANUP_FAILED','CHILD_TIMEOUT','CHILD_OUTPUT_TOO_LARGE'].includes(error.code))throw error;fail('DUMP_'+name.replace(/\.sql$/,'').replaceAll('-','_').toUpperCase()+'_FAILED'); }
+   catch(error) { if(['BACKUP_CANCELLED','CONTAINER_CLEANUP_FAILED','CHILD_TIMEOUT','CHILD_OUTPUT_TOO_LARGE','CLIENT_CONTAINER_START_FAILED','CLIENT_CONTAINER_PROCESS_FAILED','PROVIDER_CA_INVALID'].includes(error.code))throw error;fail('DUMP_'+name.replace(/\.sql$/,'').replaceAll('-','_').toUpperCase()+'_FAILED'); }
    const bytes=result.stdoutBytes??Buffer.from(result.stdout,'utf8'),content=bytes.toString('utf8');
    totalBytes+=bytes.length;
    if(bytes.length===0||bytes.length>MAX_FILE||totalBytes>MAX_PAYLOAD/2)fail('BACKUP_TOO_LARGE');
@@ -413,7 +461,7 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
   const after=await readManifest();
   if(signal?.aborted) fail('BACKUP_CANCELLED');
   if(!same(before,after)) fail('SOURCE_CHANGED_DURING_BACKUP');
-  const manifest={version:1,source:SOURCE,filterSource:'supabase/cli@'+CLI,clientImage:CLIENT_IMAGE,transport:{host:POOLER_HOST,port:5432,sslmode:'verify-full',sslrootcert:'system'},started,finished:new Date().toISOString(),consistency:'Operator-confirmed write freeze plus before/after row and catalog SHA-256 comparison; individual pg_dump transactions.',before,after,scope:'Logical database export with Auth data and separate migration history. Platform configuration, custom managed-schema replay, Storage bytes and provider secrets require separate recovery treatment.'};
+  const manifest={version:1,source:SOURCE,filterSource:'supabase/cli@'+CLI,clientImage:CLIENT_IMAGE,transport:{host:POOLER_HOST,port:5432,sslmode:'verify-full',sslrootcert:'Supabase Root 2021 CA',caSha256:ROOT_CERT_SHA256},started,finished:new Date().toISOString(),consistency:'Operator-confirmed write freeze plus before/after row and catalog SHA-256 comparison; individual pg_dump transactions.',before,after,scope:'Logical database export with Auth data and separate migration history. Platform configuration, custom managed-schema replay, Storage bytes and provider secrets require separate recovery treatment.'};
   const content=JSON.stringify(manifest);files.push({name:'manifest.json',content,sha256:sha256(content)});
   assertDataCoverage(files,before);
   if(Buffer.byteLength(JSON.stringify(files))>MAX_PAYLOAD/2) fail('BACKUP_TOO_LARGE');
