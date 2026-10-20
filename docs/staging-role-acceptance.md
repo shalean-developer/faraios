@@ -2,6 +2,8 @@
 
 20 October follow-up: the real Bokkie-only manager dashboard was observed again. Chrome still blocked the direct Shalean request with ERR_BLOCKED_BY_CLIENT before an application response could be established. This is a browser observation, not proof of HTTP403. The operator-run verifier below is prepared to obtain real local HTTP evidence; it does not itself close T08–T10 until actual results and independent acceptance are recorded.
 
+Current fixture scope: the manager QA account has one active membership, Bokkie manager, and is the account for the next operator run. The existing cleaner QA account now has active staff memberships in both Bokkie and Shalean; the earlier Bokkie-only cleaner observation below is historical. That shared cleaner is not a valid single-business fixture for this verifier. Staff mode requires a separately verified single-business staff fixture; no membership change is part of this work. Current shared-staff access remains separately unassessed.
+
 ## Local HTTP verification
 
 `scripts/verify-staging-access.mjs` connects only to `http://127.0.0.1:3101`. Start the existing FaraiOS staging server first. Run the helper in a second interactive terminal with public `--role`, `--business`, `--denied-business` and `.test` QA `--email` arguments. Enter the existing staging QA password privately at the hidden prompt; it is never accepted in arguments, printed or saved.
