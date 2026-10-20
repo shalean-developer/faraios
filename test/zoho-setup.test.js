@@ -16,7 +16,7 @@ const fake=(organizationResponse={code:0,organizations:[org]},tokenResponse=toke
 
 test('private setup uses only the four required scopes and fixed loopback callback',()=>{
  const url=new URL(authorizationUrl(binding,credentials.clientId,'random-state'));
- assert.equal(url.origin,'https://accounts.zoho.com');assert.equal(url.pathname,'/oauth/v2/auth');
+ assert.equal(url.origin,'https://accounts.zoho.com');assert.equal(url.pathname,'/oauth/v2/org/auth');
  assert.equal(url.searchParams.get('redirect_uri'),redirectUri);assert.equal(url.searchParams.get('scope'),scopes);
  assert.equal(url.searchParams.get('access_type'),'offline');assert.equal(url.searchParams.get('prompt'),'consent');
  assert.equal(url.searchParams.get('state'),'random-state');assert.ok(!url.href.includes(credentials.clientSecret));
@@ -116,6 +116,7 @@ test('operator CLI prints complete prompt lines, hides secret input and cancels 
  await answer('New dedicated Client ID (hidden): ','synthetic-client-id');
  await answer('New dedicated Client Secret (hidden): ','NEVER_ECHO_SYNTHETIC_SECRET');
  await waitFor('If Zoho offers all organisations or the wrong organisation, deny and stop.');
+ assert.ok(transcript.includes('/oauth/v2/org/auth?'));assert.ok(!transcript.includes('/oauth/v2/auth?'));
  assert.ok(!transcript.includes('NEVER_ECHO_SYNTHETIC_SECRET'));assert.ok(!stderr.includes('NEVER_ECHO_SYNTHETIC_SECRET'));
  assert.ok(!transcript.slice(0,transcript.indexOf('Open this authorization URL')).includes('synthetic-client-id'));
  child.stdin.write('\u0003');const result=await finished;assert.equal(result.code,1);assert.match(stderr,/Setup stopped/);

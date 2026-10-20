@@ -24,7 +24,9 @@ export function validateBinding(binding){
 }
 export function authorizationUrl(binding,clientId,state){
  validateBinding(binding);if(!secret(clientId)||!secret(state))fail();
- const url=new URL(zohoDomains[binding.api_domain]+'/oauth/v2/auth');
+ // ORG clients use instance-bound consent with an administrator's org picker.
+ // A general server-client grant cannot establish the required test-org scope.
+ const url=new URL(zohoDomains[binding.api_domain]+'/oauth/v2/org/auth');
  url.search=new URLSearchParams({scope:scopes,client_id:clientId,state,response_type:'code',redirect_uri:redirectUri,access_type:'offline',prompt:'consent'}).toString();
  return url.href;
 }
@@ -98,7 +100,7 @@ async function main(){
  const ask=async(prompt,hidden=false)=>{process.stdout.write(prompt+'\n');muted=hidden;try{return(await terminal.question('',{signal:cancellation.signal})).trim();}finally{muted=false;if(hidden)process.stdout.write('\n');}};
  let store,server,timer;
  try{
-  console.log('FaraiOS STAGING only. Use a newly registered dedicated client. Keep existing clients unchanged.');
+  console.log('FaraiOS STAGING only. Use a newly registered ORG client for the TEST organisation.');
   console.log('Register Homepage URL http://127.0.0.1:3101 and Redirect URI '+redirectUri);
   const binding=validateBinding({business_id:await ask('FaraiOS business UUID: '),organization_id:await ask('New Zoho TEST organisation ID: '),organization_name:await ask('Exact TEST organisation name: '),alias:await ask('Credential alias: '),api_domain:await ask('API domain (e.g. https://www.zohoapis.com): ')});
   if(await ask('Confirm this is an isolated test organisation (type TEST): ')!=='TEST')fail();
