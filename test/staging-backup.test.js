@@ -4,7 +4,7 @@ import { mkdtemp, readFile, writeFile, readdir, rm, lstat, symlink, mkdir, renam
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { SOURCE, CLI, DUMPS, validateManifest, parseManifest, cliEnvironment, commandArgs, sealBackup, openBackup, sha256, capture, verifyFile, run, privateDirectory, assertDataCoverage, assertCompleteDump, outsideGit, localDocker, windowsEnvironment } from '../scripts/backup-staging.mjs';
+import { SOURCE, CLI, DUMPS, validateManifest, parseManifest, cliEnvironment, commandArgs, sealBackup, openBackup, sha256, capture, verifyFile, run, privateDirectory, assertDataCoverage, assertCompleteDump, outsideGit, localDocker, windowsEnvironment, metadataFailureLabel } from '../scripts/backup-staging.mjs';
 
 function manifest() {
  const tables=[...Array.from({length:15},(_,i)=>({schema:'public',table:'t'+i,rls:true,rows:i===0?2:0,sha256:'a'.repeat(64)})),...Array.from({length:2},(_,i)=>({schema:'audit',table:'t'+i,rls:true,rows:0,sha256:'b'.repeat(64)})),{schema:'auth',table:'users',rls:true,rows:3,sha256:'c'.repeat(64)},{schema:'supabase_migrations',table:'schema_migrations',rls:false,rows:21,sha256:'d'.repeat(64)}];
@@ -48,9 +48,11 @@ function mockRunner({change=false,failName,missingAuth=false,calls=[]}={}) {
   assert.ok(args.includes('--project-ref'));assert.equal(args[args.indexOf('--project-ref')+1],SOURCE);
   const m=manifest();
   if(args.includes('query')) {
+   assert.equal(opts.failureContext,'metadata');
    if(change&&queries++>0)m.tables[0].sha256='f'.repeat(64);
    return {stdout:JSON.stringify([{manifest:m}]),stderr:''};
   }
+  assert.equal(opts.failureContext,undefined);
   assert.ok(args.includes('dump'));assert.ok(!args.includes('--dry-run'));
   assert.ok(!args.includes('--file'),'raw SQL must never be written by the child');
   const name=args.includes('--role-only')?'roles.sql':args.includes('--schema')?(args[args.indexOf('--schema')+1]==='auth,storage'?'managed-schema-reference.sql':args.includes('--data-only')?'migration-data.sql':'migration-schema.sql'):args.includes('--data-only')?'data.sql':'schema.sql';
@@ -236,4 +238,56 @@ test('abort during local preflight stops the next Docker or Windows ACL child',a
   return runner(command,args,options);
  }}),{code:'BACKUP_CANCELLED'});
  assert.equal(localCalls,1);assert.equal(dbCalls,0);
+});
+
+
+test('metadata diagnostics map upstream text to fixed observations and discard all interpolated content',()=>{
+ const cases=[
+  ['Access token not provided. Supply an access token by running supabase login','METADATA_LOGIN_REQUIRED'],
+  ['unexpected status 403: private provider body','METADATA_API_ACCESS_DENIED'],
+  ['unexpected status 404: private provider body','METADATA_PROJECT_NOT_FOUND'],
+  ['IPv6 is not supported on your current network','METADATA_IPV6_UNAVAILABLE'],
+  ['SELF_SIGNED_CERT_IN_CHAIN','METADATA_TLS_FAILED'],
+  ['request failed: ECONNRESET','METADATA_NETWORK_FAILED'],
+  ['password authentication failed for user private-user','METADATA_DATABASE_AUTH_FAILED'],
+  ['failed to read SQL file: private-path','METADATA_SQL_FILE_UNREADABLE'],
+  ['failed to read profile: Unsupported Config Type','METADATA_CONFIG_INVALID'],
+  ['unknown flag --private-argument','METADATA_CLI_COMMAND_INVALID'],
+  ['Cannot find module private-module','METADATA_CLI_LAUNCH_FAILED'],
+  ['unexpected status 400: private query error SQLSTATE 42601','METADATA_QUERY_FAILED'],
+  ['unrecognized private response','METADATA_UNCLASSIFIED'],
+ ];
+ for(const [upstream,label] of cases) {
+  for(const text of [upstream,'\u001b[31m'+upstream+'\u001b[0m']) {
+   const observation=metadataFailureLabel(text+' synthetic-private-password private-auth-row');
+   assert.equal(observation,label);assert.ok(!observation.includes('private'));
+  }
+ }
+});
+
+test('real child metadata failures expose no raw output and preserve timeout/cancellation labels',async()=>{
+ const args=['-e','console.log("private stdout");console.error("unexpected status 403: private password and Auth rows");process.exit(1)'];
+ await assert.rejects(run(process.execPath,args,{failureContext:'metadata'}),error=>{
+  assert.equal(error.code,'METADATA_API_ACCESS_DENIED');assert.equal(error.message,error.code);
+  assert.deepEqual(Object.keys(error),['code']);assert.ok(!JSON.stringify(error).includes('private'));return true;
+ });
+ await assert.rejects(run(process.execPath,args),{code:'CHILD_FAILED'});
+ await assert.rejects(run(process.execPath,['-e','console.error("private unknown error");process.exit(1)'],{failureContext:'metadata'}),{code:'METADATA_UNCLASSIFIED'});
+ await assert.rejects(run(process.execPath,['-e','setTimeout(()=>{},60000)'],{failureContext:'metadata',timeout:100}),{code:'CHILD_TIMEOUT'});
+ const controller=new AbortController();const child=run(process.execPath,['-e','setTimeout(()=>{},60000)'],{failureContext:'metadata',signal:controller.signal});controller.abort();
+ await assert.rejects(child,{code:'BACKUP_CANCELLED'});
+});
+
+test('a metadata diagnostic stops capture before dumps, keys or archives',async t=>{
+ const p=await home(t),runner=mockRunner();let databaseCalls=0;
+ await assert.rejects(capture({home:p,password:'synthetic private password',npmPath:join(p,'npm-cli.js'),runner:async(command,args,options)=>{
+  if(command===process.execPath) {
+   databaseCalls++;assert.equal(options.failureContext,'metadata');assert.ok(args.includes('query'));
+   return run(process.execPath,['-e','console.error("request failed: ECONNRESET private request details");process.exit(1)'],{failureContext:options.failureContext});
+  }
+  return runner(command,args,options);
+ }}),{code:'METADATA_NETWORK_FAILED'});
+ assert.equal(databaseCalls,1);assert.deepEqual(await readdir(join(p,'.faraios-recovery-keys')),[]);
+ const work=join(p,'.faraios-backups',(await readdir(join(p,'.faraios-backups')))[0]);
+ assert.deepEqual(await readdir(work),['private-export']);
 });
