@@ -260,8 +260,8 @@ test('staff list keeps creation collapsed and editors focused for both categorie
 for(const role of ['owner','manager'])test(`calendar HTTP permits ${role}, validates dates and checks availability without writes`,async()=>run(async(base,state)=>{
  const Cookie=await signIn(base),url=base+'/calendar?business='+bid+'&day=2026-10-20';
  const dashboard=await(await fetch(base+'/dashboard?business='+bid,{headers:{Cookie}})).text();assert.match(dashboard,/Availability &amp; calendar/);
- let response=await fetch(url,{headers:{Cookie}});assert.equal(response.status,200);let html=await response.text();assert.match(html,/Check cleaner availability/);assert.equal((html.match(/class="panel calendar-day"/g)||[]).length,7);
- response=await fetch(url+'&view=day&local_start=2026-10-20T09:00&duration_minutes=120',{headers:{Cookie}});assert.equal(response.status,200);html=await response.text();assert.match(html,/>Busy</);assert.equal((html.match(/class="panel calendar-day"/g)||[]).length,1);
+ let response=await fetch(url,{headers:{Cookie}});assert.equal(response.status,200);let html=await response.text();assert.match(html,/Check cleaner availability/);assert.equal((html.match(/class="panel calendar-day(?: is-today)?"/g)||[]).length,7);
+ response=await fetch(url+'&view=day&local_start=2026-10-20T09:00&duration_minutes=120',{headers:{Cookie}});assert.equal(response.status,200);html=await response.text();assert.match(html,/>Busy</);assert.equal((html.match(/class="panel calendar-day(?: is-today)?"/g)||[]).length,1);
  for(const suffix of ['&view=month','&local_start=bad&duration_minutes=120','&local_start=2026-10-20T09:00&duration_minutes=0'])assert.equal((await fetch(url+suffix,{headers:{Cookie}})).status,422);
  assert.equal((await fetch(base+'/calendar?business='+bid+'&day=2026-02-30',{headers:{Cookie}})).status,422);
  assert.equal((await fetch(base+'/calendar?business=foreign&day=2026-10-20',{headers:{Cookie}})).status,403);

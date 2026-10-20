@@ -20,6 +20,10 @@ test('quote detail puts current states, saved total and main action first; discl
 test('address presentation removes only adjacent equal components',()=>{
  assert.equal(quoteAddress({address_line:' A ',suburb:'B',city:'a',postal_code:'1'}),'A, B, a, 1');
  assert.equal(quoteAddress({address_line:'A',suburb:' A ',city:'B'}),'A, B');
+ const address={address_line:'1 Example, North Bank Lane, Century City',suburb:' century city ',city:'Cape Town',postal_code:'7441'};
+ assert.equal(quoteAddress(address),'1 Example, North Bank Lane, Century City, Cape Town, 7441');
+ assert.equal(address.address_line,'1 Example, North Bank Lane, Century City');
+ assert.equal(quoteAddress({address_line:'A, B, A',suburb:'C'}),'A, B, A, C');
 });
 test('actor resolver binds every returned identity and degrades only unavailable labels',async()=>{
  let calls=0;const client={rpc:async(name,params)=>{calls++;assert.equal(name,'quote_acceptance_actor');assert.deepEqual(params,{p_business_id:business.id,p_quote_id:quote.id});return {data:{business_id:business.id,quote_id:quote.id,actor_id:quote.accepted_by,label:' Owner '}};}};
