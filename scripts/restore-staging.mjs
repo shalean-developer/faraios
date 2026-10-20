@@ -73,7 +73,7 @@ export function preserveManagedParameterGrant(sql){
  const keywords=roleKeywords(sql).match(/\bPARAMETER\b/gi)??[];
  const lines=sql.split('\n');let seen=0;
  const rewritten=lines.map(line=>{if(line.replace(/\r$/,'')!==MANAGED_PARAMETER_GRANT)return line;seen++;return '-- Existing provider parameter grant preserved; full parameter ACL equality is required.';}).join('\n');
- if(keywords.length!==1||seen!==1)fail('RESTORE_PARAMETER_GRANT_UNREVIEWED');
+ if(keywords.length!==1||seen!==1||/\bPARAMETER\b/i.test(roleKeywords(rewritten)))fail('RESTORE_PARAMETER_GRANT_UNREVIEWED');
  return rewritten;
 }
 
