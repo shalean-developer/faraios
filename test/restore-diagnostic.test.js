@@ -17,6 +17,11 @@ test('native schema envelope ignores quoted bodies/comments but rejects transact
  assert.doesNotThrow(()=>validateSchemaReplay("CREATE FUNCTION public.escaped() RETURNS text LANGUAGE sql AS E'select \\'COMMIT;\\'';"));
  assert.doesNotThrow(()=>validateSchemaReplay('SET standard_conforming_strings=on;'));
  assert.throws(()=>validateSchemaReplay('SET standard_conforming_strings=off;'));
+ for(const sql of ['SET U&"standard_conforming_strings"=off;',"SET client_encoding='SJIS';",'SET backslash_quote=off;','SET U&"client_encoding"=\'SJIS\';'])assert.throws(()=>validateSchemaReplay(sql),{code:'RESTORE_DIAGNOSTIC_SCHEMA_UNSAFE'});
+ const escape=String.raw`SET U&"standard_conforming_strings" = off;
+CREATE TABLE public.escape_probe(id int);
+COMMENT ON TABLE public.escape_probe IS 'foo\''; COMMIT; --';`;
+ assert.throws(()=>validateSchemaReplay(escape),{code:'RESTORE_DIAGNOSTIC_SCHEMA_UNSAFE'});
 });
 test('diagnostic projection derives from the unchanged full catalog and only reports fixed component labels',async()=>{
  const sql=await readFile(new URL('../scripts/restore-catalog.sql',import.meta.url),'utf8');

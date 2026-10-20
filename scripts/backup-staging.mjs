@@ -184,6 +184,7 @@ export function metadataFailureLabel(stderr) {
  const rules=[
   ['RESTORE_SEQUENCE_STATE_PENDING',/\bERROR:\s+RESTORE_SEQUENCE_STATE_PENDING\b/],
   ['RESTORE_ACTOR_CHANGED',/\bERROR:\s+RESTORE_ACTOR_CHANGED\b/],
+  ['RESTORE_TRANSACTION_REQUIRED',/\bERROR:\s+SAVEPOINT can only be used in transaction blocks\b/],
   ['RESTORE_CATALOG_MISMATCH',/\bERROR:\s+RESTORE_CATALOG_MISMATCH\b/],
   ['RESTORE_DATA_MISMATCH',/\bERROR:\s+RESTORE_DATA_MISMATCH\b/],
   ['METADATA_LOGIN_REQUIRED',/Access token not provided|DbQueryLoginRequiredError|not logged in/i],

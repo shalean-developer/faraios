@@ -20,6 +20,7 @@ export function validateSchemaReplay(sql){
   if(ch==='-'&&next==='-'){i=sql.indexOf('\n',i);if(i<0)break;continue;}
   if(ch==='/'&&next==='*'){let depth=1;i+=2;while(i<sql.length&&depth){if(sql[i]==='/'&&sql[i+1]==='*'){depth++;i+=2;}else if(sql[i]==='*'&&sql[i+1]==='/'){depth--;i+=2;}else i++;}if(depth)fail('RESTORE_DIAGNOSTIC_SCHEMA_INVALID');continue;}
   if(ch==='\\')fail('RESTORE_DIAGNOSTIC_SCHEMA_UNSAFE');
+  if(/^[uU]\s*&\s*["']/.test(sql.slice(i)))fail('RESTORE_DIAGNOSTIC_SCHEMA_UNSAFE');
   if(ch===';' ){if(tokens.length)statements.push(tokens);tokens=[];i++;continue;}
   const dollar=ch==='$'?/^\$(?:[a-z_][a-z0-9_]*)?\$/i.exec(sql.slice(i)):null;
   if(dollar){const end=sql.indexOf(dollar[0],i+dollar[0].length);if(end<0)fail('RESTORE_DIAGNOSTIC_SCHEMA_INVALID');tokens.push({literal:true,value:null});i=end+dollar[0].length;continue;}
@@ -38,8 +39,9 @@ export function validateSchemaReplay(sql){
   if(!['CREATE','ALTER','GRANT','REVOKE','COMMENT','SECURITY','SET','RESET','SELECT'].includes(first))fail('RESTORE_DIAGNOSTIC_SCHEMA_UNSAFE');
   if(first==='SET'){
    let p=1;if(['LOCAL','SESSION'].includes(words[p]))p++;
-   if(['ROLE','AUTHORIZATION','SESSION_AUTHORIZATION','TRANSACTION','CHARACTERISTICS'].includes(words[p]))fail('RESTORE_DIAGNOSTIC_SCHEMA_UNSAFE');
+   if(!['DEFAULT_TRANSACTION_READ_ONLY','CLIENT_ENCODING','STANDARD_CONFORMING_STRINGS','CHECK_FUNCTION_BODIES','XMLOPTION','CLIENT_MIN_MESSAGES','ROW_SECURITY','DEFAULT_TABLESPACE','DEFAULT_TABLE_ACCESS_METHOD','STATEMENT_TIMEOUT','LOCK_TIMEOUT','IDLE_IN_TRANSACTION_SESSION_TIMEOUT','TRANSACTION_TIMEOUT'].includes(words[p]))fail('RESTORE_DIAGNOSTIC_SCHEMA_UNSAFE');
    if(words[p]==='STANDARD_CONFORMING_STRINGS'&&!(statement.length===p+3&&words[p+1]==='='&&words[p+2]==='ON'))fail('RESTORE_DIAGNOSTIC_SCHEMA_UNSAFE');
+   if(words[p]==='CLIENT_ENCODING'&&!(statement.length===p+3&&words[p+1]==='='&&statement[p+2].literal&&statement[p+2].value==='UTF8'))fail('RESTORE_DIAGNOSTIC_SCHEMA_UNSAFE');
   }
   if(first==='RESET'&&!(words.length===2&&words[1]==='ALL'))fail('RESTORE_DIAGNOSTIC_SCHEMA_UNSAFE');
   if(first==='SELECT'||words.includes('SET_CONFIG')){

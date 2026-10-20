@@ -75,9 +75,9 @@ async function publicPoolerTLS() {
 async function exerciseRestore(manifest,files){
  const catalogSQL=await readFile(new URL('./restore-catalog.sql',import.meta.url),'utf8');
  const preflightSQL=await readFile(new URL('./restore-preflight.sql',import.meta.url),'utf8');
- const query=async(host,input,write=false,admin=false)=>{
-  const pg={...clientEnvironment(password,env),PGHOST:host,PGUSER:admin?'supabase_admin':'postgres',PGOPTIONS:'-c default_transaction_read_only='+(write?'off':'on')};
-  const args=clientArgs(id,'restore-ci','exec psql -X -w -q -A -t --set=ON_ERROR_STOP=1 --single-transaction --file=-',pg,true);
+ const query=async(host,input,write=false,admin=false,singleTransaction=true)=>{
+  const pg={...clientEnvironment(password,env),PGHOST:host,PGUSER:admin?'supabase_admin':'postgres',PGOPTIONS:'-c default_transaction_read_only='+(write?'off':'on')+' -c standard_conforming_strings=on -c client_encoding=UTF8'};
+  const args=clientArgs(id,'restore-ci','exec psql -X -w -q -A -t --set=ON_ERROR_STOP=1 '+(singleTransaction?'--single-transaction ':'')+'--file=-',pg,true);
   args[args.indexOf('--mount')+1]=certificateMount(join(fixture,'ca.crt'));args.splice(1,0,'--network',network);
   return docker(args,{env:{...env,...pg},input,failureContext:'pg-client'});
  };
@@ -108,6 +108,9 @@ async function exerciseRestore(manifest,files){
   const beforeDiagnostic=await diagnosticMetadata();validateSequenceState(beforeDiagnostic);
   const replay=schemaReplaySQL(backup,catalogSQL,preflightSQL);
   assert.ok(!replay.includes('COPY '));assert.ok(!replay.includes('setval('));
+  await assert.rejects(query(restoreServer,diagnosticSQL(replay,catalogSQL,diagnosticLimits),true,false,false),{code:'RESTORE_TRANSACTION_REQUIRED'});
+  assert.deepEqual(await diagnosticMetadata(),beforeDiagnostic);
+  console.log('T11_DIAGNOSTIC_REQUIRES_EXPLICIT_TRANSACTION=PASS (missing psql transaction flag rejected before writes; fresh baseline unchanged)');
   for(const drift of [false,true]){
    const sql=diagnosticSQL(replay+(drift?'ALTER TABLE public.sample DISABLE ROW LEVEL SECURITY;\n':''),catalogSQL,diagnosticLimits);
    const output=await query(restoreServer,sql,true);

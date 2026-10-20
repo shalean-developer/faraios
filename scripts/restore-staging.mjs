@@ -17,7 +17,7 @@ export const MANAGED_PARAMETER_GRANT='GRANT SET ON PARAMETER "log_min_messages" 
 // the import transaction. The unmodified dump restores it before catalog checks.
 export const RESTORE_CREATION_DEFAULTS_SQL=['TABLES','SEQUENCES','FUNCTIONS'].map(kind=>
  `ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON ${kind} FROM "postgres", "anon", "authenticated", "service_role";\n`).join('');
-const causeLabels=new Set(['METADATA_PERMISSION_DENIED','METADATA_NETWORK_FAILED','METADATA_TLS_FAILED','METADATA_DATABASE_AUTH_FAILED','METADATA_QUERY_FAILED','METADATA_UNCLASSIFIED','RESTORE_CATALOG_MISMATCH','RESTORE_DATA_MISMATCH','CHILD_TIMEOUT','BACKUP_CANCELLED','RESTORE_VALIDATION_MARKER_MISSING','RESTORE_ACTOR_CHANGED','RESTORE_DIAGNOSTIC_ACK_MISSING','RESTORE_DIAGNOSTIC_COMPONENTS_INVALID','RESTORE_DIAGNOSTIC_COMPONENTS_INCONSISTENT','RESTORE_DIAGNOSTIC_SEQUENCE_INVALID','RESTORE_DIAGNOSTIC_SEQUENCE_CHANGED','RESTORE_DESTINATION_NOT_EMPTY','RESTORE_DESTINATION_SCHEMA_CHANGED','RESTORE_EXTENSION_VERSION_CHANGED','RESTORE_SEQUENCE_PRIVILEGES_CHANGED']);
+const causeLabels=new Set(['METADATA_PERMISSION_DENIED','METADATA_NETWORK_FAILED','METADATA_TLS_FAILED','METADATA_DATABASE_AUTH_FAILED','METADATA_QUERY_FAILED','METADATA_UNCLASSIFIED','RESTORE_CATALOG_MISMATCH','RESTORE_DATA_MISMATCH','CHILD_TIMEOUT','BACKUP_CANCELLED','RESTORE_VALIDATION_MARKER_MISSING','RESTORE_TRANSACTION_REQUIRED','RESTORE_ACTOR_CHANGED','RESTORE_DIAGNOSTIC_ACK_MISSING','RESTORE_DIAGNOSTIC_COMPONENTS_INVALID','RESTORE_DIAGNOSTIC_COMPONENTS_INCONSISTENT','RESTORE_DIAGNOSTIC_SEQUENCE_INVALID','RESTORE_DIAGNOSTIC_SEQUENCE_CHANGED','RESTORE_DESTINATION_NOT_EMPTY','RESTORE_DESTINATION_SCHEMA_CHANGED','RESTORE_EXTENSION_VERSION_CHANGED','RESTORE_SEQUENCE_PRIVILEGES_CHANGED']);
 export class RestoreOutcomeFailure extends BackupFailure {
  constructor(code,error){super(code);this.causeLabel=error instanceof BackupFailure&&causeLabels.has(error.code)?error.code:'RESTORE_CAUSE_UNCLASSIFIED';}
 }
@@ -31,7 +31,7 @@ const sqlFile=name=>readFile(new URL(name,import.meta.url),'utf8');
 
 export function restoreEnvironment(password,original=process.env,write=false){
  const env=clientEnvironment(password,original);
- return {...env,PGUSER:'postgres.'+DESTINATION,PGAPPNAME:'faraios-t11-restore-test',PGOPTIONS:'-c default_transaction_read_only='+(write?'off':'on')+' -c statement_timeout=600000 -c lock_timeout=10000'};
+ return {...env,PGUSER:'postgres.'+DESTINATION,PGAPPNAME:'faraios-t11-restore-test',PGOPTIONS:'-c default_transaction_read_only='+(write?'off':'on')+' -c statement_timeout=600000 -c lock_timeout=10000 -c standard_conforming_strings=on -c client_encoding=UTF8'};
 }
 
 export function validateRestoreBackup(backup){
@@ -154,7 +154,8 @@ export function schemaReplaySQL(backup,catalogSQL,preflightSQL){
  const content=Object.fromEntries(backup.payload.files.map(f=>[f.name,f.content]));
  content['roles.sql']=preserveManagedParameterGrant(content['roles.sql']);
  const members=['roles.sql','schema.sql','migration-schema.sql'].map(name=>limits+validateSchemaReplay(content[name])+'\n');
- return limits+"SELECT pg_advisory_xact_lock(1711,20261020);\n"+emptyCheck(preflightSQL)+catalogCheck(catalogSQL,RESTORE_CONFIG.emptyApplicationCatalogSha256)+
+ // SAVEPOINT fails before any write if the caller omitted an explicit transaction.
+ return 'SAVEPOINT faraios_t11_replay;\n'+limits+"SELECT pg_advisory_xact_lock(1711,20261020);\n"+emptyCheck(preflightSQL)+catalogCheck(catalogSQL,RESTORE_CONFIG.emptyApplicationCatalogSha256)+
   ACTOR_SQL+RESTORE_CREATION_DEFAULTS_SQL+'CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA extensions;\n'+members.join('\n');
 }
 export function importSQL(backup,manifest,catalogSQL,preflightSQL){

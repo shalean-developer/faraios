@@ -29,6 +29,7 @@ test('existing application/Auth/Vault/network state, structural drift and extens
 test('import checks empty destination again, never replays managed reference and validates before psql commits',async()=>{
  const [c,p]=await Promise.all(['restore-catalog.sql','restore-preflight.sql'].map(f=>readFile(new URL('../scripts/'+f,import.meta.url),'utf8')));
  const sql=importSQL(backup(),manifest(),c,p);
+ assert.ok(sql.startsWith('SAVEPOINT faraios_t11_replay;'));
  assert.ok(sql.indexOf('RESTORE_DESTINATION_NOT_EMPTY')<sql.indexOf('-- roles.sql'));
  assert.ok(sql.indexOf('-- migration-schema.sql')<sql.indexOf('-- data.sql'));
  assert.ok(!sql.includes('-- managed-schema-reference.sql'));
