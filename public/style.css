@@ -361,7 +361,7 @@
 .quote-status-note.is-warning{border-color:#996015;background:#fff5e4}
 .quote-status-note strong{color:#17332e}
 .quote-status-note p{margin:4px 0 0;line-height:1.5}
-.quote-summary-actions{display:flex;align-items:start;flex-wrap:wrap;gap:12px 20px;margin-top:18px}
+.quote-summary-actions{display:flex;align-items:start;flex-wrap:wrap;gap:12px 20px;margin-top:12px}
 .quote-reference-control{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;min-width:0;flex:1}
 .quote-reference-control button{font-size:13px;min-height:44px}
 .quote-reference-control button[hidden]{display:none}
