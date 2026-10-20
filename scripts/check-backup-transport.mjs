@@ -23,7 +23,7 @@ const owned=[];
 const fixtureReplicaGrant='GRANT SET ON PARAMETER "session_replication_role" TO "postgres";';
 async function bootstrapRestrictedActor(name){
  const sql=`create role postgres login createrole createdb password '${password}';alter database postgres owner to postgres;create role supabase_realtime_admin;${MANAGED_PARAMETER_GRANT}${fixtureReplicaGrant}`;
- await docker(['exec','--interactive',name,'psql','-U','supabase_admin','-v','ON_ERROR_STOP=1','-q'],{input:sql});
+ await docker(['exec','--interactive',name,'psql','-U','supabase_admin','-d','postgres','-v','ON_ERROR_STOP=1','-q'],{input:sql});
 }
 async function ready(name) {
  for(let attempt=0;attempt<60;attempt++) {
