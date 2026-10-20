@@ -59,7 +59,7 @@ export async function verifyStagingAccess(options,password,{fetchImpl=fetch,sign
   return {response,readBody:async()=>{try{return await boundedText(response);}catch(error){fail(error,'BODY',response);}}};
  };
  const check=(name,actual,expected)=>{const pass=actual===expected;report.checks.push({name,actual,expected,pass});if(!pass)deny('CHECK_FAILED');};
- const read=async(name,path,expected)=>{const {response,readBody}=await request(name,path);const body=await readBody();check(name,response.status,expected);return body;};
+ const read=async(name,path,expected)=>{const {response,readBody}=await request(name,path);const body=await readBody();check(name,response.status,expected);if(restoreTest&&expected===200&&path.startsWith('/dashboard'))check(name+'_RESTORE_MARKER',body.includes('FaraiOS RESTORE TEST')&&body.includes('Read-only recovery workspace')&&body.includes('Integrations disabled'),true);return body;};
  try{
   if(restoreTest){const health=JSON.parse(await read('RESTORE_HEALTH','/restore-health',200));check('RESTORE_ISOLATION',health.environment==='restore-test'&&health.businessWrites==='disabled'&&health.accountingWorker==='disabled',true);}
   const loginPage=await read(restoreTest?'RESTORE_LOGIN':'STAGING_LOGIN','/login',200);

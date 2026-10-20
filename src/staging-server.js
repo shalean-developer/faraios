@@ -301,7 +301,7 @@ export function createStagingServer({createClient,accountingWorker=null,accounti
       const identity=await readIdentity(id);if(!identity){clear();return redirect('/login');}
       const selected=url.searchParams.get('business')??'all';
       if(selected!=='all'&&!identity.businessIds.includes(selected))return send(403,'You do not have access to this business.','text/plain');
-      return send(200,renderWorkspace(identity,selected));
+      return send(200,renderWorkspace(identity,selected,{restoreTest}));
     }catch(error){if(['Invoice access denied','Quote access denied','Staff access denied','Settings access denied','Catalogue access denied','Customer access denied','Booking access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,loginForm('Staging service unavailable. Please try again later.'));}
   });return server;
 }
