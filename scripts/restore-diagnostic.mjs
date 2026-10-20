@@ -17,7 +17,7 @@ export function validateSchemaReplay(sql){
  for(let i=0;i<sql.length;){
   const ch=sql[i],next=sql[i+1];
   if(/\s/.test(ch)){i++;continue;}
-  if(ch==='-'&&next==='-'){i=sql.indexOf('\n',i);if(i<0)break;continue;}
+  if(ch==='-'&&next==='-'){while(i<sql.length&&sql[i]!=='\n'&&sql[i]!=='\r')i++;continue;}
   if(ch==='/'&&next==='*'){let depth=1;i+=2;while(i<sql.length&&depth){if(sql[i]==='/'&&sql[i+1]==='*'){depth++;i+=2;}else if(sql[i]==='*'&&sql[i+1]==='/'){depth--;i+=2;}else i++;}if(depth)fail('RESTORE_DIAGNOSTIC_SCHEMA_INVALID');continue;}
   if(ch==='\\')fail('RESTORE_DIAGNOSTIC_SCHEMA_UNSAFE');
   if(/^[uU]\s*&\s*["']/.test(sql.slice(i)))fail('RESTORE_DIAGNOSTIC_SCHEMA_UNSAFE');

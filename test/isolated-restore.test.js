@@ -48,6 +48,7 @@ test('only the exact existing managed parameter grant is omitted; unexpected ACL
  assert.doesNotThrow(()=>preserveManagedParameterGrant('-- PARAMETER in comment\n'+MANAGED_PARAMETER_GRANT+"\nALTER ROLE \"postgres\" SET \"pgrst.test\" TO 'ON PARAMETER; -- ''';"));
  for(const inert of ['/*\n'+MANAGED_PARAMETER_GRANT+'\n*/',`ALTER ROLE "postgres" SET "pgrst.test" TO 'first\n${MANAGED_PARAMETER_GRANT}\nlast';`])assert.throws(()=>preserveManagedParameterGrant(inert+'\nGRANT SET ON PARAMETER "work_mem" TO "anon";'),{code:'RESTORE_PARAMETER_GRANT_UNREVIEWED'});
  const b=backup();b.payload.files.find(f=>f.name==='roles.sql').content+='\nGRANT SET ON PARAMETER "work_mem" TO "anon";';assert.throws(()=>validateRestoreBackup(b),{code:'RESTORE_PARAMETER_GRANT_UNREVIEWED'});
+ assert.throws(()=>preserveManagedParameterGrant(MANAGED_PARAMETER_GRANT+'\n-- comment\rGRANT SET ON PARAMETER "work_mem" TO "anon";'),{code:'RESTORE_PARAMETER_GRANT_UNREVIEWED'});
 });
 test('uncertain outcome retains only allowlisted cause observations',()=>{
  const known=new RestoreOutcomeFailure('RESTORE_OUTCOME_UNCONFIRMED',new BackupFailure('METADATA_PERMISSION_DENIED'));assert.equal(known.causeLabel,'METADATA_PERMISSION_DENIED');

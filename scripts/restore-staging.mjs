@@ -67,7 +67,7 @@ function roleKeywords(sql){
   const ch=sql[i],next=sql[i+1];
   if(block){if(ch==='/'&&next==='*'){block++;i++;}else if(ch==='*'&&next==='/'){block--;i++;}code+=' ';continue;}
   if(quote){if(escaped&&ch==='\\'){i++;code+='  ';continue;}if(ch===quote){if(next===quote)i++;else quote=null;}code+=' ';continue;}
-  if(ch==='-'&&next==='-'){while(i<sql.length&&sql[i]!=='\n')i++;code+='\n';continue;}
+  if(ch==='-'&&next==='-'){while(i<sql.length&&sql[i]!=='\n'&&sql[i]!=='\r')i++;code+='\n';continue;}
   if(ch==='/'&&next==='*'){block=1;i++;code+=' ';continue;}
   if(ch==="'"||ch==='"'){quote=ch;escaped=ch==="'"&&/[eE]/.test(sql[i-1]??'')&&!/[a-z0-9_$]/i.test(sql[i-2]??'');code+=' ';continue;}
   code+=ch;

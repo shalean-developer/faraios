@@ -22,6 +22,8 @@ test('native schema envelope ignores quoted bodies/comments but rejects transact
 CREATE TABLE public.escape_probe(id int);
 COMMENT ON TABLE public.escape_probe IS 'foo\''; COMMIT; --';`;
  assert.throws(()=>validateSchemaReplay(escape),{code:'RESTORE_DIAGNOSTIC_SCHEMA_UNSAFE'});
+ assert.throws(()=>validateSchemaReplay('CREATE TABLE public.line_ending_probe(id int);\n-- comment\rCOMMIT;\n'),{code:'RESTORE_DIAGNOSTIC_SCHEMA_UNSAFE'});
+ assert.doesNotThrow(()=>validateSchemaReplay('-- ordinary Windows comment\r\nCREATE TABLE public.line_ending_probe(id int);\r\n'));
 });
 test('diagnostic projection derives from the unchanged full catalog and only reports fixed component labels',async()=>{
  const sql=await readFile(new URL('../scripts/restore-catalog.sql',import.meta.url),'utf8');
