@@ -48,3 +48,29 @@ Apply only the timing delta to the exact six current Shalean catalogue records w
 Validation includes six real configurations; floors and item combinations; assessment minimum/block rejection; quote and recurring snapshot protection; exactly480 and481-minute daily totals; cross-business limits; setup/travel overlaps; midnight boundaries; unknown legacy plans; cancellation; tenant/role denial; and independent-connection READ COMMITTED/REPEATABLE READ contention in CI.
 
 T04 remains In progress for financial choices, statutory/pay safeguards, configured earnings previews and browser acceptance. Report schema delivery, policy activation and browser acceptance separately; neither a prepared migration nor passing synthetic tests means activation.
+
+
+## Staging activation and bounded acceptance — 21 October 2026
+
+**PASS for this duration/workload increment. T04 remains In progress.** After the owner pulled/restarted the local application and reported Ready, the new daily-workload and service minimum/block controls were observed in the native browser. A version-checked timing-only delta passed a rollback dry run, then committed under owner-scoped RLS to isolated FaraiOS staging. No live/restore project was connected.
+
+| Shalean service | Catalogue version | Minimum minutes | Block minutes |
+|---|---|---:|---:|
+| Regular | 7 → 8 | 210 | 30 |
+| Airbnb | 4 → 5 | 210 | 30 |
+| Deep | 4 → 5 | 300 | 30 |
+| Moving | 4 → 5 | 300 | 30 |
+| Office | 4 → 5 | 210 | 30 |
+| Carpet | 4 → 5 | 120 | 30 |
+
+Office/Carpet assessment is enabled for every booking. Existing option-level assessment flags are preserved, including Regular's current flags. The item mapping above is active in these six configurations; Shalean's planned daily cap is480. The only persisted policy changes were six catalogue updates and one business-settings update (audit192 → 199). Exact comparisons verified all other service/settings fields, including prices, units, extras, fees and team sizes, were preserved.
+
+Hosted rollback-only tests against the **activated current configurations** passed booking and quote calculation for all six services, Regular's mixed room/extra270-minute example, and missing-assessment rejection for Office/Carpet. The transaction left no extra quotes or calculation fixtures.
+
+Native browser acceptance used a separate synthetic staging customer and two210-minute Airbnb visits on1March2030. A150-minute configured estimate saved at the210-minute floor. Assignment with blank setup/travel was rejected. With15minutes setup and15minutes travel, the first visit reserved240minutes per cleaner. A second visit with15+16minutes was rejected at a combined481minutes;15+15was accepted at exactly480. Calendar preview independently showed Daily limit reached at211candidate visit minutes and No conflict found at210. No foreign booking/customer details appeared in workload errors. The second draft was seeded through owner-scoped SQL; its confirmation/assignment/rejection/correction used the browser. This distinguishes browser coverage from hosted SQL coverage.
+
+The booking detail and work-plan fields were visually inspected at desktop size and390×844phone emulation, with no horizontal document overflow (mobile client/scroll widths375/375). This is not physical-handset acceptance or a complete end-to-end financial/payroll test.
+
+Cleanup used normal cancellation and customer archiving. QA bookings7073cc99-503f-441b-8028-ee238385048b anddbb260b0-da9c-4a93-8546-59c1fd042443 are both cancelled, version4, with no remaining reservations; the synthetic customer is inactive, version2. Fresh verification found14total bookings (original12 plus two cancelled QA records),50catalogue entries and210audit events. Full digests of the original12bookings, all quotes, recurring schedules, earnings drafts, other-business catalogue and other-business settings match their pre-activation values. No invoices, payments, earnings accrual or payouts were created by these checks. The private per-cleaner lock revision row is retained as designed; it is not a live reservation.
+
+Remaining T04 work includes actual earnings percentages/fixed amounts, financial covered-duration terms, eligible basis, allocation/rounding, applicable pay/rest safeguards and configured financial previews. Bokkie policy remains separate and T19 remains on Zoho hold.
