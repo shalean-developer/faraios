@@ -22,13 +22,13 @@ The existing Zoho adapter assumes no tax. VAT-enabled invoice drafts therefore c
 
 ## Release and rollback
 
-This is an isolated candidate branch. Apply `supabase/migrations/20261021223123_business_vat_settings.sql` to the approved staging project only **before** starting the new code; it depends on the invoices, earnings and duration schema. Stop the app during the schema/code transition. Do not apply it to the restore rehearsal or live Shalean. No production deployment or remote database migration is performed by this work package.
+This is an isolated candidate branch. Apply `supabase/migrations/20261021223123_business_vat_settings.sql` to the approved staging project only **before** starting the new code; it depends on the invoices, earnings and duration schema. Stop the app during the schema/code transition. Do not apply it to the restore rehearsal or live Shalean. No production deployment is performed. The source migration was applied to the approved staging project on 22 October 2026; see [staging evidence](business-vat-staging.md) for the recorded remote version, safeguards and remaining browser checks.
 
 Verify off for Shalean in staging. Use synthetic businesses to test on/off, inclusive calculations, manager/staff/foreign denial, audit, stale saves and saved documents. Never enable Shalean VAT with a fabricated number. Record owner browser acceptance before release. A code rollback should keep the additive table/column and snapshots; do not drop financial history. Investigate VAT-enabled agreements before using an older application that cannot display their tax details. Use a forward fix for persisted errors.
 
 ## Validation
 
-`node --test test/vat.test.js test/staging-server.test.js` covers HTTP membership/origin checks, real PostgreSQL RLS/function grants through PGlite, settings versions, audit attribution, default off, legacy preservation, tax rounding through maximum integer prices, immutable quote→booking→recurring→invoice snapshots and a zero-network VAT accounting hold. Existing suites cover the remaining module behaviours. Browser acceptance and staging schema/advisors remain separate, unrun release checks.
+`node --test test/vat.test.js test/staging-server.test.js` covers HTTP membership/origin checks, real PostgreSQL RLS/function grants through PGlite, settings versions, audit attribution, default off, legacy preservation, tax rounding through maximum integer prices, immutable quote→booking→recurring→invoice snapshots and a zero-network VAT accounting hold. Existing suites cover the remaining module behaviours. Staging schema/advisors and rollback-only backend acceptance passed. Browser acceptance on the local candidate code remains unrun; see [staging evidence](business-vat-staging.md).
 
 T04 remains In progress. Financial workflows remain inactive.
 
