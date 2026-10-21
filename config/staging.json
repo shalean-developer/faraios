@@ -2,5 +2,6 @@
   "environment": "staging",
   "projectRef": "xdmfyrsauvqznkloroxg",
   "url": "https://xdmfyrsauvqznkloroxg.supabase.co",
-  "publishableKey": "sb_publishable_DKtFa_piIBi4MppsyoyuUg_KuoqzlOU"
+  "publishableKey": "sb_publishable_DKtFa_piIBi4MppsyoyuUg_KuoqzlOU",
+  "earningsTemplateBusinessId": "612be091-b1d7-4911-9c3b-143446a9fe27"
 }

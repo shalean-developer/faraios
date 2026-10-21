@@ -18,4 +18,5 @@ if(workerKey&&credentialsPath){
  accountingWorker=createClient(config.url,workerKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
  accountingAdapter=createZohoBooks({credentials:alias=>entries[alias]});
 }
-createStagingServer({createClient:factory,accountingWorker,accountingAdapter}).listen(3101,'127.0.0.1',()=>console.log('FaraiOS staging login: http://127.0.0.1:3101/login'));
+const earningsTemplate=JSON.parse(await readFile(new URL('./config/shalean-approved-earnings.json',import.meta.url),'utf8'));
+createStagingServer({createClient:factory,accountingWorker,accountingAdapter,earningsTemplates:{[config.earningsTemplateBusinessId]:earningsTemplate}}).listen(3101,'127.0.0.1',()=>console.log('FaraiOS staging login: http://127.0.0.1:3101/login'));
