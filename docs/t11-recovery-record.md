@@ -82,9 +82,9 @@ Current documentation/control-plane limits are explicit. Any future activation o
 
 | Measure | Recorded result |
 | --- | --- |
-| Capture completion | `2026-10-20T18:16:09.453Z` (archive completion after frozen per-dump transactions and matching before/after metadata) |
+| Logical capture/manifest completion | `2026-10-20T18:16:09.453Z` (after frozen per-dump transactions and matching before/after metadata; before encryption, archive write and local reread verification) |
 | Owner helper elapsed | `162107ms` = **2m42.107s**; begins after archive decryption/validation, includes client preparation, destination checks, import/checks, sequence completion and client cleanup |
-| Capture age at owner-browser cutoff | `11h13m48.547s` at `2026-10-21T05:29:58Z` |
+| Logical capture age at owner-browser cutoff | `11h13m48.547s` at `2026-10-21T05:29:58Z`, measured from that logical capture/manifest timestamp |
 | Full application recovery time | **NOT_MEASURED**. The helper excludes capture/upload/download, key retrieval/decryption, manual failures, app startup and acceptance. Do not manufacture a full RTO by subtracting unrelated milestones. |
 | Promised RPO/RTO | **NOT AGREED**. Capture age and helper duration are observations, not a recovery guarantee. Before production, agree targets and run a timed full recovery exercise against those targets. |
 
