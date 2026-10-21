@@ -2,7 +2,7 @@
 
 ## Current outcome — 21 October 2026
 
-The actual isolated restore is now **COMMITTED** with data/catalog/sequence checks passed. Direct database RLS/audit acceptance, owner-host Node24 shared-staff40/40 and manager35/35 checks (both cleanup PASSED), and direct owner-browser module/logout checks are complete within their recorded scope. The current evidence, configuration coverage, measurements and operating handover are in [T11 recovery record](t11-recovery-record.md). **T11 remains In progress** until protected offline key custody and independent/owner final acceptance pass. No recurring backup/deletion or production readiness is claimed.
+The actual isolated restore is now **COMMITTED** with data/catalog/sequence checks passed. Direct database RLS/audit acceptance, owner-host Node24 shared-staff40/40 and manager35/35 checks (both cleanup PASSED), and direct owner-browser module/logout checks are complete within their recorded scope. The later owner-operated encrypted USB key recovery returned a comparison match and `OFFLINE_KEY_VERIFIED_AND_SECURED`; physical custody is owner attestation. Current evidence, configuration coverage, measurements and operating handover are in [T11 recovery record](t11-recovery-record.md) version 2. Final independent opinion and subsequent scoped owner acceptance are recorded separately in the published PR/live tracker; **T11 may be marked Done only after those decisions**. No recurring backup/deletion or production readiness is claimed.
 
 The sections below retain the historical preparation/failure/recovery checkpoints. Their past “not run”, “no cleanup yet” and controlled-retry statements do not describe the current destination and are not instructions to import again.
 
