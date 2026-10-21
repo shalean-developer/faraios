@@ -119,4 +119,21 @@ test('independent connections prevent shared-cleaner overlaps and duplicate recu
   const [claimed,retried]=await Promise.all([claimWinner.closed,claimRetry.closed]);assert.equal(claimed.code,0,claimed.stderr);assert.notEqual(retried.code,0);assert.match(retried.stderr,/40001/);assert.equal(sql(`select version from public.business_invoices where id='${savedInvoice}'`),'2');
  }finally{for(const c of [claimWinner,claimRetry].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
 
+ // T04: a daily cap must also serialize non-overlapping jobs across businesses.
+ sql(await readFile(new URL('../supabase/migrations/20261021152058_t04_duration_workload.sql',import.meta.url),'utf8'));
+ sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);update public.business_settings set max_daily_minutes=480 where business_id='${a}';`);
+ for(const [index,isolation]of ['read committed','repeatable read'].entries()){
+  const firstId=id(500+index*2),secondId=id(501+index*2),day=`2030-01-${String(10+index).padStart(2,'0')}`;
+  for(const [biz,n,bid,time]of [[a,10,firstId,'08:00'],[b,20,secondId,'13:00']])sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);insert into public.one_off_bookings(id,business_id,request_key,customer_id,address_id,local_start,duration_minutes,selection) values('${bid}','${biz}',gen_random_uuid(),'${id(n+100)}','${id(n+101)}','${day} ${time}',300,'[{"catalogue_id":"${id(n+102)}","quantity":1}]');update public.one_off_bookings set status='confirmed' where id='${bid}';`);
+  const winner=connect('t04_daily_winner');let contender;
+  try{
+   winner.child.stdin.write(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);update public.one_off_bookings set status='assigned',assigned_staff=array['${staff}'::uuid],setup_minutes=0,travel_minutes=0,change_reason='Daily winner' where id='${firstId}';select 'DAILY_HELD';\n`);
+   for(let i=0;i<100&&!winner.output().includes('DAILY_HELD');i++)await pause(25);assert.match(winner.output(),/DAILY_HELD/);
+   contender=connect('t04_daily_contender');contender.child.stdin.end(`begin isolation level ${isolation};set local lock_timeout='10s';set local role authenticated;select set_config('request.jwt.claim.sub','${manager}',true);update public.one_off_bookings set status='assigned',assigned_staff=array['${staff}'::uuid],setup_minutes=0,travel_minutes=0,change_reason='Daily contender' where id='${secondId}';commit;`);
+   let blocked=false;for(let i=0;i<50&&!blocked;i++){blocked=sql("select count(*) from pg_stat_activity where application_name='t04_daily_contender' and wait_event_type='Lock'")==='1';if(!blocked)await pause(25);}assert.equal(blocked,true,`${isolation} daily sum must wait on the cleaner row`);
+   winner.child.stdin.end('commit;\n');const [won,lost]=await Promise.all([winner.closed,contender.closed]);assert.equal(won.code,0,won.stderr);assert.notEqual(lost.code,0);assert.match(lost.stderr,isolation==='repeatable read'?/40001/:/23514/);assert.doesNotMatch(lost.stderr,/Secret|conflicting key|Key \(/);
+   assert.equal(sql(`select status from public.one_off_bookings where id='${secondId}'`),'confirmed');assert.equal(sql(`select count(*) from audit.cleaner_reservations where booking_id in ('${firstId}','${secondId}')`),'1');
+  }finally{for(const c of [winner,contender].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+ }
+
 });
