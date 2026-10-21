@@ -16,7 +16,7 @@ Every configuration belongs to one business and has a version. Bookings retain a
 
 Money uses nonnegative integer cents; percentages use integer basis points (3500 = 35%). Current price helper accepts positive whole quantities only. Fractional hours, multiple currencies and advanced pricing need explicit additional contracts before use. Zero prices are accepted structurally; zero-price eligibility and settlement need separate tests in the finance module.
 
-The helper supports synthetic base-price tests only. It does not calculate earnings, taxes or final customer totals, enforce policy validity in a database, process payments, settle payouts or provide an authenticated endpoint. Do not expose it as a production quote engine.
+The original helper supports synthetic base-price tests only. It does not itself calculate earnings, taxes or final customer totals, enforce policy validity in a database, process payments, settle payouts or provide an authenticated endpoint. Do not expose it as a production quote engine.
 
 ## Required scenarios before T04 closes
 
@@ -56,3 +56,9 @@ These [T17 operational rules](recurring-bookings.md) establish no subscription b
 | Additional commercial options | State whether partial hours, taxes, discounts, special recurring rates or exceptions are required next, with a versioned expected-output example. |
 
 T04 closes after the remaining business-specific decisions, expected outputs and versions are approved and traced to acceptance. Consolidation of established tariff/recurrence/cadence decisions is complete; no new financial policy is selected here.
+
+## 21 October earnings-method implementation
+
+Owner approved the six-service Shalean mapping and prospective R300 percentage cap with “Good lets implement them”. Standard/Regular and Airbnb use a capped percentage pool; Deep, Moving, assessed Office and Carpet use fixed per-cleaner amounts. Percentage and fixed rates, covered hours and the other financial choices remain unspecified. The 70% example is not a selected rate.
+
+The separate [earnings rules increment](earnings-rules.md) adds owner-controlled service setup, manager read/preview access, draft-safe validation, per-cleaner caps, explicit team/rounding choices, versioned audit and new-agreement-only calculation previews. This prepares T04 decisions; it does not persist accepted booking earnings or deliver T22/T23 accrual and payouts. Existing agreement imports and recurring financial snapshots remain future acceptance work. T04 is In progress.

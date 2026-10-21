@@ -1,0 +1,13 @@
+{
+  "approved_on": "2026-10-21",
+  "authority": "Owner: Good lets implement them. Percentage and fixed amounts remain unspecified; 70% was illustrative.",
+  "currency": "ZAR",
+  "services": {
+    "regular": {"model":"percentage_pool","cap_cents":30000},
+    "airbnb": {"model":"percentage_pool","cap_cents":30000},
+    "deep": {"model":"fixed_per_worker"},
+    "moving": {"model":"fixed_per_worker"},
+    "office": {"model":"fixed_per_worker"},
+    "carpet": {"model":"fixed_per_worker"}
+  }
+}

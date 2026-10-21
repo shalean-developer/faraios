@@ -545,3 +545,9 @@ input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px sol
 @media(max-width:700px){.invoice-metrics{grid-template-columns:minmax(0,1fr);gap:0}.invoice-metrics>.panel{margin-top:12px}.invoice-list .record-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.invoice-list .record-primary{grid-column:1/-1}.invoice-list .record-amount{text-align:right}.invoice-list .row-action{grid-column:1/-1}}
 
 .invoice-workspace .feedback-error{color:#8b2f2f}
+
+/* Earnings configuration uses the shared workspace and form components. */
+.earnings-method{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin:16px 0 24px}.earnings-method .form-field{min-width:220px;flex:1}.earnings-method button{margin-bottom:0}
+.earnings-service-head,.earnings-service-row{display:grid;grid-template-columns:minmax(160px,1.2fr) minmax(160px,1fr) minmax(140px,1fr) auto;gap:18px;align-items:center;padding:16px 0;border-bottom:1px solid var(--line,#e5e7eb)}
+.earnings-service-head{font-size:13px;color:#64748b;font-weight:600}.earnings-service-row h2{font-size:16px;margin:0}.earnings-service-row:last-child{border-bottom:0}.earnings-preview{padding:16px;border:1px solid #d8e2ed;border-radius:10px;margin-top:20px;background:#f8fafc}.earnings-preview p{margin:8px 0}
+@media(max-width:700px){.earnings-service-head{display:none}.earnings-service-row{grid-template-columns:1fr auto;gap:8px 14px}.earnings-service-row h2{grid-column:1/-1}.earnings-service-row>span{grid-column:1}.earnings-service-row>a{grid-column:2;grid-row:2/4;align-self:center}.earnings-method{display:block}.earnings-method button{margin-top:12px}}
