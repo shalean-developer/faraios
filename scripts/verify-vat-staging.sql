@@ -10,6 +10,7 @@ begin
  if to_regclass('public.business_vat_settings') is null then raise exception 'Apply the reviewed VAT migration first';end if;
  if (select count(*) from public.businesses)<>2 or not exists(select 1 from public.businesses where id='612be091-b1d7-4911-9c3b-143446a9fe27') or not exists(select 1 from public.businesses where id='0cc3f518-d64e-40c2-8817-bc14d1ef1420') then raise exception 'Unexpected staging business scope';end if;
  if exists(select 1 from public.business_accounting_connections where enabled) or exists(select 1 from public.business_vat_settings where enabled) then raise exception 'Expected inactive accounting and VAT';end if;
+ perform set_config('faraios.vat.qa.original_policies',coalesce((select jsonb_agg(to_jsonb(v) order by business_id) from public.business_vat_settings v),'[]'::jsonb)::text,true);
  select array_agg(distinct user_id) into owners from public.business_memberships where role='owner' and status='active';
  select array_agg(distinct m.user_id) into managers from public.business_memberships m join auth.users u on u.id=m.user_id where m.role='manager' and m.status='active' and u.email like '%.test';
  select array_agg(distinct m.user_id) into staff from public.business_memberships m join auth.users u on u.id=m.user_id where m.role='staff' and m.status='active' and u.email like '%.test';
@@ -103,7 +104,7 @@ declare a uuid:=current_setting('faraios.vat.qa.a')::uuid;checks jsonb:=current_
 begin
  if (select count(*) from audit.events where entity_table='business_vat_settings' and business_id=a)<>3 or exists(select 1 from audit.events where entity_table='business_vat_settings' and business_id=a and actor_user_id is distinct from current_setting('faraios.vat.qa.owner')::uuid) then raise exception 'VAT audit actor or row count incorrect';end if;
  begin update public.business_invoices set sync_status='syncing' where id=current_setting('faraios.vat.qa.invoice')::uuid;exception when raise_exception then if sqlerrm like 'VAT accounting sync%' then denied:=true;else raise;end if;end;if not denied then raise exception 'VAT accounting sync not held';end if;
- if exists(select 1 from public.business_vat_settings where business_id in ('612be091-b1d7-4911-9c3b-143446a9fe27','0cc3f518-d64e-40c2-8817-bc14d1ef1420')) then raise exception 'Original business policy changed';end if;
+ if coalesce((select jsonb_agg(to_jsonb(v) order by business_id) from public.business_vat_settings v where business_id in ('612be091-b1d7-4911-9c3b-143446a9fe27','0cc3f518-d64e-40c2-8817-bc14d1ef1420')),'[]'::jsonb) is distinct from current_setting('faraios.vat.qa.original_policies')::jsonb then raise exception 'Original business policy changed';end if;
  checks:=checks||'["AUDIT_ATTRIBUTION","VAT_ACCOUNTING_HELD","ORIGINAL_BUSINESSES_UNCHANGED"]'::jsonb;perform set_config('faraios.vat.qa.checks',checks::text,true);
 end;$audit_and_hold$;
 set local role anon;
