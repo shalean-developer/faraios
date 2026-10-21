@@ -17,7 +17,8 @@
     "backup:staging": "node scripts/backup-staging.mjs",
     "restore:test": "node scripts/restore-staging.mjs",
     "diagnose:restore": "node scripts/restore-staging.mjs --diagnose-catalog",
-    "restore:app": "node restore-rehearsal.mjs"
+    "restore:app": "node restore-rehearsal.mjs",
+    "restore:clear-staff-qa": "node scripts/clear-restore-staff-sessions.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.10"
