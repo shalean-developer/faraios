@@ -1,0 +1,73 @@
+{
+  "approved_on": "2026-10-21",
+  "authority": "Owner approved all six minimum total durations and 8h daily maximum, then instructed item-time definition, implementation and tests.",
+  "max_daily_minutes": 480,
+  "duration_step_minutes": 30,
+  "minimum_minutes": {
+    "regular": 210,
+    "airbnb": 210,
+    "deep": 300,
+    "moving": 300,
+    "office": 210,
+    "carpet": 120
+  },
+  "scope_minutes": {
+    "regular": {
+      "bedrooms": 30,
+      "bathrooms": 30,
+      "extra_rooms": 30
+    },
+    "airbnb": {
+      "bedrooms": 30,
+      "bathrooms": 30,
+      "extra_rooms": 30,
+      "linen_change_yes": 30
+    },
+    "deep": {
+      "bedrooms": 60,
+      "bathrooms": 60,
+      "extra_rooms": 60
+    },
+    "moving": {
+      "bedrooms": 60,
+      "bathrooms": 60,
+      "extra_rooms": 60
+    },
+    "carpet": {
+      "carpet_rooms": 30,
+      "rugs": 30
+    }
+  },
+  "always_assessed": [
+    "office",
+    "carpet"
+  ],
+  "extra_minutes_by_name": {
+    "Inside Oven": 30,
+    "Laundry": 30,
+    "Post-clean Photos": 30,
+    "Water plants": 30,
+    "Welcome Setup": 30,
+    "Interior Windows": 30,
+    "Carpet cleaning": 60,
+    "Ceiling cleaning": 30,
+    "Mattress": 60,
+    "Balcony cleaning": 30,
+    "Cupboards": 30,
+    "Garage": 60,
+    "Outside windows": 60,
+    "Stain treatment": 30,
+    "Walls": 60,
+    "Kitchen": 30,
+    "Sanitisation": 30,
+    "Inside Fridge": 60,
+    "Ironing": 60
+  },
+  "notes": [
+    "Minimum is applied after base + scope + extras, not before every room.",
+    "Unchanged zero-time descriptive answers and pets stay zero.",
+    "No price, fee, team count, existing agreement or earnings-rate change is authorised here.",
+    "Daily maximum sums the full booked duration and explicit setup/work-travel minutes for every assigned cleaner; team size does not divide duration.",
+    "Break/rest, personal availability and actual working/payroll hours are separate from this planned-capacity guard."
+  ]
+}

@@ -62,3 +62,7 @@ T04 closes after the remaining business-specific decisions, expected outputs and
 Owner approved the six-service Shalean mapping and prospective R300 percentage cap with “Good lets implement them”. Standard/Regular and Airbnb use a capped percentage pool; Deep, Moving, assessed Office and Carpet use fixed per-cleaner amounts. Percentage and fixed rates, covered hours and the other financial choices remain unspecified. The 70% example is not a selected rate.
 
 The separate [earnings rules increment](earnings-rules.md) adds owner-controlled service setup, manager read/preview access, draft-safe validation, per-cleaner caps, explicit team/rounding choices, versioned audit and new-agreement-only calculation previews. This prepares T04 decisions; it does not persist accepted booking earnings or deliver T22/T23 accrual and payouts. Existing agreement imports and recurring financial snapshots remain future acceptance work. T04 is In progress.
+
+## Approved duration and daily workload extension
+
+On 21 October the owner approved minimum total durations for all six Shalean services, an eight-hour daily maximum per cleaner, then requested item mapping and implementation/tests. [Duration and workload](cleaning-duration-and-workload.md) records the half-hour item mapping, business-scoped settings, protected agreement snapshots and cross-business assignment enforcement. Financial rates and other T04 choices remain open. Application delivery, schema delivery, policy activation and browser acceptance are separate evidence states.
