@@ -1,8 +1,14 @@
 # T11 — Audit history and recovery
 
-Updated 20 October 2026. Scope: FaraiOS staging only (`xdmfyrsauvqznkloroxg`). Existing Shalean/Bokkie systems are unchanged.
+Updated 21 October 2026. Scope: FaraiOS staging and the approved isolated restore (`xdmfyrsauvqznkloroxg` → `zrlojsvkqipuwkkyfrkn`). Existing Shalean/Bokkie systems are unchanged.
 
-## Current capture/retrieval checkpoint — 20 October 2026
+## Current recovery outcome — 21 October 2026
+
+Actual isolated restore/data/catalog/sequences and direct foundation RLS/audit checks passed. Final Node24 shared-staff40/40 and manager35/35 reports both passed with cleanup PASSED; owner browser acceptance covered both dashboards,18module/settings views and logout/protected-route redirects. [The current recovery record](t11-recovery-record.md) consolidates exact bindings, evidence provenance, configuration coverage, measured helper time and unmeasured full application recovery time. Protected offline key custody and independent/owner final acceptance remain open; T11 stays In progress. The approved operation remains a one-off rehearsal with the verified archive/key on retention hold, not an enabled recurring backup service. No new import or role-test repetition is required.
+
+Earlier sections below are dated history. Their “not run” or proposed-retry wording is superseded by the current outcome and must not be used to rerun the import into the now-used destination.
+
+## Historical capture/retrieval checkpoint — 20 October 2026
 
 Local logical capture and authenticated reread passed. The encrypted archive/checksum were uploaded to the approved private Drive folder and independently retrieved with matching SHA-256. The owner then reported downloaded-file `encryptedBackupVerification: PASSED`. No key was transmitted. The owner clarified **NO_OFFLINE_COPY**, with no removable drive available; offline key custody remains pending. The first restore attempt stopped at a provider-managed parameter grant. After PR85 corrected that compatibility issue, the second stopped at the unchanged catalog guard. Read-only checks after each confirmed the original empty destination catalog. The second correction handles existing per-schema creation defaults transactionally so native object ACL replay cannot retain excess grants; full default/object ACL checks remain mandatory. No full restore has committed. See [the isolated restore work package](isolated-restore.md) for evidence, current bindings, two-phase sequence treatment, isolation prerequisites, private execution and remaining acceptance. T11 remains In progress; T04/T19 decisions are unchanged.
 

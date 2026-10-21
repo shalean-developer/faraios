@@ -1,12 +1,18 @@
 # T11 — Isolated restore preparation
 
+## Current outcome — 21 October 2026
+
+The actual isolated restore is now **COMMITTED** with data/catalog/sequence checks passed. Direct database RLS/audit acceptance, owner-host Node24 shared-staff40/40 and manager35/35 checks (both cleanup PASSED), and direct owner-browser module/logout checks are complete within their recorded scope. The current evidence, configuration coverage, measurements and operating handover are in [T11 recovery record](t11-recovery-record.md). **T11 remains In progress** until protected offline key custody and independent/owner final acceptance pass. No recurring backup/deletion or production readiness is claimed.
+
+The sections below retain the historical preparation/failure/recovery checkpoints. Their past “not run”, “no cleanup yet” and controlled-retry statements do not describe the current destination and are not instructions to import again.
+
 20 October 2026. One-off FaraiOS recovery exercise only. Source `xdmfyrsauvqznkloroxg`; destination `faraios-restore-test` / `zrlojsvkqipuwkkyfrkn`, approved organization `lypbvtudsbxxdcnzbqwc`. Existing Shalean/Bokkie systems and the source staging launcher remain unchanged. T04 finance decisions and T19 accounting hold remain open.
 
 ## Completed capture checkpoint
 
 The owner completed logical capture `6d6642b010653cc4a83adc3a56b40734`. Encrypted local verification and helper cleanup passed. The encrypted archive and checksum were uploaded to the approved private Drive folder; independent encrypted retrieval matched SHA-256 `53672bbedb8de3d6faa5b1e7830558d6dd5b84bfb1d9d40335e2d433725e18f6`. The owner subsequently reported `encryptedBackupVerification: PASSED` for the downloaded-file handoff. The key was never transmitted to the agent or Drive. **No offline key copy exists**; the owner has no removable drive available. That acceptance item stays pending.
 
-No actual restore has committed, and restored sign-in/access acceptance has not run. The current encrypted archive is a logical database capture, not all provider configuration or Storage bytes. Source inventory had zero Storage objects, Vault secrets, Edge Functions, column-encryption extensions, custom managed-schema triggers/policies or custom PostgreSQL login roles. These are scoped observations, not universal guarantees.
+At the original 20 October preparation checkpoint no restore had committed and app acceptance had not run; the current outcome above supersedes that state. The encrypted archive is a logical database capture, not all provider configuration or Storage bytes. Source inventory had zero Storage objects, Vault secrets, Edge Functions, column-encryption extensions, custom managed-schema triggers/policies or custom PostgreSQL login roles. These are scoped observations, not universal guarantees.
 
 ## Fixed bindings and provenance
 
@@ -109,6 +115,6 @@ Primary reference: [Supabase sign-out scopes and JWT expiry](https://supabase.co
 
 ## Gate
 
-Preparation is not complete recovery. Keep T11 In progress with completion dates blank until actual isolated restore, provider/configuration coverage, fresh sign-in/module/RBAC/audit checks, offline key custody, measurements and independent acceptance are evidenced. No schedule, retention deletion or production activation is added here.
+Preparation is not complete recovery. Actual restore and the recorded database/app checks have since passed; see the current recovery record for configuration coverage and measurement limits. Keep T11 In progress with completion dates blank until protected offline key custody and independent/owner acceptance are evidenced. Broader provider activation, ongoing backup policy and production recovery remain separate held work; no schedule, retention deletion or production activation is added here. The currently used destination must not be reimported.
 
 Primary references: [PostgreSQL17 global parameter grants in pg_dumpall](https://www.postgresql.org/docs/17/app-pg-dumpall.html), [Supabase CLI logical restore](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore), [PostgreSQL17 sequence state](https://www.postgresql.org/docs/17/functions-sequence.html), [ALTER SEQUENCE ownership/transactionality](https://www.postgresql.org/docs/17/sql-altersequence.html). Current provider changelog and PostgreSQL 17.11/extension changes reviewed20Oct2026.
