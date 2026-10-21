@@ -13,3 +13,5 @@ Recovery limitation: the existing v1 snapshot rehearsal covers the identity foun
 T12 remains In progress until catalogue, prices and extras are implemented and two-business browser acceptance passes.
 
 Live staging validation: owner wrote distinct temporary records for Bokkie and Shalean; both audit entries had the owner subject; manager reads returned no settings and attempted writes were denied. Transaction rolled back. Security advisor retained only the previously recorded bootstrap-audit INFO and disabled leaked-password-protection warning.
+
+VAT configuration is a separate owner-only, versioned control. See [Business VAT setting](business-vat.md) for customer-total pricing, immutable document snapshots, migration order and the VAT accounting hold.

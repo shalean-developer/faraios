@@ -1,3 +1,4 @@
+import {readVatSettings,saveVatSettings} from './vat.js';
 import {parseEarningsRule,parseRand,listEarningsRules,saveEarningsRule,previewEarnings,renderEarningsRules,templateRule} from './earnings.js';
 import {listInvoices,readInvoice,bookingInvoice,accountingConnection,invoiceTotals,prepareInvoice,saveAccountingConnection,syncInvoice,renderInvoices} from './invoices.js';
 import {listQuotes,readQuote,quoteHandoff,quoteAcceptanceActor,createQuote,changeQuote,convertQuote,renderQuotes} from './quotes.js';
@@ -265,9 +266,18 @@ export function createStagingServer({createClient,accountingWorker=null,accounti
             const data=new URLSearchParams(body);let settings;
             try{settings=parseBusinessSettings(data);}catch(error){
               const values=Object.fromEntries(data);values.working_days=data.getAll('working_days').map(Number);
-              return send(422,html('Business settings',renderBusinessSettings(business,values,error.message,true)));
+              return send(422,html('Business settings',renderBusinessSettings(business,values,error.message,true,await readVatSettings(client,businessId))));
             }
             await saveBusinessSettings(client,businessId,settings);return redirect('/settings?business='+encodeURIComponent(businessId)+'&saved=1');
+          });
+        }
+        if(url.pathname==='/vat-settings'){
+          if(!await readIdentity(id)){clear();return redirect('/login');}
+          return await auth.withOwner(id,url.searchParams.get('business'),async(client,business)=>{
+            headerBusiness=business;
+            try{await saveVatSettings(client,business.id,new URLSearchParams(body));}
+            catch(error){if(error.message==='Settings access denied')throw error;return send(error.status??422,html('Business settings',renderBusinessSettings(business,await readBusinessSettings(client,business.id),error.message,true,await readVatSettings(client,business.id))));}
+            return redirect('/settings?business='+encodeURIComponent(business.id)+'&vat_saved=1');
           });
         }
         if(url.pathname==='/logout'){clear();try{await auth.logout(id);}catch{return send(502,loginForm('Local session cleared. Remote sign-out could not be confirmed.'));}return redirect('/login');}
@@ -333,7 +343,7 @@ export function createStagingServer({createClient,accountingWorker=null,accounti
       }
       if(url.pathname==='/settings'){
         if(!await readIdentity(id)){clear();return redirect('/login');}
-        return await auth.withOwner(id,url.searchParams.get('business'),async(client,business)=>{headerBusiness=business;return send(200,html('Business settings',renderBusinessSettings(business,await readBusinessSettings(client,business.id),url.searchParams.get('saved')==='1'?'Settings saved.':'')));});
+        return await auth.withOwner(id,url.searchParams.get('business'),async(client,business)=>{headerBusiness=business;return send(200,html('Business settings',renderBusinessSettings(business,await readBusinessSettings(client,business.id),url.searchParams.get('vat_saved')==='1'?'VAT setting saved.':url.searchParams.get('saved')==='1'?'Settings saved.':'',false,await readVatSettings(client,business.id))));});
       }
       if(url.pathname!=='/dashboard')return send(404,'Not found','text/plain');
       const identity=await readIdentity(id);if(!identity){clear();return redirect('/login');}

@@ -47,6 +47,7 @@ export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>
  return {async sync(claim){
   const {invoice,connection,mode}=claim;let posted=false;
   try{
+   if(invoice.snapshot.tax_snapshot?.enabled)throw new AccountingError('vat_not_supported');
    const call=await context(connection);
    const contact=(await call('/contacts/'+invoice.external_customer_id)).contact;
    // This is an explicit customer binding, never an email/name-only auto-link.
