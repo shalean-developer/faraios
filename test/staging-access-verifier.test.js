@@ -198,6 +198,33 @@ test('ambiguous login outcomes report unconfirmed cleanup rather than inventing 
  }});assert.equal(r.cleanup,'UNCONFIRMED');assert.equal(r.passed,false);
 });
 
+test('restore sign-in has a separate bounded deadline while module reads and cleanup keep their original deadlines',async()=>{
+ const f=fixture('manager');let signInSignal;
+ const report=await verifyStagingAccess(options('manager'),password,{timeoutMs:25,loginTimeoutMs:200,fetchImpl:async(url,init)=>{
+  if(new URL(url).pathname==='/login'&&init.method==='POST'){
+   signInSignal=init.signal;await new Promise(resolve=>setTimeout(resolve,60));assert.equal(init.signal.aborted,false);
+  }
+  if(new URL(url).pathname==='/logout'){assert.notEqual(init.signal,signInSignal);assert.equal(init.signal.aborted,false);}
+  return f.transport(url,init);
+ }});
+ assert.equal(report.passed,true);assert.equal(report.cleanup,'PASSED');
+ let calls=0;
+ for(const loginTimeoutMs of [0,30_001,Infinity,NaN,1.5])await assert.rejects(verifyStagingAccess(options('manager'),password,{loginTimeoutMs,fetchImpl:async()=>{calls++;}}),/INVALID_TIMEOUT/);
+ assert.equal(calls,0);
+});
+
+test('lost login response retains its own actual deadline and unconfirmed cleanup',async()=>{
+ const f=fixture('staff');
+ const report=await verifyStagingAccess(options('staff'),password,{timeoutMs:10,loginTimeoutMs:30,fetchImpl:async(url,init)=>{
+  if(init.method==='POST')return new Promise((resolve,reject)=>{
+   const timer=setTimeout(()=>resolve(new Response('late')),500);
+   init.signal.addEventListener('abort',()=>{clearTimeout(timer);reject(init.signal.reason);},{once:true});
+  });
+  return f.transport(url,init);
+ }});
+ assert.equal(report.failure,'REQUEST_TIMEOUT');assert.equal(report.requestFailure.check,'SIGN_IN');assert.equal(report.requestFailure.timeoutMs,30);assert.equal(report.cleanup,'UNCONFIRMED');assert.equal(report.passed,false);
+});
+
 test('invalid options cannot send credentials to a configurable origin or accept secrets in arguments',async()=>{
  for(const input of [[...args('manager'),'--origin=https://example.com'],[...args('manager'),'--password=private'],args('manager').map(v=>v.replace('--role=manager','--role=owner')),args('manager').map(v=>v.replace(foreign,business)),args('manager').map(v=>v.replace('@faraios.test','@example.com'))])assert.throws(()=>accessOptions(input),/INVALID_OPTIONS/);
  let calls=0;await assert.rejects(verifyStagingAccess({...options('manager'),origin:'https://example.com'},password,{fetchImpl:async()=>{calls++;}}),/INVALID_OPTIONS/);assert.equal(calls,0);

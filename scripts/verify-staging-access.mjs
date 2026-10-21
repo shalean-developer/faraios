@@ -37,20 +37,22 @@ async function boundedText(response){
  return Buffer.concat(chunks).toString('utf8');
 }
 
-export async function verifyStagingAccess(options,password,{fetchImpl=fetch,signal,timeoutMs=10_000,restoreTest=false}={}){
+export async function verifyStagingAccess(options,password,{fetchImpl=fetch,signal,timeoutMs=10_000,restoreTest=false,loginTimeoutMs=restoreTest?30_000:timeoutMs}={}){
  // Validate before issuing any request. CLI arguments must never carry secrets.
  const o=accessOptions(Object.entries(options).map(([key,value])=>`--${key}=${value}`));
  if(typeof password!=='string'||!password.length||password.length>1024)deny('INVALID_PASSWORD');
  if(!Number.isSafeInteger(timeoutMs)||timeoutMs<1||timeoutMs>10_000)deny('INVALID_TIMEOUT');
+  if(!Number.isSafeInteger(loginTimeoutMs)||loginTimeoutMs<1||loginTimeoutMs>30_000)deny('INVALID_TIMEOUT');
  if(typeof restoreTest!=='boolean')deny('INVALID_OPTIONS');
  const targetOrigin=restoreTest?restoreOrigin:stagingOrigin,cookieName=restoreTest?'faraios_restore_test':'faraios_staging';
  const report={...(restoreTest?{environment:'restore-test'}:{}),role:o.role,checks:[],cleanup:'NOT_NEEDED',passed:false};
  let cookie=null,loginInFlight=false;
  const request=async(name,path,{method='GET',body,cleanup=false}={})=>{
-  const started=performance.now(),timeout=AbortSignal.timeout(timeoutMs);
+   const requestTimeoutMs=name==='SIGN_IN'?loginTimeoutMs:timeoutMs;
+   const started=performance.now(),timeout=AbortSignal.timeout(requestTimeoutMs);
   const fail=(error,phase,response)=>{
    const key=cleanup?'cleanupFailure':'requestFailure';
-   report[key]??={check:name,phase,httpStatus:Number.isInteger(response?.status)&&response.status>=100&&response.status<=599?response.status:null,elapsedMs:Math.max(0,Math.round(performance.now()-started)),timeoutMs};
+   report[key]??={check:name,phase,httpStatus:Number.isInteger(response?.status)&&response.status>=100&&response.status<=599?response.status:null,elapsedMs:Math.max(0,Math.round(performance.now()-started)),timeoutMs:requestTimeoutMs};
    deny(!cleanup&&signal?.aborted?'CANCELLED':timeout.aborted?'REQUEST_TIMEOUT':publicFailure(error,'REQUEST_FAILED'));
   };
   let response;
