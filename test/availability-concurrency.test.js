@@ -10,7 +10,8 @@ test('independent connections prevent shared-cleaner overlaps and duplicate recu
  // This test provisions an empty disposable database, never a project database.
  const target=new URL(database);assert.equal(target.hostname,'127.0.0.1');assert.equal(target.pathname,'/faraios_t16_test');
  const args=[database,'-X','-qAt','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'];
- const sql=text=>{const r=spawnSync('psql',args,{input:text,encoding:'utf8',timeout:15000});assert.equal(r.status,0,r.stderr||r.error?.message);return r.stdout.trim();};
+ // psql emits CRLF on Windows; compare database rows independently of host line endings.
+ const sql=text=>{const r=spawnSync('psql',args,{input:text,encoding:'utf8',timeout:15000});assert.equal(r.status,0,r.stderr||r.error?.message);return r.stdout.replace(/\r\n/g,'\n').trim();};
  let setup=`create role anon;create role authenticated;create role service_role;grant usage on schema public to service_role;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated;`;
  for(const file of ['identity-draft.sql','audit-draft.sql','business-settings-draft.sql','catalogue-draft.sql','customers-draft.sql','bookings-draft.sql','bookings-context-hardening-draft.sql','cleaning-profiles-draft.sql','cleaning-assessments-draft.sql','cleaning-assessment-review-hardening-draft.sql','staff-teams-draft.sql','availability-draft.sql','recurring-draft.sql','quotes-draft.sql','quote-acceptance-actor-draft.sql','invoices-draft.sql'])setup+=await readFile(new URL('../database/'+file,import.meta.url),'utf8');
  setup+=`insert into auth.users values('${owner}','owner@test.invalid'),('${manager}','manager@test.invalid'),('${staff}','staff@test.invalid');insert into public.businesses(id,name,industry) values('${a}','A','cleaning'),('${b}','B','cleaning');insert into public.business_memberships(business_id,user_id,role) values('${a}','${owner}','owner'),('${b}','${owner}','owner'),('${b}','${manager}','manager'),('${a}','${staff}','staff'),('${b}','${staff}','staff');set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);`;
@@ -25,7 +26,7 @@ test('independent connections prevent shared-cleaner overlaps and duplicate recu
  const connect=name=>{
   const child=spawn('psql',args,{env:{...process.env,PGAPPNAME:name}});let stdout='',stderr='';
   child.stdout.on('data',chunk=>stdout+=chunk);child.stderr.on('data',chunk=>stderr+=chunk);
-  const closed=new Promise((resolve,reject)=>{child.on('error',reject);child.on('close',code=>resolve({code,stdout,stderr}));});
+  const closed=new Promise((resolve,reject)=>{child.on('error',reject);child.on('close',code=>resolve({code,stdout:stdout.replace(/\r\n/g,'\n'),stderr}));});
   return {child,closed,output:()=>stdout};
  };
  const first=connect('t16_winner');let second;
