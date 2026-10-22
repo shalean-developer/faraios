@@ -12,7 +12,7 @@ export async function monthlyDatabase(fn){const db=new PGlite();try{
  const draft=await readFile(new URL('../database/monthly-settlements-draft.sql',import.meta.url),'utf8');
  const base=await readFile(new URL('../supabase/migrations/20261022113714_t04_synthetic_monthly_settlement_reviews.sql',import.meta.url),'utf8');
  const patch=await readFile(new URL('../supabase/migrations/20261022113930_t04_reviewed_customer_pool_collection.sql',import.meta.url),'utf8');
- await db.exec(base);await db.exec(patch);
+ await db.exec(base);await db.exec(patch);await db.exec(await readFile(new URL('../supabase/migrations/20261022141509_t04_per_line_settlement_allocations.sql',import.meta.url),'utf8'));
  const match=draft.match(/create function audit.append_monthly_settlement[\s\S]*?as \$\$([\s\S]*?)\$\$;/);
  assert.equal((await db.query("select prosrc from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='audit' and proname='append_monthly_settlement'")).rows[0].prosrc,match[1]);
  await db.query('insert into auth.users values($1),($2),($3),($4)',[owner,manager,worker,other]);
@@ -29,7 +29,7 @@ const create={workerId:worker,period:'2026-09',calendarEvidence:'SYNTHETIC revie
 const visit={kind:'visit',amountCents:250000,priorClearedCents:0,originalPeriod:'2026-09',sourceReference:'visit1',bookingId:booking,evidence:'SYNTHETIC completed work terms reviewed'};
 const freeze={reference:'SYNTHETIC freeze',fullPayReviewEvidence:'SYNTHETIC full entitlement review'};
 const approval={reference:'SYNTHETIC approval',paymentDetailsEvidence:'SYNTHETIC verified beneficiary'};
-const recon=(transferId,outcome,clearedCents,remainingFailed=false)=>({transferId,outcome,clearedCents,remainingFailed,clearingEvidence:'SYNTHETIC bank clearing review',allocationEvidence:'SYNTHETIC allocation matched',reference:'SYNTHETIC reconciliation'});
+const recon=(transferId,outcome,clearedCents,remainingFailed=false)=>({transferId,outcome,clearedCents,remainingFailed,allocations:clearedCents?{[id(101)]:clearedCents}:{},clearingEvidence:'SYNTHETIC bank clearing review',allocationEvidence:'SYNTHETIC allocation matched',reference:'SYNTHETIC reconciliation'});
 async function prepared(append){await append(manager,'create',create,0,id(100));await append(manager,'add_line',visit,1,id(101));await append(owner,'freeze',freeze,2,id(102));await append(owner,'approve',approval,3,id(103));}
 test('PAY03 closed month, fifth target, preceding banking day and earlier deadlines',()=>monthlyDatabase(async({append,state,db})=>{
  await assert.rejects(append(manager,'create',{...create,period:'2099-10'},0,id(100)),/Month must be closed/);
@@ -115,4 +115,27 @@ test('PAY03 links only approved correction delta; global claim prevents cross-pe
  await append(manager,'create',{...create,period:'2026-08'},0,id(110),business,id(31));
  await assert.rejects(append(manager,'add_line',correction,1,id(111),business,id(31)),/correction required/);
  assert.equal((await db.query('select original_payload from public.adjustment_review_sources')).rows[0].original_payload.originalCents,250000);
+}));
+
+test('PAY03 partial clearing stays allocated to its line through dispute and resolution',()=>monthlyDatabase(async({append,state})=>{
+ let v=0;const act=async(u,t,p,n)=>{await append(u,t,p,v,id(n));v++;};
+ await act(manager,'create',create,300);
+ for(const n of [301,302])await act(manager,'add_line',{kind:'reimbursement',amountCents:10000,priorClearedCents:0,originalPeriod:'2026-09',sourceReference:'allocation-'+n,evidence:'Synthetic verified reimbursement'},n);
+ await act(owner,'freeze',freeze,303);await act(owner,'approve',approval,304);
+ await act(owner,'submit',{amountCents:20000,reference:'allocation-first'},305);
+ const reconciliation={...recon(id(305),'partial',5000,true),allocations:{[id(301)]:5000}};
+ await assert.rejects(append(owner,'reconcile',{...reconciliation,allocations:{[id(399)]:5000}},v,id(306)),/line unavailable/);
+ await assert.rejects(append(owner,'reconcile',{...reconciliation,allocations:{[id(301)]:5001}},v,id(306)),/amount mismatch/);
+ await assert.rejects(append(owner,'reconcile',{...reconciliation,allocations:{[id(301)]:15000,[id(302)]:-10000}},v,id(306)),/bounds/);
+ await act(owner,'reconcile',reconciliation,306);
+ await act(worker,'dispute',{lineId:id(301),reason:'Review first line',evidence:'Synthetic'},307);
+ await act(owner,'freeze',freeze,308);await act(owner,'approve',approval,309);
+ await assert.rejects(append(owner,'submit',{amountCents:5000,reference:'wrong-reduced'},v,id(310)),/exact outstanding/);
+ await act(owner,'submit',{amountCents:10000,reference:'allocation-second'},310);
+ await act(owner,'reconcile',{...recon(id(310),'cleared',10000),allocations:{[id(302)]:10000}},311);
+ await act(owner,'resolve',{lineId:id(301),reason:'Reviewed',workerReviewEvidence:'Synthetic resolution'},312);
+ await act(owner,'freeze',freeze,313);await act(owner,'approve',approval,314);
+ await act(owner,'submit',{amountCents:5000,reference:'allocation-final'},315);
+ assert.deepEqual((await state()).state.transfers.map(t=>t.amountCents),[20000,10000,5000]);
+ assert.deepEqual((await state()).state.transfers[2].remainingLines,{[id(301)]:5000});
 }));

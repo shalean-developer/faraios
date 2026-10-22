@@ -52,7 +52,7 @@ test('monthly restore is read-only',()=>run(async({state,request})=>{
  assert.equal((await request(root,{method:'POST',body:create()})).status,405);assert.equal(state.calls.length,0);
 },{restoreTest:true}));
 test('monthly summary never calls partial or unknown fully cleared and renderer escapes evidence',()=>{
- const st={workerId:worker,period:'2026-09',targetDate:'2026-10-05',dueDate:'2026-10-05',lines:[{id:id(101),kind:'visit',outstandingCents:250000,amountCents:250000,priorClearedCents:0,sourceReference:'<script>',originalPeriod:'2026-09',evidence:'<script>',disputed:false},{kind:'customer_pool',collected:false,outstandingCents:5000,disputed:false}],transfers:[{amountCents:250000,clearedCents:200000,uncertain:true,outcome:'partial',reference:'<script>'}],freeze:{},approval:{}};
+ const st={workerId:worker,period:'2026-09',targetDate:'2026-10-05',dueDate:'2026-10-05',lines:[{id:id(101),kind:'visit',outstandingCents:250000,amountCents:250000,priorClearedCents:0,sourceReference:'<script>',originalPeriod:'2026-09',evidence:'<script>',disputed:false},{kind:'customer_pool',collected:false,outstandingCents:5000,disputed:false}],transfers:[{amountCents:250000,clearedCents:200000,allocations:{[id(101)]:200000},remainingLines:{[id(101)]:250000},uncertain:true,outcome:'partial',reference:'<script>'}],freeze:{},approval:{}};
  const summary=settlementSummary(st);assert.equal(summary.status,'Partial — remainder uncertain');assert.equal(summary.total,250000);assert.equal(summary.pending,5000);assert.equal(summary.outstanding,50000);
  const html=renderMonthlyStatements({id:business,name:'<script>'},{record:{id:sourceId,version:5,state:st,events:[]},role:'owner'});
  assert.doesNotMatch(html,/<script>/);assert.doesNotMatch(html,/Record submitted simulation/);

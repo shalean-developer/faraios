@@ -57,3 +57,13 @@ Desktop delivery checks passed at 1280px (document1265px): preparation/input ret
 ## Final browser delivery evidence and cleanup
 
 The owner clicked the final mobile submitted-simulation button once. Browser and independent database reads verified own statement version9 with one R30 submitted attempt, zero cleared cents and execution disabled. This closes the specific manual-interaction evidence gap above; no duplicate submission occurred. Viewport/document width375; readable mobile summary and form screenshots are adjacent to `stage3-browser-20261022.json`. All disposable data was then removed:0statements/events/claims and0QA businesses. A full, unfiltered fresh comparison confirms all18 original counts/hashes exactly match the pre-test baseline; active accounting0. Independent Stage3QA remains NOT ASSESSED. Earlier progress notes are chronological; this section supersedes their pending mobile/cleanup status.
+
+### Independent QA allocation correction — 22 October 2026
+
+The initial independent review of remote `5bf10fa` is NO-GO; preserve `docs/evidence/stage3-independent-qa-5bf10f.md`. Statement-level clearing could underpay an undisputed line when another partially cleared line was disputed.
+
+Transfers now snapshot signed remaining amounts per line. Reconciliation requires explicit cumulative line allocations, matching the cleared total, bounded by the submission snapshot, without reducing prior allocations. Full clearing must cover the complete snapshot. Future submissions deduct only allocations belonging to eligible lines. Disputing a line preserves its clearing history; resolving it restores only its unpaid remainder. Legacy transfer records without allocation snapshots fail closed for manual review; no allocation history is invented. The reconciliation form accepts per-line currency amounts; blank amounts remain unspecified.
+
+Additive staging migration `20261022141509_t04_per_line_settlement_allocations.sql` was applied through the Supabase connector (the previously blocked CLI telemetry route was not retried). The two earlier applied migrations remain immutable. The 16 rollback-only hosted checks pass and all 18 original group counts and hashes match the previous clean baseline. The new regression covers R100 A + R100 B, R50 cleared against A, dispute A, pay B R100, resolve A, leave only A R50 payable. Source review and formal reassessment remain pending; earlier screenshots do not validate the changed reconciliation form. Latest GitHub CI is separately blocked before execution by account billing/spending restrictions; no billing changes were made.
+
+T04 remains In progress; pilots 0/4; allowances Off; financial workflows inactive.

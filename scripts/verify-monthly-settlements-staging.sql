@@ -46,11 +46,11 @@ begin
  perform pg_temp.monthly_denied('excess original not repaid',format('select public.append_monthly_settlement(%L,%L,6,%L,''submit'',%L)',a,sid,transfer_id,jsonb_build_object('amountCents',255000,'reference','TEST')),'exact outstanding');
  perform public.append_monthly_settlement(a,sid,6,transfer_id,'submit',jsonb_build_object('amountCents',5000,'reference','TEST-NO-MONEY-R50'));
  perform pg_temp.monthly_denied('unknown transfer blocks retry',format('select public.append_monthly_settlement(%L,%L,7,%L,''submit'',%L)',a,sid,gen_random_uuid(),jsonb_build_object('amountCents',5000,'reference','TEST-RETRY')),'uncertain');
- p:=jsonb_build_object('transferId',transfer_id,'outcome','partial','clearedCents',3000,'remainingFailed',false,'clearingEvidence','TEST','allocationEvidence','TEST','reference','TEST');
+ p:=jsonb_build_object('transferId',transfer_id,'outcome','partial','clearedCents',3000,'allocations',jsonb_build_object(line_id::text,3000),'remainingFailed',false,'clearingEvidence','TEST','allocationEvidence','TEST','reference','TEST');
  perform public.append_monthly_settlement(a,sid,7,gen_random_uuid(),'reconcile',p);
  perform pg_temp.monthly_check('partial not full',(select state->'transfers'->0->>'outcome'='partial' and (state->'transfers'->0->>'clearedCents')::integer=3000 from public.settlement_review_statements where id=sid));
  perform pg_temp.monthly_denied('partial uncertain blocks retry',format('select public.append_monthly_settlement(%L,%L,8,%L,''submit'',%L)',a,sid,gen_random_uuid(),jsonb_build_object('amountCents',2000,'reference','TEST-RETRY')),'uncertain');
- perform public.append_monthly_settlement(a,sid,8,gen_random_uuid(),'reconcile',p||jsonb_build_object('outcome','cleared','clearedCents',5000));
+ perform public.append_monthly_settlement(a,sid,8,gen_random_uuid(),'reconcile',p||jsonb_build_object('outcome','cleared','clearedCents',5000,'allocations',jsonb_build_object(line_id::text,5000)));
  perform pg_temp.monthly_check('clearing allocation explicit',(select state->'transfers'->0->>'outcome'='cleared' and state->'transfers'->0->>'uncertain'='false' and state->>'execution'='disabled' from public.settlement_review_statements where id=sid));
  perform pg_temp.monthly_denied('repeat cleared transfer denied',format('select public.append_monthly_settlement(%L,%L,9,%L,''submit'',%L)',a,sid,gen_random_uuid(),jsonb_build_object('amountCents',5000,'reference','TEST-AGAIN')),'exact outstanding');
  perform public.append_monthly_settlement(a,sid,9,gen_random_uuid(),'provide_statement',jsonb_build_object('reference','SYNTHETIC statement and transfer-reference review'));

@@ -40,6 +40,7 @@ create trigger monthly_adjustment_claim_guard before update on public.adjustment
 create function audit.append_monthly_settlement(p_business_id uuid,p_statement_id uuid,p_version integer,p_key uuid,p_type text,p_payload jsonb)
 returns uuid language plpgsql security definer set search_path='' as $$
 declare uid uuid:=auth.uid();r text;s public.settlement_review_statements;e public.settlement_review_events;
+ allocations jsonb;remaining_lines jsonb;allocated bigint;cap bigint;old_allocated bigint;allocation_total bigint;allocation_key text;allocation_value text;
  st jsonb;linked_versions jsonb;lines jsonb;transfers jsonb;line jsonb;t jsonb;updated jsonb;allowed text[];required text[];k text;v text;
  a public.adjustment_review_items;src public.adjustment_review_sources;item_id uuid;worker uuid;delta bigint;prior bigint;total bigint;credited bigint;requested bigint;cleared bigint;found_item boolean:=false;
  period_end date;target date;due date;d date;today date:=(clock_timestamp() at time zone 'Africa/Johannesburg')::date;occ text;
@@ -60,7 +61,7 @@ begin
  when 'freeze' then allowed:=array['reference','fullPayReviewEvidence'];required:=array['reference','fullPayReviewEvidence'];
  when 'approve' then allowed:=array['paymentDetailsEvidence','reference'];required:=allowed;
  when 'submit' then allowed:=array['amountCents','reference'];required:=array['reference'];
- when 'reconcile' then allowed:=array['transferId','outcome','clearedCents','remainingFailed','clearingEvidence','allocationEvidence','reference'];required:=array['reference','clearingEvidence','allocationEvidence'];
+ when 'reconcile' then allowed:=array['transferId','outcome','clearedCents','remainingFailed','allocations','clearingEvidence','allocationEvidence','reference'];required:=array['reference','clearingEvidence','allocationEvidence'];
  when 'provide_statement' then allowed:=array['reference'];required:=allowed;
  else raise exception 'Unsupported settlement action';end case;
  if exists(select 1 from jsonb_object_keys(p_payload) x where not x=any(allowed)) then raise exception 'Unsupported payload field';end if;
@@ -69,6 +70,11 @@ begin
    if jsonb_typeof(p_payload->k) is distinct from 'number' or coalesce(v,'')!~'^-?(0|[1-9][0-9]{0,9})$' or abs(v::bigint)>2147483647 then raise exception 'Explicit integer cents required';end if;
   elsif k in ('collected','remainingFailed') then
    if jsonb_typeof(p_payload->k) is distinct from 'boolean' then raise exception 'Explicit boolean required';end if;
+  elsif k='allocations' then
+   if jsonb_typeof(p_payload->k) is distinct from 'object' then raise exception 'Explicit line allocations required';end if;
+   for allocation_key,allocation_value in select * from jsonb_each_text(p_payload->k) loop
+    if allocation_key!~id_pattern or jsonb_typeof(p_payload->k->allocation_key) is distinct from 'number' or coalesce(allocation_value,'')!~'^-?(0|[1-9][0-9]{0,9})$' or abs(allocation_value::bigint)>2147483647 then raise exception 'Invalid line allocation';end if;
+   end loop;
   elsif k='closedDates' then
    if jsonb_typeof(p_payload->k) is distinct from 'array' or jsonb_array_length(p_payload->k)>100 then raise exception 'Bounded banking calendar required';end if;
    for t in select value from jsonb_array_elements(p_payload->k) loop
@@ -157,7 +163,8 @@ begin
   if not found_item then raise exception 'Line unavailable';end if;
   st:=st||jsonb_build_object('lines',updated,'freeze',null,'approval',null,'statementEvidence',null);
  elsif p_type in ('freeze','approve','submit') then
-  total:=0;linked_versions:='{}'::jsonb;
+  total:=0;credited:=0;remaining_lines:='{}'::jsonb;linked_versions:='{}'::jsonb;
+  if exists(select 1 from jsonb_array_elements(transfers) x where jsonb_typeof(x->'remainingLines') is distinct from 'object' or jsonb_typeof(x->'allocations') is distinct from 'object') then raise exception 'Legacy transfer requires explicit allocation review';end if;
   for line in select value from jsonb_array_elements(lines) loop
    if line->>'disputed'='false' and not(line->>'kind'='customer_pool' and line->>'collected'='false') then
     if line->>'kind'='correction' then
@@ -167,10 +174,12 @@ begin
      linked_versions:=linked_versions||jsonb_build_object(a.id::text,src.version);
     end if;
     total:=total+(line->>'outstandingCents')::bigint;
+    select coalesce(sum(coalesce((x->'allocations'->>(line->>'id'))::bigint,0)),0) into allocated from jsonb_array_elements(transfers) x;
+    credited:=credited+allocated;
+    if (line->>'outstandingCents')::bigint<>allocated then remaining_lines:=remaining_lines||jsonb_build_object(line->>'id',(line->>'outstandingCents')::bigint-allocated);end if;
    end if;
   end loop;
   if total<0 or total>2147483647 then raise exception 'Net amount requires review; negative transfer prohibited';end if;
-  select coalesce(sum((x->>'clearedCents')::bigint),0) into credited from jsonb_array_elements(transfers) x;
   if total<credited then raise exception 'Cleared amount preserved; prepare a separate lawful correction';end if;
   if p_type='freeze' then
    if jsonb_array_length(lines)=0 then raise exception 'Reviewed lines required';end if;
@@ -184,11 +193,12 @@ begin
    requested:=(p_payload->>'amountCents')::bigint;
    if requested is null or requested<=0 or requested<>total-credited then raise exception 'Only exact outstanding amount may be simulated';end if;
    if exists(select 1 from jsonb_array_elements(transfers) x where x->>'reference'=p_payload->>'reference') then raise exception 'Transfer reference reused';end if;
-   transfers:=transfers||jsonb_build_array(jsonb_build_object('id',p_key,'reference',p_payload->>'reference','amountCents',requested,'clearedCents',0,'outcome','submitted','uncertain',true,'approvedTotalCents',total));
+   transfers:=transfers||jsonb_build_array(jsonb_build_object('id',p_key,'reference',p_payload->>'reference','amountCents',requested,'clearedCents',0,'outcome','submitted','uncertain',true,'approvedTotalCents',total,'remainingLines',remaining_lines,'allocations','{}'::jsonb));
    st:=jsonb_set(st,'{transfers}',transfers);st:=jsonb_set(st,'{statementEvidence}','null'::jsonb);
   end if;
  elsif p_type='reconcile' then
   if coalesce(p_payload->>'outcome','') not in ('unknown','failed','partial','cleared') or p_payload->>'clearedCents' is null or not p_payload?'remainingFailed' then raise exception 'Explicit reconciliation outcome required';end if;
+  if jsonb_typeof(p_payload->'allocations') is distinct from 'object' then raise exception 'Explicit line allocations required';end if;
   cleared:=(p_payload->>'clearedCents')::bigint;updated:='[]'::jsonb;
   for t in select value from jsonb_array_elements(transfers) loop
    if t->>'id'=p_payload->>'transferId' then
@@ -196,7 +206,17 @@ begin
     if t->>'uncertain'='false' then raise exception 'Resolved transfer immutable';end if;
     if cleared<(t->>'clearedCents')::bigint or cleared>requested or cleared<0 or p_payload->>'outcome' in ('unknown','failed') and cleared<>0 or p_payload->>'outcome'='partial' and (cleared<=0 or cleared>=requested) or p_payload->>'outcome'='cleared' and cleared<>requested then raise exception 'Clearing/allocation amount mismatch';end if;
     if p_payload->>'outcome' in ('unknown','cleared') and (p_payload->>'remainingFailed')::boolean or p_payload->>'outcome'='failed' and not(p_payload->>'remainingFailed')::boolean then raise exception 'Consistent remaining-transfer status required';end if;
-    t:=t||jsonb_build_object('clearedCents',cleared,'outcome',p_payload->>'outcome','uncertain',p_payload->>'outcome'='unknown' or p_payload->>'outcome'='partial' and not(p_payload->>'remainingFailed')::boolean,'reconciliation',p_payload);
+    if jsonb_typeof(t->'remainingLines') is distinct from 'object' or jsonb_typeof(t->'allocations') is distinct from 'object' then raise exception 'Legacy transfer requires explicit allocation review';end if;
+    allocations:=p_payload->'allocations';allocation_total:=0;
+    if exists(select 1 from jsonb_object_keys(allocations) x where not(t->'remainingLines'?x)) then raise exception 'Allocation line unavailable';end if;
+    for allocation_key,allocation_value in select * from jsonb_each_text(t->'remainingLines') loop
+     cap:=allocation_value::bigint;allocated:=coalesce((allocations->>allocation_key)::bigint,0);old_allocated:=coalesce((t->'allocations'->>allocation_key)::bigint,0);
+     if cap>=0 and (allocated<old_allocated or allocated>cap) or cap<0 and (allocated>old_allocated or allocated<cap) then raise exception 'Allocation must preserve cleared line amounts and submission bounds';end if;
+     if cleared=0 and allocated<>0 or p_payload->>'outcome'='cleared' and allocated<>cap then raise exception 'Clearing/allocation amount mismatch';end if;
+     allocation_total:=allocation_total+allocated;
+    end loop;
+    if allocation_total<>cleared then raise exception 'Clearing/allocation amount mismatch';end if;
+    t:=t||jsonb_build_object('clearedCents',cleared,'allocations',allocations,'outcome',p_payload->>'outcome','uncertain',p_payload->>'outcome'='unknown' or p_payload->>'outcome'='partial' and not(p_payload->>'remainingFailed')::boolean,'reconciliation',p_payload);
    end if;updated:=updated||jsonb_build_array(t);
   end loop;
   if not found_item then raise exception 'Transfer unavailable';end if;

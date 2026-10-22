@@ -3,11 +3,11 @@ import {parseRand} from './earnings.js';
 import {escapeHtml as esc,moduleHeading,feedback} from './workspace-layout.js';
 export const settlementPreparerActions=['create','add_line','dispute'];
 export function settlementSummary(state){
- let total=0,pending=0,disputed=0;
- for(const l of state.lines){if(l.disputed)disputed+=l.outstandingCents;else if(l.kind==='customer_pool'&&!l.collected)pending+=l.outstandingCents;else total+=l.outstandingCents;}
+ let total=0,pending=0,disputed=0,eligibleCleared=0;
+ for(const l of state.lines){if(l.disputed)disputed+=l.outstandingCents;else if(l.kind==='customer_pool'&&!l.collected)pending+=l.outstandingCents;else {total+=l.outstandingCents;eligibleCleared+=state.transfers.reduce((sum,t)=>sum+(t.allocations?.[l.id]??0),0);}}
  const cleared=state.transfers.reduce((sum,t)=>sum+t.clearedCents,0),uncertain=state.transfers.some(t=>t.uncertain);
- const status=uncertain?(cleared?'Partial — remainder uncertain':state.transfers.at(-1)?.outcome==='unknown'?'Unknown':'Submitted'):cleared>0&&cleared===total?'Cleared in simulation':cleared?'Partial':state.transfers.length?'Failed':state.approval?'Approved':state.freeze?'Frozen':'Draft';
- return{total,pending,disputed,cleared,outstanding:total-cleared,uncertain,status};
+ const status=uncertain?(cleared?'Partial — remainder uncertain':state.transfers.at(-1)?.outcome==='unknown'?'Unknown':'Submitted'):eligibleCleared>0&&eligibleCleared===total?'Cleared in simulation':cleared?'Partial':state.transfers.length?'Failed':state.approval?'Approved':state.freeze?'Frozen':'Draft';
+ return{total,pending,disputed,cleared,outstanding:total-eligibleCleared,uncertain,status};
 }
 export async function listMonthlyStatements(client,businessId){const rows=[];for(let start=0;;start+=500){const{data,error}=await client.from('settlement_review_statements').select('*').eq('business_id',businessId).order('id').range(start,start+499);if(error||!Array.isArray(data)||data.some(s=>s.business_id!==businessId||s.synthetic_only!==true))throw new Error('Monthly statements unavailable');rows.push(...data);if(data.length<500)return rows;}}
 export async function readMonthlyStatement(client,businessId,id){
@@ -28,7 +28,7 @@ export function monthlyPayload(f){const type=f.get('action');
  if(type==='freeze')return{reference:f.get('reference'),fullPayReviewEvidence:f.get('full_pay_review')};
  if(type==='approve')return{reference:f.get('reference'),paymentDetailsEvidence:f.get('payment_details')};
  if(type==='submit')return{reference:f.get('reference'),amountCents:parseRand(f.get('amount'))};
- if(type==='reconcile')return{transferId:f.get('transfer_id'),outcome:f.get('outcome'),clearedCents:parseRand(f.get('cleared')),remainingFailed:f.get('remaining_failed')==='true',clearingEvidence:f.get('clearing_evidence'),allocationEvidence:f.get('allocation_evidence'),reference:f.get('reference')};
+ if(type==='reconcile')return{allocations:Object.fromEntries([...f.entries()].filter(([k,v])=>k.startsWith('allocation_')&&String(v).trim()!=='').map(([k,v])=>[k.slice(11),cents(v)])),transferId:f.get('transfer_id'),outcome:f.get('outcome'),clearedCents:parseRand(f.get('cleared')),remainingFailed:f.get('remaining_failed')==='true',clearingEvidence:f.get('clearing_evidence'),allocationEvidence:f.get('allocation_evidence'),reference:f.get('reference')};
  if(type==='provide_statement')return{reference:f.get('reference')};throw new Error('Unsupported settlement action');
 }
 export async function appendMonthlyStatement(client,{businessId,record,form,role,userId}){
@@ -60,6 +60,6 @@ export function renderMonthlyStatements(business,{rows=[],workers=[],record=null
  if(st.approval){html+=form('provide_statement','Record statement provision',input('reference','Cleaner statement and payment-reference evidence')+'<button>Record statement evidence</button>');if(!sum.uncertain&&sum.outstanding>0)html+=form('submit','Simulate outstanding transfer',`<p>Only ${money(sum.outstanding)} remains. No bank instruction is created.</p>`+input('amount','Simulated transfer amount (R)',{value:(sum.outstanding/100).toFixed(2)})+input('reference','Unique synthetic transfer reference')+'<button>Record submitted simulation</button>');}
  }
  for(const t of st.transfers){html+=`<section class="panel"><h2>Transfer simulation · ${esc(t.outcome)}</h2><p>${esc(t.reference)} · Requested ${money(t.amountCents)} · Cleared and allocated ${money(t.clearedCents)}</p><p>${t.uncertain?'Remainder uncertain — reconcile before retry':'Remainder resolved'}</p></section>`;
- if(owner&&t.uncertain)html+=form('reconcile','Reconcile simulation',select('outcome','Reconciliation result',[['unknown','Unknown'],['failed','Failed'],['partial','Partial'],['cleared','Cleared and allocated']])+input('cleared','Verified cleared and allocated total for this attempt (R)')+select('remaining_failed','Uncleared remainder verified failed',[['false','No / uncertain'],['true','Yes, evidenced failed']])+input('clearing_evidence','Bank clearing evidence')+input('allocation_evidence','Allocation evidence')+input('reference','Reconciliation reference')+'<button>Record reconciliation</button>',`<input type="hidden" name="transfer_id" value="${esc(t.id)}">`);}
+ if(owner&&t.uncertain)html+=form('reconcile','Reconcile simulation',select('outcome','Reconciliation result',[['unknown','Unknown'],['failed','Failed'],['partial','Partial'],['cleared','Cleared and allocated']])+input('cleared','Verified cleared and allocated total for this attempt (R)')+select('remaining_failed','Uncleared remainder verified failed',[['false','No / uncertain'],['true','Yes, evidenced failed']])+Object.entries(t.remainingLines??{}).map(([lineId,amount])=>{const line=st.lines.find(l=>l.id===lineId);return input('allocation_'+lineId,'Cumulative allocation this attempt: '+(line?.sourceReference??lineId)+' (R; submitted remainder '+money(amount)+')',{required:false,value:t.allocations?.[lineId]===undefined?'':String(t.allocations[lineId]/100)});}).join('')+input('clearing_evidence','Bank clearing evidence')+input('allocation_evidence','Allocation evidence')+input('reference','Reconciliation reference')+'<button>Record reconciliation</button>',`<input type="hidden" name="transfer_id" value="${esc(t.id)}">`);}
  html+='<section class="panel"><h2>Audit history</h2>'+record.events.map(e=>`<p>${esc(e.created_at)} · ${esc(e.event_type)} · ${esc(e.actor_id)}</p>`).join('')+'</section>';return html;
 }
