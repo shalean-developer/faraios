@@ -18,26 +18,39 @@
     "Statement and payment-reference evidence recorded",
     "Staff sees only own statement; direct other-worker statement unavailable",
     "Own-worker dispute clears freeze and approval and separates disputed amount",
-    "Owner resolution does not restore approval; renewed freeze required"
+    "Owner resolution does not restore approval; renewed freeze required",
+    "375px cards, labels, wrapped references and transfer form fit with no horizontal overflow",
+    "375px renewed owner approval saved by keyboard; source version8",
+    "User manually clicked mobile R30 submitted-simulation button; delivery independently verified browser saved state and database version9 with exactly one R30 submitted attempt, zero cleared cents, execution disabled"
   ],
   "role_restored": "owner in disposable QA business; original memberships untouched",
-  "retained_disposable_business": "d32a07e5-acbf-405e-aefd-d18c113b4fe0",
+  "retained_disposable_business": "removed",
   "retained_fixture_counts": {
-    "statements": 2,
-    "lines": 2,
-    "claims": 2,
-    "events": 18,
-    "transfer_simulations": 2
+    "statements": 0,
+    "lines": 0,
+    "claims": 0,
+    "events": 0,
+    "transfer_simulations": 0
   },
   "original_groups_unchanged_excluding_disposable_fixture": 18,
   "pending": [
-    "375px visual and interaction acceptance",
-    "Disposable fixture removal and final complete fingerprint comparison",
     "Independent Stage 3 QA"
   ],
-  "status": "Desktop delivery checks passed; Stage 3 not accepted",
+  "status": "Desktop and375px delivery browser checks complete; independent QA NOT ASSESSED",
   "T04": "In progress",
   "pilots_completed": 0,
   "allowances": "Off",
-  "financial_workflows": "inactive"
+  "financial_workflows": "inactive",
+  "mobile_viewport": 375,
+  "mobile_document_scroll_width": 375,
+  "mobile_limitation": "Browser input automation timed out on final submit; user performed one click. Saved browser and database state independently verified afterwards. No duplicate attempt.",
+  "cleanup": {
+    "disposable_business_removed": true,
+    "statements": 0,
+    "events": 0,
+    "claims": 0,
+    "original_groups_unchanged": 18,
+    "original_counts_and_hashes_equal": true,
+    "active_accounting": 0
+  }
 }
