@@ -19,6 +19,9 @@ export async function readMonthlyStatement(client,businessId,id){
 }
 const integer=(v,name)=>{if(!/^(0|[1-9]\d{0,9})$/.test(v??''))throw new Error('Record explicit '+name);return Number(v);};
 const cents=v=>{const s=String(v??'').trim();return s.startsWith('-')?-parseRand(s.slice(1)):parseRand(s);};
+// The review form displays Rand in an en-ZA locale. Accept a decimal comma,
+// but never interpret grouping separators or silently round a financial amount.
+const reconciliationCents=v=>{const s=String(v??'').trim();return cents(/^-?\d{1,8},\d{1,2}$/.test(s)?s.replace(',','.'):s);};
 export function monthlyPayload(f){const type=f.get('action');
  if(type==='create')return{workerId:f.get('worker_id'),period:f.get('period'),calendarEvidence:f.get('calendar_evidence'),closedDates:String(f.get('closed_dates')??'').split(/[\s,]+/).filter(Boolean),...(f.get('earlier_deadline')?{earlierDeadline:f.get('earlier_deadline'),deadlineEvidence:f.get('deadline_evidence')}:{} )};
  if(type==='add_line')return{kind:f.get('kind'),amountCents:cents(f.get('amount')),priorClearedCents:parseRand(f.get('prior_cleared')),originalPeriod:f.get('original_period'),sourceReference:f.get('source_reference'),evidence:f.get('evidence'),...(f.get('booking_id')?{bookingId:f.get('booking_id')}:{}),...(f.get('adjustment_id')?{adjustmentId:f.get('adjustment_id')}:{}),...(f.get('kind')==='customer_pool'?{collected:f.get('collected')==='true',...(f.get('collection_evidence')?{collectionEvidence:f.get('collection_evidence')}:{} )}:{} )};
@@ -28,7 +31,7 @@ export function monthlyPayload(f){const type=f.get('action');
  if(type==='freeze')return{reference:f.get('reference'),fullPayReviewEvidence:f.get('full_pay_review')};
  if(type==='approve')return{reference:f.get('reference'),paymentDetailsEvidence:f.get('payment_details')};
  if(type==='submit')return{reference:f.get('reference'),amountCents:parseRand(f.get('amount'))};
- if(type==='reconcile')return{allocations:Object.fromEntries([...f.entries()].filter(([k,v])=>k.startsWith('allocation_')&&String(v).trim()!=='').map(([k,v])=>[k.slice(11),cents(v)])),transferId:f.get('transfer_id'),outcome:f.get('outcome'),clearedCents:parseRand(f.get('cleared')),remainingFailed:f.get('remaining_failed')==='true',clearingEvidence:f.get('clearing_evidence'),allocationEvidence:f.get('allocation_evidence'),reference:f.get('reference')};
+ if(type==='reconcile')return{allocations:Object.fromEntries([...f.entries()].filter(([k,v])=>k.startsWith('allocation_')&&String(v).trim()!=='').map(([k,v])=>[k.slice(11),reconciliationCents(v)])),transferId:f.get('transfer_id'),outcome:f.get('outcome'),clearedCents:reconciliationCents(f.get('cleared')),remainingFailed:f.get('remaining_failed')==='true',clearingEvidence:f.get('clearing_evidence'),allocationEvidence:f.get('allocation_evidence'),reference:f.get('reference')};
  if(type==='provide_statement')return{reference:f.get('reference')};throw new Error('Unsupported settlement action');
 }
 export async function appendMonthlyStatement(client,{businessId,record,form,role,userId}){
