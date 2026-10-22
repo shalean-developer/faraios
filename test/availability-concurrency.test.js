@@ -168,4 +168,20 @@ test('independent connections prevent shared-cleaner overlaps and duplicate recu
   assert.equal(sql(`select count(*) from public.cancellation_review_events where case_id='${cancellationCase}' and event_type='reserve_refund'`),'1');
  }finally{for(const c of [refundWinner,refundRetry].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
 
+ // Stage 2: source-row lock prevents two sessions simulating the same correction.
+ sql(await readFile(new URL('../database/earnings-adjustments-draft.sql',import.meta.url),'utf8'));
+ const adjSource=id(950),adjItem=id(952);
+ const original={sourceId:adjSource,bookingId:ba,workerId:staff,originalVersion:3,originalCents:250000,originalPeriod:'2026-10',agreementEvidence:'SYNTHETIC terms',originalRecordEvidence:'SYNTHETIC original R2500'};
+ const adj=(version,key,type,payload)=>`select public.append_earnings_adjustment('${a}','${adjSource}',${version},'${key}','${type}','${JSON.stringify(payload)}');`;
+ sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);`+adj(0,id(951),'register_source',original)+adj(1,adjItem,'propose',{sourceId:adjSource,kind:'reimbursement',deltaCents:5000,reason:'Missed R50',evidence:'TEST receipt',occurrenceReference:'missed1'})+adj(2,id(953),'approve',{adjustmentId:adjItem,reason:'Verified',originalVerificationEvidence:'Verified',entitlementReviewEvidence:'Reviewed'})+adj(3,id(954),'freeze_review',{adjustmentId:adjItem,reference:'TEST review'}));
+ const adjustmentWinner=connect('t04_adjustment_winner');let adjustmentRetry;
+ try{
+  adjustmentWinner.child.stdin.write(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);`+adj(4,id(955),'simulate_settlement',{adjustmentId:adjItem,amountCents:5000,reference:'TEST-NO-MONEY'})+`select 'ADJUSTMENT_HELD';\n`);
+  for(let i=0;i<100&&!adjustmentWinner.output().includes('ADJUSTMENT_HELD');i++)await pause(25);assert.match(adjustmentWinner.output(),/ADJUSTMENT_HELD/);
+  adjustmentRetry=connect('t04_adjustment_retry');adjustmentRetry.child.stdin.end(`begin;set local lock_timeout='10s';set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);`+adj(4,id(956),'simulate_settlement',{adjustmentId:adjItem,amountCents:5000,reference:'TEST-RETRY'})+'commit;');
+  let blocked=false;for(let i=0;i<50&&!blocked;i++){blocked=sql("select count(*) from pg_stat_activity where application_name='t04_adjustment_retry' and wait_event_type='Lock'")==='1';if(!blocked)await pause(25);}assert.equal(blocked,true,'Adjustment source writes must serialize');
+  adjustmentWinner.child.stdin.end('commit;\n');const [won,lost]=await Promise.all([adjustmentWinner.closed,adjustmentRetry.closed]);assert.equal(won.code,0,won.stderr);assert.notEqual(lost.code,0);assert.match(lost.stderr,/40001/);
+  assert.equal(sql(`select count(*) from public.adjustment_review_events where source_id='${adjSource}' and event_type='simulate_settlement'`),'1');
+ }finally{for(const c of [adjustmentWinner,adjustmentRetry].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+
 });

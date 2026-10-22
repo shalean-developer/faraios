@@ -1,79 +1,42 @@
 # T04 Stage 2 — linked earnings adjustments
 
-Started 22 October 2026 under the owner's instruction. Scope source: approved
-ADJ01, T04 Decisions row 60 of the Build Plan and Progress Tracker, and the
-owner's direction to begin after Stage 1 synthetic staging acceptance. PAY03
-monthly settlement controls remain the following stage. Actual receipt and
-worker-pay applicability evidence remain activation checks.
+Started 22 October 2026 under the owner's instruction, following Stage 1 synthetic staging acceptance (reviewed 1e0fbe, PR #98). Scope: approved ADJ01, T04 Decisions row 60. PAY03 monthly settlement execution remains Stage 3. Receipts and worker-pay applicability remain activation checks, not synthetic-development blockers.
 
-## First increment
+## Implemented candidate
 
-`src/earnings-adjustments.js` is an isolated review/simulation core. It is not
-connected to a route, database, earnings ledger or bank. Every result retains
-`execution: disabled`; simulated settlement is not a paid status or clearing
-evidence. Fresh authorization and source-record verification will be required
-independently at HTTP and database boundaries before this becomes a persistent
-staging workflow. Unit checks alone do not prove those boundaries.
+The immutable review core (`src/earnings-adjustments.js`) is now connected to a synthetic-only persisted journal, authenticated HTTP route and review screen (`src/adjustment-reviews.js`). The additive migration is 20261022105001. It neither posts earnings nor modifies booking, invoice, accounting, allowance or paid statuses. No bank/provider API is called. There is no real financial activation switch in this module.
 
-FaraiOS currently has earnings-rule setup/previews and cancellation assessment
-records; it does not have an activated worker earnings ledger. This increment
-therefore uses explicitly supplied synthetic source snapshots with original
-booking, worker, version, period, amount and evidence references. Registration
-is not evidence that a real agreement is accepted or that pay has accrued.
-Real source import and payment reconciliation are not introduced here.
+Each synthetic source links to a booking and an actively assigned cleaner, with original amount/version/period and evidence. This is a review snapshot, not an authoritative earnings ledger or evidence of accepted real worker terms. Migration creates no sources and enables no actual business policy. Synthetic sources cannot become real liabilities by changing a flag.
 
-The core records linked proposals, owner decisions, worker review requests,
-dispute resolution, reviewed freezes and correction-only simulation. It keeps
-the original snapshot and rejected proposals. Replacements explicitly link to
-the last rejected proposal for the same occurrence. An approved source revision
-makes an earlier competing proposal stale. UUIDs use canonical spelling for
-lookup/replay, events compare complete details, and output is immutable.
+Owners/managers register sources and prepare corrections. Only owners approve, reject, resolve disputes, freeze reviewed corrections and record correction-only simulations. Staff may read their own sources and request review; another worker's source is unavailable. HTTP rechecks trusted membership/identity; RLS limits reads; only the bounded private writer persists changes. Customer/anonymous access and restore-workspace writes are denied.
 
-Supported reasons are verified calculation corrections, reimbursements and
-additional agreed work under approved earnings rules. The core does not invent
-an additional-work rate or bypass its rule/cap: preparation and approval require
-the corresponding evidence. That evidence is a review record, not independent
-legal/pay verification. Negative correction approval also requires lawful basis,
-required agreement, fair process and full entitlement review evidence. Fines,
-damage deductions, nonpayment reductions, refund clawbacks and automatic
-overpayment recovery are unsupported.
+Supported reasons: verified calculation corrections, reimbursements and additional agreed work under approved rules. Reduction approval needs lawful-basis, specific applicable-agreement, fair-process and full-entitlement review evidence. Additional-work preparation/approval requires rule/cap evidence, without inventing a new rate. Evidence input records a review; software cannot determine legal/pay applicability merely from a checked statement. Fines, damage deductions, customer nonpayment reductions, refund clawbacks and automatic recovery are unsupported.
 
-One worker's dispute removes only that adjustment from the review preview.
-Resolution requires renewed freeze. Positive corrections and reviewed reductions
-are shown separately, never silently netted across workers. Frozen source
-earnings are not rewritten. The R2,500-paid plus R50-reimbursement example shows
-R50 only; an attempt to simulate R2,550 or repeat the simulation is rejected.
-No actual due-date compliance or settlement is claimed.
+Original snapshots and rejected proposals remain preserved. Replacement proposals link explicitly to the rejected item. Source revisions prevent stale competing approval. Source-row locking, exact optimistic version, canonical IDs, bounded typed JSON and complete idempotent replay matching protect the journal. Histories reconstruct through the same pure core; missing/scope-mismatched histories fail closed.
 
-## Acceptance map
+Worker disputes remove only that correction from the eligible review path. Resolution requires renewed freeze. A review freeze is distinct from Stage 3's monthly statement freeze. Simulations require approved/undisputed/frozen state and the exact delta; they never include the original paid amount. R2,500 original plus missed R50 reimbursement permits only R50 simulation, neverR2,550 or a duplicate. This records no actual clearing/allocation or timely payment.
 
-| ADJ01 requirement | First increment evidence | Remaining before Stage 2 acceptance |
+## Validation and acceptance map
+
+| Criterion | Evidence | Status |
 |---|---|---|
-| Original record/version preserved; correction linked | Immutable source, booking/worker/version/period links; tests | Trusted persisted source identity and import boundary |
-| Manager prepares; owner approves | Core role-denial tests | Fresh authenticated HTTP authorization and direct-RPC denial tests |
-| No automatic punitive reductions | Allowed reasons; negative evidence safeguards; tests | Persistent validation matching core schema, current worker agreement checks at activation |
-| Worker review/dispute; other positive amounts continue | Own-worker review checks and separate eligible rows | Authenticated own-record endpoint and UI; no disclosure of others' records |
-| Audit, original/new amount and explicit replacement | Append-only core events, optimistic version and replay tests | Durable journal, RLS, row locking and concurrent save tests |
-| Changes after freeze require renewed review | New correction records; dispute invalidates freeze | Persistent frozen-review version enforcement; monthly freeze controls in Stage 3 |
-| Settle only missed correction, never paid original | Correction-only simulation and duplicate protection tests | Stage 3 actual settlement reconciliation/clearing and duplicate-settlement integration |
-| Synthetic staging acceptance | Eight core scenarios passed locally | Database migration tests, API/UI, hosted rollback-only checks, desktop/narrow-screen verification and separate QA |
+| Original/link/version preservation; correction-only amounts | Core and PGlite reconstruction tests | Local pass |
+| Manager/owner/staff/customer boundaries; fresh roles; origin/body limits; restore denial | HTTP tests and direct PostgreSQL grants/RLS tests | Local pass |
+| Typed inputs, Unicode blanks, immutable client history, replay and stale writes | Core/database adverse tests | Local pass |
+| Competing simulations serialize | Native PostgreSQL test added to `availability-concurrency.test.js` | CI required; locally skipped without disposable native DB |
+| Hosted schema and rollback-only acceptance |13 checks on FaraiOS staging; original 18 fingerprints unchanged | Pass, delivery verification |
+| Retained synthetic records |0 sources/items/events; 0 active accounting | Readback pass |
+| Desktop/narrow-screen and authenticated worker path | Running local candidate | Pending restart/browser acceptance |
+| Independent final review | Separate QA gate | NOT ASSESSED |
 
-## Next implementation work
+Evidence: `docs/evidence/stage2-staging-20261022.json`; reproducible rollback-only script `scripts/verify-adjustments-staging.sql`. No new security findings; existing advisories remain. Seven new indexes are expected to be unused while journal tables are empty.
 
-1. Add business-scoped source snapshots and adjustment-event persistence. Keep
-   manual/synthetic evidence distinct from verified imported earnings. Enforce
-   the same types, UUID grammar, text/date bounds, transitions and replay rules
-   at the trusted writer. Require explicit per-business configuration; enable
-   no real business by migration.
-2. Add the authenticated staging review screen, source/booking/worker links,
-   history, owner approvals and clearly labelled simulation previews. Preserve
-   blanks on errors and use unique label/control associations.
-3. Test direct API/RPC denial, journal reconstruction, stale writes, parallel
-   approval/simulation, disputed/zero/positive workers and correction-only
-   carry-forward. Recheck the exact final source through separate QA.
+## Browser acceptance handoff
 
-Stage 2 is **In progress**, not accepted. Stage 1's reviewed implementation is
-1e0fbe (PR #98); this is a stacked branch so it does not reimplement that stage.
-T04 stays In progress, pilots 0/4, allowances Off, financial workflows inactive.
-No source agreement, real earnings, database, provider, payment or production
-record is changed by this first increment.
+Pull `feat/t04-earnings-adjustments` and restart the local staging app. Verify a disposable synthetic source and R50 correction through prepare/owner approval/freeze/simulation, missing-input/error retention, unlawful/unsupported reductions, stale role/version denial, own-worker review, other-worker denial, and desktop/narrow-screen layout. Remove fixtures and recheck the 18 original data groups. Do not use a production account or record a real transfer. Keep source dates and amounts unknown unless expressly provided; examples remain labelled synthetic.
+
+## Recovery and scope limits
+
+Revert the candidate application to hide these routes while retaining additive review history. Do not drop audit history to undo an approved correction; prepare a linked correction under the same controls. No existing source data is rewritten by deployment. Before use elsewhere, verify schema/version/roles and original-data baseline rather than assuming the staging population applies.
+
+Stage 2 is In progress and is not accepted. T04 remains In progress, pilots 0/4, allowances Off and financial workflows inactive. Actual ledger/import integration and real settlement/clearing remain separate future gates; actual agreements, full pay and costs need verification before activation. PR #99 is stacked on PR #98 and remains draft pending acceptance.

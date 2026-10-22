@@ -25,6 +25,7 @@ export function earningsAdjustmentEvent(current,event){
  if(!fields[type]||Object.keys(payload).some(k=>!fields[type].includes(k)))fail('Unsupported adjustment action or field');
  // Canonical references make UUID casing irrelevant to replay and linked lookup.
  for(const name of ['sourceId','bookingId','workerId','adjustmentId','supersedesId'])if(Object.hasOwn(payload,name))payload[name]=uuid(payload[name]);
+ if(type==='propose')payload.occurrenceReference=text(payload.occurrenceReference);
  const old=current??{businessId,version:0,sources:[],adjustments:[],events:[],execution:'disabled'};
  if(old.businessId!==businessId)fail('Business scope mismatch');
  if(role==='staff'&&!['raise_dispute','request_review'].includes(type))fail('Staff may only request review of their own adjustment');
