@@ -63,8 +63,7 @@ export function createStagingServer({createClient,accountingWorker=null,accounti
           if(statementId&&(!record||role==='staff'&&record.worker_id!==userId))return send(404,'Statement unavailable','text/plain');
           const rows=!record?(await listMonthlyStatements(client,business.id)).filter(s=>role!=='staff'||s.worker_id===userId):[];
           let workers=[];if(!record&&role!=='staff'){
-            const result=await client.from('business_memberships').select('user_id,role,status').eq('business_id',business.id).eq('status','active').eq('role','staff');
-            if(result.error||!Array.isArray(result.data))return send(503,'Worker lookup unavailable','text/plain');workers=result.data;
+            workers=await staffAccounts(client,business.id);
           }
           const show=options=>html('Monthly settlement reviews',renderMonthlyStatements(business,{record,rows,workers,role,...options}));
           if(req.method==='GET')return send(200,show({}));

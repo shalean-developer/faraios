@@ -14,7 +14,7 @@ async function run(fn,{role='owner',user=owner,restoreTest=false,saved=false,pro
   if(table==='one_off_bookings')return{data:{id:booking,business_id:business,assigned_staff:[worker],time_zone:'Africa/Johannesburg'}};
   let rows=table==='settlement_review_statements'?state.rows:table==='settlement_review_events'?state.events:[];
   return{data:rows.filter(r=>Object.entries(filters).every(([k,v])=>r[k]===v))};
- };return{select(){return this;},eq(k,v){filters[k]=v;return this;},order(){return this;},range:async()=>result(),maybeSingle:async()=>result(),then(resolve){resolve(result());}};},rpc:async(name,p)=>{state.calls.push({name,p});return{data:sourceId};}});
+ };return{select(){return this;},eq(k,v){filters[k]=v;return this;},order(){return this;},range:async()=>result(),maybeSingle:async()=>result(),then(resolve){resolve(result());}};},rpc:async(name,p)=>{if(name==='staff_context')return{data:[{user_id:worker,label:'Synthetic cleaner'}]};state.calls.push({name,p});return{data:sourceId};}});
  const server=createStagingServer({createClient:client,restoreTest});await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;
  const login=await fetch(base+'/login',{method:'POST',headers:{Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'email=qa%40example.test&password=test',redirect:'manual'}),cookie=login.headers.get('set-cookie').split(';')[0];
  const request=(path,{method='GET',body='',origin=base,type='application/x-www-form-urlencoded',auth=true}={})=>fetch(base+path,{method,headers:{...(auth?{Cookie:cookie}:{}),...(method==='POST'?{Origin:origin,'Content-Type':type}:{})},...(method==='POST'?{body:String(body)}:{}),redirect:'manual'});
@@ -25,7 +25,7 @@ const root='/monthly-settlements?business='+business,savedPath=root+'&statement=
 const create=()=>new URLSearchParams({action:'create',version:'0',event_key:id(100),statement_id:sourceId,worker_id:worker,period:'2026-09',calendar_evidence:'SYNTHETIC calendar',closed_dates:'2026-10-05'});
 test('monthly HTTP scoped preparer, CSRF/body guards, fresh role and restore denial',()=>run(async({state,request})=>{
  assert.equal((await request(root,{auth:false})).status,303);
- assert.match(await(await request(root)).text(),/Prepare a closed-month statement/);
+ const createHtml=await(await request(root)).text();assert.match(createHtml,/Prepare a closed-month statement/);assert.match(createHtml,new RegExp('value="'+worker+'"[^>]*>Synthetic cleaner'));
  const f=create();f.set('business_id',id(999));f.set('actor_id',worker);
  assert.equal((await request(root,{method:'POST',body:f})).status,303);
  assert.equal(state.calls[0].name,'append_monthly_settlement');assert.equal(state.calls[0].p.p_business_id,business);
