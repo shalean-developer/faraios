@@ -31,7 +31,7 @@ export function monthlyPayload(f){const type=f.get('action');
  if(type==='freeze')return{reference:f.get('reference'),fullPayReviewEvidence:f.get('full_pay_review')};
  if(type==='approve')return{reference:f.get('reference'),paymentDetailsEvidence:f.get('payment_details')};
  if(type==='submit')return{reference:f.get('reference'),amountCents:parseRand(f.get('amount'))};
- if(type==='reconcile')return{allocations:Object.fromEntries([...f.entries()].filter(([k,v])=>k.startsWith('allocation_')&&String(v).trim()!=='').map(([k,v])=>[k.slice(11),reconciliationCents(v)])),transferId:f.get('transfer_id'),outcome:f.get('outcome'),clearedCents:reconciliationCents(f.get('cleared')),remainingFailed:f.get('remaining_failed')==='true',clearingEvidence:f.get('clearing_evidence'),allocationEvidence:f.get('allocation_evidence'),reference:f.get('reference')};
+ if(type==='reconcile')return{allocations:Object.fromEntries([...f.entries()].filter(([k,v])=>/^allocation_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(k)&&String(v).trim()!=='').map(([k,v])=>[k.slice(11),reconciliationCents(v)])),transferId:f.get('transfer_id'),outcome:f.get('outcome'),clearedCents:reconciliationCents(f.get('cleared')),remainingFailed:f.get('remaining_failed')==='true',clearingEvidence:f.get('clearing_evidence'),allocationEvidence:f.get('allocation_evidence'),reference:f.get('reference')};
  if(type==='provide_statement')return{reference:f.get('reference')};throw new Error('Unsupported settlement action');
 }
 export async function appendMonthlyStatement(client,{businessId,record,form,role,userId}){
