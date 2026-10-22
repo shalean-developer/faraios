@@ -7,7 +7,7 @@ import {cancellationPolicyVersion,cancellationEvent} from '../src/cancellation-r
 import {renderCancellationCases,cancellationInput,readCancellationCase} from '../src/cancellation-cases.js';
 const id=n=>'20000000-0000-4000-8000-'+String(n).padStart(12,'0');
 const owner=id(1),manager=id(2),staff=id(3),a=id(10),b=id(20),booking=id(30);
-const payload=()=>({policyVersion:cancellationPolicyVersion,agreementKind:'new_accepted',acceptanceEvidence:'TEST accepted terms',cause:'customer',action:'cancel',stage:'accepted',originalStart:'2026-10-24T09:00:00+02:00',requestedAt:'2026-10-22T09:00:00+02:00',stageTimes:{accepted:'2026-10-21T09:00:00+02:00'},workers:[{id:staff,agreedCents:30000,expenseCents:0}],eligibleLabourCents:100000,reasonableLossCents:0,verifiedReceiptsCents:100000,performedServiceCents:0,completedRefundsCents:0,pendingRefundsCents:0,reviewedCustomerFeeCents:0,collectedPoolCents:0,mandatoryRightsReviewed:true,feeMustBeWaived:false,holidays:[]});
+const payload=()=>({policyVersion:cancellationPolicyVersion,agreementKind:'new_accepted',acceptanceEvidence:'TEST accepted terms',cause:'customer',action:'cancel',stage:'accepted',originalStart:'2026-10-24T09:00:00+02:00',requestedAt:'2026-10-22T09:00:00+02:00',stageTimes:{accepted:'2026-10-21T09:00:00+02:00'},workers:[{id:staff,agreedCents:30000,expenseCents:0}],eligibleLabourCents:100000,reasonableLossCents:0,verifiedReceiptsCents:100000,performedServiceCents:0,completedRefundsCents:0,pendingRefundsCents:0,reviewedCustomerFeeCents:0,collectedPoolCents:0,mandatoryRightsReviewed:true,feeMustBeWaived:false,holidays:[],refundId:'unrelated-not-a-uuid'});
 test('Postgres cancellation journal enforces tenant roles, replay, stale writes and refund reservations',async()=>{
  const db=new PGlite();try{
   await db.exec("create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated;");
@@ -27,6 +27,13 @@ test('Postgres cancellation journal enforces tenant roles, replay, stale writes 
   await assert.rejects(as(staff,()=>append(null,0,100,'prepare',payload())),/denied/);
   await assert.rejects(as(owner,()=>append(null,0,100,'prepare',payload(),b)),/denied/);
   await assert.rejects(as(owner,()=>db.query("update public.one_off_bookings set status='cancelled' where id=$1",[booking])),/partial-service/);
+  for(const newStart of [undefined,null,'','2026-10-25T09:00:00','2026-10-25 09:00:00Z','2026-10-21T09:00:00+02:00']) {
+   const invalid={...payload(),action:'reschedule',newDateAccepted:true,newAgreedTotalCents:100000,newAgreementEvidence:'TEST replacement',newStart};
+   await assert.rejects(as(manager,()=>append(null,0,100,'prepare',invalid)),/replacement|timestamp/);
+  }
+  for(const patch of [{verifiedReceiptsCents:'100000'},{mandatoryRightsReviewed:'true'},{feeMustBeWaived:'false'},{holidays:[null]},{acceptanceEvidence:123},{acceptanceEvidence:'\u00a0'},{acceptanceEvidence:'😀'.repeat(1500)},{workers:[{id:staff,agreedCents:'30000',expenseCents:0}]},{requestedAt:'2026-10-22 09:00:00Z'}]) await assert.rejects(as(manager,()=>append(null,0,100,'prepare',{...payload(),...patch})));
+  assert.equal((await db.query('select count(*) n from public.cancellation_review_cases')).rows[0].n,0);
+  await assert.rejects(as(manager,()=>db.query("select public.append_cancellation_review($1,$2,null,0,$3,'prepare',$4)",[a,booking,'00000000-0000-0000-0000-000000000000',JSON.stringify(payload())])),/Invalid cancellation event/);
   const first=(await as(manager,()=>append(null,0,100,'prepare',payload()))).rows[0].id;
   assert.equal((await as(manager,()=>append(null,0,100,'prepare',payload()))).rows[0].id,first);
   await assert.rejects(as(manager,()=>append(first,1,101,'approve',{reason:'test'})),/Owner/);
@@ -35,11 +42,16 @@ test('Postgres cancellation journal enforces tenant roles, replay, stale writes 
   await as(owner,()=>append(first,1,101,'approve',{reason:'Reviewed synthetic case'}));
   await as(owner,()=>db.query("update public.one_off_bookings set status='cancelled' where id=$1",[booking]));
   const reserve={amountCents:60000,receiptReference:'TEST-PAY',route:'test-card',originalRoute:'test-card'};
-  await as(owner,()=>append(first,2,102,'reserve_refund',reserve));
+  const refundId='abcdefab-cdef-4abc-8def-abcdefabcdef';
+  await as(owner,()=>db.query("select public.append_cancellation_review($1,$2,$3,2,$4,'reserve_refund',$5)",[a,booking,first,refundId,JSON.stringify(reserve)]));
   await assert.rejects(as(owner,()=>append(first,3,103,'reserve_refund',reserve)),/exceeds/);
-  await as(owner,()=>append(first,3,104,'submit_refund',{refundId:id(102),reference:'TEST-SUBMITTED'}));
-  await assert.rejects(as(owner,()=>append(first,4,105,'release_refund',{refundId:id(102),reference:'uncertain'})),/uncertain/);
-  await as(owner,()=>append(first,4,106,'complete_refund',{refundId:id(102),reference:'TEST-RECEIVED'}));
+  await as(owner,()=>append(first,3,104,'submit_refund',{refundId:refundId.toUpperCase(),reference:'TEST-SUBMITTED'}));
+  await assert.rejects(as(owner,()=>append(first,4,105,'release_refund',{refundId,reference:'uncertain'})),/uncertain/);
+  await assert.rejects(as(owner,()=>append(first,4,107,'reserve_refund',reserve)),/exceeds/);
+  await as(owner,()=>append(first,4,106,'complete_refund',{refundId,reference:'TEST-RECEIVED'}));
+  const eventRows=(await as(owner,()=>db.query('select * from public.cancellation_review_events order by version'))).rows;
+  assert.equal(eventRows.find(e=>e.event_type==='submit_refund').payload.refundId,refundId);
+  assert.equal((await as(owner,()=>append(first,3,104,'submit_refund',{refundId:refundId.toUpperCase(),reference:'TEST-SUBMITTED'}))).rows[0].id,first);
   assert.equal((await as(staff,()=>db.query('select * from public.cancellation_review_events'))).rows.length,0);
   await assert.rejects(as(owner,()=>db.query('update public.cancellation_review_events set payload=$1',[{}])),/permission denied/);
   await assert.rejects(as(owner,()=>db.query('delete from public.cancellation_review_cases')),/permission denied/);
@@ -85,8 +97,8 @@ test('complete booking schema retains snapshots and only permits approved stoppi
   for(const status of ['confirmed','assigned','en_route','arrived','in_progress'])await db.query("update public.one_off_bookings set status=$2,assigned_staff=case when $2='assigned' then array[$3::uuid] else assigned_staff end,change_reason='Synthetic lifecycle' where id=$1",[booking,status,staff]);
   await db.exec('reset role;reset request.jwt.claim.sub');
   const before=(await db.query('select md5(to_jsonb(b)::text) h from public.one_off_bookings b')).rows[0].h;
-  const migration=await readFile(new URL('../supabase/migrations/20261022090011_t04_cancellation_reviews.sql',import.meta.url),'utf8');assert.equal(migration,await readFile(new URL('../database/cancellation-review-draft.sql',import.meta.url),'utf8'));
-  await db.exec(migration);assert.equal((await db.query('select md5(to_jsonb(b)::text) h from public.one_off_bookings b')).rows[0].h,before);
+  const migration=await readFile(new URL('../supabase/migrations/20261022090011_t04_cancellation_reviews.sql',import.meta.url),'utf8');
+  await db.exec(migration);const hardening=await readFile(new URL('../supabase/migrations/20261022101039_t04_cancellation_rpc_hardening.sql',import.meta.url),'utf8');assert.equal(hardening,await readFile(new URL('../database/cancellation-review-rpc-hardening.sql',import.meta.url),'utf8'));await db.exec(hardening);await db.exec(await readFile(new URL('../database/cancellation-review-rpc-event-filter.sql',import.meta.url),'utf8'));assert.equal((await db.query('select md5(to_jsonb(b)::text) h from public.one_off_bookings b')).rows[0].h,before);
   await db.exec('set role authenticated');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[owner]);
   await assert.rejects(db.query("update public.one_off_bookings set status='cancelled',change_reason='Synthetic stop' where id=$1",[booking]),/approved partial-service/);
   await db.query('insert into public.business_cancellation_review_policies(business_id,policy_version,approval_reference) values($1,$2,$3)',[a,cancellationPolicyVersion,'Synthetic approved policy']);

@@ -110,3 +110,11 @@ rollout does not backfill, reprice or enable any existing agreement.
 See `docs/evidence/stage1-browser-20261022.json` for scenario and role results. Dropdown preservation, cleaner shares, remaining refund and label associations were verified in the fixed app. CI 39757550206 passed. The 375px viewport has no horizontal overflow; visible totals, shares and owner controls fit. Fixture cleanup passed with zero retained QA business/cases/events/policies/reservations. All 18 original group fingerprints match. No Stage 2 work has started.
 
 Independent assurance remains NOT ASSESSED; these are implementer checks. PR #98 has no submitted review at evidence cutoff. The QA skill requires an independent review before representing the work as approved/ready and forbids AI self-review as independent verification. The evidence package is complete for that review. T04 remains In progress, pilot bookings 0/4, allowances Off and financial execution inactive.
+
+## Independent QA remediation
+
+The separate reviewer issued NO-GO on bf402ac: mixed UUID spelling bypassed refund-state tracking, and direct RPC payloads could persist cases that the app could not reconstruct. The original opinion is preserved in `docs/evidence/stage1-independent-qa-bf402ac.md`.
+
+The corrective writer canonicalizes refund IDs before replay/persistence, limits typed state lookup to refund transition events, and rejects unsupported event IDs, mismatched JSON types, malformed/zoned dates and empty Unicode-whitespace evidence. Evidence strings use a conservative 2000-byte bound. The original applied migration remains unchanged; corrective migrations are additive function replacements. Hosted versions are 20261022101454 and 20261022101621.
+
+All 22 rollback-only hosted checks pass. The original 18 data groups remain identical, and zero policies/cases/events are retained. Financial execution stays inactive. Desktop/375px browser evidence remains applicable because no UI or JavaScript changed. Final independent reassessment is pending the exact revised commit and CI; Stage 2 has not started. See `docs/evidence/stage1-rpc-hardening-20261022.json`.
