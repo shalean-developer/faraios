@@ -31,7 +31,7 @@
       "uncertain money stays reserved"
     ],
     "checks": 22,
-    "outcome": "PASS — rollback-only synthetic backend checks"
+    "outcome": "PASS \u2014 rollback-only synthetic backend checks"
   },
   "readback": {
     "writer_hash": "3d2c39be581c76e7fe76c32531d45e37",
@@ -119,5 +119,20 @@
   "financialExecution": "inactive",
   "allowances": "Off",
   "pilotCompleted": 0,
-  "independentReassessment": "pending exact final commit and CI"
+  "independentReassessment": "PASS for Stage1 synthetic staging acceptance on exact implementation1e0fbe8201d21d5853c65dcc216d8085c9fd52ea",
+  "ci": {
+    "commit": "1e0fbe8201d21d5853c65dcc216d8085c9fd52ea",
+    "runs": [
+      39762056663,
+      39762047580
+    ],
+    "conclusion": "success"
+  },
+  "localSuite": {
+    "tests": 301,
+    "passed": 300,
+    "failed": 0,
+    "skipped": 1
+  },
+  "report": "stage1-independent-qa-1e0fbe.md"
 }
