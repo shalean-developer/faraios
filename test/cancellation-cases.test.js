@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
 import {btree_gist} from '@electric-sql/pglite/contrib/btree_gist';
-import {cancellationPolicyVersion} from '../src/cancellation-review.js';
+import {cancellationPolicyVersion,cancellationEvent} from '../src/cancellation-review.js';
 import {renderCancellationCases,cancellationInput,readCancellationCase} from '../src/cancellation-cases.js';
 const id=n=>'20000000-0000-4000-8000-'+String(n).padStart(12,'0');
 const owner=id(1),manager=id(2),staff=id(3),a=id(10),b=id(20),booking=id(30);
@@ -51,6 +51,17 @@ test('Postgres cancellation journal enforces tenant roles, replay, stale writes 
 test('UI escapes evidence and does not offer owner approvals to managers',()=>{
  const view=renderCancellationCases({id:a,name:'<script>'});assert.doesNotMatch(view,/<script>/);assert.match(view,/No money is sent/);
  assert.throws(()=>cancellationInput(new URLSearchParams(),{time_zone:'UTC'}),/Johannesburg/);
+});
+test('review shows per-cleaner shares and unique labels across multiple refund controls',()=>{
+ let state=null,n=100;
+ const next=(type,p)=>state=cancellationEvent(state,{businessId:a,actorId:owner,role:'owner',expectedVersion:state?.version??0,key:id(n++),type,payload:p,at:'2026-10-22T12:00:00+02:00'});
+ next('prepare',payload());next('approve',{reason:'Synthetic review'});
+ for(let i=0;i<2;i++)next('reserve_refund',{amountCents:20000,receiptReference:'TEST-PAY',route:'test-card',originalRoute:'test-card'});
+ const html=renderCancellationCases({id:a,name:'Synthetic'},{owner:true,record:{id:id(500),version:state.version,state}});
+ const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.equal(new Set(ids).size,ids.length);
+ for(const match of html.matchAll(/<label for="([^"]+)"/g))assert.ok(ids.includes(match[1]));
+ assert.match(html,/Cleaner breakdown/);assert.match(html,/Compensation:/);assert.match(html,/SAST/);assert.match(html,/Available for another refund reservation/);assert.match(html,/600[.,]00/);
+ const manager=renderCancellationCases({id:a,name:'Synthetic'},{record:{id:id(500),version:state.version,state},owner:false});assert.doesNotMatch(manager,/Approve staging|Reserve simulated|Record simulated/);
 });
 test('reconstruction rejects incomplete or foreign event journals',async()=>{
  const rows=[{id:booking,business_id:a,version:1}];

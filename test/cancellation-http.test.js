@@ -22,6 +22,11 @@ test('cancellation HTTP prepares without changing booking, validates inputs, and
  assert.equal((await request(path,{method:'POST',body:f.toString()})).status,303);
  assert.equal(state.calls.length,1);assert.equal(state.calls[0].name,'append_cancellation_review');assert.equal(state.calls[0].p.p_business_id,business);assert.equal(state.calls[0].p.p_payload.originalStart,'2026-10-24T07:00:00Z');
  const bad=form();bad.delete('receipts');assert.equal((await request(path,{method:'POST',body:bad.toString()})).status,422);assert.equal(state.calls.length,1);
+ const preserved=form();for(const [k,v] of [['cause','business'],['case_action','reschedule'],['stage','started'],['waive','yes'],['replacement_accepted','yes']])preserved.set(k,v);
+ const invalid=await request(path,{method:'POST',body:preserved.toString()});assert.equal(invalid.status,422);const invalidHtml=await invalid.text();
+ for(const v of ['business','reschedule','started'])assert.match(invalidHtml,new RegExp('<option value="'+v+'" selected>'));
+ assert.match(invalidHtml,/<select id="cancel-waive" name="waive">[\s\S]*?<option value="yes" selected>/);
+ assert.match(invalidHtml,/<select id="cancel-replacement_accepted" name="replacement_accepted">[\s\S]*?<option value="yes" selected>/);
  assert.equal((await request(path,{method:'POST',body:f.toString(),origin:'https://foreign.invalid'})).status,403);
  assert.equal((await request(path,{method:'POST',body:f.toString(),type:'application/json'})).status,415);
  assert.equal((await request(path,{method:'POST',body:'x'.repeat(32769)})).status,413);
