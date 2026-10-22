@@ -28,20 +28,24 @@ Worker disputes remove only that correction from the eligible review path. Resol
 | Retained synthetic records | Final cleanup: 0 sources/items/events, QA business removed, original 18 fingerprints unchanged | Readback pass |
 | Desktop and authenticated worker path | Owner, fresh manager and own-worker flows; cross-worker denial; dispute/resolve/refreeze; R50-only simulation | Delivery browser checks pass |
 | Narrow-screen interaction | 375px visual and R20 correction-only simulation; scroll width 375px | Delivery browser checks pass |
-| Independent final review | Separate QA gate | NOT ASSESSED |
+| Independent final review | `docs/evidence/stage2-independent-qa-478076.md`; exact-head CI 39769866051 passed all three jobs | PASS for synthetic staging scope; owner decision separate |
 
 Evidence: `docs/evidence/stage2-staging-20261022.json`; reproducible rollback-only script `scripts/verify-adjustments-staging.sql`. No new security findings; existing advisories remain. Seven new indexes are expected to be unused while journal tables are empty.
 
 ## Browser delivery acceptance
 
-Desktop and 375px checks completed against the candidate. The disposable QA business exercised R50 correction-only simulation, missing-input/error retention, unsupported reductions, fresh manager role denial, own-worker review and cross-worker denial. A second source exercised dispute, resolution, renewed freeze and R20 simulation at 375px. Original snapshots remained unchanged. All fixtures were removed; the 18 original data-group counts/hashes match the pre-test baseline. Screenshots and results are in `docs/evidence/stage2-browser-20261022.json` and the adjacent `stage2-mobile-*.png` files. Independent QA remains NOT ASSESSED.
+Desktop and 375px checks completed against the candidate. The disposable QA business exercised R50 correction-only simulation, missing-input/error retention, unsupported reductions, fresh manager role denial, own-worker review and cross-worker denial. A second source exercised dispute, resolution, renewed freeze and R20 simulation at 375px. Original snapshots remained unchanged. All fixtures were removed; the 18 original data-group counts/hashes match the pre-test baseline. Screenshots and results are in `docs/evidence/stage2-browser-20261022.json` and the adjacent `stage2-mobile-*.png` files. Independent QA PASS is recorded in `docs/evidence/stage2-independent-qa-478076.md`; owner acceptance remains a separate decision.
 
 ## Recovery and scope limits
 
 Revert the candidate application to hide these routes while retaining additive review history. Do not drop audit history to undo an approved correction; prepare a linked correction under the same controls. No existing source data is rewritten by deployment. Before use elsewhere, verify schema/version/roles and original-data baseline rather than assuming the staging population applies.
 
-Stage 2 is In progress and is not accepted. T04 remains In progress, pilots 0/4, allowances Off and financial workflows inactive. Actual ledger/import integration and real settlement/clearing remain separate future gates; actual agreements, full pay and costs need verification before activation. PR #99 is stacked on PR #98 and remains draft pending acceptance.
+Stage 2 implementation and delivery staging tests are complete, with independent QA PASS for the synthetic review scope. Owner acceptance has not yet been recorded. T04 remains In progress, pilots 0/4, allowances Off and financial workflows inactive. Actual ledger/import integration and real settlement/clearing remain separate future gates; actual agreements, full pay and costs need verification before activation. PR #99 is stacked on PR #98 and is ready for owner review; no merge or financial activation is authorised by QA.
 
 ## Browser progress, 22 October 2026
 
 See `docs/evidence/stage2-browser-20261022.json`. Desktop correction and worker-review checks passed. A worker dispute removed the freeze; resolving it required a new freeze before simulation became available. The temporary test membership is restored to owner. The 375px visual and correction-only simulation checks passed. The two synthetic sources, three correction items and disposable QA business were removed. All 18 original data groups match their pre-test counts and hashes. No actual transfer or pay-status change occurred.
+
+## Independent QA handoff
+
+Separate reviewer `/root/stage2_qa` issued PASS against remote `478076ccbcced2b6018240a2ba0416051cfe10f3`, tree `559845458eb2eafff5daa404dc45395f58e3ce23`. The reviewer independently reproduced the suite and direct database adverse cases, verified hosted writer identity and cleanup, and corroborated all 18 original fingerprints. Exact-head CI 39769866051 passed 317 tests without skips. No material findings or conditions. This is an assurance recommendation, with owner acceptance still separate. Stage 3 monthly settlement controls are next and have not started.
