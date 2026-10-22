@@ -150,4 +150,22 @@ test('independent connections prevent shared-cleaner overlaps and duplicate recu
   allowanceWinner.child.stdin.end('commit;\n');const [won,lost]=await Promise.all([allowanceWinner.closed,allowanceRetry.closed]);assert.equal(won.code,0,won.stderr);assert.notEqual(lost.code,0);assert.match(lost.stderr,/40001/);
   assert.equal(sql(`select count(*)||':'||max(amount_cents) from public.supervisor_allowance_changes where business_id='${a}' and user_id='${staff}'`),'1:50000');
  }finally{for(const c of [allowanceWinner,allowanceRetry].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+
+ // Stage 1: two owner sessions cannot reserve the same remaining customer money.
+ sql(await readFile(new URL('../database/cancellation-review-draft.sql',import.meta.url),'utf8'));
+ const cancellationInput={policyVersion:'shalean-cancel-20261021-v1',agreementKind:'new_accepted',acceptanceEvidence:'TEST prospective acceptance',cause:'customer',action:'cancel',stage:'accepted',originalStart:sql(`select starts_at::text from public.one_off_bookings where id='${ba}'`),requestedAt:'2026-10-19T08:00:00+02:00',stageTimes:{accepted:'2026-10-18T08:00:00+02:00'},workers:[{id:staff,agreedCents:30000,expenseCents:0}],eligibleLabourCents:10000,reasonableLossCents:0,verifiedReceiptsCents:10000,performedServiceCents:0,completedRefundsCents:0,pendingRefundsCents:0,reviewedCustomerFeeCents:0,collectedPoolCents:0,mandatoryRightsReviewed:true,feeMustBeWaived:false,holidays:[]};
+ sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);insert into public.business_cancellation_review_policies(business_id,policy_version,approval_reference) values('${a}','shalean-cancel-20261021-v1','TEST owner decision');`);
+ const cancellationCase=sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);select public.append_cancellation_review('${a}','${ba}',null,0,'${id(900)}','prepare','${JSON.stringify(cancellationInput)}');`).split('\n').at(-1);
+ sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);select public.append_cancellation_review('${a}','${ba}','${cancellationCase}',1,'${id(901)}','approve','{"reason":"Synthetic approval"}');`);
+ const refundPayload=JSON.stringify({amountCents:7000,receiptReference:'TEST-PAY',route:'test-card',originalRoute:'test-card'});
+ const refundWinner=connect('t04_refund_winner');let refundRetry;
+ try{
+  refundWinner.child.stdin.write(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);select public.append_cancellation_review('${a}','${ba}','${cancellationCase}',2,'${id(902)}','reserve_refund','${refundPayload}');select 'REFUND_HELD';\n`);
+  for(let i=0;i<100&&!refundWinner.output().includes('REFUND_HELD');i++)await pause(25);assert.match(refundWinner.output(),/REFUND_HELD/);
+  refundRetry=connect('t04_refund_retry');refundRetry.child.stdin.end(`begin;set local lock_timeout='10s';set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);select public.append_cancellation_review('${a}','${ba}','${cancellationCase}',2,'${id(903)}','reserve_refund','${refundPayload}');commit;`);
+  let blocked=false;for(let i=0;i<50&&!blocked;i++){blocked=sql("select count(*) from pg_stat_activity where application_name='t04_refund_retry' and wait_event_type='Lock'")==='1';if(!blocked)await pause(25);}assert.equal(blocked,true,'Refund reservations must serialize on the case');
+  refundWinner.child.stdin.end('commit;\n');const [won,lost]=await Promise.all([refundWinner.closed,refundRetry.closed]);assert.equal(won.code,0,won.stderr);assert.notEqual(lost.code,0);assert.match(lost.stderr,/40001/);
+  assert.equal(sql(`select count(*) from public.cancellation_review_events where case_id='${cancellationCase}' and event_type='reserve_refund'`),'1');
+ }finally{for(const c of [refundWinner,refundRetry].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+
 });

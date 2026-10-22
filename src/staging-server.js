@@ -1,4 +1,5 @@
 import {readVatSettings,saveVatSettings} from './vat.js';
+import {listCancellationCases,readCancellationCase,appendCancellationCase,renderCancellationCases} from './cancellation-cases.js';
 import {readSupervisorAllowances,saveSupervisorAllowance,renderSupervisorAllowances,previewMonthlyEarnings,allowanceMonth} from './supervisor-allowances.js';
 import {parseEarningsRule,parseRand,listEarningsRules,saveEarningsRule,previewEarnings,renderEarningsRules,templateRule} from './earnings.js';
 import {listInvoices,readInvoice,bookingInvoice,accountingConnection,invoiceTotals,prepareInvoice,saveAccountingConnection,syncInvoice,renderInvoices} from './invoices.js';
@@ -46,6 +47,31 @@ export function createStagingServer({createClient,accountingWorker=null,accounti
       if(req.method==='GET'&&url.pathname==='/quote-detail.js')return send(200,await readFile(new URL('../public/quote-detail.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/style.css')return send(200,await readFile(new URL('../public/style.css',import.meta.url),'utf8'),'text/css');
       if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/'))return send(200,loginForm(''));
+      if(url.pathname==='/cancellations'&&['GET','POST'].includes(req.method)){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        let data=null;
+        if(req.method==='POST'){
+          if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
+          if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
+          let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>32768)return send(413,'Form too large','text/plain');}data=new URLSearchParams(body);
+        }
+        return await auth.withEarningsRules(id,url.searchParams.get('business'),req.method==='POST'&&data.get('action')!=='prepare',async(client,business,owner)=>{
+          headerBusiness=business;
+          const caseId=url.searchParams.get('case'),bookingId=url.searchParams.get('booking');
+          if(caseId&&bookingId)return send(400,'Choose one review','text/plain');
+          const record=caseId?await readCancellationCase(client,business.id,caseId):null;
+          if(caseId&&!record)return send(404,'Review unavailable','text/plain');
+          const booking=bookingId?await readBooking(client,business.id,bookingId):null;
+          if(bookingId&&!booking)return send(404,'Booking unavailable','text/plain');
+          const show=async options=>html('Cancellation reviews',renderCancellationCases(business,{rows:!record&&!booking?await listCancellationCases(client,business.id):[],booking,record,owner,...options}));
+          if(req.method==='GET')return send(200,await show({}));
+          try{
+            if(!booking&&!record)throw new Error('Choose a booking or review');
+            const saved=await appendCancellationCase(client,{businessId:business.id,booking,record,form:data});
+            return redirect('/cancellations?business='+encodeURIComponent(business.id)+'&case='+encodeURIComponent(saved));
+          }catch(error){return send(error.status??422,await show({message:error.message,error:true,values:data}));}
+        });
+      }
       if(url.pathname==='/supervisor-allowances'&&['GET','POST'].includes(req.method)){
         if(!await readIdentity(id)){clear();return redirect('/login');}
         activePath='/earnings-rules';
