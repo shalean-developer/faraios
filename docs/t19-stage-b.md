@@ -50,6 +50,8 @@ Review fixes: explicit non-null completion attempts; persistent quarantine acros
 
 ## Candidate results and recommendation
 
+Closeout update: see [complete logs, exact-commit evidence and CI proposal](evidence/t19-closeout/README.md). On target `9102b2a77b9f6981d4e6e6e60cad1398324b4b2d`, the controlled full Node 24 run passed 295/297 with zero failures and two explicit native skips; Stage B native acceptance separately passed 26/26. Log review identified a default-discovery defect in the standalone runner: candidate `d4643e244f5f9538264a5beec15b03984a437d32` renames it outside Node's test naming pattern and adds executable regression coverage. Full-run and independent reassessment evidence for that fix is in the closeout report. The other native test reproduced a Windows CRLF assertion mismatch and remains an outstanding gate. The earlier backup failure was not reproduced and its cause is still unknown. Accounting, backup and T04 logic remain unchanged. Local Stage B PASS; complete acceptance and merge readiness NO-GO. The table below preserves the earlier run rather than overwriting its failure record.
+
 Implementation candidate: `54b4ca8c8f0a66ac213e58bbab31210fe829d368`. [Separate draft PR #102](https://github.com/shalean-developer/faraios/pull/102) targets `codex/t19-research-architecture`; it contains no changes to T04 or the existing production/staging accounting runtime. Later evidence-only commits do not alter this tested implementation.
 
 | Check | Result |

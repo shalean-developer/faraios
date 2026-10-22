@@ -1,0 +1,39 @@
+T19 isolated PostgreSQL: 17.10
+▶ Stage B synthetic database/API/worker contracts
+  ✔ RLS and function ACLs deny foreign members, staff, platform and fabricated worker completion (70.3568ms)
+  ✔ concurrent enqueue returns one durable identity and forged worker contexts fail before egress (24.1607ms)
+  ✔ broad fake token still routes only to server-pinned business and immutable intent (53.06ms)
+  ✔ lost responses reconcile original identity without creating again; missing matches stay uncertain (29.3282ms)
+  ✔ concurrent claims, expired leases and stale finishes cannot replay dispatch (24.308ms)
+  ✔ HTTP uses trusted sessions and real DB roles; forged org/role fields never reach worker (265.3845ms)
+  ✔ membership revocation fences a previously valid queued actor (8.354ms)
+  ✔ disconnect before dispatch stops egress; immutable generation and historical operation prevent replay (34.4493ms)
+  ✔ disconnect after dispatch keeps late success uncertain; reauthorisation cannot move it (41.1292ms)
+  ✔ wrong organisation receipt quarantines connection and leaves no verified foreign receipt (23.6258ms)
+  ✔ duplicate provider matches require review and never retry synthetic creation (18.3577ms)
+✔ Stage B synthetic database/API/worker contracts (3155.9933ms)
+▶ Stage B native PostgreSQL roles, HTTP, concurrent claims and disconnect contracts
+  ✔ RLS and function ACLs deny foreign members, staff, platform and fabricated worker completion (2981.1446ms)
+  ✔ concurrent enqueue returns one durable identity and forged worker contexts fail before egress (554.0311ms)
+  ✔ broad fake token still routes only to server-pinned business and immutable intent (2996.3646ms)
+  ✔ lost responses reconcile original identity without creating again; missing matches stay uncertain (1816.9928ms)
+  ✔ concurrent claims, expired leases and stale finishes cannot replay dispatch (1772.2343ms)
+  ✔ HTTP uses trusted sessions and real DB roles; forged org/role fields never reach worker (2672.1098ms)
+  ✔ membership revocation fences a previously valid queued actor (873.1349ms)
+  ✔ disconnect before dispatch stops egress; immutable generation and historical operation prevent replay (3668.9125ms)
+  ✔ disconnect after dispatch keeps late success uncertain; reauthorisation cannot move it (1728.2109ms)
+  ✔ wrong organisation receipt quarantines connection and leaves no verified foreign receipt (1821.3948ms)
+  ✔ duplicate provider matches require review and never retry synthetic creation (1551.0282ms)
+  ✔ held native locks prove claim exclusion and both generation/dispatch race orderings (3556.8501ms)
+✔ Stage B native PostgreSQL roles, HTTP, concurrent claims and disconnect contracts (33094.9153ms)
+✔ synthetic vault authenticates tenant/generation context, coalesces refresh and has no real-secret input (1.9311ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 36698.7147
+T19_NATIVE_ACCEPTANCE_PASSED
+T19_DISPOSABLE_CLUSTER_CLEANED

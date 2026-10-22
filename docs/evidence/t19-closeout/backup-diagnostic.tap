@@ -1,0 +1,17 @@
+TAP version 13
+# T19_BACKUP_DIAGNOSTIC {"swapped":true,"code":"DUMP_ROLES_FAILED"}
+# Subtest: key boundary replacement stops before encryption and public key permissions fail retrieval
+ok 1 - key boundary replacement stops before encryption and public key permissions fail retrieval
+  ---
+  duration_ms: 25980.4656
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 26155.8276

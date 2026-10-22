@@ -1,0 +1,14 @@
+{
+  "tested_commit": "d4643e244f5f9538264a5beec15b03984a437d32",
+  "tested_tree": "ac722e0b5382632326ec982d723de9b17356f15e",
+  "node": "24.19.0",
+  "full_command": "node --test --test-concurrency=1 --test-reporter=tap",
+  "full_started_utc": "2026-10-22T21:03:05.1054855Z",
+  "full_log_completed_utc": "2026-10-22T21:09:49.7394329Z",
+  "full_tests": 297,
+  "pass": 295,
+  "fail": 0,
+  "skipped": 2,
+  "changes": "Stage B runner rename, package reference and new executable discovery regression only",
+  "environment_policy": "Same controlled shell as initial full run; no new application/dependency configuration"
+}
