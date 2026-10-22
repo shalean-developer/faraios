@@ -1,4 +1,5 @@
 import {readVatSettings,saveVatSettings} from './vat.js';
+import {readSupervisorAllowances,saveSupervisorAllowance,renderSupervisorAllowances,previewMonthlyEarnings,allowanceMonth} from './supervisor-allowances.js';
 import {parseEarningsRule,parseRand,listEarningsRules,saveEarningsRule,previewEarnings,renderEarningsRules,templateRule} from './earnings.js';
 import {listInvoices,readInvoice,bookingInvoice,accountingConnection,invoiceTotals,prepareInvoice,saveAccountingConnection,syncInvoice,renderInvoices} from './invoices.js';
 import {listQuotes,readQuote,quoteHandoff,quoteAcceptanceActor,createQuote,changeQuote,convertQuote,renderQuotes} from './quotes.js';
@@ -45,6 +46,37 @@ export function createStagingServer({createClient,accountingWorker=null,accounti
       if(req.method==='GET'&&url.pathname==='/quote-detail.js')return send(200,await readFile(new URL('../public/quote-detail.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/style.css')return send(200,await readFile(new URL('../public/style.css',import.meta.url),'utf8'),'text/css');
       if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/'))return send(200,loginForm(''));
+      if(url.pathname==='/supervisor-allowances'&&['GET','POST'].includes(req.method)){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        activePath='/earnings-rules';
+        let data=null;
+        if(req.method==='POST'){
+          if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
+          if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
+          let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>8192)return send(413,'Form too large','text/plain');}data=new URLSearchParams(body);
+        }
+        return await auth.withEarningsRules(id,url.searchParams.get('business'),req.method==='POST'&&data.get('action')!=='preview',async(client,business,owner)=>{
+          headerBusiness=business;
+          const saved=await readSupervisorAllowances(client,business.id);
+          const accounts=await staffAccounts(client,business.id),profiles=await listStaffRecords(client,business.id,'profile');
+          const userId=url.searchParams.get('staff');
+          if(userId&&!accounts.some(a=>a.user_id===userId)&&!saved.changes.some(r=>r.user_id===userId))return send(404,'Staff account unavailable','text/plain');
+          const show=options=>html('Supervisor allowances',renderSupervisorAllowances(business,{...saved,accounts,profiles},{owner,userId,...options}));
+          if(req.method==='GET')return send(200,show({message:url.searchParams.get('saved')==='1'?'Allowance change saved. No payment has been activated.':''}));
+          try{
+            if(!userId)throw new Error('Choose a staff account.');
+            if(data.get('action')==='save'){
+              await saveSupervisorAllowance(client,business.id,userId,data);
+              return redirect('/supervisor-allowances?business='+encodeURIComponent(business.id)+'&staff='+encodeURIComponent(userId)+'&saved=1');
+            }
+            if(data.get('action')!=='preview')throw new Error('Choose an allowance action.');
+            const month=data.get('preview_month');allowanceMonth(month);
+            const bookingCents=(data.get('booking_earnings')??'').trim()===''?null:parseRand(data.get('booking_earnings'));
+            const preview=previewMonthlyEarnings({businessId:business.id,userId,month,changes:saved.changes,bookingCents});
+            return send(200,show({month,preview}));
+          }catch(error){return send(error.status??422,show({values:data.get('action')==='save'&&error.status!==409?Object.fromEntries(data):null,message:error.message,error:true}));}
+        });
+      }
       if(url.pathname==='/earnings-rules'&&['GET','POST'].includes(req.method)){
         if(!await readIdentity(id)){clear();return redirect('/login');}
         // Preview is read-only, but saves require a freshly resolved owner membership.

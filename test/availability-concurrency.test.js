@@ -136,4 +136,18 @@ test('independent connections prevent shared-cleaner overlaps and duplicate recu
   }finally{for(const c of [winner,contender].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
  }
 
+ // T04 allowances: concurrent owner saves cannot overwrite a scheduled change.
+ sql(await readFile(new URL('../database/earnings-rules-draft.sql',import.meta.url),'utf8'));
+ sql(await readFile(new URL('../supabase/migrations/20261021223123_business_vat_settings.sql',import.meta.url),'utf8'));
+ sql(await readFile(new URL('../supabase/migrations/20261022070131_supervisor_monthly_allowances.sql',import.meta.url),'utf8'));
+ const nextMonth=sql("select (date_trunc('month',now() at time zone 'Africa/Johannesburg')+interval '1 month')::date::text");
+ const allowanceWinner=connect('t04_allowance_winner');let allowanceRetry;
+ try{
+  allowanceWinner.child.stdin.write(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);select public.configure_supervisor_allowance('${a}','${staff}',0,true,50000,'${nextMonth}','Winner');select 'ALLOWANCE_HELD';\n`);
+  for(let i=0;i<100&&!allowanceWinner.output().includes('ALLOWANCE_HELD');i++)await pause(25);assert.match(allowanceWinner.output(),/ALLOWANCE_HELD/);
+  allowanceRetry=connect('t04_allowance_retry');allowanceRetry.child.stdin.end(`begin;set local lock_timeout='10s';set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);select public.configure_supervisor_allowance('${a}','${staff}',0,false,0,'${nextMonth}','Stale contender');commit;`);
+  let blocked=false;for(let i=0;i<50&&!blocked;i++){blocked=sql("select count(*) from pg_stat_activity where application_name='t04_allowance_retry' and wait_event_type='Lock'")==='1';if(!blocked)await pause(25);}assert.equal(blocked,true,'Allowance retry must wait for the same business and staff scope');
+  allowanceWinner.child.stdin.end('commit;\n');const [won,lost]=await Promise.all([allowanceWinner.closed,allowanceRetry.closed]);assert.equal(won.code,0,won.stderr);assert.notEqual(lost.code,0);assert.match(lost.stderr,/40001/);
+  assert.equal(sql(`select count(*)||':'||max(amount_cents) from public.supervisor_allowance_changes where business_id='${a}' and user_id='${staff}'`),'1:50000');
+ }finally{for(const c of [allowanceWinner,allowanceRetry].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
 });
