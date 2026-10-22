@@ -106,3 +106,7 @@ the database review guard. Do not drop the guard while retaining that branch.
 Any database rollback requires restoring the exact captured validator definition
 and removing the new trigger together, under a separate reviewed change. Normal
 rollout does not backfill, reprice or enable any existing agreement.
+
+## Browser continuation on fc390fc
+
+See `docs/evidence/stage1-browser-20261022.json` for the scenario and role results. Dropdown preservation, cleaner shares, remaining refund and label associations were verified in the running fixed app. Latest CI 39757550206 passed. Narrow-screen visual acceptance and fixture cleanup/fingerprint comparison remain pending. Stage 1 remains open. Independent assurance is NOT ASSESSED; these checks are implementer verification. No Stage 2 work has started.

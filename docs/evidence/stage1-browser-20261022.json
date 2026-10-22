@@ -1,0 +1,40 @@
+{
+  "application_sha": "fc390fc2031c8ade3e3e7f52c0622a54eb34fb46",
+  "environment": "FaraiOS local staging 127.0.0.1:3101 and hosted staging xdmfyrsauvqznkloroxg",
+  "qa_business_id": "6d854558-fd39-4425-8a74-b40ca08c4dc7",
+  "synthetic_only": true,
+  "pilot_completed_count": 0,
+  "financial_execution": "inactive",
+  "checks": {
+    "completed_refund": "prepare/acknowledge/approve/reserve/submit/complete, R1950; prior application379931, persisted result read back on final application",
+    "missing_receipt": "native validation blocked blank; no invented zero",
+    "customer_ceiling": "R301 rejected against R300 whole-booking ceiling",
+    "over_reservation": "second R1 rejected after R1950 reserved",
+    "form_error_preservation": "business/started/yes rights/calendar/terms retained after rejected R1 charge; valid R0 subsequently saved",
+    "company_started": "R600 total compensation, R100 separate expenses, R1750 refundable after R500 services",
+    "early_reschedule": "R0 charge, R2250 credit, R0 balance, R250 refund on R2000 replacement",
+    "late_reschedule": "R300 charge, R1950 credit, R300 balance, R0 refund on R2250 replacement",
+    "control_labels": "all IDs unique and all label targets present on reviewed case",
+    "fresh_role_authorization": "owner form submitted after QA-only downgrade denied; case version1 unchanged",
+    "manager_read": "read permitted; zero owner approve controls",
+    "staff_read": "access denied; QA owner membership restored"
+  },
+  "ci": {
+    "run": 39757550206,
+    "conclusion": "success",
+    "sha": "fc390fc2031c8ade3e3e7f52c0622a54eb34fb46"
+  },
+  "local_tests": {
+    "discovered": 301,
+    "passed": 300,
+    "failed": 0,
+    "skipped": 1,
+    "skip_reason": "no local T16 disposable native database"
+  },
+  "pending": [
+    "narrow-screen visual acceptance",
+    "QA fixture cleanup then original18-group fingerprint comparison",
+    "independent assurance not assessed; implementer verification is not independent QA"
+  ],
+  "screenshot": "stage1-browser-desktop.jpg"
+}
