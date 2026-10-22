@@ -62,7 +62,7 @@ test('complete booking schema retains snapshots and only permits approved stoppi
  const db=new PGlite({extensions:{btree_gist}});try{
   await db.exec("create role anon;create role authenticated;create role service_role;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant usage on schema public to service_role;grant execute on function auth.uid() to authenticated;");
   for(const name of ['identity','audit','business-settings','catalogue','customers','bookings','bookings-context-hardening','cleaning-profiles','cleaning-assessments','cleaning-assessment-review-hardening','staff-teams','availability','recurring','quotes','quote-acceptance-actor','invoices'])await db.exec(await readFile(new URL('../database/'+name+'-draft.sql',import.meta.url),'utf8'));
-  await db.query("insert into auth.users values($1,'owner@test.invalid'),($2,'staff@test.invalid')",[owner,staff]);
+  await db.query("insert into auth.users values($1,'owner@qa.test'),($2,'staff@qa.test')",[owner,staff]);
   await db.query("insert into public.businesses(id,name,industry) values($1,'Synthetic','cleaning')",[a]);
   await db.query("insert into public.business_memberships(business_id,user_id,role) values($1,$2,'owner'),($1,$3,'staff')",[a,owner,staff]);
   await db.exec('set role authenticated');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[owner]);
@@ -84,5 +84,14 @@ test('complete booking schema retains snapshots and only permits approved stoppi
   await db.query("select public.append_cancellation_review($1,$2,$3,1,$4,'approve',$5)",[a,booking,prepared,id(101),JSON.stringify({reason:'Synthetic owner review'})]);
   await db.query("update public.one_off_bookings set status='cancelled',change_reason='Approved synthetic stop' where id=$1",[booking]);
   assert.equal((await db.query('select status,total_cents from public.one_off_bookings where id=$1',[booking])).rows[0].total_cents,100000);
+  await db.exec('reset role;reset request.jwt.claim.sub');
+  await db.query("insert into auth.users values($1,'manager@qa.test')",[manager]);
+  await db.query("insert into public.businesses(id,name,industry) values($1,'B','cleaning')",[b]);
+  await db.query("insert into public.business_memberships(business_id,user_id,role) values($1,$2,'manager')",[a,manager]);
+  let script=await readFile(new URL('../scripts/verify-cancellation-staging.sql',import.meta.url),'utf8');script=script.replaceAll('612be091-b1d7-4911-9c3b-143446a9fe27',a).replaceAll('0cc3f518-d64e-40c2-8817-bc14d1ef1420',b);
+  const originalAudit=(await db.query('select count(*)::int n from audit.events')).rows[0].n;
+  const results=await db.exec(script),acceptance=results.flatMap(r=>r.rows??[]).find(r=>r.acceptance)?.acceptance;
+  assert.ok(acceptance.checks>=15);assert.equal((await db.query('select count(*)::int n from public.businesses')).rows[0].n,2);
+  assert.equal((await db.query('select count(*)::int n from audit.events')).rows[0].n,originalAudit);
  }finally{await db.close();}
 });

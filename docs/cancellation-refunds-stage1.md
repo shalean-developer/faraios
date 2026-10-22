@@ -80,15 +80,24 @@ acceptance must use disposable QA data; real business policies remain unconfigur
 | Cutoff, customer ceiling/pool, company tiers, partial service, credit, missing evidence | `test/cancellation-review.test.js` | Local pass |
 | Owner/manager/staff, tenant, origin, stale-session and restore boundaries | `test/cancellation-http.test.js` | Local pass |
 | PostgreSQL grants/RLS, replay, stale writes, reservations and immutable history | `test/cancellation-cases.test.js` | Local pass |
-| Independent simultaneous refund reservations | Extended `test/availability-concurrency.test.js` | Requires native PostgreSQL CI; locally skipped without its disposable database |
-| Whole existing regression suite | `npm run check`; `npm test` | Re-run on final candidate |
-| Hosted migration, rollback-only QA and original fingerprints | FaraiOS staging only | Pending |
+| Independent simultaneous refund reservations | Extended `test/availability-concurrency.test.js` | Passed native PostgreSQL CI on application 90d2711; locally skipped without its disposable database |
+| Whole existing regression suite | `npm run check`; `npm test`; CI 39753982974 | Local 299 passed/one skip; native CI 300 passed/zero skips on application 90d2711 |
+| Hosted migration, rollback-only QA and original fingerprints | FaraiOS staging only | Applied 20261022091924; 17 checks passed, 18 original groups unchanged, zero retained policy/case/event/QA rows |
 | Authenticated desktop/narrow-screen browser acceptance | Candidate local staging app | Pending restart on candidate |
 | Payment provider execution, verified receipts, legal/pay applicability | Separate integration/activation gates | Excluded; inactive |
 
 Stage 1 is NOT DONE until final CI, hosted checks, browser checks and evidence
 readback pass. Do not begin Stage 2 or represent this self-implemented work as
 independent QA acceptance. No production deployment is included.
+
+Backend evidence is in `docs/evidence/stage1-staging-20261022.json`. The exact
+pre-change booking validator is retained separately for reviewed recovery.
+Security advisers reported no new findings; the existing restricted-table INFO
+items and leaked-password-protection warning remain. Four new unused-index INFO
+items are expected on empty tables; no new unindexed foreign keys were reported.
+The rollback-only acceptance script also passed against the complete disposable
+booking schema locally. Browser connection inspection did not complete; the
+candidate app must be restarted on the review branch before that gate can pass.
 
 ## Recovery
 
