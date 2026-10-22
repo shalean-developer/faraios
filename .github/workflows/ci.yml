@@ -31,6 +31,8 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run check
       - run: npm test
+      - name: T19 isolated PostgreSQL security acceptance
+        run: T19_PG_BIN="$(pg_config --bindir)" npm run test:accounting:postgres
   zoho-setup-windows:
     runs-on: windows-latest
     timeout-minutes: 5
