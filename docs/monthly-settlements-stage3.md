@@ -1,0 +1,46 @@
+# T04 Stage 3 — monthly settlement controls
+
+22 October 2026. Owner instructed “Go ahead” after independent Stage 2 PASS and the proposed Stage 3 scope. Stage 2 synthetic acceptance is recorded separately in `earnings-adjustments-stage2.md`. Requirements: approved PAY03, T04 Decisions row 61 in the supplied Build Plan and Progress Tracker; ADJ01 row 60 for linked corrections. No live Shalean, Bokkie or restore-workspace write is authorised.
+
+## Implemented candidate
+
+`/monthly-settlements` provides a persisted, synthetic-only review journal. Owners/managers prepare one statement per cleaner/business/closed Johannesburg calendar month. Unknown amounts stay blank and cannot create an amount-bearing line. The database independently checks business membership, own-worker access and role, typed bounded inputs, optimistic version and exact actor/role/payload replay. Clients have SELECT only under RLS. The private bounded writer owns changes and appends immutable actor/time events. Restore workspaces reject writes.
+
+Separate lines preserve visit earnings, company-funded cancellation protection, conditional customer-cancellation pools, reimbursements and approved Stage 2 correction deltas. Completed/cancelled booking scope and worker assignment are checked for booking categories. Manual synthetic amounts, prior-cleared declarations, source evidence and original period remain review snapshots, not real accrual or proof of actual pay. Collection evidence can transition a pending pool to collected; that invalidates freeze/approval and permits only the newly outstanding amount after renewed review. Uncollected pools are excluded, without being converted into company-funded protection.
+
+Statements cannot be prepared for the current or a future month. The target is the fifth calendar day after month end, backed up over weekends and explicitly reviewed non-banking dates. A supplied earlier applicable deadline takes priority. Banking-calendar and earlier-deadline evidence are explicit synthetic inputs; software does not invent public-holiday calendars, contractual terms or legal applicability. Review/approval must happen early enough for clearing; the target is available funds, not submission timing or a legal-payday certification.
+
+Owner freeze records the undisputed eligible total and versions of linked correction sources. Owner approval records reviewed payment-details evidence. Changes to lines, worker disputes or collected-pool state invalidate the freeze/approval. Linked Stage 2 changes prevent submission until a new monthly freeze/approval. Disputed lines and pending pools are excluded while other undisputed amounts remain eligible. A resolved dispute requires a renewed freeze; originals are never overwritten.
+
+A global source-occurrence claim prevents a source being included across monthly statements. Stage 2 correction claims bind the exact approved, frozen, undisputed, unsimulated delta and original worker/period. A database column/trigger prevents an independently claimed correction being simulated again through Stage 2. Row writes serialize claims against Stage 2 simulation, including stale-snapshot transactions. The original R2,500 is never included when the only remaining correction is R50.
+
+Only the exact outstanding statement amount can enter a synthetic submitted attempt. Submitted/unknown transfers block another attempt. Reconciliation requires explicit bank-clearing and allocation evidence and non-decreasing verified cleared cents. Partial never becomes full clearing; an uncertain remainder continues to block retry. A verified failed remainder allows only the remaining balance, preserving the prior cleared allocation. Resolved attempts are immutable. Cleaner statement/reference provision is recorded as evidence; no message or file is sent automatically.
+
+The module has `execution: disabled` and a non-removable synthetic-only table constraint. It calls no bank/provider, posts no earnings, changes no actual paid status and enables no business financial policy or allowance. These controls are not an actual payroll/settlement ledger and cannot be activated by changing a flag.
+
+## Validation map
+
+| Criterion | Evidence | Status |
+|---|---|---|
+| Closed period, fifth/preceding banking day and earlier deadline | Direct PGlite and hosted rollback tests | Delivery pass |
+| Role, tenant/worker isolation, fresh-role, CSRF/body/restore denial | Database and HTTP adverse tests | Delivery pass |
+| Freeze/approval, disputes, version/replay and originals | Database tests and hosted checks | Delivery pass |
+| Correction-only/global claim/Stage 2 guard and changed-source invalidation | Direct database tests | Delivery pass |
+| Partial/unknown/failed/cleared and exact outstanding retries | Database, summary/renderer and hosted tests | Delivery pass |
+| Competing submissions at READ COMMITTED / REPEATABLE READ | Native PostgreSQL test in CI | Pending CI |
+| Full local regression | 327 discovered; 326 passed; one native-DB skip | Delivery pass; native CI required |
+| Hosted rollback-only checks | 16 checks; 18 original data-group counts/hashes unchanged; 0 statements/events/claims retained | Delivery pass |
+| Desktop/375px actual app interactions | Requires candidate pull/restart | Pending |
+| Independent QA and owner acceptance | Separate gate | NOT ASSESSED |
+
+Applied FaraiOS staging migrations: `20261022113714` (additive tables/writer/claim guard), `20261022113930` (reviewed later pool collection; replaces writer without rewriting data). The draft is the assembled final schema; tests verify the migration chain produces its exact writer body. CLI telemetry was previously blocked in this environment, so migration files mirror actual versions returned by the connector, without retrying that CLI. Existing migration history is preserved.
+
+Evidence: `docs/evidence/stage3-staging-20261022.json`; reproducible rollback-only script `scripts/verify-monthly-settlements-staging.sql`. Existing security advisories remain; there are no new security findings. Six new indexes are expected unused while review tables are empty.
+
+## Acceptance handoff and recovery
+
+Pull `feat/t04-monthly-settlement-controls` and restart the local staging app. Verify an evidence-labelled synthetic closed-month statement through prepare, freeze, owner approval, submit, unknown/partial reconciliation, remaining-balance retry and statement/reference evidence. Check blank inputs, staff own review, cross-worker denial, desktop and 375px layout. Remove disposable fixtures and compare original fingerprints. No actual bank/payment operation is part of acceptance.
+
+Application rollback hides the review route while retaining additive audit data. Never erase an approved or cleared history to correct it. Claims protect sources from repetition; any future migration into a real ledger needs a separately reviewed mapping/reconciliation and must not reinterpret these synthetic records as liabilities. No production merge/release is included.
+
+Stage 3 remains In progress pending CI, browser acceptance and independent QA. T04 remains In progress; pilots 0/4; allowances Off; financial workflows inactive. Actual costs, worker agreement acceptance, full pay/classification/tax applicability, actual accrual/imports and clearing evidence remain separate financial activation/T04 requirements.

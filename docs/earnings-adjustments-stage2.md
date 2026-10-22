@@ -49,3 +49,7 @@ See `docs/evidence/stage2-browser-20261022.json`. Desktop correction and worker-
 ## Independent QA handoff
 
 Separate reviewer `/root/stage2_qa` issued PASS against remote `478076ccbcced2b6018240a2ba0416051cfe10f3`, tree `559845458eb2eafff5daa404dc45395f58e3ce23`. The reviewer independently reproduced the suite and direct database adverse cases, verified hosted writer identity and cleanup, and corroborated all 18 original fingerprints. Exact-head CI 39769866051 passed 317 tests without skips. No material findings or conditions. This is an assurance recommendation, with owner acceptance still separate. Stage 3 monthly settlement controls are next and have not started.
+
+## Owner decision
+
+22 October 2026: after the independent QA PASS and the explanation that owner acceptance precedes Stage 3, the owner instructed “Go ahead”. Recorded as acceptance of the Stage 2 synthetic increment and authority to start Stage 3. This does not authorise a merge, production release or financial activation. The original independent opinion remains unchanged.

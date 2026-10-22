@@ -171,7 +171,7 @@ test('independent connections prevent shared-cleaner overlaps and duplicate recu
  // Stage 2: source-row lock prevents two sessions simulating the same correction.
  sql(await readFile(new URL('../database/earnings-adjustments-draft.sql',import.meta.url),'utf8'));
  const adjSource=id(950),adjItem=id(952);
- const original={sourceId:adjSource,bookingId:ba,workerId:staff,originalVersion:3,originalCents:250000,originalPeriod:'2026-10',agreementEvidence:'SYNTHETIC terms',originalRecordEvidence:'SYNTHETIC original R2500'};
+ const original={sourceId:adjSource,bookingId:ba,workerId:staff,originalVersion:3,originalCents:250000,originalPeriod:'2026-07',agreementEvidence:'SYNTHETIC terms',originalRecordEvidence:'SYNTHETIC original R2500'};
  const adj=(version,key,type,payload)=>`select public.append_earnings_adjustment('${a}','${adjSource}',${version},'${key}','${type}','${JSON.stringify(payload)}');`;
  sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);`+adj(0,id(951),'register_source',original)+adj(1,adjItem,'propose',{sourceId:adjSource,kind:'reimbursement',deltaCents:5000,reason:'Missed R50',evidence:'TEST receipt',occurrenceReference:'missed1'})+adj(2,id(953),'approve',{adjustmentId:adjItem,reason:'Verified',originalVerificationEvidence:'Verified',entitlementReviewEvidence:'Reviewed'})+adj(3,id(954),'freeze_review',{adjustmentId:adjItem,reference:'TEST review'}));
  const adjustmentWinner=connect('t04_adjustment_winner');let adjustmentRetry;
@@ -183,5 +183,40 @@ test('independent connections prevent shared-cleaner overlaps and duplicate recu
   adjustmentWinner.child.stdin.end('commit;\n');const [won,lost]=await Promise.all([adjustmentWinner.closed,adjustmentRetry.closed]);assert.equal(won.code,0,won.stderr);assert.notEqual(lost.code,0);assert.match(lost.stderr,/40001/);
   assert.equal(sql(`select count(*) from public.adjustment_review_events where source_id='${adjSource}' and event_type='simulate_settlement'`),'1');
  }finally{for(const c of [adjustmentWinner,adjustmentRetry].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+
+ // Stage 3: competing statement submissions serialize under both isolation levels.
+ sql(await readFile(new URL('../database/monthly-settlements-draft.sql',import.meta.url),'utf8'));
+ for(const [index,isolation]of ['read committed','repeatable read'].entries()){
+  const sid=id(970+index),period=index?'2026-08':'2026-09';
+  const monthly=(version,key,type,payload)=>`select public.append_monthly_settlement('${a}','${sid}',${version},'${key}','${type}','${JSON.stringify(payload)}');`;
+  sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);`+monthly(0,id(980+index*10),'create',{workerId:staff,period,calendarEvidence:'TEST weekends calendar',closedDates:[]})+monthly(1,id(981+index*10),'add_line',{kind:'reimbursement',amountCents:5000,priorClearedCents:0,originalPeriod:period,sourceReference:'native-'+index,evidence:'SYNTHETIC receipt'})+monthly(2,id(982+index*10),'freeze',{reference:'TEST',fullPayReviewEvidence:'TEST'})+monthly(3,id(983+index*10),'approve',{reference:'TEST',paymentDetailsEvidence:'TEST'}));
+  const winner=connect('t04_monthly_winner');let contender;
+  try{
+   winner.child.stdin.write(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);`+monthly(4,id(984+index*10),'submit',{amountCents:5000,reference:'TEST-WINNER'})+`select 'MONTHLY_HELD';\n`);
+   for(let i=0;i<100&&!winner.output().includes('MONTHLY_HELD');i++)await pause(25);assert.match(winner.output(),/MONTHLY_HELD/);
+   contender=connect('t04_monthly_retry');contender.child.stdin.end(`begin isolation level ${isolation};set local lock_timeout='10s';set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);`+monthly(4,id(985+index*10),'submit',{amountCents:5000,reference:'TEST-RETRY'})+'commit;');
+   let blocked=false;for(let i=0;i<50&&!blocked;i++){blocked=sql("select count(*) from pg_stat_activity where application_name='t04_monthly_retry' and wait_event_type='Lock'")==='1';if(!blocked)await pause(25);}assert.equal(blocked,true,'Monthly submissions must serialize');
+   winner.child.stdin.end('commit;\n');const [won,lost]=await Promise.all([winner.closed,contender.closed]);assert.equal(won.code,0,won.stderr);assert.notEqual(lost.code,0);assert.match(lost.stderr,/40001/);
+   assert.equal(sql(`select count(*) from public.settlement_review_events where statement_id='${sid}' and event_type='submit'`),'1');
+  }finally{for(const c of [winner,contender].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+ }
+
+ // A monthly claim and Stage 2 simulation cannot consume the same delta, even with a stale snapshot.
+ const claimStatement=id(972);
+ const claimMonthly=(version,key,type,payload)=>`select public.append_monthly_settlement('${a}','${claimStatement}',${version},'${key}','${type}','${JSON.stringify(payload)}');`;
+ sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);`+claimMonthly(0,id(1000),'create',{workerId:staff,period:'2026-07',calendarEvidence:'TEST',closedDates:[]}));
+ for(const [index,isolation]of ['read committed','repeatable read'].entries()){
+  const item=id(1010+index*10),version=5+index*3;
+  sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);`+adj(version,item,'propose',{sourceId:adjSource,kind:'reimbursement',deltaCents:2000,reason:'TEST',evidence:'TEST',occurrenceReference:'native-monthly-'+index})+adj(version+1,id(1011+index*10),'approve',{adjustmentId:item,reason:'TEST',originalVerificationEvidence:'TEST',entitlementReviewEvidence:'TEST'})+adj(version+2,id(1012+index*10),'freeze_review',{adjustmentId:item,reference:'TEST'}));
+  const winner=connect('t04_monthly_claim');let contender;
+  try{
+   winner.child.stdin.write(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);`+claimMonthly(1+index,id(1013+index*10),'add_line',{kind:'correction',amountCents:2000,priorClearedCents:0,originalPeriod:'2026-07',sourceReference:'native-claim-'+index,evidence:'TEST',adjustmentId:item})+`select 'MONTHLY_CLAIM_HELD';\n`);
+   for(let i=0;i<100&&!winner.output().includes('MONTHLY_CLAIM_HELD');i++)await pause(25);assert.match(winner.output(),/MONTHLY_CLAIM_HELD/);
+   contender=connect('t04_claim_vs_simulate');contender.child.stdin.end(`begin isolation level ${isolation};set local lock_timeout='10s';set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);`+adj(version+3,id(1014+index*10),'simulate_settlement',{adjustmentId:item,amountCents:2000,reference:'TEST-CONTENDER'})+'commit;');
+   let blocked=false;for(let i=0;i<50&&!blocked;i++){blocked=sql("select count(*) from pg_stat_activity where application_name='t04_claim_vs_simulate' and wait_event_type='Lock'")==='1';if(!blocked)await pause(25);}assert.equal(blocked,true,'Claim must serialize against Stage 2 simulation');
+   winner.child.stdin.end('commit;\n');const [won,lost]=await Promise.all([winner.closed,contender.closed]);assert.equal(won.code,0,won.stderr);assert.notEqual(lost.code,0);assert.match(lost.stderr,isolation==='repeatable read'?/40001/:/monthly review/);
+   assert.equal(sql(`select monthly_claimed::text||':'||simulated::text from public.adjustment_review_items where id='${item}'`),'true:false');
+  }finally{for(const c of [winner,contender].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+ }
 
 });
