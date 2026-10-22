@@ -23,20 +23,25 @@ Worker disputes remove only that correction from the eligible review path. Resol
 | Original/link/version preservation; correction-only amounts | Core and PGlite reconstruction tests | Local pass |
 | Manager/owner/staff/customer boundaries; fresh roles; origin/body limits; restore denial | HTTP tests and direct PostgreSQL grants/RLS tests | Local pass |
 | Typed inputs, Unicode blanks, immutable client history, replay and stale writes | Core/database adverse tests | Local pass |
-| Competing simulations serialize | Native PostgreSQL test added to `availability-concurrency.test.js` | CI required; locally skipped without disposable native DB |
+| Competing simulations serialize | Native PostgreSQL test added to `availability-concurrency.test.js` | CI pass (run 39766529707); locally skipped without disposable native DB |
 | Hosted schema and rollback-only acceptance |13 checks on FaraiOS staging; original 18 fingerprints unchanged | Pass, delivery verification |
-| Retained synthetic records |0 sources/items/events; 0 active accounting | Readback pass |
-| Desktop/narrow-screen and authenticated worker path | Running local candidate | Pending restart/browser acceptance |
+| Retained synthetic records | Final cleanup: 0 sources/items/events, QA business removed, original 18 fingerprints unchanged | Readback pass |
+| Desktop and authenticated worker path | Owner, fresh manager and own-worker flows; cross-worker denial; dispute/resolve/refreeze; R50-only simulation | Delivery browser checks pass |
+| Narrow-screen interaction | 375px visual and R20 correction-only simulation; scroll width 375px | Delivery browser checks pass |
 | Independent final review | Separate QA gate | NOT ASSESSED |
 
 Evidence: `docs/evidence/stage2-staging-20261022.json`; reproducible rollback-only script `scripts/verify-adjustments-staging.sql`. No new security findings; existing advisories remain. Seven new indexes are expected to be unused while journal tables are empty.
 
-## Browser acceptance handoff
+## Browser delivery acceptance
 
-Pull `feat/t04-earnings-adjustments` and restart the local staging app. Verify a disposable synthetic source and R50 correction through prepare/owner approval/freeze/simulation, missing-input/error retention, unlawful/unsupported reductions, stale role/version denial, own-worker review, other-worker denial, and desktop/narrow-screen layout. Remove fixtures and recheck the 18 original data groups. Do not use a production account or record a real transfer. Keep source dates and amounts unknown unless expressly provided; examples remain labelled synthetic.
+Desktop and 375px checks completed against the candidate. The disposable QA business exercised R50 correction-only simulation, missing-input/error retention, unsupported reductions, fresh manager role denial, own-worker review and cross-worker denial. A second source exercised dispute, resolution, renewed freeze and R20 simulation at 375px. Original snapshots remained unchanged. All fixtures were removed; the 18 original data-group counts/hashes match the pre-test baseline. Screenshots and results are in `docs/evidence/stage2-browser-20261022.json` and the adjacent `stage2-mobile-*.png` files. Independent QA remains NOT ASSESSED.
 
 ## Recovery and scope limits
 
 Revert the candidate application to hide these routes while retaining additive review history. Do not drop audit history to undo an approved correction; prepare a linked correction under the same controls. No existing source data is rewritten by deployment. Before use elsewhere, verify schema/version/roles and original-data baseline rather than assuming the staging population applies.
 
 Stage 2 is In progress and is not accepted. T04 remains In progress, pilots 0/4, allowances Off and financial workflows inactive. Actual ledger/import integration and real settlement/clearing remain separate future gates; actual agreements, full pay and costs need verification before activation. PR #99 is stacked on PR #98 and remains draft pending acceptance.
+
+## Browser progress, 22 October 2026
+
+See `docs/evidence/stage2-browser-20261022.json`. Desktop correction and worker-review checks passed. A worker dispute removed the freeze; resolving it required a new freeze before simulation became available. The temporary test membership is restored to owner. The 375px visual and correction-only simulation checks passed. The two synthetic sources, three correction items and disposable QA business were removed. All 18 original data groups match their pre-test counts and hashes. No actual transfer or pay-status change occurred.
