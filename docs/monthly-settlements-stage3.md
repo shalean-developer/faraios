@@ -30,7 +30,8 @@ The module has `execution: disabled` and a non-removable synthetic-only table co
 | Competing submissions and Stage 2 claim contention at READ COMMITTED / REPEATABLE READ | Exact-head CI 39772984923, 327 tests passed / 0 skipped; all three jobs succeeded | Delivery pass |
 | Full local regression | 327 discovered; 326 passed; one native-DB skip | Delivery pass; native CI required |
 | Hosted rollback-only checks | 16 checks; 18 original data-group counts/hashes unchanged; 0 statements/events/claims retained | Delivery pass |
-| Desktop/375px actual app interactions | Requires candidate pull/restart | Pending |
+| Desktop actual app interactions | `stage3-browser-20261022.json`; R50 partial/unknown/retry flow and own-worker disputes | Delivery pass |
+| 375px actual app interactions | Pending browser resize | Pending |
 | Independent QA and owner acceptance | Separate gate | NOT ASSESSED |
 
 Applied FaraiOS staging migrations: `20261022113714` (additive tables/writer/claim guard), `20261022113930` (reviewed later pool collection; replaces writer without rewriting data). The draft is the assembled final schema; tests verify the migration chain produces its exact writer body. CLI telemetry was previously blocked in this environment, so migration files mirror actual versions returned by the connector, without retrying that CLI. Existing migration history is preserved.
@@ -46,3 +47,7 @@ Application rollback hides the review route while retaining additive audit data.
 Stage 3 remains In progress pending browser acceptance and independent QA. CI passed for implementation acce96907637a3e5de9489bf6979fc7a6f9a2117. T04 remains In progress; pilots 0/4; allowances Off; financial workflows inactive. Actual costs, worker agreement acceptance, full pay/classification/tax applicability, actual accrual/imports and clearing evidence remain separate financial activation/T04 requirements.
 
 22 October browser handoff: the local app tab was observed at `/login` after the restart. Sign-in is required before interactive acceptance. No persistent synthetic browser fixtures have been created.
+
+## Browser progress, 22 October 2026
+
+Desktop delivery checks passed at 1280px (document1265px): preparation/input retention, fresh-role denial, owner approval, excessive-amount denial, submitted/unknown/partial states, exact R20 remainder retry, total R50 clearing, statement-reference evidence, staff own-record isolation, dispute/resolution and renewed freeze. See `docs/evidence/stage3-browser-20261022.json` and `stage3-desktop-partial.png`. All 18 original groups match the baseline after excluding the disposable QA business. Two statements/two lines/eighteen events remain solely for the pending 375px check. The test membership is restored to owner. Fixture cleanup and a final complete baseline comparison remain required; no actual transfer occurred.
