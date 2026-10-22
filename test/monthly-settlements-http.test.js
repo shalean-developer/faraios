@@ -65,7 +65,7 @@ test('monthly reconciliation accepts dot and comma cents without allowing groupi
  const make=(cleared,a,b)=>{const form=new URLSearchParams({action:'reconcile',transfer_id:id(200),outcome:'partial',cleared,remaining_failed:'true',clearing_evidence:'SYNTHETIC',allocation_evidence:'SYNTHETIC',reference:'SYNTHETIC'});form.set('allocation_'+id(101),a);form.set('allocation_'+id(102),b);return form;};
  for(const amount of ['50','50.00','50,00']){
   const payload=monthlyPayload(make(amount,amount,'0,00'));
-  assert.equal(payload.clearedCents,5000);assert.equal(payload.allocations[id(101)],5000);assert.equal(payload.allocations[id(102)],0);
+  assert.equal(payload.clearedCents,5000);assert.equal(payload.allocations[id(101)],5000);assert.equal(payload.allocations[id(102)],0);assert.equal(Object.keys(payload.allocations).length,2);
  }
  for(const invalid of ['50,000','1,000.00','1.000,00','50,','abc','-','']){
   assert.throws(()=>monthlyPayload(make(invalid,'50.00','0.00')),/Rand amount/);
