@@ -1,5 +1,7 @@
 # T19 Stage B closeout — 22 October 2026
 
+**Later verification:** the [unchanged legacy native test passed on isolated Linux](../t19-linux/README.md), Node 24.22.1/PostgreSQL 17.10, 1/1 with zero skips. That closes the legacy native gap described historically below. The linked report supplies the current PASS/FAIL/NOT VERIFIED gate ledger. Windows failures remain unchanged evidence. CI and activation remain NO-GO; no T04 source changed.
+
 Initial target: `9102b2a77b9f6981d4e6e6e60cad1398324b4b2d`, draft [PR #102](https://github.com/shalean-developer/faraios/pull/102). Closeout fix candidate: `d4643e244f5f9538264a5beec15b03984a437d32`. The accounting implementation, existing test assertions, workflow configuration and T04 are unchanged. A reproduced Stage B test-discovery defect justified the small runner rename, package-command correction and new executable regression described below; independent reassessment is required for this change.
 
 ## Investigation

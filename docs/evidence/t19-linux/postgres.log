@@ -1,0 +1,69 @@
+2026-10-22 21:26:38.325 UTC [42] LOG:  starting PostgreSQL 17.10 (Debian 17.10-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-22 21:26:38.326 UTC [42] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2026-10-22 21:26:38.326 UTC [42] LOG:  listening on Unix socket "/tmp/faraios-t19-linux-0hSdCE/.s.PGSQL.5432"
+2026-10-22 21:26:38.328 UTC [45] LOG:  database system was shut down at 2026-10-22 21:26:38 UTC
+2026-10-22 21:26:38.335 UTC [42] LOG:  database system is ready to accept connections
+2026-10-22 21:26:40.809 UTC [76] ERROR:  One or more selected cleaners are busy. Choose another time or team.
+2026-10-22 21:26:40.809 UTC [76] CONTEXT:  PL/pgSQL function audit.reserve_booking_staff() line 13 at RAISE
+2026-10-22 21:26:40.809 UTC [76] STATEMENT:  update public.one_off_bookings set status='assigned',assigned_staff=array['00000000-0000-4000-8000-000000000003'::uuid],change_reason='Concurrent contender' where id='00000000-0000-4000-8000-000000000040' and version=2;
+2026-10-22 21:26:42.365 UTC [126] LOG:  process 126 still waiting for ShareLock on transaction 791 after 100.182 ms
+2026-10-22 21:26:42.365 UTC [126] DETAIL:  Process holding the lock: 123. Wait queue: 126.
+2026-10-22 21:26:42.365 UTC [126] CONTEXT:  while locking tuple (0,1) in relation "business_customers"
+	SQL statement "SELECT 1 from public.business_customers where id=p_customer_id and business_id=p_business_id and is_active for share"
+	PL/pgSQL function audit.create_quote(uuid,uuid,uuid,uuid,jsonb,jsonb,integer) line 14 at PERFORM
+	SQL function "create_quote" statement 1
+2026-10-22 21:26:42.365 UTC [126] STATEMENT:  select 'QUOTE:'||public.create_quote('00000000-0000-4000-8000-000000000010',gen_random_uuid(),'00000000-0000-4000-8000-000000000110','00000000-0000-4000-8000-000000000111','[{"catalogue_id":"00000000-0000-4000-8000-000000000112","quantity":1}]',null,120)::text;
+2026-10-22 21:26:42.406 UTC [126] LOG:  process 126 acquired ShareLock on transaction 791 after 141.491 ms
+2026-10-22 21:26:42.406 UTC [126] CONTEXT:  while locking tuple (0,1) in relation "business_customers"
+	SQL statement "SELECT 1 from public.business_customers where id=p_customer_id and business_id=p_business_id and is_active for share"
+	PL/pgSQL function audit.create_quote(uuid,uuid,uuid,uuid,jsonb,jsonb,integer) line 14 at PERFORM
+	SQL function "create_quote" statement 1
+2026-10-22 21:26:42.406 UTC [126] STATEMENT:  select 'QUOTE:'||public.create_quote('00000000-0000-4000-8000-000000000010',gen_random_uuid(),'00000000-0000-4000-8000-000000000110','00000000-0000-4000-8000-000000000111','[{"catalogue_id":"00000000-0000-4000-8000-000000000112","quantity":1}]',null,120)::text;
+2026-10-22 21:26:42.739 UTC [137] LOG:  process 137 still waiting for ShareLock on transaction 793 after 100.123 ms
+2026-10-22 21:26:42.739 UTC [137] DETAIL:  Process holding the lock: 133. Wait queue: 137.
+2026-10-22 21:26:42.739 UTC [137] CONTEXT:  while locking tuple (0,5) in relation "one_off_bookings"
+	SQL statement "select *        from public.one_off_bookings where business_id=p_business_id and id=p_booking_id for update"
+	PL/pgSQL function audit.prepare_invoice(uuid,uuid) line 5 at SQL statement
+	SQL function "prepare_invoice" statement 1
+2026-10-22 21:26:42.739 UTC [137] STATEMENT:  select 'RETRY:'||public.prepare_invoice('00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000030');
+2026-10-22 21:26:42.751 UTC [137] LOG:  process 137 acquired ShareLock on transaction 793 after 111.723 ms
+2026-10-22 21:26:42.751 UTC [137] CONTEXT:  while locking tuple (0,5) in relation "one_off_bookings"
+	SQL statement "select *        from public.one_off_bookings where business_id=p_business_id and id=p_booking_id for update"
+	PL/pgSQL function audit.prepare_invoice(uuid,uuid) line 5 at SQL statement
+	SQL function "prepare_invoice" statement 1
+2026-10-22 21:26:42.751 UTC [137] STATEMENT:  select 'RETRY:'||public.prepare_invoice('00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000030');
+2026-10-22 21:26:43.267 UTC [152] LOG:  process 152 still waiting for ShareLock on transaction 796 after 100.224 ms
+2026-10-22 21:26:43.267 UTC [152] DETAIL:  Process holding the lock: 149. Wait queue: 152.
+2026-10-22 21:26:43.267 UTC [152] CONTEXT:  while locking tuple (0,1) in relation "business_invoices"
+	SQL statement "select *        from public.business_invoices where business_id=p_business_id and id=p_invoice_id for update"
+	PL/pgSQL function audit.claim_invoice_sync(uuid,uuid,uuid,text) line 9 at SQL statement
+	SQL function "claim_invoice_sync" statement 1
+2026-10-22 21:26:43.267 UTC [152] STATEMENT:  select public.claim_invoice_sync('00000000-0000-4000-8000-000000000010','a049383d-351c-4421-af5e-0a9eafe726b7','00000000-0000-4000-8000-000000000001','123');
+2026-10-22 21:26:43.340 UTC [152] LOG:  process 152 acquired ShareLock on transaction 796 after 173.535 ms
+2026-10-22 21:26:43.340 UTC [152] CONTEXT:  while locking tuple (0,1) in relation "business_invoices"
+	SQL statement "select *        from public.business_invoices where business_id=p_business_id and id=p_invoice_id for update"
+	PL/pgSQL function audit.claim_invoice_sync(uuid,uuid,uuid,text) line 9 at SQL statement
+	SQL function "claim_invoice_sync" statement 1
+2026-10-22 21:26:43.340 UTC [152] STATEMENT:  select public.claim_invoice_sync('00000000-0000-4000-8000-000000000010','a049383d-351c-4421-af5e-0a9eafe726b7','00000000-0000-4000-8000-000000000001','123');
+2026-10-22 21:26:43.341 UTC [152] ERROR:  Accounting check already in progress
+2026-10-22 21:26:43.341 UTC [152] CONTEXT:  PL/pgSQL function audit.claim_invoice_sync(uuid,uuid,uuid,text) line 11 at RAISE
+	SQL function "claim_invoice_sync" statement 1
+2026-10-22 21:26:43.341 UTC [152] STATEMENT:  select public.claim_invoice_sync('00000000-0000-4000-8000-000000000010','a049383d-351c-4421-af5e-0a9eafe726b7','00000000-0000-4000-8000-000000000001','123');
+2026-10-22 21:26:43.949 UTC [171] ERROR:  Daily workload limit exceeded. Review the cleaner's schedule
+2026-10-22 21:26:43.949 UTC [171] CONTEXT:  PL/pgSQL function audit.reserve_booking_staff() line 16 at RAISE
+2026-10-22 21:26:43.949 UTC [171] STATEMENT:  update public.one_off_bookings set status='assigned',assigned_staff=array['00000000-0000-4000-8000-000000000003'::uuid],setup_minutes=0,travel_minutes=0,change_reason='Daily contender' where id='00000000-0000-4000-8000-000000000501';
+2026-10-22 21:26:44.443 UTC [187] ERROR:  could not serialize access due to concurrent update
+2026-10-22 21:26:44.443 UTC [187] CONTEXT:  SQL statement "insert into audit.cleaner_workload_locks(staff_id,revision) values(uid,1) on conflict(staff_id) do update set revision=audit.cleaner_workload_locks.revision+1"
+	PL/pgSQL function audit.reserve_booking_staff() line 8 at SQL statement
+2026-10-22 21:26:44.443 UTC [187] STATEMENT:  update public.one_off_bookings set status='assigned',assigned_staff=array['00000000-0000-4000-8000-000000000003'::uuid],setup_minutes=0,travel_minutes=0,change_reason='Daily contender' where id='00000000-0000-4000-8000-000000000503';
+2026-10-22 21:26:44.953 UTC [206] ERROR:  Allowance changed; reopen before saving
+2026-10-22 21:26:44.953 UTC [206] CONTEXT:  PL/pgSQL function audit.configure_supervisor_allowance(uuid,uuid,integer,boolean,integer,date,text) line 12 at RAISE
+	SQL function "configure_supervisor_allowance" statement 1
+2026-10-22 21:26:44.953 UTC [206] STATEMENT:  select public.configure_supervisor_allowance('00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000003',0,false,0,'2026-11-01','Stale contender');
+2026-10-22 21:26:45.034 UTC [42] LOG:  received fast shutdown request
+2026-10-22 21:26:45.034 UTC [42] LOG:  aborting any active transactions
+2026-10-22 21:26:45.037 UTC [42] LOG:  background worker "logical replication launcher" (PID 48) exited with exit code 1
+2026-10-22 21:26:45.037 UTC [43] LOG:  shutting down
+2026-10-22 21:26:45.037 UTC [43] LOG:  checkpoint starting: shutdown immediate
+2026-10-22 21:26:45.051 UTC [43] LOG:  checkpoint complete: wrote 1247 buffers (30.4%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.013 s, sync=0.001 s, total=0.014 s; sync files=436, longest=0.001 s, average=0.001 s; distance=6552 kB, estimate=6552 kB; lsn=0/1B52E50, redo lsn=0/1B52E50
+2026-10-22 21:26:45.057 UTC [42] LOG:  database system is shut down
