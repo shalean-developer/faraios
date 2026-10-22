@@ -27,7 +27,7 @@ The module has `execution: disabled` and a non-removable synthetic-only table co
 | Freeze/approval, disputes, version/replay and originals | Database tests and hosted checks | Delivery pass |
 | Correction-only/global claim/Stage 2 guard and changed-source invalidation | Direct database tests | Delivery pass |
 | Partial/unknown/failed/cleared and exact outstanding retries | Database, summary/renderer and hosted tests | Delivery pass |
-| Competing submissions at READ COMMITTED / REPEATABLE READ | Native PostgreSQL test in CI | Pending CI |
+| Competing submissions and Stage 2 claim contention at READ COMMITTED / REPEATABLE READ | Exact-head CI 39772984923, 327 tests passed / 0 skipped; all three jobs succeeded | Delivery pass |
 | Full local regression | 327 discovered; 326 passed; one native-DB skip | Delivery pass; native CI required |
 | Hosted rollback-only checks | 16 checks; 18 original data-group counts/hashes unchanged; 0 statements/events/claims retained | Delivery pass |
 | Desktop/375px actual app interactions | Requires candidate pull/restart | Pending |
@@ -43,4 +43,6 @@ Pull `feat/t04-monthly-settlement-controls` and restart the local staging app. V
 
 Application rollback hides the review route while retaining additive audit data. Never erase an approved or cleared history to correct it. Claims protect sources from repetition; any future migration into a real ledger needs a separately reviewed mapping/reconciliation and must not reinterpret these synthetic records as liabilities. No production merge/release is included.
 
-Stage 3 remains In progress pending CI, browser acceptance and independent QA. T04 remains In progress; pilots 0/4; allowances Off; financial workflows inactive. Actual costs, worker agreement acceptance, full pay/classification/tax applicability, actual accrual/imports and clearing evidence remain separate financial activation/T04 requirements.
+Stage 3 remains In progress pending browser acceptance and independent QA. CI passed for implementation acce96907637a3e5de9489bf6979fc7a6f9a2117. T04 remains In progress; pilots 0/4; allowances Off; financial workflows inactive. Actual costs, worker agreement acceptance, full pay/classification/tax applicability, actual accrual/imports and clearing evidence remain separate financial activation/T04 requirements.
+
+22 October browser handoff: the local app tab was observed at `/login` after the restart. Sign-in is required before interactive acceptance. No persistent synthetic browser fixtures have been created.

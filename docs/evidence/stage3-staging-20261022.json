@@ -195,10 +195,21 @@
   },
   "security": "No new findings; existing restricted RLS INFO and leaked-password protection warning unchanged",
   "performance": "Existing8 unindexed FKs unchanged; six new unused indexes expected on empty review tables",
-  "browserAcceptance": "Pending local app pull/restart",
+  "browserAcceptance": "Pending staging sign-in; local tab observed at /login",
   "independentQA": "NOT ASSESSED",
   "stage3": "In progress",
   "pilotCompleted": 0,
   "allowances": "Off",
-  "financialExecution": "inactive"
+  "financialExecution": "inactive",
+  "ci": {
+    "reviewed_head": "acce96907637a3e5de9489bf6979fc7a6f9a2117",
+    "run": 39772984923,
+    "status": "success",
+    "job_families": 3,
+    "tests": 327,
+    "passed": 327,
+    "failed": 0,
+    "skipped": 0,
+    "native_concurrency": "Competing monthly submissions and cross-stage correction claims passed under READ COMMITTED and REPEATABLE READ"
+  }
 }
