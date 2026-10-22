@@ -48,4 +48,21 @@ Coverage includes V03–V07, synthetic V09/V11–V17, V19/V20 and scoped V23 fro
 
 Review fixes: explicit non-null completion attempts; persistent quarantine across disconnect; auth.uid-bound public membership helper; retained validated late receipts; explicit worker-context business check; audit executor role. The initial Windows PostgreSQL runner hung on inherited process pipes after startup. It was corrected to wait for pg_ctl exit, the exact stopped test cluster was removed, and subsequent disposable runs completed and cleaned up normally. No other PostgreSQL instance was stopped or changed.
 
-Final candidate results and independent review are recorded in `docs/evidence/t19-stage-b-independent-qa.md` and the separate draft PR. Stage B acceptance does not mark T19 Done, clear the Zoho support blocker, approve Stage C or authorise a merge.
+## Candidate results and recommendation
+
+Implementation candidate: `54b4ca8c8f0a66ac213e58bbab31210fe829d368`. [Separate draft PR #102](https://github.com/shalean-developer/faraios/pull/102) targets `codex/t19-research-architecture`; it contains no changes to T04 or the existing production/staging accounting runtime. Later evidence-only commits do not alter this tested implementation.
+
+| Check | Result |
+|---|---|
+| Required Node 24.19.0, dedicated local PostgreSQL 17.10 acceptance | **26/26 PASS, zero failures/skips**, including PGlite and native HTTP/RLS/worker contracts, held-lock races and vault checks |
+| Independent agent rerun on exact implementation candidate | **26/26 PASS**, cleanup marker and absent disposable cluster verified; additional direct RLS/ACL/FK/immutability probes passed |
+| Full local Node 24 suite | **297 tests: 294 passed, 1 failed, 2 skipped**. Skips are the separately configured T16 native database and T19 native test; T19 native gate passed separately |
+| Sole broad-run failure | Unchanged backup test `key boundary replacement stops before encryption and public key permissions fail retrieval`: ENOENT for synthetic `moved-keys` directory after prolonged Windows execution. Cause not established |
+| Isolated rerun of that exact backup test | **1/1 PASS**, no source edit; this does not retroactively make the broad run fully green |
+| Repository syntax, new module/runner syntax, whitespace | PASS |
+| GitHub Actions | **BLOCKED before execution**. [PR run 39851035004](https://github.com/shalean-developer/faraios/actions/runs/39851035004) annotations state failed recent account payments or spending limit. No billing/settings changes made; no hosted CI test PASS claimed |
+| Live OAuth/Zoho, hosted migrations/API/RLS, real secrets, production | Not run; outside authorisation |
+
+**PASS for bounded local Stage B implementation and independent synthetic acceptance. NO-GO for complete CI-backed acceptance, merge, Stage C or accounting activation.** Resolve CI availability separately, then run the exact final candidate checks; retain the broad-run backup caveat until a clean relevant CI/full-suite result is available. D2 and the real provider/vault/session/accounting requirements remain open. No approval of these later actions is inferred.
+
+See [independent QA evidence](evidence/t19-stage-b-independent-qa.md). The independent agent uses the same tool environment and is not an external human security review. Stage B acceptance does not mark T19 Done, clear the Zoho support blocker, approve Stage C or authorise a merge.
