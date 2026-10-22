@@ -27,14 +27,14 @@ The module has `execution: disabled` and a non-removable synthetic-only table co
 | Freeze/approval, disputes, version/replay and originals | Database tests and hosted checks | Delivery pass |
 | Correction-only/global claim/Stage 2 guard and changed-source invalidation | Direct database tests | Delivery pass |
 | Partial/unknown/failed/cleared and exact outstanding retries | Database, summary/renderer and hosted tests | Delivery pass |
-| Competing submissions and Stage 2 claim contention at READ COMMITTED / REPEATABLE READ | Exact-head CI 39772984923, 327 tests passed / 0 skipped; all three jobs succeeded | Delivery pass |
-| Full local regression | 327 discovered; 326 passed; one native-DB skip | Delivery pass; native CI required |
+| Competing submissions and Stage 2 claim contention at READ COMMITTED / REPEATABLE READ | Earlier implementation CI 39772984923 passed; allocation candidate run39794334515 queued | Current candidate NOT VERIFIED |
+| Full local regression | Allocation candidate:328 discovered;327 passed;0 failed;one native-DB skip | Delivery pass; exact-candidate native CI required |
 | Hosted rollback-only checks | 16 checks; 18 original data-group counts/hashes unchanged; 0 statements/events/claims retained | Delivery pass |
-| Desktop actual app interactions | `stage3-browser-20261022.json`; R50 partial/unknown/retry flow and own-worker disputes | Delivery pass |
-| 375px actual app interactions | Layout/approval verified; user clicked final R30 simulation, browser + database readback verified exactly one submission | Delivery pass with assisted final click |
-| Independent QA and owner acceptance | Separate gate | NOT ASSESSED |
+| Desktop actual app interactions | Earlier `stage3-browser-20261022.json`; changed per-line allocation form requires new checks | Current changed form NOT ASSESSED |
+| 375px actual app interactions | Earlier layout/approval/submission verified; changed per-line allocation form requires new checks | Current changed form NOT ASSESSED |
+| Independent QA and owner acceptance | Initial NO-GO preserved; allocation defect closed by independent reassessment, browser/CI gates remain | NO-GO pending evidence; owner acceptance pending |
 
-Applied FaraiOS staging migrations: `20261022113714` (additive tables/writer/claim guard), `20261022113930` (reviewed later pool collection; replaces writer without rewriting data). The draft is the assembled final schema; tests verify the migration chain produces its exact writer body. CLI telemetry was previously blocked in this environment, so migration files mirror actual versions returned by the connector, without retrying that CLI. Existing migration history is preserved.
+Applied FaraiOS staging migrations: `20261022113714` (additive tables/writer/claim guard), `20261022113930` (reviewed later pool collection; replaces writer without rewriting data). Additional allocation migration `20261022141509` replaces the writer with per-line clearing controls. The draft is the assembled final schema; tests verify the migration chain produces its exact writer body. CLI telemetry was previously blocked in this environment, so migration files mirror actual versions returned by the connector, without retrying that CLI. Existing migration history is preserved.
 
 Evidence: `docs/evidence/stage3-staging-20261022.json`; reproducible rollback-only script `scripts/verify-monthly-settlements-staging.sql`. Existing security advisories remain; there are no new security findings. Six new indexes are expected unused while review tables are empty.
 
