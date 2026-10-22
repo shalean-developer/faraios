@@ -83,12 +83,10 @@ acceptance must use disposable QA data; real business policies remain unconfigur
 | Independent simultaneous refund reservations | Extended `test/availability-concurrency.test.js` | Passed native PostgreSQL CI on application 90d2711; locally skipped without its disposable database |
 | Whole existing regression suite | `npm run check`; `npm test`; CI 39753982974 | Local 300 passed/one skip after browser fixes; native CI 300 passed/zero skips on application 90d2711 |
 | Hosted migration, rollback-only QA and original fingerprints | FaraiOS staging only | Applied 20261022091924; 17 checks passed, 18 original groups unchanged, zero retained policy/case/event/QA rows |
-| Authenticated desktop/narrow-screen browser acceptance | Candidate local staging app | Partial: synthetic refund completed; final fixed-form/narrow-screen checks pending restart |
+| Authenticated desktop/narrow-screen browser acceptance | Candidate local staging app | Verified on fc390fc, desktop and 375px; see browser evidence |
 | Payment provider execution, verified receipts, legal/pay applicability | Separate integration/activation gates | Excluded; inactive |
 
-Stage 1 is NOT DONE until final CI, hosted checks, browser checks and evidence
-readback pass. Do not begin Stage 2 or represent this self-implemented work as
-independent QA acceptance. No production deployment is included.
+Technical implementation, CI, hosted checks, browser checks and evidence readback are complete. Formal independent assurance remains NOT ASSESSED: the implementer cannot provide independent QA acceptance. Stage 1 formal closure and Stage 2 progression remain pending that gate or an explicitly recorded authorised override. No production deployment is included.
 
 Backend evidence is in `docs/evidence/stage1-staging-20261022.json`. The exact
 pre-change booking validator is retained separately for reviewed recovery.
@@ -96,7 +94,7 @@ Security advisers reported no new findings; the existing restricted-table INFO
 items and leaked-password-protection warning remain. Four new unused-index INFO
 items are expected on empty tables; no new unindexed foreign keys were reported.
 The rollback-only acceptance script also passed against the complete disposable
-booking schema locally. Authenticated browser testing completed the synthetic prepare → acknowledge → approve → reserve → submit → complete path on 379931d. A missing receipt was blocked, a R301 charge rejected against a R300 ceiling, and a second reservation beyond R1950 rejected. No payment was executed. Browser testing exposed dropdown reset after validation errors and duplicate control IDs; both are fixed with regression coverage. Cleaner-level shares, remaining refundable balance and Johannesburg times are now visible. Final browser acceptance requires restarting on the fixed candidate; company/reschedule, narrow-screen and role checks remain pending. The disposable T04_CANCEL_BROWSER_QA_20261022 business is retained solely for that acceptance run and must be removed afterwards, followed by the original 18-group fingerprint comparison. It is not a completed pilot booking.
+booking schema locally. Authenticated browser testing completed the synthetic prepare → acknowledge → approve → reserve → submit → complete path on 379931d. A missing receipt was blocked, a R301 charge rejected against a R300 ceiling, and a second reservation beyond R1950 rejected. No payment was executed. Browser testing exposed dropdown reset after validation errors and duplicate control IDs; both are fixed with regression coverage. Cleaner-level shares, remaining refundable balance and Johannesburg times are now visible. Company cancellation, early and late rescheduling, fresh role checks, and 375px visual checks subsequently passed on fc390fc. The QA business and all its synthetic records/reservations were removed. All 18 original record groups match the original fingerprints exactly. No policy remains enabled. Synthetic tests are not completed pilot bookings.
 
 ## Recovery
 
@@ -109,4 +107,6 @@ rollout does not backfill, reprice or enable any existing agreement.
 
 ## Browser continuation on fc390fc
 
-See `docs/evidence/stage1-browser-20261022.json` for the scenario and role results. Dropdown preservation, cleaner shares, remaining refund and label associations were verified in the running fixed app. Latest CI 39757550206 passed. Narrow-screen visual acceptance and fixture cleanup/fingerprint comparison remain pending. Stage 1 remains open. Independent assurance is NOT ASSESSED; these checks are implementer verification. No Stage 2 work has started.
+See `docs/evidence/stage1-browser-20261022.json` for scenario and role results. Dropdown preservation, cleaner shares, remaining refund and label associations were verified in the fixed app. CI 39757550206 passed. The 375px viewport has no horizontal overflow; visible totals, shares and owner controls fit. Fixture cleanup passed with zero retained QA business/cases/events/policies/reservations. All 18 original group fingerprints match. No Stage 2 work has started.
+
+Independent assurance remains NOT ASSESSED; these are implementer checks. PR #98 has no submitted review at evidence cutoff. The QA skill requires an independent review before representing the work as approved/ready and forbids AI self-review as independent verification. The evidence package is complete for that review. T04 remains In progress, pilot bookings 0/4, allowances Off and financial execution inactive.

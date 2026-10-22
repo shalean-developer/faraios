@@ -17,7 +17,8 @@
     "control_labels": "all IDs unique and all label targets present on reviewed case",
     "fresh_role_authorization": "owner form submitted after QA-only downgrade denied; case version1 unchanged",
     "manager_read": "read permitted; zero owner approve controls",
-    "staff_read": "access denied; QA owner membership restored"
+    "staff_read": "access denied; QA owner membership restored",
+    "narrow_screen": "375px viewport; document width375, scroll width375; header/result/cleaner shares/owner controls visually checked; controls within viewport"
   },
   "ci": {
     "run": 39757550206,
@@ -32,9 +33,18 @@
     "skip_reason": "no local T16 disposable native database"
   },
   "pending": [
-    "narrow-screen visual acceptance",
-    "QA fixture cleanup then original18-group fingerprint comparison",
     "independent assurance not assessed; implementer verification is not independent QA"
   ],
-  "screenshot": "stage1-browser-desktop.jpg"
+  "screenshot": "stage1-browser-desktop.jpg",
+  "cleanup": {
+    "qa_businesses": 0,
+    "cases": 0,
+    "events": 0,
+    "enabled_review_policies": 0,
+    "qa_reservations": 0,
+    "original_record_groups": 18,
+    "fingerprint_mismatches": 0
+  },
+  "technical_staging_verification": "complete",
+  "mobile_screenshot": "stage1-browser-375px.jpg"
 }
