@@ -44,7 +44,7 @@ async function fixture(){
  const db=new PGlite();
  await db.exec("create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated;");
  for(const file of ['identity-draft.sql','audit-draft.sql','business-settings-draft.sql'])await db.exec(await readFile(new URL('../database/'+file,import.meta.url),'utf8'));
- await db.query("insert into auth.users values($1,'owner@test.invalid'),($2,'manager@test.invalid'),($3,'staff@test.invalid'),($4,'foreign@test.invalid'),($5,'other@test.invalid')",[owner,manager,staff,foreign,otherStaff]);
+ await db.query("insert into auth.users values($1,'owner@faraios.test'),($2,'manager@faraios.test'),($3,'staff@faraios.test'),($4,'foreign@faraios.test'),($5,'other@faraios.test')",[owner,manager,staff,foreign,otherStaff]);
  await db.query("insert into public.businesses(id,name,industry) values($1,'A','cleaning'),($2,'B','cleaning')",[a,b]);
  await db.query("insert into public.business_memberships(business_id,user_id,role) values($1,$3,'owner'),($1,$4,'manager'),($1,$5,'staff'),($2,$6,'owner'),($2,$5,'staff'),($2,$7,'staff')",[a,b,owner,manager,staff,foreign,otherStaff]);
  await db.exec(await readFile(new URL(migration,import.meta.url),'utf8'));
@@ -88,5 +88,20 @@ test('Postgres allowance RPC enforces owner/tenant/staff scope, future months an
  await db.query("update public.business_memberships set status='suspended' where business_id=$1 and user_id=$2",[a,staff]);await assert.rejects(save({version:3}),/active staff/);
  await db.query("update public.business_memberships set status='suspended' where business_id=$1 and user_id=$2",[a,owner]);await assert.rejects(save({version:3}),e=>e.code==='42501');
  assert.equal((await db.query('select count(*)::int n from public.supervisor_allowance_changes')).rows[0].n,4);
+ }finally{await db.close();}
+});
+
+test('rollback-only staging acceptance script passes on a disposable fixture and leaves no allowances or businesses behind',async()=>{
+ const {db}=await fixture();try{
+ await db.exec('create table public.business_accounting_connections(enabled boolean)');
+ let script=await readFile(new URL('../scripts/verify-supervisor-allowances-staging.sql',import.meta.url),'utf8');
+ script=script.replaceAll('612be091-b1d7-4911-9c3b-143446a9fe27',a).replaceAll('0cc3f518-d64e-40c2-8817-bc14d1ef1420',b);
+ const before=(await db.query('select count(*)::int n from audit.events')).rows[0].n;
+ const results=await db.exec(script);
+ const result=results.flatMap(r=>r.rows??[]).find(r=>r.acceptance)?.acceptance;
+ assert.ok(result.checks>=30);assert.equal(result.anonymous_context,'DENIED');
+ assert.equal((await db.query('select count(*)::int n from public.supervisor_allowance_changes')).rows[0].n,0);
+ assert.equal((await db.query('select count(*)::int n from public.businesses')).rows[0].n,2);
+ assert.equal((await db.query('select count(*)::int n from audit.events')).rows[0].n,before);
  }finally{await db.close();}
 });

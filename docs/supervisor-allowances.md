@@ -31,10 +31,23 @@ For rollback, restore the prior application code while retaining the additive sc
 | Booking pay and allowance shown separately; blanks stay unknown | HTML and HTTP preview tests | Passed locally |
 | Owner/manager/staff/foreign access, fresh membership, CSRF and size checks | HTTP tests and PostgreSQL grants/RLS/RPC tests | Passed locally |
 | Atomic audit, actor, scope, stale saves and direct-write denial | PostgreSQL integration tests | Passed locally |
-| Independent concurrent saves | Existing disposable Postgres CI integration suite extended | Requires CI; local database URL not supplied |
-| Full regression | `npm run check`; `npm test` | 280 passed, 1 existing integration test skipped locally before final concurrency extension |
-| Staging schema and backend enforcement | Pending bounded migration and rollback-only checks | Not yet run |
-| Authenticated desktop/mobile browser acceptance | Pending local candidate restart and browser availability | Not yet run |
+| Independent concurrent saves | Existing disposable Postgres CI integration suite extended | Passed in GitHub CI on b1c1c2d; local database URL not supplied |
+| Full regression | `npm run check`; `npm test`; GitHub CI | Local initial full run: 280 passed, 1 integration test skipped; final script and evidence added afterward, final CI tracked in PR97 |
+| Reproducible rollback-only acceptance script | Disposable PostgreSQL test and approved staging connector | 31 checks plus anonymous context denial passed; cleanup verified independently |
+| Staging schema and backend enforcement | Remote migration 20261022071727 and fresh readback | Passed; zero allowance rows and all ten protected record fingerprints unchanged |
+| Authenticated desktop/mobile browser acceptance | Candidate restart/sign-in needed on user's local app | Not run; connected Chrome tab claim timed out on focus emulation |
 | Financial activation / production | Explicitly excluded | No activation or production deployment |
 
-Gate: CONDITIONAL PASS for isolated implementation; staging and browser acceptance remain open. Final worker terms, pay safeguards, pilot actual costs and affordability remain separate T04 requirements. No allowance amount has been chosen for Shalean or Bokkie.
+## Staging record
+
+Applied the migration atomically only to `faraios-staging`, with five-second lock and 60-second statement timeouts and exact existing-business/disabled-accounting/schema guards. Source SHA-256: `833d7bf719ecab465ae3849d24313e8871d4e2f536abecdfb2edb4eb999be870`. Remote migration version: `20261022071727` (`supervisor_monthly_allowances`). The additive schema was installed while all allowance settings remained Off. The older local app can continue operating until the candidate is started; there is no financial worker to activate.
+
+The first acceptance request returned an invalid/expired connector request state without confirmed results. A fresh read found the original two businesses, zero allowance rows, 228 audit rows and no QA trigger or business. Only after that readback was the rollback-only script rerun. It passed all 31 named checks plus anonymous context denial. The subsequent independent read again found two businesses, zero allowances, 228 audit events and no QA trigger/business. No user accounts were created or existing memberships changed.
+
+Fingerprints for all saved bookings, quotes, invoices, recurring schedules, earnings rules, VAT settings, accounting connections, memberships, staff profiles and audit events exactly match the starting records. Counts remain 14 bookings, seven quotes, two invoices, two recurring schedules, six earnings rules, one VAT-Off policy, two disabled accounting connections, five memberships, two staff profiles and 228 audit events. Source agreements, payouts and live Shalean were never selected.
+
+Security advisors have no new findings. Existing informational restricted-table policies and the existing [leaked-password-protection warning](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) remain. Performance advisors retain eight pre-existing unindexed foreign keys and two older unused indexes, plus an expected INFO for the new unused actor foreign-key index on an empty allowance table. The actor index is intentionally retained for referential-integrity queries; this is not a missing access policy or security regression. See [database linter guidance](https://supabase.com/docs/guides/database/database-linter).
+
+To complete browser acceptance, stop the local staging app, fetch and switch to PR97's branch `feat/t04-supervisor-allowance`, then start it with Node 24. Sign in to the staging workspace and open Earnings rules → Supervisor allowances. Verify default Off, form feedback, monthly breakdown, change history and desktop/phone layout using a disposable QA business. Do not enable an allowance on Shalean/Bokkie or choose a real amount during acceptance. A real payout ledger, allowance accrual and payout display are not yet implemented; only the separate monthly planning preview is included.
+
+Gate: CONDITIONAL PASS for implementation and staging backend; authenticated browser acceptance remains open, so PR97 remains draft. Final worker terms, pay safeguards, pilot actual costs and affordability remain separate T04 requirements. No allowance amount has been chosen for Shalean or Bokkie. T04 remains In progress; financial workflows inactive.
