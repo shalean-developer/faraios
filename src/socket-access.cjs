@@ -34,21 +34,27 @@ exports.inspectSocketAccess=function(socketPath){
       result.supervisors.push({depth,uid,rootOwnedLsExecutable});pid=Number(status.match(/^PPid:\s+(\d+)/m)?.[1]??0);
     }catch{break;}
   }
-  try{
-    const executable=fs.statSync('/usr/bin/getfacl');
-    if(!executable.isFile()||executable.uid!==0||(executable.mode&0o022)!==0)return result;
-    let current=socketPath;
-    for(let depth=0;depth<32;depth++){
-      if(Date.now()>=deadline)throw new Error('Access metadata deadline');
+  result.socketPath=socketPath;
+  result.namespaces={};
+  for(const name of ['mnt','net','user'])try{result.namespaces[name]=fs.readlinkSync('/proc/self/ns/'+name);}catch{result.namespaces[name]='unavailable';}
+  result.aclTool={state:'unavailable'};
+  try{const st=fs.statSync('/usr/bin/getfacl');result.aclTool={state:st.isFile()&&st.uid===0&&(st.mode&0o022)===0?'ready':'untrusted',uid:st.uid,mode:(st.mode&0o7777).toString(8)};}catch{}
+  let current=socketPath,allAcls=true;
+  for(let depth=0;depth<32;depth++){
+    if(Date.now()>=deadline){result.failure='deadline';return result;}
+    try{
       const before=fs.lstatSync(current);
-      const response=spawnSync('/usr/bin/getfacl',['-acpn','--',current],{encoding:'utf8',timeout:Math.max(1,Math.min(2000,deadline-Date.now())),env:{PATH:'/usr/bin:/bin',LANG:'C',LC_ALL:'C'},maxBuffer:16384,stdio:['ignore','pipe','ignore']});
-      if(response.status!==0)throw new Error('Access ACL unavailable');
-      const acl=exports.parseAccessAcl(response.stdout),after=fs.lstatSync(current);
-      if(['dev','ino','uid','gid','mode'].some(k=>before[k]!==after[k]))throw new Error('Changing socket metadata');
-      result.chain.push({depth,uid:before.uid,gid:before.gid,mode:(before.mode&0o7777).toString(8),socket:before.isSocket(),directory:before.isDirectory(),symlink:before.isSymbolicLink(),acl});
-      if(current==='/'){result.complete=true;return result;}
+      const entry={depth,uid:before.uid,gid:before.gid,mode:(before.mode&0o7777).toString(8),socket:before.isSocket(),directory:before.isDirectory(),symlink:before.isSymbolicLink(),acl:null};
+      if(result.aclTool.state==='ready'){
+        const response=spawnSync('/usr/bin/getfacl',['-acpn','--',current],{encoding:'utf8',timeout:Math.max(1,Math.min(2000,deadline-Date.now())),env:{PATH:'/usr/bin:/bin',LANG:'C',LC_ALL:'C'},maxBuffer:16384,stdio:['ignore','pipe','ignore']});
+        if(response.status===0)try{entry.acl=exports.parseAccessAcl(response.stdout);}catch{entry.aclFailure='malformed';}
+        else entry.aclFailure='unavailable';
+      }else entry.aclFailure='tool-unavailable';
+      const after=fs.lstatSync(current);entry.stable=['dev','ino','uid','gid','mode'].every(k=>before[k]===after[k]);
+      result.chain.push(entry);if(!entry.acl||!entry.stable||entry.symlink)allAcls=false;
+      if(current==='/'){result.chainComplete=true;result.complete=allAcls;return result;}
       current=path.dirname(current);
-    }
-  }catch{}
-  return result;
+    }catch{result.failure='metadata-unavailable';return result;}
+  }
+  result.failure='depth-limit';return result;
 };
