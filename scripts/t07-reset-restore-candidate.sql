@@ -14,6 +14,9 @@ DECLARE
   expected text[] := ARRAY['business_accounting_connections','business_catalogue','business_customers','business_invoices','business_memberships','business_quotes','business_settings','businesses','customer_addresses','identity_audit','one_off_bookings','quote_invoice_handoffs','recurring_schedules','staff_profiles','staff_teams'];
   actual text[];
 BEGIN
+  IF current_setting('lock_timeout')<>'5s' OR current_setting('statement_timeout')<>'30s' THEN
+    RAISE EXCEPTION 'T07_TRANSACTION_TIMEOUT_CONFIGURATION_REQUIRED';
+  END IF;
   IF NOT pg_try_advisory_xact_lock(70720261023) THEN RAISE EXCEPTION 'T07_RESET_ALREADY_RUNNING'; END IF;
   PERFORM set_config('search_path','pg_catalog',true);
   IF current_database() <> 'postgres' OR current_user <> 'postgres' THEN
@@ -70,6 +73,10 @@ BEGIN
   END IF;
   -- Remove only application-owned triggers, constraints and defaults. RESTRICT
   -- refuses dependent objects elsewhere instead of removing them implicitly.
+  FOR r IN SELECT s.nspname,c.relname,p.polname FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid
+    JOIN pg_namespace s ON s.oid=c.relnamespace WHERE s.nspname IN ('public','audit') LOOP
+    EXECUTE format('DROP POLICY %I ON %I.%I',r.polname,r.nspname,r.relname);
+  END LOOP;
   FOR r IN SELECT s.nspname,c.relname,t.tgname FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid
     JOIN pg_namespace s ON s.oid=c.relnamespace WHERE NOT t.tgisinternal AND s.nspname IN ('public','audit') LOOP
     EXECUTE format('DROP TRIGGER %I ON %I.%I RESTRICT',r.tgname,r.nspname,r.relname);
