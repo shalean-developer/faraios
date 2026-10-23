@@ -4,10 +4,12 @@ export const stagingDatabase='https://xdmfyrsauvqznkloroxg.supabase.co';
 export const stagingProject='xdmfyrsauvqznkloroxg';
 const stagingPublishableKey='sb_publishable_DKtFa_piIBi4MppsyoyuUg_KuoqzlOU';
 const tables=new Map([
-  ...['business_memberships','businesses','business_accounting_connections','business_invoices','business_quotes','quote_invoice_handoffs','recurring_schedules','supervisor_allowance_changes','business_vat_settings'].map(t=>[t,['GET','HEAD']]),
+  ...['business_memberships','businesses','business_accounting_connections','business_invoices','business_quotes','quote_invoice_handoffs','recurring_schedules','supervisor_allowance_changes','business_vat_settings',
+    // T04 journals remain read-only through REST; audited RPCs own synthetic writes.
+    'cancellation_review_cases','cancellation_review_events','adjustment_review_sources','adjustment_review_events','settlement_review_statements','settlement_review_events'].map(t=>[t,['GET','HEAD']]),
   ...['business_settings','business_catalogue','business_customers','customer_addresses','business_earnings_rules','one_off_bookings','staff_profiles','staff_teams'].map(t=>[t,['GET','HEAD','POST','PATCH',...(t==='business_catalogue'?['DELETE']:[])]]),
 ]);
-const rpcs=new Set(['booking_context','calendar_window','staff_availability','staff_context','quote_acceptance_actor','create_quote','change_quote','convert_quote','create_recurring','change_recurring','generate_recurring','invoice_totals','prepare_invoice','configure_business_vat','configure_supervisor_allowance','supervisor_allowance_context']);
+const rpcs=new Set(['booking_context','calendar_window','staff_availability','staff_context','quote_acceptance_actor','create_quote','change_quote','convert_quote','create_recurring','change_recurring','generate_recurring','invoice_totals','prepare_invoice','configure_business_vat','configure_supervisor_allowance','supervisor_allowance_context','append_cancellation_review','append_earnings_adjustment','append_monthly_settlement']);
 
 export function assertHostedEnvironment(env=process.env){
   // Refuse credentials rather than silently loading a production/provider connection.
