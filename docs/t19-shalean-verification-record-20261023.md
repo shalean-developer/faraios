@@ -8,7 +8,7 @@
 - E2: [tracker T19 Evidence](https://docs.google.com/spreadsheets/d/1v6o8ZLMUdqze-5WICBUp5ebLmZPObSkrgBUAxXg79PI/edit#gid=1719202610), A4:B12, read23October; historical20October organisation/identity/diagnostic evidence.
 - E3: [historical accounting record](invoices-and-accounting.md), [provider confirmation](t19-provider-confirmation-20261023.md), owner-supplied ticket169559907 summary from Sanu Jose dated23October. Original support message not independently retrieved in this review.
 - E4: inspected `database/invoices-draft.sql`, `database/accounting-stage-b.sql`, `src/zoho-books.js`, `src/accounting-stage-b.js` and focused test sources on branch `codex/t19-provider-confirmation`, base `c8cab67`.
-- E5: browser inventory showed no existing Zoho tab. Attempt to open the Accounts page for identity verification was rejected by automatic approval review, citing prior no-Zoho-access instruction and private-session risk; no retry/workaround. Current Zoho UI identity/profile/permissions/invoice were not inspected. This does not prove an account is logged out or unavailable generally.
+- E5 (historical; browser access subsequently approved, see E7): browser inventory showed no existing Zoho tab. Attempt to open the Accounts page for identity verification was rejected by automatic approval review, citing prior no-Zoho-access instruction and private-session risk; no retry/workaround. Current Zoho UI identity/profile/permissions/invoice were not inspected. This does not prove an account is logged out or unavailable generally.
 - E6: [independent QA](evidence/t19-shalean-record/independent-qa.md), fresh synthetic regression and source review. Same host/tool environment, not an external human audit.
 
 Verified dates below refer only to the stated claim and evidence layer. A configured org pin is not a provider-verified org identity. A dash means no verification date, not an implicit pass.
@@ -40,7 +40,8 @@ Verified dates below refer only to the stated claim and evidence layer. A config
 | Current grant state | Unknown | NOT VERIFIED | No active grant independently established | — |
 | Historical diagnostic grant cleanup | Earlier newly issued refresh grants reported revoked | RECORDED — NOT REVERIFIED | E2; does not prove all grants absent | — |
 | Historical login candidate | faraios590@gmail.com | RECORDED — NOT REVERIFIED | E2 screenshots20October | — |
-| Current authenticated Zoho identity | Unknown | NOT VERIFIED | E5 | — |
+| Current browser Zoho Accounts identity | accounts@shalean.com; label Shalean Cleaning Services | VERIFIED | E7 Accounts UI only | 2026-10-23 13:14UTC |
+| Current authorised dedicated TEST identity | Unknown; browser account differs from historical candidate faraios590@gmail.com | NOT VERIFIED | E7; no TEST membership evidence | — |
 | Dedicated account's full organisation memberships | Unknown | NOT VERIFIED | E5 | — |
 | Exact Books role | Unknown | NOT VERIFIED | E5 | — |
 | Effective invoice permissions | Unknown | NOT VERIFIED | E5; OAuth scope is not the Books role | — |
@@ -90,7 +91,7 @@ The bounded Stage B synthetic implementation and the legacy staging adapter are 
 4. Identify an already-existing synthetic invoice in the verified TEST organisation only and record its ID, number, unique reference, synthetic customer ID, currency, status, total and ownership evidence. If none can be verified, retain every invoice field as NOT VERIFIED. Do not create or search production invoices.
 5. Provide evidence references and timestamps. Never send credentials, codes, keys, raw auth headers or customer data. Current record completion does not change memberships, permissions, grant state or connection enablement.
 
-Zoho UI inspection remains blocked in this session by automatic approval review. Any request to resume that inspection must explicitly resolve the earlier no-access restriction; no workaround or API diagnostic is authorised. Manual evidence can complete the remaining record without changing this session's access boundary.
+Historical hold, superseded by E7: Zoho UI inspection was blocked by automatic approval review. Any request to resume that inspection must explicitly resolve the earlier no-access restriction; no workaround or API diagnostic is authorised. Manual evidence can complete the remaining record without changing this session's access boundary.
 
 ## Remaining gates and recommendation
 
@@ -104,3 +105,13 @@ Open gates: current dedicated identity/membership/permissions; independent grant
 ## Independent QA result
 
 Independent agent source review and fresh synthetic regression: **45/45 focused tests passed;26/26 native PostgreSQL tests passed; zero failures/skips**, Node24.14.1/PostgreSQL17.10, disposable cleanup confirmed. Runtime/test sources remained at c8cab677f75ec07dccf608420872c50abbde725e; this update changes documentation/evidence only. See E6 for final table review and limits. These checks support bounded local isolation, not current Zoho identity or hosted release acceptance.
+
+## E7 — authorised browser follow-up, 23 October 2026
+
+After explicit owner approval for read-only Shalean TEST account/profile/membership/permission inspection, the browser opened `https://accounts.zoho.com/home`. It displayed account label **Shalean Cleaning Services** and login **accounts@shalean.com**. Observation recorded at13:14UTC /15:14SAST. This establishes the current browser account only, not its TEST or production membership. The historical TEST candidate remains faraios590@gmail.com.
+
+The prior automatic-review access hold is superseded by the new approval. The current blocker is account selection: the available browser identity differs from the historical TEST candidate and is not established as the dedicated TEST identity. Inspection stopped before opening Books, memberships or financial records. No sign-out, account switch, credential entry, OAuth, API diagnostic, financial access, permission change, merge or deployment occurred.
+
+**Next action:** the user makes the intended dedicated TEST account available in the browser, or explicitly identifies the current account as the intended TEST identity for this inspection. Then continue the already-approved read-only profile, membership and permission checks. Do not infer production access merely from the email address. Current TEST organisation name/active state/base currency, account memberships and exact permissions remain NOT VERIFIED. No new approval for the same read-only scope is needed once the correct session is available.
+
+T19 remains In progress; accounting activation NO-GO. This update is documentation only. The independent QA and regression results above describe the preceding review; no new test or independent-QA result is claimed for this browser observation.
