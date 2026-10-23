@@ -1,0 +1,8 @@
+{
+  "approvedHead": "81588da0de91e092463a18920f7c8522ec360c95",
+  "base": "651490e8b1e2ecd1815598d3aad7f1ebacaa3353",
+  "archiveSha256": "B1411634749D8988DD9376A72616ADB312867AFD89AD7C377FFEBC23D6FF0FF8",
+  "authorization": "User explicitly approved one bounded public TLS probe under reviewed PR103 plan in this conversation; no exception/merge/incident change",
+  "utc": "2026-10-23T07:48:26.0359739Z",
+  "probeInvocationsPlanned": 1
+}

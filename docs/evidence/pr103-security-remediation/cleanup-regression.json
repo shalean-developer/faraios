@@ -1,0 +1,26 @@
+[
+  {
+    "mode": "historical",
+    "containerId": "64d7aed8a9790207f1134f0565b94ff617dbaddf2b93e1d45ddd92025fe2f348",
+    "containerName": "/faraios-pr103-cleanup-historical-20261023112507720",
+    "image": "sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826",
+    "volumes": [
+      "1e760531b2253201a3824be632438a21b1bbe314f44f901d062f91ddda9dbe13"
+    ],
+    "capturedBeforeRemoval": true,
+    "remainingAfterCommand": 1,
+    "finalAbsent": true
+  },
+  {
+    "mode": "corrected",
+    "containerId": "a06ca89f01fe4275ab8eeb474ca37f728c9ba58f071dbf3ce381d74bae0ade97",
+    "containerName": "/faraios-pr103-cleanup-corrected-20261023112513438",
+    "image": "sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826",
+    "volumes": [
+      "a7125790a6e14784c99859ae52e1cd7072f6430aa1120db9af4991154d61711a"
+    ],
+    "capturedBeforeRemoval": true,
+    "remainingAfterCommand": 0,
+    "finalAbsent": true
+  }
+]

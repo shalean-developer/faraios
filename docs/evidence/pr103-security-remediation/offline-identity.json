@@ -1,0 +1,7 @@
+{
+  "sourceCommit": "947bb4ef534289c1d8112d82ef0a06034fda18f2",
+  "archiveSha256": "E3AE7BA77A0B9BB9AEBAC3ADDAEAF082E7462338983D41C8DAEE874D09316635",
+  "publicProbeOmitted": true,
+  "onlyTestCopyChange": "Replace one publicPoolerTLS invocation with explicit omitted marker",
+  "utc": "2026-10-23T11:26:54.0700348Z"
+}

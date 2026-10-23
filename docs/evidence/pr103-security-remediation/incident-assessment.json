@@ -1,0 +1,16 @@
+{
+  "incidentId": 38892014,
+  "occurrenceId": 306534652,
+  "status": "Triggered",
+  "classification": "Generic High Entropy Secret",
+  "source": "docs/evidence/pr103-public-tls/cleanup.json",
+  "line": 3,
+  "commit": "12592d1d62697f69f9d5f2b0dd2450938af664e0",
+  "occurrenceCount": 1,
+  "oldField": "ownedToken",
+  "newField": "dockerFixtureRunId",
+  "assessment": "Non-sensitive synthetic Docker resource identifier; separate from fixture password",
+  "detectedValueIncludedInThisAssessment": false,
+  "incidentMutation": false,
+  "authenticatedUiInspectionUtc": "2026-10-23T11:24:32.1851397Z"
+}

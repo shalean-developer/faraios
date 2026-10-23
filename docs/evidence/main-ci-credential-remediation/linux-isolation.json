@@ -1,0 +1,27 @@
+{
+  "autoRemove": true,
+  "memory": 4294967296,
+  "mounts": [
+    {
+      "Type": "volume",
+      "Name": "971ca1db10580be384173c4061d93390d278d84ee5ea52c1d2a9a41c2bca660b",
+      "Source": "/var/lib/docker/volumes/971ca1db10580be384173c4061d93390d278d84ee5ea52c1d2a9a41c2bca660b/_data",
+      "Destination": "/var/lib/postgresql/data",
+      "Driver": "local",
+      "Mode": "",
+      "RW": true,
+      "Propagation": ""
+    }
+  ],
+  "image": "sha256:78ebef4f8f85556c517df7fafff0901b06ad9e2bb387c2ca099db48332d41f80",
+  "user": "postgres",
+  "capDrop": [
+    "ALL"
+  ],
+  "ports": {},
+  "securityOpt": [
+    "no-new-privileges"
+  ],
+  "cpus": 2000000000,
+  "network": "none"
+}
