@@ -1,5 +1,9 @@
 # T13 — Customers and addresses
 
+## Customer history follow-up — 23 October 2026
+
+Customer details now include a read-only booking history for office owners/managers, filtered by business and customer ID before limiting. It shows the latest 200 scheduled visits, including upcoming/completed/cancelled visits, with an explicit older-visits notice when needed. Inactive customers retain history; links open existing business-scoped booking details. No portal access, payments, schema or policies changed. Local synthetic verification and independent QA are recorded in the [master-plan reassessment](operational-mvp-reassessment-20261023.md); browser/hosted acceptance of this increment remains separate. Earlier acceptance and scope statements below are retained as history.
+
 Owner authorised continuation after T12 acceptance on 19 October 2026. Staging-only implementation; no production import or identity linking.
 
 Owners and managers can create and edit business-owned customer names, optional email/phone, private office notes, active/inactive state and multiple addresses. Each address has a label, street address, suburb, city, postal code and private access instructions. Deactivate records to retain history; no client delete grant is provided. Shared contact details do not automatically identify or merge customers across businesses.
