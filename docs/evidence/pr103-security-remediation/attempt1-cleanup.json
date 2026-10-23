@@ -1,0 +1,10 @@
+{
+  "attempt": 1,
+  "capturedFixtures": 4,
+  "remainingCapturedContainers": 0,
+  "capturedVolumes": 4,
+  "remainingCapturedVolumes": 0,
+  "wrapperExit": 127,
+  "allOfflineAssertionsPassed": true,
+  "cause": "Operator rewrote active wrapper during Bash execution; subsequent trailing-fragment error is consistent with shifted read offset, not independently proven from log alone"
+}

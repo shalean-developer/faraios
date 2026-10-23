@@ -10,7 +10,7 @@
   "oldField": "ownedToken",
   "newField": "dockerFixtureRunId",
   "assessment": "Non-sensitive synthetic Docker resource identifier; separate from fixture password",
-  "displayedDetectedValue": false,
+  "detectedValueIncludedInThisAssessment": false,
   "incidentMutation": false,
   "authenticatedUiInspectionUtc": "2026-10-23T11:24:32.1851397Z"
 }
