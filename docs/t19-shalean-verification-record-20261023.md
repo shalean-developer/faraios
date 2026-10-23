@@ -27,9 +27,9 @@ Verified dates below refer only to the stated claim and evidence layer. A config
 | Current browser-confirmed Books organisation ID | 943440851 | VERIFIED | E8 Books organisation listing and account panel; not API verification | 2026-10-23 13:20UTC |
 | Historical exact organisation name | FaraiOS - Shalean TEST | RECORDED — NOT REVERIFIED | E2/E3 historical20October evidence | — |
 | Current exact organisation name | FaraiOS - Shalean TEST | VERIFIED | E8 Books listing and header | 2026-10-23 13:20UTC |
-| Organisation active state | Unknown | NOT VERIFIED | E5 | — |
-| Expected base currency | ZAR | PROPOSED | E3 manifest expectation | — |
-| Actual configured Books base currency | Unknown | NOT VERIFIED | No provider profile evidence | — |
+| Organisation active state | Unknown; no explicit organisation active-status field visible | NOT VERIFIED | E9 profile screenshot; user Active and trial labels are not organisation status | — |
+| Expected base currency | ZAR; now corroborated by configured base currency | VERIFIED | E9 currencies and profile screenshots | 2026-10-23 screenshot review |
+| Actual configured Books base currency | ZAR — South African Rand; symbol R | VERIFIED | E9 Base Currency label and profile ZAR field | 2026-10-23 screenshot review |
 | Configured connection alias / non-secret lookup reference | FARAIOS_SHALEAN_TEST | VERIFIED | E1 credential_key; not proof of stored credentials | 2026-10-23 13:06:52UTC |
 | Configured API host | https://www.zohoapis.com | VERIFIED | E1 | 2026-10-23 13:06:52UTC |
 | Environment / enabled | staging / false | VERIFIED | E1 | 2026-10-23 13:06:52UTC |
@@ -43,8 +43,11 @@ Verified dates below refer only to the stated claim and evidence layer. A config
 | Current browser Zoho Accounts identity | faraios590@gmail.com; User ID943476475 | VERIFIED | E8 Accounts profile and Books account panel | 2026-10-23 13:20UTC |
 | Current authorised dedicated TEST identity | faraios590@gmail.com; owner-selected TEST session | VERIFIED | E8; user confirmed switch, UI identity and membership match | 2026-10-23 13:20UTC |
 | Current Books organisation membership list | My Organizations 1: FaraiOS - Shalean TEST943440851 only | VERIFIED | E8 Books Manage Organizations page | 2026-10-23 13:20UTC |
-| Exact Books role | Unknown; Users/Roles settings not exposed in observed navigation | NOT VERIFIED | E8 | — |
-| Effective invoice permissions | Unknown; no permission matrix exposed or action tested | NOT VERIFIED | E8; menu visibility is not a permissions test | — |
+| Exact Books role | FaraiOS TEST Invoice Reader | VERIFIED | E9 Users and role screenshots | 2026-10-23 screenshot review |
+| Configured invoice permissions | View selected; Create, Edit, Delete, Approve, Communication, Void invoices, Write Off invoices, Edit and Delete approved Invoices unselected | VERIFIED | E9 role matrix and More Permissions; configuration evidence only | 2026-10-23 screenshot review |
+| Provider API enforcement of invoice permissions | Not tested | NOT VERIFIED | Screenshots are not an enforcement test | — |
+| TEST user status | faraios590@gmail.com: Active | VERIFIED | E9 Users list; user status only | 2026-10-23 screenshot review |
+| TEST administrator role/status | accounts@shalean.com: Admin, Super Admin designation, Active | VERIFIED | E9 Users list in Shalean TEST | 2026-10-23 screenshot review |
 | Production/other-business Books memberships shown | None; current Books list has one TEST organisation only | VERIFIED | E8; bounded to current Books UI list, not all Zoho products/grants | 2026-10-23 13:20UTC |
 | Historical server client reference/type | FaraiOS Shalean TEST; Server-based; exact recorded ID below | RECORDED — NOT REVERIFIED | E2 | — |
 | Historical public client ID | 1000.ET7LNPRV6W7EM2HLL35E2X38RKEGVF | RECORDED — NOT REVERIFIED | E2 attempt B | — |
@@ -76,7 +79,7 @@ The bounded Stage B synthetic implementation and the legacy staging adapter are 
 | Required property | Assessment and remaining limit |
 |---|---|
 | Immutable business/org association | Stage B enforces immutable connection identity. Legacy business identity is immutable, but owner configuration can change org/alias before provider bindings exist; afterwards the configure function pins them. Do not claim unconditional legacy org immutability. |
-| Business-scoped credentials/permissions | Legacy operator-provisioned business/org/region/environment pins and DB membership checks exist. Stage B authenticates business/connection/generation/org context in synthetic encrypted envelopes. Actual credential custody, effective Zoho permissions and independent real grants remain unverified. |
+| Business-scoped credentials/permissions | Legacy operator-provisioned business/org/region/environment pins and DB membership checks exist. Stage B authenticates business/connection/generation/org context in synthetic encrypted envelopes. Configured invoice permissions are now evidenced by E9; actual provider enforcement, credential custody and independent real grants remain unverified. |
 | Organisation substitution | Existing/new synthetic tests reject foreign business/connection and org pin changes before egress. Legacy internal query spreading could allow a future reserved-key override; current controlled callers are not proof of an exploit, but hardening remains required. |
 | Generation/revocation | Stage B generation fencing and disconnect races are tested. Legacy metadata version is not generation; cache lacks generation fencing. Real provider revocation/current-grant state not assessed. Local disable cannot recall already-dispatched requests. |
 | Independent business ownership | Hosted metadata confirms two distinct business/org/alias rows, both disabled. This is not verification of the Zoho accounts or grant ownership. |
@@ -93,11 +96,11 @@ The bounded Stage B synthetic implementation and the legacy staging adapter are 
 
 Historical hold, superseded by E7: Zoho UI inspection was blocked by automatic approval review. Any request to resume that inspection must explicitly resolve the earlier no-access restriction; no workaround or API diagnostic is authorised. Manual evidence can complete the remaining record without changing this session's access boundary.
 
-## Remaining gates and recommendation
+## Remaining gates and recommendation (current after E9)
 
 A further controlled read-only V01 test is **necessary before connection acceptance**, once independently recorded TEST identity/profile and existing synthetic invoice expectations are available. It must prove profile and known invoice identity using the reviewed four-GET manifest, not an empty list or locally copied organisation field. A separately approved read-only probe and credential lifecycle are required; the older setup/sync helpers must not be run as substitutes. No such test was executed here.
 
-Open gates: current dedicated identity/membership/permissions; independent grant custody and generation lifecycle; positive TEST profile/record evidence; legacy query/profile/generation corrections; hosted authenticated API/RLS acceptance; GitGuardian and hosted CI/Stage C approvals; later business-total reconciliation and visible failure acceptance. Existing scanner/CI decisions remain unchanged; no new security or CI PASS is claimed.
+Open gates: explicit organisation active status; independent usable grant/client/scopes/issuance/identity/custodian evidence and generation lifecycle; known synthetic Zoho invoice and positive read-only profile/record verification; actual provider permission enforcement; legacy query/profile/generation corrections; hosted authenticated API/RLS acceptance; GitGuardian and hosted CI/Stage C approvals; later business-total reconciliation and visible failure acceptance. Current browser identity/membership and screenshot-evidenced role/configuration/base currency are recorded separately and need not be reinvestigated without changed evidence. Bokkie provider identity/grant verification remains a separate business gate. Existing scanner/CI decisions remain unchanged; no new security or CI PASS is claimed.
 
 **PASS for completing the evidence-labelled record and confirming disabled staging metadata. NO-GO for full T19 acceptance or accounting activation.** The original tracker remains unchanged and T19 remains In progress. No T04, provider, financial, membership, credential or CI governance write, merge or deploy occurred.
 
@@ -137,3 +140,29 @@ The Accounts application launcher and Books navigation/account/organisation pane
 4. Known synthetic provider invoice and positive V01 API verification remain outstanding under their separate approval requirements. Current browser identity/org evidence narrows the gap but does not replace the known-record test or activate accounting.
 
 **PASS for browser identity, exact organisation name/ID and the current single-organisation Books membership list. NO-GO for full profile/permission verification and T19 acceptance.** T19 remains In progress, accounting activation NO-GO. Existing staging metadata retains its earlier timestamp. Existing QA/tests are historical; no fresh automated or independent-QA claim is made for this documentation-only browser update.
+
+## E9 — owner-supplied administrator screenshots
+
+Reviewed23October2026. These are user-supplied UI evidence, not a fresh live browser or API check. Exact screenshot capture times were not supplied; the review date must not be treated as an exact capture timestamp. Earlier unknown findings and E8 follow-up actions are preserved as history and superseded only for the fields below. The original attachments are retained byte-for-byte in [screenshots](evidence/t19-shalean-record/screenshots/).
+
+| Evidence | Original attachment ID | What it establishes |
+|---|---|---|
+| [Users](evidence/t19-shalean-record/screenshots/users.png) | cb1d4b3b-8c95-43e1-9e07-6cdc2f95d97b | URL contains org943440851 and header Shalean TEST. faraios590@gmail.com is Active with FaraiOS TEST Invoice Reader role. accounts@shalean.com is Active, Admin, Super Admin. |
+| [Role matrix](evidence/t19-shalean-record/screenshots/role-permissions.png) | 2df889de-98b7-4644-98a2-a4b4d1f6b280 | Invoices View selected; Create/Edit/Delete/Approve unselected. Full is an indeterminate/partial-selection indicator, not full access. Visible Settings permissions and Customer Payments main permissions unselected. |
+| [Invoice additional permissions](evidence/t19-shalean-record/screenshots/invoice-more-permissions.png) | 02b73397-7290-4552-8e2d-822d6eb34399 | Communication, Void invoices, Write Off invoices, Edit and Delete approved Invoices all unselected. This cropped detail is correlated with the preceding role screenshot; it does not independently display org/user identity. |
+| [Currencies](evidence/t19-shalean-record/screenshots/base-currency.png) | ee8b35df-71a2-44e0-9315-cddac45c08d1 | Shalean TEST header; ZAR — South African Rand explicitly labelled Base Currency, symbol R. |
+| [Organisation profile](evidence/t19-shalean-record/screenshots/organisation-profile.png) | 848ea292-8dce-479a-9020-2dacfa568c37 | Organisation943440851, FaraiOS - Shalean TEST, South Africa, base currency ZAR. No explicit active-status field displayed. |
+
+The screenshots of Edit Role/Profile are evidence of displayed values; they do not independently prove a save or lack of a save, persistence after editing, absence of unsaved changes, API behaviour, grant scope or current token state. No setting changes were performed by this update. The role description is intent; the checkbox screenshots support the recorded configured permissions. No claim is made about hidden permission options not shown. No elevation is needed merely to complete this record.
+
+### Current remaining gates and exact next action
+
+1. **Organisation active status: NOT VERIFIED.** No further UI search or status change is required now. Resolve through admissible explicit provider evidence during the separately approved controlled verification; do not infer it from active users, successful navigation or Premium Trial.
+2. **Usable independent grant and custody:** non-secret reference/version, client/type, associated identity, granted scopes, issuance date, state and custodian remain unknown. Historic revoked diagnostics and browser login are not active grant evidence. Credential generation is not legacy metadata version1.
+3. **Known synthetic provider invoice:** ID, number, unique test reference, customer ID, currency, status, total and organisation ownership evidence remain NOT VERIFIED. The existing internal FaraiOS draft is not provider evidence. Do not create an invoice to fill a gap without separate approval.
+4. **Controlled read-only V01 verification:** complete the manifest with independently known expectations; implement/review a read-only probe and separately approve its execution and any credential lifecycle needed. For Shalean, the planned pair is the pinned organisation profile GET and known synthetic invoice GET. No OAuth/API diagnostics are authorised by this documentation task. Do not use the write-capable setup/sync helper.
+5. **Engineering and release gates:** reserved org-query hardening, strict profile validation, generation-aware credential/dispatch integration, real custody/revocation controls, hosted authenticated API/RLS, GitGuardian, hosted CI and Stage C approval remain. Later business-total reconciliation and visible failure acceptance, plus independent Bokkie verification, are still required for full T19. No bypass, merge or activation follows from screenshot verification.
+
+**Exact next action:** have the authorised TEST owner/custodian complete the manifest using already-existing non-secret grant metadata and an independently identifiable existing synthetic Shalean TEST invoice tuple, including evidence references and checker/date. If either is unavailable, record “No usable grant established” / “No known synthetic invoice” and return the incomplete manifest for a separately reviewed provisioning/lifecycle proposal; do not obtain new grants or create fixtures now. Stop there for review. Organisation active status stays NOT VERIFIED pending explicit evidence in the later controlled verification.
+
+**PASS for incorporating the screenshots and documenting the displayed configuration; NO-GO for full T19 acceptance/accounting activation.** T19 remains In progress. No OAuth, provider API diagnostic, production-finance access, financial write, T04 change, settings modification, merge or deployment was performed. Prior independent QA and test results remain historical; this documentation-only update claims no new run. The original tracker and task dependencies are unchanged.
