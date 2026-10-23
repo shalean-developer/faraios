@@ -8,6 +8,7 @@ import {calendarOptions,readCalendar,checkAvailability,renderCalendar} from './c
 import {staffAccounts,listStaffRecords,parseStaffRecord,saveStaffRecord,resolveAssignedTeam,renderStaffTeams} from './staff-teams.js';
 import {renderWorkspaceFrame} from './workspace-layout.js';
 import {createServer} from 'node:http';
+import {readCustomerBookingHistory,renderCustomerBookingHistory} from './customer-booking-history.js';
 import {readFile} from 'node:fs/promises';
 import {createAuthSessions} from './auth-session.js';
 import {parseBusinessSettings,readBusinessSettings,saveBusinessSettings,renderBusinessSettings} from './business-settings.js';
@@ -351,7 +352,8 @@ export function createStagingServer({createClient,accountingWorker=null,accounti
           if(customerId&&!customer)return send(404,'Customer unavailable','text/plain');
           const addresses=customer?await listAddresses(client,business.id,customer.id):[],address=addressId?await readAddress(client,business.id,customerId,addressId):null;
           if(addressId&&!address)return send(404,'Address unavailable','text/plain');
-          return send(200,html('Customers',renderCustomers(business,await listCustomers(client,business.id),customer,addresses,address,url.searchParams.get('saved')==='1'?'Record saved.':'',false,{creating:url.searchParams.get('create')==='1',q:url.searchParams.get('q'),status:url.searchParams.get('status')})));
+          const history=customer?renderCustomerBookingHistory(business,await readCustomerBookingHistory(client,business.id,customer.id)):'';
+          return send(200,html('Customers',renderCustomers(business,await listCustomers(client,business.id),customer,addresses,address,url.searchParams.get('saved')==='1'?'Record saved.':'',false,{creating:url.searchParams.get('create')==='1',q:url.searchParams.get('q'),status:url.searchParams.get('status')})+history));
         });
       }
       if(url.pathname==='/catalogue'){
