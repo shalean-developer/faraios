@@ -1,0 +1,5 @@
+{
+  "hostname": "staging.faraios.com",
+  "socketPath": "/usr/local/lsws/extapp-sock/APVH_staging.faraios.com:443:_.sock",
+  "webServerUid": 48
+}

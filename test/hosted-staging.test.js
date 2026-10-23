@@ -94,7 +94,7 @@ test('runtime detection refuses generic loaders, wrong root/socket/startup and s
   const {default:runtime}=await import('../src/hosted-runtime.cjs');
   const {EventEmitter}=await import('node:events');
   const root=new URL('../',import.meta.url).pathname.replace(/\/$/,'');
-  const options={passenger:null,lsNode:new EventEmitter(),env:{LSNODE_SOCKET:'/tmp/t07-synthetic.sock',LSNODE_ROOT:root,LSNODE_STARTUP_FILE:'_passenger.cjs'},argv:['node','/usr/local/lsws/fcgi-bin/lsnode.js'],serverPrototype:{realListen(){}}};
+  const options={passenger:null,lsNode:new EventEmitter(),env:{LSNODE_SOCKET:'/usr/local/lsws/extapp-sock/APVH_staging.faraios.com:443:_.sock',LSNODE_ROOT:root,LSNODE_STARTUP_FILE:'_passenger.cjs'},argv:['node','/usr/local/lsws/fcgi-bin/lsnode.js'],serverPrototype:{realListen(){}}};
   assert.equal(runtime.detectHostedRuntime(options),'litespeed');
   for(const patch of [{lsNode:{}},{argv:['node','app.js']},{serverPrototype:{}},...['LSNODE_SOCKET','LSNODE_ROOT','LSNODE_STARTUP_FILE'].map(name=>({env:{...options.env,[name]:'incorrect'}}))])assert.throws(()=>runtime.detectHostedRuntime({...options,...patch}),/verified/);
   assert.equal(await readFile(new URL('../public/.htaccess',import.meta.url),'utf8'),runtime.httpsRules);
@@ -105,11 +105,12 @@ test('actual Unix listener is required; TCP and symlink paths are refused',async
   const {default:runtime}=await import('../src/hosted-runtime.cjs');
   const {createServer}=await import('node:net');
   const {mkdtemp,chmod,symlink,rm}=await import('node:fs/promises');
-  const {tmpdir}=await import('node:os');
-  const path=await mkdtemp(tmpdir()+'/t07-socket-'),socket=path+'/app.sock',server=createServer();
+  const path=await mkdtemp(process.cwd()+'/t07-socket-'),socket=path+'/app.sock',server=createServer();
   try{
-    await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(socket,resolve);});await chmod(socket,0o660);
+    await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(socket,resolve);});await chmod(socket,0o600);
     runtime.assertPrivateSocket(server,socket);
+    await chmod(socket,0o755);runtime.assertPrivateSocket(server,socket);
+    await chmod(path,0o720);assert.throws(()=>runtime.assertPrivateSocket(server,socket),/private Unix/);await chmod(path,0o700);
     const tcp=createServer();await new Promise(resolve=>tcp.listen(0,'127.0.0.1',resolve));
     try{assert.throws(()=>runtime.assertPrivateSocket(tcp,socket),/private Unix/);}finally{await new Promise(resolve=>tcp.close(resolve));}
     await symlink(socket,path+'/alias.sock');assert.throws(()=>runtime.assertPrivateSocket(server,path+'/alias.sock'),/private Unix/);
@@ -133,11 +134,10 @@ test('inherited listener requires kernel-proven Unix identity and refuses TCP fd
   const {default:runtime}=await import('../src/hosted-runtime.cjs');
   const {createServer}=await import('node:net');
   const {mkdtemp,chmod,rm}=await import('node:fs/promises');
-  const {tmpdir}=await import('node:os');
-  const path=await mkdtemp(tmpdir()+'/t07-inherited-'),socket=path+'/app.sock',server=createServer();
+  const path=await mkdtemp(process.cwd()+'/t07-inherited-'),socket=path+'/app.sock',server=createServer();
   const child=`const fs=require('node:fs'),mode=process.argv[2],original=fs.readFileSync;if(mode==='missing-proc')fs.readFileSync=(p,...a)=>{if(p==='/proc/self/net/unix')throw Error('unavailable');return original(p,...a);};if(mode==='malformed-proc')fs.readFileSync=(p,...a)=>p==='/proc/self/net/unix'?'header\\ninvalid':original(p,...a);if(mode==='wrong-link')fs.readlinkSync=()=> 'socket:[0]';const net=require('node:net'),runtime=require('./src/hosted-runtime.cjs');const server=net.createServer();server.on('error',()=>{process.stdout.write('REFUSED');process.exitCode=2;});server.listen({fd:mode==='different-fd0'?3:0},()=>{try{runtime.assertInheritedUnixSocket(server,process.argv[1]);runtime.assertPrivateSocket(server,process.argv[1]);process.stdout.write('UNIX_VERIFIED');}catch{process.stdout.write('REFUSED');process.exitCode=2;}finally{server.close();}});`;
   try{
-    await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(socket,resolve);});await chmod(socket,0o660);
+    await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(socket,resolve);});await chmod(socket,0o600);
     const positive=spawnSync(process.execPath,['-e',child,socket],{cwd:new URL('../',import.meta.url),encoding:'utf8',stdio:[server._handle.fd,'pipe','pipe'],timeout:10000});
     assert.equal(positive.status,0,positive.stderr);assert.equal(positive.stdout,'UNIX_VERIFIED');
     for(const invalidPath of [socket+'-wrong',socket+'\n']){
@@ -157,4 +157,22 @@ test('inherited listener requires kernel-proven Unix identity and refuses TCP fd
     }finally{await new Promise(resolve=>tcp.close(resolve));}
     assert.throws(()=>runtime.assertInheritedUnixSocket({listening:true,_handle:{fd:-1}},socket),/unavailable/);
   }finally{if(server.listening)await new Promise(resolve=>server.close(resolve));await rm(path,{recursive:true,force:true});}
+});
+
+
+test('verified hosting policy permits read/execute but no non-owner socket or ancestor write',async()=>{
+  const {default:runtime}=await import('../src/hosted-runtime.cjs');
+  const socketPath='/usr/local/lsws/extapp-sock/APVH_staging.faraios.com:443:_.sock';
+  const metadata=(uid,mode,directory=false,symlink=false)=>({uid,mode,isSocket:()=>!directory,isDirectory:()=>directory,isSymbolicLink:()=>symlink});
+  const context={socketPath,appUid:10463,verifiedLiteSpeed:true};
+  runtime.assertSocketComponent(metadata(48,0o755),context);
+  runtime.assertSocketComponent(metadata(48,0o751,true),{...context,directory:true});
+  for(const directory of [false,true]){
+    for(const uid of [0,48,10463])for(const mode of [0o700,0o751,0o755])runtime.assertSocketComponent(metadata(uid,mode,directory),{...context,directory});
+    for(const mode of [0o720,0o702,0o775,0o757,0o777,0o1777])assert.throws(()=>runtime.assertSocketComponent(metadata(48,mode,directory),{...context,directory}),/private Unix/);
+    assert.throws(()=>runtime.assertSocketComponent(metadata(999,0o700,directory),{...context,directory}),/private Unix/);
+    assert.throws(()=>runtime.assertSocketComponent(metadata(48,0o700,directory,true),{...context,directory}),/private Unix/);
+    assert.throws(()=>runtime.assertSocketComponent(metadata(48,0o700,!directory),{...context,directory}),/private Unix/);
+  }
+  for(const patch of [{verifiedLiteSpeed:false},{socketPath:socketPath+'-other'}])assert.throws(()=>runtime.assertSocketComponent(metadata(48,0o755),{...context,...patch}),/private Unix/);
 });
