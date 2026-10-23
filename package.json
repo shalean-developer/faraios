@@ -7,7 +7,7 @@
     "node": ">=24 <25"
   },
   "scripts": {
-    "test:t19:connection": "node --test test/t19-provider.test.js test/t19-connection.test.js test/t19-vault.test.js test/t19-runner.test.js test/t19-integration.test.js",
+    "test:t19:connection": "node --test test/t19-provider.test.js test/t19-connection.test.js test/t19-vault.test.js test/t19-runner.test.js test/t19-integration.test.js test/t19-masked-import.test.js",
     "t19:describe": "node scripts/t19-connection.mjs --describe",
     "test:accounting": "node --test test/accounting-stage-b.test.js",
     "test:accounting:postgres": "node scripts/run-t19-postgres.mjs",

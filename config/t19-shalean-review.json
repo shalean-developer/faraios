@@ -25,8 +25,31 @@
     "evidence": "2026-10-23 15:04 UTC: https://api-console.zoho.com/client/1000.ET7LNPRV6W7EM2HLL35E2X38RKEGVF; E17 in verification record. Registered /zoho/callback matches the local callback after the owner-approved correction; see E18."
   },
   "approvalReference": null,
-  "operator": null,
-  "custodian": null,
+  "operator": "Farai Chitekedza",
+  "custodian": "Farai Chitekedza",
+  "operatorVerification": {
+    "email": "faraios590@gmail.com",
+    "userId": "f4a0751b-9629-46f2-b73f-bb4f2a6b11f7",
+    "businessId": "612be091-b1d7-4911-9c3b-143446a9fe27",
+    "role": "owner",
+    "status": "active",
+    "projectRef": "xdmfyrsauvqznkloroxg",
+    "verifiedAt": "2026-10-23T15:38:04Z",
+    "evidence": "E20: read-only server-side auth.users/business_memberships lookup; current record evidence, not a login/session or hosted RLS acceptance test"
+  },
+  "custodyVerification": {
+    "deviceName": "SHALEAN",
+    "windowsAccount": "shalean\\info",
+    "verifiedAt": "2026-10-23T15:38:04Z",
+    "source": "Local Environment.MachineName and whoami",
+    "secretImportArrangement": "Proposed: Farai privately obtains the existing exact-client secret and enters it into a reviewed local masked prompt under shalean\\info; helper sends JSON only through private child stdin to the DPAPI importer. No retrieval/import authorised or performed. See docs/t19-client-secret-import-procedure.md.",
+    "secretImportProcedure": "docs/t19-client-secret-import-procedure.md",
+    "secretImportProcedureStatus": "Helper implemented; independent QA PASS, 65 focused tests; review only, real retrieval/import not authorised or performed",
+    "secretSourceVerified": false,
+    "consentAttendee": "Farai Chitekedza",
+    "revocationCustodian": "Farai Chitekedza",
+    "credentialProvisioned": false
+  },
   "reviewer": null,
   "clientId": "1000.ET7LNPRV6W7EM2HLL35E2X38RKEGVF",
   "probeSha": null,
