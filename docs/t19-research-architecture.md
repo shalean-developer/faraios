@@ -233,3 +233,7 @@ Continue ticket 169559907; this list is not a newly sent message.
 8. **S8:** Confirm applicable edition-specific invoice tax/rounding, immutable/locked periods, credit application and refund-record semantics. Which operations can send mail or trigger collection automatically? Which webhook verification/replay and change-listing guarantees are supported?
 
 S1–S4 and S7 gate the connection experiment; S5 gates writes; S6 gates worker scheduling; S8 gates affected lifecycle features. Unanswered questions do not justify weakening current safeguards. FaraiOS isolation remains required regardless of the answers.
+
+## 23 October provider-model addendum
+
+See [Zoho support confirmation and acceptance reassessment](t19-provider-confirmation-20261023.md). The owner supplied Sanu Jose's 23 October reply on ticket169559907: Accounts-level tokens are not inherently organisation-exclusive; membership/permissions determine access and organization_id selects the request target. This supersedes the unresolved basic grant-breadth question and D2's ORG-first preference with dedicated identities and independent per-business grants. It does not close positive TEST organisation/record identity verification, approve onboarding or erase earlier diagnostics. Stage B remains offline; full T19 acceptance and activation remain NO-GO.

@@ -1,0 +1,12 @@
+Condensed independent terminal evidence — not a full raw log
+23 October2026; Node v24.14.1; candidate base a028fe62a2a38cb537b5f35b43a38c29b681c72f
+Command: node scripts/run-t19-postgres.mjs
+T19 isolated PostgreSQL:17.10
+Stage B synthetic database/API/worker contracts: PASS
+Stage B native PostgreSQL roles, HTTP, concurrent claims and disconnect contracts: PASS
+Native held-lock claim exclusion and both generation/dispatch orderings: PASS
+Synthetic vault tenant/generation, refresh coalescing and no-real-secret-input: PASS
+Tests26; pass26; fail0; cancelled0; skipped0; todo0
+T19_NATIVE_ACCEPTANCE_PASSED
+T19_DISPOSABLE_CLUSTER_CLEANED
+Exit code0
