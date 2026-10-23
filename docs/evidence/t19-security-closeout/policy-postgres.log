@@ -1,0 +1,32 @@
+2026-10-23 04:25:03.195 UTC [59] LOG:  starting PostgreSQL 17.10 (Debian 17.10-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-23 04:25:03.199 UTC [59] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2026-10-23 04:25:03.200 UTC [59] LOG:  listening on Unix socket "/tmp/faraios-t19-policy-QbdBQv/.s.PGSQL.5432"
+2026-10-23 04:25:03.206 UTC [62] LOG:  database system was shut down at 2026-10-23 04:25:03 UTC
+2026-10-23 04:25:03.212 UTC [59] LOG:  database system is ready to accept connections
+2026-10-23 04:25:03.761 UTC [67] FATAL:  password authentication failed for user "postgres"
+2026-10-23 04:25:03.761 UTC [67] DETAIL:  Connection matched file "/tmp/faraios-t19-policy-QbdBQv/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2026-10-23 04:25:53.400 UTC [419] ERROR:  One or more selected cleaners are busy. Choose another time or team.
+2026-10-23 04:25:53.400 UTC [419] CONTEXT:  PL/pgSQL function audit.reserve_booking_staff() line 13 at RAISE
+2026-10-23 04:25:53.400 UTC [419] STATEMENT:  update public.one_off_bookings set status='assigned',assigned_staff=array['00000000-0000-4000-8000-000000000003'::uuid],change_reason='Concurrent contender' where id='00000000-0000-4000-8000-000000000040' and version=2;
+2026-10-23 04:25:55.243 UTC [495] ERROR:  Accounting check already in progress
+2026-10-23 04:25:55.243 UTC [495] CONTEXT:  PL/pgSQL function audit.claim_invoice_sync(uuid,uuid,uuid,text) line 11 at RAISE
+	SQL function "claim_invoice_sync" statement 1
+2026-10-23 04:25:55.243 UTC [495] STATEMENT:  select public.claim_invoice_sync('00000000-0000-4000-8000-000000000010','b3ced316-1619-4cf1-ac71-edcb0e375dd9','00000000-0000-4000-8000-000000000001','123');
+2026-10-23 04:25:56.285 UTC [514] ERROR:  Daily workload limit exceeded. Review the cleaner's schedule
+2026-10-23 04:25:56.285 UTC [514] CONTEXT:  PL/pgSQL function audit.reserve_booking_staff() line 16 at RAISE
+2026-10-23 04:25:56.285 UTC [514] STATEMENT:  update public.one_off_bookings set status='assigned',assigned_staff=array['00000000-0000-4000-8000-000000000003'::uuid],setup_minutes=0,travel_minutes=0,change_reason='Daily contender' where id='00000000-0000-4000-8000-000000000501';
+2026-10-23 04:25:56.713 UTC [529] ERROR:  could not serialize access due to concurrent update
+2026-10-23 04:25:56.713 UTC [529] CONTEXT:  SQL statement "insert into audit.cleaner_workload_locks(staff_id,revision) values(uid,1) on conflict(staff_id) do update set revision=audit.cleaner_workload_locks.revision+1"
+	PL/pgSQL function audit.reserve_booking_staff() line 8 at SQL statement
+2026-10-23 04:25:56.713 UTC [529] STATEMENT:  update public.one_off_bookings set status='assigned',assigned_staff=array['00000000-0000-4000-8000-000000000003'::uuid],setup_minutes=0,travel_minutes=0,change_reason='Daily contender' where id='00000000-0000-4000-8000-000000000503';
+2026-10-23 04:25:57.272 UTC [549] ERROR:  Allowance changed; reopen before saving
+2026-10-23 04:25:57.272 UTC [549] CONTEXT:  PL/pgSQL function audit.configure_supervisor_allowance(uuid,uuid,integer,boolean,integer,date,text) line 12 at RAISE
+	SQL function "configure_supervisor_allowance" statement 1
+2026-10-23 04:25:57.272 UTC [549] STATEMENT:  select public.configure_supervisor_allowance('00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000003',0,false,0,'2026-11-01','Stale contender');
+2026-10-23 04:28:25.292 UTC [59] LOG:  received fast shutdown request
+2026-10-23 04:28:25.297 UTC [59] LOG:  aborting any active transactions
+2026-10-23 04:28:25.346 UTC [59] LOG:  background worker "logical replication launcher" (PID 65) exited with exit code 1
+2026-10-23 04:28:25.369 UTC [60] LOG:  shutting down
+2026-10-23 04:28:25.375 UTC [60] LOG:  checkpoint starting: shutdown immediate
+2026-10-23 04:28:26.809 UTC [60] LOG:  checkpoint complete: wrote 1309 buffers (16.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.431 s, sync=0.003 s, total=1.439 s; sync files=449, longest=0.001 s, average=0.001 s; distance=7014 kB, estimate=7014 kB; lsn=0/1BC6EF8, redo lsn=0/1BC6EF8
+2026-10-23 04:28:26.835 UTC [59] LOG:  database system is shut down
