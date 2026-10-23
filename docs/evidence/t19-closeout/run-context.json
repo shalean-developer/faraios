@@ -1,0 +1,14 @@
+{
+  "tested_commit": "9102b2a77b9f6981d4e6e6e60cad1398324b4b2d",
+  "tested_tree": "0c06bf8fa3ddb2b8bfe5e3260ef1d4788140e7a0",
+  "node": "24.19.0",
+  "postgresql": "17.10",
+  "os": "Microsoft Windows NT 10.0.26300.0",
+  "full_command": "node --test --test-concurrency=1 --test-reporter=tap",
+  "full_started_utc": "2026-10-22T20:50:07.6805051Z",
+  "full_log_completed_utc": "2026-10-22T20:56:03.7107591Z",
+  "source_changes": "none",
+  "dependency_changes": "none",
+  "environment_policy": "PG*, DATABASE_URL, FARAIOS_*, SUPABASE_*, T16/T19 URLs, NODE_OPTIONS removed; Node 24 prepended to PATH",
+  "scope": "offline synthetic only"
+}

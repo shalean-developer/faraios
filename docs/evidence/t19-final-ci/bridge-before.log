@@ -1,0 +1,23 @@
+BRIDGE_EXIT=1
+BRIDGE_ENV_AND_UNICODE_ROUNDTRIP=FAIL
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Synthetic environment must survive Linux-to-Windows Docker invocation
+
+1 !== 0
+
+    at file:///mnt/c/Users/info/.codex/worktrees/t19-research/faraios/docs/evidence/t19-final-ci/bridge-probe.mjs:8:8
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 1,
+  expected: 0,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.22.1

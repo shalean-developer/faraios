@@ -1,0 +1,8 @@
+{
+  "diagnosticCodeRemoved": true,
+  "restoredHelperSha256": "9A497E8E0F184180FCACD759F60423FA75F6B80BFD87D50BE03AD940890FD3D2",
+  "candidate": "90dbc74933357b9e9ca257c08c9616b1b3ade96e",
+  "onlyTransportScriptDifference": "Public TLS invocation replaced by explicit offline omission marker",
+  "helperByteIdentical": true,
+  "originalHelperSha256": "9A497E8E0F184180FCACD759F60423FA75F6B80BFD87D50BE03AD940890FD3D2"
+}

@@ -1,0 +1,1 @@
+Dashboard read attempt: unauthenticated; existing GitHub sign-in route also requires login. No credentials entered, permissions granted, incident page obtained, or status changed.

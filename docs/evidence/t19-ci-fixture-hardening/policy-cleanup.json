@@ -1,0 +1,5 @@
+{
+  "policyContainerAbsent": true,
+  "failureProbeContainerAbsent": true,
+  "policyAnonymousVolumeAbsent": true
+}

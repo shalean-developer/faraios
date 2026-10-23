@@ -1,0 +1,16 @@
+{
+  "T04Modified": false,
+  "legacyAssertionsModified": false,
+  "sourceChanges": [
+    ".github/workflows/ci.yml",
+    "scripts/.gitattributes",
+    "scripts/ci-policy.Dockerfile",
+    "scripts/run-ci-policy.sh"
+  ],
+  "originalTimeoutMinutes": 5,
+  "timeoutMinutes": 10,
+  "workflowServiceBeforeStepsReplacedBy": "Clean archive build, nonroot network-disabled native fixture runner",
+  "applicationImplementation": "d4643e244f5f9538264a5beec15b03984a437d32",
+  "productionSourcesModified": false,
+  "candidate": "90dbc74933357b9e9ca257c08c9616b1b3ade96e"
+}

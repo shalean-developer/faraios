@@ -1,0 +1,2 @@
+run-ci-policy.sh text eol=lf
+ci-policy.Dockerfile text eol=lf
