@@ -127,3 +127,34 @@ test('LiteSpeed denies requests until actual socket validation completes',async(
     assert.equal(await get(),503);ready=true;assert.equal(await get(),200);
   }finally{await new Promise(resolve=>server.close(resolve));}
 });
+
+
+test('inherited listener requires kernel-proven Unix identity and refuses TCP fd0',async()=>{
+  const {default:runtime}=await import('../src/hosted-runtime.cjs');
+  const {createServer}=await import('node:net');
+  const {mkdtemp,chmod,rm}=await import('node:fs/promises');
+  const {tmpdir}=await import('node:os');
+  const path=await mkdtemp(tmpdir()+'/t07-inherited-'),socket=path+'/app.sock',server=createServer();
+  const child=`const fs=require('node:fs'),mode=process.argv[2],original=fs.readFileSync;if(mode==='missing-proc')fs.readFileSync=(p,...a)=>{if(p==='/proc/self/net/unix')throw Error('unavailable');return original(p,...a);};if(mode==='malformed-proc')fs.readFileSync=(p,...a)=>p==='/proc/self/net/unix'?'header\\ninvalid':original(p,...a);if(mode==='wrong-link')fs.readlinkSync=()=> 'socket:[0]';const net=require('node:net'),runtime=require('./src/hosted-runtime.cjs');const server=net.createServer();server.on('error',()=>{process.stdout.write('REFUSED');process.exitCode=2;});server.listen({fd:mode==='different-fd0'?3:0},()=>{try{runtime.assertInheritedUnixSocket(server,process.argv[1]);runtime.assertPrivateSocket(server,process.argv[1]);process.stdout.write('UNIX_VERIFIED');}catch{process.stdout.write('REFUSED');process.exitCode=2;}finally{server.close();}});`;
+  try{
+    await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(socket,resolve);});await chmod(socket,0o660);
+    const positive=spawnSync(process.execPath,['-e',child,socket],{cwd:new URL('../',import.meta.url),encoding:'utf8',stdio:[server._handle.fd,'pipe','pipe'],timeout:10000});
+    assert.equal(positive.status,0,positive.stderr);assert.equal(positive.stdout,'UNIX_VERIFIED');
+    for(const invalidPath of [socket+'-wrong',socket+'\n']){
+      const negative=spawnSync(process.execPath,['-e',child,invalidPath],{cwd:new URL('../',import.meta.url),encoding:'utf8',stdio:[server._handle.fd,'pipe','pipe'],timeout:10000});assert.equal(negative.status,2);assert.equal(negative.stdout,'REFUSED');
+    }
+    const other=createServer();await new Promise((resolve,reject)=>{other.once('error',reject);other.listen(path+'/other.sock',resolve);});
+    try{const negative=spawnSync(process.execPath,['-e',child,socket,'different-fd0'],{cwd:new URL('../',import.meta.url),encoding:'utf8',stdio:[other._handle.fd,'pipe','pipe',server._handle.fd],timeout:10000});assert.equal(negative.status,2,negative.stderr);assert.equal(negative.stdout,'REFUSED');}finally{await new Promise(resolve=>other.close(resolve));}
+    const {createConnection}=await import('node:net');const connected=createConnection(socket);let accepted;server.once('connection',s=>{accepted=s;});await new Promise((resolve,reject)=>{connected.once('connect',resolve);connected.once('error',reject);});
+    try{const negative=spawnSync(process.execPath,['-e',child,socket],{cwd:new URL('../',import.meta.url),encoding:'utf8',stdio:[connected._handle.fd,'pipe','pipe'],timeout:10000});assert.notEqual(negative.status,0);assert.notEqual(negative.stdout,'UNIX_VERIFIED');}finally{connected.destroy();accepted?.destroy();}
+    for(const mode of ['missing-proc','malformed-proc','wrong-link']){
+      const negative=spawnSync(process.execPath,['-e',child,socket,mode],{cwd:new URL('../',import.meta.url),encoding:'utf8',stdio:[server._handle.fd,'pipe','pipe'],timeout:10000});assert.equal(negative.status,2,negative.stderr);assert.equal(negative.stdout,'REFUSED');
+    }
+    const tcp=createServer();await new Promise(resolve=>tcp.listen(0,'127.0.0.1',resolve));
+    try{
+      const negative=spawnSync(process.execPath,['-e',child,socket],{cwd:new URL('../',import.meta.url),encoding:'utf8',stdio:[tcp._handle.fd,'pipe','pipe'],timeout:10000});
+      assert.equal(negative.status,2);assert.equal(negative.stdout,'REFUSED');
+    }finally{await new Promise(resolve=>tcp.close(resolve));}
+    assert.throws(()=>runtime.assertInheritedUnixSocket({listening:true,_handle:{fd:-1}},socket),/unavailable/);
+  }finally{if(server.listening)await new Promise(resolve=>server.close(resolve));await rm(path,{recursive:true,force:true});}
+});
