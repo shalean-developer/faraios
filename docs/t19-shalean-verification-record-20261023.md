@@ -24,9 +24,9 @@ Verified dates below refer only to the stated claim and evidence layer. A config
 | Separate legacy connection ID | No separate id field in this schema | NOT APPLICABLE | E1 schema; E4 | 2026-10-23 |
 | Configured provider | zoho_books | VERIFIED | E1 | 2026-10-23 13:06:52UTC |
 | Configured organisation pin | 943440851 | VERIFIED | E1; configuration only | 2026-10-23 13:06:52UTC |
-| Current provider-confirmed organisation ID | Unknown | NOT VERIFIED | E5; no provider read | — |
+| Current browser-confirmed Books organisation ID | 943440851 | VERIFIED | E8 Books organisation listing and account panel; not API verification | 2026-10-23 13:20UTC |
 | Historical exact organisation name | FaraiOS - Shalean TEST | RECORDED — NOT REVERIFIED | E2/E3 historical20October evidence | — |
-| Current exact organisation name | Unknown | NOT VERIFIED | E5 | — |
+| Current exact organisation name | FaraiOS - Shalean TEST | VERIFIED | E8 Books listing and header | 2026-10-23 13:20UTC |
 | Organisation active state | Unknown | NOT VERIFIED | E5 | — |
 | Expected base currency | ZAR | PROPOSED | E3 manifest expectation | — |
 | Actual configured Books base currency | Unknown | NOT VERIFIED | No provider profile evidence | — |
@@ -40,12 +40,12 @@ Verified dates below refer only to the stated claim and evidence layer. A config
 | Current grant state | Unknown | NOT VERIFIED | No active grant independently established | — |
 | Historical diagnostic grant cleanup | Earlier newly issued refresh grants reported revoked | RECORDED — NOT REVERIFIED | E2; does not prove all grants absent | — |
 | Historical login candidate | faraios590@gmail.com | RECORDED — NOT REVERIFIED | E2 screenshots20October | — |
-| Current browser Zoho Accounts identity | accounts@shalean.com; label Shalean Cleaning Services | VERIFIED | E7 Accounts UI only | 2026-10-23 13:14UTC |
-| Current authorised dedicated TEST identity | Unknown; browser account differs from historical candidate faraios590@gmail.com | NOT VERIFIED | E7; no TEST membership evidence | — |
-| Dedicated account's full organisation memberships | Unknown | NOT VERIFIED | E5 | — |
-| Exact Books role | Unknown | NOT VERIFIED | E5 | — |
-| Effective invoice permissions | Unknown | NOT VERIFIED | E5; OAuth scope is not the Books role | — |
-| Production/other-business account access | Unknown | NOT VERIFIED | No current full membership evidence | — |
+| Current browser Zoho Accounts identity | faraios590@gmail.com; User ID943476475 | VERIFIED | E8 Accounts profile and Books account panel | 2026-10-23 13:20UTC |
+| Current authorised dedicated TEST identity | faraios590@gmail.com; owner-selected TEST session | VERIFIED | E8; user confirmed switch, UI identity and membership match | 2026-10-23 13:20UTC |
+| Current Books organisation membership list | My Organizations 1: FaraiOS - Shalean TEST943440851 only | VERIFIED | E8 Books Manage Organizations page | 2026-10-23 13:20UTC |
+| Exact Books role | Unknown; Users/Roles settings not exposed in observed navigation | NOT VERIFIED | E8 | — |
+| Effective invoice permissions | Unknown; no permission matrix exposed or action tested | NOT VERIFIED | E8; menu visibility is not a permissions test | — |
+| Production/other-business Books memberships shown | None; current Books list has one TEST organisation only | VERIFIED | E8; bounded to current Books UI list, not all Zoho products/grants | 2026-10-23 13:20UTC |
 | Historical server client reference/type | FaraiOS Shalean TEST; Server-based; exact recorded ID below | RECORDED — NOT REVERIFIED | E2 | — |
 | Historical public client ID | 1000.ET7LNPRV6W7EM2HLL35E2X38RKEGVF | RECORDED — NOT REVERIFIED | E2 attempt B | — |
 | Current grant client reference/type | Unknown | NOT VERIFIED | No current grant evidence | — |
@@ -83,7 +83,7 @@ The bounded Stage B synthetic implementation and the legacy staging adapter are 
 | No fallback | Reviewed adapter fails on wrong pins/hosts/permissions; new403 test expects only token exchange and pinned profile GET in a fake provider. No fallback is approved; actual provider/session path remains untested. |
 | Cross-business invoice/customer access | Synthetic API/RLS/ACL/worker tests deny foreign records using deliberately broad tokens. Native PostgreSQL tests support local DB enforcement; privileged hosted metadata reads do not certify hosted end-user JWT/RLS. |
 
-## Exact owner actions still needed
+## Owner actions identified at the initial review (updated by E8 below)
 
 1. Identify the current dedicated TEST login. In a TEST-only account view, confirm the account identifier, full membership list, exact Books role and effective invoice permissions; establish whether any production/other-business membership exists without opening their financial records. Record checker/time and redacted evidence. Historical faraios590 is only a candidate.
 2. In Shalean TEST organisation settings, independently confirm ID943440851, exact name, active state and actual base currency. Do not infer these from FaraiOS pins or switch into a production organisation.
@@ -106,7 +106,7 @@ Open gates: current dedicated identity/membership/permissions; independent grant
 
 Independent agent source review and fresh synthetic regression: **45/45 focused tests passed;26/26 native PostgreSQL tests passed; zero failures/skips**, Node24.14.1/PostgreSQL17.10, disposable cleanup confirmed. Runtime/test sources remained at c8cab677f75ec07dccf608420872c50abbde725e; this update changes documentation/evidence only. See E6 for final table review and limits. These checks support bounded local isolation, not current Zoho identity or hosted release acceptance.
 
-## E7 — authorised browser follow-up, 23 October 2026
+## E7 — historical browser follow-up, superseded by E8 for current identity
 
 After explicit owner approval for read-only Shalean TEST account/profile/membership/permission inspection, the browser opened `https://accounts.zoho.com/home`. It displayed account label **Shalean Cleaning Services** and login **accounts@shalean.com**. Observation recorded at13:14UTC /15:14SAST. This establishes the current browser account only, not its TEST or production membership. The historical TEST candidate remains faraios590@gmail.com.
 
@@ -115,3 +115,25 @@ The prior automatic-review access hold is superseded by the new approval. The cu
 **Next action:** the user makes the intended dedicated TEST account available in the browser, or explicitly identifies the current account as the intended TEST identity for this inspection. Then continue the already-approved read-only profile, membership and permission checks. Do not infer production access merely from the email address. Current TEST organisation name/active state/base currency, account memberships and exact permissions remain NOT VERIFIED. No new approval for the same read-only scope is needed once the correct session is available.
 
 T19 remains In progress; accounting activation NO-GO. This update is documentation only. The independent QA and regression results above describe the preceding review; no new test or independent-QA result is claimed for this browser observation.
+
+## E8 — switched TEST session: current browser verification
+
+23 October2026, observation completed13:20UTC /15:20SAST. The owner reported switching to faraios590@gmail.com and authorised continued read-only TEST profile/membership/permission inspection. This supersedes E7's account-selection blocker and the initial owner-action item asking to identify the TEST login.
+
+Browser-visible evidence:
+
+- `https://accounts.zoho.com/home#profile/personal`: faraios590@gmail.com, user943476475, display profile Farai Chitekedza Faraios; United States data centre. No profile edit performed.
+- `https://books.zoho.com/app/943440851#/organizations`: “You are a part of the following organizations”; **My Organizations 1**; only **FaraiOS - Shalean TEST**, organisation943440851, DEFAULT, PREMIUM TRIAL, created2026/10/20, edition South Africa. The organisation sidebar independently showed that same single organisation. No other Books membership, production or Bokkie, was listed. This is a current Books UI observation, not a universal statement about other Zoho services, old grants or future memberships.
+- `https://books.zoho.com/app/943440851#/home/recentupdates`: exact TEST name in header. Account panel confirmed faraios590@gmail.com, user943476475 and organisation943440851 together. The page was accessible and the panel said premium trial ends in11days. Accessibility/trial status does not independently establish the provider's explicit active flag or base currency.
+- Available navigation showed Home, Sales and Configure Features; account panel showed identity/help controls. No organisation-profile or Users/Roles settings were exposed in the inspected navigation. No role name or invoice permission matrix was displayed. No role is inferred from this limited UI. No guessed deep link, API call, privilege change or financial operation was used to work around the limitation.
+
+The Accounts application launcher and Books navigation/account/organisation panels were read only. A referral information panel was opened while identifying an unlabeled top-bar control and closed without submission. The Leave Organization action was visible in the management menu but was never selected. No invoice/customer list or record was opened. No OAuth flow, provider API diagnostic, production finance, credential inspection, settings save, membership/permission change, merge or deployment occurred.
+
+### Updated remaining owner actions
+
+1. Provide an authorised Shalean TEST administrator's read-only evidence of the explicit organisation active state and configured base currency. South Africa edition is not proof of ZAR.
+2. Provide the exact Books role assigned to user943476475 /faraios590@gmail.com and its effective invoice permission matrix (including read/create/edit/delete/send/payment capabilities where applicable), from TEST Users/Roles settings. Do not elevate this account merely to fill the record. No permission action test is requested.
+3. Current usable grant/client/scopes/issuance/custodian and credential-generation/custody evidence remain unverified; supply existing non-secret evidence only. Browser sign-in is not OAuth grant verification.
+4. Known synthetic provider invoice and positive V01 API verification remain outstanding under their separate approval requirements. Current browser identity/org evidence narrows the gap but does not replace the known-record test or activate accounting.
+
+**PASS for browser identity, exact organisation name/ID and the current single-organisation Books membership list. NO-GO for full profile/permission verification and T19 acceptance.** T19 remains In progress, accounting activation NO-GO. Existing staging metadata retains its earlier timestamp. Existing QA/tests are historical; no fresh automated or independent-QA claim is made for this documentation-only browser update.
