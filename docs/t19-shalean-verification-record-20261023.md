@@ -238,3 +238,13 @@ This supersedes E14's sign-in blocker. **No existing client registration is visi
 Exact next action: the owner makes the API Console session of the account that registered the historical TEST client available for the same read-only inspection, or confirms that no suitable existing client registration is available. Do not infer the registering account from the administrator's Connected Apps grant: a grant recipient/consenting account is not proof of client-registration ownership. If no suitable registration exists, propose its creation separately; do not create it under this inspection authority.
 
 No OAuth consent/exchange/refresh, API diagnostic, invoice access/creation, permission/configuration change, production-finance access, merge or deployment occurred. Manifest remains approved:false; T19 remains In progress and provider acceptance NO-GO. Existing evidence/history and task dependencies are preserved.
+
+## E16 — administrator session confirmed; API Console rendering blocked
+
+23October2026,15:01UTC /17:01SAST. The owner reported switching to accounts@shalean.com and authorised inspection of the existing FaraiOS Shalean TEST client. Accounts visibly confirmed **accounts@shalean.com**, user847311804, Shalean Cleaning Services, United States data center. This identifies the inspection session; it does not by itself establish client-registration ownership or change the dedicated integration identity.
+
+The prior API Console tab was closed. A new tab at `https://api-console.zoho.com/` rendered a blank page; both accessibility and screenshot observations confirmed no visible controls or client data, including after one reload. This is a rendering/access blocker, not evidence that the administrator has no clients. No client-secret, generate-token, create or settings controls were opened.
+
+The acceptance manifest records the inspection account and this blocker. Client ID/name/type/owner and registered callback remain **Unknown**; the required local callback is unchanged and approved:false remains. Earlier E15's welcome-screen observation applies only to that earlier session.
+
+Exact next action: owner makes the existing client's non-secret API Console configuration page visible, then resume the already-authorised read-only inspection. No new OAuth or client registration is needed merely to inspect an existing client. No settings/permissions, grant lifecycle, invoice/provider-finance access, merge or deployment occurred. T19 remains In progress; provider acceptance NO-GO.

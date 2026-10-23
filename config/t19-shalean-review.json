@@ -16,8 +16,9 @@
     "clientOwner": "Unknown",
     "registeredRedirectUri": "Unknown",
     "callbackMatchesRequired": "Unknown",
-    "consoleObservation": "No existing client registrations visible; welcome/Get Started screen",
-    "evidence": "2026-10-23 14:53 UTC: after owner-completed identity re-verification, API Console displayed Farai Chitekedza and the welcome/Get Started screen; no client ID, type or registered callback displayed. E15 in the verification record."
+    "inspectionAccount": "accounts@shalean.com",
+    "consoleObservation": "API Console blank after account switch and one reload; client configuration unavailable",
+    "evidence": "2026-10-23 15:01 UTC: Accounts confirmed accounts@shalean.com; API Console remained blank. Client ownership and configuration remain Unknown. E16 in the verification record; E15 preserves the earlier dedicated-account welcome screen."
   },
   "approvalReference": null,
   "operator": null,
