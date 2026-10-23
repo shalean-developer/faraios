@@ -1,12 +1,14 @@
 name: Foundation checks
 on:
   push:
+    branches:
+      - main
   pull_request:
 permissions:
   contents: read
 jobs:
   policy-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -21,13 +23,13 @@ jobs:
           --cap-drop ALL --security-opt no-new-privileges
           faraios-ci-policy
   zoho-setup-windows:
-    runs-on: windows-latest
+    runs-on: windows-2025
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '24'
+          node-version: '24.22.1'
       - run: npm ci --ignore-scripts
       - run: node --check scripts/setup-zoho-staging.mjs
       - run: node --check scripts/verify-staging-access.mjs
@@ -39,11 +41,11 @@ jobs:
 
 
   backup-transport:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '24'
+          node-version: '24.22.1'
       - run: node scripts/check-backup-transport.mjs
