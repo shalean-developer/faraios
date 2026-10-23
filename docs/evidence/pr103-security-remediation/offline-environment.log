@@ -1,0 +1,23 @@
+2026-10-23T11:27:18+00:00
+Linux Shalean 6.18.33.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun 18 21:54:43 UTC 2026 x86_64 GNU/Linux
+PRETTY_NAME="Ubuntu 26.04 LTS"
+NAME="Ubuntu"
+VERSION_ID="26.04"
+VERSION="26.04 (Resolute Raccoon)"
+VERSION_CODENAME=resolute
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=resolute
+LOGO=ubuntu-logo
+v24.22.1
+OpenSSL 3.5.5 27 Jan 2026 (Library: OpenSSL 3.5.5 27 Jan 2026)
+linux CPUs=16 Memory=8136593408
+sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826
+a7113b8b3b8224cb32bee9026beddb84147fe03dc95674070f5afc6110618d79  scripts/check-backup-transport.mjs
+9a497e8e0f184180fcacd759f60423fa75f6b80bfd87d50be03ad940890fd3d2  scripts/backup-staging.mjs
+1dcaafbf6fda7f21e34ff35825c1a1354408ea11e5839157e690af851c73453a  scripts/vendor/supabase-root-2021.crt
+f6077798522d02494a7bbc6cd505d4507468c1a294d6fe4097108254ad914814  /mnt/c/Users/info/.codex/worktrees/main-ci-credentials/faraios/.pr103-remediation-run/bin/docker

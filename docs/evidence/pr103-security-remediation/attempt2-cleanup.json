@@ -1,0 +1,15 @@
+{
+  "attempt": 2,
+  "capturedFixtures": 4,
+  "uniqueCapturedVolumes": 4,
+  "remainingCapturedContainers": 0,
+  "remainingCapturedVolumes": 0,
+  "remainingCapturedNetworks": 0,
+  "passMarkers": 23,
+  "publicProbeOmitted": true,
+  "publicPassMarkerPresent": false,
+  "exitCode": 0,
+  "wrapperUnchanged": true,
+  "privateTempEntries": 0,
+  "utc": "2026-10-23T11:36:14.9893450Z"
+}

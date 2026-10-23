@@ -1,0 +1,10 @@
+{
+  "utc": "2026-10-23T06:03:45.4169343Z",
+  "policyContainerAbsent": true,
+  "failureProbeContainerAbsent": true,
+  "policyVolumeAbsent": true,
+  "archiveSha256": "E112EF26430FA49B395A261D717FA3A9A949F3A5C1D408D1ABC4AC50EF38911A",
+  "taskBuildRootRemoved": true,
+  "imageRemovalExit": 0,
+  "unrelatedInfrastructureUntouched": true
+}

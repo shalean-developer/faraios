@@ -1,0 +1,21 @@
+{
+  "T04OrApplicationChanged": false,
+  "WindowsAndTransportJobsUnchanged": true,
+  "pullRequest": 103,
+  "candidate": "2eb9679e6d6468224996fc4a3349033f13d1d443",
+  "StageBCommandImported": false,
+  "sourceChanges": [
+    ".github/workflows/ci.yml",
+    "scripts/.gitattributes",
+    "scripts/ci-policy.Dockerfile",
+    "scripts/run-ci-policy.sh"
+  ],
+  "branch": "codex/main-ci-credential-remediation",
+  "base": "651490e8b1e2ecd1815598d3aad7f1ebacaa3353",
+  "existingCommandsPreserved": [
+    "npm ci --ignore-scripts",
+    "npm run check",
+    "npm test"
+  ],
+  "target": "main"
+}
