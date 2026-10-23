@@ -26,13 +26,22 @@ cleanup() {
  exit "$result"
 }
 trap cleanup EXIT
-printf 'postgres\n' > "$fixture/synthetic-password"
+fixture_password=$(node --input-type=module -e "import {randomBytes} from 'node:crypto'; process.stdout.write(randomBytes(32).toString('hex'));")
+(umask 077; printf '%s\n' "$fixture_password" > "$fixture/synthetic-password")
+test "$(stat -c %a "$fixture/synthetic-password")" = 600
 initdb -D "$data" -U postgres -A scram-sha-256 --pwfile="$fixture/synthetic-password" --encoding=UTF8 --no-locale
 pg_ctl -D "$data" -l "$fixture/postgres.log" -o "-h 127.0.0.1 -p 5432 -k $fixture -c shared_buffers=64MB" -w start
-export PGHOST=127.0.0.1 PGPORT=5432 PGUSER=postgres PGPASSWORD=postgres
+export PGHOST=127.0.0.1 PGPORT=5432 PGUSER=postgres PGPASSWORD="$fixture_password"
 export PGPASSFILE="$fixture/absent-pass" PGSERVICEFILE="$fixture/absent-service"
+# Prove generated credentials authenticate and an incorrect password is refused.
+if PGPASSWORD="invalid-${fixture_password}" psql -X -w -d postgres -c 'select 1' > "$fixture/wrong-auth.log" 2>&1; then
+ echo 'FIXTURE_WRONG_PASSWORD_ACCEPTED'; exit 94
+fi
+grep -q 'password authentication failed' "$fixture/wrong-auth.log"
+test "$(psql -X -w -qAt -d postgres -c 'select 1')" = 1
+echo FIXTURE_SCRAM_PASSWORD_ACCEPT_AND_DENY_PASS
 createdb faraios_t16_test
-export T16_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/faraios_t16_test
+export T16_TEST_DATABASE_URL="postgresql://postgres:${fixture_password}@127.0.0.1:5432/faraios_t16_test"
 npm run check
 echo POLICY_SYNTAX_PASS
 npm test
