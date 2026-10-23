@@ -284,3 +284,31 @@ No protected state migration or rebinding was performed. Existing full-manifest 
 Remaining gates: named operator/custodian/reviewer and time window; secure client-secret custody; attended dedicated-identity grant provenance and separately approved consent/exchange lifecycle; independently known synthetic invoice tuple and evidence; controlled response verification of organisation active status and permitted invoice ownership; local disable and targeted provider-revocation cleanup evidence; required GitGuardian, hosted CI and formal acceptance gates. Explicit client ownership/type remain Unknown. Organisation active status remains NOT VERIFIED. Historical local PostgreSQL/RLS evidence is separate from hosted JWT/RLS acceptance.
 
 Exact next owner action: supply the missing non-secret actor/custody and synthetic-fixture details, then review a completed acceptance manifest for separate explicit provider execution approval. No usable dedicated grant or known synthetic invoice is established. Callback alignment is locally complete; provider acceptance remains NO-GO and T19 remains In progress. No real OAuth, Zoho settings change, invoice creation/access, production-finance access, merge or deployment occurred.
+## E19 — explicitly approved synthetic customer and draft invoice provisioned
+
+23 October 2026, completed verification by 15:24 UTC / 17:24 SAST. The owner explicitly approved creating exactly one synthetic customer and one ZAR 1.00 draft invoice in Shalean TEST using the browser, with no sending, payment, OAuth, settings changes, merge or deployment. This supersedes the earlier missing-customer/fixture blocker; prior entries remain historical.
+
+The All Customers screen was empty before creation. Created `FaraiOS T19 Synthetic Customer — TEST ONLY`, customer ID `1589458000000103003`, in organisation `943440851`. No primary contact information, contact persons, billing/shipping addresses or opening balance were entered; default currency is ZAR and the saved customer shows portal Disabled. No portal invitation was sent. The visible audit entry records Contact created by Shalean Cleaning Services.
+
+Created one invoice using Save as Draft, with no separate catalogue item. The transaction-preferences onboarding dialog was dismissed with Close, without Save & Continue or changing preferences. Customer notes were set only on this invoice; the future-default checkbox remained unchecked. The received-payment checkbox remained unchecked.
+
+| Independently recorded UI fixture expectation | Value |
+|---|---|
+| Organisation | FaraiOS - Shalean TEST, 943440851 |
+| Customer ID | 1589458000000103003 |
+| Invoice ID | 1589458000000103010 |
+| Invoice number | INV-000001 |
+| Reference | FARAIOS-T19-SHALEAN-TEST-001; entered in Order Number, displayed as P.O.# |
+| Currency | ZAR, displayed on the creation form and customer currency |
+| Status | Draft; expected API value draft, not yet provider-response verified |
+| Quantity / rate / total | 1.00 / 1.00 / ZAR 1.00 (100 cents) |
+| Invoice date | 2026/10/23 |
+| Description and notes | Synthetic T19 read-only verification — no services supplied; do not send or pay |
+
+Saved invoice: https://books.zoho.com/app/943440851#/invoices/1589458000000103010
+Customer: https://books.zoho.com/app/943440851#/contacts/1589458000000103003
+Screenshot: [saved synthetic draft](evidence/t19/shalean-synthetic-draft-20261023.png). The screenshot shows the draft number, reference and R1.00; full IDs and currency code were recorded from the browser URL, customer link and creation form, not independently visible in this screenshot.
+
+The saved invoice shows Draft, R1.00 total and balance, the exact reference, and a Bill To link to the recorded customer ID. It also states journal entries are unavailable for invoices in Draft state. This is browser fixture evidence, not proof of dedicated-identity API access, actual API field mapping or organisation active status. No send, mark-as-sent, payment, OAuth, settings change, production-finance access, merge or deployment occurred. Only the explicitly approved TEST fixture records were created.
+
+The manifest now holds the fixture tuple and evidence reference but remains approved:false. No grant was established. Named operator/custodian/reviewer, secure credential custody, attended identity evidence, execution window/approval, controlled profile/invoice comparison and targeted revocation cleanup remain outstanding, alongside required security/CI/formal acceptance gates. Organisation active status remains NOT VERIFIED. T19 remains In progress; provider acceptance remains NO-GO. Exact next action: complete the missing non-secret actor/custody details and review the acceptance manifest for separate explicit provider execution approval. Do not modify or delete this fixture before acceptance without separate approval.

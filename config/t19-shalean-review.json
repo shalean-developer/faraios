@@ -33,14 +33,14 @@
   "startsAt": null,
   "endsAt": null,
   "identityEvidence": null,
-  "fixtureEvidence": null,
+  "fixtureEvidence": "E19, docs/t19-shalean-verification-record-20261023.md; 2026-10-23 browser-created synthetic fixture, saved Draft verified at https://books.zoho.com/app/943440851#/invoices/1589458000000103010; customer link 1589458000000103003, ZAR 1.00, P.O.# FARAIOS-T19-SHALEAN-TEST-001. Provider response comparison not run.",
   "cleanupReference": null,
   "fixture": {
-    "invoiceId": null,
-    "number": null,
-    "reference": null,
-    "customerId": null,
-    "status": null,
-    "totalCents": null
+    "invoiceId": "1589458000000103010",
+    "number": "INV-000001",
+    "reference": "FARAIOS-T19-SHALEAN-TEST-001",
+    "customerId": "1589458000000103003",
+    "status": "draft",
+    "totalCents": 100
   }
 }
