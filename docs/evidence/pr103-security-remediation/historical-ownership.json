@@ -1,0 +1,10 @@
+{
+  "mode": "historical",
+  "containerId": "64d7aed8a9790207f1134f0565b94ff617dbaddf2b93e1d45ddd92025fe2f348",
+  "containerName": "/faraios-pr103-cleanup-historical-20261023112507720",
+  "image": "sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826",
+  "volumes": [
+    "1e760531b2253201a3824be632438a21b1bbe314f44f901d062f91ddda9dbe13"
+  ],
+  "capturedBeforeRemoval": true
+}

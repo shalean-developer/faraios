@@ -266,7 +266,7 @@ try {
 
 } finally {
  let cleanupFailed=false;
- for(const name of owned)try{await docker(['rm','--force',name]);}catch{cleanupFailed=true;}
+ for(const name of owned)try{await docker(['rm','--force','--volumes',name]);}catch{cleanupFailed=true;}
  try{await docker(['network','rm',network]);}catch{cleanupFailed=true;}
  await rm(fixture,{recursive:true,force:true});
  if(cleanupFailed)throw new Error('Synthetic transport fixture cleanup failed');
