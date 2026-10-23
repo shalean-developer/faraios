@@ -37,10 +37,10 @@ Verified dates below refer only to the stated claim and evidence layer. A config
 | Connection created / last updated | Both2026-10-20 05:06:37.178148UTC | VERIFIED | E1 row timestamps | 2026-10-23 13:06:52UTC |
 | Actual credential/grant generation | Unknown; absent from legacy connection schema | NOT VERIFIED | E1/E4; synthetic generation is separate | — |
 | Credential-store reference existence / credential version | Unknown; alias alone does not prove credential material or version | NOT VERIFIED | Credential store not opened | — |
-| Current grant state | Unknown | NOT VERIFIED | No active grant independently established | — |
+| Current grant state | Unknown; administrator connected-app entry observed, usable dedicated grant not established | NOT VERIFIED | E10; app listing does not prove token validity/custody | — |
 | Historical diagnostic grant cleanup | Earlier newly issued refresh grants reported revoked | RECORDED — NOT REVERIFIED | E2; does not prove all grants absent | — |
 | Historical login candidate | faraios590@gmail.com | RECORDED — NOT REVERIFIED | E2 screenshots20October | — |
-| Current browser Zoho Accounts identity | faraios590@gmail.com; User ID943476475 | VERIFIED | E8 Accounts profile and Books account panel | 2026-10-23 13:20UTC |
+| Previously verified dedicated TEST browser identity | faraios590@gmail.com; User ID943476475 | VERIFIED | E8 Accounts profile and Books account panel; later browser session differs, see E10 | 2026-10-23 13:20UTC |
 | Current authorised dedicated TEST identity | faraios590@gmail.com; owner-selected TEST session | VERIFIED | E8; user confirmed switch, UI identity and membership match | 2026-10-23 13:20UTC |
 | Current Books organisation membership list | My Organizations 1: FaraiOS - Shalean TEST943440851 only | VERIFIED | E8 Books Manage Organizations page | 2026-10-23 13:20UTC |
 | Exact Books role | FaraiOS TEST Invoice Reader | VERIFIED | E9 Users and role screenshots | 2026-10-23 screenshot review |
@@ -60,7 +60,7 @@ Verified dates below refer only to the stated claim and evidence layer. A config
 | Support ticket/model | 169559907; Accounts-level access, membership/permissions, organisation selector | RECORDED — NOT REVERIFIED | E3 owner-supplied23October Sanu Jose guidance | — |
 | Internal Shalean invoice count | 1 | VERIFIED | E1 business-filtered count only | 2026-10-23 13:06:42UTC |
 | Internal rows with external invoice ID / provider binding / attempt ID | 0 /0 /0 | VERIFIED | E1 counts only | 2026-10-23 13:06:42UTC |
-| Known synthetic Zoho invoice ID | Unknown | NOT VERIFIED | No provider evidence; internal row is not a Zoho invoice | — |
+| Known synthetic Zoho invoice ID | Unknown; no existing invoice found in TEST All Invoices | NOT VERIFIED | E10 empty-state browser observation; internal row is not a Zoho invoice | — |
 | Zoho invoice number | Unknown | NOT VERIFIED | Same limitation | — |
 | Unique synthetic invoice reference | Unknown | NOT VERIFIED | Same limitation | — |
 | Synthetic Zoho customer ID | Unknown | NOT VERIFIED | Same limitation | — |
@@ -96,7 +96,7 @@ The bounded Stage B synthetic implementation and the legacy staging adapter are 
 
 Historical hold, superseded by E7: Zoho UI inspection was blocked by automatic approval review. Any request to resume that inspection must explicitly resolve the earlier no-access restriction; no workaround or API diagnostic is authorised. Manual evidence can complete the remaining record without changing this session's access boundary.
 
-## Remaining gates and recommendation (current after E9)
+## Remaining gates and recommendation (see E10 for latest browser evidence)
 
 A further controlled read-only V01 test is **necessary before connection acceptance**, once independently recorded TEST identity/profile and existing synthetic invoice expectations are available. It must prove profile and known invoice identity using the reviewed four-GET manifest, not an empty list or locally copied organisation field. A separately approved read-only probe and credential lifecycle are required; the older setup/sync helpers must not be run as substitutes. No such test was executed here.
 
@@ -166,3 +166,22 @@ The screenshots of Edit Role/Profile are evidence of displayed values; they do n
 **Exact next action:** have the authorised TEST owner/custodian complete the manifest using already-existing non-secret grant metadata and an independently identifiable existing synthetic Shalean TEST invoice tuple, including evidence references and checker/date. If either is unavailable, record “No usable grant established” / “No known synthetic invoice” and return the incomplete manifest for a separately reviewed provisioning/lifecycle proposal; do not obtain new grants or create fixtures now. Stop there for review. Organisation active status stays NOT VERIFIED pending explicit evidence in the later controlled verification.
 
 **PASS for incorporating the screenshots and documenting the displayed configuration; NO-GO for full T19 acceptance/accounting activation.** T19 remains In progress. No OAuth, provider API diagnostic, production-finance access, financial write, T04 change, settings modification, merge or deployment was performed. Prior independent QA and test results remain historical; this documentation-only update claims no new run. The original tracker and task dependencies are unchanged.
+
+## E10 — read-only browser inspection of existing grant metadata and invoices
+
+23 October 2026, completed approximately14:05UTC /16:05SAST. The owner authorised browser inspection to minimise manual work. Scope remained existing non-secret metadata and existing synthetic invoices in Shalean TEST only. Earlier observations remain historical evidence; this section supplies the latest account attribution and invoice result.
+
+- Zoho Accounts displayed the signed-in identity **accounts@shalean.com**, label Shalean Cleaning Services. Its Connected Apps detail showed **FaraiOS Shalean TEST**, **United States DC**, **Approved on2026/10/20**. This verifies a connected-app entry under the administrator identity, not an independent grant under faraios590@gmail.com. The app display name does not establish organisation restriction. Approval date is not a verified token-issuance timestamp.
+- The UI did not establish public client ID/type, current granted scopes, token validity, independent grant reference/version, custodian or credential generation. None was inferred from DOM identifiers, app name, historical client metadata or staging alias. The dedicated TEST identity's current Connected Apps list was not inspected in this administrator session. Its grant remains **NOT VERIFIED**; this does not establish that no grant exists.
+- Books remained in **FaraiOS - Shalean TEST**, organisation **943440851**. Closing settings and opening Sales > Invoices reached `https://books.zoho.com/app/943440851#/invoices?filter_by=Status.All&per_page=25&sort_column=created_time&sort_order=D`. **All Invoices** displayed the empty onboarding state: “It's time to get paid!” and “Learn how to create your first invoice”, with no invoice rows. **No known synthetic provider invoice was found.** This is an administrator UI observation, not an API/database assertion that no record can exist elsewhere. No invoice was created or imported. All required provider invoice tuple fields remain **NOT VERIFIED**.
+- Organisation active status remains **NOT VERIFIED**. Browser accessibility, trial labels and active user statuses are not an explicit organisation-active result.
+
+Only necessary textual observations are retained. The supplied Accounts screenshots contain unrelated session/IP/location details and were not copied into repository evidence. No OAuth, token exchange/refresh, provider API diagnostic, credential inspection, production organisation/finance access, revocation, settings/permission change, financial write, merge or deployment occurred. Prior QA/test results are historical; no new automated test, independent QA, CI or GitGuardian result is claimed for this documentation-only update. Tracker status/dependencies remain unchanged.
+
+### Exact next action and remaining gates
+
+**Exact next action:** the owner makes the existing `faraios590@gmail.com` Accounts session available, then the agent can continue the already-authorised read-only Connected Apps inspection to attribute any existing grant metadata. Do not initiate consent or create/refresh a grant. If no suitable existing entry is available, record that limitation. No permission elevation is needed.
+
+The invoice gate now requires a separately reviewed synthetic-fixture provisioning proposal because this TEST All Invoices view is empty; current authorisation does not permit creating one. Existing non-secret custodian/client/scope/generation details not exposed in Accounts must come from the authorised custodian, without sharing secrets. After those expectations are available, separately approved controlled V01 profile/known-invoice verification must resolve explicit active status and actual provider enforcement. Engineering corrections, hosted authenticated API/RLS, GitGuardian/CI, Stage C approval, later reconciliation/failure acceptance and separate Bokkie verification remain as listed in E9.
+
+**PASS for bounded browser evidence collection. NO-GO for T19 acceptance or accounting activation.** T19 remains In progress.
