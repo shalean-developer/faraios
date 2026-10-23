@@ -41,6 +41,26 @@ test('outbound SDK boundary denies live providers, other projects, messaging Aut
   let redirectPolicy;await createStagingFetch(async r=>{redirectPolicy=r.redirect;throw new TypeError('redirect refused');})(stagingDatabase+'/auth/v1/user').catch(()=>{});assert.equal(redirectPolicy,'error');
 });
 
+test('T04 hosted SDK admits only synthetic journal reads and audited append RPCs',async()=>{
+  const calls=[];
+  const restricted=createStagingFetch(async request=>{calls.push(request);return new Response('[]',{headers:{'Content-Type':'application/json'}});});
+  const client=createClient(config.url,config.publishableKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:restricted}});
+  const journals=['cancellation_review_cases','cancellation_review_events','adjustment_review_sources','adjustment_review_events','settlement_review_statements','settlement_review_events'];
+  for(const table of journals){
+    const result=await client.from(table).select('*').eq('business_id','10000000-0000-4000-8000-000000000001');
+    assert.equal(result.error,null);assert.deepEqual(result.data,[]);
+    for(const method of ['POST','PATCH','DELETE','PUT'])await assert.rejects(restricted(stagingDatabase+'/rest/v1/'+table,{method}),/blocked/);
+  }
+  for(const rpc of ['append_cancellation_review','append_earnings_adjustment','append_monthly_settlement']){
+    const result=await client.rpc(rpc,{p_business_id:'10000000-0000-4000-8000-000000000001'});assert.equal(result.error,null);
+    for(const method of ['GET','PATCH','DELETE'])await assert.rejects(restricted(stagingDatabase+'/rest/v1/rpc/'+rpc,{method}),/blocked/);
+    await assert.rejects(restricted(stagingDatabase+'/rest/v1/rpc/'+rpc+'?extra=1',{method:'POST'}),/blocked/);
+    await assert.rejects(restricted(stagingDatabase+'/rest/v1/rpc/'+rpc,{method:'POST',headers:{'Content-Profile':'audit'}}),/blocked/);
+  }
+  for(const rpc of ['execute_monthly_settlement','send_payout','post_earnings','append_monthly_settlement_live','refund_payment'])await assert.rejects(restricted(stagingDatabase+'/rest/v1/rpc/'+rpc,{method:'POST'}),/blocked/);
+  assert.equal(calls.length,9);assert.ok(calls.every(r=>r.redirect==='error'));
+});
+
 for(const transport of ['passenger','litespeed'])test('hosted '+transport+' uses its reviewed transport, canonical origin and secure cookies with real SDK',async()=>{
   const uid='00000000-0000-4000-8000-000000000001',bid='10000000-0000-4000-8000-000000000001',calls=[];
   const token=[Buffer.from(JSON.stringify({alg:'HS256'})).toString('base64url'),Buffer.from(JSON.stringify({sub:uid,exp:Math.floor(Date.now()/1000)+3600,role:'authenticated'})).toString('base64url'),'synthetic'].join('.');

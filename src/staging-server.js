@@ -1,4 +1,7 @@
+import {listMonthlyStatements,readMonthlyStatement,appendMonthlyStatement,renderMonthlyStatements,settlementPreparerActions} from './monthly-settlements.js';
 import {readVatSettings,saveVatSettings} from './vat.js';
+import {listAdjustmentSources,readAdjustmentSource,appendAdjustmentReview,renderAdjustmentReviews} from './adjustment-reviews.js';
+import {listCancellationCases,readCancellationCase,appendCancellationCase,renderCancellationCases} from './cancellation-cases.js';
 import {readSupervisorAllowances,saveSupervisorAllowance,renderSupervisorAllowances,previewMonthlyEarnings,allowanceMonth} from './supervisor-allowances.js';
 import {parseEarningsRule,parseRand,listEarningsRules,saveEarningsRule,previewEarnings,renderEarningsRules,templateRule} from './earnings.js';
 import {listInvoices,readInvoice,bookingInvoice,accountingConnection,invoiceTotals,prepareInvoice,saveAccountingConnection,syncInvoice,renderInvoices} from './invoices.js';
@@ -57,6 +60,84 @@ export function createStagingServer({createClient,accountingWorker=null,accounti
       if(req.method==='GET'&&url.pathname==='/quote-detail.js')return send(200,await readFile(new URL('../public/quote-detail.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/style.css')return send(200,await readFile(new URL('../public/style.css',import.meta.url),'utf8'),'text/css');
       if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/'))return send(200,loginForm(''));
+      if(url.pathname==='/monthly-settlements'&&['GET','POST'].includes(req.method)){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        let data=null;
+        if(req.method==='POST'){
+          if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
+          if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
+          let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>24000)return send(413,'Form too large','text/plain');}data=new URLSearchParams(body);
+        }
+        return await auth.withAdjustmentReviews(id,url.searchParams.get('business'),async(client,business,role,userId)=>{
+          headerBusiness=business;const statementId=url.searchParams.get('statement');
+          const record=statementId?await readMonthlyStatement(client,business.id,statementId):null;
+          if(statementId&&(!record||role==='staff'&&record.worker_id!==userId))return send(404,'Statement unavailable','text/plain');
+          const rows=!record?(await listMonthlyStatements(client,business.id)).filter(s=>role!=='staff'||s.worker_id===userId):[];
+          let workers=[];if(!record&&role!=='staff'){
+            workers=await staffAccounts(client,business.id);
+          }
+          const show=options=>html('Monthly settlement reviews',renderMonthlyStatements(business,{record,rows,workers,role,...options}));
+          if(req.method==='GET')return send(200,show({}));
+          if(role==='staff'&&data.get('action')!=='dispute'||role==='manager'&&!settlementPreparerActions.includes(data.get('action')))return send(403,'Owner approval required','text/plain');
+          if(record&&data.get('action')==='create'||!record&&data.get('action')!=='create')return send(400,'Choose a statement action','text/plain');
+          try{
+            const saved=await appendMonthlyStatement(client,{businessId:business.id,record,form:data,role,userId});
+            return redirect('/monthly-settlements?business='+encodeURIComponent(business.id)+'&statement='+encodeURIComponent(saved));
+          }catch(error){return send(error.status??422,show({message:error.message,error:true,values:data}));}
+        });
+      }
+      if(url.pathname==='/earnings-adjustments'&&['GET','POST'].includes(req.method)){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        let data=null;
+        if(req.method==='POST'){
+          if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
+          if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
+          let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>24000)return send(413,'Form too large','text/plain');}data=new URLSearchParams(body);
+        }
+        return await auth.withAdjustmentReviews(id,url.searchParams.get('business'),async(client,business,role,userId)=>{
+          headerBusiness=business;const sourceId=url.searchParams.get('source'),bookingId=url.searchParams.get('booking');
+          if(sourceId&&bookingId)return send(400,'Choose one source or booking','text/plain');
+          if(bookingId&&role==='staff')return send(403,'Assigned source reviews only','text/plain');
+          const record=sourceId?await readAdjustmentSource(client,business.id,sourceId):null;
+          if(sourceId&&(!record||role==='staff'&&record.worker_id!==userId))return send(404,'Source unavailable','text/plain');
+          const booking=bookingId?await readBooking(client,business.id,bookingId):null;
+          if(bookingId&&!booking)return send(404,'Booking unavailable','text/plain');
+          const rows=!record&&!booking?(await listAdjustmentSources(client,business.id)).filter(r=>role!=='staff'||r.worker_id===userId):[];
+          const show=options=>html('Earnings adjustments',renderAdjustmentReviews(business,{record,booking,rows,role,...options}));
+          if(req.method==='GET')return send(200,show({}));
+          try{
+            if(role==='staff'&&!['raise_dispute','request_review'].includes(data.get('action')))return send(403,'Own review requests only','text/plain');
+            if(role!=='owner'&&!['register_source','propose','raise_dispute','request_review'].includes(data.get('action')))return send(403,'Owner approval required','text/plain');
+            const saved=await appendAdjustmentReview(client,{businessId:business.id,booking,record,form:data,role,userId});
+            return redirect('/earnings-adjustments?business='+encodeURIComponent(business.id)+'&source='+encodeURIComponent(saved));
+          }catch(error){return send(error.status??422,show({message:error.message,error:true,values:data}));}
+        });
+      }
+      if(url.pathname==='/cancellations'&&['GET','POST'].includes(req.method)){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        let data=null;
+        if(req.method==='POST'){
+          if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
+          if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
+          let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>32768)return send(413,'Form too large','text/plain');}data=new URLSearchParams(body);
+        }
+        return await auth.withEarningsRules(id,url.searchParams.get('business'),req.method==='POST'&&data.get('action')!=='prepare',async(client,business,owner)=>{
+          headerBusiness=business;
+          const caseId=url.searchParams.get('case'),bookingId=url.searchParams.get('booking');
+          if(caseId&&bookingId)return send(400,'Choose one review','text/plain');
+          const record=caseId?await readCancellationCase(client,business.id,caseId):null;
+          if(caseId&&!record)return send(404,'Review unavailable','text/plain');
+          const booking=bookingId?await readBooking(client,business.id,bookingId):null;
+          if(bookingId&&!booking)return send(404,'Booking unavailable','text/plain');
+          const show=async options=>html('Cancellation reviews',renderCancellationCases(business,{rows:!record&&!booking?await listCancellationCases(client,business.id):[],booking,record,owner,...options}));
+          if(req.method==='GET')return send(200,await show({}));
+          try{
+            if(!booking&&!record)throw new Error('Choose a booking or review');
+            const saved=await appendCancellationCase(client,{businessId:business.id,booking,record,form:data});
+            return redirect('/cancellations?business='+encodeURIComponent(business.id)+'&case='+encodeURIComponent(saved));
+          }catch(error){return send(error.status??422,await show({message:error.message,error:true,values:data}));}
+        });
+      }
       if(url.pathname==='/supervisor-allowances'&&['GET','POST'].includes(req.method)){
         if(!await readIdentity(id)){clear();return redirect('/login');}
         activePath='/earnings-rules';
@@ -393,7 +474,7 @@ export function createStagingServer({createClient,accountingWorker=null,accounti
       const selected=url.searchParams.get('business')??'all';
       if(selected!=='all'&&!identity.businessIds.includes(selected))return send(403,'You do not have access to this business.','text/plain');
       return send(200,renderWorkspace(identity,selected,{restoreTest}));
-    }catch(error){if(['Earnings access denied','Invoice access denied','Quote access denied','Staff access denied','Settings access denied','Catalogue access denied','Customer access denied','Booking access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,loginForm('Staging service unavailable. Please try again later.'));}
+    }catch(error){if(['Adjustment access denied','Earnings access denied','Invoice access denied','Quote access denied','Staff access denied','Settings access denied','Catalogue access denied','Customer access denied','Booking access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,loginForm('Staging service unavailable. Please try again later.'));}
   });return server;
 }
 

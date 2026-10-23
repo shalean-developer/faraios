@@ -1,0 +1,63 @@
+-- Rollback-only PAY03 synthetic controls; FaraiOS staging only.
+begin;
+set local statement_timeout='60s';set local lock_timeout='5s';
+create temporary table monthly_checks(name text primary key) on commit drop;
+grant select,insert on monthly_checks to authenticated;
+create function pg_temp.monthly_check(label text,ok boolean) returns void language plpgsql as $$begin if ok is not true then raise exception 'Monthly check failed: %',label;end if;insert into monthly_checks values(label);end$$;
+create function pg_temp.monthly_denied(label text,statement text,pattern text) returns void language plpgsql as $$declare denied boolean:=false;begin begin execute statement;exception when others then if sqlerrm!~pattern then raise exception 'Unexpected rejection %: %',label,sqlerrm;end if;denied:=true;end;perform pg_temp.monthly_check(label,denied);end$$;
+do $setup$
+declare a uuid:=gen_random_uuid();b uuid:=gen_random_uuid();o uuid;m uuid;s uuid;
+begin
+ if (select count(*) from public.businesses)<>2 or to_regclass('public.settlement_review_statements') is null then raise exception 'Unexpected staging baseline';end if;
+ if exists(select 1 from public.business_accounting_connections where enabled) then raise exception 'Accounting must remain disabled';end if;
+ select user_id into o from public.business_memberships where role='owner' and status='active' limit 1;
+ select x.user_id into m from public.business_memberships x join auth.users u on u.id=x.user_id where x.role='manager' and x.status='active' and u.email like '%.test' limit 1;
+ select x.user_id into s from public.business_memberships x join auth.users u on u.id=x.user_id where x.role='staff' and x.status='active' and u.email like '%.test' limit 1;
+ if o is null or m is null or s is null or o=m or m=s or o=s then raise exception 'Existing QA identities required';end if;
+ perform set_config('faraios.monthly.a',a::text,true);perform set_config('faraios.monthly.b',b::text,true);perform set_config('faraios.monthly.owner',o::text,true);perform set_config('faraios.monthly.manager',m::text,true);perform set_config('faraios.monthly.staff',s::text,true);
+ insert into public.businesses(id,name,industry) values(a,'T04_MONTHLY_QA_A','cleaning'),(b,'T04_MONTHLY_QA_B','cleaning');
+ insert into public.business_memberships(business_id,user_id,role) values(a,o,'owner'),(a,m,'manager'),(a,s,'staff'),(b,m,'owner');
+end $setup$;
+set local role authenticated;
+select set_config('request.jwt.claim.sub',current_setting('faraios.monthly.owner'),true);
+do $owner$
+declare a uuid:=current_setting('faraios.monthly.a')::uuid;worker uuid:=current_setting('faraios.monthly.staff')::uuid;sid uuid:=gen_random_uuid();k uuid:=gen_random_uuid();line_id uuid:=gen_random_uuid();transfer_id uuid:=gen_random_uuid();p jsonb;st jsonb;
+begin
+ p:=jsonb_build_object('workerId',worker,'period','2026-09','calendarEvidence','SYNTHETIC reviewed calendar','closedDates',jsonb_build_array('2026-10-05'),'earlierDeadline','2026-10-01','deadlineEvidence','SYNTHETIC earlier term');
+ perform pg_temp.monthly_denied('future month blocked',format('select public.append_monthly_settlement(%L,%L,0,%L,''create'',%L)',a,sid,k,p||jsonb_build_object('period','2099-10')),'Month must be closed');
+ perform public.append_monthly_settlement(a,sid,0,k,'create',p);
+ perform public.append_monthly_settlement(a,sid,0,k,'create',p);
+ perform pg_temp.monthly_check('exact replay',(select version=1 from public.settlement_review_statements where id=sid));
+ select state into st from public.settlement_review_statements where id=sid;
+ perform pg_temp.monthly_check('banking target and earlier deadline',st->>'targetDate'='2026-10-02' and st->>'dueDate'='2026-10-01');
+ p:=jsonb_build_object('kind','reimbursement','amountCents',5000,'priorClearedCents',0,'originalPeriod','2026-08','sourceReference','SYNTHETIC missed R50','evidence','SYNTHETIC reviewed receipt');
+ perform pg_temp.monthly_denied('numeric strings denied',format('select public.append_monthly_settlement(%L,%L,1,%L,''add_line'',%L)',a,sid,line_id,p||jsonb_build_object('amountCents','5000')),'integer');
+ perform set_config('request.jwt.claim.sub',current_setting('faraios.monthly.manager'),true);
+ perform public.append_monthly_settlement(a,sid,1,line_id,'add_line',p);
+ perform pg_temp.monthly_denied('manager freeze denied',format('select public.append_monthly_settlement(%L,%L,2,%L,''freeze'',%L)',a,sid,gen_random_uuid(),jsonb_build_object('reference','TEST','fullPayReviewEvidence','TEST')),'Owner');
+ perform set_config('request.jwt.claim.sub',worker::text,true);
+ perform pg_temp.monthly_check('own worker statement visible',(select count(*)=1 from public.settlement_review_statements where id=sid));
+ perform public.append_monthly_settlement(a,sid,2,gen_random_uuid(),'dispute',jsonb_build_object('lineId',line_id,'reason','TEST','evidence','TEST'));
+ perform set_config('request.jwt.claim.sub',current_setting('faraios.monthly.owner'),true);
+ perform public.append_monthly_settlement(a,sid,3,gen_random_uuid(),'resolve',jsonb_build_object('lineId',line_id,'reason','TEST','workerReviewEvidence','TEST'));
+ perform pg_temp.monthly_denied('resolution requires freeze',format('select public.append_monthly_settlement(%L,%L,4,%L,''approve'',%L)',a,sid,gen_random_uuid(),jsonb_build_object('reference','TEST','paymentDetailsEvidence','TEST')),'frozen');
+ perform public.append_monthly_settlement(a,sid,4,gen_random_uuid(),'freeze',jsonb_build_object('reference','TEST','fullPayReviewEvidence','TEST'));
+ perform public.append_monthly_settlement(a,sid,5,gen_random_uuid(),'approve',jsonb_build_object('reference','TEST','paymentDetailsEvidence','TEST'));
+ perform pg_temp.monthly_denied('excess original not repaid',format('select public.append_monthly_settlement(%L,%L,6,%L,''submit'',%L)',a,sid,transfer_id,jsonb_build_object('amountCents',255000,'reference','TEST')),'exact outstanding');
+ perform public.append_monthly_settlement(a,sid,6,transfer_id,'submit',jsonb_build_object('amountCents',5000,'reference','TEST-NO-MONEY-R50'));
+ perform pg_temp.monthly_denied('unknown transfer blocks retry',format('select public.append_monthly_settlement(%L,%L,7,%L,''submit'',%L)',a,sid,gen_random_uuid(),jsonb_build_object('amountCents',5000,'reference','TEST-RETRY')),'uncertain');
+ p:=jsonb_build_object('transferId',transfer_id,'outcome','partial','clearedCents',3000,'allocations',jsonb_build_object(line_id::text,3000),'remainingFailed',false,'clearingEvidence','TEST','allocationEvidence','TEST','reference','TEST');
+ perform public.append_monthly_settlement(a,sid,7,gen_random_uuid(),'reconcile',p);
+ perform pg_temp.monthly_check('partial not full',(select state->'transfers'->0->>'outcome'='partial' and (state->'transfers'->0->>'clearedCents')::integer=3000 from public.settlement_review_statements where id=sid));
+ perform pg_temp.monthly_denied('partial uncertain blocks retry',format('select public.append_monthly_settlement(%L,%L,8,%L,''submit'',%L)',a,sid,gen_random_uuid(),jsonb_build_object('amountCents',2000,'reference','TEST-RETRY')),'uncertain');
+ perform public.append_monthly_settlement(a,sid,8,gen_random_uuid(),'reconcile',p||jsonb_build_object('outcome','cleared','clearedCents',5000,'allocations',jsonb_build_object(line_id::text,5000)));
+ perform pg_temp.monthly_check('clearing allocation explicit',(select state->'transfers'->0->>'outcome'='cleared' and state->'transfers'->0->>'uncertain'='false' and state->>'execution'='disabled' from public.settlement_review_statements where id=sid));
+ perform pg_temp.monthly_denied('repeat cleared transfer denied',format('select public.append_monthly_settlement(%L,%L,9,%L,''submit'',%L)',a,sid,gen_random_uuid(),jsonb_build_object('amountCents',5000,'reference','TEST-AGAIN')),'exact outstanding');
+ perform public.append_monthly_settlement(a,sid,9,gen_random_uuid(),'provide_statement',jsonb_build_object('reference','SYNTHETIC statement and transfer-reference review'));
+ perform pg_temp.monthly_denied('direct rewrite denied','update public.settlement_review_statements set version=99','permission denied');
+ perform pg_temp.monthly_denied('direct deletion denied','delete from public.settlement_review_events','permission denied');
+ perform pg_temp.monthly_denied('foreign business denied',format('select public.append_monthly_settlement(%L,%L,10,%L,''provide_statement'',%L)',current_setting('faraios.monthly.b'),sid,gen_random_uuid(),jsonb_build_object('reference','TEST')),'access denied');
+end $owner$;
+reset role;
+select count(*) checks,jsonb_agg(name order by name) names from monthly_checks;
+rollback;

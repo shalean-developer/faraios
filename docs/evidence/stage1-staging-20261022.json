@@ -1,0 +1,106 @@
+{
+  "date": "2026-10-22",
+  "timezone": "Africa/Johannesburg",
+  "scope": "FaraiOS staging; synthetic cancellation/refund tracking only",
+  "applicationCommit": "90d2711c76a4b1f288329fec3391069351663b62",
+  "ci": {
+    "run": 39753982974,
+    "tests": 300,
+    "passed": 300,
+    "skipped": 0
+  },
+  "migration": {
+    "project": "xdmfyrsauvqznkloroxg",
+    "sourceFile": "20261022090011_t04_cancellation_reviews.sql",
+    "remoteVersion": "20261022091924"
+  },
+  "hostedChecks": 17,
+  "originalRecordGroupsUnchanged": 18,
+  "originalFingerprints": {
+    "audit": {
+      "hash": "67c52b174eb8c842a9de0c290c464bde",
+      "count": 228
+    },
+    "businesses": {
+      "hash": "5dccb27598d25aeca9744322031caee1",
+      "count": 2
+    },
+    "staff_teams": {
+      "hash": "d7f4618a6a235f38822727d6eb8de9a6",
+      "count": 4
+    },
+    "staff_profiles": {
+      "hash": "d2df24a2c47aee67469e0358923b8bef",
+      "count": 2
+    },
+    "business_quotes": {
+      "hash": "c29177f46b955eaad1d96a4b6632244a",
+      "count": 7
+    },
+    "one_off_bookings": {
+      "hash": "b335113a510e38b18bc0b8a58430cc1c",
+      "count": 14
+    },
+    "business_invoices": {
+      "hash": "b744748aab1343ef8259ca32f20cd842",
+      "count": 2
+    },
+    "business_settings": {
+      "hash": "46865bfbb20969dcb2c97c974c51eb34",
+      "count": 2
+    },
+    "business_catalogue": {
+      "hash": "17aba8954dd7af8d1318900e0c11457a",
+      "count": 50
+    },
+    "business_customers": {
+      "hash": "ea972836d64424a10f391d06d2b91cf8",
+      "count": 4
+    },
+    "customer_addresses": {
+      "hash": "ff7da16579187196b9f393d79c7a1f12",
+      "count": 3
+    },
+    "recurring_schedules": {
+      "hash": "5713f4e573022030292de5fc407eae56",
+      "count": 2
+    },
+    "business_memberships": {
+      "hash": "832724c4bbc8911ee1a00d33006cc5c7",
+      "count": 5
+    },
+    "business_vat_settings": {
+      "hash": "116aa475898af0d84d30597ae40e6c3a",
+      "count": 1
+    },
+    "quote_invoice_handoffs": {
+      "hash": "68e0d9b823ea830e8de86d81c96e2851",
+      "count": 2
+    },
+    "business_earnings_rules": {
+      "hash": "d1d723fd8900a988cae1c18dfaf06428",
+      "count": 6
+    },
+    "supervisor_allowance_changes": {
+      "hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "count": 0
+    },
+    "business_accounting_connections": {
+      "hash": "d7abd1e80bf355c6d4e893c04dfedf3c",
+      "count": 2
+    }
+  },
+  "retained": {
+    "policies": 0,
+    "cases": 0,
+    "events": 0,
+    "fixtures": 0
+  },
+  "securityAdvisor": "No new findings; baseline leaked-password-protection warning and three restricted RLS INFO items unchanged",
+  "performanceAdvisor": "No new missing FK indexes; four expected unused-index INFO findings on new empty tables",
+  "browserAcceptance": "PENDING: local candidate restart required",
+  "independentAssurance": "NOT ASSESSED",
+  "stage1": "OPEN",
+  "stage2": "NOT STARTED",
+  "financialExecution": "DISABLED"
+}

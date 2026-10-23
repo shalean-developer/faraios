@@ -1,0 +1,37 @@
+{
+  "stage": "T04 Stage 2",
+  "status": "Delivery browser checks complete; independent QA NOT ASSESSED",
+  "candidate_tree": "18ab4314aea166e7ff811c43f597d75646fb0db0",
+  "desktop_viewport": 1280,
+  "document_scroll_width": 1265,
+  "passed": [
+    "Blank original amount blocked without source creation",
+    "Invalid original version rejected with submitted values retained",
+    "Negative reimbursement rejected",
+    "R2500 original preserved; R50 reimbursement approved, frozen and simulated once",
+    "Fresh manager role denied stale owner approval form; manager view hides approval",
+    "Rejected negative calculation proposal preserved",
+    "Worker sees only own source; direct other-worker source unavailable",
+    "Own-worker review raises dispute and removes freeze",
+    "Owner resolution does not restore freeze; renewed freeze restores correction-only simulation eligibility",
+    "375px visual layout: no horizontal overflow; readable original and correction cards",
+    "375px simulation form saved R20 correction only; simulation control removed afterwards"
+  ],
+  "pending": [
+    "Independent QA"
+  ],
+  "synthetic_fixture_business": "removed",
+  "temporary_owner_role_restored": true,
+  "pilots_completed": 0,
+  "allowances": "Off",
+  "financial_workflows": "inactive",
+  "mobile_viewport": 375,
+  "mobile_document_scroll_width": 375,
+  "cleanup": {
+    "sources": 0,
+    "items": 0,
+    "events": 0,
+    "qa_businesses": 0,
+    "original_data_groups_unchanged": 18
+  }
+}

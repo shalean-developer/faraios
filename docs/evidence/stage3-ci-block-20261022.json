@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-22",
+  "review_head": "5bf10fa7cde800c3378547515f175e808a471078",
+  "run_id": 39792597472,
+  "job_id": 119872100451,
+  "source_url": "https://github.com/shalean-developer/faraios/actions/runs/39792597472/job/119872100451",
+  "observation": "GitHub job annotations independently read in the signed-in browser. The job did not start because recent account payments failed or the spending limit needs to be increased. GitHub directs the account owner to Billing & plans. Which alternative applies was not determined.",
+  "job_steps": 0,
+  "runner_id": 0,
+  "log_availability": "No job log; connector returns404BlobNotFound",
+  "separate_notice": "Ubuntu-latest migration to Ubuntu26 is a notice, not the recorded job-start failure.",
+  "previous_implementation_ci": {
+    "head": "acce96907637a3e5de9489bf6979fc7a6f9a2117",
+    "run": 39772984923,
+    "jobs_passed": 3,
+    "tests_passed": 327,
+    "failed": 0,
+    "skipped": 0
+  },
+  "source_changes_since_previous_implementation_ci": "Evidence/documentation only",
+  "action": "No billing/spending/security changes or workflow bypass. Latest-head CI remains blocked; no new passing run claimed."
+}

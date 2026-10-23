@@ -10,7 +10,8 @@ test('independent connections prevent shared-cleaner overlaps and duplicate recu
  // This test provisions an empty disposable database, never a project database.
  const target=new URL(database);assert.equal(target.hostname,'127.0.0.1');assert.equal(target.pathname,'/faraios_t16_test');
  const args=[database,'-X','-qAt','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'];
- const sql=text=>{const r=spawnSync('psql',args,{input:text,encoding:'utf8',timeout:15000});assert.equal(r.status,0,r.stderr||r.error?.message);return r.stdout.trim();};
+ // psql emits CRLF on Windows; compare database rows independently of host line endings.
+ const sql=text=>{const r=spawnSync('psql',args,{input:text,encoding:'utf8',timeout:15000});assert.equal(r.status,0,r.stderr||r.error?.message);return r.stdout.replace(/\r\n/g,'\n').trim();};
  let setup=`create role anon;create role authenticated;create role service_role;grant usage on schema public to service_role;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant execute on function auth.uid() to authenticated;`;
  for(const file of ['identity-draft.sql','audit-draft.sql','business-settings-draft.sql','catalogue-draft.sql','customers-draft.sql','bookings-draft.sql','bookings-context-hardening-draft.sql','cleaning-profiles-draft.sql','cleaning-assessments-draft.sql','cleaning-assessment-review-hardening-draft.sql','staff-teams-draft.sql','availability-draft.sql','recurring-draft.sql','quotes-draft.sql','quote-acceptance-actor-draft.sql','invoices-draft.sql'])setup+=await readFile(new URL('../database/'+file,import.meta.url),'utf8');
  setup+=`insert into auth.users values('${owner}','owner@test.invalid'),('${manager}','manager@test.invalid'),('${staff}','staff@test.invalid');insert into public.businesses(id,name,industry) values('${a}','A','cleaning'),('${b}','B','cleaning');insert into public.business_memberships(business_id,user_id,role) values('${a}','${owner}','owner'),('${b}','${owner}','owner'),('${b}','${manager}','manager'),('${a}','${staff}','staff'),('${b}','${staff}','staff');set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);`;
@@ -25,7 +26,7 @@ test('independent connections prevent shared-cleaner overlaps and duplicate recu
  const connect=name=>{
   const child=spawn('psql',args,{env:{...process.env,PGAPPNAME:name}});let stdout='',stderr='';
   child.stdout.on('data',chunk=>stdout+=chunk);child.stderr.on('data',chunk=>stderr+=chunk);
-  const closed=new Promise((resolve,reject)=>{child.on('error',reject);child.on('close',code=>resolve({code,stdout,stderr}));});
+  const closed=new Promise((resolve,reject)=>{child.on('error',reject);child.on('close',code=>resolve({code,stdout:stdout.replace(/\r\n/g,'\n'),stderr}));});
   return {child,closed,output:()=>stdout};
  };
  const first=connect('t16_winner');let second;
@@ -150,4 +151,73 @@ test('independent connections prevent shared-cleaner overlaps and duplicate recu
   allowanceWinner.child.stdin.end('commit;\n');const [won,lost]=await Promise.all([allowanceWinner.closed,allowanceRetry.closed]);assert.equal(won.code,0,won.stderr);assert.notEqual(lost.code,0);assert.match(lost.stderr,/40001/);
   assert.equal(sql(`select count(*)||':'||max(amount_cents) from public.supervisor_allowance_changes where business_id='${a}' and user_id='${staff}'`),'1:50000');
  }finally{for(const c of [allowanceWinner,allowanceRetry].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+
+ // Stage 1: two owner sessions cannot reserve the same remaining customer money.
+ sql(await readFile(new URL('../database/cancellation-review-draft.sql',import.meta.url),'utf8'));
+ const cancellationInput={policyVersion:'shalean-cancel-20261021-v1',agreementKind:'new_accepted',acceptanceEvidence:'TEST prospective acceptance',cause:'customer',action:'cancel',stage:'accepted',originalStart:sql(`select to_char(starts_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') from public.one_off_bookings where id='${ba}'`),requestedAt:'2026-10-19T08:00:00+02:00',stageTimes:{accepted:'2026-10-18T08:00:00+02:00'},workers:[{id:staff,agreedCents:30000,expenseCents:0}],eligibleLabourCents:10000,reasonableLossCents:0,verifiedReceiptsCents:10000,performedServiceCents:0,completedRefundsCents:0,pendingRefundsCents:0,reviewedCustomerFeeCents:0,collectedPoolCents:0,mandatoryRightsReviewed:true,feeMustBeWaived:false,holidays:[]};
+ sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);insert into public.business_cancellation_review_policies(business_id,policy_version,approval_reference) values('${a}','shalean-cancel-20261021-v1','TEST owner decision');`);
+ const cancellationCase=sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);select public.append_cancellation_review('${a}','${ba}',null,0,'${id(900)}','prepare','${JSON.stringify(cancellationInput)}');`).split('\n').at(-1);
+ sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);select public.append_cancellation_review('${a}','${ba}','${cancellationCase}',1,'${id(901)}','approve','{"reason":"Synthetic approval"}');`);
+ const refundPayload=JSON.stringify({amountCents:7000,receiptReference:'TEST-PAY',route:'test-card',originalRoute:'test-card'});
+ const refundWinner=connect('t04_refund_winner');let refundRetry;
+ try{
+  refundWinner.child.stdin.write(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);select public.append_cancellation_review('${a}','${ba}','${cancellationCase}',2,'${id(902)}','reserve_refund','${refundPayload}');select 'REFUND_HELD';\n`);
+  for(let i=0;i<100&&!refundWinner.output().includes('REFUND_HELD');i++)await pause(25);assert.match(refundWinner.output(),/REFUND_HELD/);
+  refundRetry=connect('t04_refund_retry');refundRetry.child.stdin.end(`begin;set local lock_timeout='10s';set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);select public.append_cancellation_review('${a}','${ba}','${cancellationCase}',2,'${id(903)}','reserve_refund','${refundPayload}');commit;`);
+  let blocked=false;for(let i=0;i<50&&!blocked;i++){blocked=sql("select count(*) from pg_stat_activity where application_name='t04_refund_retry' and wait_event_type='Lock'")==='1';if(!blocked)await pause(25);}assert.equal(blocked,true,'Refund reservations must serialize on the case');
+  refundWinner.child.stdin.end('commit;\n');const [won,lost]=await Promise.all([refundWinner.closed,refundRetry.closed]);assert.equal(won.code,0,won.stderr);assert.notEqual(lost.code,0);assert.match(lost.stderr,/40001/);
+  assert.equal(sql(`select count(*) from public.cancellation_review_events where case_id='${cancellationCase}' and event_type='reserve_refund'`),'1');
+ }finally{for(const c of [refundWinner,refundRetry].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+
+ // Stage 2: source-row lock prevents two sessions simulating the same correction.
+ sql(await readFile(new URL('../database/earnings-adjustments-draft.sql',import.meta.url),'utf8'));
+ const adjSource=id(950),adjItem=id(952);
+ const original={sourceId:adjSource,bookingId:ba,workerId:staff,originalVersion:3,originalCents:250000,originalPeriod:'2026-07',agreementEvidence:'SYNTHETIC terms',originalRecordEvidence:'SYNTHETIC original R2500'};
+ const adj=(version,key,type,payload)=>`select public.append_earnings_adjustment('${a}','${adjSource}',${version},'${key}','${type}','${JSON.stringify(payload)}');`;
+ sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);`+adj(0,id(951),'register_source',original)+adj(1,adjItem,'propose',{sourceId:adjSource,kind:'reimbursement',deltaCents:5000,reason:'Missed R50',evidence:'TEST receipt',occurrenceReference:'missed1'})+adj(2,id(953),'approve',{adjustmentId:adjItem,reason:'Verified',originalVerificationEvidence:'Verified',entitlementReviewEvidence:'Reviewed'})+adj(3,id(954),'freeze_review',{adjustmentId:adjItem,reference:'TEST review'}));
+ const adjustmentWinner=connect('t04_adjustment_winner');let adjustmentRetry;
+ try{
+  adjustmentWinner.child.stdin.write(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);`+adj(4,id(955),'simulate_settlement',{adjustmentId:adjItem,amountCents:5000,reference:'TEST-NO-MONEY'})+`select 'ADJUSTMENT_HELD';\n`);
+  for(let i=0;i<100&&!adjustmentWinner.output().includes('ADJUSTMENT_HELD');i++)await pause(25);assert.match(adjustmentWinner.output(),/ADJUSTMENT_HELD/);
+  adjustmentRetry=connect('t04_adjustment_retry');adjustmentRetry.child.stdin.end(`begin;set local lock_timeout='10s';set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);`+adj(4,id(956),'simulate_settlement',{adjustmentId:adjItem,amountCents:5000,reference:'TEST-RETRY'})+'commit;');
+  let blocked=false;for(let i=0;i<50&&!blocked;i++){blocked=sql("select count(*) from pg_stat_activity where application_name='t04_adjustment_retry' and wait_event_type='Lock'")==='1';if(!blocked)await pause(25);}assert.equal(blocked,true,'Adjustment source writes must serialize');
+  adjustmentWinner.child.stdin.end('commit;\n');const [won,lost]=await Promise.all([adjustmentWinner.closed,adjustmentRetry.closed]);assert.equal(won.code,0,won.stderr);assert.notEqual(lost.code,0);assert.match(lost.stderr,/40001/);
+  assert.equal(sql(`select count(*) from public.adjustment_review_events where source_id='${adjSource}' and event_type='simulate_settlement'`),'1');
+ }finally{for(const c of [adjustmentWinner,adjustmentRetry].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+
+ // Stage 3: competing statement submissions serialize under both isolation levels.
+ sql(await readFile(new URL('../database/monthly-settlements-draft.sql',import.meta.url),'utf8'));
+ for(const [index,isolation]of ['read committed','repeatable read'].entries()){
+  const sid=id(970+index),period=index?'2026-08':'2026-09';
+  const monthly=(version,key,type,payload)=>`select public.append_monthly_settlement('${a}','${sid}',${version},'${key}','${type}','${JSON.stringify(payload)}');`;
+  sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);`+monthly(0,id(980+index*10),'create',{workerId:staff,period,calendarEvidence:'TEST weekends calendar',closedDates:[]})+monthly(1,id(981+index*10),'add_line',{kind:'reimbursement',amountCents:5000,priorClearedCents:0,originalPeriod:period,sourceReference:'native-'+index,evidence:'SYNTHETIC receipt'})+monthly(2,id(982+index*10),'freeze',{reference:'TEST',fullPayReviewEvidence:'TEST'})+monthly(3,id(983+index*10),'approve',{reference:'TEST',paymentDetailsEvidence:'TEST'}));
+  const winner=connect('t04_monthly_winner');let contender;
+  try{
+   winner.child.stdin.write(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);`+monthly(4,id(984+index*10),'submit',{amountCents:5000,reference:'TEST-WINNER'})+`select 'MONTHLY_HELD';\n`);
+   for(let i=0;i<100&&!winner.output().includes('MONTHLY_HELD');i++)await pause(25);assert.match(winner.output(),/MONTHLY_HELD/);
+   contender=connect('t04_monthly_retry');contender.child.stdin.end(`begin isolation level ${isolation};set local lock_timeout='10s';set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);`+monthly(4,id(985+index*10),'submit',{amountCents:5000,reference:'TEST-RETRY'})+'commit;');
+   let blocked=false;for(let i=0;i<50&&!blocked;i++){blocked=sql("select count(*) from pg_stat_activity where application_name='t04_monthly_retry' and wait_event_type='Lock'")==='1';if(!blocked)await pause(25);}assert.equal(blocked,true,'Monthly submissions must serialize');
+   winner.child.stdin.end('commit;\n');const [won,lost]=await Promise.all([winner.closed,contender.closed]);assert.equal(won.code,0,won.stderr);assert.notEqual(lost.code,0);assert.match(lost.stderr,/40001/);
+   assert.equal(sql(`select count(*) from public.settlement_review_events where statement_id='${sid}' and event_type='submit'`),'1');
+  }finally{for(const c of [winner,contender].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+ }
+
+ // A monthly claim and Stage 2 simulation cannot consume the same delta, even with a stale snapshot.
+ const claimStatement=id(972);
+ const claimMonthly=(version,key,type,payload)=>`select public.append_monthly_settlement('${a}','${claimStatement}',${version},'${key}','${type}','${JSON.stringify(payload)}');`;
+ sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);`+claimMonthly(0,id(1000),'create',{workerId:staff,period:'2026-07',calendarEvidence:'TEST',closedDates:[]}));
+ for(const [index,isolation]of ['read committed','repeatable read'].entries()){
+  const item=id(1010+index*10),version=5+index*3;
+  sql(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);`+adj(version,item,'propose',{sourceId:adjSource,kind:'reimbursement',deltaCents:2000,reason:'TEST',evidence:'TEST',occurrenceReference:'native-monthly-'+index})+adj(version+1,id(1011+index*10),'approve',{adjustmentId:item,reason:'TEST',originalVerificationEvidence:'TEST',entitlementReviewEvidence:'TEST'})+adj(version+2,id(1012+index*10),'freeze_review',{adjustmentId:item,reference:'TEST'}));
+  const winner=connect('t04_monthly_claim');let contender;
+  try{
+   winner.child.stdin.write(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);`+claimMonthly(1+index,id(1013+index*10),'add_line',{kind:'correction',amountCents:2000,priorClearedCents:0,originalPeriod:'2026-07',sourceReference:'native-claim-'+index,evidence:'TEST',adjustmentId:item})+`select 'MONTHLY_CLAIM_HELD';\n`);
+   for(let i=0;i<100&&!winner.output().includes('MONTHLY_CLAIM_HELD');i++)await pause(25);assert.match(winner.output(),/MONTHLY_CLAIM_HELD/);
+   contender=connect('t04_claim_vs_simulate');contender.child.stdin.end(`begin isolation level ${isolation};set local lock_timeout='10s';set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);`+adj(version+3,id(1014+index*10),'simulate_settlement',{adjustmentId:item,amountCents:2000,reference:'TEST-CONTENDER'})+'commit;');
+   let blocked=false;for(let i=0;i<50&&!blocked;i++){blocked=sql("select count(*) from pg_stat_activity where application_name='t04_claim_vs_simulate' and wait_event_type='Lock'")==='1';if(!blocked)await pause(25);}assert.equal(blocked,true,'Claim must serialize against Stage 2 simulation');
+   winner.child.stdin.end('commit;\n');const [won,lost]=await Promise.all([winner.closed,contender.closed]);assert.equal(won.code,0,won.stderr);assert.notEqual(lost.code,0);assert.match(lost.stderr,isolation==='repeatable read'?/40001/:/monthly review/);
+   assert.equal(sql(`select monthly_claimed::text||':'||simulated::text from public.adjustment_review_items where id='${item}'`),'true:false');
+  }finally{for(const c of [winner,contender].filter(Boolean))if(c.child.exitCode===null)c.child.kill('SIGTERM');}
+ }
+
 });
