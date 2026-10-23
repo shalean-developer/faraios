@@ -28,6 +28,9 @@ CREATE FUNCTION audit.fixture_trigger() RETURNS trigger LANGUAGE plpgsql AS $$BE
 CREATE TRIGGER fixture_trigger BEFORE INSERT ON public.businesses FOR EACH ROW EXECUTE FUNCTION audit.fixture_trigger();
 CREATE FUNCTION public.fixture_default() RETURNS int LANGUAGE sql AS $$SELECT 1$$;
 ALTER TABLE public.business_catalogue ALTER COLUMN id SET DEFAULT public.fixture_default();
+CREATE FUNCTION audit.fixture_policy() RETURNS boolean LANGUAGE sql AS $$SELECT true$$;
+ALTER TABLE public.businesses ENABLE ROW LEVEL SECURITY;
+CREATE POLICY fixture_policy ON public.businesses TO authenticated USING(audit.fixture_policy());
 `;
 let passed=0;
 async function run(name,{drift='',reject=false,source=sql}={}){
