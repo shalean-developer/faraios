@@ -16,6 +16,8 @@ Stage B and its database remain synthetic-only. The legacy adapter and staging c
 
 ## Review and execution gate
 
+The local service, consent URL, server-side exchange and review manifest now use the existing registered callback `http://127.0.0.1:3102/zoho/callback` (E17/E18). The former `/oauth/callback` route is not an alias and cannot exchange a code. This owner-approved local correction does not change Zoho settings or authorise provider execution. Existing protected state is not migrated or rebound; the full-manifest digest check remains in force.
+
 The checked-in [review manifest](../config/t19-shalean-review.json) is intentionally incomplete and `approved:false`. No secret belongs in that file. Unknown client, actor, custody and fixture values must not be invented. Provider execution additionally requires an exact SHA256 of the completed manifest passed by the operator and a matching aggregate probe digest. These are explicit operator controls, not a cryptographic signature or substitute for human approval.
 
 `node scripts/t19-connection.mjs --describe` prints only the source digest and disabled-default boundary; it does not open the vault or contact any service. The digest covers runner, UI, service, provider, vault/helper, reused identity/access/session/decimal code and lockfile.
@@ -45,4 +47,4 @@ The full approved manifest and client ID are pinned in encrypted connection stat
 
 Bokkie reuses the same service and storage interfaces with its own reviewed manifest, identity, independent client/grant and fixture. Only one selected business/manifest is served per process; no silent account switching or shared credential alias. Bokkie provider acceptance is not performed here.
 
-Exact next owner action: nominate the client/callback, named custodian/operator/reviewer and independently known TEST invoice, then separately approve the completed acceptance/lifecycle package. No usable dedicated grant and no known synthetic invoice are currently established. Until those prerequisites and formal gates are resolved, provider execution and full T19 acceptance remain NO-GO.
+Exact next owner action: supply the named custodian/operator/reviewer, secure client-secret custody arrangement, independently known TEST invoice and attended identity evidence; then separately approve the completed acceptance/lifecycle package and time window. The existing client ID and registered callback are recorded and aligned locally; explicit current client ownership/type remain unverified. No usable dedicated grant and no known synthetic invoice are currently established. Until those prerequisites and formal gates are resolved, provider execution and full T19 acceptance remain NO-GO.

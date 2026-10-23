@@ -27,3 +27,13 @@ Initial restricted loopback/PostgreSQL permission failures were rerun successful
 **Independent verdict: PASS for bounded local implementation; no unresolved blocking code finding.** Local Windows custody is not a hosted vault and does not protect against compromise of the same Windows user. Existing membership/role enforcement is exercised with fake Auth responses; this is not a hosted JWT/RLS acceptance claim. Local generation fencing cannot recall requests already dispatched.
 
 **Actual provider acceptance: NOT RUN.** No real grant/client secret was used, no Zoho Accounts/Books endpoint was called, and no invoice was created or retrieved. No real Supabase session/database was used by these tests. Missing client/callback/custodian details, independently known synthetic invoice and separate explicit execution approval still block the provider run. Explicit organisation active status remains NOT VERIFIED. GitGuardian/hosted CI/Stage C approval remain separate gates; no bypass or new PASS claimed. T19 remains In progress, full acceptance/accounting activation NO-GO.
+
+## Callback-alignment addendum — 23 October 2026
+
+The owner approved adapting only the local callback to the registered `/zoho/callback`. This addendum supersedes the earlier callback prerequisite and runtime digest, while retaining the earlier test history. Current runtime digest: `551ea772904d545389443543b5d8f8b9af05c520acae36f387a6f987c9036a64`.
+
+Independent reviewer `/root/callback_qa` inspected the final service, tests and manifest and reran `npm run test:t19:connection`: **58/58 PASS**, zero failures/skips, 26.773 seconds. This includes actual Windows DPAPI with dummy secrets and local HTTP with synthetic providers. The implementer separately passed the 57-test suite before the added manifest regression and then all 22 connection tests with that regression. Inert `npm run t19:describe` confirmed the digest and disabled execution; `git diff --check` passed.
+
+QA verified consistent consent/exchange/handler/manifest callback, former-route rejection before vault/provider access, duplicate-state rejection, clean callback redirects and continued approved:false. **Independent verdict: PASS; no blocking findings.** No real OAuth/provider request or Zoho setting change occurred. Unchanged PostgreSQL/RLS and legacy suites were not rerun for this URL-only correction; their prior results above remain historical and are not new hosted acceptance evidence.
+
+Callback compatibility is resolved. Provider acceptance remains NOT RUN / NO-GO pending the actor/custody, grant lifecycle, synthetic fixture, explicit execution approval and formal security/release gates recorded in E18. Organisation active status remains NOT VERIFIED. T19 remains In progress.

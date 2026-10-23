@@ -41,11 +41,11 @@ test('guard denies before dispatch, between reads and during in-flight results',
  for(const failAt of [1,2,3,4]){let n=0;const m=mock({guard:async()=>{if(++n===failAt)throw new T19Error('stale_generation');}});await rejects(m.run(),'stale_generation');assert.equal(m.calls.length,failAt===1?0:failAt===4?2:1);}
 });
 test('one code exchange, fixed endpoint, private body and bounded expiry',async()=>{
- const calls=[];const result=await exchangeCode({clientId:'dummy-client',clientSecret:'dummy-secret',code:'dummy-code',redirectUri:'http://127.0.0.1:3102/oauth/callback',now:()=>1000,fetchImpl:async(url,options)=>{calls.push({url,options});return response({access_token:'dummy-access',refresh_token:'dummy-refresh',api_domain:binding.apiDomain,expires_in:3600,token_type:'Bearer'});}});
+ const calls=[];const result=await exchangeCode({clientId:'dummy-client',clientSecret:'dummy-secret',code:'dummy-code',redirectUri:'http://127.0.0.1:3102/zoho/callback',now:()=>1000,fetchImpl:async(url,options)=>{calls.push({url,options});return response({access_token:'dummy-access',refresh_token:'dummy-refresh',api_domain:binding.apiDomain,expires_in:3600,token_type:'Bearer'});}});
  assert.equal(calls.length,1);assert.equal(calls[0].url,'https://accounts.zoho.com/oauth/v2/token');assert.equal(calls[0].options.method,'POST');assert.equal(calls[0].options.body.get('grant_type'),'authorization_code');assert.doesNotMatch(calls[0].url,/dummy/);assert.deepEqual(result,{accessToken:'dummy-access',refreshToken:'dummy-refresh',expiresAt:3601000});
 });
 test('token exchange rejects wrong host, missing tokens or invalid expiration',async()=>{
- const args={clientId:'dummy-client',clientSecret:'dummy-secret',code:'dummy-code',redirectUri:'http://127.0.0.1:3102/oauth/callback'};
+ const args={clientId:'dummy-client',clientSecret:'dummy-secret',code:'dummy-code',redirectUri:'http://127.0.0.1:3102/zoho/callback'};
  for(const change of [{api_domain:'https://evil.test'},{expires_in:0},{expires_in:3601},{refresh_token:undefined},{access_token:undefined},{token_type:'MAC'}])await rejects(exchangeCode({...args,fetchImpl:async()=>response({access_token:'dummy',refresh_token:'dummy',api_domain:binding.apiDomain,expires_in:3600,token_type:'Bearer',...change})}),'credentials');
  let calls=0;await rejects(exchangeCode({...args,redirectUri:'https://evil.test/callback',fetchImpl:async()=>{calls++;}}),'credentials');assert.equal(calls,0);
 });

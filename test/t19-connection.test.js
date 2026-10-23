@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {request} from 'node:http';
+import {readFileSync} from 'node:fs';
 import {createConnectionService,validateManifest,origin} from '../src/t19-connection.js';
 const businessId='00000000-0000-4000-8000-000000000001', foreignBusiness='00000000-0000-4000-8000-000000000002';
-const manifest={businessId,organizationId:'111',identity:'test@example.invalid',zohoUserId:'123',apiDomain:'https://www.zohoapis.com',environment:'staging',currency:'ZAR',approved:true,approvalReference:'owner-approved-synthetic',operator:'test-operator',custodian:'test-custodian',reviewer:'test-reviewer',probeSha:'synthetic-reviewed-sha',clientId:'dummy-client',redirectUri:origin+'/oauth/callback',startsAt:0,endsAt:60000,fixture:{invoiceId:'9001',customerId:'222',number:'TEST-1',reference:'SYNTHETIC-1',status:'draft',totalCents:100},fixtureEvidence:'synthetic-ui',identityEvidence:'attended-synthetic',cleanupReference:'synthetic-cleanup'};
+const manifest={businessId,organizationId:'111',identity:'test@example.invalid',zohoUserId:'123',apiDomain:'https://www.zohoapis.com',environment:'staging',currency:'ZAR',approved:true,approvalReference:'owner-approved-synthetic',operator:'test-operator',custodian:'test-custodian',reviewer:'test-reviewer',probeSha:'synthetic-reviewed-sha',clientId:'dummy-client',redirectUri:origin+'/zoho/callback',startsAt:0,endsAt:60000,fixture:{invoiceId:'9001',customerId:'222',number:'TEST-1',reference:'SYNTHETIC-1',status:'draft',totalCents:100},fixtureEvidence:'synthetic-ui',identityEvidence:'attended-synthetic',cleanupReference:'synthetic-cleanup'};
 function harness({execution=true,fetchOverride,manifestOverride={}}={}){
  let current=1000,db={connections:{},clients:{'dummy-client':{clientSecret:'dummy-client-secret',businessId,organizationId:'111'}}},reads=0,writes=0;const calls=[];
  const users=new Map([['owner',{userId:'10000000-0000-4000-8000-000000000001',businessIds:[businessId],memberships:[{businessId,role:'owner',status:'active'}]}],['foreign',{userId:'10000000-0000-4000-8000-000000000002',businessIds:[foreignBusiness],memberships:[{businessId:foreignBusiness,role:'owner',status:'active'}]}],['manager',{userId:'10000000-0000-4000-8000-000000000003',businessIds:[businessId],memberships:[{businessId,role:'manager',status:'active'}]}]]);
@@ -19,6 +20,12 @@ function harness({execution=true,fetchOverride,manifestOverride={}}={}){
  return {...built,calls,users,vault,sessions,get db(){return structuredClone(db);},get reads(){return reads;},get writes(){return writes;},setNow:value=>{current=value;},async consent(){const start=await built.service.authorise('owner');const state=new URL(start.authorizationUrl).searchParams.get('state');await built.service.callback('owner',state,'dummy-code');return state;}};
 }
 const rejected=(promise,code)=>assert.rejects(promise,e=>e.code===code);
+test('review manifest matches registered callback but remains unapproved; former callback fails execution validation',()=>{
+ const review=JSON.parse(readFileSync(new URL('../config/t19-shalean-review.json',import.meta.url),'utf8'));
+ validateManifest(review);assert.equal(review.redirectUri,origin+'/zoho/callback');assert.equal(review.redirectUri,review.clientVerification.registeredRedirectUri);assert.equal(review.clientVerification.callbackMatchesRequired,true);assert.equal(review.approved,false);
+ assert.throws(()=>validateManifest(review,{execution:true}),e=>e.code==='approval_required');
+ assert.throws(()=>validateManifest({...manifest,redirectUri:origin+'/oauth/callback'},{execution:true,now:1000}),e=>e.code==='approval_required');
+});
 async function httpHarness(t,h){await new Promise(r=>h.server.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>h.server.close(r)));const port=h.server.address().port;
  const send=({path='/',method='GET',data,headers={}}={})=>new Promise((resolve,reject)=>{const req=request({host:'127.0.0.1',port,path,method,headers:{Host:'127.0.0.1:3102',...(data?{'Content-Type':'application/json',Origin:origin}:{}),...headers}},res=>{let body='';res.setEncoding('utf8');res.on('data',c=>body+=c);res.on('end',()=>resolve({status:res.statusCode,headers:res.headers,body:body?JSON.parse(body):null}));});req.on('error',reject);if(data)req.write(JSON.stringify(data));req.end();});
  const login=await send({path:'/login',method:'POST',data:{email:'owner',password:'dummy'}});assert.equal(login.status,200);assert.match(login.headers['set-cookie'][0],/HttpOnly; SameSite=Lax; Path=\//);const cookie=login.headers['set-cookie'][0].split(';')[0];return {send,cookie,csrf:login.body.csrf};
@@ -52,10 +59,14 @@ test('HTTP host/origin/CSRF/method/body and foreign route restrictions',async t=
  assert.equal((await send({path:`/connections/${businessId}?organization_id=999`,headers:{Cookie:cookie}})).status,400);
  assert.equal(h.calls.length,0);assert.equal(h.reads,0);
 });
-test('HTTP cookie stays HttpOnly/SameSite and callback rejects duplicate state',async t=>{const h=harness();const {send,cookie,csrf}=await httpHarness(t,h);
+test('registered callback matches consent and exchange, rejects old route and duplicate state',async t=>{const h=harness();const {send,cookie,csrf}=await httpHarness(t,h);
  const start=await send({path:`/connections/${businessId}/authorise`,method:'POST',data:{},headers:{Cookie:cookie,'x-csrf-token':csrf}});const state=new URL(start.body.authorizationUrl).searchParams.get('state');
- const bad=await send({path:'/oauth/callback?state='+state+'&state='+state+'&code=dummy',headers:{Cookie:cookie}});assert.equal(bad.status,303);assert.equal(bad.headers.location,'/');assert.equal(h.calls.length,0);
- const good=await send({path:'/oauth/callback?state='+state+'&code=dummy',headers:{Cookie:cookie}});assert.equal(good.status,303);assert.equal(good.headers.location,'/');assert.equal(good.headers['cache-control'],'no-store');assert.equal(good.headers['referrer-policy'],'no-referrer');assert.doesNotMatch(JSON.stringify(good),/dummy-access|dummy-refresh/);
+ assert.equal(new URL(start.body.authorizationUrl).searchParams.get('redirect_uri'),origin+'/zoho/callback');
+ const reads=h.reads;
+ const old=await send({path:'/oauth/callback?state='+state+'&code=dummy',headers:{Cookie:cookie}});assert.equal(old.status,400);assert.equal(h.calls.length,0);assert.equal(h.reads,reads);
+ const bad=await send({path:'/zoho/callback?state='+state+'&state='+state+'&code=dummy',headers:{Cookie:cookie}});assert.equal(bad.status,303);assert.equal(bad.headers.location,'/');assert.equal(h.calls.length,0);
+ const good=await send({path:'/zoho/callback?state='+state+'&code=dummy',headers:{Cookie:cookie}});assert.equal(good.status,303);assert.equal(good.headers.location,'/');assert.equal(good.headers['cache-control'],'no-store');assert.equal(good.headers['referrer-policy'],'no-referrer');assert.doesNotMatch(JSON.stringify(good),/dummy-access|dummy-refresh/);
+ assert.equal(h.calls.length,1);assert.equal(new URLSearchParams(h.calls[0].options.body).get('redirect_uri'),origin+'/zoho/callback');
 });
 
 

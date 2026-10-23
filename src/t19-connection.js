@@ -4,7 +4,7 @@ import {exchangeCode,verifyInvoice,T19Error} from './t19-provider.js';
 import {operatorPage,operatorScript} from './t19-page.js';
 
 export const origin='http://127.0.0.1:3102';
-const callback=origin+'/oauth/callback';
+const callback=origin+'/zoho/callback';
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 const id=v=>typeof v==='string'&&/^[0-9]{1,30}$/.test(v);
 const nonempty=v=>typeof v==='string'&&v.trim().length>0&&v.length<500;
@@ -66,7 +66,7 @@ export function createConnectionService({vault,sessions,manifest,execution=false
   try{
    if(req.headers.host!=='127.0.0.1:3102')return send(403,{error:'host'});
    const url=new URL(req.url,origin),sid=(req.headers.cookie??'').split(';').map(s=>s.trim()).find(s=>s.startsWith('t19_session='))?.slice(12);
-   if(url.pathname==='/oauth/callback'&&req.method==='GET'){
+   if(url.pathname==='/zoho/callback'&&req.method==='GET'){
     try{if([...url.searchParams.keys()].some(k=>!['state','code','location','accounts-server'].includes(k))||url.searchParams.getAll('state').length!==1||url.searchParams.getAll('code').length!==1)fail('oauth_state');await service.callback(sid,url.searchParams.get('state'),url.searchParams.get('code'));}catch{/* No auth code or provider error is reflected into a browser response. */}
     res.writeHead(303,{'Location':'/','Cache-Control':'no-store','Referrer-Policy':'no-referrer'});return res.end();
    }
