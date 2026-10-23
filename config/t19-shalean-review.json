@@ -16,7 +16,8 @@
     "clientOwner": "Unknown",
     "registeredRedirectUri": "Unknown",
     "callbackMatchesRequired": "Unknown",
-    "evidence": "2026-10-23 14:49 UTC: API Console stopped at Zoho Accounts identity re-verification; no client configuration displayed"
+    "consoleObservation": "No existing client registrations visible; welcome/Get Started screen",
+    "evidence": "2026-10-23 14:53 UTC: after owner-completed identity re-verification, API Console displayed Farai Chitekedza and the welcome/Get Started screen; no client ID, type or registered callback displayed. E15 in the verification record."
   },
   "approvalReference": null,
   "operator": null,
