@@ -23,7 +23,7 @@ let socketReady=false;
 const server=createStagingServer({createClient:factory,hostedTransport:transport,hostedReady:()=>socketReady,hostedStaging:true,hostedFingerprint:await hostedSourceFingerprint(),earningsTemplates:{[config.earningsTemplateBusinessId]:earningsTemplate}});
 if(transport==='passenger')server.listen('passenger');
 else server.listen(0,()=>{
-  try{runtime.assertPrivateSocket(server,process.env.LSNODE_SOCKET);socketReady=true;}catch{server.close();console.error('Hosted staging private socket refused');process.exitCode=1;}
+  try{runtime.assertPrivateSocket(server,process.env.LSNODE_SOCKET);socketReady=true;}catch{console.error('Hosted staging private socket refused',JSON.stringify(runtime.describePrivateSocket(server,process.env.LSNODE_SOCKET)));server.close();process.exitCode=1;}
 });
 return server;
 }

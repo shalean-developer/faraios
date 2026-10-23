@@ -38,3 +38,13 @@ exports.assertPrivateSocket=function(server,socketPath){
      ![0,process.getuid()].includes(stat.uid)||!parent.isDirectory()||parent.isSymbolicLink()||
      (parent.mode&0o002)!==0||![0,process.getuid()].includes(parent.uid))throw new Error('Hosted staging requires a private Unix socket');
 };
+
+// Diagnostics contain booleans only, never paths, descriptors, users or secrets.
+exports.describePrivateSocket=function(server,socketPath){
+  const result={listening:server.listening,addressMatches:false,inheritedVerified:false,socketPresent:false,socketType:false,socketPermissions:false,socketOwner:false,parentType:false,parentPermissions:false,parentOwner:false};
+  try{result.addressMatches=Server.prototype.address.call(server)===socketPath;}catch{}
+  try{exports.assertInheritedUnixSocket(server,socketPath);result.inheritedVerified=true;}catch{}
+  try{const s=lstatSync(socketPath);result.socketPresent=true;result.socketType=s.isSocket()&&!s.isSymbolicLink();result.socketPermissions=(s.mode&0o007)===0;result.socketOwner=[0,process.getuid()].includes(s.uid);}catch{}
+  try{const s=lstatSync(path.dirname(socketPath));result.parentType=s.isDirectory()&&!s.isSymbolicLink();result.parentPermissions=(s.mode&0o002)===0;result.parentOwner=[0,process.getuid()].includes(s.uid);}catch{}
+  return result;
+};
