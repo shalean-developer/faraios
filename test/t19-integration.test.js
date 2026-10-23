@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdir,mkdtemp,readFile,rm} from 'node:fs/promises';
+import {join,resolve,relative,isAbsolute} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {openVault} from '../src/t19-vault.js';
+import {createConnectionService,origin} from '../src/t19-connection.js';
+
+test('real DPAPI custody integrates with guarded service, read-only provider and durable disable',{skip:process.platform!=='win32',timeout:120000},async t=>{
+ const repositoryRoot=fileURLToPath(new URL('..',import.meta.url));const parent=join(process.env.LOCALAPPDATA,'FaraiOS','T19-integration-tests');await mkdir(parent,{recursive:true});const directory=await mkdtemp(join(parent,'synthetic-'));let vault;
+ t.after(async()=>{await vault?.close();const r=relative(resolve(parent),resolve(directory));if(!r||r.startsWith('..')||isAbsolute(r))throw new Error('Unsafe integration cleanup');await rm(directory,{recursive:true,force:true});});
+ const businessId='00000000-0000-4000-8000-000000000001';
+ const manifest={businessId,organizationId:'111',identity:'synthetic@example.invalid',zohoUserId:'123',apiDomain:'https://www.zohoapis.com',environment:'staging',currency:'ZAR',approved:true,approvalReference:'synthetic-integration-approval',operator:'synthetic-operator',custodian:'synthetic-custodian',reviewer:'synthetic-reviewer',probeSha:'synthetic-reviewed-sha',clientId:'dummy-client',redirectUri:origin+'/zoho/callback',startsAt:0,endsAt:60000,fixture:{invoiceId:'9001',customerId:'222',number:'TEST-1',reference:'SYNTHETIC-1',status:'draft',totalCents:100},fixtureEvidence:'synthetic-fixture-evidence',identityEvidence:'synthetic-attended-evidence',cleanupReference:'synthetic-cleanup'};
+ const sessions={read:async sid=>sid==='owner'?{userId:'10000000-0000-4000-8000-000000000001',businessIds:[businessId],memberships:[{businessId,role:'owner',status:'active'}]}:null};
+ const calls=[];const fetchImpl=async(url,options)=>{calls.push({url,method:options.method});const path=new URL(url).pathname;
+  if(path==='/oauth/v2/token')return Response.json({access_token:'DPAPI-DUMMY-ACCESS-NOT-REAL',refresh_token:'DPAPI-DUMMY-REFRESH-NOT-REAL',api_domain:'https://www.zohoapis.com',expires_in:3600,token_type:'Bearer'});
+  if(path==='/books/v3/organizations/111')return Response.json({code:0,organization:{organization_id:'111',currency_code:'ZAR',is_org_active:true}});
+  if(path==='/books/v3/invoices/9001')return Response.json({code:0,invoice:{invoice_id:'9001',customer_id:'222',invoice_number:'TEST-1',reference_number:'SYNTHETIC-1',status:'draft',total:'1.00',currency_code:'ZAR'}});
+  throw new Error('Unexpected mock request');
+ };
+ vault=await openVault({directory,repositoryRoot});await vault.write({connections:{},clients:{'dummy-client':{businessId,organizationId:'111',clientSecret:'DPAPI-DUMMY-CLIENT-NOT-REAL'}}});
+ const {service}=createConnectionService({vault,sessions,manifest,execution:true,fetchImpl,now:()=>1000});
+ const {authorizationUrl}=await service.authorise('owner');await service.callback('owner',new URL(authorizationUrl).searchParams.get('state'),'dummy-code');
+ const result=await service.verify('owner');assert.equal(result.status,'verified');assert.equal(result.evidence.requestCount,2);assert.deepEqual(calls.map(c=>c.method),['POST','GET','GET']);
+ const raw=await readFile(join(directory,'vault.dpapi'));for(const marker of ['DPAPI-DUMMY-ACCESS-NOT-REAL','DPAPI-DUMMY-REFRESH-NOT-REAL','DPAPI-DUMMY-CLIENT-NOT-REAL'])assert.equal(raw.includes(Buffer.from(marker)),false);
+ const disabled=await service.disable('owner');assert.equal(disabled.status,'disabled');assert.equal(disabled.providerRevoked,false);assert.equal(disabled.cleanupPending,true);await vault.close();
+ vault=await openVault({directory,repositoryRoot});const reopened=createConnectionService({vault,sessions,manifest,execution:true,fetchImpl,now:()=>1000});const status=await reopened.service.status('owner');assert.equal(status.status,'disabled');assert.equal(status.generation,2);assert.equal(status.verified,false);assert.equal(status.cleanupPending,true);
+ await assert.rejects(reopened.service.verify('owner'),e=>e.code==='credentials');assert.equal(calls.length,3);const stored=(await vault.read()).connections[businessId];assert.equal(stored.credentials,undefined);assert.equal(stored.cleanup.refreshToken,'DPAPI-DUMMY-REFRESH-NOT-REAL');
+ await vault.close();
+});

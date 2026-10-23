@@ -210,3 +210,121 @@ Remaining gates: separately approved provisioning where required; explicit organ
 23October2026: the owner requested the bounded [Shalean TEST grant-lifecycle and synthetic-invoice provisioning proposal](t19-shalean-provisioning-proposal-20261023.md), revision T19-SHALEAN-PROVISION-20261023-v1. This completes E11's proposal-preparation next action. It proposes one dedicated read-only grant with bounded custody/cleanup and one synthetic draft invoice, without modifying the existing invoice-reader role. All values labelled proposed remain unexecuted; unknown custodian/client/callback/store/generation details block an executable revision.
 
 **Exact next action:** owner review of the proposal and resolution of its named responsibility and non-secret configuration fields, followed by an executable approval package. No OAuth, financial write, permissions, API probe, merge or deployment is authorised by design approval. Organisation active status remains NOT VERIFIED; no usable dedicated grant or known synthetic invoice is established. T19 remains In progress, acceptance/activation NO-GO. Existing QA and tests remain historical. Tracker history/dependencies unchanged.
+
+## E13 — bounded Milestone A implementation and independent synthetic acceptance
+
+23October2026: owner explicitly approved the implementation plan. [Local implementation](t19-milestone-a-implementation.md) adds an isolated owner-authorised service, real Windows DPAPI custody, immutable binding and generation fencing, one attended consent/code-exchange path behind an execution gate, exactly two read-only Books requests and durable local disable/cleanup handling. Stage B remains synthetic-only; the legacy write-capable sync path is not connected. No T04 code changed.
+
+[Fresh independent QA](t19-milestone-a-qa.md):57/57 Milestone A tests including real DPAPI integration;26/26 disposable native PostgreSQL regressions;50/50 relevant authentication/legacy regressions. All final runs passed without failures/skips. These supersede prior synthetic test counts only for the stated components and evidence layers. No real provider or hosted acceptance was run.
+
+**Local implementation readiness PASS, conditional provider readiness only.** Existing identity/org/role/currency evidence was reused. Organisation active status remains NOT VERIFIED; no usable dedicated grant or known synthetic provider invoice is established. The checked-in acceptance manifest is deliberately unapproved and incomplete. Exact next owner action: provide the non-secret client/callback, custodian/operator/reviewer and existing synthetic invoice expectations, then separately approve the complete lifecycle/read-only acceptance package after applicable gates. Do not invent/create prerequisites or treat implementation approval as OAuth consent.
+
+T19 remains In progress; formal acceptance/accounting activation NO-GO. Tracker dependencies, GitGuardian incidents and CI decisions are unchanged. No OAuth/provider access, production finance, hosted migration, invoice creation, permission change, merge or deployment occurred in this implementation.
+
+## E14 — client/callback browser inspection pending identity re-verification
+
+23October2026,14:49UTC /16:49SAST. The owner authorised read-only collection of existing non-secret client/callback metadata. The Accounts tab displayed faraios590@gmail.com, user943476475, United States data center. Opening `https://api-console.zoho.com/` reached Zoho's “Verify your identity” sign-in re-verification screen before any client configuration was displayed. No password/OTP was entered or requested in chat; the tab was left for the owner to complete that sign-in check.
+
+The [acceptance manifest](../config/t19-shalean-review.json) now explicitly marks client name/type/owner, registered callback and callback match **Unknown**. Its typed null values mean Unknown. `redirectUri` remains the implementation-required `http://127.0.0.1:3102/oauth/callback`, not a verified registered callback. Historical client IDs are not promoted to current verification. `approved:false` remains unchanged; operator/custodian/reviewer, client ID, time window, grant and synthetic fixture prerequisites remain unresolved.
+
+Exact next action: owner completes the API Console identity re-verification, then continue the already-authorised inspection of existing client configuration without opening client-secret/reveal/generate controls. No OAuth consent, token exchange, API diagnostic, invoice access/creation, permission/configuration save, production-finance access, merge or deployment occurred. T19 remains In progress; provider acceptance NO-GO.
+
+## E15 — API Console accessible; no existing client registration displayed
+
+23October2026,14:53UTC /16:53SAST. The owner completed identity re-verification and replied Ready. The same API Console tab at `https://api-console.zoho.com/` then displayed account label **Farai Chitekedza**, **Welcome to API Console!**, and **Get Started**, with no client rows. Its account menu exposed My Accounts, Help Guide and Sign Out, but no client configuration or account email. E14's Accounts identity was faraios590@gmail.com; no account switch was performed during this follow-up. The console label alone is not independent evidence of a client owner.
+
+This supersedes E14's sign-in blocker. **No existing client registration is visible in this session.** Client ID, client name/type/owner, registered callback and callback match remain **Unknown** in the acceptance manifest. Get Started was not selected; no client creation or secret panel was opened. The required local callback remains distinct from an observed provider registration.
+
+Exact next action: the owner makes the API Console session of the account that registered the historical TEST client available for the same read-only inspection, or confirms that no suitable existing client registration is available. Do not infer the registering account from the administrator's Connected Apps grant: a grant recipient/consenting account is not proof of client-registration ownership. If no suitable registration exists, propose its creation separately; do not create it under this inspection authority.
+
+No OAuth consent/exchange/refresh, API diagnostic, invoice access/creation, permission/configuration change, production-finance access, merge or deployment occurred. Manifest remains approved:false; T19 remains In progress and provider acceptance NO-GO. Existing evidence/history and task dependencies are preserved.
+
+## E16 — administrator session confirmed; API Console rendering blocked
+
+23October2026,15:01UTC /17:01SAST. The owner reported switching to accounts@shalean.com and authorised inspection of the existing FaraiOS Shalean TEST client. Accounts visibly confirmed **accounts@shalean.com**, user847311804, Shalean Cleaning Services, United States data center. This identifies the inspection session; it does not by itself establish client-registration ownership or change the dedicated integration identity.
+
+The prior API Console tab was closed. A new tab at `https://api-console.zoho.com/` rendered a blank page; both accessibility and screenshot observations confirmed no visible controls or client data, including after one reload. This is a rendering/access blocker, not evidence that the administrator has no clients. No client-secret, generate-token, create or settings controls were opened.
+
+The acceptance manifest records the inspection account and this blocker. Client ID/name/type/owner and registered callback remain **Unknown**; the required local callback is unchanged and approved:false remains. Earlier E15's welcome-screen observation applies only to that earlier session.
+
+Exact next action: owner makes the existing client's non-secret API Console configuration page visible, then resume the already-authorised read-only inspection. No new OAuth or client registration is needed merely to inspect an existing client. No settings/permissions, grant lifecycle, invoice/provider-finance access, merge or deployment occurred. T19 remains In progress; provider acceptance NO-GO.
+
+## E17 — existing client metadata verified; callback mismatch
+
+23October2026,15:04UTC /17:04SAST. After the owner replied Ready, API Console displayed the application list under **Shalean Cleaning Services (Pvt) Ltd**. E16 independently established the switched Accounts session as accounts@shalean.com. Opened only **FaraiOS Shalean TEST** (not the similarly named ORG client), Client Details and Settings. E16's rendering blocker is resolved.
+
+| Non-secret field | Observed value / limitation |
+|---|---|
+| Client name | FaraiOS Shalean TEST |
+| Client ID | 1000.ET7LNPRV6W7EM2HLL35E2X38RKEGVF; displayed in the selected client URL, matching historical recorded ID |
+| Console client URL | https://api-console.zoho.com/client/1000.ET7LNPRV6W7EM2HLL35E2X38RKEGVF |
+| Displayed client date | 20October2026; not grant issuance |
+| Homepage | http://127.0.0.1:3101 |
+| Registered redirect URI | http://127.0.0.1:3102/zoho/callback; one entry displayed |
+| Required implementation callback | http://127.0.0.1:3102/oauth/callback |
+| Callback match | **FAIL / mismatch**; these are different paths |
+| Client administrator/session | Accessible in the accounts@shalean.com session; this is not independent proof of the original registration owner or the future consenting identity |
+| Explicit client owner/type label | **Unknown** in this inspection; server-based is historical recorded type, not newly verified from an explicit label |
+| Additional DC settings | Visible EU/UAE/AU/SG/IN/JP/UK/CA/SA enable toggles and same-credentials checkbox unselected; no changes made |
+
+The acceptance manifest now records the verified client ID/name/homepage/date and registered callback separately from the implementation-required callback, with callbackMatchesRequired:false. Missing ownership/type confirmation, custodian/operator/reviewer, window, grant and synthetic invoice remain Unknown. No secret tab/reveal/copy/generate control was opened; no UPDATE or toggle was selected. No secret contents were captured or stored. The client registration does not establish a usable grant for faraios590@gmail.com.
+
+**Exact next action:** review a bounded callback-alignment correction. Prefer adapting the isolated local service and its tests/manifest to the already registered `/zoho/callback`, avoiding an unnecessary provider-settings change; that code correction was not part of this metadata-inspection task and was not performed. Until aligned and verified, do not initiate consent or exchange a code. Afterward, the previously listed missing fixture/custodian/client-secret custody and explicit execution/security gates still apply.
+
+Metadata inspection PASS; callback compatibility FAIL; provider acceptance NO-GO. approved:false remains unchanged. No OAuth, grant exchange/refresh, invoice/provider-finance access, permission/settings modification, merge or deployment occurred. T19 remains In progress; history and dependencies preserved.
+
+## E18 — owner-approved local callback alignment
+
+23 October 2026. The owner explicitly approved updating the isolated service, tests and manifest to the existing registered `http://127.0.0.1:3102/zoho/callback`, with focused verification and independent QA. This resolves E17's callback incompatibility locally; E17 remains historical evidence of the original mismatch.
+
+The service now uses that exact URI for consent parameters, server-side exchange and HTTP callback routing. The review manifest records callbackMatchesRequired:true and retains approved:false. Tests assert the consent/exchange URI, clean callback redirect, duplicate-state denial and rejection of the former route before credential access or provider traffic. A regression also verifies the checked-in manifest matches the registered URI, remains unapproved, and the former URI fails execution validation.
+
+No protected state migration or rebinding was performed. Existing full-manifest and runtime-digest approval checks remain in force. A completed manifest must use the newly reviewed runtime digest; old approvals must not be reused. See the callback-alignment addendum in the independent QA report for focused results.
+
+Remaining gates: named operator/custodian/reviewer and time window; secure client-secret custody; attended dedicated-identity grant provenance and separately approved consent/exchange lifecycle; independently known synthetic invoice tuple and evidence; controlled response verification of organisation active status and permitted invoice ownership; local disable and targeted provider-revocation cleanup evidence; required GitGuardian, hosted CI and formal acceptance gates. Explicit client ownership/type remain Unknown. Organisation active status remains NOT VERIFIED. Historical local PostgreSQL/RLS evidence is separate from hosted JWT/RLS acceptance.
+
+Exact next owner action: supply the missing non-secret actor/custody and synthetic-fixture details, then review a completed acceptance manifest for separate explicit provider execution approval. No usable dedicated grant or known synthetic invoice is established. Callback alignment is locally complete; provider acceptance remains NO-GO and T19 remains In progress. No real OAuth, Zoho settings change, invoice creation/access, production-finance access, merge or deployment occurred.
+## E19 — explicitly approved synthetic customer and draft invoice provisioned
+
+23 October 2026, completed verification by 15:24 UTC / 17:24 SAST. The owner explicitly approved creating exactly one synthetic customer and one ZAR 1.00 draft invoice in Shalean TEST using the browser, with no sending, payment, OAuth, settings changes, merge or deployment. This supersedes the earlier missing-customer/fixture blocker; prior entries remain historical.
+
+The All Customers screen was empty before creation. Created `FaraiOS T19 Synthetic Customer — TEST ONLY`, customer ID `1589458000000103003`, in organisation `943440851`. No primary contact information, contact persons, billing/shipping addresses or opening balance were entered; default currency is ZAR and the saved customer shows portal Disabled. No portal invitation was sent. The visible audit entry records Contact created by Shalean Cleaning Services.
+
+Created one invoice using Save as Draft, with no separate catalogue item. The transaction-preferences onboarding dialog was dismissed with Close, without Save & Continue or changing preferences. Customer notes were set only on this invoice; the future-default checkbox remained unchecked. The received-payment checkbox remained unchecked.
+
+| Independently recorded UI fixture expectation | Value |
+|---|---|
+| Organisation | FaraiOS - Shalean TEST, 943440851 |
+| Customer ID | 1589458000000103003 |
+| Invoice ID | 1589458000000103010 |
+| Invoice number | INV-000001 |
+| Reference | FARAIOS-T19-SHALEAN-TEST-001; entered in Order Number, displayed as P.O.# |
+| Currency | ZAR, displayed on the creation form and customer currency |
+| Status | Draft; expected API value draft, not yet provider-response verified |
+| Quantity / rate / total | 1.00 / 1.00 / ZAR 1.00 (100 cents) |
+| Invoice date | 2026/10/23 |
+| Description and notes | Synthetic T19 read-only verification — no services supplied; do not send or pay |
+
+Saved invoice: https://books.zoho.com/app/943440851#/invoices/1589458000000103010
+Customer: https://books.zoho.com/app/943440851#/contacts/1589458000000103003
+Screenshot: [saved synthetic draft](evidence/t19/shalean-synthetic-draft-20261023.png). The screenshot shows the draft number, reference and R1.00; full IDs and currency code were recorded from the browser URL, customer link and creation form, not independently visible in this screenshot.
+
+The saved invoice shows Draft, R1.00 total and balance, the exact reference, and a Bill To link to the recorded customer ID. It also states journal entries are unavailable for invoices in Draft state. This is browser fixture evidence, not proof of dedicated-identity API access, actual API field mapping or organisation active status. No send, mark-as-sent, payment, OAuth, settings change, production-finance access, merge or deployment occurred. Only the explicitly approved TEST fixture records were created.
+
+The manifest now holds the fixture tuple and evidence reference but remains approved:false. No grant was established. Named operator/custodian/reviewer, secure credential custody, attended identity evidence, execution window/approval, controlled profile/invoice comparison and targeted revocation cleanup remain outstanding, alongside required security/CI/formal acceptance gates. Organisation active status remains NOT VERIFIED. T19 remains In progress; provider acceptance remains NO-GO. Exact next action: complete the missing non-secret actor/custody details and review the acceptance manifest for separate explicit provider execution approval. Do not modify or delete this fixture before acceptance without separate approval.
+## E20 — staging owner membership and Windows custody host verified
+
+23 October 2026, 15:38:04 UTC / 17:38:04 SAST. The owner requested verification of faraios590@gmail.com's active Shalean owner membership and the local Windows device name, and authorised updating the manifest only; no OAuth or settings change.
+
+A read-only Supabase connector query on the pinned FaraiOS staging project `xdmfyrsauvqznkloroxg` joined `auth.users` to `public.business_memberships`, filtering exactly the supplied email and Shalean business ID. It returned user `f4a0751b-9629-46f2-b73f-bb4f2a6b11f7`, email `faraios590@gmail.com`, business `612be091-b1d7-4911-9c3b-143446a9fe27`, role `owner`, status `active`. No financial tables, production project, credentials or session tokens were queried. This is authoritative current database-record evidence, not proof of a fresh login, user-scoped API enforcement or hosted JWT/RLS acceptance. Runtime membership rechecks remain required.
+
+Local `[System.Environment]::MachineName` returned `SHALEAN`; `whoami` returned `shalean\info`. These identify the intended Windows CurrentUser DPAPI custody host/account; they do not establish secret import or provider grant existence. The manifest records Farai Chitekedza as operator/custodian and as the owner-confirmed consent attendee and revocation custodian.
+
+The manifest remains approved:false. Secure secret-source/private-pipe import arrangement, final independent manifest review, execution window and explicit consent/read/cleanup approval remain pending. No usable dedicated grant or attended consent evidence is established. Organisation active status remains NOT VERIFIED; controlled profile/invoice response comparison, revocation evidence and required CI/security/formal acceptance gates remain outstanding. No OAuth, invoice action, production-finance access, settings change, merge or deployment occurred. T19 remains In progress.
+## E21 — masked local import helper implemented and independently verified
+
+23 October 2026. Owner authorised implementation, dummy-secret tests, independent QA and Draft PR106 update only. Added `scripts/t19-import-client.ps1` and the import-only runner preflight. The helper checks the reviewed manifest hash and Windows custody identity, validates the runner approval gate before prompting, accepts a masked SecureString and transfers JSON only over private child stdin. It never starts the service or OAuth and never reflects child diagnostics. It fails closed for rejected input, wrong context, failed gate, duplicate client or timeout. Current helper/runtime digest is recorded in the QA addendum.
+
+Independent `/root/masked_helper_qa`: 65/65 focused tests PASS, no blocking findings. Actual DPAPI integration used only a dummy secret and isolated store; mocked secure prompt is not a claim of live-console visual testing. The reviewed procedure now documents the supported helper command, memory limitations, uncertain import outcomes, and pre-consent cleanup limitation.
+
+E20's confirmed FaraiOS owner membership and device SHALEAN/account shalean\info are retained in the review manifest. No real secret was retrieved, exposed or imported. The source remains unverified and credentialProvisioned:false; approved:false remains. Remaining owner steps: confirm the private existing-client secret source, review the final helper/import and cleanup procedure, select a maximum60-minute execution window and provide separate explicit approval after final manifest review. Attended consent provenance, actual provider response checks, organisation active status and formal CI/security/acceptance gates remain outstanding. No invoice sending/payment, OAuth, production access, merge or deployment occurred. T19 remains In progress.
