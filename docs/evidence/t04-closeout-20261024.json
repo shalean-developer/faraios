@@ -1,0 +1,271 @@
+{
+  "date": "2026-10-24",
+  "runtimeCommit": "2a63047097d52182c65b43a1e9e95a5f39e809cd",
+  "currentEvidenceHead": "fd65dddf6ad6ce38861b706f9080fffffdc1409b",
+  "sourceFingerprint": "3b716995b00c22089a27f38a08ee8bf368913cc70f4e877f49435e09565dd10d",
+  "desktop": {
+    "viewport": 1280,
+    "documentWidth": 1265,
+    "beforeVersion": 6,
+    "afterVersion": 7,
+    "entered": {
+      "cleared": "50",
+      "A": "50",
+      "B": "0"
+    },
+    "storedCents": {
+      "cleared": 5000,
+      "A": 5000,
+      "B": 0
+    },
+    "remainingCents": 15000
+  },
+  "mobile": {
+    "viewport": 375,
+    "documentWidth": 360,
+    "invalid": {
+      "entered": {
+        "cleared": "150",
+        "A": "120",
+        "B": "30"
+      },
+      "feedback": "Statement not saved. Check source scope, reviewed evidence, current approval and transfer state.",
+      "inputRetention": true,
+      "versionBefore": 7,
+      "versionAfter": 7,
+      "auditEvents": 7
+    },
+    "valid": {
+      "entered": {
+        "cleared": "75,00",
+        "A": "50,00",
+        "B": "25,00"
+      },
+      "versionAfter": 8,
+      "auditEvents": 8,
+      "storedCents": {
+        "cleared": 7500,
+        "A": 5000,
+        "B": 2500
+      },
+      "remainingCents": 12500,
+      "uncertain": true,
+      "retryHidden": true
+    }
+  },
+  "execution": "disabled",
+  "cleanup": {
+    "businesses": 0,
+    "statements": 0,
+    "events": 0,
+    "claims": 0,
+    "guardedAuditRowsRemoved": 6,
+    "originalGroups": {
+      "before": [
+        {
+          "record_group": "audit.events",
+          "count": 228,
+          "hash": "960b948e3ae5b5c1a089a469bc5263dc"
+        },
+        {
+          "record_group": "public.businesses",
+          "count": 2,
+          "hash": "0b12c97ea1b7eaca08eae6c50d7120a1"
+        },
+        {
+          "record_group": "public.staff_teams",
+          "count": 4,
+          "hash": "8d4697b31ecb04915fee28574f88cb11"
+        },
+        {
+          "record_group": "public.staff_profiles",
+          "count": 2,
+          "hash": "35ed9f9423535e4fac2f99568f8ea79a"
+        },
+        {
+          "record_group": "public.business_quotes",
+          "count": 7,
+          "hash": "f1ea3d6786229043e94b6965d90855af"
+        },
+        {
+          "record_group": "public.one_off_bookings",
+          "count": 14,
+          "hash": "aec9a749ab9748e222e158a0d567464d"
+        },
+        {
+          "record_group": "public.business_invoices",
+          "count": 2,
+          "hash": "60c3ae5bef8f302024b275b3fc85289b"
+        },
+        {
+          "record_group": "public.business_settings",
+          "count": 2,
+          "hash": "064925bb5012a08ca4a3e852b73d2ec6"
+        },
+        {
+          "record_group": "public.business_catalogue",
+          "count": 50,
+          "hash": "1ac9654d311cbf13b96e475da3a0d33a"
+        },
+        {
+          "record_group": "public.business_customers",
+          "count": 4,
+          "hash": "41920462b9dd83823c2d5b766735bbe5"
+        },
+        {
+          "record_group": "public.customer_addresses",
+          "count": 3,
+          "hash": "1837cd8f41f4a66c93287b4fef14cf59"
+        },
+        {
+          "record_group": "public.recurring_schedules",
+          "count": 2,
+          "hash": "0e59f905bb2cf2998722d6510156ca8f"
+        },
+        {
+          "record_group": "public.business_memberships",
+          "count": 5,
+          "hash": "d1bcad971ec091f936fd35635134ec2a"
+        },
+        {
+          "record_group": "public.business_vat_settings",
+          "count": 1,
+          "hash": "116aa475898af0d84d30597ae40e6c3a"
+        },
+        {
+          "record_group": "public.quote_invoice_handoffs",
+          "count": 2,
+          "hash": "a32c88f2e3f38be036e09ad83c23abc6"
+        },
+        {
+          "record_group": "public.business_earnings_rules",
+          "count": 6,
+          "hash": "6a5fa6c0a07135d6793c2bf8851c1f04"
+        },
+        {
+          "record_group": "public.supervisor_allowance_changes",
+          "count": 0,
+          "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        {
+          "record_group": "public.business_accounting_connections",
+          "count": 2,
+          "hash": "8136ebe44e0e4c1c823d930677cdd6b0"
+        }
+      ],
+      "after": [
+        {
+          "record_group": "audit.events",
+          "count": 228,
+          "hash": "960b948e3ae5b5c1a089a469bc5263dc"
+        },
+        {
+          "record_group": "public.businesses",
+          "count": 2,
+          "hash": "0b12c97ea1b7eaca08eae6c50d7120a1"
+        },
+        {
+          "record_group": "public.staff_teams",
+          "count": 4,
+          "hash": "8d4697b31ecb04915fee28574f88cb11"
+        },
+        {
+          "record_group": "public.staff_profiles",
+          "count": 2,
+          "hash": "35ed9f9423535e4fac2f99568f8ea79a"
+        },
+        {
+          "record_group": "public.business_quotes",
+          "count": 7,
+          "hash": "f1ea3d6786229043e94b6965d90855af"
+        },
+        {
+          "record_group": "public.one_off_bookings",
+          "count": 14,
+          "hash": "aec9a749ab9748e222e158a0d567464d"
+        },
+        {
+          "record_group": "public.business_invoices",
+          "count": 2,
+          "hash": "60c3ae5bef8f302024b275b3fc85289b"
+        },
+        {
+          "record_group": "public.business_settings",
+          "count": 2,
+          "hash": "064925bb5012a08ca4a3e852b73d2ec6"
+        },
+        {
+          "record_group": "public.business_catalogue",
+          "count": 50,
+          "hash": "1ac9654d311cbf13b96e475da3a0d33a"
+        },
+        {
+          "record_group": "public.business_customers",
+          "count": 4,
+          "hash": "41920462b9dd83823c2d5b766735bbe5"
+        },
+        {
+          "record_group": "public.customer_addresses",
+          "count": 3,
+          "hash": "1837cd8f41f4a66c93287b4fef14cf59"
+        },
+        {
+          "record_group": "public.recurring_schedules",
+          "count": 2,
+          "hash": "0e59f905bb2cf2998722d6510156ca8f"
+        },
+        {
+          "record_group": "public.business_memberships",
+          "count": 5,
+          "hash": "d1bcad971ec091f936fd35635134ec2a"
+        },
+        {
+          "record_group": "public.business_vat_settings",
+          "count": 1,
+          "hash": "116aa475898af0d84d30597ae40e6c3a"
+        },
+        {
+          "record_group": "public.quote_invoice_handoffs",
+          "count": 2,
+          "hash": "a32c88f2e3f38be036e09ad83c23abc6"
+        },
+        {
+          "record_group": "public.business_earnings_rules",
+          "count": 6,
+          "hash": "6a5fa6c0a07135d6793c2bf8851c1f04"
+        },
+        {
+          "record_group": "public.supervisor_allowance_changes",
+          "count": 0,
+          "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        {
+          "record_group": "public.business_accounting_connections",
+          "count": 2,
+          "hash": "8136ebe44e0e4c1c823d930677cdd6b0"
+        }
+      ],
+      "identical": true
+    }
+  },
+  "hostedRollback": {
+    "cancellation": 22,
+    "adjustment": 13,
+    "monthly": 16
+  },
+  "CI": {
+    "run": 40039824310,
+    "policyTests": 346,
+    "passed": 346,
+    "failed": 0,
+    "skipped": 0,
+    "fixtureRemoved": true,
+    "postgresStopped": true,
+    "requiredChecks": "all4PASS"
+  },
+  "limitations": [
+    "Phone viewport emulation, not physical handset",
+    "No raw network request/response trace retained; native UI submissions, resulting DOM and independent database readbacks establish persisted outcomes",
+    "No real financial execution, worker entitlement or pay/classification certification"
+  ]
+}
