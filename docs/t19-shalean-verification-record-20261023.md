@@ -248,3 +248,27 @@ The prior API Console tab was closed. A new tab at `https://api-console.zoho.com
 The acceptance manifest records the inspection account and this blocker. Client ID/name/type/owner and registered callback remain **Unknown**; the required local callback is unchanged and approved:false remains. Earlier E15's welcome-screen observation applies only to that earlier session.
 
 Exact next action: owner makes the existing client's non-secret API Console configuration page visible, then resume the already-authorised read-only inspection. No new OAuth or client registration is needed merely to inspect an existing client. No settings/permissions, grant lifecycle, invoice/provider-finance access, merge or deployment occurred. T19 remains In progress; provider acceptance NO-GO.
+
+## E17 — existing client metadata verified; callback mismatch
+
+23October2026,15:04UTC /17:04SAST. After the owner replied Ready, API Console displayed the application list under **Shalean Cleaning Services (Pvt) Ltd**. E16 independently established the switched Accounts session as accounts@shalean.com. Opened only **FaraiOS Shalean TEST** (not the similarly named ORG client), Client Details and Settings. E16's rendering blocker is resolved.
+
+| Non-secret field | Observed value / limitation |
+|---|---|
+| Client name | FaraiOS Shalean TEST |
+| Client ID | 1000.ET7LNPRV6W7EM2HLL35E2X38RKEGVF; displayed in the selected client URL, matching historical recorded ID |
+| Console client URL | https://api-console.zoho.com/client/1000.ET7LNPRV6W7EM2HLL35E2X38RKEGVF |
+| Displayed client date | 20October2026; not grant issuance |
+| Homepage | http://127.0.0.1:3101 |
+| Registered redirect URI | http://127.0.0.1:3102/zoho/callback; one entry displayed |
+| Required implementation callback | http://127.0.0.1:3102/oauth/callback |
+| Callback match | **FAIL / mismatch**; these are different paths |
+| Client administrator/session | Accessible in the accounts@shalean.com session; this is not independent proof of the original registration owner or the future consenting identity |
+| Explicit client owner/type label | **Unknown** in this inspection; server-based is historical recorded type, not newly verified from an explicit label |
+| Additional DC settings | Visible EU/UAE/AU/SG/IN/JP/UK/CA/SA enable toggles and same-credentials checkbox unselected; no changes made |
+
+The acceptance manifest now records the verified client ID/name/homepage/date and registered callback separately from the implementation-required callback, with callbackMatchesRequired:false. Missing ownership/type confirmation, custodian/operator/reviewer, window, grant and synthetic invoice remain Unknown. No secret tab/reveal/copy/generate control was opened; no UPDATE or toggle was selected. No secret contents were captured or stored. The client registration does not establish a usable grant for faraios590@gmail.com.
+
+**Exact next action:** review a bounded callback-alignment correction. Prefer adapting the isolated local service and its tests/manifest to the already registered `/zoho/callback`, avoiding an unnecessary provider-settings change; that code correction was not part of this metadata-inspection task and was not performed. Until aligned and verified, do not initiate consent or exchange a code. Afterward, the previously listed missing fixture/custodian/client-secret custody and explicit execution/security gates still apply.
+
+Metadata inspection PASS; callback compatibility FAIL; provider acceptance NO-GO. approved:false remains unchanged. No OAuth, grant exchange/refresh, invoice/provider-finance access, permission/settings modification, merge or deployment occurred. T19 remains In progress; history and dependencies preserved.
