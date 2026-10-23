@@ -32,7 +32,7 @@ Source files: `.github/workflows/ci.yml`, `scripts/ci-policy.Dockerfile`, `scrip
 
 No tests were skipped in either Node test group. The public provider TLS handshake was deliberately omitted from this additional offline transport run; the disposable copy changes only that invocation. All local transport assertions and the backup helper remain unchanged. This is not a claim that the entire networked hosted transport workflow ran. The existing historical provider TLS evidence remains preserved on PR #102. No new provider access was performed.
 
-Local Linux ran through Docker Desktop; transport ran through Ubuntu 26.04 WSL with a reviewed Windows Docker adapter. These differ from GitHub-hosted Ubuntu. Node patch levels are recorded rather than implied identical. Image build requires registry/npm access; test execution itself has no network. Windows evidence includes its exact runner and environment. Logs retain original bytes under `* -text`; SHA256SUMS covers evidence files except itself. Credentials are neither recorded in logs nor baked into the image.
+Local Linux ran through Docker Desktop; transport ran through Ubuntu 26.04 WSL with a reviewed Windows Docker adapter. These differ from GitHub-hosted Ubuntu. Node patch levels are recorded rather than implied identical. Image build requires registry/npm access; policy container execution has no network; transport uses isolated local fixture networking. Windows evidence includes its exact runner and environment. Logs retain original bytes under `* -text`; SHA256SUMS covers evidence files except itself. Credentials are neither recorded in logs nor baked into the image.
 
 ## Security and remaining decisions
 

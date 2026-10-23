@@ -28,7 +28,7 @@ The Dockerfile and runner were compared with the previously reviewed Stage B ver
 | Public provider TLS invocation | NOT RUN in this regression | The disposable transport script replaces only that invocation with `PUBLIC_TLS_OMITTED_OFFLINE_REGRESSION`. It is not evidence of a fresh complete hosted transport job. Historical approved handshake evidence remains separate. |
 | Failure-path cleanup | PASS | `failure-probe.log`: injected inner exit 42 preserved, PostgreSQL PID absent, fixture removed; probe exit 0. |
 | Container isolation | PASS | `linux-isolation.json`: postgres user, network none, no published port, all capabilities dropped, no-new-privileges, 2 CPUs/4 GiB, auto-remove. |
-| Fixture cleanup | PASS | Successful and injected-failure runner logs explicitly establish PID absence and fixture removal. Host resource inventory is to be retained separately in `cleanup.json`. |
+| Fixture cleanup | PASS | Successful and injected-failure runner logs explicitly establish PID absence and fixture removal. `cleanup.json` separately records policy/probe container and anonymous-volume absence plus task build-root removal; `image-cleanup.log` confirms removal of the reviewed task image. These records were independently inspected. |
 | GitGuardian candidate check | PASS | Independently authenticated read of check **120265923077**, name `GitGuardian Security Checks`, exact candidate head, completed `success` at `2026-10-23T05:56:17Z`; retained `gitguardian-candidate.json`. |
 | GitHub-hosted required jobs | NOT VERIFIED / blocked | `hosted-blockers.json`: policy, Windows and transport jobs did not start because of a billing/spending block. Their failure status is not a passing execution. |
 
@@ -43,3 +43,9 @@ The scanner success is scoped to PR #103 candidate `2eb9679e6d6468224996fc4a3349
 No incident status change, ignore/suppression rule, Regression enablement, billing change, branch-protection change, merge, deployment, live provider access or financial activation is authorized by this review. Any future incident disposition requires its separate supported procedure and explicit owner/security approval. Hosted gate acceptance or an exception also remains an owner/governance decision, not an independent QA bypass.
 
 Final local/source assessment: **PASS**. Hosted CI/merge readiness: **NO-GO** until the required hosted checks are satisfied or a separately authorized governance process establishes acceptable evidence without bypassing protections. T19 remains In progress. Accounting activation remains NO-GO.
+
+
+## Log publication assessment
+
+The independent reviewer inspected all eight raw .log files before publication. Contents are synthetic test names/results, environment/version metadata, public image/build identifiers and cleanup markers. Scans found zero credential-bearing URLs, private-key blocks or provider-token shapes. Historical-value substring matches were ordinary PostgreSQL product/image/user metadata, not password assignments or credential URLs. No generated runtime password or real-service credential was observed. Publication of these bounded evidence logs is supported; this is not a global secret-reuse or exposure certification.
+

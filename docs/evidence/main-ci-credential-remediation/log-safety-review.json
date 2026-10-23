@@ -1,0 +1,77 @@
+{
+  "review": "Independent QA inspected all eight logs. Historical literal substring matches are ordinary PostgreSQL product/image/user metadata, not credential assignments. No runtime password or real service credential observed. Pattern screening is supplementary, not proof of global secret absence.",
+  "files": [
+    {
+      "file": "failure-probe.log",
+      "sha256": "89AC6AEC6C3C4E670A93D0F661D87517442CBCD48F2CE39943900BBCCA3C6BF5",
+      "oldSyntheticLiteralPresent": true,
+      "credentialAssignmentLines": 0,
+      "credentialUrls": 0,
+      "privateKeyHeaders": 0,
+      "providerTokenShapes": 0
+    },
+    {
+      "file": "image-cleanup.log",
+      "sha256": "B64701EB6A2820CD4D35F14C5D29D44C5C19A479FFBD42BC7631B2D8EB42774C",
+      "oldSyntheticLiteralPresent": false,
+      "credentialAssignmentLines": 0,
+      "credentialUrls": 0,
+      "privateKeyHeaders": 0,
+      "providerTokenShapes": 0
+    },
+    {
+      "file": "linux-build.log",
+      "sha256": "23BBE1326161C804892E40A548C439B6FE19F85D9FF3DCF0DA8B865BE80B7BEA",
+      "oldSyntheticLiteralPresent": true,
+      "credentialAssignmentLines": 0,
+      "credentialUrls": 0,
+      "privateKeyHeaders": 0,
+      "providerTokenShapes": 0
+    },
+    {
+      "file": "linux-environment.log",
+      "sha256": "86A6208C7B7AA049B2EA13FB4D38334444660D57D6355B12C2D42910DB093E47",
+      "oldSyntheticLiteralPresent": true,
+      "credentialAssignmentLines": 0,
+      "credentialUrls": 0,
+      "privateKeyHeaders": 0,
+      "providerTokenShapes": 0
+    },
+    {
+      "file": "linux.log",
+      "sha256": "037CD4697B0A861B8E1CC980C0097C42DC054E56868F0AE62E59D043958FC234",
+      "oldSyntheticLiteralPresent": true,
+      "credentialAssignmentLines": 0,
+      "credentialUrls": 0,
+      "privateKeyHeaders": 0,
+      "providerTokenShapes": 0
+    },
+    {
+      "file": "transport-environment.log",
+      "sha256": "2CFF33ED207817D0A8B0BA1CC6DB169E6060E9E86686745741090F896F13B254",
+      "oldSyntheticLiteralPresent": false,
+      "credentialAssignmentLines": 0,
+      "credentialUrls": 0,
+      "privateKeyHeaders": 0,
+      "providerTokenShapes": 0
+    },
+    {
+      "file": "transport.log",
+      "sha256": "A01E2FB54021D0122BF830010FE02F0B57006F572D728A300200A0A8CD135C09",
+      "oldSyntheticLiteralPresent": false,
+      "credentialAssignmentLines": 0,
+      "credentialUrls": 0,
+      "privateKeyHeaders": 0,
+      "providerTokenShapes": 0
+    },
+    {
+      "file": "windows.log",
+      "sha256": "58A1B4795474378E73209BF4225C84B2A57A4A221DD462D00214F91B49126D1A",
+      "oldSyntheticLiteralPresent": false,
+      "credentialAssignmentLines": 0,
+      "credentialUrls": 0,
+      "privateKeyHeaders": 0,
+      "providerTokenShapes": 0
+    }
+  ]
+}
