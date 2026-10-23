@@ -1,0 +1,19 @@
+{
+  "container": "/faraios-t16-test-db",
+  "image": "postgres:17-alpine",
+  "running": true,
+  "matchesHistoricalFixturePassword": false,
+  "declaresExpectedDisposableDatabase": true,
+  "portBindings": {
+    "5432/tcp": [
+      {
+        "HostIp": "127.0.0.1",
+        "HostPort": "55432"
+      }
+    ]
+  },
+  "dataQueried": false,
+  "authenticationAttempted": false,
+  "productionUseEstablished": false,
+  "dataContentsVerified": false
+}
