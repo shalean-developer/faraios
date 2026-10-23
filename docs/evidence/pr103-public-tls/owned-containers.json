@@ -1,0 +1,40 @@
+[
+  {
+    "id": "efee4ad50d5ae930301204d6cab8c29ce687267bc5b82384e033cfa62a572584",
+    "name": "/t11-restore-a6ed4957f32a99c5d5c98cc3e9a8f8c8",
+    "image": "sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826",
+    "network": "faraios-t11-ci-a6ed4957f32a99c5d5c98cc3e9a8f8c8",
+    "ports": {},
+    "mounts": [
+      {
+        "Type": "bind",
+        "Name": null,
+        "Destination": "/input"
+      },
+      {
+        "Type": "volume",
+        "Name": "328254ea67b5426eb807b9a17edaebb0dd4a00527bf9cfc5e0f334cd682888b4",
+        "Destination": "/var/lib/postgresql/data"
+      }
+    ]
+  },
+  {
+    "id": "f3657d817e8518dd1e97a29bcbf1f013250855ab5fef0451fac3f4dc7f06c5ed",
+    "name": "/t11-db-a6ed4957f32a99c5d5c98cc3e9a8f8c8",
+    "image": "sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826",
+    "network": "faraios-t11-ci-a6ed4957f32a99c5d5c98cc3e9a8f8c8",
+    "ports": {},
+    "mounts": [
+      {
+        "Type": "volume",
+        "Name": "81964af7fb906f82f152e6df9513609384a56e67ec106a2e9f8e3b68fc149c87",
+        "Destination": "/var/lib/postgresql/data"
+      },
+      {
+        "Type": "bind",
+        "Name": null,
+        "Destination": "/input"
+      }
+    ]
+  }
+]

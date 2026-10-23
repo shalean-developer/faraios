@@ -1,0 +1,29 @@
+2026-10-23T07:49:27+00:00
+APPROVED_HEAD=81588da0de91e092463a18920f7c8522ec360c95
+T11_PUBLIC_POOLER_CA_AND_HOSTNAME=PASS (TLS handshake only; no database startup/auth/query)
+T11_TRANSPORT_TRUSTED_METADATA=PASS
+T11_TRANSPORT_TRUSTED_DUMPS=PASS (6 modes)
+T11_RESTORE_PORTABLE_SECURITY_MUTATIONS_DETECTED=PASS (domain, column ACL, role capability/membership and global defaults)
+T11_RESTORE_RESTRICTED_PARAMETER_PERMISSION=PASS (non-superuser, no provider-admin membership; fixture-only replica-setting permission)
+T11_RESTORE_PARAMETER_ACL_DRIFT_REFUSED=PASS (before import; provider grant preserved)
+T11_DIAGNOSTIC_REQUIRES_EXPLICIT_TRANSACTION=PASS (missing psql transaction flag rejected before writes; fresh baseline unchanged)
+T11_NATIVE_CHECK_ROUNDTRIP_MISMATCH_REPRODUCED=PASS (original BETWEEN becomes flattened AND after real dump/replay; sole constraints component; full fingerprints stop before data probe; rollback verified)
+T11_CHECK_RECONSTRUCTION_METADATA_DRIFT_REFUSED=PASS (unknown metadata stops transaction and fresh empty baseline/sequence unchanged)
+T11_SCHEMA_ONLY_COMPONENT_DIAGNOSTIC_AND_ROLLBACK=PASS (34 matches or exact RLS component; fresh empty catalog/defaults/extensions/sequence unchanged; no data replay)
+T11_RESTORE_INHERITED_DEFAULT_ACL_FAILURE_REPRODUCED=PASS (native object replay retains excess grants without preparation; transaction rolled back)
+T11_RESTORE_NATIVE_FAILURE_ROLLBACK=PASS (schema, Auth rows and role creation rolled back)
+T11_RESTORE_EXACT_OBJECT_AND_CREATION_DEFAULT_ACLS=PASS (protected table/function grants restored; final defaults included in exact catalog)
+T11_RESTORE_MANAGED_SEQUENCE_PHASE_AND_GUARDED_RESUME=PASS
+T11_RESTORE_NATIVE_SCHEMA_DATA_AUTH_AUDIT=PASS
+T11_RESTORE_NONEMPTY_RETRY_REFUSED=PASS
+T11_RESTORE_NATIVE_RLS_AND_ROLLBACK_AUDIT=PASS
+T11_TRANSPORT_UNTRUSTED_CA=PASS (7 clients refused)
+T11_TRANSPORT_WRONG_HOSTNAME=PASS (7 clients refused)
+T11_TRANSPORT_PLAINTEXT_SERVER=PASS (7 clients refused)
+T11_OWNED_TIMEOUT_CLEANUP=PASS
+T11_OWNED_CANCEL_CLEANUP=PASS
+T11_OWNED_UNRELATED_SENTINEL_PRESERVED=PASS
+T11_TRANSPORT_FIXTURE_CLEANUP=PASS
+OUTER_TMP_REMAINING=0
+TRANSPORT_EXIT=0
+2026-10-23T07:52:11+00:00

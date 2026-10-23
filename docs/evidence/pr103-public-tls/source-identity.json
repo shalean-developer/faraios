@@ -1,0 +1,52 @@
+{
+  "reviewer": "/root/pr103_tls_run_qa",
+  "approvedHead": "81588da0de91e092463a18920f7c8522ec360c95",
+  "archiveSha256": "b1411634749d8988dd9376a72616adb312867afd89ad7c377ffebc23d6ff0ff8",
+  "finding": "Archive files have CRLF export line endings; exact normalized content matches approved Git blobs. No semantic or assertion changes; do not claim raw blob byte equality. CA trust is pinned by DER hash, not PEM newline bytes.",
+  "files": [
+    {
+      "path": "scripts/check-backup-transport.mjs",
+      "gitBlobBytes": 28335,
+      "archiveBytes": 28609,
+      "gitBlobSha256": "17afd612ce9c07b2e93c10691c68ce55511548399e0708552f11648f55d49862",
+      "archiveSha256": "34cf95ced9b8fd605910186a130114a3f7480d893b8e01b6148b9eb9d0c927f3",
+      "gitBlobCRLF": 0,
+      "archiveCRLF": 274,
+      "normalizedContentEqual": true,
+      "gitReadExit": 0
+    },
+    {
+      "path": "scripts/backup-staging.mjs",
+      "gitBlobBytes": 37486,
+      "archiveBytes": 38029,
+      "gitBlobSha256": "752289e5594789faba95552e9ad84d811be7942bc05dfbd6710f1d2a750ab1d9",
+      "archiveSha256": "9a497e8e0f184180fcacd759f60423fa75f6b80bfd87d50be03ad940890fd3d2",
+      "gitBlobCRLF": 0,
+      "archiveCRLF": 543,
+      "normalizedContentEqual": true,
+      "gitReadExit": 0
+    },
+    {
+      "path": "scripts/vendor/supabase-root-2021.crt",
+      "gitBlobBytes": 1367,
+      "archiveBytes": 1390,
+      "gitBlobSha256": "700723581420dd1ac98fd7e9ac529f0ef210eadcaf87fc868a3ad7d114c2f3b7",
+      "archiveSha256": "1dcaafbf6fda7f21e34ff35825c1a1354408ea11e5839157e690af851c73453a",
+      "gitBlobCRLF": 0,
+      "archiveCRLF": 23,
+      "normalizedContentEqual": true,
+      "gitReadExit": 0
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "gitBlobBytes": 1751,
+      "archiveBytes": 1800,
+      "gitBlobSha256": "4d5876647594454a48a53284ad2c5708bba98cca10fe10020b7892f19e829838",
+      "archiveSha256": "187bc7bca892d26e22ca5b7b573da1bbe9e998a3b578d09ae2521e9950c17a53",
+      "gitBlobCRLF": 0,
+      "archiveCRLF": 49,
+      "normalizedContentEqual": true,
+      "gitReadExit": 0
+    }
+  ]
+}
