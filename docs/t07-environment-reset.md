@@ -32,3 +32,14 @@ Committed reset outcome is pending at this document revision. After any apply er
 No claim is made that deleting Auth rows cryptographically revokes old signed JWTs or rotates DB/API/signing credentials. Independent credential/session boundaries remain a separate owner-operated private gate before future production use. Existing restore launcher on3103 must not be repointed to production; old import tooling remains refused by nonempty marker and catalog guard. New backup/recovery destination/cadence are not selected here.
 
 Staging live-key refusal/outbound policy, Auth safeguards, Plesk Git staging target/TLS/runtime/deployment evidence, exact-head hosted CI/security, merge readiness and canonical tracker acceptance remain open. T07 stays In progress; do not start T04/T19 or financial/portal implementation.
+
+## Committed reset outcome — 23 October2026
+The exact reviewed reset SQL was applied only to zrlojsvkqipuwkkyfrkn after a final source-byte comparison and unchanged-prestate check. Management apply returned success; reset migration20261023190350 is the sole application history entry. The earlier pending wording above is historical.
+
+Fresh readback:public contains only t07_environment_guard, one row production-held bound to this project; RLS and FORCE RLS enabled; anon/authenticated/service_role SELECT denied. audit schema absent. Users,sessions,refresh tokens,identities and AMR all0. Storage buckets/objects and Vault0. Auth schema history82rows and Storage history74rows retain exact pre-reset digests. Managed refresh sequence remains last82/is_calledtrue; all six extension names match the preflight.
+
+Staging baseline/readback JSON equality passed:27public tables,3Auth users,14bookings,4customers,7quotes,2invoices,50catalogue rows,2recurring schedules; booking and catalogue row digests match. No write was sent to staging.
+
+Independent reviewer performed a fresh read-only exact-target verification confirming protected marker, empty copied Auth data, absent audit schema, empty Storage/Vault,82managed Auth entries and the sole reset migration. Its bounded reset closeout is PASS; complete T07 acceptance remains NO-GO. The other managed-history/sequence/staging assertions are independently assessed recorded before/after evidence, not a second independent execution of those queries.
+
+No project rename or DB/API/signing-credential rotation was performed. faraios-restore-test remains its current display name. No application schema/bootstrap, production deployment, Plesk/DNS change, real payment or message was performed. Earlier T07 notes describing15public tables and3restored users are historical. Current safe state is an empty-business production CANDIDATE on hold.
