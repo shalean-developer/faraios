@@ -1,5 +1,7 @@
 # T04 — Cleaning configuration contracts
 
+**Current approved definitions:** [T04 Operational Rules v1 — 24 October 2026](t04-operational-rules-v1-20261024.md). The dated notes below are historical engineering records; later explicit owner decisions in the v1 baseline/canonical tracker supersede their corresponding pending wording. Existing evidence and unresolved activation prerequisites remain preserved.
+
 Status: consolidated engineering record, 20 October 2026. T04 remains In progress for the financial choices below. Existing owner-approved tariffs and delivered recurrence decisions are carried forward; no new policy, rate or financial formula is activated here. `src/cleaning-rules.js` remains an isolated synthetic helper, distinct from the persisted booking/quote engines.
 
 Every configuration belongs to one business and has a version. Bookings retain an agreed price snapshot, currency, quantity, unit rate and policy references. Changes to a catalogue must not rewrite booked prices. The isolated cleaning-rules helper does not persist or enforce database immutability/rule-version uniqueness; Object.freeze is only in-process protection. Persisted booking, quote and recurring snapshots already have their separately reviewed database guards.
