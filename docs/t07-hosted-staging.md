@@ -45,3 +45,11 @@ Before acceptance, run `npm run verify:t07-hosted` on the deployed source and co
 ### Verifying the default inherited LiteSpeed listener
 
 The rejected per-application `LSNODE_BIND_SOCKET` option is removed. A separate Linux-only proof path supports the installed loader's normal inherited fd0 without changing server security settings. A null public address alone is insufficient: the actual Node24 listener handle must match fd0 by kernel socket inode, its `/proc/self/fd` link must agree, and the unique `/proc/self/net/unix` entry must be a listening stream Unix socket at exactly the approved `LSNODE_SOCKET` path. Existing named-socket owner/type/permissions, parent safety and default-deny readiness checks remain mandatory. TCP, ambiguous/missing kernel evidence and unsupported Node handle shapes are refused. Node's private handle API is deliberately version-bounded and fails closed if it changes. Actual-host HTTPS/header and authenticated acceptance remain separate gates.
+
+### Effective access assessment (pending hosted evidence)
+
+The Shalean comparison establishes that the same Plesk host runs Node24 Next.js applications without FaraiOS's custom filesystem admission check. It does not establish identical socket metadata or prove transport isolation. The earlier administrator-only conclusion was premature: rejecting all socket other-permission bits and accepting only root/application ownership may overconstrain a legitimate server-managed socket.
+
+Before changing admission, inspect existing socket/ancestor modes, numeric ownership and complete access ACLs. Linux pathname socket connection requires socket write permission plus directory traversal; separately assess replacement of every path component, including sticky-directory semantics. `socket-access.cjs` adds read-only diagnostics only: numeric metadata and access ACLs, stable before/after filesystem observations, and optional supervisor identity evidence. It emits no socket pathname, command-line/environment content, account names or credentials. Missing ACL/service evidence is not permission to relax admission. Existing listener/kernel/HTTPS/readiness checks are unchanged in this diagnostic step.
+
+References: https://man7.org/linux/man-pages/man7/unix.7.html ; https://man7.org/linux/man-pages/man5/acl.5.html ; https://man7.org/linux/man-pages/man1/getfacl.1.html .
