@@ -2,7 +2,7 @@
 
 23October2026. Windows, Node24.14.1; native PostgreSQL17.10. Base PR105: `cd40c3f8b321ffcf908877cab761518725e2eb4b`.
 
-Reviewed runtime digest (`npm run t19:describe`): `c572303786de32dafd6f9b4009352bc88796e5521b0d37a48b826b924bf8da07`. This digest covers the executable dependency list in the runner; test/report changes do not change it.
+Reviewed runtime digest (`npm run t19:describe`): `b2f43f62aa559f54275070e417e5f13866277c5ca3102dc6a28d085537983840`. This digest covers the executable dependency list in the runner; test/report changes do not change it. After independent QA, trailing blank lines were removed from the provider file (no behavioral change), the26-provider-test suite passed again, and this digest was recomputed.
 
 | Verification | Independent result | Boundary |
 |---|---|---|

@@ -63,5 +63,3 @@ export async function verifyInvoice({binding,fixture,accessToken,fetchImpl=globa
  if(!invoice||String(invoice.invoice_id)!==expected.invoiceId||invoice.invoice_number!==expected.number||invoice.reference_number!==expected.reference||String(invoice.customer_id)!==expected.customerId||invoice.currency_code!==expected.currency||invoice.status!==expected.status||totalCents!==expected.totalCents||Object.hasOwn(invoice,'organization_id')&&String(invoice.organization_id)!==expected.organizationId)fail('mismatch');
  return {profile:{organizationId:expected.organizationId,currency:profile.currency_code,active:true},invoice:{invoiceId:expected.invoiceId,number:invoice.invoice_number,reference:invoice.reference_number,customerId:expected.customerId,currency:invoice.currency_code,status:invoice.status,totalCents},ownershipEvidence:'verified_profile_pinned_endpoint_and_independent_fixture',requestCount:2};
 }
-
-
