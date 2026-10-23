@@ -1,0 +1,30 @@
+{
+  "approved": false,
+  "businessId": "612be091-b1d7-4911-9c3b-143446a9fe27",
+  "organizationId": "943440851",
+  "identity": "faraios590@gmail.com",
+  "zohoUserId": "943476475",
+  "environment": "staging",
+  "apiDomain": "https://www.zohoapis.com",
+  "currency": "ZAR",
+  "redirectUri": "http://127.0.0.1:3102/oauth/callback",
+  "approvalReference": null,
+  "operator": null,
+  "custodian": null,
+  "reviewer": null,
+  "clientId": null,
+  "probeSha": null,
+  "startsAt": null,
+  "endsAt": null,
+  "identityEvidence": null,
+  "fixtureEvidence": null,
+  "cleanupReference": null,
+  "fixture": {
+    "invoiceId": null,
+    "number": null,
+    "reference": null,
+    "customerId": null,
+    "status": null,
+    "totalCents": null
+  }
+}

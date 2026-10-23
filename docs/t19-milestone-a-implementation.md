@@ -1,0 +1,48 @@
+# T19 Milestone A — local read-only TEST connection
+
+Branch `codex/t19-read-only-connection`, stacked on PR105 at base `cd40c3f8b321ffcf908877cab761518725e2eb4b`. T19 remains In progress. No accounting activation, hosted migration, T04 change, merge or deployment is included.
+
+## Implemented boundary
+
+The standalone loopback service uses existing FaraiOS Auth sessions and freshly resolved server-side business memberships. It exposes owner-only connection status, authorisation initiation/callback, one verification attempt and local disable. Its cookie is distinct from staging, HttpOnly and SameSite=Lax; mutations require exact Origin, JSON, CSRF and request shape. Only loopback Host127.0.0.1:3102 is accepted. OAuth callback state is single-use and bound to owner/session/business/connection/generation; callbacks redirect to a clean URL without reflecting codes/errors.
+
+The new adapter has no sync/create/list/contact/payment/refresh interface. It allows one pinned organisation GET then one independently known invoice GET; exact IDs, explicit active=true, currency, numeric Books code0 and the fixture tuple must match. Requests reject redirects, exceed neither12seconds nor2MB, and have no retry. The configured currency is per business, not a universal Shalean policy. Receipt ownership is explicitly described as verified profile + pinned endpoint + independent fixture, not a request field misrepresented as response evidence.
+
+Connection metadata and credentials live together in Windows CurrentUser DPAPI-protected storage beneath LocalAppData, outside Git. The store uses a user-only directory ACL, exclusive writer lock and encrypted atomic replacement. Connection identity pins are immutable; generations are independent of legacy metadata version1. Invalid/missing storage never silently resets state. Same-user malware, administrator takeover and rollback of the entire OS profile are outside this local custody threat boundary; this is not a hosted vault or hardware-backed anti-rollback mechanism.
+
+The owner may disable without provider approval: generation advances, future dispatch is denied and cached access is removed. In-flight results cannot publish acceptance. Protected refresh material remains only for targeted cleanup. A pre-exchange unknown-outcome marker survives a crash around issuance. A stale writer lock fails startup; never automatically remove a lock or reset an interrupted store. A custodian must establish process termination, inspect non-secret status and complete cleanup before a separately reviewed recovery. No automatic reauthorisation/new generation is provided in this single-window milestone.
+
+Stage B and its database remain synthetic-only. The legacy adapter and staging credential file are not used by this service; their broader write/refresh behaviour is not certified by this change. Existing trusted session resolution and currency parsing are reused without editing T04 or the legacy application.
+
+## Review and execution gate
+
+The checked-in [review manifest](../config/t19-shalean-review.json) is intentionally incomplete and `approved:false`. No secret belongs in that file. Unknown client, actor, custody and fixture values must not be invented. Provider execution additionally requires an exact SHA256 of the completed manifest passed by the operator and a matching aggregate probe digest. These are explicit operator controls, not a cryptographic signature or substitute for human approval.
+
+`node scripts/t19-connection.mjs --describe` prints only the source digest and disabled-default boundary; it does not open the vault or contact any service. The digest covers runner, UI, service, provider, vault/helper, reused identity/access/session/decimal code and lockfile.
+
+Without an execution flag, `node scripts/t19-connection.mjs --manifest=config/t19-shalean-review.json` starts the disabled local service. Login, if separately exercised, uses the existing FaraiOS staging Auth service; startup itself does not contact it. The UI contains an explicit link for attended consent rather than navigating automatically. Do not start an approved service or log in during this implementation task.
+
+Future approved operation uses `--execute-approved=<SHA256_OF_COMPLETED_MANIFEST>`. The completed manifest must specify a maximum60-minute window, named operator/custodian/reviewer, client, exact registered callback, identity evidence, fixture evidence and cleanup approval reference. The executable handler rechecks the time gate before initiation, exchange and every read/result. Offline grants do not auto-expire at the window end; targeted provider revocation remains a custodian action.
+
+Client import is a separate gated local operation: `--import-client=<APPROVED_CLIENT_ID>` alongside the same manifest and approval hash. It accepts only JSON `{ "clientSecret": "..." }` over a private stdin pipe from the custodian's secure source. Never put the value in command arguments, PowerShell history, logs or a temporary plaintext file. Import pins the client secret to that business/org and refuses replacement. The implementation task does not provision a real client secret.
+
+After disabling and independently confirming targeted provider revocation, stop the service and use `--cleanup-evidence=<NONSECRET_EVIDENCE_JSON>` with the same approval hash/digest. Evidence requires exact connectionId, generation, identity, custodian, `providerRevocationConfirmed:true` and a reference. It records a **custodian attestation**, removes protected cleanup material and removes the client secret only if no other connection references it. This local cleanup is permitted after window expiry. It performs no provider request and does not itself prove revocation.
+
+## Controlled acceptance sequence — NOT EXECUTED
+
+1. Owner supplies the independently authorised dedicated grant/client prerequisite, or separately approves one consent/code-exchange lifecycle; no existing usable grant is assumed. Confirm attended identity against the existing faraios590 identity record immediately before consent. No account-identity endpoint or extra scope is added; provenance is attended evidence, not token-derived identity.
+2. Owner supplies an existing known synthetic invoice tuple and its evidence. E10 found none; creating one requires separate explicit approval and is outside this implementation. No invoice list is used as a substitute.
+3. Reviewer completes the manifest, source digest, exact window, roles and cleanup approval. Required GitGuardian/CI/Stage C decisions remain outstanding and cannot be bypassed by the local gate.
+4. Approved custodian imports only the client secret into DPAPI custody, then runs the approved service. FaraiOS owner signs in, initiates the one attended authorisation and receives a session/state-bound callback. Exactly one code exchange is permitted; no refresh or retries. The dedicated identity keeps its existing invoice-reader role.
+5. Owner invokes verification once. Check current trusted generation and membership, exact profile943440851/active/ZAR, then the known invoice tuple. Any denial/mismatch/error stops the attempt; membership/generation changes prevent late evidence acceptance.
+6. Synthetic Bokkie identity requests must already be proven denied before vault/provider access by the HTTP tests. Do not make cross-organisation provider probes. Disable locally, then perform only the separately approved targeted provider cleanup and record its evidence.
+
+## Evidence and limitations
+
+Focused synthetic HTTP/adapter/vault tests and native PostgreSQL regressions are recorded in the [independent QA report](t19-milestone-a-qa.md):57/57 Milestone A,26/26 native PostgreSQL and50/50 directly relevant auth/legacy regressions passed. They do not certify real grant scopes, actual provider permission enforcement, hosted JWT/RLS, explicit organisation active status or provider fixture ownership. Existing read-only UI evidence is reused without repeat investigation.
+
+The full approved manifest and client ID are pinned in encrypted connection state. A restart cannot relabel a prior grant using a changed client, fixture or time window. To inspect/disable an existing connection without enabling provider execution, use its original completed manifest without the execution flag. A changed or incomplete review template is not a recovery configuration.
+
+Bokkie reuses the same service and storage interfaces with its own reviewed manifest, identity, independent client/grant and fixture. Only one selected business/manifest is served per process; no silent account switching or shared credential alias. Bokkie provider acceptance is not performed here.
+
+Exact next owner action: nominate the client/callback, named custodian/operator/reviewer and independently known TEST invoice, then separately approve the completed acceptance/lifecycle package. No usable dedicated grant and no known synthetic invoice are currently established. Until those prerequisites and formal gates are resolved, provider execution and full T19 acceptance remain NO-GO.
