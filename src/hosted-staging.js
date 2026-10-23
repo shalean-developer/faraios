@@ -42,10 +42,11 @@ export function createStagingFetch(dispatch=globalThis.fetch){
   };
 }
 
-export function hostedRequestAllowed(req,transport='passenger'){
-  // Passenger metadata is protected by Passenger; LiteSpeed instead requires
-  // verified web-server HTTPS rejection and unconditional marker replacement.
-  // Neither mode trusts X-Forwarded-Proto or the other transport's headers.
-  const https=transport==='passenger'?req.headers['!~passenger-proto']==='https':transport==='litespeed'&&req.headers['x-faraios-staging-https']==='on';
-  return req.headers.host==='staging.faraios.com'&&https&&typeof req.url==='string'&&req.url.startsWith('/')&&!req.url.startsWith('//');
+export function hostedRequestAllowed(req,transport='passenger',privateListenerReady=false){
+  // LiteSpeed uses the reviewed managed Plesk TLS edge, like Shalean. Its
+  // pinned private listener must be verified before requests are admitted.
+  // This is not per-request TLS attestation: deployment acceptance must prove
+  // plain HTTP cannot reach that app. No client proxy/marker header is trusted.
+  const transportAllowed=transport==='passenger'?req.headers['!~passenger-proto']==='https':transport==='litespeed'&&privateListenerReady===true;
+  return req.headers.host==='staging.faraios.com'&&transportAllowed&&typeof req.url==='string'&&req.url.startsWith('/')&&!req.url.startsWith('//');
 }

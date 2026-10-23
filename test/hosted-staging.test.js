@@ -41,7 +41,7 @@ test('outbound SDK boundary denies live providers, other projects, messaging Aut
   let redirectPolicy;await createStagingFetch(async r=>{redirectPolicy=r.redirect;throw new TypeError('redirect refused');})(stagingDatabase+'/auth/v1/user').catch(()=>{});assert.equal(redirectPolicy,'error');
 });
 
-test('hosted HTTP uses Passenger HTTPS metadata, canonical origin and secure cookies with real SDK',async()=>{
+for(const transport of ['passenger','litespeed'])test('hosted '+transport+' uses its reviewed transport, canonical origin and secure cookies with real SDK',async()=>{
   const uid='00000000-0000-4000-8000-000000000001',bid='10000000-0000-4000-8000-000000000001',calls=[];
   const token=[Buffer.from(JSON.stringify({alg:'HS256'})).toString('base64url'),Buffer.from(JSON.stringify({sub:uid,exp:Math.floor(Date.now()/1000)+3600,role:'authenticated'})).toString('base64url'),'synthetic'].join('.');
   const restricted=createStagingFetch(async r=>{
@@ -50,7 +50,7 @@ test('hosted HTTP uses Passenger HTTPS metadata, canonical origin and secure coo
     return new Response(JSON.stringify(body),{status:200,headers:{'Content-Type':'application/json'}});
   });
   const factory=()=>createClient(config.url,config.publishableKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:restricted}});
-  const server=createStagingServer({createClient:factory,hostedStaging:true,hostedFingerprint:'a'.repeat(64)});
+  const server=createStagingServer({createClient:factory,hostedStaging:true,hostedFingerprint:'a'.repeat(64),hostedTransport:transport,hostedReady:()=>true});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+server.address().port;
   const secureHeaders={Host:'staging.faraios.com','!~Passenger-Proto':'https'};
@@ -60,9 +60,9 @@ test('hosted HTTP uses Passenger HTTPS metadata, canonical origin and secure coo
     });req.on('error',reject);req.end(init.body);
   });
   try{
-    assert.equal((await fetch(base+'/login',{headers:{Host:'staging.faraios.com','X-Forwarded-Proto':'https'}})).status,403);
-    for(const headers of [{Host:'faraios.com'},{Host:'staging.faraios.com:443'},{'!~Passenger-Proto':'http'}])assert.equal((await request('/login',{headers})).status,403);
-    const health=await request('/environment-health');assert.equal(health.status,200);assert.equal((await health.json()).projectRef,config.projectRef);assert.equal(health.headers.get('x-robots-tag'),'noindex, nofollow, noarchive');
+    assert.equal((await request('/login',{headers:{'!~Passenger-Proto':'http','X-Forwarded-Proto':'https'}})).status,transport==='passenger'?403:200);
+    for(const headers of [{Host:'faraios.com'},{Host:'staging.faraios.com:443'},...(transport==='passenger'?[{'!~Passenger-Proto':'http'}]:[])])assert.equal((await request('/login',{headers})).status,403);
+    const health=await request('/environment-health');assert.equal(health.status,200);assert.equal(health.headers.get('strict-transport-security'),'max-age=31536000');assert.equal((await health.json()).projectRef,config.projectRef);assert.equal(health.headers.get('x-robots-tag'),'noindex, nofollow, noarchive');
     const post={method:'POST',headers:{Origin:stagingOrigin,'Content-Type':'application/x-www-form-urlencoded'},body:'email=qa%40example.invalid&password=synthetic'};
     assert.equal((await request('/login',{...post,headers:{...post.headers,Origin:'https://faraios.com'}})).status,403);assert.equal(calls.length,0);
     const login=await request('/login',post);assert.equal(login.status,303);const setCookie=login.headers.get('set-cookie');assert.match(setCookie,/^__Host-faraios_staging=/);assert.match(setCookie,/HttpOnly; SameSite=Strict; Path=\/; Max-Age=1800; Secure$/);assert.doesNotMatch(setCookie,/Domain=/i);
@@ -81,13 +81,20 @@ test('local and restore retain production refusal, hosted rejects integration wo
 });
 
 
-test('LiteSpeed transport ignores spoofed proxy/Passenger headers and requires exact replaced marker',async()=>{
+test('LiteSpeed managed edge requires private readiness and ignores all client TLS claims',async()=>{
   const {hostedRequestAllowed}=await import('../src/hosted-staging.js');
-  const request={url:'/login',headers:{host:'staging.faraios.com','!~passenger-proto':'https','x-forwarded-proto':'https'}};
-  assert.equal(hostedRequestAllowed(request,'litespeed'),false);
-  for(const marker of ['on, on','off','ON',''])assert.equal(hostedRequestAllowed({...request,headers:{...request.headers,'x-faraios-staging-https':marker}},'litespeed'),false);
-  assert.equal(hostedRequestAllowed({...request,headers:{...request.headers,'x-faraios-staging-https':'on'}},'litespeed'),true);
-  assert.equal(hostedRequestAllowed({url:'/login',headers:{host:'staging.faraios.com','x-faraios-staging-https':'on'}},'passenger'),false);
+  const request={url:'/login',headers:{host:'staging.faraios.com'}};
+  for(const headers of [{},{'x-faraios-staging-https':'on'},{'x-faraios-staging-https':'off'},{'x-faraios-staging-https':'on, on'},{'!~passenger-proto':'https','x-forwarded-proto':'https',forwarded:'proto=https'},{'!~passenger-proto':'http','x-forwarded-proto':'http'}]){
+    const req={...request,headers:{...request.headers,...headers}};
+    assert.equal(hostedRequestAllowed(req,'litespeed'),false);
+    assert.equal(hostedRequestAllowed(req,'litespeed',false),false);
+    assert.equal(hostedRequestAllowed(req,'litespeed','true'),false);
+    assert.equal(hostedRequestAllowed(req,'litespeed',true),true);
+  }
+  for(const url of ['//example.invalid','http://staging.faraios.com/login',null])assert.equal(hostedRequestAllowed({...request,url},'litespeed',true),false);
+  for(const host of ['faraios.com','staging.faraios.com:443','staging.faraios.com.evil.invalid'])assert.equal(hostedRequestAllowed({...request,headers:{host}},'litespeed',true),false);
+  assert.equal(hostedRequestAllowed(request,'unknown',true),false);
+  assert.equal(hostedRequestAllowed({...request,headers:{...request.headers,'x-faraios-staging-https':'on'}},'passenger',true),false);
 });
 
 test('runtime detection refuses generic loaders, wrong root/socket/startup and standalone fallback',async()=>{

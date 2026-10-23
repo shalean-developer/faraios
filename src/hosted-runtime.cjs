@@ -6,8 +6,8 @@ const {Server}=require('node:net');
 const root=path.resolve(__dirname,'..');
 const hosting=Object.freeze(require('../config/hosting-staging.json'));
 
-// The ordinary marker is trusted only behind the reviewed web-server rules.
-exports.httpsRules='RewriteEngine On\nRewriteCond %{HTTPS} !^on$ [NC]\nRewriteRule ^ - [F,L]\nRequestHeader unset X-FaraiOS-Staging-HTTPS\nRequestHeader set X-FaraiOS-Staging-HTTPS "on"\n';
+// Defense in depth only. Managed Plesk TLS routing is verified at deployment.
+exports.httpsRules='RewriteEngine On\nRewriteCond %{HTTPS} !^on$ [NC]\nRewriteRule ^ - [F,L]\n';
 exports.detectHostedRuntime=function({passenger=global.PhusionPassenger,lsNode=global.LsNode,env=process.env,argv=process.argv,serverPrototype=http.Server.prototype}={}){
   if(passenger&&typeof passenger.configure==='function')return 'passenger';
   if(process.platform==='linux'&&lsNode instanceof EventEmitter&&typeof serverPrototype.realListen==='function'&&

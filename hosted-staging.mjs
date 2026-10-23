@@ -8,7 +8,7 @@ import runtime from './src/hosted-runtime.cjs';
 
 export async function startHostedStaging(){
 const transport=runtime.detectHostedRuntime();
-if(transport==='litespeed'&&await readFile(new URL('./public/.htaccess',import.meta.url),'utf8')!==runtime.httpsRules)throw new Error('Hosted HTTPS rules mismatch');
+if(transport==='litespeed'&&await readFile(new URL('./public/.htaccess',import.meta.url),'utf8')!==runtime.httpsRules)throw new Error('Hosted edge defense rules mismatch');
 assertHostedEnvironment();
 const config=JSON.parse(await readFile(new URL('./config/staging.json',import.meta.url),'utf8'));
 assertStagingConfig(config);

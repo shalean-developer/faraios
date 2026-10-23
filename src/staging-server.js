@@ -37,14 +37,16 @@ export function createStagingServer({createClient,accountingWorker=null,accounti
     const redirect=path=>{res.writeHead(303,{Location:path,'Cache-Control':'no-store'});res.end();};
     const clear=()=>res.setHeader('Set-Cookie',cookieName+'=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'+secure);
     try{
-      if(hostedStaging&&hostedTransport==='litespeed'&&!hostedReady())return send(503,'Staging transport not ready','text/plain');
-      if(hostedStaging?!hostedRequestAllowed(req,hostedTransport):req.headers.host!==expected||!['127.0.0.1','::ffff:127.0.0.1','::1'].includes(req.socket.remoteAddress))return send(403,hostedStaging?'HTTPS staging access required':'Local access only','text/plain');
+      const privateListenerReady=hostedStaging&&hostedTransport==='litespeed'&&hostedReady()===true;
+      if(hostedStaging&&hostedTransport==='litespeed'&&!privateListenerReady)return send(503,'Staging transport not ready','text/plain');
+      if(hostedStaging?!hostedRequestAllowed(req,hostedTransport,privateListenerReady):req.headers.host!==expected||!['127.0.0.1','::ffff:127.0.0.1','::1'].includes(req.socket.remoteAddress))return send(403,hostedStaging?'HTTPS staging access required':'Local access only','text/plain');
       if(hostedStaging){
         res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
+        res.setHeader('Strict-Transport-Security','max-age=31536000');
         if(req.method!=='GET'&&req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
       }
       const url=new URL(req.url,origin),id=req.headers.cookie?.match(new RegExp('(?:^|;\\s*)'+cookieName+'=([a-f0-9-]+)'))?.[1];
-      if(hostedStaging&&req.method==='GET'&&url.pathname==='/environment-health')return send(200,JSON.stringify({environment:'staging',transport:hostedTransport,projectRef:'xdmfyrsauvqznkloroxg',sourceFingerprint:hostedFingerprint,appPaymentDispatch:'disabled',appNotificationDispatch:'disabled',authEmailSafeguard:'requires-independent-verification',accountingWorker:'disabled'}),'application/json');
+      if(hostedStaging&&req.method==='GET'&&url.pathname==='/environment-health')return send(200,JSON.stringify({environment:'staging',transport:hostedTransport,transportSecurity:hostedTransport==='litespeed'?'managed-tls-edge':'passenger-protected-https',projectRef:'xdmfyrsauvqznkloroxg',sourceFingerprint:hostedFingerprint,appPaymentDispatch:'disabled',appNotificationDispatch:'disabled',authEmailSafeguard:'requires-independent-verification',accountingWorker:'disabled'}),'application/json');
       activePath=url.pathname;
       if(restoreTest&&req.method!=='GET'&&!(req.method==='POST'&&['/login','/logout'].includes(url.pathname)))return send(405,'Restore test: business writes are disabled','text/plain');
       if(restoreTest&&req.method==='GET'&&url.pathname==='/restore-health')return send(200,JSON.stringify({environment:'restore-test',businessWrites:'disabled',accountingWorker:'disabled'}),'application/json');
