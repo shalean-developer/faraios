@@ -7,32 +7,19 @@ permissions:
 jobs:
   policy-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: faraios_t16_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
-      T16_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/faraios_t16_test
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-      - run: npm ci --ignore-scripts
-      - run: npm run check
-      - run: npm test
-      - name: T19 isolated PostgreSQL security acceptance
-        run: T19_PG_BIN="$(pg_config --bindir)" npm run test:accounting:postgres
+      - name: Build Node 24 / PostgreSQL 17 synthetic policy runner
+        shell: bash
+        run: |
+          set -o pipefail
+          git archive --format=tar HEAD | docker build --file scripts/ci-policy.Dockerfile --tag faraios-ci-policy -
+      - name: Policy and native PostgreSQL security acceptance
+        run: >-
+          docker run --rm --network none --cpus 2 --memory 4g
+          --cap-drop ALL --security-opt no-new-privileges
+          faraios-ci-policy
   zoho-setup-windows:
     runs-on: windows-latest
     timeout-minutes: 5
