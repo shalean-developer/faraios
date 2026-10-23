@@ -8,6 +8,16 @@
   "apiDomain": "https://www.zohoapis.com",
   "currency": "ZAR",
   "redirectUri": "http://127.0.0.1:3102/oauth/callback",
+  "unknownValueMeaning": "null means Unknown; redirectUri is the required local callback, not evidence of provider registration",
+  "clientVerification": {
+    "status": "Unknown",
+    "clientName": "Unknown",
+    "clientType": "Unknown",
+    "clientOwner": "Unknown",
+    "registeredRedirectUri": "Unknown",
+    "callbackMatchesRequired": "Unknown",
+    "evidence": "2026-10-23 14:49 UTC: API Console stopped at Zoho Accounts identity re-verification; no client configuration displayed"
+  },
   "approvalReference": null,
   "operator": null,
   "custodian": null,
