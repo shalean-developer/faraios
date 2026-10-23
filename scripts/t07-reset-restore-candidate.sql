@@ -26,10 +26,12 @@ BEGIN
   FOR r IN SELECT schemaname,tablename FROM pg_tables WHERE schemaname IN ('public','audit') ORDER BY schemaname,tablename LOOP
     EXECUTE format('LOCK TABLE %I.%I IN ACCESS EXCLUSIVE MODE NOWAIT',r.schemaname,r.tablename);
   END LOOP;
-  FOR r IN SELECT tablename FROM pg_tables WHERE schemaname='auth' ORDER BY tablename LOOP
+  -- Provider-owned Auth schema history is read-only to postgres and is never reset.
+  FOR r IN SELECT tablename FROM pg_tables WHERE schemaname='auth' AND tablename<>'schema_migrations' ORDER BY tablename LOOP
     EXECUTE format('LOCK TABLE auth.%I IN ACCESS EXCLUSIVE MODE NOWAIT',r.tablename);
   END LOOP;
-  LOCK TABLE supabase_migrations.schema_migrations,storage.objects,storage.buckets,vault.secrets IN ACCESS EXCLUSIVE MODE NOWAIT;
+  -- Vault is inspected but not changed; its provider-owned table cannot be locked.
+  LOCK TABLE supabase_migrations.schema_migrations,storage.objects,storage.buckets IN ACCESS EXCLUSIVE MODE NOWAIT;
   SELECT array_agg(tablename::text ORDER BY tablename) INTO actual FROM pg_tables WHERE schemaname='public';
   IF actual IS DISTINCT FROM expected THEN RAISE EXCEPTION 'T07_PUBLIC_INVENTORY_CHANGED'; END IF;
   SELECT array_agg(tablename::text ORDER BY tablename) INTO actual FROM pg_tables WHERE schemaname='audit';
