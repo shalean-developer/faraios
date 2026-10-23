@@ -10,6 +10,7 @@ import {renderWorkspaceFrame} from './workspace-layout.js';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {createAuthSessions} from './auth-session.js';
+import {hostedRequestAllowed,stagingOrigin} from './hosted-staging.js';
 import {parseBusinessSettings,readBusinessSettings,saveBusinessSettings,renderBusinessSettings} from './business-settings.js';
 import {parseCatalogueItem,listCatalogue,saveCatalogueItem,deleteCatalogueItem,renderCatalogueDelete,renderCatalogueDeactivate,renderCatalogue} from './catalogue.js';
 import {parseCustomerForm,listCustomers,readCustomer,listAddresses,readAddress,saveCustomerRecord,renderCustomers} from './customers.js';
@@ -19,23 +20,33 @@ const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const pageHtml=(title,body,business=null,identity=null,active='/dashboard',restoreTest=false)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS ${restoreTest?'restore test':'staging'}</title><link rel="stylesheet" href="/style.css"><script type="module" src="/dropdown.js"></script><script type="module" src="/date-time-picker.js"></script><script type="module" src="/catalogue-setup.js"></script>${title==='Quotes'?'<script type="module" src="/quote-detail.js"></script>':''}</head><body${business&&identity?' class="workspace-layout"':''}><div class="notice">FaraiOS ${restoreTest?'RESTORE TEST · Read-only recovery workspace · Integrations disabled':'STAGING · Test workspace · No production data'}</div>${business&&identity?renderWorkspaceFrame(identity,business,body,active):`<main class="${title==='Sign in'?'login':'workspace-page'}">${title==='Sign in'?'<div class="brand">FaraiOS</div>':''}${body}</main>`}</body></html>`;
 const form=(message,restoreTest=false)=>pageHtml('Sign in',`<h1>Welcome back</h1><p>${restoreTest?'Use your restored FaraiOS test account.':'Use your FaraiOS staging test account.'}</p>${message?`<p role="alert">${esc(message)}</p>`:''}<form method="post" action="/login" class="panel"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" maxlength="254" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><button type="submit">Sign in</button><p class="muted">Accounts are provisioned in staging. Never enter a production password here.</p></form>`,null,null,'/dashboard',restoreTest);
 
-export function createStagingServer({createClient,accountingWorker=null,accountingAdapter=null,now=()=>Date.now(),restoreTest=false,earningsTemplates={}}){
-  if(process.env.NODE_ENV==='production')throw new Error('Local staging server cannot run in production');
+export function createStagingServer({createClient,accountingWorker=null,accountingAdapter=null,now=()=>Date.now(),restoreTest=false,earningsTemplates={},hostedStaging=false,hostedFingerprint=null,hostedTransport='passenger',hostedReady=()=>false}){
+  if(typeof hostedStaging!=='boolean'||hostedStaging&&(!['passenger','litespeed'].includes(hostedTransport)||restoreTest||accountingWorker||accountingAdapter||!/^[a-f0-9]{64}$/.test(hostedFingerprint??'')))throw new Error('Invalid hosted staging server');
+  if(process.env.NODE_ENV==='production'&&!hostedStaging)throw new Error('Local staging server cannot run in production');
   if(typeof restoreTest!=='boolean'||restoreTest&&(accountingWorker||accountingAdapter))throw new Error('Invalid isolated restore server');
-  const cookieName=restoreTest?'faraios_restore_test':'faraios_staging';
+  const cookieName=hostedStaging?'__Host-faraios_staging':restoreTest?'faraios_restore_test':'faraios_staging';
+  const secure=hostedStaging?'; Secure':'';
   const loginForm=message=>form(message,restoreTest);
   const auth=createAuthSessions({createClient,now});let failures=[];
   const server=createServer(async(req,res)=>{
     let headerBusiness=null,headerIdentity=null,activePath='/dashboard';
     const readIdentity=async sessionId=>(headerIdentity=await auth.read(sessionId));
     const html=(title,body)=>pageHtml(title,body,headerBusiness,headerIdentity,activePath,restoreTest);
-    const expected=`127.0.0.1:${server.address()?.port}`, origin=`http://${expected}`;
+    const expected=`127.0.0.1:${server.address()?.port}`, origin=hostedStaging?stagingOrigin:`http://${expected}`;
     const send=(code,body,type='text/html; charset=utf-8')=>{res.writeHead(code,{'Content-Type':type,'Cache-Control':'no-store','Referrer-Policy':'same-origin','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"});res.end(body);};
     const redirect=path=>{res.writeHead(303,{Location:path,'Cache-Control':'no-store'});res.end();};
-    const clear=()=>res.setHeader('Set-Cookie',cookieName+'=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
+    const clear=()=>res.setHeader('Set-Cookie',cookieName+'=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'+secure);
     try{
-      if(req.headers.host!==expected||!['127.0.0.1','::ffff:127.0.0.1','::1'].includes(req.socket.remoteAddress))return send(403,'Local access only','text/plain');
+      const privateListenerReady=hostedStaging&&hostedTransport==='litespeed'&&hostedReady()===true;
+      if(hostedStaging&&hostedTransport==='litespeed'&&!privateListenerReady)return send(503,'Staging transport not ready','text/plain');
+      if(hostedStaging?!hostedRequestAllowed(req,hostedTransport,privateListenerReady):req.headers.host!==expected||!['127.0.0.1','::ffff:127.0.0.1','::1'].includes(req.socket.remoteAddress))return send(403,hostedStaging?'HTTPS staging access required':'Local access only','text/plain');
+      if(hostedStaging){
+        res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
+        res.setHeader('Strict-Transport-Security','max-age=31536000');
+        if(req.method!=='GET'&&req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
+      }
       const url=new URL(req.url,origin),id=req.headers.cookie?.match(new RegExp('(?:^|;\\s*)'+cookieName+'=([a-f0-9-]+)'))?.[1];
+      if(hostedStaging&&req.method==='GET'&&url.pathname==='/environment-health')return send(200,JSON.stringify({environment:'staging',transport:hostedTransport,transportSecurity:hostedTransport==='litespeed'?'managed-tls-edge':'passenger-protected-https',projectRef:'xdmfyrsauvqznkloroxg',sourceFingerprint:hostedFingerprint,appPaymentDispatch:'disabled',appNotificationDispatch:'disabled',authEmailSafeguard:'requires-independent-verification',accountingWorker:'disabled'}),'application/json');
       activePath=url.pathname;
       if(restoreTest&&req.method!=='GET'&&!(req.method==='POST'&&['/login','/logout'].includes(url.pathname)))return send(405,'Restore test: business writes are disabled','text/plain');
       if(restoreTest&&req.method==='GET'&&url.pathname==='/restore-health')return send(200,JSON.stringify({environment:'restore-test',businessWrites:'disabled',accountingWorker:'disabled'}),'application/json');
@@ -316,7 +327,7 @@ export function createStagingServer({createClient,accountingWorker=null,accounti
         if(url.pathname==='/login'){
           failures=failures.filter(t=>t>now()-60000);if(failures.length>=5)return send(429,loginForm('Too many attempts. Wait one minute.'));
           const data=new URLSearchParams(body);
-          try{const session=await auth.login(data.get('email'),data.get('password'));if(id)await auth.logout(id);res.setHeader('Set-Cookie',`${cookieName}=${session.id}; HttpOnly; SameSite=Strict; Path=/; Max-Age=1800`);return redirect('/dashboard');}
+          try{const session=await auth.login(data.get('email'),data.get('password'));if(id)await auth.logout(id);res.setHeader('Set-Cookie',`${cookieName}=${session.id}; HttpOnly; SameSite=Strict; Path=/; Max-Age=1800${secure}`);return redirect('/dashboard');}
           catch{failures.push(now());return send(401,loginForm('Unable to sign in. Check your staging account and try again.'));}
         }
       }
@@ -385,5 +396,6 @@ export function createStagingServer({createClient,accountingWorker=null,accounti
     }catch(error){if(['Earnings access denied','Invoice access denied','Quote access denied','Staff access denied','Settings access denied','Catalogue access denied','Customer access denied','Booking access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,loginForm('Staging service unavailable. Please try again later.'));}
   });return server;
 }
+
 
 
