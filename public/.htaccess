@@ -1,0 +1,5 @@
+RewriteEngine On
+RewriteCond %{HTTPS} !^on$ [NC]
+RewriteRule ^ - [F,L]
+RequestHeader unset X-FaraiOS-Staging-HTTPS
+RequestHeader set X-FaraiOS-Staging-HTTPS "on"

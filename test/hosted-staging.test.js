@@ -77,5 +77,53 @@ test('local and restore retain production refusal, hosted rejects integration wo
   const env=process.env.NODE_ENV;process.env.NODE_ENV='production';
   try{assert.throws(()=>createStagingServer({}),/cannot run in production/);assert.throws(()=>createStagingServer({restoreTest:true}),/cannot run in production/);}finally{if(env===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=env;}
   for(const extra of [{restoreTest:true},{accountingWorker:{}},{accountingAdapter:{}}])assert.throws(()=>createStagingServer({hostedStaging:true,hostedFingerprint:'a'.repeat(64),...extra}),/Invalid hosted/);
-  const result=spawnSync(process.execPath,['_passenger.cjs'],{cwd:new URL('../',import.meta.url),encoding:'utf8'});assert.notEqual(result.status,0);assert.match(result.stderr,/requires Passenger/);
+  const result=spawnSync(process.execPath,['_passenger.cjs'],{cwd:new URL('../',import.meta.url),encoding:'utf8'});assert.notEqual(result.status,0);assert.match(result.stderr,/requires a verified Passenger or LiteSpeed runtime/);
+});
+
+
+test('LiteSpeed transport ignores spoofed proxy/Passenger headers and requires exact replaced marker',async()=>{
+  const {hostedRequestAllowed}=await import('../src/hosted-staging.js');
+  const request={url:'/login',headers:{host:'staging.faraios.com','!~passenger-proto':'https','x-forwarded-proto':'https'}};
+  assert.equal(hostedRequestAllowed(request,'litespeed'),false);
+  for(const marker of ['on, on','off','ON',''])assert.equal(hostedRequestAllowed({...request,headers:{...request.headers,'x-faraios-staging-https':marker}},'litespeed'),false);
+  assert.equal(hostedRequestAllowed({...request,headers:{...request.headers,'x-faraios-staging-https':'on'}},'litespeed'),true);
+  assert.equal(hostedRequestAllowed({url:'/login',headers:{host:'staging.faraios.com','x-faraios-staging-https':'on'}},'passenger'),false);
+});
+
+test('runtime detection refuses generic loaders, wrong root/socket/startup and standalone fallback',async()=>{
+  const {default:runtime}=await import('../src/hosted-runtime.cjs');
+  const {EventEmitter}=await import('node:events');
+  const root=new URL('../',import.meta.url).pathname.replace(/\/$/,'');
+  const options={passenger:null,lsNode:new EventEmitter(),env:{LSNODE_SOCKET:'/tmp/t07-synthetic.sock',LSNODE_ROOT:root,LSNODE_STARTUP_FILE:'_passenger.cjs'},argv:['node','/usr/local/lsws/fcgi-bin/lsnode.js'],serverPrototype:{realListen(){}}};
+  assert.equal(runtime.detectHostedRuntime(options),'litespeed');
+  for(const patch of [{lsNode:{}},{argv:['node','app.js']},{serverPrototype:{}},...['LSNODE_SOCKET','LSNODE_ROOT','LSNODE_STARTUP_FILE'].map(name=>({env:{...options.env,[name]:'incorrect'}}))])assert.throws(()=>runtime.detectHostedRuntime({...options,...patch}),/verified/);
+  assert.equal(await readFile(new URL('../public/.htaccess',import.meta.url),'utf8'),runtime.httpsRules);
+});
+
+
+test('actual Unix listener is required; TCP and symlink paths are refused',async()=>{
+  const {default:runtime}=await import('../src/hosted-runtime.cjs');
+  const {createServer}=await import('node:net');
+  const {mkdtemp,chmod,symlink,rm}=await import('node:fs/promises');
+  const {tmpdir}=await import('node:os');
+  const path=await mkdtemp(tmpdir()+'/t07-socket-'),socket=path+'/app.sock',server=createServer();
+  try{
+    await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(socket,resolve);});await chmod(socket,0o660);
+    runtime.assertPrivateSocket(server,socket);
+    const tcp=createServer();await new Promise(resolve=>tcp.listen(0,'127.0.0.1',resolve));
+    try{assert.throws(()=>runtime.assertPrivateSocket(tcp,socket),/private Unix/);}finally{await new Promise(resolve=>tcp.close(resolve));}
+    await symlink(socket,path+'/alias.sock');assert.throws(()=>runtime.assertPrivateSocket(server,path+'/alias.sock'),/private Unix/);
+    await chmod(socket,0o666);assert.throws(()=>runtime.assertPrivateSocket(server,socket),/private Unix/);
+  }finally{if(server.listening)await new Promise(resolve=>server.close(resolve));await rm(path,{recursive:true,force:true});}
+});
+
+test('LiteSpeed denies requests until actual socket validation completes',async()=>{
+  let ready=false;
+  const server=createStagingServer({hostedStaging:true,hostedTransport:'litespeed',hostedReady:()=>ready,hostedFingerprint:'a'.repeat(64)});
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  try{
+    const url='http://127.0.0.1:'+server.address().port+'/environment-health',headers={Host:'staging.faraios.com','X-FaraiOS-Staging-HTTPS':'on'};
+    const get=()=>new Promise((resolve,reject)=>{const req=httpRequest(url,{headers},res=>{res.resume();res.on('end',()=>resolve(res.statusCode));});req.on('error',reject);req.end();});
+    assert.equal(await get(),503);ready=true;assert.equal(await get(),200);
+  }finally{await new Promise(resolve=>server.close(resolve));}
 });

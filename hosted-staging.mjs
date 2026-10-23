@@ -4,7 +4,11 @@ import {createStagingServer} from './src/staging-server.js';
 import {assertHostedEnvironment,assertStagingConfig,createStagingFetch} from './src/hosted-staging.js';
 import {hostedSourceFingerprint} from './scripts/hosted-source-fingerprint.mjs';
 
-if(typeof PhusionPassenger==='undefined')throw new Error('Hosted staging requires Passenger');
+import runtime from './src/hosted-runtime.cjs';
+
+export async function startHostedStaging(){
+const transport=runtime.detectHostedRuntime();
+if(transport==='litespeed'&&await readFile(new URL('./public/.htaccess',import.meta.url),'utf8')!==runtime.httpsRules)throw new Error('Hosted HTTPS rules mismatch');
 assertHostedEnvironment();
 const config=JSON.parse(await readFile(new URL('./config/staging.json',import.meta.url),'utf8'));
 assertStagingConfig(config);
@@ -15,4 +19,11 @@ const factory=()=>createClient(config.url,config.publishableKey,{
 });
 const earningsTemplate=JSON.parse(await readFile(new URL('./config/shalean-approved-earnings.json',import.meta.url),'utf8'));
 // Intentionally no worker, credential file, provider SDK or integration adapter.
-createStagingServer({createClient:factory,hostedStaging:true,hostedFingerprint:await hostedSourceFingerprint(),earningsTemplates:{[config.earningsTemplateBusinessId]:earningsTemplate}}).listen('passenger');
+let socketReady=false;
+const server=createStagingServer({createClient:factory,hostedTransport:transport,hostedReady:()=>socketReady,hostedStaging:true,hostedFingerprint:await hostedSourceFingerprint(),earningsTemplates:{[config.earningsTemplateBusinessId]:earningsTemplate}});
+if(transport==='passenger')server.listen('passenger');
+else server.listen(0,()=>{
+  try{runtime.assertPrivateSocket(server,process.env.LSNODE_SOCKET);socketReady=true;}catch{server.close();console.error('Hosted staging private socket refused');process.exitCode=1;}
+});
+return server;
+}

@@ -42,8 +42,10 @@ export function createStagingFetch(dispatch=globalThis.fetch){
   };
 }
 
-export function hostedRequestAllowed(req){
-  // Passenger rejects client-supplied !~ headers. Never trust X-Forwarded-Proto.
-  // The launcher runs only under Passenger, which binds a private Unix socket.
-  return req.headers.host==='staging.faraios.com'&&req.headers['!~passenger-proto']==='https'&&typeof req.url==='string'&&req.url.startsWith('/')&&!req.url.startsWith('//');
+export function hostedRequestAllowed(req,transport='passenger'){
+  // Passenger metadata is protected by Passenger; LiteSpeed instead requires
+  // verified web-server HTTPS rejection and unconditional marker replacement.
+  // Neither mode trusts X-Forwarded-Proto or the other transport's headers.
+  const https=transport==='passenger'?req.headers['!~passenger-proto']==='https':transport==='litespeed'&&req.headers['x-faraios-staging-https']==='on';
+  return req.headers.host==='staging.faraios.com'&&https&&typeof req.url==='string'&&req.url.startsWith('/')&&!req.url.startsWith('//');
 }
