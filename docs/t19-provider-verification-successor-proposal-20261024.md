@@ -1,0 +1,75 @@
+# T19 — successor provider-verification proposal
+
+Document T19-PV-SUCCESSOR-20261024, v1, 24 October 2026. Owner/approver: Farai Chitekedza. Prepared by Codex Engineering. Status: PROPOSAL ONLY; no implementation or execution authority. Independent technical review /root/t19_independent_review: PASS for the bounded code-preparation decision only; no implementation or execution approval. Two wording refinements applied below. This document supersedes the earlier run preparation only as a proposal; original manifests, approvals, recovered tombstone and historical evidence remain immutable.
+
+## Purpose and controlled sources
+
+Prepare a single attended Shalean TEST identity-verification attempt, following rejected consent and completed local recovery. No OAuth request, credential import, service activation, provider read/write, deployment, merge, tracker edit or financial action is authorised by this proposal. Code changes require a separate bounded approval, then review/testing; the eventual run needs a different exact-byte approval.
+
+Current canonical Build Plan read on 24 October: Build Tracker row20 (T19), Decisions D13, T19 Evidence A1:B25, and Tracker History 20261023. T19 scope is “Separate invoice identities and accounting connections”; acceptance is “Business totals reconcile; failures visible”; dependency T18 Done. T19 remains In progress. T20 remains Not started. T05 is Blocked/deferred, outside scope. T04 and completed T06–T18 remain preserved.
+
+Canonical source: https://docs.google.com/spreadsheets/d/1v6o8ZLMUdqze-5WICBUp5ebLmZPObSkrgBUAxXg79PI/edit
+
+Fresh GitHub main read confirms a5558ff2f74d004bdce7befb4f506622d468dec9, tree c499fecb30956333f5299c7ba6d6e7e6e365f6ee (merged PR112). Existing source and accepted tests are reused. This document is local preparation; no publication is implied. Sources: src/t19-connection.js, src/t19-provider.js, scripts/t19-connection.mjs, docs/t19-provider-confirmation-20261023.md, docs/t19-provider-execution-review-20261024.md, docs/t19-exact-recovery-package-20261024.md and its evidence files.
+
+The live tracker still contains historical “await clarification” and unmerged PR101/102 summaries. Current merged-code and 23October provider-reply evidence supersede those specific current-state claims; they do not silently alter the tracker or erase history. The provider-model reply was independently read in the preceding review (Gmail message1a168b4bc8644c1a, ticket169559907); no fresh mailbox search was performed for this proposal. Newer correspondence, if any, is unverified.
+
+## Requirement mapping and verified remaining gaps
+
+| Documented requirement | Current evidence / gap | Bounded proposed response | Limit |
+|---|---|---|---|
+| Separate accounting connections; D13 | Previous consent page showed accounts@shalean.com, not dedicated faraios590@gmail.com; consent was rejected | Verify the actual Accounts identity on the eventual consent page, in the same browser context, before owner acceptance | Books sign-in and UI organisation selection alone are insufficient; no claim about historical consenting identities |
+| Separate invoice identities; D13 isolated TEST verification | Known invoice/browser evidence exists; successful pinned API profile/invoice pair is still absent | One exact organisation GET then one known synthetic invoice GET; existing strict response comparison | Positive Shalean evidence only; no Bokkie denial or full cross-tenant certification |
+| Failures visible; existing approved lifecycle | Recovery correctly leaves disabled generation3; authorise rejects any existing record, and changing manifest causes binding rejection | Separately approve preparation of one guarded successor mechanism with preserved predecessor audit and single-use authority | Expected safety guard is not a defect to remove; no reset/delete/generic retry |
+| Business totals reconcile | No acceptance supplied by this two-read proposal | Keep separate-business reconciliation outstanding under T19 | R1 fixture matching is not business-totals reconciliation |
+
+These controls are proposed engineering safety conditions, not newly invented Build Plan acceptance criteria or stages. No approved T04 prices/pay, agreements, data, RLS, role rules, dashboards, All view or other completed foundations are changed.
+
+## Established recovery baseline and evidence quality
+
+Owner ran the reviewed three-flag cleanup against exact a5558ff Windows source. Original manifest SHA256: abbf16b542d6607736f26e1535703491b3b024073290435950d780d2a6a480fd. Approved recovery SHA256: 2069a6cf679aab1753751ef95f6039c785f2f6bcf56e463014d6572320dc0a66. Windows runtime: 7134448ca1158d1276db98f3784246eadb22747d11623e4277d7f87909f81605.
+
+The fixed success receipt and subsequent protected-store reopen/fresh browser status establish bounded local recovery: connection17ff4c10-d94b-4f77-a601-383afca5d648, generation3, disabled, cleanupPending:false, verified:false, unchanged binding. Independent technical outcome review PASS. Owner subsequently confirmed “stopped” after Ctrl+C instruction; shutdown is owner-reported, not independently inspected at OS level. Numeric cleanup exit code was not supplied. No direct vault dump, physical backup-erasure proof or global grant inventory is claimed. Recovery made no provider request or revocation.
+
+Current source load() pins original manifest-derived digest. authorise() rejects any existing connection with already_attempted. A new manifest or reimport by itself cannot permit retry. The source intentionally retains that hold.
+
+## Recommended bounded design, requiring implementation approval
+
+Retain current production/staging server code and existing provider verifier. Propose a narrowly scoped local successor-preparation action, not a generic retry switch. It must validate both immutable original-manifest bytes and a separately approved successor envelope before storage access. Exact predecessor connection/generation3/binding/recovery approval and event history must match; require absent grant, cleanup, verification evidence, client secret and unexpected fields. Shared references, altered history, replay, unknown outcomes, lock or corruption are stops.
+
+Under one exclusive atomic write, preserve the full non-secret predecessor record without alteration in a logically append-only local history entry enforced by application guards (not tamper-proof against the same Windows user), and establish a single fresh pending successor linked to that record and the new approval digest. A fresh connection ID and generation/context fence prevent old state/callback reuse. The exact schema and CLI contract are implementation-review outputs, not an existing capability. Ordinary authorise must still reject arbitrary pre-existing or disabled records; only the explicitly prepared, unused successor may advance once. Import must bind exclusively to that successor approval, business and organisation; no replacing unrelated clients. No hosted DB migration or new provider app is proposed.
+
+An isolated replacement store, deleting the original connection, changing business ID to evade the guard, loosening load(), or repeatedly importing under the old approval are rejected alternatives. The proposed successor is justified only for this recovered, no-issued-grant case. It must not admit authenticated, verified, exchange-dispatched/unknown, or cleanup-pending predecessors. Any wider reauthorisation feature requires another scope decision.
+
+The same bounded implementation must specify cleanup for every successor outcome, including rejection before exchange, cancellation before consent, successful exchange, failed/unknown exchange, expired approval and interrupted storage. The original narrow cleanup command is pinned to the old generation2 history and must not be assumed compatible with successor history. New cleanup rules must preserve both attempt records and use separately approved exact state evidence; never infer provider revocation from local removal.
+
+## Proposed eventual run, not permission to run
+
+Pins retained: staging business612be091-b1d7-4911-9c3b-143446a9fe27; org943440851; US API https://www.zohoapis.com; ZAR; client FaraiOS Shalean TEST /1000.ET7LNPRV6W7EM2HLL35E2X38RKEGVF; callback http://127.0.0.1:3102/zoho/callback. Existing Server-based classification and accounts@shalean.com ownership/secret control evidence are reused with their attestation limits. No secret is requested in chat.
+
+1. Before requesting run approval, pin the exact reviewed commit/runtime, new manifest bytes/hash, predecessor/successor identifiers, reviewer, attendees, Windows SHALEAN/shalean\\info custody, cleanup method and fixed start/end times at most60minutes apart. New approval defaults false; original approval/window cannot be reused. No final executable manifest or hash is issued by this proposal.
+2. Reconfirm dedicated faraios590@gmail.com /Zoho user943476475, sole intended Books-visible membership and persisted Invoice Reader permissions through authorised read-only UI. Historical reader-role configuration is not fresh effective-permissions proof. Do not test write permissions by attempting writes. If profile/settings.READ is denied, stop; no permission escalation or extra scopes automatically follow.
+3. Use a dedicated attended browser context for that identity. Reconfirm the account identity on the actual consent page after the authorisation URL opens. A wrong/missing identity, unexpected client/scope/redirect or uncertain context means Reject and stop. The local provenance field is an attended assertion, not a token-returned user-identity claim. No additional Zoho Accounts identity/profile endpoint, OpenID scope, account switch or additional read is silently added.
+4. Only after the separately approved local successor preparation and private masked import, owner may accept one standard Server-based consent with exactly ZohoBooks.settings.READ and ZohoBooks.invoices.READ. One code exchange; no refresh or repeat. OAuth/token/grant custody actions are state changes despite read-only Books scopes and require explicit lifecycle approval.
+5. Execute existing strict verifier once: GET /books/v3/organizations/943440851?organization_id=943440851; then GET /books/v3/invoices/1589458000000103010?organization_id=943440851. Require organisation active=true, exact ID/currency; invoice INV-000001, reference FARAIOS-T19-SHALEAN-TEST-001, customer1589458000000103003, draft, ZAR100cents. Recheck the existing fixture beforehand without modifying it. First failure prevents the second read. No list, other-org, contact, financial-write, refresh, retry or fallback request.
+6. Disable locally promptly; only this run's issued grant may be cleaned up through the separately reviewed method. Existing runner implements local disable and custodian-attested cleanup, not programmatic provider revocation. Before run approval, establish how the owner can unambiguously identify only this identity/client's grant without affecting older or unrelated grants. If the UI groups indistinguishable grants, stop and resolve a targeted method before issuing a grant. Do not delete the client or revoke all apps. Unknown exchange outcomes retain a hold and require an exact recovery plan.
+7. Capture safe outcome/time/request count, expected-versus-returned profile/fixture identity and cleanup receipt; no auth URL/state/code/token/secret/raw customer payload. Record immediate numeric exit where available. Restart read-only status if needed, verify durable disabled state and shutdown, then independent technical outcome review. Expiry blocks provider activity; separately approved local cleanup must remain available afterward.
+
+Zoho Accounts FAQ https://help.zoho.com/portal/en/kb/accounts/faqs-troubleshooting/faqs/oauth/articles/will-the-refresh-tokens-expire confirms refresh grants persist until revoked/deleted. That supports planning cleanup, not claiming our cleanup occurred remotely. Official product-specific revocation pages expose different endpoint contracts; no endpoint or extra secret-handling tool is selected here. Any programmatic alternative needs its own exact supported-contract review and tests. No provider request was made to verify revocation.
+
+## Validation and independent review
+
+Reuse accepted PR112 evidence: Windows T19 73/73, legacy110/110, native26/26 and passing required CI/security; this is historical exact-source evidence, not proof of unimplemented successor code. No runtime tests were rerun for this documentation-only change.
+
+If implementation is later approved, verify strict predecessor/envelope pins before store/provider access; immutable history and atomic successor/restart; replay/concurrency denial; stale callback/generation fencing; old/new manifest isolation; no shared-client changes; wrong identity/scope stops; all cancellation/cleanup branches; redaction and no provider calls in local preparation. Extend meaningful existing tests with dummy secrets and real dummy Windows DPAPI, then independent review and CI/security on exact final bytes. Do not access the real credential store during implementation/tests. Merge/deployment remain separately controlled.
+
+## Decision and next authorisation
+
+NO-GO for OAuth/provider execution. Recommended next implementation decision: a T19-only, dummy-tested successor and complete cleanup design as specified above; owner must explicitly authorise code preparation before edits. This proposal alone permits documentation and independent review only. A future execution request must include the fully reviewed candidate and new manifest, cleanup proof/method, exact one-hour-or-shorter window and remaining prerequisites; no conditional blanket consent.
+
+Remaining owner inputs: later bounded code-preparation approval; future attended identity/role reconfirmation, exact run window, and explicit per-run credential/OAuth/cleanup approval. Technical reviewer must assess successor and cleanup, then exact final run package. Provider confirmation is needed only if a specific supported cleanup/read contract cannot be established; the general Accounts-level token model is already clarified. No provider contact is authorised. Bokkie verification, separate-business totals and outstanding real-provider/hosted acceptance stay under T19 and are not satisfied by this package. T20–T23 remain untouched. Tracker reconciliation needs subsequent authorisation.
+
+Independent review record: reviewer independently confirmed main/tree and existing digest/already_attempted guards; no blocking proposal defect. Review was read-only with no real store, browser or provider access. Final successor schema, cleanup contracts, dummy tests, exact-head CI/security and further independent review remain future implementation deliverables.
+
+
+Subsequent scope decision: owner explicitly approved code preparation and dummy testing only. That authorises the local implementation recorded in t19-successor-preparation-20261024.md; it does not authorise the proposed real run or any provider/store change. Earlier preparation-approval-pending wording above is historical.

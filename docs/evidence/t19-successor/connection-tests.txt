@@ -1,0 +1,105 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> faraios@0.1.0 test:t19:connection
+> node --test test/t19-provider.test.js test/t19-connection.test.js test/t19-vault.test.js test/t19-runner.test.js test/t19-integration.test.js test/t19-masked-import.test.js test/t19-rejected-consent.test.js test/t19-successor.test.js
+
+✔ review manifest matches registered callback but remains unapproved; former callback fails execution validation (4.162706ms)
+✔ synthetic consent, exactly two provider reads, then local disable with distinct revocation state (54.898965ms)
+✔ owner-only business isolation rejects before vault and provider access (3.207463ms)
+✔ execution gate blocks authorisation and verification without provider or storage access (1.060528ms)
+✔ manifest approval, time-window and fixture requirements fail closed (0.756572ms)
+✔ OAuth state is session-bound, single-use and invalid callbacks never exchange (1.208936ms)
+✔ successful callback cannot be replayed and same window cannot authorise twice (4.037603ms)
+✔ owner revoked before callback prevents token exchange (0.577218ms)
+✔ approval expiry blocks callback and reads without exchange or refresh (1.128092ms)
+✔ credential expiry and stale credential context reject without provider calls (7.521713ms)
+✔ immutable binding rejects after restart with changed organisation (1.349033ms)
+✔ verification is single attempt and error bodies never leak provider credentials (2.424223ms)
+✔ disable during in-flight profile prevents invoice and late verification evidence (2.769039ms)
+✔ HTTP host/origin/CSRF/method/body and foreign route restrictions (37.166444ms)
+✔ registered callback matches consent and exchange, rejects old route and duplicate state (9.277782ms)
+✔ OAuth state expires independently of the longer approved window (1.138933ms)
+✔ late grant after disable is retained only for cleanup and never authenticates (2.115889ms)
+✔ HTTP write/sync/list/refresh routes are unavailable (5.99521ms)
+✔ disable while invoice is in flight discards late success (2.113686ms)
+✔ real auth-session adapter uses verified Auth identity and current membership rows (2.644826ms)
+✔ stored client metadata cannot cross business or organisation boundary (1.178091ms)
+✔ restart cannot relabel a stored grant under changed client, window or fixture approval (5.415908ms)
+✔ unverified secret source or client registration blocks before vault and provider access (0.724134ms)
+✔ consent rejects changed or missing imported manifest digest before connection creation (0.842498ms)
+﹣ real DPAPI custody integrates with guarded service, read-only provider and durable disable (1.030705ms) # SKIP
+﹣ masked prompt serialises dummy quote/unicode secret through stdin only and forces import mode (1.580352ms) # SKIP
+﹣ wrong host/account, wrong manifest hash and rejected gate fail before masked prompt (0.172604ms) # SKIP
+﹣ empty, newline or oversized dummy input never reaches import child (0.124804ms) # SKIP
+﹣ child stderr, unexpected stdout and timeout are generic failures without secret reflection (0.120968ms) # SKIP
+﹣ production entrypoint rejects redirected input rather than accepting unmasked piped data (0.132344ms) # SKIP
+﹣ masked helper hands dummy secret to real gated importer and DPAPI; duplicate import fails closed (0.136611ms) # SKIP
+✔ only pinned profile then known invoice GET, four generation checks and minimal evidence (10.868571ms)
+✔ invalid binding, fixture and missing guard fail before fetch (0.821998ms)
+✔ fixture cannot override binding or mutate later request expectations (1.348832ms)
+✔ profile mismatch stops before invoice {"organization_id":"222"} (1.070412ms)
+✔ profile mismatch stops before invoice {"is_org_active":false} (0.591509ms)
+✔ profile mismatch stops before invoice {} (0.841136ms)
+✔ profile mismatch stops before invoice {"currency_code":"USD"} (5.41018ms)
+✔ invoice tuple mismatch {"invoice_id":"9002"} (1.037604ms)
+✔ invoice tuple mismatch {"invoice_number":"wrong"} (0.471172ms)
+✔ invoice tuple mismatch {"reference_number":"wrong"} (0.752446ms)
+✔ invoice tuple mismatch {"customer_id":"333"} (0.444443ms)
+✔ invoice tuple mismatch {"currency_code":"USD"} (0.479555ms)
+✔ invoice tuple mismatch {"status":"sent"} (0.459746ms)
+✔ invoice tuple mismatch {"total":"1.001"} (0.517841ms)
+✔ invoice tuple mismatch {"organization_id":"222"} (0.440738ms)
+✔ missing or nonnumeric Books success code rejected (1.02798ms)
+✔ HTTP 401 has no retry or refresh (0.463872ms)
+✔ HTTP 403 has no retry or refresh (0.215767ms)
+✔ HTTP 429 has no retry or refresh (0.248676ms)
+✔ HTTP 500 has no retry or refresh (0.189348ms)
+✔ streaming cap cancels oversized body without accumulating all data (1.819023ms)
+✔ malformed content, redirects and transport details remain sanitised (1.38809ms)
+✔ guard denies before dispatch, between reads and during in-flight results (0.891811ms)
+✔ one code exchange, fixed endpoint, private body and bounded expiry (3.678024ms)
+✔ token exchange rejects wrong host, missing tokens or invalid expiration (1.390954ms)
+✔ 12-second deadline fails closed even when injected transport ignores abort (0.711305ms)
+✔ rejected-before-exchange gap: separately approved cleanup removes client but retains disabled audited tombstone (43.105931ms)
+✔ cleanup refuses exchange, unknown outcomes, verified state, altered bindings/history and shared client references without mutation (18.828647ms)
+✔ separate recovery approval pins old bytes and current code; invalid/mixed CLI modes reject before opening storage (887.859739ms)
+﹣ Windows real dummy DPAPI restart and CLI recovery use old manifest with new code without provider or secret output (0.37409ms) # SKIP
+✔ client import pins business/org and rejects replacing another business client (2.336053ms)
+✔ cleanup is exact connection/generation/client/identity attestation, never implicit revocation (0.834136ms)
+✔ cleanup does not delete a client still referenced by another connection (0.303335ms)
+✔ invalid execution hash rejects before any vault or provider setup (208.113288ms)
+✔ check-import validates approved manifest without storage and rejects mixed modes, wrong client and expired approval (793.341325ms)
+✔ pre-consent cleanup removes only exact imported client and retains non-secret audit (1.624157ms)
+✔ separately approved successor archives exact recovered record atomically; restart consumes pending authority once (40.804921ms)
+✔ preparation refuses mutated predecessor, prior history, client material, shared references or reused authority without mutation (36.439085ms)
+✔ independent byte gates pin original, old recovery, new manifest, approval and current runtime before store access (19.978897ms)
+✔ successor-bound import/status reject missing, changed, consumed or archived context; ordinary existing-record hold remains (34.934138ms)
+✔ cancelled pending or rejected consent cleans locally under separate approval after expiry; no provider claim or replay (41.738217ms)
+✔ successor two-read verification reuses pinned verifier then requires targeted revocation attestation before local cleanup (15.217862ms)
+✔ unknown exchange and disabled in-flight grant can never use no-grant cleanup (12.878684ms)
+✔ cleanup refuses false/shared/foreign/altered state and gates exact approval bytes without mutation (8.645313ms)
+✔ preparation interrupted before commit leaves predecessor; lost receipt/restart cannot prepare or consume twice (3.990454ms)
+✔ CLI mixed/invalid preparation and cleanup approvals fail before opening any custody store (985.044475ms)
+﹣ Windows real dummy DPAPI successor CLI archive, exclusive writer, restart and cleanup preserve unrelated data (0.434708ms) # SKIP
+✔ portable actual CLI dispatch reaches only the injected dummy vault for valid preparation and cleanup (12.992276ms)
+✔ legacy cleanup/import cannot bypass successor approval by stripping the manifest successor field (4.503027ms)
+✔ successor repeated and concurrent disable is idempotent and leaves no-grant cleanup reachable (6.611254ms)
+✔ accepted consent with lost/expired callback has explicit targeted-revocation-before-exchange cleanup, never inferred no grant (5.318925ms)
+✔ expiry or membership revocation during exchange disables late successor grant and retains targeted cleanup (7.327717ms)
+✔ disable while either synthetic verification GET is in flight discards late success and preserves cleanup/history (9.023239ms)
+✔ identical semantic manifest with changed raw bytes cannot relabel a prepared successor import or service (4.19871ms)
+✔ synthetic permission or profile mismatch failure disables successor before invoice read and remains cleanup-safe (15.037647ms)
+﹣ real CurrentUser DPAPI stores only ciphertext, survives restart and returns isolated snapshots (1.267252ms) # SKIP
+﹣ exclusive writer blocks another process instance and serialized writes persist last generation (0.202908ms) # SKIP
+﹣ corrupted ciphertext fails closed and does not reset registry or leak content (0.107107ms) # SKIP
+﹣ repository paths, non-local paths and junctions are rejected (0.0751ms) # SKIP
+﹣ protection failure leaves no plaintext and poisons writes (0.106266ms) # SKIP
+﹣ pre-consent cleanup persists only exact local removal through real DPAPI restart (0.107297ms) # SKIP
+ℹ tests 92
+ℹ suites 0
+ℹ pass 77
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 15
+ℹ todo 0
+ℹ duration_ms 1554.279646

@@ -1,0 +1,49 @@
+{
+  "scope": "T19 successor code preparation and dummy tests only",
+  "sourceReferenceMain": "a5558ff2f74d004bdce7befb4f506622d468dec9",
+  "localBase": "c4f74d2114c1573b694d999c895c9f21b1eb796b",
+  "runtimeLF": "032fadc791e5c885f78feb71fe94341e776b21575f68d2fb09f5518e122152a7",
+  "filesSHA256": {
+    "package.json": "b9cc9a83073c466176e02939a43f42b021cf56ebf487ae94c904f5e78dc0cc3d",
+    "scripts/t19-connection.mjs": "3e51c3a96d6c46885d610c113e9d887a6cc87f84c6f94285a9bdaebfc30b3f30",
+    "src/t19-connection.js": "428f45e7306cedfb2cc636aad97e2e67fc75d8d91b10ba7b36fa36acb06a2c13",
+    "src/t19-successor.js": "1a5e3ad98e9ab8675e3723a837480300aa14445707f3be3e7de57bb722576d7a",
+    "test/t19-successor.test.js": "1d4a287ed3cc006b97a89464a7e4256008e7010c75a5b6d6315d354e04e6e85a"
+  },
+  "codePatchSHA256": "a12bdc00270a3e7676b18b344cec2588bd2d180736fe22d340d52a032c60b03e",
+  "patchCheck": "PASS against temporary baseline index; no index/worktree mutation",
+  "focusedTests": {
+    "total": 92,
+    "pass": 77,
+    "fail": 0,
+    "skippedWindows": 15
+  },
+  "broadTestsBeforeFinalAdditionalTest": {
+    "total": 454,
+    "pass": 435,
+    "fail": 2,
+    "skip": 17,
+    "failures": "unchanged hosted-staging Unix listener tests: OS listen EPERM"
+  },
+  "windowsSuccessor": "NOT RUN in Linux; one dedicated dummy DPAPI/CLI test included",
+  "hostedCISecurity": "NOT RUN for this candidate",
+  "realStoreProviderAccess": false,
+  "committed": false,
+  "pushedMergedDeployed": false,
+  "trackerChanged": false,
+  "T19": "In progress",
+  "T20": "untouched",
+  "independentTechnicalReview": {
+    "reviewer": "/root/t19_independent_review",
+    "result": "PASS for bounded local preparation and documentation",
+    "finalSuccessorSuite": {
+      "total": 19,
+      "pass": 18,
+      "fail": 0,
+      "skippedWindows": 1
+    },
+    "formalGitHubApproval": false,
+    "mergeOrProviderReadiness": false
+  },
+  "recordTiming": "Historical local preparation snapshot before later separately authorised Draft PR publication; Windows follow-up in windows-evidence.json"
+}
