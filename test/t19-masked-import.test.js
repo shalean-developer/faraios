@@ -62,13 +62,15 @@ test('production entrypoint rejects redirected input rather than accepting unmas
  assert.equal(r.status,1);assert.equal(r.stdout,'');assert.doesNotMatch(r.stderr,/dummy-secret/);
 });
 test('masked helper hands dummy secret to real gated importer and DPAPI; duplicate import fails closed',async t=>{
- // A PowerShell child may restore Windows known-folder variables; keep the fixture under the actual custody root.
+ // Use an isolated directory and explicitly pin the PowerShell child custody root before importing dummy data.
  const custodyRoot=await realpath(process.env.LOCALAPPDATA);
  const dir=await mkdtemp(join(custodyRoot,'t19-real-import-'));t.after(()=>rm(dir,{recursive:true,force:true}));
  const manifestPath=join(dir,'approved-synthetic.json'),script=join(dir,'test.ps1');
  const now=Date.now();const m={businessId:'00000000-0000-4000-8000-000000000001',organizationId:'111',identity:'synthetic@example.invalid',zohoUserId:'123',apiDomain:'https://www.zohoapis.com',environment:'staging',currency:'ZAR',approved:true,custodyVerification:{secretSourceVerified:true},clientVerification:{clientType:'Server-based',clientOwner:'synthetic-owner'},approvalReference:'dummy-test-only',operator:'dummy',custodian:'dummy',reviewer:'dummy',probeSha:await probeDigest(),clientId:'dummy-client',redirectUri:'http://127.0.0.1:3102/zoho/callback',startsAt:now-1000,endsAt:now+120000,fixture:{invoiceId:'9001',customerId:'222',number:'TEST-1',reference:'SYNTHETIC',status:'draft',totalCents:100},fixtureEvidence:'dummy',identityEvidence:'dummy',cleanupReference:'dummy'};
  await writeFile(manifestPath,JSON.stringify(m));
  await writeFile(script,`$ErrorActionPreference='Stop'
+$env:LOCALAPPDATA=${quote(dir)}
+if(-not [IO.Directory]::Exists($env:LOCALAPPDATA)){throw 'SYNTHETIC_CUSTODY_ROOT_MISSING'}
 . ${quote(helper)}
 $m=Get-Content -Raw -LiteralPath ${quote(manifestPath)}|ConvertFrom-Json
 $m.custodyVerification|Add-Member -NotePropertyName deviceName -NotePropertyValue ([Environment]::MachineName)
@@ -79,7 +81,7 @@ function Read-Host {param($Prompt,[switch]$AsSecureString);if(-not $AsSecureStri
 Invoke-T19MaskedImport -NodePath ${quote(process.execPath)} -RunnerPath ${quote(join(root,'scripts/t19-connection.mjs'))} -ManifestFile ${quote(manifestPath)} -ApprovedHash $hash
 try { Invoke-T19MaskedImport -NodePath ${quote(process.execPath)} -RunnerPath ${quote(join(root,'scripts/t19-connection.mjs'))} -ManifestFile ${quote(manifestPath)} -ApprovedHash $hash; exit 2 } catch { [Console]::WriteLine('DUPLICATE_REJECTED') }
 `);
- const r=spawnSync('pwsh',['-NoLogo','-NoProfile','-NonInteractive','-File',script],{cwd:root,env:{...process.env},windowsHide:true,encoding:'utf8',timeout:90000});
+ const r=spawnSync('pwsh',['-NoLogo','-NoProfile','-NonInteractive','-File',script],{cwd:root,env:{...process.env,LOCALAPPDATA:dir},windowsHide:true,encoding:'utf8',timeout:90000});
  assert.equal(r.status,0,r.stderr);assert.match(r.stdout,/TEST client stored; no provider request performed/);assert.match(r.stdout,/DUPLICATE_REJECTED/);assert.doesNotMatch(r.stdout+r.stderr,/DUMMY-REAL-PIPE-NOT-A-CREDENTIAL/);
  const directory=join(dir,'FaraiOS','T19','credentials');const encrypted=await readFile(join(directory,'vault.dpapi'));assert.equal(encrypted.includes(Buffer.from('DUMMY-REAL-PIPE-NOT-A-CREDENTIAL')),false);
  const vault=await openVault({directory,repositoryRoot:root});try{const db=await vault.read();assert.equal(db.clients['dummy-client'].clientSecret,'DUMMY-REAL-PIPE-NOT-A-CREDENTIAL');assert.equal(db.clients['dummy-client'].businessId,m.businessId);assert.equal(db.clients['dummy-client'].organizationId,m.organizationId);assert.deepEqual(db.connections,{});}finally{await vault.close();}
