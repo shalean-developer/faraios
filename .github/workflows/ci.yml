@@ -36,7 +36,8 @@ jobs:
       - run: node --check scripts/restore-constraint.mjs
       - run: node --check scripts/clear-restore-staff-sessions.mjs
       - run: node --test test/zoho-setup.test.js test/staging-access-verifier.test.js test/staging-backup.test.js test/isolated-restore.test.js test/restore-diagnostic.test.js test/restore-constraint.test.js test/restore-session-recovery.test.js
-
+      - name: T19 synthetic connection, masked import and real dummy DPAPI acceptance
+        run: npm run test:t19:connection
 
   backup-transport:
     runs-on: ubuntu-latest
