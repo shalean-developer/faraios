@@ -73,6 +73,9 @@ $m.custodyVerification|Add-Member -NotePropertyName deviceName -NotePropertyValu
 $m.custodyVerification|Add-Member -NotePropertyName windowsAccount -NotePropertyValue ([Security.Principal.WindowsIdentity]::GetCurrent().Name)
 [IO.File]::WriteAllText(${quote(manifestPath)},($m|ConvertTo-Json -Depth 10))
 $hash=(Get-FileHash -LiteralPath ${quote(manifestPath)} -Algorithm SHA256).Hash.ToLowerInvariant()
+& ${quote(process.execPath)} ${quote(join(root,'scripts/t19-connection.mjs'))} ('--manifest='+${quote(manifestPath)}) ('--execute-approved='+$hash) '--check-import=dummy-client'
+if($LASTEXITCODE -ne 0){throw 'SYNTHETIC_PREFLIGHT_FAILED'}
+[Console]::WriteLine('SYNTHETIC_PREFLIGHT_PASSED')
 function Read-Host {param($Prompt,[switch]$AsSecureString);if(-not $AsSecureString){throw 'Unmasked'};ConvertTo-SecureString 'DUMMY-REAL-PIPE-NOT-A-CREDENTIAL' -AsPlainText -Force}
 Invoke-T19MaskedImport -NodePath ${quote(process.execPath)} -RunnerPath ${quote(join(root,'scripts/t19-connection.mjs'))} -ManifestFile ${quote(manifestPath)} -ApprovedHash $hash
 try { Invoke-T19MaskedImport -NodePath ${quote(process.execPath)} -RunnerPath ${quote(join(root,'scripts/t19-connection.mjs'))} -ManifestFile ${quote(manifestPath)} -ApprovedHash $hash; exit 2 } catch { [Console]::WriteLine('DUPLICATE_REJECTED') }
