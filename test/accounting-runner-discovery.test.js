@@ -14,11 +14,15 @@ test('ordinary Node discovery does not execute the opt-in native accounting runn
  const path=command.slice('node '.length);
  await mkdir(join(root,'scripts'));
  await writeFile(join(root,path),await readFile(new URL('../'+path,import.meta.url)));
+ await mkdir(join(root,'test-support'));
+ for(const candidate of ['scripts/run-t19-c2-postgres.mjs','test-support/t19-c3-ci.mjs','test-support/t19-c2-native-suite.mjs']){
+  await writeFile(join(root,candidate),await readFile(new URL('../'+candidate,import.meta.url)));
+ }
  const env={...process.env,T19_PG_BIN:join(root,'nonexistent-postgres')};
  // A discovery regression must fail without ever starting PostgreSQL.
  for(const key of Object.keys(env))if(/^(PG|FARAIOS_|SUPABASE_|NODE_TEST_CONTEXT|NODE_OPTIONS)|DATABASE_URL/i.test(key))delete env[key];
  const result=spawnSync(process.execPath,['--test','--test-reporter=tap'],{cwd:root,env,encoding:'utf8',timeout:15000,windowsHide:true});
  assert.equal(result.status,0,result.stderr||result.error?.message||result.stdout);
  assert.match(result.stdout,/# tests 0\b/);
- assert.doesNotMatch(result.stdout,/T19_NATIVE_ACCEPTANCE_PASSED|T19 isolated PostgreSQL|called recursively/);
+ assert.doesNotMatch(result.stdout,/T19_NATIVE_ACCEPTANCE_PASSED|T19_C2_NATIVE_PROOF_PASSED|T19 isolated PostgreSQL|called recursively/);
 });
