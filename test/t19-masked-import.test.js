@@ -2,7 +2,7 @@ import nodeTest from 'node:test';
 // This suite requires Windows PowerShell and CurrentUser DPAPI; hosted Windows CI runs every case.
 const test=(name,fn)=>nodeTest(name,{skip:process.platform!=='win32'},fn);
 import assert from 'node:assert/strict';
-import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
+import {mkdtemp,mkdir,writeFile,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
@@ -64,15 +64,26 @@ test('production entrypoint rejects redirected input rather than accepting unmas
 test('masked helper hands dummy secret to real gated importer and DPAPI; duplicate import fails closed',async t=>{
  const dir=await mkdtemp(join(tmpdir(),'t19-real-import-'));t.after(()=>rm(dir,{recursive:true,force:true}));
  const manifestPath=join(dir,'approved-synthetic.json'),script=join(dir,'test.ps1'),observer=join(dir,'observer.mjs'),diagnostic=join(dir,'stages.jsonl');
+ await mkdir(join(dir,'src'));await mkdir(join(dir,'scripts'));
+ await writeFile(join(dir,'scripts/t19-dpapi.ps1'),await readFile(join(root,'scripts/t19-dpapi.ps1')));
+ let traced=await readFile(join(root,'src/t19-vault.js'),'utf8');
+ traced=traced.replace("let lock,closed=false","let dummyStage='entry';let lock,closed=false")
+ .replace('const root=await realpath',"dummyStage='canonical-path';const root=await realpath")
+ .replace('await inspectAncestors(folder);await mkdir',"dummyStage='ancestors';await inspectAncestors(folder);await mkdir")
+ .replace("await windowsOperation('secure-directory'","dummyStage='secure-directory';await windowsOperation('secure-directory'")
+ .replace("lock=await open(lockPath","dummyStage='lock';lock=await open(lockPath")
+ .replace('await read();',"dummyStage='initial-read';await read();")
+ .replace("if(lock)await unlink(join(resolve(directory),'vault.lock')).catch(()=>{});throw failure();","if(lock)await unlink(join(resolve(directory),'vault.lock')).catch(()=>{});throw new Error('DUMMY_'+dummyStage);");
+ await writeFile(join(dir,'src/traced-vault.mjs'),traced);
  await writeFile(observer,`import {spawnSync} from 'node:child_process';
 import {appendFileSync} from 'node:fs';
-import {openVault} from ${JSON.stringify(pathToFileURL(join(root,'src/t19-vault.js')).href)};
+import {openVault} from ${JSON.stringify(pathToFileURL(join(dir,'src/traced-vault.mjs')).href)};
 const record=v=>appendFileSync(${JSON.stringify(diagnostic)},JSON.stringify(v)+'\\n');
 const args=process.argv.slice(2);let input='';for await(const part of process.stdin)input+=part;
 if(args.some(a=>a.startsWith('--import-client='))){
  let parsed;try{parsed=JSON.parse(input);}catch{}
  record({stage:'input',valid:Boolean(parsed&&Object.keys(parsed).length===1&&parsed.clientSecret==='DUMMY-REAL-PIPE-NOT-A-CREDENTIAL')});
- try{const vault=await openVault({directory:${JSON.stringify(join(dir,'FaraiOS','T19','credentials'))},repositoryRoot:${JSON.stringify(root)}});await vault.close();record({stage:'vault',ok:true});}catch{record({stage:'vault',ok:false});}
+ try{const vault=await openVault({directory:${JSON.stringify(join(dir,'FaraiOS','T19','credentials'))},repositoryRoot:${JSON.stringify(root)}});await vault.close();record({stage:'vault',ok:true});}catch(e){record({stage:'vault',ok:false,category:/^DUMMY_(entry|canonical-path|ancestors|secure-directory|lock|initial-read)$/.test(e.message)?e.message:'DUMMY_OTHER'});}
  delete process.env.PSModulePath;
  try{const vault=await openVault({directory:${JSON.stringify(join(dir,'FaraiOS','T19','credentials'))},repositoryRoot:${JSON.stringify(root)}});await vault.close();record({stage:'vault_without_inherited_module_path',ok:true});}catch{record({stage:'vault_without_inherited_module_path',ok:false});}
 }
