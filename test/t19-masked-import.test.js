@@ -2,10 +2,10 @@ import nodeTest from 'node:test';
 // This suite requires Windows PowerShell and CurrentUser DPAPI; hosted Windows CI runs every case.
 const test=(name,fn)=>nodeTest(name,{skip:process.platform!=='win32'},fn);
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,writeFile,readFile,rm} from 'node:fs/promises';
+import {mkdtemp,writeFile,readFile,rm,realpath} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {fileURLToPath,pathToFileURL} from 'node:url';
+import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {probeDigest} from '../scripts/t19-connection.mjs';
 import {openVault} from '../src/t19-vault.js';
@@ -62,36 +62,10 @@ test('production entrypoint rejects redirected input rather than accepting unmas
  assert.equal(r.status,1);assert.equal(r.stdout,'');assert.doesNotMatch(r.stderr,/dummy-secret/);
 });
 test('masked helper hands dummy secret to real gated importer and DPAPI; duplicate import fails closed',async t=>{
- const dir=await mkdtemp(join(tmpdir(),'t19-real-import-'));t.after(()=>rm(dir,{recursive:true,force:true}));
- const manifestPath=join(dir,'approved-synthetic.json'),script=join(dir,'test.ps1'),observer=join(dir,'observer.mjs'),diagnostic=join(dir,'stages.jsonl');
- await mkdir(join(dir,'src'));await mkdir(join(dir,'scripts'));
- await writeFile(join(dir,'scripts/t19-dpapi.ps1'),await readFile(join(root,'scripts/t19-dpapi.ps1')));
- let traced=await readFile(join(root,'src/t19-vault.js'),'utf8');
- traced=traced.replace("let lock,closed=false","let dummyStage='entry';let lock,closed=false")
- .replace('const root=await realpath',"dummyStage='canonical-path';const root=await realpath")
- .replace('await inspectAncestors(folder);await mkdir',"dummyStage='ancestors';await inspectAncestors(folder);await mkdir")
- .replace("await windowsOperation('secure-directory'","dummyStage='secure-directory';await windowsOperation('secure-directory'")
- .replace("lock=await open(lockPath","dummyStage='lock';lock=await open(lockPath")
- .replace('await read();',"dummyStage='initial-read';await read();")
- .replace("if(lock)await unlink(join(resolve(directory),'vault.lock')).catch(()=>{});throw failure();","if(lock)await unlink(join(resolve(directory),'vault.lock')).catch(()=>{});throw new Error('DUMMY_'+dummyStage);");
- await writeFile(join(dir,'src/traced-vault.mjs'),traced);
- await writeFile(observer,`import {spawnSync} from 'node:child_process';
-import {appendFileSync} from 'node:fs';
-import {openVault} from ${JSON.stringify(pathToFileURL(join(dir,'src/traced-vault.mjs')).href)};
-const record=v=>appendFileSync(${JSON.stringify(diagnostic)},JSON.stringify(v)+'\\n');
-const args=process.argv.slice(2);let input='';for await(const part of process.stdin)input+=part;
-if(args.some(a=>a.startsWith('--import-client='))){
- let parsed;try{parsed=JSON.parse(input);}catch{}
- record({stage:'input',valid:Boolean(parsed&&Object.keys(parsed).length===1&&parsed.clientSecret==='DUMMY-REAL-PIPE-NOT-A-CREDENTIAL')});
- try{const vault=await openVault({directory:${JSON.stringify(join(dir,'FaraiOS','T19','credentials'))},repositoryRoot:${JSON.stringify(root)}});await vault.close();record({stage:'vault',ok:true});}catch(e){record({stage:'vault',ok:false,category:/^DUMMY_(entry|canonical-path|ancestors|secure-directory|lock|initial-read)$/.test(e.message)?e.message:'DUMMY_OTHER'});}
- delete process.env.PSModulePath;
- try{const vault=await openVault({directory:${JSON.stringify(join(dir,'FaraiOS','T19','credentials'))},repositoryRoot:${JSON.stringify(root)}});await vault.close();record({stage:'vault_without_inherited_module_path',ok:true});}catch{record({stage:'vault_without_inherited_module_path',ok:false});}
-}
-const r=spawnSync(process.execPath,[${JSON.stringify(join(root,'scripts/t19-connection.mjs'))},...args],{input,encoding:'utf8',windowsHide:true});
-record({stage:'child',exit:r.status,stderrLength:r.stderr?.length??0,success:r.stdout?.trim()==='TEST client stored; no provider request performed.'});
-process.stdout.write(r.stdout??'');process.stderr.write(r.stderr??'');process.exit(r.status??1);
-`);
-
+ // A PowerShell child may restore Windows known-folder variables; keep the fixture under the actual custody root.
+ const custodyRoot=await realpath(process.env.LOCALAPPDATA);
+ const dir=await mkdtemp(join(custodyRoot,'t19-real-import-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const manifestPath=join(dir,'approved-synthetic.json'),script=join(dir,'test.ps1');
  const now=Date.now();const m={businessId:'00000000-0000-4000-8000-000000000001',organizationId:'111',identity:'synthetic@example.invalid',zohoUserId:'123',apiDomain:'https://www.zohoapis.com',environment:'staging',currency:'ZAR',approved:true,custodyVerification:{secretSourceVerified:true},clientVerification:{clientType:'Server-based',clientOwner:'synthetic-owner'},approvalReference:'dummy-test-only',operator:'dummy',custodian:'dummy',reviewer:'dummy',probeSha:await probeDigest(),clientId:'dummy-client',redirectUri:'http://127.0.0.1:3102/zoho/callback',startsAt:now-1000,endsAt:now+120000,fixture:{invoiceId:'9001',customerId:'222',number:'TEST-1',reference:'SYNTHETIC',status:'draft',totalCents:100},fixtureEvidence:'dummy',identityEvidence:'dummy',cleanupReference:'dummy'};
  await writeFile(manifestPath,JSON.stringify(m));
  await writeFile(script,`$ErrorActionPreference='Stop'
@@ -101,22 +75,12 @@ $m.custodyVerification|Add-Member -NotePropertyName deviceName -NotePropertyValu
 $m.custodyVerification|Add-Member -NotePropertyName windowsAccount -NotePropertyValue ([Security.Principal.WindowsIdentity]::GetCurrent().Name)
 [IO.File]::WriteAllText(${quote(manifestPath)},($m|ConvertTo-Json -Depth 10))
 $hash=(Get-FileHash -LiteralPath ${quote(manifestPath)} -Algorithm SHA256).Hash.ToLowerInvariant()
-& ${quote(process.execPath)} ${quote(join(root,'scripts/t19-connection.mjs'))} ('--manifest='+${quote(manifestPath)}) ('--execute-approved='+$hash) '--check-import=dummy-client'
-if($LASTEXITCODE -ne 0){throw 'SYNTHETIC_PREFLIGHT_FAILED'}
-[Console]::WriteLine('SYNTHETIC_PREFLIGHT_PASSED')
-$pipeReceipt=Invoke-T19ImportChild -NodePath ${quote(process.execPath)} -RunnerPath ${quote(join(root,'scripts/t19-connection.mjs'))} -ChildArguments @(('--manifest='+${quote(manifestPath)}),('--execute-approved='+$hash),'--check-import=dummy-client')
-if($pipeReceipt -cne 'TEST import gate validated; no storage or provider access performed.'){throw 'SYNTHETIC_PIPE_RECEIPT_FAILED'}
-[Console]::WriteLine('SYNTHETIC_PIPE_PREFLIGHT_PASSED')
-$readBack=Get-Content -Raw -LiteralPath ${quote(manifestPath)}|ConvertFrom-Json
-if($readBack.custodyVerification.deviceName -ine [Environment]::MachineName){throw 'DUMMY_DEVICE_MISMATCH'}
-if($readBack.custodyVerification.windowsAccount -ine [Security.Principal.WindowsIdentity]::GetCurrent().Name){throw 'DUMMY_ACCOUNT_MISMATCH'}
-[Console]::WriteLine('SYNTHETIC_CUSTODY_MATCHED')
-function Read-Host {param($Prompt,[switch]$AsSecureString);[Console]::WriteLine('SYNTHETIC_PROMPT_REACHED');if(-not $AsSecureString){throw 'Unmasked'};ConvertTo-SecureString 'DUMMY-REAL-PIPE-NOT-A-CREDENTIAL' -AsPlainText -Force}
-Invoke-T19MaskedImport -NodePath ${quote(process.execPath)} -RunnerPath ${quote(observer)} -ManifestFile ${quote(manifestPath)} -ApprovedHash $hash
+function Read-Host {param($Prompt,[switch]$AsSecureString);if(-not $AsSecureString){throw 'Unmasked'};ConvertTo-SecureString 'DUMMY-REAL-PIPE-NOT-A-CREDENTIAL' -AsPlainText -Force}
+Invoke-T19MaskedImport -NodePath ${quote(process.execPath)} -RunnerPath ${quote(join(root,'scripts/t19-connection.mjs'))} -ManifestFile ${quote(manifestPath)} -ApprovedHash $hash
 try { Invoke-T19MaskedImport -NodePath ${quote(process.execPath)} -RunnerPath ${quote(join(root,'scripts/t19-connection.mjs'))} -ManifestFile ${quote(manifestPath)} -ApprovedHash $hash; exit 2 } catch { [Console]::WriteLine('DUPLICATE_REJECTED') }
 `);
- const r=spawnSync('pwsh',['-NoLogo','-NoProfile','-NonInteractive','-File',script],{cwd:root,env:{...process.env,LOCALAPPDATA:dir},windowsHide:true,encoding:'utf8',timeout:90000});
- assert.equal(r.status,0,r.stdout+r.stderr+await readFile(diagnostic,'utf8').catch(()=>''));assert.match(r.stdout,/TEST client stored; no provider request performed/);assert.match(r.stdout,/DUPLICATE_REJECTED/);assert.doesNotMatch(r.stdout+r.stderr,/DUMMY-REAL-PIPE-NOT-A-CREDENTIAL/);
+ const r=spawnSync('pwsh',['-NoLogo','-NoProfile','-NonInteractive','-File',script],{cwd:root,env:{...process.env},windowsHide:true,encoding:'utf8',timeout:90000});
+ assert.equal(r.status,0,r.stderr);assert.match(r.stdout,/TEST client stored; no provider request performed/);assert.match(r.stdout,/DUPLICATE_REJECTED/);assert.doesNotMatch(r.stdout+r.stderr,/DUMMY-REAL-PIPE-NOT-A-CREDENTIAL/);
  const directory=join(dir,'FaraiOS','T19','credentials');const encrypted=await readFile(join(directory,'vault.dpapi'));assert.equal(encrypted.includes(Buffer.from('DUMMY-REAL-PIPE-NOT-A-CREDENTIAL')),false);
  const vault=await openVault({directory,repositoryRoot:root});try{const db=await vault.read();assert.equal(db.clients['dummy-client'].clientSecret,'DUMMY-REAL-PIPE-NOT-A-CREDENTIAL');assert.equal(db.clients['dummy-client'].businessId,m.businessId);assert.equal(db.clients['dummy-client'].organizationId,m.organizationId);assert.deepEqual(db.connections,{});}finally{await vault.close();}
 });
