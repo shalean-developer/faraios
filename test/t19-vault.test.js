@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,readFile,writeFile,rm,symlink} from 'node:fs/promises';
 import {join,resolve,relative,isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {importClient,cleanupImportedClient} from '../scripts/t19-connection.mjs';
 import {openVault} from '../src/t19-vault.js';
 const repositoryRoot=fileURLToPath(new URL('..',import.meta.url));
 const parent=join(process.env.LOCALAPPDATA??'', 'FaraiOS','T19-vault-tests');
@@ -40,4 +41,15 @@ test('protection failure leaves no plaintext and poisons writes',windows,async t
  await assert.rejects(vault.write({connections:{a:{secret:'dummy-secret'}}}),e=>!e.message.includes('dummy'));
  await assert.rejects(vault.write({connections:{}}),/store unavailable/);await vault.close();
  await assert.rejects(readFile(join(directory,'vault.dpapi')),e=>e.code==='ENOENT');
+});
+
+test('pre-consent cleanup persists only exact local removal through real DPAPI restart',windows,async t=>{
+ const directory=await fixture(t),manifest={businessId:'synthetic-a',organizationId:'111',clientId:'synthetic-client',identity:'synthetic@example.invalid',custodian:'synthetic-custodian'};
+ let vault=await openVault({directory,repositoryRoot});
+ const initial=importClient({connections:{},clients:{unrelated:{clientSecret:'dummy-unrelated'}}},manifest,{clientSecret:'dummy-cleanup-secret'});
+ await vault.write(initial);await vault.close();vault=await openVault({directory,repositoryRoot});
+ const evidence={clientId:manifest.clientId,businessId:manifest.businessId,organizationId:manifest.organizationId,custodian:manifest.custodian,noGrantInitiated:true,reference:'synthetic-only-cleanup'};
+ await vault.write(cleanupImportedClient(await vault.read(),manifest,evidence));await vault.close();vault=await openVault({directory,repositoryRoot});
+ const cleaned=await vault.read();assert.equal(cleaned.clients[manifest.clientId],undefined);assert.equal(cleaned.clients.unrelated.clientSecret,'dummy-unrelated');assert.equal(cleaned.clientCleanupEvents[0].providerRevocationClaimed,false);await vault.close();
+ const bytes=await readFile(join(directory,'vault.dpapi'));assert.equal(bytes.includes(Buffer.from('dummy-cleanup-secret')),false);assert.equal(bytes.includes(Buffer.from('dummy-unrelated')),false);
 });

@@ -4,7 +4,7 @@ import {request} from 'node:http';
 import {readFileSync} from 'node:fs';
 import {createConnectionService,validateManifest,origin} from '../src/t19-connection.js';
 const businessId='00000000-0000-4000-8000-000000000001', foreignBusiness='00000000-0000-4000-8000-000000000002';
-const manifest={businessId,organizationId:'111',identity:'test@example.invalid',zohoUserId:'123',apiDomain:'https://www.zohoapis.com',environment:'staging',currency:'ZAR',approved:true,approvalReference:'owner-approved-synthetic',operator:'test-operator',custodian:'test-custodian',reviewer:'test-reviewer',probeSha:'synthetic-reviewed-sha',clientId:'dummy-client',redirectUri:origin+'/zoho/callback',startsAt:0,endsAt:60000,fixture:{invoiceId:'9001',customerId:'222',number:'TEST-1',reference:'SYNTHETIC-1',status:'draft',totalCents:100},fixtureEvidence:'synthetic-ui',identityEvidence:'attended-synthetic',cleanupReference:'synthetic-cleanup'};
+const manifest={businessId,organizationId:'111',identity:'test@example.invalid',zohoUserId:'123',apiDomain:'https://www.zohoapis.com',environment:'staging',currency:'ZAR',approved:true,custodyVerification:{secretSourceVerified:true},clientVerification:{clientType:'Server-based',clientOwner:'synthetic-owner'},approvalReference:'owner-approved-synthetic',operator:'test-operator',custodian:'test-custodian',reviewer:'test-reviewer',probeSha:'synthetic-reviewed-sha',clientId:'dummy-client',redirectUri:origin+'/zoho/callback',startsAt:0,endsAt:60000,fixture:{invoiceId:'9001',customerId:'222',number:'TEST-1',reference:'SYNTHETIC-1',status:'draft',totalCents:100},fixtureEvidence:'synthetic-ui',identityEvidence:'attended-synthetic',cleanupReference:'synthetic-cleanup'};
 function harness({execution=true,fetchOverride,manifestOverride={}}={}){
  let current=1000,db={connections:{},clients:{'dummy-client':{clientSecret:'dummy-client-secret',businessId,organizationId:'111'}}},reads=0,writes=0;const calls=[];
  const users=new Map([['owner',{userId:'10000000-0000-4000-8000-000000000001',businessIds:[businessId],memberships:[{businessId,role:'owner',status:'active'}]}],['foreign',{userId:'10000000-0000-4000-8000-000000000002',businessIds:[foreignBusiness],memberships:[{businessId:foreignBusiness,role:'owner',status:'active'}]}],['manager',{userId:'10000000-0000-4000-8000-000000000003',businessIds:[businessId],memberships:[{businessId,role:'manager',status:'active'}]}]]);
@@ -102,5 +102,11 @@ test('restart cannot relabel a stored grant under changed client, window or fixt
   const h=harness();await h.consent();let outbound=0;
   const changed=createConnectionService({vault:h.vault,sessions:h.sessions,manifest:{...manifest,...change},execution:true,now:()=>1000,fetchImpl:async()=>{outbound++;throw Error('must not fetch');}});
   await rejected(changed.service.status('owner'),'binding');await rejected(changed.service.verify('owner'),'binding');assert.equal(outbound,0);
+ }
+});
+
+test('unverified secret source or client registration blocks before vault and provider access',async()=>{
+ for(const patch of [{custodyVerification:undefined},{custodyVerification:{secretSourceVerified:false}},{clientVerification:undefined},{clientVerification:{clientType:'ORG',clientOwner:'synthetic-owner'}},{clientVerification:{clientType:'Server-based',clientOwner:'Unknown'}}]){
+  const h=harness({manifestOverride:patch});await rejected(h.service.authorise('owner'),'approval_required');assert.equal(h.reads,0);assert.equal(h.writes,0);assert.equal(h.calls.length,0);
  }
 });
