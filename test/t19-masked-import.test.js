@@ -79,7 +79,11 @@ if($LASTEXITCODE -ne 0){throw 'SYNTHETIC_PREFLIGHT_FAILED'}
 $pipeReceipt=Invoke-T19ImportChild -NodePath ${quote(process.execPath)} -RunnerPath ${quote(join(root,'scripts/t19-connection.mjs'))} -ChildArguments @(('--manifest='+${quote(manifestPath)}),('--execute-approved='+$hash),'--check-import=dummy-client')
 if($pipeReceipt -cne 'TEST import gate validated; no storage or provider access performed.'){throw 'SYNTHETIC_PIPE_RECEIPT_FAILED'}
 [Console]::WriteLine('SYNTHETIC_PIPE_PREFLIGHT_PASSED')
-function Read-Host {param($Prompt,[switch]$AsSecureString);if(-not $AsSecureString){throw 'Unmasked'};ConvertTo-SecureString 'DUMMY-REAL-PIPE-NOT-A-CREDENTIAL' -AsPlainText -Force}
+$readBack=Get-Content -Raw -LiteralPath ${quote(manifestPath)}|ConvertFrom-Json
+if($readBack.custodyVerification.deviceName -ine [Environment]::MachineName){throw 'DUMMY_DEVICE_MISMATCH'}
+if($readBack.custodyVerification.windowsAccount -ine [Security.Principal.WindowsIdentity]::GetCurrent().Name){throw 'DUMMY_ACCOUNT_MISMATCH'}
+[Console]::WriteLine('SYNTHETIC_CUSTODY_MATCHED')
+function Read-Host {param($Prompt,[switch]$AsSecureString);[Console]::WriteLine('SYNTHETIC_PROMPT_REACHED');if(-not $AsSecureString){throw 'Unmasked'};ConvertTo-SecureString 'DUMMY-REAL-PIPE-NOT-A-CREDENTIAL' -AsPlainText -Force}
 Invoke-T19MaskedImport -NodePath ${quote(process.execPath)} -RunnerPath ${quote(join(root,'scripts/t19-connection.mjs'))} -ManifestFile ${quote(manifestPath)} -ApprovedHash $hash
 try { Invoke-T19MaskedImport -NodePath ${quote(process.execPath)} -RunnerPath ${quote(join(root,'scripts/t19-connection.mjs'))} -ManifestFile ${quote(manifestPath)} -ApprovedHash $hash; exit 2 } catch { [Console]::WriteLine('DUPLICATE_REJECTED') }
 `);
