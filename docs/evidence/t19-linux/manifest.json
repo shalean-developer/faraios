@@ -1,0 +1,82 @@
+{
+  "implementation_candidate": "d4643e244f5f9538264a5beec15b03984a437d32",
+  "starting_evidence_commit": "7a083f1f707f78634752abf50459b3f39443d6c9",
+  "generated_utc": "2026-10-22T21:31:46.0043327Z",
+  "files": [
+    {
+      "file": ".gitattributes",
+      "bytes": 47,
+      "sha256": "920781736b28385b1c3625f2a8a187763ea8facb06daa3f6bb319bee46182807"
+    },
+    {
+      "file": "anonymous-volume.json",
+      "bytes": 419,
+      "sha256": "109cca1605e43ca8e71af72a2b64da2ee8717a4fa8877e4d9ae793ab44df0695"
+    },
+    {
+      "file": "build.log",
+      "bytes": 2379,
+      "sha256": "575a6ac9787408127407d5df4e286e177222282fb2b36c94ccb85f70c49ed337"
+    },
+    {
+      "file": "cleanup.txt",
+      "bytes": 290,
+      "sha256": "6c6d142417adab73fb1ab3caf9d1f07c09f7267bdbc023519e7c7bdb770e604a"
+    },
+    {
+      "file": "container-isolation.json",
+      "bytes": 1543,
+      "sha256": "98af88fd40d688792140c526b6eab363ec1af29c6c5d7ce8cbf0c3576c10bd37"
+    },
+    {
+      "file": "container-output.log",
+      "bytes": 2483,
+      "sha256": "2dfd18c247e85be35b7703a8bc411d08cc20b2def96f1338e4f019f2b8922dca"
+    },
+    {
+      "file": "container-state.json",
+      "bytes": 222,
+      "sha256": "27cd00f03745a0e2a68cf3e8ef9ac8030e051de90535efc717d964dde071b30e"
+    },
+    {
+      "file": "docker-start-exit.txt",
+      "bytes": 21,
+      "sha256": "4c83a337ee73efc6acc4f6eaa7bb4b32969f71f4f4fe854a6a94307d6226a5b8"
+    },
+    {
+      "file": "Dockerfile",
+      "bytes": 415,
+      "sha256": "523ef9f0ac987200dabfd4df497c17587584966539a8bdd2da0b8e1c67c34855"
+    },
+    {
+      "file": "exit-code.txt",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "file": "image-identities.txt",
+      "bytes": 476,
+      "sha256": "4eeb59c89a1eb0f7df2d0d043c916bb99f9105a475cb9d954ebf2f8e82af8a40"
+    },
+    {
+      "file": "postgres.log",
+      "bytes": 8384,
+      "sha256": "eff38410cee8380dc391e7ea61a849f37ae8dc241cadf0b703e8784b80f5b953"
+    },
+    {
+      "file": "README.md",
+      "bytes": 9827,
+      "sha256": "8ea8495556a99e25aa1a80528104901c7468036e68d1669b0855d788a5df067f"
+    },
+    {
+      "file": "run.log",
+      "bytes": 2414,
+      "sha256": "b8bf05cb520b89eaa79aba9c0a3307f9d5f3833f83adf672acac7d9361ec322f"
+    },
+    {
+      "file": "run.sh",
+      "bytes": 1877,
+      "sha256": "972bec2a1b415aa1aa377a25ad1a3adc2ce97d5822bbb3e77bfaed4f3ebe0e51"
+    }
+  ]
+}

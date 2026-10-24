@@ -1,0 +1,7 @@
+Diagnostic-only insertion after child stderr buffer decoding in the disposable candidate copy:
+- Record numeric exit code and stdout/stderr lengths.
+- Record booleans for Docker daemon, missing file, permission, mount, conflict, missing variable, command length, missing executable, syntax, TLS and connection patterns.
+- No raw child output or credential values printed.
+- The marker pattern used FARAIOS_PG_CLIENT_STARTED, which differs from the actual exported marker FARAIOS_T11_POSTGRES_CLIENT_STARTED. That diagnostic boolean is not evidence of marker absence and is excluded from conclusions.
+- No test assertions or repository source were changed.
+The original backup helper is restored byte-for-byte before the final regression.

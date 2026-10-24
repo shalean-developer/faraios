@@ -1,0 +1,417 @@
+CANDIDATE=d4643e244f5f9538264a5beec15b03984a437d32
+2026-10-22T21:44:16+00:00
+PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
+NAME="Debian GNU/Linux"
+VERSION_ID="13"
+VERSION="13 (trixie)"
+VERSION_CODENAME=trixie
+DEBIAN_VERSION_FULL=13.5
+ID=debian
+HOME_URL="https://www.debian.org/"
+SUPPORT_URL="https://www.debian.org/support"
+BUG_REPORT_URL="https://bugs.debian.org/"
+Linux d03ac96f0b40 6.18.33.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun 18 21:54:43 UTC 2026 x86_64 GNU/Linux
+uid=999(postgres) gid=999(postgres) groups=999(postgres),101(ssl-cert)
+v24.22.1
+11.19.1
+postgres (PostgreSQL) 17.10 (Debian 17.10-1.pgdg13+1)
+2
+646c84de5e3ee71a7104d6f3d754adb271a4a8c7b740bfcaf7fa45c58019c296  package.json
+e99924926cf0c74d78543c610c18d760ac24876061022f87a25c25ec5d4a858b  package-lock.json
+2e407b41c960f34c919619a8792115a299b283192f682212c59532404ba592ca  .github/workflows/ci.yml
+af15d26228b149ad6aaa77c6bb10fb0e9325afc9e1027cc1510f30de55b29f2e  test/availability-concurrency.test.js
+The files belonging to this database system will be owned by user "postgres".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "C".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+creating directory /tmp/faraios-t19-policy-xoTwYi/data ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default "max_connections" ... 100
+selecting default "shared_buffers" ... 128MB
+selecting default time zone ... Etc/UTC
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+
+Success. You can now start the database server using:
+
+    pg_ctl -D /tmp/faraios-t19-policy-xoTwYi/data -l logfile start
+
+waiting for server to start.... done
+server started
+
+> faraios@0.1.0 check
+> node --check src/supervisor-allowances.js && node --check src/vat.js && node --check src/earnings.js && node --check scripts/restore-staging.mjs && node --check restore-rehearsal.mjs && node --check scripts/backup-staging.mjs && node --check scripts/setup-zoho-staging.mjs && node --check src/invoices.js && node --check src/zoho-books.js && node --check public/quote-detail.js && node --check public/date-time-values.js && node --check public/date-time-picker.js && node --check src/date-time-field.js && node --check src/quotes.js && node --check src/recurring.js && node --check src/calendar.js && node --check src/staff-teams.js && node --check src/workspace-layout.js && node --check src/workspace-header.js && node --check src/access.js && node --check src/cleaning-rules.js && node --check src/dashboard.js && node --check src/identity.js && node --check dev.mjs && node --check src/auth-session.js && node --check src/staging-server.js && node --check staging.mjs && node --check src/business-settings.js && node --check src/workspace.js && node --check scripts/rehearse-foundation-restore.mjs && node --check src/catalogue.js && node --check src/customers.js && node --check src/bookings.js && node --check src/cleaning-profiles.js && node --check public/catalogue-setup.js
+
+POLICY_SYNTAX_PASS
+
+> faraios@0.1.0 test
+> node --test
+
+✔ business switcher lists only active permitted memberships (14.772703ms)
+✔ Bokkie manager cannot access Shalean or an unrelated business (7.032755ms)
+✔ roles do not grant implicit finance or membership administration (0.552365ms)
+✔ missing, revoked and unknown claims fail closed (0.406542ms)
+✔ record business is verified independently of selected dashboard (0.28923ms)
+✔ staff see and update only their assignments in an authorised business (0.295383ms)
+✔ earnings ownership prevents peer visibility (0.344705ms)
+✔ approved manager invoice and payment permissions remain business scoped (0.251079ms)
+✔ owner retains restricted financial and administration actions (0.379384ms)
+✔ ordinary Node discovery does not execute the opt-in native accounting runner (340.283082ms)
+▶ Stage B synthetic database/API/worker contracts
+  ✔ RLS and function ACLs deny foreign members, staff, platform and fabricated worker completion (107.043281ms)
+  ✔ concurrent enqueue returns one durable identity and forged worker contexts fail before egress (43.0648ms)
+  ✔ broad fake token still routes only to server-pinned business and immutable intent (72.771193ms)
+  ✔ lost responses reconcile original identity without creating again; missing matches stay uncertain (102.442865ms)
+  ✔ concurrent claims, expired leases and stale finishes cannot replay dispatch (40.909828ms)
+  ✔ HTTP uses trusted sessions and real DB roles; forged org/role fields never reach worker (470.234999ms)
+  ✔ membership revocation fences a previously valid queued actor (13.535447ms)
+  ✔ disconnect before dispatch stops egress; immutable generation and historical operation prevent replay (75.19035ms)
+  ✔ disconnect after dispatch keeps late success uncertain; reauthorisation cannot move it (31.352337ms)
+  ✔ wrong organisation receipt quarantines connection and leaves no verified foreign receipt (36.551234ms)
+  ✔ duplicate provider matches require review and never retry synthetic creation (17.346905ms)
+✔ Stage B synthetic database/API/worker contracts (67397.693087ms)
+﹣ Stage B native PostgreSQL roles, HTTP, concurrent claims and disconnect contracts (0.444915ms) # SKIP
+✔ synthetic vault authenticates tenant/generation context, coalesces refresh and has no real-secret input (2.87182ms)
+✔ audit records actor, before/after, timestamp and transaction; rolls back atomically (7429.079607ms)
+✔ audit owner reads are business scoped; manager, staff and anon cannot read or forge history (2762.180997ms)
+✔ logical application snapshot restores into an empty isolated database with audit and RLS intact (7432.103267ms)
+✔ real-auth session contract revalidates memberships and logout (3.787425ms)
+✔ failed sign-in never creates a usable session (0.795879ms)
+✔ independent connections prevent shared-cleaner overlaps and duplicate recurring/quote/invoice creation (5795.128224ms)
+✔ atomic reservations reject cross-business overlaps and preserve tenant privacy (5747.029713ms)
+✔ calendar date validation, escaped rendering and safe booking conflict errors (2621.53809ms)
+✔ booking input, duplicate submission comparison and optimistic mutations (9.580338ms)
+✔ Postgres booking lifecycle, tenant links, snapshots, team and audit are enforced (6449.026406ms)
+✔ settings validate bounded inputs without injecting business scope (6.022245ms)
+✔ saving settings always scopes the record to the server-authorised business (0.590923ms)
+✔ Postgres settings permit owners only, separate two businesses and record atomic audit (4534.850408ms)
+✔ all six saved configurations survive compact-form submission and Rand conversion (36.196503ms)
+✔ paid pet choices and optional delivery retain precision; invalid submissions retain raw values (5.934951ms)
+✔ setup enhancement reveals relevant controls, adds existing unused pet rows, and opens invalid sections (1.208454ms)
+✔ extras do not require a service team or cleaning profile (1.216815ms)
+✔ read-only item links retain the catalogue and hourly services retain per-unit price wording (57.919825ms)
+✔ first-stage validation errors keep profile selection without requiring configuration (1.93982ms)
+✔ category lists show applicability, correct base/rate labels and filtered results (2.264879ms)
+✔ selecting a profile previews fields without validating or saving the draft (0.430179ms)
+✔ catalogue money uses exact cents and rejects ambiguous prices and invalid options (5.020773ms)
+✔ catalogue updates use business, item and version predicates; conflicts fail explicitly (2.756096ms)
+✔ catalogue Postgres separates businesses, limits manager/staff and preserves audit/version history (4341.387755ms)
+✔ delete scopes requests and renders escaped owner confirmation (19.80233ms)
+✔ catalogue reads every scoped page before filtering and resolving applicability (2.420801ms)
+✔ all six profiles require explicit configuration and render only their own scope fields (11.830085ms)
+✔ cleaning booking form selects service before scope and filters extras by saved applicability (33.094241ms)
+✔ equipment requires recorded distance evidence; duplicate scoped requests compare JSON values independent of key order (2.366564ms)
+✔ profile changes clear old configuration and pet choices remain service-specific (0.650106ms)
+✔ office assessment parsing requires explicit charge, duration and reason and linen availability (0.83677ms)
+✔ optional linen changes stay scoped to the configured business service (0.975292ms)
+✔ profile preview marker accepts complete new-profile configuration in a single save (0.513795ms)
+✔ independent businesses use independently versioned configurations (2.291211ms)
+✔ invalid money and unknown pricing models are rejected (0.494993ms)
+✔ earnings options require explicit bounded parameters (4.902462ms)
+✔ historical snapshot is unchanged by later catalogue edits (0.26347ms)
+✔ quantities and multiplication cannot produce unsafe or ambiguous amounts (0.44141ms)
+✔ currency, policy references and payout settings have no implicit defaults (0.312075ms)
+✔ customer input validation, escaped notes and scoped optimistic writes (5.402828ms)
+✔ Postgres customer notes and addresses enforce tenant/role boundaries, versions and audit (4329.761854ms)
+✔ normal server fails closed without explicit demo mode (57.099121ms)
+✔ unauthenticated dashboard redirects and demo login is clearly labelled (32.908839ms)
+✔ manager dashboard and direct business requests enforce membership (26.522315ms)
+✔ owner can switch both businesses, with no fabricated operational metrics (16.409141ms)
+✔ cleaner has own earnings navigation, not finance (13.214658ms)
+✔ cross-origin and unknown demo sign-in attempts fail (9.973963ms)
+✔ logout invalidates server session (13.958296ms)
+✔ expired demo sessions cannot access dashboard (10.88352ms)
+✔ login preserves same-origin form metadata without cross-site referrer disclosure (11.552278ms)
+✔ Postgres RLS isolates businesses and denies membership escalation (3951.415198ms)
+✔ calendar arithmetic handles leap dates, month ends and year changes without timezone conversion (4.374731ms)
+✔ booking, calendar and working-hours forms reuse the same field renderer without native temporal controls (33.50008ms)
+✔ server rejects impossible or overflowing dates/times before any availability or booking write (2.378475ms)
+✔ shared pickers commit canonical values, cancel, navigate with keyboard, reset and retain typed validation (111.681074ms)
+✔ pointer focus transitions keep dates and custom time options clickable before focus settles (53.824247ms)
+✔ single time choices span the day and preserve off-grid exact minutes without rounding (0.621667ms)
+✔ reusable dropdown supports keyboard commit, cancellation, validation, reset and native value (9.227426ms)
+✔ duration floors, blocks, assessment and immutable quote/recurring snapshots (4860.337451ms)
+✔ daily limit totals travel/setup across businesses, denies bypasses and rolls failed teams back (3690.557408ms)
+✔ duration controls round-trip without changing prices; work plans preserve explicit zero and trusted scope (14.025881ms)
+✔ one percentage pool, then equal shares and a per-cleaner cap (4.565236ms)
+✔ integer percentage rounding and stable leftover cents are reproducible (1.341726ms)
+✔ missing choices, scope/hours, overflow and existing agreements cannot silently calculate (1.912864ms)
+✔ drafts preserve blanks and explicit zero; parsing excludes client business claims (0.643002ms)
+✔ six approved methods belong to the Shalean template, without an invented pay rate (14.586606ms)
+✔ persistence uses business/service/version predicates; lists every scoped page (3.464137ms)
+✔ rendering escapes data, offers no implicit rate, and limits changes to owner (21.632254ms)
+✔ Postgres isolates setup, checks service scope, preserves versions and audits owner writes (4112.344819ms)
+✔ verified identity uses database role, ignoring editable metadata (2.911317ms)
+✔ invalid and revoked auth fails before membership reads (0.812501ms)
+✔ membership failures never fall back to owner or demo role (5.617594ms)
+✔ invoice preparation is scoped, immutable, idempotent and separate from operational/payment state (5030.905458ms)
+✔ uncertain attempts never permit automatic re-creation, and cancellations hold accounting (2397.909337ms)
+✔ list and detail cancellation holds agree with whole-business totals and escaped saved values (14.310807ms)
+✔ server orchestration cannot accept a foreign claim and UI connection payload cannot carry secrets (1.133132ms)
+✔ accepted quote handoff becomes one explicit invoice with the same frozen agreement (2101.999206ms)
+✔ restore transport has one fixed destination and refuses inherited project/credential/trust overrides (1.52762ms)
+✔ only exact archive and the reviewed capture catalog can enter restoration (3.462023ms)
+✔ existing application/Auth/Vault/network state, structural drift and extension mismatch block import (0.792974ms)
+✔ import checks empty destination again, never replays managed reference and validates before psql commits (14.975028ms)
+✔ only the exact existing managed parameter grant is omitted; unexpected ACL statements stop before connection (2.088455ms)
+✔ uncertain outcome retains only allowlisted cause observations (0.55857ms)
+✔ sequence parsing preserves COPY records and rejects missing, duplicate, unknown or malformed assignments (0.800752ms)
+✔ native sequence-pending stderr remains a fixed diagnostic through the production child classifier (106.072674ms)
+✔ restore outbound adapter permits destination reads and password/local logout only (5.579814ms)
+✔ restore server has distinct cookie, visible restore marker and blocks every business mutation before auth (64.1357ms)
+✔ restore launcher ignores accounting credentials and creates only its pinned read-only server (14.010896ms)
+✔ private file/key loading and restore orchestration keep every destination client fixed and sanitize uncertain imports (658.187692ms)
+✔ quote detail puts current states, saved total and main action first; disclosures preserve exact snapshots (29.456618ms)
+✔ address presentation removes only adjacent equal components (1.177764ms)
+✔ actor resolver binds every returned identity and degrades only unavailable labels (1.597723ms)
+✔ reference copies the full canonical ID once and announces success (0.624704ms)
+✔ unavailable or denied clipboard reveals and selects a manual fallback (0.297575ms)
+✔ quote input is date-independent and never submits client totals or acceptance actors (6.29311ms)
+✔ quotes enforce scoped acceptance, immutable conversion, atomic handoffs and direct-API protections (5856.852759ms)
+✔ quote builders preserve all six configured profile prices and prior booking history (2710.112629ms)
+✔ rollback-only staging acceptance script leaves existing records intact (2452.767427ms)
+✔ recorded actor lookup authorises the current caller and exposes only one stored actor (2469.707521ms)
+✔ recurring schedules preserve agreements and history, enforce RLS and reject duplicate visits (3653.442231ms)
+✔ recurring form validation, safe RPC errors, and escaped history guidance (20.049224ms)
+✔ original BETWEEN parse tree is reconstructed exactly after native-style deparse/reparse (3062.383132ms)
+✔ reconstruction refuses unknown definitions, flags, comments, nonempty or inherited tables (2239.98235ms)
+✔ original and replay working-days checks accept and reject the same boundary values (1918.77628ms)
+✔ normal import and sequence completion are held before any file, key or network access (1.90325ms)
+✔ native schema envelope ignores quoted bodies/comments but rejects transaction, role, connection and data commands (2.008547ms)
+✔ diagnostic projection derives from the unchanged full catalog and only reports fixed component labels (10.869072ms)
+✔ rollback acknowledgement and exact diagnostic shape are required; no raw output is returned (6.156508ms)
+✔ offline restore handles empty snapshots, unordered rows and audit-probe name collision (10480.494384ms)
+✔ only the fixed restored staff QA account is verified before global provider sign-out (319.779038ms)
+✔ wrong verified account or failed verification cleans only the new session; no global action (4.882997ms)
+✔ failed password and lost global response cannot pass or trigger an automatic retry (2.4245ms)
+✔ cancellation after verification prevents global action and gives local cleanup a fresh signal (2.779396ms)
+✔ a real expired deadline has a fixed label and no success or retry (26.809261ms)
+✔ malformed password and unbounded deadline stop before any request (1.195403ms)
+✔ CLI refuses arguments and noninteractive input without echoing values or contacting Auth (138.96384ms)
+✔ staff teams enforce tenant, owner writes, membership, immutable identity and audit in Postgres (3754.490485ms)
+✔ saved team assignment replaces manual choices and rejects revoked members (4.753388ms)
+✔ booking assignment uses the business-specific profile label (31.702499ms)
+✔ restore verifier uses only its fixed port/cookie and requires isolation before credential submission (31.626674ms)
+✔ manager verifier requires permitted reads, forbidden reads and local-session cleanup (3.806087ms)
+✔ staff verifier requires permitted reads, forbidden reads and local-session cleanup (3.015171ms)
+✔ shared staff must have both exact dashboard memberships while all office modules and settings stay denied (5.65281ms)
+✔ shared staff cannot pass with missing/extra membership, elevated role or exposed office access (7.855728ms)
+✔ shared mode rejects ambiguous boundaries and manager use before any request (1.031897ms)
+✔ a foreign allow, extra business, owner access, wrong role or module failure cannot pass (3.867627ms)
+✔ failed sign-in and oversized/non-staging response stop before business reads (3.114133ms)
+✔ request errors are sanitized and logout failure cannot be reported as success (6.812293ms)
+✔ foreign diagnostic/code/message properties cannot leak through the public failure label (1.628113ms)
+✔ a failed own quote request retains earlier denial evidence and identifies only safe request metadata (1.738071ms)
+✔ only an expired local deadline is classified as a request timeout and cleanup gets a fresh deadline (52.505521ms)
+✔ body failures retain a received HTTP status without passing an incomplete response (57.930934ms)
+✔ cleanup transport diagnostics cannot overwrite the original failure or disclose transport errors (2.961778ms)
+✔ cancellation after sign-in still uses a fresh cleanup request (3.074932ms)
+✔ ambiguous login outcomes report unconfirmed cleanup rather than inventing a session (0.656332ms)
+✔ restore sign-in has a separate bounded deadline while module reads and cleanup keep their original deadlines (63.734951ms)
+✔ lost login response retains its own actual deadline and unconfirmed cleanup (30.619127ms)
+✔ invalid options cannot send credentials to a configurable origin or accept secrets in arguments (1.309224ms)
+✔ hidden terminal input preserves password whitespace and never echoes it (13.93334ms)
+✔ noninteractive CLI fails with a fixed label and no network or argument disclosure (48.45749ms)
+✔ real HTTP transport observes status and cookie cleanup independently of browser navigation (112.589573ms)
+✔ source scope fails closed for foreign IDs, new schemas, storage, Vault, missing history or lost RLS (3.206898ms)
+✔ manifest parser accepts only the explicit single-row JSON contract (1.929762ms)
+✔ password remains in child env; project, profile, PG, host and image overrides are removed (0.79433ms)
+✔ container commands enforce source-bound verified TLS, fixed image, no log output or credential arguments (4.30164ms)
+✔ authenticated encryption preserves Unicode SQL and rejects key, ciphertext, tag and source/header changes (14.480199ms)
+✔ archive validation rejects missing files, false checksums and inconsistent manifests even with a valid encryption key (2.878ms)
+✔ coverage requires Auth rows, application rows, migration history and every app/audit RLS declaration (1.434785ms)
+✔ successful capture verifies the encrypted archive, separates keys and removes its static workdir (346.49865ms)
+✔ concurrent source changes abort before creating a key or ready archive (179.585616ms)
+✔ failed or incomplete dumps never produce a verified archive and never disclose child diagnostics (76.584345ms)
+✔ private output directories reject symlinks and broad POSIX permissions (10.076399ms)
+✔ child failures discard arbitrary stdout/stderr and return only fixed labels (52.97742ms)
+✔ cancellation cannot produce a ready archive and child cancellation is bounded (72.654587ms)
+✔ COPY coverage rejects empty bodies, wrong row counts, missing terminators and concatenated retry attempts (1.411314ms)
+✔ canonical private boundaries reject an ancestor Git checkout and directory replacement before encryption (140.598566ms)
+✔ Docker environment overrides are removed and remote contexts fail before any credentialed database child (0.630806ms)
+✔ runner deadline settles when an owned descendant holds inherited pipes open (258.741999ms)
+✔ key boundary replacement stops before encryption and public key permissions fail retrieval (252.163871ms)
+✔ cancellation during final workdir removal cannot return a PASSED report (210.662668ms)
+✔ abort during local preflight stops the next Docker or Windows ACL child (9.097103ms)
+✔ metadata diagnostics map upstream text to fixed observations and discard all interpolated content (2.820903ms)
+✔ real child metadata failures expose no raw output and preserve timeout/cancellation labels (210.535621ms)
+✔ a metadata diagnostic stops capture before dumps, keys or archives (67.280557ms)
+✔ owned container cleanup is bounded, checks exact run/name and refuses ambiguous matches (0.898568ms)
+✔ stdin-only query runner accepts input and does not place query bytes into argv (38.961634ms)
+✔ daemon cleanup failure blocks capture before keys or a success report (44.966681ms)
+✔ cleanup failure retains its operator label after cancellation while other aborted errors are normalized (35.734008ms)
+✔ provider CA is pinned, self-signed, current and mounted read-only without accepting another trust anchor (20.857947ms)
+✔ image acquisition is credential-free and registry certificate errors retain an image-stage label (0.590407ms)
+✔ only a started container can classify PostgreSQL TLS text; raw output stays private (94.854953ms)
+✔ staging login posts to provider contract and scopes authenticated dashboard (69.857716ms)
+✔ restore HTTP labels authenticated all-business and selected dashboards and keeps source default unchanged (26.685237ms)
+✔ staging login rejects foreign origins and throttles repeated failures (21.414383ms)
+✔ staging HTTP enforces manager workspace and cross-business denial (10.604969ms)
+✔ staging HTTP enforces staff workspace and cross-business denial (8.340753ms)
+✔ staging HTTP rechecks membership suspension without requiring logout (7.95063ms)
+✔ staging HTTP rejects expired sessions and revoked identities (10.99258ms)
+✔ settings HTTP permits owner save and denies foreign business, CSRF and anonymous access (13.217813ms)
+✔ settings HTTP denies manager reads and writes (9.414049ms)
+✔ settings HTTP denies staff reads and writes (6.732025ms)
+✔ catalogue HTTP owner create/edit rejects stale versions and foreign scope (33.038099ms)
+✔ catalogue HTTP manager follows read/write restrictions (10.768651ms)
+✔ catalogue HTTP staff follows read/write restrictions (6.638113ms)
+✔ customer HTTP owner create/edit/address flow and stale/foreign denial (31.880608ms)
+✔ customer HTTP manager create/edit/address flow and stale/foreign denial (25.660229ms)
+✔ customer HTTP denies staff and anonymous reads/writes (7.128221ms)
+✔ booking HTTP owner lifecycle, duplicate submission, reschedule and cancel (38.422971ms)
+✔ booking HTTP manager lifecycle, duplicate submission, reschedule and cancel (29.342462ms)
+✔ booking HTTP denies staff and anonymous access (6.921029ms)
+✔ catalogue HTTP profile changes reset the old configuration before rendering new rules (18.834066ms)
+✔ catalogue focused creation, profile preview, single save, filters and deactivate keep owner guards (19.370614ms)
+✔ catalogue manager cannot preview or deactivate (6.655942ms)
+✔ catalogue staff cannot preview or deactivate (9.446287ms)
+✔ staff HTTP owner profile/team save, stale/tenant/CSRF guards and team assignment (17.887397ms)
+✔ staff HTTP manager read/write restrictions (5.843539ms)
+✔ staff HTTP staff read/write restrictions (4.884415ms)
+✔ staff HTTP anonymous redirects to login (2.434789ms)
+✔ staff list keeps creation collapsed and editors focused for both categories (8.72492ms)
+✔ calendar HTTP permits owner, validates dates and checks availability without writes (35.819336ms)
+✔ calendar HTTP permits manager, validates dates and checks availability without writes (20.38599ms)
+✔ calendar HTTP denies staff and redirects anonymous users (4.279054ms)
+✔ shared picker modules are served and owner calendar/settings render custom controls (10.574387ms)
+✔ recurring HTTP owner create, change and generation keep trusted business scope (18.557457ms)
+✔ recurring HTTP manager create, change and generation keep trusted business scope (14.044288ms)
+✔ recurring HTTP denies staff and anonymous access (6.518607ms)
+✔ quote HTTP owner forms and RPCs keep scope and distinguish the invoice handoff (36.536424ms)
+✔ quote HTTP manager forms and RPCs keep scope and distinguish the invoice handoff (31.560714ms)
+✔ quote HTTP denies staff and anonymous reads and writes (6.263015ms)
+✔ module UI owner keeps business navigation, filtered lists and creation steps scoped (12.916402ms)
+✔ module UI manager keeps business navigation, filtered lists and creation steps scoped (11.967161ms)
+✔ invoice HTTP owner preserves source scope and exposes truthful configuration/holds (21.85018ms)
+✔ invoice HTTP manager preserves source scope and exposes truthful configuration/holds (18.616084ms)
+✔ invoice HTTP rejects staff and anonymous access without leaking financial drafts (4.644968ms)
+✔ earnings owner setup and read-only preview enforce membership, origin, scope and saved version (26.985671ms)
+✔ restore workspace rejects earnings setup writes before business access (4.277354ms)
+✔ approved suggestions are limited to the explicitly mapped business and do not save on GET (9.56158ms)
+✔ VAT HTTP saves for owners, rejects anonymous/foreign/CSRF and preserves ordinary settings (10.211284ms)
+✔ VAT HTTP denies manager (3.882746ms)
+✔ VAT HTTP denies staff (10.532094ms)
+✔ allowance HTTP owner saves, previews separate totals and rejects stale, cross-origin and foreign-scope writes (89.332792ms)
+✔ allowance HTTP manager follows read/preview/write restrictions (21.324405ms)
+✔ allowance HTTP staff follows read/preview/write restrictions (12.745385ms)
+✔ restore workspace blocks allowance changes and monthly preview POSTs (5.169096ms)
+✔ allowance form validates amount/month/version, leaves Off at zero and ignores client authority fields (3.312062ms)
+✔ monthly preview separates booking pay, retains earlier months and resolves scheduled revisions by effective month (19.265728ms)
+✔ Postgres allowance RPC enforces owner/tenant/staff scope, future months and append-only audited revisions (3148.051614ms)
+✔ rollback-only staging acceptance script passes on a disposable fixture and leaves no allowances or businesses behind (1972.695723ms)
+✔ VAT forms require explicit registration confirmation, isolate server scope and escape content (4.059171ms)
+✔ Postgres VAT is owner-only, tenant scoped, versioned and audited; defaults and old data are preserved (3473.731392ms)
+✔ VAT snapshots survive quote conversion, recurring generation and invoice handoff after changes; stale issue is blocked (2519.870886ms)
+✔ combined workspace includes only authorised businesses and escapes names (6.669589ms)
+✔ selected staff workspace excludes owner and business finance controls (0.681756ms)
+✔ manager can see finance module without owner controls (0.496274ms)
+✔ unauthorised selection fails closed and revoked memberships give empty state (0.646682ms)
+✔ Zoho adapter creates once, reads back exact draft and reuses the same identity (8.107717ms)
+✔ uncertain creation stops, reconciliation never POSTs when the record is absent (1.467097ms)
+✔ provider mismatch and incomplete collections cannot claim matched totals or create a replacement (5.311576ms)
+✔ credential pins and regional hosts fail closed without network or secret exposure (0.446582ms)
+✔ money comparison rejects fractional cents and imprecise provider values (0.291798ms)
+✔ zero-quantity exclusions remain in the internal agreement and cannot become provider charges (0.443296ms)
+✔ private setup uses only the four required scopes and fixed loopback callback (2.459752ms)
+✔ setup rejects untrusted endpoints, malformed bindings and unsafe aliases (1.623635ms)
+✔ OAuth exchange sends secrets only in POST body and verifies the sole exact ZAR test org (1.034915ms)
+✔ a grant seeing another organisation or a mismatched test profile is rejected (5.958988ms)
+✔ token errors, region mismatch, malformed data and transport errors remain redacted (1.560718ms)
+✔ fixed diagnostics distinguish token and organisation failures without revealing provider data (2.797231ms)
+✔ organisation HTTP diagnostics retain only literal status/code metadata and preserve the primary failure (2.627477ms)
+✔ a diagnostic single-org match never passes isolation or triggers more than one pinned probe (1.579205ms)
+✔ unsaved token cleanup is pinned, client-authenticated, bounded and limited to known current tokens (1.939944ms)
+✔ verification failure cleanup uses only current exchange tokens; missing refresh stays a partial cleanup (1.213046ms)
+✔ callback validates state, host, method, region and parameter uniqueness without echoing codes (0.835532ms)
+✔ private store preserves other aliases, uses restrictive POSIX mode and never overwrites a binding (45.280012ms)
+✔ private store rejects repository paths, misleading .. prefixes and symlinks into Git (11.522244ms)
+✔ private store rejects concurrent setup and detects changed files without replacing them (4.196387ms)
+✔ private store rejects loose POSIX permissions and existing symlink files (11.296444ms)
+✔ moving the private parent and replacing it with a repo symlink cannot write secrets or delete a different lock (3.388531ms)
+✔ operator CLI prints complete prompt lines, hides secret input and cancels without saving (183.350414ms)
+✔ real CLI closes unused local connections, cleans only unsaved tokens and preserves committed credentials (4915.943945ms)
+✔ real CLI rejects an existing private binding before credentials or consent and leaves the file unchanged (176.722492ms)
+✔ standard diagnostic uses regular OAuth with invoice READ only and validates both pins before network access (2.748254ms)
+✔ standard diagnostic refreshes only its new grant, reads pinned lists with the refreshed access token and revokes the original refresh token (1.321705ms)
+✔ standard invoice observations keep broad access adverse and failures inconclusive; failed target skips other TEST (3.701894ms)
+✔ standard invoice reads accept documented pagination shapes and refuse ambiguous or malformed contexts (1.169185ms)
+✔ standard refresh failures, partial grants and cancellation preserve current-token cleanup and prevent subsequent reads (1.785831ms)
+✔ standard CLI refuses an unconfirmed TEST-only account before credentials or consent (315.52682ms)
+✔ real standard OAuth CLI keeps invoice data private, never opens a store and always cleans the fresh grant (7404.386915ms)
+✔ diagnostic consent is settings-read-only and rejects invalid or duplicate test pins before any request (0.897364ms)
+✔ diagnostic reads only two pinned test profiles and revokes its current token without returning secrets (0.905168ms)
+✔ diagnostic never mistakes token, missing-resource, transport or server errors for cross-test rejection (1.272054ms)
+✔ diagnostic skips the other test after a failed target profile and preserves cleanup-failure evidence (0.514228ms)
+✔ diagnostic cancellation and malformed token responses still clean only newly received usable tokens (0.419797ms)
+✔ real diagnostic CLI is read-only, prints short labels, cleans each exchange and never opens a credential store (7389.562838ms)
+ℹ tests 297
+ℹ suites 0
+ℹ pass 296
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 229433.369413
+POLICY_FULL_SUITE_PASS
+
+> faraios@0.1.0 test:accounting:postgres
+> node scripts/run-t19-postgres.mjs
+
+T19 isolated PostgreSQL: 17.10 (Debian 17.10-1.pgdg13+1)
+▶ Stage B synthetic database/API/worker contracts
+  ✔ RLS and function ACLs deny foreign members, staff, platform and fabricated worker completion (67.287075ms)
+  ✔ concurrent enqueue returns one durable identity and forged worker contexts fail before egress (44.396701ms)
+  ✔ broad fake token still routes only to server-pinned business and immutable intent (62.176528ms)
+  ✔ lost responses reconcile original identity without creating again; missing matches stay uncertain (46.352381ms)
+  ✔ concurrent claims, expired leases and stale finishes cannot replay dispatch (32.865213ms)
+  ✔ HTTP uses trusted sessions and real DB roles; forged org/role fields never reach worker (253.111768ms)
+  ✔ membership revocation fences a previously valid queued actor (19.576721ms)
+  ✔ disconnect before dispatch stops egress; immutable generation and historical operation prevent replay (60.231029ms)
+  ✔ disconnect after dispatch keeps late success uncertain; reauthorisation cannot move it (39.883145ms)
+  ✔ wrong organisation receipt quarantines connection and leaves no verified foreign receipt (25.73358ms)
+  ✔ duplicate provider matches require review and never retry synthetic creation (17.056388ms)
+✔ Stage B synthetic database/API/worker contracts (19683.347896ms)
+▶ Stage B native PostgreSQL roles, HTTP, concurrent claims and disconnect contracts
+  ✔ RLS and function ACLs deny foreign members, staff, platform and fabricated worker completion (544.899692ms)
+  ✔ concurrent enqueue returns one durable identity and forged worker contexts fail before egress (106.774857ms)
+  ✔ broad fake token still routes only to server-pinned business and immutable intent (450.34572ms)
+  ✔ lost responses reconcile original identity without creating again; missing matches stay uncertain (251.109896ms)
+  ✔ concurrent claims, expired leases and stale finishes cannot replay dispatch (247.675644ms)
+  ✔ HTTP uses trusted sessions and real DB roles; forged org/role fields never reach worker (393.776805ms)
+  ✔ membership revocation fences a previously valid queued actor (112.704247ms)
+  ✔ disconnect before dispatch stops egress; immutable generation and historical operation prevent replay (256.73505ms)
+  ✔ disconnect after dispatch keeps late success uncertain; reauthorisation cannot move it (222.695798ms)
+  ✔ wrong organisation receipt quarantines connection and leaves no verified foreign receipt (277.674243ms)
+  ✔ duplicate provider matches require review and never retry synthetic creation (243.312807ms)
+  ✔ held native locks prove claim exclusion and both generation/dispatch race orderings (406.989685ms)
+✔ Stage B native PostgreSQL roles, HTTP, concurrent claims and disconnect contracts (4045.659964ms)
+✔ synthetic vault authenticates tenant/generation context, coalesces refresh and has no real-secret input (2.507423ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 24009.383317
+T19_NATIVE_ACCEPTANCE_PASSED
+T19_DISPOSABLE_CLUSTER_CLEANED
+POLICY_DEDICATED_NATIVE_PASS
+646c84de5e3ee71a7104d6f3d754adb271a4a8c7b740bfcaf7fa45c58019c296  package.json
+e99924926cf0c74d78543c610c18d760ac24876061022f87a25c25ec5d4a858b  package-lock.json
+2e407b41c960f34c919619a8792115a299b283192f682212c59532404ba592ca  .github/workflows/ci.yml
+af15d26228b149ad6aaa77c6bb10fb0e9325afc9e1027cc1510f30de55b29f2e  test/availability-concurrency.test.js
+waiting for server to shut down..... done
+server stopped
+POSTGRES_PID_ABSENT
+POLICY_DATABASE_REMOVED
+POLICY_EXIT=0
+2026-10-23T04:08:19+00:00

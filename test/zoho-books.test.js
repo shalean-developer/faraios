@@ -56,3 +56,22 @@ test('zero-quantity exclusions remain in the internal agreement and cannot becom
  const receipt=verifiedReceipt(source,connection,external);assert.equal(receipt.price_lines.length,2);assert.equal(receipt.total_cents,10001);
  source.snapshot.price_lines[1].total_cents=1;assert.throws(()=>verifiedReceipt(source,connection,external),/mismatch/);
 });
+
+test('organisation substitution fails independent credential pins before any provider request',async()=>{
+ const f=fixture();f.claim.connection.organization_id='222';
+ const result=await f.adapter.sync(f.claim);
+ assert.equal(result.outcome,'failed');assert.equal(result.error_code,'credentials');
+ assert.equal(f.calls.length,0);assert.equal(f.posts(),0);
+});
+
+test('provider permission denial stops before financial writes and never falls back to another organisation',async()=>{
+ const calls=[];
+ const adapter=createZohoBooks({credentials:async()=>secret,fetchImpl:async(url,options)=>{
+  const u=new URL(url);calls.push({path:u.pathname,method:options.method,org:u.searchParams.get('organization_id')});
+  if(u.pathname==='/oauth/v2/token')return {ok:true,status:200,text:async()=>JSON.stringify({access_token:'synthetic-access',api_domain:connection.api_domain,expires_in:3600})};
+  return {ok:false,status:403,text:async()=>{throw new Error('denial body must not be consumed');}};
+ }});
+ const result=await adapter.sync({invoice:structuredClone(invoice),connection:structuredClone(connection),mode:'create'});
+ assert.equal(result.outcome,'failed');assert.equal(result.error_code,'credentials');assert.equal(result.receipt,null);
+ assert.deepEqual(calls,[{path:'/oauth/v2/token',method:'POST',org:null},{path:'/books/v3/organizations/111',method:'GET',org:'111'}]);
+});

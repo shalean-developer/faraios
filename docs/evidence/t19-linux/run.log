@@ -1,0 +1,69 @@
+CANDIDATE=d4643e244f5f9538264a5beec15b03984a437d32
+2026-10-22T21:26:31+00:00
+Linux 6c00b961aee2 6.18.33.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun 18 21:54:43 UTC 2026 x86_64 GNU/Linux
+PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
+NAME="Debian GNU/Linux"
+VERSION_ID="13"
+VERSION="13 (trixie)"
+VERSION_CODENAME=trixie
+DEBIAN_VERSION_FULL=13.5
+ID=debian
+HOME_URL="https://www.debian.org/"
+SUPPORT_URL="https://www.debian.org/support"
+BUG_REPORT_URL="https://bugs.debian.org/"
+v24.22.1
+postgres (PostgreSQL) 17.10 (Debian 17.10-1.pgdg13+1)
+psql (PostgreSQL) 17.10 (Debian 17.10-1.pgdg13+1)
+uid=999(postgres) gid=999(postgres) groups=999(postgres),101(ssl-cert)
+af15d26228b149ad6aaa77c6bb10fb0e9325afc9e1027cc1510f30de55b29f2e  test/availability-concurrency.test.js
+postgres (PostgreSQL) 17.10 (Debian 17.10-1.pgdg13+1)
+The files belonging to this database system will be owned by user "postgres".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "C".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+creating directory /tmp/faraios-t19-linux-0hSdCE/data ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default "max_connections" ... 100
+selecting default "shared_buffers" ... 128MB
+selecting default time zone ... Etc/UTC
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+
+Success. You can now start the database server using:
+
+    pg_ctl -D /tmp/faraios-t19-linux-0hSdCE/data -l logfile start
+
+waiting for server to start.... done
+server started
+PostgreSQL 17.10 (Debian 17.10-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+0
+TAP version 13
+# Subtest: independent connections prevent shared-cleaner overlaps and duplicate recurring/quote/invoice creation
+ok 1 - independent connections prevent shared-cleaner overlaps and duplicate recurring/quote/invoice creation
+  ---
+  duration_ms: 5783.056463
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6054.363635
+UNCHANGED_LEGACY_NATIVE_LINUX_PASSED
+waiting for server to shut down.... done
+server stopped
+POSTGRES_PID_ABSENT
+DISPOSABLE_DATABASE_DIRECTORY_REMOVED
+HARNESS_EXIT=0
+2026-10-22T21:26:45+00:00

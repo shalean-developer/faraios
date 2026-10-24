@@ -1,0 +1,178 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> faraios@0.1.0 test:t19:connection
+> node --test test/t19-provider.test.js test/t19-connection.test.js test/t19-vault.test.js test/t19-runner.test.js test/t19-integration.test.js test/t19-masked-import.test.js
+
+✔ review manifest matches registered callback but remains unapproved; former callback fails execution validation (3.472737ms)
+✔ synthetic consent, exactly two provider reads, then local disable with distinct revocation state (17.185555ms)
+✔ owner-only business isolation rejects before vault and provider access (1.606663ms)
+✔ execution gate blocks authorisation and verification without provider or storage access (0.488478ms)
+✔ manifest approval, time-window and fixture requirements fail closed (0.512744ms)
+✔ OAuth state is session-bound, single-use and invalid callbacks never exchange (0.873795ms)
+✔ successful callback cannot be replayed and same window cannot authorise twice (2.262007ms)
+✔ owner revoked before callback prevents token exchange (0.676005ms)
+✔ approval expiry blocks callback and reads without exchange or refresh (0.772036ms)
+✔ credential expiry and stale credential context reject without provider calls (5.503053ms)
+✔ immutable binding rejects after restart with changed organisation (5.603841ms)
+✔ verification is single attempt and error bodies never leak provider credentials (2.65905ms)
+✔ disable during in-flight profile prevents invoice and late verification evidence (1.881117ms)
+✔ HTTP host/origin/CSRF/method/body and foreign route restrictions (34.738566ms)
+✔ registered callback matches consent and exchange, rejects old route and duplicate state (6.336829ms)
+✔ OAuth state expires independently of the longer approved window (0.510741ms)
+✔ late grant after disable is retained only for cleanup and never authenticates (0.834227ms)
+✔ HTTP write/sync/list/refresh routes are unavailable (4.893507ms)
+✔ disable while invoice is in flight discards late success (2.078757ms)
+✔ real auth-session adapter uses verified Auth identity and current membership rows (2.271571ms)
+✔ stored client metadata cannot cross business or organisation boundary (1.401852ms)
+✔ restart cannot relabel a stored grant under changed client, window or fixture approval (3.079029ms)
+﹣ real DPAPI custody integrates with guarded service, read-only provider and durable disable (1.257509ms) # SKIP
+✖ masked prompt serialises dummy quote/unicode secret through stdin only and forces import mode (13.84411ms)
+✖ wrong host/account, wrong manifest hash and rejected gate fail before masked prompt (5.744309ms)
+✖ empty, newline or oversized dummy input never reaches import child (5.76622ms)
+✖ child stderr, unexpected stdout and timeout are generic failures without secret reflection (5.388355ms)
+✖ production entrypoint rejects redirected input rather than accepting unmasked piped data (3.086129ms)
+✖ masked helper hands dummy secret to real gated importer and DPAPI; duplicate import fails closed (13.73469ms)
+✔ only pinned profile then known invoice GET, four generation checks and minimal evidence (14.63259ms)
+✔ invalid binding, fixture and missing guard fail before fetch (2.320223ms)
+✔ fixture cannot override binding or mutate later request expectations (3.22272ms)
+✔ profile mismatch stops before invoice {"organization_id":"222"} (1.661674ms)
+✔ profile mismatch stops before invoice {"is_org_active":false} (1.131584ms)
+✔ profile mismatch stops before invoice {} (4.682046ms)
+✔ profile mismatch stops before invoice {"currency_code":"USD"} (0.541777ms)
+✔ invoice tuple mismatch {"invoice_id":"9002"} (1.101861ms)
+✔ invoice tuple mismatch {"invoice_number":"wrong"} (2.779457ms)
+✔ invoice tuple mismatch {"reference_number":"wrong"} (0.919873ms)
+✔ invoice tuple mismatch {"customer_id":"333"} (1.06768ms)
+✔ invoice tuple mismatch {"currency_code":"USD"} (0.954494ms)
+✔ invoice tuple mismatch {"status":"sent"} (1.117103ms)
+✔ invoice tuple mismatch {"total":"1.001"} (0.806216ms)
+✔ invoice tuple mismatch {"organization_id":"222"} (1.100358ms)
+✔ missing or nonnumeric Books success code rejected (1.532764ms)
+✔ HTTP 401 has no retry or refresh (0.669404ms)
+✔ HTTP 403 has no retry or refresh (0.480457ms)
+✔ HTTP 429 has no retry or refresh (0.425235ms)
+✔ HTTP 500 has no retry or refresh (0.424505ms)
+✔ streaming cap cancels oversized body without accumulating all data (1.294123ms)
+✔ malformed content, redirects and transport details remain sanitised (0.986781ms)
+✔ guard denies before dispatch, between reads and during in-flight results (5.957331ms)
+✔ one code exchange, fixed endpoint, private body and bounded expiry (0.627182ms)
+✔ token exchange rejects wrong host, missing tokens or invalid expiration (1.020541ms)
+✔ 12-second deadline fails closed even when injected transport ignores abort (1.168618ms)
+✔ client import pins business/org and rejects replacing another business client (1.811424ms)
+✔ cleanup is exact connection/generation/client/identity attestation, never implicit revocation (0.860505ms)
+✔ cleanup does not delete a client still referenced by another connection (0.316456ms)
+✔ invalid execution hash rejects before any vault or provider setup (102.292737ms)
+✔ check-import validates approved manifest without storage and rejects mixed modes, wrong client and expired approval (685.098196ms)
+﹣ real CurrentUser DPAPI stores only ciphertext, survives restart and returns isolated snapshots (1.585181ms) # SKIP
+﹣ exclusive writer blocks another process instance and serialized writes persist last generation (0.33327ms) # SKIP
+﹣ corrupted ciphertext fails closed and does not reset registry or leak content (0.268665ms) # SKIP
+﹣ repository paths, non-local paths and junctions are rejected (0.240203ms) # SKIP
+﹣ protection failure leaves no plaintext and poisons writes (0.34672ms) # SKIP
+ℹ tests 65
+ℹ suites 0
+ℹ pass 53
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 6
+ℹ todo 0
+ℹ duration_ms 979.796659
+
+✖ failing tests:
+
+test at test/t19-masked-import.test.js:44:1
+✖ masked prompt serialises dummy quote/unicode secret through stdin only and forces import mode (13.84411ms)
+  AssertionError [ERR_ASSERTION]: The "string" argument must be of type string. Received type number (NaN)
+      at run (file:///workspace/scratch/ae92ab838b0d/faraios-t19/test/t19-masked-import.test.js:40:9)
+      at async TestContext.<anonymous> (file:///workspace/scratch/ae92ab838b0d/faraios-t19/test/t19-masked-import.test.js:45:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: NaN,
+    expected: /dummy-"quote|quote\\é/,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }
+
+test at test/t19-masked-import.test.js:49:1
+✖ wrong host/account, wrong manifest hash and rejected gate fail before masked prompt (5.744309ms)
+  AssertionError [ERR_ASSERTION]: The "string" argument must be of type string. Received type number (NaN)
+      at run (file:///workspace/scratch/ae92ab838b0d/faraios-t19/test/t19-masked-import.test.js:40:9)
+      at async TestContext.<anonymous> (file:///workspace/scratch/ae92ab838b0d/faraios-t19/test/t19-masked-import.test.js:50:100)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: NaN,
+    expected: /dummy-"quote|quote\\é/,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }
+
+test at test/t19-masked-import.test.js:52:1
+✖ empty, newline or oversized dummy input never reaches import child (5.76622ms)
+  AssertionError [ERR_ASSERTION]: The "string" argument must be of type string. Received type number (NaN)
+      at run (file:///workspace/scratch/ae92ab838b0d/faraios-t19/test/t19-masked-import.test.js:40:9)
+      at async TestContext.<anonymous> (file:///workspace/scratch/ae92ab838b0d/faraios-t19/test/t19-masked-import.test.js:53:71)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: NaN,
+    expected: /dummy-"quote|quote\\é/,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }
+
+test at test/t19-masked-import.test.js:55:1
+✖ child stderr, unexpected stdout and timeout are generic failures without secret reflection (5.388355ms)
+  AssertionError [ERR_ASSERTION]: The "string" argument must be of type string. Received type number (NaN)
+      at run (file:///workspace/scratch/ae92ab838b0d/faraios-t19/test/t19-masked-import.test.js:40:9)
+      at async TestContext.<anonymous> (file:///workspace/scratch/ae92ab838b0d/faraios-t19/test/t19-masked-import.test.js:56:63)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: NaN,
+    expected: /dummy-"quote|quote\\é/,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }
+
+test at test/t19-masked-import.test.js:58:1
+✖ production entrypoint rejects redirected input rather than accepting unmasked piped data (3.086129ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  null !== 1
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/ae92ab838b0d/faraios-t19/test/t19-masked-import.test.js:60:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/t19-masked-import.test.js:62:1
+✖ masked helper hands dummy secret to real gated importer and DPAPI; duplicate import fails closed (13.73469ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  null !== 0
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/ae92ab838b0d/faraios-t19/test/t19-masked-import.test.js:78:9)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,22 @@
+2026-10-23T04:06:51+00:00
+CANDIDATE=d4643e244f5f9538264a5beec15b03984a437d32
+34cf95ced9b8fd605910186a130114a3f7480d893b8e01b6148b9eb9d0c927f3  scripts/check-backup-transport.mjs
+9a497e8e0f184180fcacd759f60423fa75f6b80bfd87d50be03ad940890fd3d2  scripts/backup-staging.mjs
+T11_PUBLIC_POOLER_CA_AND_HOSTNAME=PASS (TLS handshake only; no database startup/auth/query)
+T11_TRANSPORT_TRUSTED_METADATA=PASS
+T11_TRANSPORT_FIXTURE_CLEANUP=PASS
+file:///mnt/c/Users/info/.codex/worktrees/t19-research/faraios/.t19-final-ci-build/transport/scripts/backup-staging.mjs:212
+  const error=code=>new BackupFailure(code);
+                    ^
+
+BackupFailure [Error]: METADATA_UNCLASSIFIED
+    at error (file:///mnt/c/Users/info/.codex/worktrees/t19-research/faraios/.t19-final-ci-build/transport/scripts/backup-staging.mjs:212:21)
+    at ChildProcess.<anonymous> (file:///mnt/c/Users/info/.codex/worktrees/t19-research/faraios/.t19-final-ci-build/transport/scripts/backup-staging.mjs:249:12)
+    at ChildProcess.wrapper (node:events:639:12)
+    at ChildProcess.emit (node:events:514:28)
+    at maybeClose (node:internal/child_process:1172:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:335:5) {
+  code: 'METADATA_UNCLASSIFIED'
+}
+
+Node.js v24.22.1

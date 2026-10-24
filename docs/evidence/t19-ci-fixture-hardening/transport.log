@@ -1,0 +1,43 @@
+2026-10-23T05:07:58+00:00
+CANDIDATE=90dbc74933357b9e9ca257c08c9616b1b3ade96e
+f48b5f3ad9e62f031b39c6e498579977a97ac45ee0622c0fb0168a2c2080d908  scripts/check-backup-transport.mjs
+9a497e8e0f184180fcacd759f60423fa75f6b80bfd87d50be03ad940890fd3d2  scripts/backup-staging.mjs
+PUBLIC_TLS_OMITTED_OFFLINE_REGRESSION
+T11_TRANSPORT_TRUSTED_METADATA=PASS
+T11_TRANSPORT_TRUSTED_DUMPS=PASS (6 modes)
+T11_RESTORE_PORTABLE_SECURITY_MUTATIONS_DETECTED=PASS (domain, column ACL, role capability/membership and global defaults)
+T11_RESTORE_RESTRICTED_PARAMETER_PERMISSION=PASS (non-superuser, no provider-admin membership; fixture-only replica-setting permission)
+T11_TRANSPORT_FIXTURE_CLEANUP=PASS
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  Comparison {
++   code: 'CLIENT_CONTAINER_START_FAILED'
+-   code: 'RESTORE_CATALOG_MISMATCH'
+  }
+
+    at async exerciseRestore (file:///mnt/c/Users/info/.codex/worktrees/t19-research/faraios/.t19-ci-hardening-build/transport/scripts/check-backup-transport.mjs:103:3)
+    at async file:///mnt/c/Users/info/.codex/worktrees/t19-research/faraios/.t19-ci-hardening-build/transport/scripts/check-backup-transport.mjs:240:2 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: BackupFailure [Error]: CLIENT_CONTAINER_START_FAILED
+      at error (file:///mnt/c/Users/info/.codex/worktrees/t19-research/faraios/.t19-ci-hardening-build/transport/scripts/backup-staging.mjs:212:21)
+      at ChildProcess.<anonymous> (file:///mnt/c/Users/info/.codex/worktrees/t19-research/faraios/.t19-ci-hardening-build/transport/scripts/backup-staging.mjs:249:12)
+      at ChildProcess.wrapper (node:events:639:12)
+      at ChildProcess.emit (node:events:514:28)
+      at maybeClose (node:internal/child_process:1172:16)
+      at Socket.<anonymous> (node:internal/child_process:527:11)
+      at Socket.emit (node:events:514:28)
+      at Pipe.<anonymous> (node:net:362:12) {
+    code: 'CLIENT_CONTAINER_START_FAILED'
+  },
+  expected: { code: 'RESTORE_CATALOG_MISMATCH' },
+  operator: 'rejects',
+  diff: 'simple'
+}
+
+Node.js v24.22.1

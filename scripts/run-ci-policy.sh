@@ -55,3 +55,6 @@ npm run check
 echo CI_POLICY_SYNTAX_PASS
 npm test
 echo CI_POLICY_FULL_SUITE_PASS
+
+T19_PG_BIN="$(pg_config --bindir)" npm run test:accounting:postgres
+echo CI_POLICY_DEDICATED_NATIVE_PASS
