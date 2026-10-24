@@ -29,36 +29,39 @@ export function createConnectionService({vault,sessions,manifest,manifestSha256=
  const m=validateManifest(manifest),binding=pin(m),approvalDigest=createHash('sha256').update(JSON.stringify(m)).digest('hex'),states=new Map(),csrf=new Map();let queue=Promise.resolve();
  const locked=fn=>{const p=queue.then(fn);queue=p.catch(()=>{});return p;};
  const gate=()=>{if(!execution)fail('approval_required');validateManifest(m,{execution:true,now:now()});};
+ // Recheck at dispatch: asynchronous membership/custody work can cross expiry.
+ const approvedFetch=(...args)=>{gate();return (fetchImpl??globalThis.fetch)(...args);};
  const owner=async sid=>{const u=await sessions.read(sid);if(!u?.businessIds.includes(m.businessId)||!u.memberships.some(x=>x.businessId===m.businessId&&x.role==='owner'&&x.status==='active'))fail('forbidden');return u;};
  const load=async()=>{const db=await vault.read();if(!db||!db.connections||Array.isArray(db.connections))fail('storage');const c=db.connections[m.businessId];if(c&&(JSON.stringify(c.binding)!==JSON.stringify(binding)||c.clientId!==m.clientId||c.approvalDigest!==approvalDigest||!uuid(c.id)||!Number.isSafeInteger(c.generation)||c.generation<1))fail('binding');if(m.successor){if(!c)fail('binding');validateSuccessorRecord(db,c,m,manifestSha256);}return {db,c};};
  const save=async(db,c)=>{db.connections[m.businessId]=c;await vault.write(db);};
  const audit=(c,event)=>{c.events??=[];c.events.push({event,time:now(),generation:c.generation});};
- async function guard(sid,expected){gate();await owner(sid);return locked(async()=>{const {c}=await load();if(!c||context(c)!==expected||c.status!=='authenticated'||!c.credentials||c.credentials.expiresAt<=now())fail('stale');return c;});}
+ async function guard(sid,expected){gate();await owner(sid);return locked(async()=>{const {c}=await load();gate();if(!c||context(c)!==expected||c.status!=='authenticated'||!c.credentials||c.credentials.expiresAt<=now())fail('stale');return c;});}
  const service={
   async status(sid){await owner(sid);return locked(async()=>{const {c}=await load();return c?{connectionId:c.id,generation:c.generation,status:c.status,cleanupPending:Boolean(c.cleanup),verified:Boolean(c.evidence),binding:c.binding,...(m.successor?{successor:{predecessorId:c.successor.predecessorId,preparationApprovalSha256:c.successor.preparationApprovalSha256,cleaned:Boolean(c.successorCleanup)}}:c.recovery?{recoveredRecordSha256:recordDigest(c)}:{})}:{status:'unconfigured',binding};});},
   async authorise(sid){gate();const user=await owner(sid);return locked(async()=>{
-   const {db,c:old}=await load();if(old){if(!m.successor)fail('already_attempted');pendingSuccessor(db,old,m,manifestSha256);}
+   const {db,c:old}=await load();gate();if(old){if(!m.successor)fail('already_attempted');pendingSuccessor(db,old,m,manifestSha256);}
    const client=db.clients?.[m.clientId];if(!client?.clientSecret||client.businessId!==m.businessId||client.organizationId!==m.organizationId||client.approvalDigest!==approvalDigest)fail('credentials');
-   const c=old?{...old,generation:old.generation+1,status:'authorising'}:{id:randomUUID(),generation:1,binding,clientId:m.clientId,approvalDigest,status:'authorising',approvalReference:m.approvalReference,events:[]};audit(c,'consent_started');await save(db,c);
+   const c=old?{...old,generation:old.generation+1,status:'authorising'}:{id:randomUUID(),generation:1,binding,clientId:m.clientId,approvalDigest,status:'authorising',approvalReference:m.approvalReference,events:[]};audit(c,'consent_started');await save(db,c);gate();
    const state=randomBytes(32).toString('hex');states.set(state,{sid,userId:user.userId,context:context(c),expires:Math.min(now()+300000,m.endsAt)});
    const url=new URL('https://accounts.zoho.com/oauth/v2/auth');url.search=new URLSearchParams({client_id:m.clientId,response_type:'code',redirect_uri:callback,scope:'ZohoBooks.settings.READ,ZohoBooks.invoices.READ',access_type:'offline',state}).toString();return {authorizationUrl:url.href};
   });},
   async callback(sid,state,code){
    gate();const pending=states.get(state);states.delete(state);
    if(!pending||pending.sid!==sid||pending.expires<=now()||!nonempty(code))fail('oauth_state');
-   const user=await owner(sid);if(user.userId!==pending.userId)fail('oauth_state');
-   const clientSecret=await locked(async()=>{const {db,c}=await load();if(!c||context(c)!==pending.context||c.status!=='authorising')fail('stale');c.status='exchanging';c.cleanup={unknownOutcome:true};audit(c,'exchange_dispatched');await save(db,c);return db.clients[m.clientId].clientSecret;});
+   const callbackGate=()=>{gate();if(pending.expires<=now())fail('oauth_state');};
+   const user=await owner(sid);callbackGate();if(user.userId!==pending.userId)fail('oauth_state');
+   const clientSecret=await locked(async()=>{const {db,c}=await load();callbackGate();if(!c||context(c)!==pending.context||c.status!=='authorising')fail('stale');c.status='exchanging';c.cleanup={unknownOutcome:true};audit(c,'exchange_dispatched');await save(db,c);return db.clients[m.clientId].clientSecret;});
    let creds;
-   try{creds=await exchangeCode({clientId:m.clientId,clientSecret,code,redirectUri:callback,fetchImpl,now});}
+   try{creds=await exchangeCode({clientId:m.clientId,clientSecret,code,redirectUri:callback,fetchImpl:(...args)=>{callbackGate();return approvedFetch(...args);},now});}
    catch(e){await locked(async()=>{const {db,c}=await load();if(c){c.status='disabled';c.generation++;c.cleanup={unknownOutcome:true};audit(c,'exchange_failed_cleanup_review');await save(db,c);}});throw e;}
-   let allowed=true;try{gate();await owner(sid);}catch{allowed=false;}
+   let allowed=true;try{gate();await owner(sid);gate();}catch{allowed=false;}
    return locked(async()=>{const {db,c}=await load();if(!c)fail('storage');
-    if(!allowed||context(c)!==pending.context||c.status!=='exchanging'){if(m.successor&&c.status!=='disabled'){c.status='disabled';c.generation++;}c.cleanup={...creds,accessToken:undefined};audit(c,'late_grant_cleanup_required');await save(db,c);fail('stale');}
+    if(!allowed||now()>=m.endsAt||context(c)!==pending.context||c.status!=='exchanging'){if(m.successor&&c.status!=='disabled'){c.status='disabled';c.generation++;}c.cleanup={...creds,accessToken:undefined};audit(c,'late_grant_cleanup_required');await save(db,c);fail('stale');}
     c.credentials={...creds,context:context(c)};delete c.cleanup;c.status='authenticated';c.provenance={kind:'attended',identity:m.identity,zohoUserId:m.zohoUserId,evidence:m.identityEvidence,actor:user.userId,at:now()};audit(c,'grant_stored');await save(db,c);return {status:c.status,connectionId:c.id,generation:c.generation};
    });
   },
-  async verify(sid){gate();await owner(sid);const c=await locked(async()=>{const {db,c}=await load();if(!c||c.status!=='authenticated'||c.verificationAttempted||c.credentials?.context!==context(c)||c.credentials.expiresAt<=now())fail('credentials');c.verificationAttempted=true;audit(c,'verification_started');await save(db,c);return c;});const expected=context(c);
-   try{const evidence=await verifyInvoice({binding,fixture:m.fixture,accessToken:c.credentials.accessToken,fetchImpl,guard:()=>guard(sid,expected)});await guard(sid,expected);return await locked(async()=>{const {db,c:current}=await load();if(!current||context(current)!==expected||current.status!=='authenticated')fail('stale');current.evidence=evidence;audit(current,'verified');await save(db,current);return {status:'verified',evidence};});}
+  async verify(sid){gate();await owner(sid);const c=await locked(async()=>{const {db,c}=await load();gate();if(!c||c.status!=='authenticated'||c.verificationAttempted||c.credentials?.context!==context(c)||c.credentials.expiresAt<=now())fail('credentials');c.verificationAttempted=true;audit(c,'verification_started');await save(db,c);return c;});const expected=context(c);
+   try{const evidence=await verifyInvoice({binding,fixture:m.fixture,accessToken:c.credentials.accessToken,fetchImpl:approvedFetch,guard:()=>guard(sid,expected)});await guard(sid,expected);return await locked(async()=>{const {db,c:current}=await load();gate();if(!current||context(current)!==expected||current.status!=='authenticated')fail('stale');current.evidence=evidence;audit(current,'verified');await save(db,current);return {status:'verified',evidence};});}
    catch(e){await locked(async()=>{const {db,c:current}=await load();if(current&&context(current)===expected){current.status='disabled';current.generation++;current.cleanup={refreshToken:current.credentials?.refreshToken};delete current.credentials;delete current.evidence;audit(current,'verification_failed_disabled');await save(db,current);}});throw e;}
   },
   async disable(sid){await owner(sid);return locked(async()=>{const {db,c}=await load();if(!c)return {status:'unconfigured'};if(m.successor&&c.status==='disabled')return {status:'disabled',generation:c.generation,providerRevoked:false,cleanupPending:Boolean(c.cleanup)};c.generation++;c.status='disabled';if(c.credentials)c.cleanup={refreshToken:c.credentials.refreshToken};delete c.credentials;delete c.evidence;for(const [s,p] of states)if(p.sid===sid)states.delete(s);audit(c,'locally_disabled');await save(db,c);return {status:'disabled',generation:c.generation,providerRevoked:false,cleanupPending:Boolean(c.cleanup)};});}
