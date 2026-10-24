@@ -1,0 +1,14 @@
+postgres (PostgreSQL) 17.10 (Debian 17.10-1.pgdg13+1)
+v24.22.1
+11.19.1
+waiting for server to start.... done
+server started
+CI_WRONG_PASSWORD_REJECTED
+CI_CORRECT_PASSWORD_ACCEPTED
+waiting for server to shut down..... done
+server stopped
+CI_POSTGRES_PID_ABSENT
+CI_FIXTURE_REMOVED
+CI_POLICY_EXIT=42
+CI_INJECTED_FAILURE_EXIT_42_PRESERVED
+CI_FAILURE_CLEANUP_VERIFIED

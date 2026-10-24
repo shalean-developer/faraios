@@ -1,0 +1,30 @@
+2026-10-22 21:44:20.109 UTC [50] LOG:  starting PostgreSQL 17.10 (Debian 17.10-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-22 21:44:20.110 UTC [50] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2026-10-22 21:44:20.110 UTC [50] LOG:  listening on Unix socket "/tmp/faraios-t19-policy-xoTwYi/.s.PGSQL.5432"
+2026-10-22 21:44:20.115 UTC [53] LOG:  database system was shut down at 2026-10-22 21:44:20 UTC
+2026-10-22 21:44:20.120 UTC [50] LOG:  database system is ready to accept connections
+2026-10-23 04:05:26.530 UTC [407] ERROR:  One or more selected cleaners are busy. Choose another time or team.
+2026-10-23 04:05:26.530 UTC [407] CONTEXT:  PL/pgSQL function audit.reserve_booking_staff() line 13 at RAISE
+2026-10-23 04:05:26.530 UTC [407] STATEMENT:  update public.one_off_bookings set status='assigned',assigned_staff=array['00000000-0000-4000-8000-000000000003'::uuid],change_reason='Concurrent contender' where id='00000000-0000-4000-8000-000000000040' and version=2;
+2026-10-23 04:05:28.906 UTC [483] ERROR:  Accounting check already in progress
+2026-10-23 04:05:28.906 UTC [483] CONTEXT:  PL/pgSQL function audit.claim_invoice_sync(uuid,uuid,uuid,text) line 11 at RAISE
+	SQL function "claim_invoice_sync" statement 1
+2026-10-23 04:05:28.906 UTC [483] STATEMENT:  select public.claim_invoice_sync('00000000-0000-4000-8000-000000000010','f572d47a-69cb-4b1d-8d90-e2b5edc1780b','00000000-0000-4000-8000-000000000001','123');
+2026-10-23 04:05:29.593 UTC [501] ERROR:  Daily workload limit exceeded. Review the cleaner's schedule
+2026-10-23 04:05:29.593 UTC [501] CONTEXT:  PL/pgSQL function audit.reserve_booking_staff() line 16 at RAISE
+2026-10-23 04:05:29.593 UTC [501] STATEMENT:  update public.one_off_bookings set status='assigned',assigned_staff=array['00000000-0000-4000-8000-000000000003'::uuid],setup_minutes=0,travel_minutes=0,change_reason='Daily contender' where id='00000000-0000-4000-8000-000000000501';
+2026-10-23 04:05:30.166 UTC [517] ERROR:  could not serialize access due to concurrent update
+2026-10-23 04:05:30.166 UTC [517] CONTEXT:  SQL statement "insert into audit.cleaner_workload_locks(staff_id,revision) values(uid,1) on conflict(staff_id) do update set revision=audit.cleaner_workload_locks.revision+1"
+	PL/pgSQL function audit.reserve_booking_staff() line 8 at SQL statement
+2026-10-23 04:05:30.166 UTC [517] STATEMENT:  update public.one_off_bookings set status='assigned',assigned_staff=array['00000000-0000-4000-8000-000000000003'::uuid],setup_minutes=0,travel_minutes=0,change_reason='Daily contender' where id='00000000-0000-4000-8000-000000000503';
+2026-10-23 04:05:30.836 UTC [538] ERROR:  Allowance changed; reopen before saving
+2026-10-23 04:05:30.836 UTC [538] CONTEXT:  PL/pgSQL function audit.configure_supervisor_allowance(uuid,uuid,integer,boolean,integer,date,text) line 12 at RAISE
+	SQL function "configure_supervisor_allowance" statement 1
+2026-10-23 04:05:30.836 UTC [538] STATEMENT:  select public.configure_supervisor_allowance('00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000003',0,false,0,'2026-11-01','Stale contender');
+2026-10-23 04:08:17.569 UTC [50] LOG:  received fast shutdown request
+2026-10-23 04:08:17.573 UTC [50] LOG:  aborting any active transactions
+2026-10-23 04:08:17.652 UTC [50] LOG:  background worker "logical replication launcher" (PID 56) exited with exit code 1
+2026-10-23 04:08:17.680 UTC [51] LOG:  shutting down
+2026-10-23 04:08:17.688 UTC [51] LOG:  checkpoint starting: shutdown immediate
+2026-10-23 04:08:19.012 UTC [51] LOG:  checkpoint complete: wrote 1302 buffers (15.9%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.317 s, sync=0.005 s, total=1.328 s; sync files=445, longest=0.002 s, average=0.001 s; distance=6976 kB, estimate=6976 kB; lsn=0/1BBD810, redo lsn=0/1BBD810
+2026-10-23 04:08:19.034 UTC [50] LOG:  database system is shut down

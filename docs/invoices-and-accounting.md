@@ -1,5 +1,7 @@
 # T19 — Invoices and accounting
 
+Latest review: [22 October research, implementation audit and proposed architecture](t19-research-architecture.md), with [staging acceptance plan and current review checks](t19-verification-plan.md). This documentation-only proposal records the later Zoho support correspondence and preserves the accounting hold. Architecture/safety approval is required before new integration implementation; no T04 change or accounting activation is authorised. Earlier entries below are historical evidence, including now-superseded statements that support mail was unsent.
+
 Document T19-PLAN, version 1, 19 October 2026. Engineering owner: Codex; financial/product authority: Farai. Scope source: original tracker T19, dependent on completed T18. Owner selected separate Zoho Books connections for each business on 19 October 2026. Baseline main ef4baeb0d4b0c8fa0a6bf71222bb9c1fed1fffd7, tree5a8f996cf4b8cbeac2f1ec35ff29a54b46dc9785. Status: implementation in progress, no release/financial acceptance claimed. UI-02 browser acceptance remains open separately.
 
 ## Objective and bounded delivery

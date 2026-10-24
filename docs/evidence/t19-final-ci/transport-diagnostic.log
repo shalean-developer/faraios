@@ -1,0 +1,31 @@
+2026-10-23T04:08:05+00:00
+CANDIDATE=d4643e244f5f9538264a5beec15b03984a437d32
+52d272d90061f11d79354f5a03a8e9415dab95c0f79204f925228e55f94c4668  scripts/check-backup-transport.mjs
+5bea39c6bf8d01ea2a3b3f3aafbc523e39c27e2a7a7b960b185f9603d884d03c  scripts/backup-staging.mjs
+PUBLIC_TLS_NOT_REPEATED_OFFLINE_DIAGNOSTIC
+SYNTHETIC_DIAGNOSTIC_STDERR 
+SYNTHETIC_DIAGNOSTIC_STDERR 
+SYNTHETIC_DIAGNOSTIC_STDERR 
+T11_TRANSPORT_TRUSTED_METADATA=PASS
+SYNTHETIC_DIAGNOSTIC_STDERR FARAIOS_T11_POSTGRES_CLIENT_STARTED
+/bin/bash: line 29: RESERVED_ROLES: unbound variable
+/bin/bash: line 30: RESERVED_ROLES: unbound variable
+/bin/bash: line 32: ALLOWED_CONFIGS: unbound variable
+/bin/bash: line 33: RESERVED_ROLES: unbound variable
+
+T11_TRANSPORT_FIXTURE_CLEANUP=PASS
+file:///mnt/c/Users/info/.codex/worktrees/t19-research/faraios/.t19-final-ci-build/transport/scripts/backup-staging.mjs:212
+  const error=code=>new BackupFailure(code);
+                    ^
+
+BackupFailure [Error]: METADATA_UNCLASSIFIED
+    at error (file:///mnt/c/Users/info/.codex/worktrees/t19-research/faraios/.t19-final-ci-build/transport/scripts/backup-staging.mjs:212:21)
+    at ChildProcess.<anonymous> (file:///mnt/c/Users/info/.codex/worktrees/t19-research/faraios/.t19-final-ci-build/transport/scripts/backup-staging.mjs:249:12)
+    at ChildProcess.wrapper (node:events:639:12)
+    at ChildProcess.emit (node:events:514:28)
+    at maybeClose (node:internal/child_process:1172:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:335:5) {
+  code: 'METADATA_UNCLASSIFIED'
+}
+
+Node.js v24.22.1

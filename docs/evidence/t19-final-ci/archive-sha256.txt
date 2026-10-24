@@ -1,0 +1,5 @@
+
+Algorithm : SHA256
+Hash      : E1A6C2F6CEDF1BEB0794EF775CF9569738B22996BDECE1631682364FBB02056A
+Path      : C:\Users\info\.codex\worktrees\t19-research\faraios\.t19-final-ci-build\candidate.tar
+

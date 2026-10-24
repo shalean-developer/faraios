@@ -1,0 +1,9 @@
+Condensed independent terminal evidence — not a full raw log
+23 October2026; Node v24.14.1; candidate base a028fe62a2a38cb537b5f35b43a38c29b681c72f plus2new adapter tests
+Command: node --test test/zoho-books.test.js test/zoho-setup.test.js test/invoices.test.js
+Organisation substitution fails independent credential pins before any provider request: PASS
+Provider permission denial stops before financial writes and never falls back to another organisation: PASS
+Existing focused invoice/adapter/setup tests: PASS
+Tests45; pass45; fail0; cancelled0; skipped0; todo0
+Exit code0
+Initial restricted-sandbox base run:39/43 pass,4 environment failures (temporary rename EPERM; three loopback EACCES). Final candidate run above used authorised local filesystem/loopback permissions.

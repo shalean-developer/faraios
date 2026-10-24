@@ -1,0 +1,14 @@
+{
+  "completed_at": "2026-10-23T05:08:23Z",
+  "conclusion": "failure",
+  "status": "completed",
+  "name": "GitGuardian Security Checks",
+  "head_sha": "90dbc74933357b9e9ca257c08c9616b1b3ade96e",
+  "knownIncidentReferenced": true,
+  "originalFindingCommitReferenced": true,
+  "outputOmitted": "Raw scanner fields omitted to avoid credential disclosure",
+  "knownPolicyPathReferenced": true,
+  "id": 120251972922,
+  "candidateCommitReferenced": false,
+  "knownAuditedCopyReferenced": true
+}
