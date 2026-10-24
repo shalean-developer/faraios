@@ -5,7 +5,25 @@ Status: **DRAFT FOR OWNER REVIEW — NOT AUTHORISED FOR EXECUTION**.
 
 This manifest follows [the provider-confirmation assessment](t19-provider-confirmation-20261023.md) and [the verification plan](t19-verification-plan.md). Scope is positive organisation and known synthetic invoice identity, V01. Zoho's Accounts-level token model is accepted from ticket169559907; no repeat broad OAuth investigation is planned. Review approval alone does not authorise OAuth, provider calls, connection enablement, merge or deployment.
 
-## Per-business inventory
+## Current reconciliation — 24 October 2026
+
+The inventory and four-read design below are historical preparation, superseded for Shalean by `config/t19-shalean-review.json`, E18–E21 in `t19-shalean-verification-record-20261023.md`, and the single-business procedure in `t19-milestone-a-implementation.md`. They are not missing-work instructions. Bokkie remains a separate incomplete package. No approval or provider acceptance is granted by this reconciliation.
+
+| Item | Current Shalean evidence | Remaining prerequisite |
+|---|---|---|
+| Identity/membership/role/currency | E8–E11 recorded dedicated identity, sole visible TEST membership, invoice-reader permissions and ZAR | Attended identity confirmation for any later consent; actual API enforcement untested |
+| Callback | E18 local callback aligned to existing registration | Preserve exact callback; no settings change |
+| Fixture | E19 records INV-000001, invoice1589458000000103010/customer1589458000000103003, Draft/ZAR100 cents | Exact API response comparison not run |
+| Operator/custodian/device | E20 Farai Chitekedza, SHALEAN, shalean\info | No need to renominate; recheck at action time |
+| Probe/import implementation | E21 and PR106 recorded synthetic QA | Final changed-source QA and required hosted/security gates |
+| Current client type/ownership/source | JSON explicitly Unknown / source false | Independently verify existing client and private source; no secret in evidence |
+| Execution package | approved:false; reviewer/digest/window/identity/cleanup/approval references incomplete | Complete and separately approve exact package later |
+
+The current Shalean service permits one profile GET and one known-invoice GET, not a combined four-read process. It separately gates local encrypted client import and attended OAuth code exchange; it has no refresh, sync, financial mutation or foreign-org probe. The historical no-storage/no-OAuth probe design below does not authorise these lifecycle actions. The maximum two Books reads are distinct from a separately approved OAuth exchange. Bokkie must have its own manifest/identity/grant/fixture and approval.
+
+See [bounded gap reconciliation](t19-approval-cleanup-reconciliation-20261024.md) for requirement mapping, current code changes and unresolved acceptance. Earlier missing-fixture/probe/operator statements below are retained as history only. T19 remains In progress; accounting activation NO-GO.
+
+## Historical per-business inventory
 
 Values below are historical recorded expectations, not fresh provider verification. Missing values block execution; placeholders must never be sent to an API.
 

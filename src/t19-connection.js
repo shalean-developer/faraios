@@ -15,7 +15,7 @@ export function validateManifest(m,{execution=false,now=Date.now()}={}){
  if(!m||!uuid(m.businessId)||!id(m.organizationId)||!nonempty(m.identity)||!id(m.zohoUserId)||m.apiDomain!=='https://www.zohoapis.com'||m.environment!=='staging'||!/^[A-Z]{3}$/.test(m.currency))fail('configuration');
  if(execution){
   const f=m.fixture;
-  if(m.approved!==true||!nonempty(m.approvalReference)||!nonempty(m.operator)||!nonempty(m.custodian)||!nonempty(m.reviewer)||!nonempty(m.probeSha)||!nonempty(m.clientId)||m.redirectUri!==callback||!Number.isSafeInteger(m.startsAt)||!Number.isSafeInteger(m.endsAt)||m.endsAt<=now||m.startsAt>now||m.endsAt-m.startsAt>3600000||m.endsAt<=m.startsAt||!f||!id(f.invoiceId)||!id(f.customerId)||!nonempty(f.number)||!nonempty(f.reference)||!nonempty(f.status)||!Number.isSafeInteger(f.totalCents)||f.totalCents<0||!nonempty(m.fixtureEvidence)||!nonempty(m.identityEvidence)||!nonempty(m.cleanupReference))fail('approval_required');
+  if(m.custodyVerification?.secretSourceVerified!==true||m.clientVerification?.clientType!=='Server-based'||!nonempty(m.clientVerification?.clientOwner)||m.clientVerification.clientOwner==='Unknown'||m.approved!==true||!nonempty(m.approvalReference)||!nonempty(m.operator)||!nonempty(m.custodian)||!nonempty(m.reviewer)||!nonempty(m.probeSha)||!nonempty(m.clientId)||m.redirectUri!==callback||!Number.isSafeInteger(m.startsAt)||!Number.isSafeInteger(m.endsAt)||m.endsAt<=now||m.startsAt>now||m.endsAt-m.startsAt>3600000||m.endsAt<=m.startsAt||!f||!id(f.invoiceId)||!id(f.customerId)||!nonempty(f.number)||!nonempty(f.reference)||!nonempty(f.status)||!Number.isSafeInteger(f.totalCents)||f.totalCents<0||!nonempty(m.fixtureEvidence)||!nonempty(m.identityEvidence)||!nonempty(m.cleanupReference))fail('approval_required');
  }
  return structuredClone(m);
 }
@@ -36,7 +36,7 @@ export function createConnectionService({vault,sessions,manifest,execution=false
   async status(sid){await owner(sid);return locked(async()=>{const {c}=await load();return c?{connectionId:c.id,generation:c.generation,status:c.status,cleanupPending:Boolean(c.cleanup),verified:Boolean(c.evidence),binding:c.binding}:{status:'unconfigured',binding};});},
   async authorise(sid){gate();const user=await owner(sid);return locked(async()=>{
    const {db,c:old}=await load();if(old)fail('already_attempted');
-   const client=db.clients?.[m.clientId];if(!client?.clientSecret||client.businessId!==m.businessId||client.organizationId!==m.organizationId)fail('credentials');
+   const client=db.clients?.[m.clientId];if(!client?.clientSecret||client.businessId!==m.businessId||client.organizationId!==m.organizationId||client.approvalDigest!==approvalDigest)fail('credentials');
    const c={id:randomUUID(),generation:1,binding,clientId:m.clientId,approvalDigest,status:'authorising',approvalReference:m.approvalReference,events:[]};audit(c,'consent_started');await save(db,c);
    const state=randomBytes(32).toString('hex');states.set(state,{sid,userId:user.userId,context:context(c),expires:Math.min(now()+300000,m.endsAt)});
    const url=new URL('https://accounts.zoho.com/oauth/v2/auth');url.search=new URLSearchParams({client_id:m.clientId,response_type:'code',redirect_uri:callback,scope:'ZohoBooks.settings.READ,ZohoBooks.invoices.READ',access_type:'offline',state}).toString();return {authorizationUrl:url.href};

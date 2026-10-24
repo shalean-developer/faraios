@@ -1,3 +1,4 @@
+import {importClient} from '../scripts/t19-connection.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdir,mkdtemp,readFile,rm} from 'node:fs/promises';
@@ -10,7 +11,7 @@ test('real DPAPI custody integrates with guarded service, read-only provider and
  const repositoryRoot=fileURLToPath(new URL('..',import.meta.url));const parent=join(process.env.LOCALAPPDATA,'FaraiOS','T19-integration-tests');await mkdir(parent,{recursive:true});const directory=await mkdtemp(join(parent,'synthetic-'));let vault;
  t.after(async()=>{await vault?.close();const r=relative(resolve(parent),resolve(directory));if(!r||r.startsWith('..')||isAbsolute(r))throw new Error('Unsafe integration cleanup');await rm(directory,{recursive:true,force:true});});
  const businessId='00000000-0000-4000-8000-000000000001';
- const manifest={businessId,organizationId:'111',identity:'synthetic@example.invalid',zohoUserId:'123',apiDomain:'https://www.zohoapis.com',environment:'staging',currency:'ZAR',approved:true,approvalReference:'synthetic-integration-approval',operator:'synthetic-operator',custodian:'synthetic-custodian',reviewer:'synthetic-reviewer',probeSha:'synthetic-reviewed-sha',clientId:'dummy-client',redirectUri:origin+'/zoho/callback',startsAt:0,endsAt:60000,fixture:{invoiceId:'9001',customerId:'222',number:'TEST-1',reference:'SYNTHETIC-1',status:'draft',totalCents:100},fixtureEvidence:'synthetic-fixture-evidence',identityEvidence:'synthetic-attended-evidence',cleanupReference:'synthetic-cleanup'};
+ const manifest={businessId,organizationId:'111',identity:'synthetic@example.invalid',zohoUserId:'123',apiDomain:'https://www.zohoapis.com',environment:'staging',currency:'ZAR',approved:true,custodyVerification:{secretSourceVerified:true},clientVerification:{clientType:'Server-based',clientOwner:'synthetic-owner'},approvalReference:'synthetic-integration-approval',operator:'synthetic-operator',custodian:'synthetic-custodian',reviewer:'synthetic-reviewer',probeSha:'synthetic-reviewed-sha',clientId:'dummy-client',redirectUri:origin+'/zoho/callback',startsAt:0,endsAt:60000,fixture:{invoiceId:'9001',customerId:'222',number:'TEST-1',reference:'SYNTHETIC-1',status:'draft',totalCents:100},fixtureEvidence:'synthetic-fixture-evidence',identityEvidence:'synthetic-attended-evidence',cleanupReference:'synthetic-cleanup'};
  const sessions={read:async sid=>sid==='owner'?{userId:'10000000-0000-4000-8000-000000000001',businessIds:[businessId],memberships:[{businessId,role:'owner',status:'active'}]}:null};
  const calls=[];const fetchImpl=async(url,options)=>{calls.push({url,method:options.method});const path=new URL(url).pathname;
   if(path==='/oauth/v2/token')return Response.json({access_token:'DPAPI-DUMMY-ACCESS-NOT-REAL',refresh_token:'DPAPI-DUMMY-REFRESH-NOT-REAL',api_domain:'https://www.zohoapis.com',expires_in:3600,token_type:'Bearer'});
@@ -18,7 +19,7 @@ test('real DPAPI custody integrates with guarded service, read-only provider and
   if(path==='/books/v3/invoices/9001')return Response.json({code:0,invoice:{invoice_id:'9001',customer_id:'222',invoice_number:'TEST-1',reference_number:'SYNTHETIC-1',status:'draft',total:'1.00',currency_code:'ZAR'}});
   throw new Error('Unexpected mock request');
  };
- vault=await openVault({directory,repositoryRoot});await vault.write({connections:{},clients:{'dummy-client':{businessId,organizationId:'111',clientSecret:'DPAPI-DUMMY-CLIENT-NOT-REAL'}}});
+ vault=await openVault({directory,repositoryRoot});await vault.write(importClient({connections:{}},manifest,{clientSecret:'DPAPI-DUMMY-CLIENT-NOT-REAL'}));
  const {service}=createConnectionService({vault,sessions,manifest,execution:true,fetchImpl,now:()=>1000});
  const {authorizationUrl}=await service.authorise('owner');await service.callback('owner',new URL(authorizationUrl).searchParams.get('state'),'dummy-code');
  const result=await service.verify('owner');assert.equal(result.status,'verified');assert.equal(result.evidence.requestCount,2);assert.deepEqual(calls.map(c=>c.method),['POST','GET','GET']);

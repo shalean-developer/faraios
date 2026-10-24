@@ -1,0 +1,70 @@
+✔ review manifest matches registered callback but remains unapproved; former callback fails execution validation (2.227796ms)
+✔ synthetic consent, exactly two provider reads, then local disable with distinct revocation state (18.532356ms)
+✔ owner-only business isolation rejects before vault and provider access (1.827073ms)
+✔ execution gate blocks authorisation and verification without provider or storage access (0.368712ms)
+✔ manifest approval, time-window and fixture requirements fail closed (0.371887ms)
+✔ OAuth state is session-bound, single-use and invalid callbacks never exchange (0.516019ms)
+✔ successful callback cannot be replayed and same window cannot authorise twice (1.562778ms)
+✔ owner revoked before callback prevents token exchange (0.888236ms)
+✔ approval expiry blocks callback and reads without exchange or refresh (1.577249ms)
+✔ credential expiry and stale credential context reject without provider calls (2.66557ms)
+✔ immutable binding rejects after restart with changed organisation (2.847798ms)
+✔ verification is single attempt and error bodies never leak provider credentials (2.195068ms)
+✔ disable during in-flight profile prevents invoice and late verification evidence (1.905883ms)
+✔ HTTP host/origin/CSRF/method/body and foreign route restrictions (31.287263ms)
+✔ registered callback matches consent and exchange, rejects old route and duplicate state (5.329198ms)
+✔ OAuth state expires independently of the longer approved window (0.445115ms)
+✔ late grant after disable is retained only for cleanup and never authenticates (0.956797ms)
+✔ HTTP write/sync/list/refresh routes are unavailable (3.800689ms)
+✔ disable while invoice is in flight discards late success (1.717637ms)
+✔ real auth-session adapter uses verified Auth identity and current membership rows (2.422212ms)
+✔ stored client metadata cannot cross business or organisation boundary (0.929166ms)
+✔ restart cannot relabel a stored grant under changed client, window or fixture approval (2.016435ms)
+✔ unverified secret source or client registration blocks before vault and provider access (0.705117ms)
+﹣ real DPAPI custody integrates with guarded service, read-only provider and durable disable (0.977287ms) # SKIP
+✔ only pinned profile then known invoice GET, four generation checks and minimal evidence (9.405833ms)
+✔ invalid binding, fixture and missing guard fail before fetch (1.102751ms)
+✔ fixture cannot override binding or mutate later request expectations (1.140958ms)
+✔ profile mismatch stops before invoice {"organization_id":"222"} (1.785787ms)
+✔ profile mismatch stops before invoice {"is_org_active":false} (0.699468ms)
+✔ profile mismatch stops before invoice {} (0.671508ms)
+✔ profile mismatch stops before invoice {"currency_code":"USD"} (1.429893ms)
+✔ invoice tuple mismatch {"invoice_id":"9002"} (0.720189ms)
+✔ invoice tuple mismatch {"invoice_number":"wrong"} (0.477002ms)
+✔ invoice tuple mismatch {"reference_number":"wrong"} (0.641663ms)
+✔ invoice tuple mismatch {"customer_id":"333"} (0.518964ms)
+✔ invoice tuple mismatch {"currency_code":"USD"} (0.573443ms)
+✔ invoice tuple mismatch {"status":"sent"} (0.48948ms)
+✔ invoice tuple mismatch {"total":"1.001"} (0.628765ms)
+✔ invoice tuple mismatch {"organization_id":"222"} (0.403964ms)
+✔ missing or nonnumeric Books success code rejected (0.838313ms)
+✔ HTTP 401 has no retry or refresh (0.393989ms)
+✔ HTTP 403 has no retry or refresh (0.189269ms)
+✔ HTTP 429 has no retry or refresh (0.177681ms)
+✔ HTTP 500 has no retry or refresh (0.138714ms)
+✔ streaming cap cancels oversized body without accumulating all data (0.888967ms)
+✔ malformed content, redirects and transport details remain sanitised (0.532493ms)
+✔ guard denies before dispatch, between reads and during in-flight results (0.833096ms)
+✔ one code exchange, fixed endpoint, private body and bounded expiry (1.727431ms)
+✔ token exchange rejects wrong host, missing tokens or invalid expiration (1.175078ms)
+✔ 12-second deadline fails closed even when injected transport ignores abort (1.000982ms)
+✔ client import pins business/org and rejects replacing another business client (1.357686ms)
+✔ cleanup is exact connection/generation/client/identity attestation, never implicit revocation (0.590068ms)
+✔ cleanup does not delete a client still referenced by another connection (0.236488ms)
+✔ invalid execution hash rejects before any vault or provider setup (113.51944ms)
+✔ check-import validates approved manifest without storage and rejects mixed modes, wrong client and expired approval (869.325069ms)
+✔ pre-consent cleanup removes only exact imported client and retains non-secret audit (1.353641ms)
+﹣ real CurrentUser DPAPI stores only ciphertext, survives restart and returns isolated snapshots (0.920724ms) # SKIP
+﹣ exclusive writer blocks another process instance and serialized writes persist last generation (0.111374ms) # SKIP
+﹣ corrupted ciphertext fails closed and does not reset registry or leak content (0.06788ms) # SKIP
+﹣ repository paths, non-local paths and junctions are rejected (0.061661ms) # SKIP
+﹣ protection failure leaves no plaintext and poisons writes (0.075912ms) # SKIP
+﹣ pre-consent cleanup persists only exact local removal through real DPAPI restart (0.056142ms) # SKIP
+ℹ tests 62
+ℹ suites 0
+ℹ pass 55
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 7
+ℹ todo 0
+ℹ duration_ms 1132.954909

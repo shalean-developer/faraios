@@ -1,6 +1,8 @@
-import test from 'node:test';
+import nodeTest from 'node:test';
+// This suite requires Windows PowerShell and CurrentUser DPAPI; hosted Windows CI runs every case.
+const test=(name,fn)=>nodeTest(name,{skip:process.platform!=='win32'},fn);
 import assert from 'node:assert/strict';
-import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
+import {mkdtemp,writeFile,readFile,rm,realpath} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -60,14 +62,19 @@ test('production entrypoint rejects redirected input rather than accepting unmas
  assert.equal(r.status,1);assert.equal(r.stdout,'');assert.doesNotMatch(r.stderr,/dummy-secret/);
 });
 test('masked helper hands dummy secret to real gated importer and DPAPI; duplicate import fails closed',async t=>{
- const dir=await mkdtemp(join(tmpdir(),'t19-real-import-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ // Use an isolated directory and explicitly pin the PowerShell child custody root before importing dummy data.
+ const custodyRoot=await realpath(process.env.LOCALAPPDATA);
+ const dir=await mkdtemp(join(custodyRoot,'t19-real-import-'));t.after(()=>rm(dir,{recursive:true,force:true}));
  const manifestPath=join(dir,'approved-synthetic.json'),script=join(dir,'test.ps1');
- const now=Date.now();const m={businessId:'00000000-0000-4000-8000-000000000001',organizationId:'111',identity:'synthetic@example.invalid',zohoUserId:'123',apiDomain:'https://www.zohoapis.com',environment:'staging',currency:'ZAR',approved:true,approvalReference:'dummy-test-only',operator:'dummy',custodian:'dummy',reviewer:'dummy',probeSha:await probeDigest(),clientId:'dummy-client',redirectUri:'http://127.0.0.1:3102/zoho/callback',startsAt:now-1000,endsAt:now+120000,fixture:{invoiceId:'9001',customerId:'222',number:'TEST-1',reference:'SYNTHETIC',status:'draft',totalCents:100},fixtureEvidence:'dummy',identityEvidence:'dummy',cleanupReference:'dummy'};
+ const now=Date.now();const m={businessId:'00000000-0000-4000-8000-000000000001',organizationId:'111',identity:'synthetic@example.invalid',zohoUserId:'123',apiDomain:'https://www.zohoapis.com',environment:'staging',currency:'ZAR',approved:true,custodyVerification:{secretSourceVerified:true},clientVerification:{clientType:'Server-based',clientOwner:'synthetic-owner'},approvalReference:'dummy-test-only',operator:'dummy',custodian:'dummy',reviewer:'dummy',probeSha:await probeDigest(),clientId:'dummy-client',redirectUri:'http://127.0.0.1:3102/zoho/callback',startsAt:now-1000,endsAt:now+120000,fixture:{invoiceId:'9001',customerId:'222',number:'TEST-1',reference:'SYNTHETIC',status:'draft',totalCents:100},fixtureEvidence:'dummy',identityEvidence:'dummy',cleanupReference:'dummy'};
  await writeFile(manifestPath,JSON.stringify(m));
  await writeFile(script,`$ErrorActionPreference='Stop'
+$env:LOCALAPPDATA=${quote(dir)}
+if(-not [IO.Directory]::Exists($env:LOCALAPPDATA)){throw 'SYNTHETIC_CUSTODY_ROOT_MISSING'}
 . ${quote(helper)}
 $m=Get-Content -Raw -LiteralPath ${quote(manifestPath)}|ConvertFrom-Json
-$m|Add-Member -NotePropertyName custodyVerification -NotePropertyValue @{deviceName=[Environment]::MachineName;windowsAccount=[Security.Principal.WindowsIdentity]::GetCurrent().Name}
+$m.custodyVerification|Add-Member -NotePropertyName deviceName -NotePropertyValue ([Environment]::MachineName)
+$m.custodyVerification|Add-Member -NotePropertyName windowsAccount -NotePropertyValue ([Security.Principal.WindowsIdentity]::GetCurrent().Name)
 [IO.File]::WriteAllText(${quote(manifestPath)},($m|ConvertTo-Json -Depth 10))
 $hash=(Get-FileHash -LiteralPath ${quote(manifestPath)} -Algorithm SHA256).Hash.ToLowerInvariant()
 function Read-Host {param($Prompt,[switch]$AsSecureString);if(-not $AsSecureString){throw 'Unmasked'};ConvertTo-SecureString 'DUMMY-REAL-PIPE-NOT-A-CREDENTIAL' -AsPlainText -Force}

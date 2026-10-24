@@ -14,7 +14,15 @@ export async function probeDigest(){const hash=createHash('sha256');for(const pa
 export function importClient(db,manifest,secret){
  if(!secret||Object.keys(secret).length!==1||typeof secret.clientSecret!=='string'||!secret.clientSecret||/[\r\n\0]/.test(secret.clientSecret))throw new Error('Client import rejected');
  db=structuredClone(db);db.clients??={};if(db.clients[manifest.clientId])throw new Error('Client import rejected');
- db.clients[manifest.clientId]={clientSecret:secret.clientSecret,businessId:manifest.businessId,organizationId:manifest.organizationId};return db;
+ db.clients[manifest.clientId]={clientSecret:secret.clientSecret,businessId:manifest.businessId,organizationId:manifest.organizationId,approvalDigest:createHash('sha256').update(JSON.stringify(manifest)).digest('hex')};return db;
+}
+// Local removal only, before any connection/consent record exists. Never revokes a grant.
+export function cleanupImportedClient(db,manifest,evidence){
+ const client=db.clients?.[manifest.clientId];
+ const digest=createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
+ if(!client||client.businessId!==manifest.businessId||client.organizationId!==manifest.organizationId||client.approvalDigest!==digest||!db.connections||Object.values(db.connections).some(c=>c.clientId===manifest.clientId)||evidence.clientId!==manifest.clientId||evidence.businessId!==manifest.businessId||evidence.organizationId!==manifest.organizationId||evidence.custodian!==manifest.custodian||evidence.noGrantInitiated!==true||typeof evidence.reference!=='string'||!evidence.reference.trim()||evidence.reference.length>500)throw new Error('Pre-consent cleanup rejected');
+ db=structuredClone(db);delete db.clients[manifest.clientId];
+ db.clientCleanupEvents??=[];db.clientCleanupEvents.push({event:'unused_client_removed_locally',clientId:manifest.clientId,businessId:manifest.businessId,organizationId:manifest.organizationId,custodian:manifest.custodian,approvalDigest:digest,reference:evidence.reference,time:Date.now(),providerRevocationClaimed:false});return db;
 }
 export function attestCleanup(db,manifest,evidence){
  db=structuredClone(db);const c=db.connections[manifest.businessId];
@@ -24,14 +32,14 @@ export function attestCleanup(db,manifest,evidence){
 async function main(){
  const args=process.argv.slice(2);
  if(args.length===1&&args[0]==='--describe'){console.log(JSON.stringify({origin,probeSha:await probeDigest(),providerExecution:'disabled unless exact manifest hash approved',writes:'none',refresh:'none'}));return;}
- const allowed=new Set(['manifest','execute-approved','import-client','check-import','cleanup-evidence']);const values={};
+ const allowed=new Set(['manifest','execute-approved','import-client','check-import','cleanup-evidence','cleanup-import-evidence']);const values={};
  for(const arg of args){const match=/^--([a-z-]+)=(.+)$/.exec(arg);if(!match||!allowed.has(match[1])||Object.hasOwn(values,match[1]))throw new Error();values[match[1]]=match[2];}
- if(!values.manifest||['import-client','check-import','cleanup-evidence'].filter(k=>values[k]).length>1)throw new Error();
+ if(!values.manifest||['import-client','check-import','cleanup-evidence','cleanup-import-evidence'].filter(k=>values[k]).length>1)throw new Error();
  const raw=await readFile(resolve(values.manifest));if(raw.length>32768)throw new Error();
  const manifest=validateManifest(JSON.parse(raw));const approved=values['execute-approved'];
  const execution=Boolean(approved);
- if(execution){if(approved!==createHash('sha256').update(raw).digest('hex')||manifest.probeSha!==await probeDigest())throw new Error();validateManifest(manifest,{execution:true,...(values['cleanup-evidence']?{now:manifest.startsAt}:{})});}
- if((values['import-client']||values['check-import']||values['cleanup-evidence'])&&!execution)throw new Error();
+ if(execution){if(approved!==createHash('sha256').update(raw).digest('hex')||manifest.probeSha!==await probeDigest())throw new Error();validateManifest(manifest,{execution:true,...((values['cleanup-evidence']||values['cleanup-import-evidence'])?{now:manifest.startsAt}:{})});}
+ if((values['import-client']||values['check-import']||values['cleanup-evidence']||values['cleanup-import-evidence'])&&!execution)throw new Error();
  if(values['check-import']){if(values['check-import']!==manifest.clientId)throw new Error();console.log('TEST import gate validated; no storage or provider access performed.');return;}
  if(!process.env.LOCALAPPDATA)throw new Error();
  const vault=await openVault({directory:join(process.env.LOCALAPPDATA,'FaraiOS','T19','credentials'),repositoryRoot:root});
@@ -40,6 +48,11 @@ async function main(){
    if(values['import-client']!==manifest.clientId||process.stdin.isTTY)throw new Error();
    let input='';for await(const part of process.stdin){input+=part;if(Buffer.byteLength(input)>16384)throw new Error();}
    await vault.write(importClient(await vault.read(),manifest,JSON.parse(input)));console.log('TEST client stored; no provider request performed.');return;
+  }
+  if(values['cleanup-import-evidence']){
+   const rawEvidence=await readFile(resolve(values['cleanup-import-evidence']));if(rawEvidence.length>16384)throw new Error();
+   await vault.write(cleanupImportedClient(await vault.read(),manifest,JSON.parse(rawEvidence)));
+   console.log('Unused TEST client removed locally; no provider request or revocation performed.');return;
   }
   if(values['cleanup-evidence']){
    // Custodian attestation only, not a provider revocation claim made by software.
