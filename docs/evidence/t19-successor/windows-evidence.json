@@ -1,0 +1,44 @@
+{
+  "source": "owner supplied Windows terminal transcript; not agent-run Windows session",
+  "baseCommit": "a5558ff2f74d004bdce7befb4f506622d468dec9",
+  "worktree": "C:\\Users\\info\\FaraiOS-Projects\\faraios-t19-successor-test",
+  "patchSHA256": "a12bdc00270a3e7676b18b344cec2588bd2d180736fe22d340d52a032c60b03e",
+  "patchGate": "owner script hash comparison and apply-check proceeded without error",
+  "tests": {
+    "total": 92,
+    "pass": 92,
+    "fail": 0,
+    "skip": 0,
+    "exit": 0
+  },
+  "windowsRuntimeSha256": "0f45df2d61f700f38c30820df58f4a3938841d9b5e6df0407ab2ceccb3b67b26",
+  "fingerprintReconstruction": "matches reviewed ordered runtime paths with CRLF for each text file",
+  "runtimeLF": "032fadc791e5c885f78feb71fe94341e776b21575f68d2fb09f5518e122152a7",
+  "whitespaceCheck": "no output/error and script proceeded to status",
+  "observedChangedFiles": [
+    "package.json",
+    "scripts/t19-connection.mjs",
+    "src/t19-connection.js",
+    "src/t19-successor.js",
+    "test/t19-successor.test.js"
+  ],
+  "npmAudit": "0 vulnerabilities in installed11packages; not hosted security acceptance",
+  "providerExecution": "disabled unless exact manifest hash approved",
+  "writes": "none",
+  "refresh": "none",
+  "scope": "synthetic suite including real dummy Windows DPAPI/CLI custody; no provider acceptance claim",
+  "transcriptSHA256": "5964caf750da58c13ff3fcd57e8b9573a53a6e300131262ff865526fca85362b",
+  "independentEvidenceReview": {
+    "reviewer": "/root/t19_independent_review",
+    "result": "PASS for Windows dummy-verification evidence only",
+    "verified": "92pass0fail0skip exit0, expected five files, exact patch/transcript hashes, independently reconstructed CRLF runtime",
+    "limits": "Owner-supplied Windows execution, not agent-operated Windows or hosted CI. Descriptor writes:none concerns inert describe command; synthetic temporary store writes occurred as intended."
+  },
+  "hostedCIsecurity": "not run for successor candidate",
+  "publicationAuthorised": false,
+  "trackerChanged": false,
+  "T19": "In progress",
+  "T20": "untouched",
+  "publishedEvidence": "windows-dummy-tests.txt: execution output only; original owner command transcript retained privately for review",
+  "publishedEvidenceSHA256": "cb78811c010693dae048417d9eed19cd9ba8aad8c6874e3b004715fa62df49fe"
+}
