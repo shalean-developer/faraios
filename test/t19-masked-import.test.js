@@ -73,6 +73,8 @@ if(args.some(a=>a.startsWith('--import-client='))){
  let parsed;try{parsed=JSON.parse(input);}catch{}
  record({stage:'input',valid:Boolean(parsed&&Object.keys(parsed).length===1&&parsed.clientSecret==='DUMMY-REAL-PIPE-NOT-A-CREDENTIAL')});
  try{const vault=await openVault({directory:${JSON.stringify(join(dir,'FaraiOS','T19','credentials'))},repositoryRoot:${JSON.stringify(root)}});await vault.close();record({stage:'vault',ok:true});}catch{record({stage:'vault',ok:false});}
+ delete process.env.PSModulePath;
+ try{const vault=await openVault({directory:${JSON.stringify(join(dir,'FaraiOS','T19','credentials'))},repositoryRoot:${JSON.stringify(root)}});await vault.close();record({stage:'vault_without_inherited_module_path',ok:true});}catch{record({stage:'vault_without_inherited_module_path',ok:false});}
 }
 const r=spawnSync(process.execPath,[${JSON.stringify(join(root,'scripts/t19-connection.mjs'))},...args],{input,encoding:'utf8',windowsHide:true});
 record({stage:'child',exit:r.status,stderrLength:r.stderr?.length??0,success:r.stdout?.trim()==='TEST client stored; no provider request performed.'});
