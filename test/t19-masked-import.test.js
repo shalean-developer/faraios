@@ -76,12 +76,15 @@ $hash=(Get-FileHash -LiteralPath ${quote(manifestPath)} -Algorithm SHA256).Hash.
 & ${quote(process.execPath)} ${quote(join(root,'scripts/t19-connection.mjs'))} ('--manifest='+${quote(manifestPath)}) ('--execute-approved='+$hash) '--check-import=dummy-client'
 if($LASTEXITCODE -ne 0){throw 'SYNTHETIC_PREFLIGHT_FAILED'}
 [Console]::WriteLine('SYNTHETIC_PREFLIGHT_PASSED')
+$pipeReceipt=Invoke-T19ImportChild -NodePath ${quote(process.execPath)} -RunnerPath ${quote(join(root,'scripts/t19-connection.mjs'))} -ChildArguments @(('--manifest='+${quote(manifestPath)}),('--execute-approved='+$hash),'--check-import=dummy-client')
+if($pipeReceipt -cne 'TEST import gate validated; no storage or provider access performed.'){throw 'SYNTHETIC_PIPE_RECEIPT_FAILED'}
+[Console]::WriteLine('SYNTHETIC_PIPE_PREFLIGHT_PASSED')
 function Read-Host {param($Prompt,[switch]$AsSecureString);if(-not $AsSecureString){throw 'Unmasked'};ConvertTo-SecureString 'DUMMY-REAL-PIPE-NOT-A-CREDENTIAL' -AsPlainText -Force}
 Invoke-T19MaskedImport -NodePath ${quote(process.execPath)} -RunnerPath ${quote(join(root,'scripts/t19-connection.mjs'))} -ManifestFile ${quote(manifestPath)} -ApprovedHash $hash
 try { Invoke-T19MaskedImport -NodePath ${quote(process.execPath)} -RunnerPath ${quote(join(root,'scripts/t19-connection.mjs'))} -ManifestFile ${quote(manifestPath)} -ApprovedHash $hash; exit 2 } catch { [Console]::WriteLine('DUPLICATE_REJECTED') }
 `);
  const r=spawnSync('pwsh',['-NoLogo','-NoProfile','-NonInteractive','-File',script],{cwd:root,env:{...process.env,LOCALAPPDATA:dir},windowsHide:true,encoding:'utf8',timeout:90000});
- assert.equal(r.status,0,r.stderr);assert.match(r.stdout,/TEST client stored; no provider request performed/);assert.match(r.stdout,/DUPLICATE_REJECTED/);assert.doesNotMatch(r.stdout+r.stderr,/DUMMY-REAL-PIPE-NOT-A-CREDENTIAL/);
+ assert.equal(r.status,0,r.stdout+r.stderr);assert.match(r.stdout,/TEST client stored; no provider request performed/);assert.match(r.stdout,/DUPLICATE_REJECTED/);assert.doesNotMatch(r.stdout+r.stderr,/DUMMY-REAL-PIPE-NOT-A-CREDENTIAL/);
  const directory=join(dir,'FaraiOS','T19','credentials');const encrypted=await readFile(join(directory,'vault.dpapi'));assert.equal(encrypted.includes(Buffer.from('DUMMY-REAL-PIPE-NOT-A-CREDENTIAL')),false);
  const vault=await openVault({directory,repositoryRoot:root});try{const db=await vault.read();assert.equal(db.clients['dummy-client'].clientSecret,'DUMMY-REAL-PIPE-NOT-A-CREDENTIAL');assert.equal(db.clients['dummy-client'].businessId,m.businessId);assert.equal(db.clients['dummy-client'].organizationId,m.organizationId);assert.deepEqual(db.connections,{});}finally{await vault.close();}
 });
