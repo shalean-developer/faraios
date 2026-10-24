@@ -58,3 +58,7 @@ echo CI_POLICY_FULL_SUITE_PASS
 
 T19_PG_BIN="$(pg_config --bindir)" npm run test:accounting:postgres
 echo CI_POLICY_DEDICATED_NATIVE_PASS
+
+# Explicit invocation: ordinary Node discovery must not launch native clusters.
+T19_PG_BIN="$(pg_config --bindir)" node scripts/run-t19-c2-postgres.mjs
+echo CI_POLICY_C2_NATIVE_PASS
