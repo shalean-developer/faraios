@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {request} from 'node:http';
 import {readFileSync} from 'node:fs';
 import {createConnectionService,validateManifest,origin} from '../src/t19-connection.js';
 const businessId='00000000-0000-4000-8000-000000000001', foreignBusiness='00000000-0000-4000-8000-000000000002';
 const manifest={businessId,organizationId:'111',identity:'test@example.invalid',zohoUserId:'123',apiDomain:'https://www.zohoapis.com',environment:'staging',currency:'ZAR',approved:true,custodyVerification:{secretSourceVerified:true},clientVerification:{clientType:'Server-based',clientOwner:'synthetic-owner'},approvalReference:'owner-approved-synthetic',operator:'test-operator',custodian:'test-custodian',reviewer:'test-reviewer',probeSha:'synthetic-reviewed-sha',clientId:'dummy-client',redirectUri:origin+'/zoho/callback',startsAt:0,endsAt:60000,fixture:{invoiceId:'9001',customerId:'222',number:'TEST-1',reference:'SYNTHETIC-1',status:'draft',totalCents:100},fixtureEvidence:'synthetic-ui',identityEvidence:'attended-synthetic',cleanupReference:'synthetic-cleanup'};
 function harness({execution=true,fetchOverride,manifestOverride={}}={}){
- let current=1000,db={connections:{},clients:{'dummy-client':{clientSecret:'dummy-client-secret',businessId,organizationId:'111'}}},reads=0,writes=0;const calls=[];
+ let current=1000,db={connections:{},clients:{'dummy-client':{clientSecret:'dummy-client-secret',businessId,organizationId:'111',approvalDigest:createHash('sha256').update(JSON.stringify({...manifest,...manifestOverride})).digest('hex')}}},reads=0,writes=0;const calls=[];
  const users=new Map([['owner',{userId:'10000000-0000-4000-8000-000000000001',businessIds:[businessId],memberships:[{businessId,role:'owner',status:'active'}]}],['foreign',{userId:'10000000-0000-4000-8000-000000000002',businessIds:[foreignBusiness],memberships:[{businessId:foreignBusiness,role:'owner',status:'active'}]}],['manager',{userId:'10000000-0000-4000-8000-000000000003',businessIds:[businessId],memberships:[{businessId,role:'manager',status:'active'}]}]]);
  const sessions={read:async sid=>structuredClone(users.get(sid)??null),login:async email=>({id:email,identity:users.get(email)})};
  const vault={read:async()=>{reads++;return structuredClone(db);},write:async value=>{writes++;db=structuredClone(value);}};
@@ -109,4 +110,13 @@ test('unverified secret source or client registration blocks before vault and pr
  for(const patch of [{custodyVerification:undefined},{custodyVerification:{secretSourceVerified:false}},{clientVerification:undefined},{clientVerification:{clientType:'ORG',clientOwner:'synthetic-owner'}},{clientVerification:{clientType:'Server-based',clientOwner:'Unknown'}}]){
   const h=harness({manifestOverride:patch});await rejected(h.service.authorise('owner'),'approval_required');assert.equal(h.reads,0);assert.equal(h.writes,0);assert.equal(h.calls.length,0);
  }
+});
+
+test('consent rejects changed or missing imported manifest digest before connection creation',async()=>{
+ for(const digest of [undefined,'other-reviewed-manifest']){
+  const h=harness(),db=h.db;db.clients['dummy-client'].approvalDigest=digest;await h.vault.write(db);
+  const writes=h.writes;await rejected(h.service.authorise('owner'),'credentials');assert.equal(h.calls.length,0);assert.equal(h.writes,writes);assert.deepEqual(h.db.connections,{});
+ }
+ const h=harness();const changed=createConnectionService({vault:h.vault,sessions:h.sessions,manifest:{...manifest,identity:'changed@example.invalid',approvalReference:'different-approval'},execution:true,fetchImpl:()=>{throw Error('must not fetch');},now:()=>1000});
+ await rejected(changed.service.authorise('owner'),'credentials');assert.deepEqual(h.db.connections,{});assert.equal(h.calls.length,0);
 });

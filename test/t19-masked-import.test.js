@@ -1,4 +1,6 @@
-import test from 'node:test';
+import nodeTest from 'node:test';
+// This suite requires Windows PowerShell and CurrentUser DPAPI; hosted Windows CI runs every case.
+const test=(name,fn)=>nodeTest(name,{skip:process.platform!=='win32'},fn);
 import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -67,7 +69,8 @@ test('masked helper hands dummy secret to real gated importer and DPAPI; duplica
  await writeFile(script,`$ErrorActionPreference='Stop'
 . ${quote(helper)}
 $m=Get-Content -Raw -LiteralPath ${quote(manifestPath)}|ConvertFrom-Json
-$m|Add-Member -NotePropertyName custodyVerification -NotePropertyValue @{deviceName=[Environment]::MachineName;windowsAccount=[Security.Principal.WindowsIdentity]::GetCurrent().Name}
+$m.custodyVerification|Add-Member -NotePropertyName deviceName -NotePropertyValue ([Environment]::MachineName)
+$m.custodyVerification|Add-Member -NotePropertyName windowsAccount -NotePropertyValue ([Security.Principal.WindowsIdentity]::GetCurrent().Name)
 [IO.File]::WriteAllText(${quote(manifestPath)},($m|ConvertTo-Json -Depth 10))
 $hash=(Get-FileHash -LiteralPath ${quote(manifestPath)} -Algorithm SHA256).Hash.ToLowerInvariant()
 function Read-Host {param($Prompt,[switch]$AsSecureString);if(-not $AsSecureString){throw 'Unmasked'};ConvertTo-SecureString 'DUMMY-REAL-PIPE-NOT-A-CREDENTIAL' -AsPlainText -Force}

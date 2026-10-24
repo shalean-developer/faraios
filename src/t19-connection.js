@@ -36,7 +36,7 @@ export function createConnectionService({vault,sessions,manifest,execution=false
   async status(sid){await owner(sid);return locked(async()=>{const {c}=await load();return c?{connectionId:c.id,generation:c.generation,status:c.status,cleanupPending:Boolean(c.cleanup),verified:Boolean(c.evidence),binding:c.binding}:{status:'unconfigured',binding};});},
   async authorise(sid){gate();const user=await owner(sid);return locked(async()=>{
    const {db,c:old}=await load();if(old)fail('already_attempted');
-   const client=db.clients?.[m.clientId];if(!client?.clientSecret||client.businessId!==m.businessId||client.organizationId!==m.organizationId)fail('credentials');
+   const client=db.clients?.[m.clientId];if(!client?.clientSecret||client.businessId!==m.businessId||client.organizationId!==m.organizationId||client.approvalDigest!==approvalDigest)fail('credentials');
    const c={id:randomUUID(),generation:1,binding,clientId:m.clientId,approvalDigest,status:'authorising',approvalReference:m.approvalReference,events:[]};audit(c,'consent_started');await save(db,c);
    const state=randomBytes(32).toString('hex');states.set(state,{sid,userId:user.userId,context:context(c),expires:Math.min(now()+300000,m.endsAt)});
    const url=new URL('https://accounts.zoho.com/oauth/v2/auth');url.search=new URLSearchParams({client_id:m.clientId,response_type:'code',redirect_uri:callback,scope:'ZohoBooks.settings.READ,ZohoBooks.invoices.READ',access_type:'offline',state}).toString();return {authorizationUrl:url.href};

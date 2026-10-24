@@ -1,3 +1,4 @@
+import {importClient} from '../scripts/t19-connection.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdir,mkdtemp,readFile,rm} from 'node:fs/promises';
@@ -18,7 +19,7 @@ test('real DPAPI custody integrates with guarded service, read-only provider and
   if(path==='/books/v3/invoices/9001')return Response.json({code:0,invoice:{invoice_id:'9001',customer_id:'222',invoice_number:'TEST-1',reference_number:'SYNTHETIC-1',status:'draft',total:'1.00',currency_code:'ZAR'}});
   throw new Error('Unexpected mock request');
  };
- vault=await openVault({directory,repositoryRoot});await vault.write({connections:{},clients:{'dummy-client':{businessId,organizationId:'111',clientSecret:'DPAPI-DUMMY-CLIENT-NOT-REAL'}}});
+ vault=await openVault({directory,repositoryRoot});await vault.write(importClient({connections:{}},manifest,{clientSecret:'DPAPI-DUMMY-CLIENT-NOT-REAL'}));
  const {service}=createConnectionService({vault,sessions,manifest,execution:true,fetchImpl,now:()=>1000});
  const {authorizationUrl}=await service.authorise('owner');await service.callback('owner',new URL(authorizationUrl).searchParams.get('state'),'dummy-code');
  const result=await service.verify('owner');assert.equal(result.status,'verified');assert.equal(result.evidence.requestCount,2);assert.deepEqual(calls.map(c=>c.method),['POST','GET','GET']);
