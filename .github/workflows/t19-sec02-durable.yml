@@ -4,6 +4,7 @@ on:
     paths:
       - 'test-support/t19-sec02-durable.sql'
       - 'test-support/t19-sec02-durable-test.sql'
+      - 'test-support/t19-sec02-atomic-rejection.sql'
       - 'test-support/t19-sec02-adversarial.sh'
       - 'test-support/t19-sec02-restart.sh'
       - '.github/workflows/t19-sec02-durable.yml'
@@ -40,6 +41,11 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -c "set faraios.sec02='synthetic'" -f test-support/t19-sec02-disposable-fixture.sql
       - name: Establish durable C1 test fixture
         run: psql -X -v ON_ERROR_STOP=1 -c "set faraios.sec02='synthetic'" -f test-support/t19-sec02-durable.sql
+      - name: Reject publication without any protected-state mutation
+        run: psql -X -v ON_ERROR_STOP=1 -f test-support/t19-sec02-atomic-rejection.sql
+      - name: Reset synthetic fixture after rejection tests
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -c "TRUNCATE custody_durable.prepared_refs,custody_durable.operations; UPDATE custody_durable.connections SET enabled=true,generation=1,credential_version=1,reference='33333333-3333-4333-8333-333333333333';"
       - name: Verify fenced publication and disconnect
         run: psql -X -v ON_ERROR_STOP=1 -f test-support/t19-sec02-durable-test.sql
       - name: Verify only custody can execute or inspect
