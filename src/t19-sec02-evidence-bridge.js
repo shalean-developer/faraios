@@ -14,7 +14,7 @@ export function createRestrictedEvidenceBridge({sealerPublicKey,providerVerifier
       const proof=createHmac('sha256',publicationKey).update([signerFingerprint,purpose,nonce,operation,c1Key,lease].join('\\x1f')).digest('hex');
       const result=await db.query(
         'select evidence_guard.consume_verified($1,$2,$3,$4,$5,$6,$7) as accepted',
-        [signerFingerprint,purpose,nonce,operation,c1Key,lease]
+        [signerFingerprint,purpose,nonce,operation,c1Key,lease,proof]
       );
       return result?.rows?.length===1 && result.rows[0].accepted===true;
     }
