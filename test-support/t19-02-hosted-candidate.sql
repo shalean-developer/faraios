@@ -86,12 +86,70 @@ ALTER FUNCTION private_t19_custody.current_reference(uuid,uuid,text,text,integer
 ALTER FUNCTION private_t19_custody.claim_operation(uuid,uuid,text,text,integer,integer,uuid,uuid,interval) OWNER TO t19_hosted_owner;
 ALTER FUNCTION private_t19_custody.mark_dispatched(uuid,uuid) OWNER TO t19_hosted_owner;
 ALTER FUNCTION private_t19_custody.quarantine_operation(uuid,uuid) OWNER TO t19_hosted_owner;
+
+CREATE TABLE private_t19_custody.prepared_references (
+ reference uuid PRIMARY KEY, operation_id uuid NOT NULL UNIQUE REFERENCES private_t19_custody.operations(operation_id),
+ lease_id uuid NOT NULL, connection_id uuid NOT NULL, business_id uuid NOT NULL,
+ environment text NOT NULL, organization_id text NOT NULL,
+ generation integer NOT NULL, credential_version integer NOT NULL,
+ consumed boolean NOT NULL DEFAULT false
+);
+CREATE FUNCTION private_t19_custody.prepare_reference(
+ p_operation uuid,p_lease uuid,p_reference uuid,p_business uuid,p_organization text,p_generation integer,p_version integer
+) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $prepare$
+DECLARE c private_t19_custody.connections%ROWTYPE;
+BEGIN
+ IF session_user <> 't19_hosted_custody' THEN RAISE EXCEPTION 'custody identity required' USING ERRCODE='42501'; END IF;
+ SELECT c0.* INTO c FROM private_t19_custody.connections c0 JOIN private_t19_custody.operations o ON o.connection_id=c0.connection_id
+ WHERE o.operation_id=p_operation FOR UPDATE OF c0;
+ IF NOT FOUND OR NOT c.enabled OR c.business_id<>p_business OR c.organization_id<>p_organization OR c.generation<>p_generation OR c.credential_version<>p_version THEN RETURN false; END IF;
+ IF p_reference IS NULL OR NOT EXISTS(SELECT 1 FROM private_t19_custody.operations WHERE operation_id=p_operation AND lease_id=p_lease AND phase='dispatched' AND lease_expires_at>clock_timestamp()) THEN RETURN false; END IF;
+ INSERT INTO private_t19_custody.prepared_references(reference,operation_id,lease_id,connection_id,business_id,environment,organization_id,generation,credential_version)
+ VALUES(p_reference,p_operation,p_lease,c.connection_id,c.business_id,c.environment,c.organization_id,c.generation,c.credential_version+1);
+ UPDATE private_t19_custody.operations SET phase='prepared' WHERE operation_id=p_operation AND phase='dispatched';
+ RETURN FOUND;
+END $prepare$;
+CREATE FUNCTION private_t19_custody.publish_reference(p_operation uuid,p_lease uuid,p_reference uuid)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $publish$
+DECLARE c private_t19_custody.connections%ROWTYPE;
+BEGIN
+ IF session_user <> 't19_hosted_custody' THEN RAISE EXCEPTION 'custody identity required' USING ERRCODE='42501'; END IF;
+ SELECT c0.* INTO c FROM private_t19_custody.connections c0 JOIN private_t19_custody.operations o ON o.connection_id=c0.connection_id
+ WHERE o.operation_id=p_operation FOR UPDATE OF c0;
+ IF NOT FOUND OR NOT c.enabled THEN RETURN false; END IF;
+ IF NOT EXISTS(SELECT 1 FROM private_t19_custody.operations o JOIN private_t19_custody.prepared_references r ON r.operation_id=o.operation_id
+ WHERE o.operation_id=p_operation AND o.connection_id=c.connection_id AND o.lease_id=p_lease AND o.phase='prepared' AND o.lease_expires_at>clock_timestamp()
+ AND o.generation=c.generation AND o.credential_version=c.credential_version AND r.reference=p_reference AND r.lease_id=p_lease AND r.connection_id=c.connection_id AND r.business_id=c.business_id AND r.environment=c.environment AND r.organization_id=c.organization_id AND r.generation=c.generation AND r.credential_version=c.credential_version+1 AND NOT r.consumed) THEN RETURN false; END IF;
+ UPDATE private_t19_custody.prepared_references SET consumed=true WHERE reference=p_reference AND operation_id=p_operation AND NOT consumed;
+ IF NOT FOUND THEN RAISE EXCEPTION 'reference fence changed' USING ERRCODE='40001'; END IF;
+ UPDATE private_t19_custody.operations SET phase='published' WHERE operation_id=p_operation AND phase='prepared';
+ IF NOT FOUND THEN RAISE EXCEPTION 'operation fence changed' USING ERRCODE='40001'; END IF;
+ UPDATE private_t19_custody.connections SET sealed_reference=p_reference,credential_version=credential_version+1 WHERE connection_id=c.connection_id;
+ RETURN true;
+END $publish$;
+CREATE FUNCTION private_t19_custody.disconnect_connection(p_business uuid,p_connection uuid,p_generation integer)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $disconnect$
+DECLARE c private_t19_custody.connections%ROWTYPE;
+BEGIN
+ IF session_user <> 't19_hosted_custody' THEN RAISE EXCEPTION 'custody identity required' USING ERRCODE='42501'; END IF;
+ SELECT * INTO c FROM private_t19_custody.connections WHERE connection_id=p_connection FOR UPDATE;
+ IF NOT FOUND OR NOT c.enabled OR c.business_id<>p_business OR c.generation<>p_generation THEN RETURN false; END IF;
+ UPDATE private_t19_custody.operations SET phase=CASE WHEN phase IN ('dispatched','prepared') THEN 'recovery_required' ELSE 'fenced' END WHERE connection_id=p_connection AND phase IN ('claimed','dispatched','prepared');
+ UPDATE private_t19_custody.connections SET enabled=false,generation=generation+1 WHERE connection_id=p_connection;
+ RETURN true;
+END $disconnect$;
+ALTER TABLE private_t19_custody.prepared_references OWNER TO t19_hosted_owner;
+ALTER FUNCTION private_t19_custody.prepare_reference(uuid,uuid,uuid,uuid,text,integer,integer) OWNER TO t19_hosted_owner;
+ALTER FUNCTION private_t19_custody.publish_reference(uuid,uuid,uuid) OWNER TO t19_hosted_owner;
+ALTER FUNCTION private_t19_custody.disconnect_connection(uuid,uuid,integer) OWNER TO t19_hosted_owner;
+
 REVOKE ALL ON ALL TABLES IN SCHEMA private_t19_custody FROM PUBLIC;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA private_t19_custody FROM PUBLIC;
 REVOKE ALL ON SCHEMA private_t19_custody FROM PUBLIC;
 GRANT USAGE ON SCHEMA private_t19_custody TO t19_hosted_custody;
 GRANT EXECUTE ON FUNCTION private_t19_custody.current_reference(uuid,uuid,text,text,integer,integer) TO t19_hosted_custody;
 GRANT EXECUTE ON FUNCTION private_t19_custody.claim_operation(uuid,uuid,text,text,integer,integer,uuid,uuid,interval), private_t19_custody.mark_dispatched(uuid,uuid), private_t19_custody.quarantine_operation(uuid,uuid) TO t19_hosted_custody;
+GRANT EXECUTE ON FUNCTION private_t19_custody.prepare_reference(uuid,uuid,uuid,uuid,text,integer,integer),private_t19_custody.publish_reference(uuid,uuid,uuid),private_t19_custody.disconnect_connection(uuid,uuid,integer) TO t19_hosted_custody;
 COMMIT;
 -- IMPORTANT: role NOLOGIN deliberately prevents activation; identity provisioning separate.
 -- No vault grants, keys, service credentials or hosted execution included.
