@@ -40,7 +40,7 @@ jobs:
       PGPASSWORD: synthetic-only
       PGSSLMODE: disable
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install PostgreSQL client if necessary
         run: command -v psql || (sudo apt-get update -qq && sudo apt-get install -y postgresql-client)
       - name: Establish earlier synthetic role fixture
