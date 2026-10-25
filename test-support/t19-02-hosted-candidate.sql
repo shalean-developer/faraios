@@ -1,6 +1,10 @@
 -- T19-02 staging CANDIDATE. REVIEW ONLY: do not deploy without approval.
 -- Test with disposable PostgreSQL fixture. No secrets/real connections.
 BEGIN;
+DO $review_guard$ BEGIN
+  IF current_database() <> 'faraios_t19_review_test' OR current_user <> 'postgres'
+  THEN RAISE EXCEPTION 'disposable review database only'; END IF;
+END $review_guard$;
 CREATE ROLE t19_hosted_owner NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
 CREATE ROLE t19_hosted_custody NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
 CREATE SCHEMA private_t19_custody AUTHORIZATION t19_hosted_owner;
