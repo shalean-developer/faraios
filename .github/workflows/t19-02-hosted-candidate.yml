@@ -5,6 +5,7 @@ on:
       - 'test-support/t19-02-hosted-candidate.sql'
       - 'test-support/t19-02-hosted-review-acceptance.sql'
       - 'test-support/t19-02-concurrency-rollback.sh'
+      - 'test-support/t19-02-publish-disconnect-races.sh'
       - '.github/workflows/t19-02-hosted-candidate.yml'
 permissions:
   contents: read
@@ -56,3 +57,6 @@ jobs:
 
       - name: Verify concurrent claims and rollback with physical sessions
         run: bash test-support/t19-02-concurrency-rollback.sh
+
+      - name: Assert physical publication/disconnect races and precommit abort
+        run: bash test-support/t19-02-publish-disconnect-races.sh
