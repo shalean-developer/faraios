@@ -4,6 +4,8 @@ on:
     paths:
       - 'test-support/t19-sec02-evidence-disposable.sql'
       - 'test-support/t19-sec02-evidence-disposable.sh'
+      - 'src/t19-sec02-evidence*.js'
+      - 'test/t19-sec02-evidence-bridge.test.js'
       - '.github/workflows/t19-sec02-evidence.yml'
 permissions:
   contents: read
@@ -38,3 +40,5 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -c "set faraios.sec02='synthetic'" -f test-support/t19-sec02-evidence-disposable.sql
       - name: Assert one-time, concurrent and interrupted evidence consumption
         run: bash test-support/t19-sec02-evidence-disposable.sh
+      - name: Run new verified evidence bridge tests explicitly
+        run: node --test test/t19-sec02-evidence-bridge.test.js
