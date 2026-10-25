@@ -14,5 +14,13 @@ export function prepareZohoConnectionStatus({businessId,environment='staging',ow
 }
 export function renderZohoReadiness(status){
  const h=String(status.status).replace(/[^a-z_]/g,'');
- return `<section aria-label="Zoho connection readiness" data-readiness="${h}"><h3>Connect Zoho Books</h3><p>Connect each business to its own Zoho organisation after verification.</p><button type="button" disabled aria-disabled="true" aria-describedby="zoho-readiness-hold">Connect Zoho Books (coming after verification)</button><p id="zoho-readiness-hold" role="status">This action is unavailable. No authorisation or automatic sync will start. No OAuth, credential storage or invoice synchronisation will start.</p></section>`;
+ const labels={
+  not_configured:['Not connected','This business does not have a saved Zoho Books configuration.'],
+  configured_disabled:['Disconnected','A configuration is saved, but Zoho authorisation and automatic synchronisation are not active.'],
+  hold_requires_hosted_verification:['Verification required','A staging configuration is recorded, but secure credentials and Zoho permissions have not been verified.'],
+  owner_required:['Owner verification required','Only an authorised business owner can manage this connection.'],
+  unavailable:['Connection unavailable','The stored connection cannot be safely verified for this business.']
+ };
+ const [label,description]=labels[h]??labels.unavailable;
+ return `<section class="connection-guidance" aria-label="Zoho connection readiness" data-readiness="${h}"><div class="connection-readiness-head"><div><h3>Zoho Books</h3><p>Connect this business to its own Zoho Books organisation.</p></div><strong class="connection-status" role="status">${label}</strong></div><p class="muted">${description}</p><button type="button" disabled aria-disabled="true" aria-describedby="zoho-readiness-hold">Connect Zoho Books (coming after verification)</button><p id="zoho-readiness-hold" class="muted">Connection is not available yet. No OAuth, credential storage or invoice synchronisation will start.</p><p class="muted">Once approved, this page will show the verified organisation, sync status and owner-controlled disconnect.</p></section>`;
 }
