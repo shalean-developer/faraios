@@ -45,9 +45,9 @@ DO $test$
 DECLARE prior record; actual record;
 BEGIN
  SELECT * INTO prior FROM t19_pub_before;
- SELECT (SELECT md5(coalesce(string_agg(row_to_json(c)::text, '|' ORDER BY connection_id),'')) FROM custody_durable.connections c),
-        (SELECT md5(coalesce(string_agg(row_to_json(o)::text, '|' ORDER BY operation_id),'')) FROM custody_durable.operations o),
-        (SELECT md5(coalesce(string_agg(row_to_json(p)::text, '|' ORDER BY reference),'')) FROM custody_durable.prepared_refs p)
+ SELECT (SELECT md5(coalesce(string_agg(row_to_json(c)::text, '|' ORDER BY connection_id),'')) FROM custody_durable.connections c) AS conn,
+        (SELECT md5(coalesce(string_agg(row_to_json(o)::text, '|' ORDER BY operation_id),'')) FROM custody_durable.operations o) AS ops,
+        (SELECT md5(coalesce(string_agg(row_to_json(p)::text, '|' ORDER BY reference),'')) FROM custody_durable.prepared_refs p) AS refs
  INTO actual;
  IF ROW(prior.conn,prior.ops,prior.refs) IS DISTINCT FROM ROW(actual.conn,actual.ops,actual.refs)
  THEN RAISE EXCEPTION 'rejected publication changed protected state'; END IF;
