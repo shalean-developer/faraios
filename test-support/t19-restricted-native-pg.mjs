@@ -1,5 +1,5 @@
 // Disposable native PostgreSQL E2E ONLY. This is not a hosted service adapter.
-// Synthetic DB roles, fixed test password and test-only privileged metadata reads.
+// Synthetic DB roles; fixture owner is used only for setup and post-test assertions.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
@@ -18,7 +18,7 @@ const vault={
 };
 let op,leaseId;
 const coordinator={
- async current(binding){assert.deepEqual(binding,b);const reference=run('t19_fixture',`select reference from custody_durable.connections where connection_id=${uuid(binding.connection_id)} and business_id=${uuid(binding.business_id)} and enabled and generation=${binding.generation} and credential_version=${binding.credential_version}`);if(!reference)throw Error('stale');return {reference};},
+ async current(binding){const reference=run('t19_custody',`select custody_durable.current_reference(${row(binding)})`);if(!reference)throw Error('stale');return {reference};},
  async claim(binding,operationId){op=operationId;leaseId=randomUUID();assert.equal(run('t19_custody',`select custody_durable.claim(${row(binding)},${uuid(op)},${uuid(leaseId)},interval '2 minutes')`),'t');return {id:leaseId,operationId:op};},
  async dispatch(binding,lease,effect){assert.equal(run('t19_custody',`select custody_durable.dispatch(${row(binding)},${uuid(lease.operationId)},${uuid(lease.id)})`),'t');return effect();},
  async complete(binding,lease,ref){assert.equal(run('t19_sealer',`select custody_durable.prepare(${row(binding)},${uuid(lease.operationId)},${uuid(lease.id)},${uuid(ref)})`),'t');assert.equal(run('t19_custody',`select custody_durable.publish(${row(binding)},${uuid(lease.operationId)},${uuid(lease.id)},${uuid(ref)})`),'t');},
@@ -33,4 +33,32 @@ assert.equal(answer.status,'completed');assert.equal(JSON.stringify(answer).incl
 assert.equal(run('t19_fixture',`select credential_version from custody_durable.connections where connection_id=${uuid(b.connection_id)}`),'2');
 assert.equal(run('t19_fixture',`select count(*) from custody_durable.operations where phase='published'`),'1');
 await assert.rejects(svc.refresh({principal:'custody-service-synthetic',binding:b,operationId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'}));
+// Another independent tenant goes through the SAME restricted custody DB RPC identity.
+const second={...b,business_id:'99999999-9999-4999-8999-999999999999',connection_id:'88888888-8888-4888-8888-888888888888',organization_id:'synthetic-bokkie'};
+const secondRef='77777777-7777-4777-8777-777777777777';
+run('t19_fixture',`insert into custody_durable.connections(connection_id,business_id,environment,provider,organization_id,generation,credential_version,reference) values(${uuid(second.connection_id)},${uuid(second.business_id)},'synthetic','synthetic','synthetic-bokkie',1,1,${uuid(secondRef)})`);
+const otherVault=createDummyCustody(),otherEnvelopes=new Map([[secondRef,await otherVault.provision(second)]]);
+const otherCore=createRestrictedCustodyCore({
+ authorize:async({principal,binding})=>principal==='custody-service-synthetic' && binding.business_id===second.business_id,
+ coordinator:{
+  current:async(binding)=>{const reference=run('t19_custody',`select custody_durable.current_reference(${row(binding)})`);if(!reference)throw Error('stale');return {reference};},
+  claim:async(binding,operationId)=>{const lease=randomUUID();assert.equal(run('t19_custody',`select custody_durable.claim(${row(binding)},${uuid(operationId)},${uuid(lease)},interval '2 minutes')`),'t');return {id:lease,operationId};},
+  dispatch:async(binding,l,effect)=>{assert.equal(run('t19_custody',`select custody_durable.dispatch(${row(binding)},${uuid(l.operationId)},${uuid(l.id)})`),'t');return effect();},
+  complete:async(binding,l,ref)=>{assert.equal(run('t19_sealer',`select custody_durable.prepare(${row(binding)},${uuid(l.operationId)},${uuid(l.id)},${uuid(ref)})`),'t');assert.equal(run('t19_custody',`select custody_durable.publish(${row(binding)},${uuid(l.operationId)},${uuid(l.id)},${uuid(ref)})`),'t');},
+  fail:async()=>{throw Error('synthetic terminal state unavailable');}
+ },
+ vault:{
+  read:async(binding,ref)=>otherVault.read(binding,otherEnvelopes.get(ref)),
+  seal:async(binding,material)=>{const ref=randomUUID();otherEnvelopes.set(ref,await otherVault.seal(binding,material));return ref;}
+ },
+ provider:{refresh:async()=>dummyRefresh()}
+});
+assert.equal(run('t19_custody',`select custody_durable.current_reference(${row(second)})`),secondRef);
+assert.equal(run('t19_custody',`select custody_durable.current_reference(${row({...second,business_id:b.business_id})})`),'');
+await assert.rejects(otherCore.refresh({principal:'custody-service-synthetic',binding:b,operationId:'cccccccc-cccc-4ccc-8ccc-cccccccccccc'}),{code:'custody_denied'});
+const answer2=await otherCore.refresh({principal:'custody-service-synthetic',binding:second,operationId:'dddddddd-dddd-4ddd-8ddd-dddddddddddd'});
+assert.equal(answer2.status,'completed');
+assert.equal(run('t19_fixture',`select credential_version from custody_durable.connections where connection_id=${uuid(second.connection_id)}`),'2');
+assert.equal(run('t19_fixture',`select credential_version from custody_durable.connections where connection_id=${uuid(b.connection_id)}`),'2');
+console.log('T19_CUSTODY_TWO_BUSINESS_ISOLATION_PASS');
 console.log('T19_CUSTODY_NATIVE_PG_INTEGRATION_PASS');
