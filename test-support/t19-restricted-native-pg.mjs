@@ -27,8 +27,8 @@ const coordinator={
 const svc=createRestrictedCustodyCore({authorize:async({principal})=>principal==='custody-service-synthetic',coordinator,vault,provider:{refresh:async()=>dummyRefresh()}});
 await assert.rejects(svc.refresh({principal:'ordinary-invoice-worker',binding:b,operationId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'}),{code:'custody_denied'});
 const foreign={...b,business_id:randomUUID()};
-await assert.rejects(svc.refresh({principal:'custody-service-synthetic',binding:foreign,operationId:'job-12345678'}));
-const answer=await svc.refresh({principal:'custody-service-synthetic',binding:b,operationId:'job-12345678'});
+await assert.rejects(svc.refresh({principal:'custody-service-synthetic',binding:foreign,operationId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'}));
+const answer=await svc.refresh({principal:'custody-service-synthetic',binding:b,operationId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'});
 assert.equal(answer.status,'completed');assert.equal(JSON.stringify(answer).includes('dummy-'),false);
 assert.equal(run('t19_fixture',`select credential_version from custody_durable.connections where connection_id=${uuid(b.connection_id)}`),'2');
 assert.equal(run('t19_fixture',`select count(*) from custody_durable.operations where phase='published'`),'1');
