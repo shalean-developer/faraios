@@ -1,7 +1,7 @@
 // T19 SEC-02: inactive verification boundary. No private keys, secrets, provider calls or env reads.
 // A signed receipt proves only that the configured signer signed these bytes;
 // it does not establish that Zoho itself supplied the underlying provider outcome.
-import {createPublicKey, verify as verifySignature} from 'node:crypto';
+import {createPublicKey, KeyObject, verify as verifySignature} from 'node:crypto';
 import {credentialBinding, bindingKey} from './t19-c1.js';
 const fail = () => Object.assign(new Error('untrusted_custody_evidence'),{code:'untrusted_custody_evidence'});
 const allowed = ['success','invalid_grant','uncertain'];
@@ -18,7 +18,7 @@ export function canonicalCustodyEvidence({purpose,binding,operation,lease,refere
 export function createCustodyEvidenceVerifier({sealerPublicKey,providerVerifierPublicKey,consumeNonce}) {
   if(typeof consumeNonce!=='function') throw fail();
   const keys=[sealerPublicKey,providerVerifierPublicKey].map(k=>{
-    try {const p=createPublicKey(k);if(p.asymmetricKeyType!=='ed25519') throw fail();return p;}catch{throw fail();}
+    try {const p=k instanceof KeyObject && k.type==='public' ? k : createPublicKey(k);if(p.type!=='public' || p.asymmetricKeyType!=='ed25519') throw fail();return p;}catch{throw fail();}
   });
   if(keys[0].export({type:'spki',format:'der'}).equals(keys[1].export({type:'spki',format:'der'}))) throw fail();
   return Object.freeze({
