@@ -43,7 +43,7 @@ BEGIN
     OR nonce IS NULL OR length(nonce)<1 OR operation_id IS NULL OR c1_key IS NULL OR lease IS NULL
  THEN RETURN false; END IF;
  SELECT encode(public.hmac(convert_to(
-   array_to_string(ARRAY[fingerprint,purpose,nonce,operation_id,c1_key,lease], E'\\x1f'),'UTF8'),
+   array_to_string(ARRAY[fingerprint,purpose,nonce,operation_id,c1_key,lease], chr(31)),'UTF8'),
    convert_to(secret,'UTF8'),'sha256'),'hex') INTO expected_proof
  FROM evidence_guard.publication_keys WHERE key_id='test-key';
  IF expected_proof IS NULL OR proof IS DISTINCT FROM expected_proof THEN
