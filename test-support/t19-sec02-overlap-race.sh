@@ -35,7 +35,7 @@ for first in disconnect publish; do
  PGUSER=t19_custody PGPASSWORD=fake-custody-only psql -X -qAt -v ON_ERROR_STOP=1 -c "$second_sql" >"$d/second" &
  p2=$!
  wait "$p1"; wait "$p2"
- [[ "$(tail -n 1 "$d/first")" == t && "$(cat "$d/second")" == "$([[ "$first" == disconnect ]] && echo f || echo t)" ]] || { echo "FAIL $first order"; exit 1; }
+ [[ "$(grep -c "^t$" "$d/first")" == 1 && "$(cat "$d/second")" == "$([[ "$first" == disconnect ]] && echo f || echo t)" ]] || { echo "FAIL $first order"; exit 1; }
  [[ "$(snap)" == "$([[ "$first" == disconnect ]] && echo '2:1:false:33333333-3333-4333-8333-333333333333' || echo '2:2:false:cccccccc-cccc-4ccc-8ccc-cccccccccccc')" ]] || { echo "FAIL $first state"; exit 1; }
  echo "PASS overlapping_$first"
 done
