@@ -35,7 +35,7 @@ echo T19_SEC02_PRECOMMIT_BACKEND_CRASH_PASS
 # 2. Crash after commit and before caller acknowledgement. No repeat publication or refresh.
 reset_fixture
 [[ "$(custody "select custody_durable.publish($b,$op,$lease,$ref)")" == t ]]
-[[ "$(snapshot)" == "1:2:cccccccc-cccc-4ccc-8ccc-cccccccccccc:true" ]] || true
+[[ "$(snapshot)" == "2:cccccccc-cccc-4ccc-8ccc-cccccccccccc:true" ]] || { echo "FAIL postcommit snapshot"; exit 1; }
 [[ "$(admin "select credential_version from custody_durable.connections")" == 2 ]]
 [[ "$(custody "select custody_durable.publish($b,$op,$lease,$ref)")" == f ]]
 [[ "$(admin "select count(*) from custody_durable.operations where phase='published'")" == 1 ]]
