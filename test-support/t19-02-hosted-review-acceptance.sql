@@ -7,6 +7,41 @@ VALUES
 ('22222222-2222-4222-8222-222222222222','612be091-b1d7-4911-9c3b-143446a9fe27','staging','zoho','synthetic-shalean',1,1,'33333333-3333-4333-8333-333333333333',true),
 ('88888888-8888-4888-8888-888888888888','99999999-9999-4999-8999-999999999999','staging','zoho','synthetic-bokkie',1,1,'77777777-7777-4777-8777-777777777777',true);
 COMMIT;
+-- Execute prohibited operations as ordinary login identity and assert SQLSTATE 42501.
+SET SESSION AUTHORIZATION t19_review_web;
+DO $denied$
+DECLARE rejected boolean;
+BEGIN
+ rejected := false;
+ BEGIN
+  PERFORM 1 FROM private_t19_custody.connections LIMIT 1;
+ EXCEPTION WHEN insufficient_privilege THEN rejected:=true;
+ END;
+ IF NOT rejected THEN RAISE EXCEPTION 'ordinary user read permitted'; END IF;
+ rejected := false;
+ BEGIN
+  UPDATE private_t19_custody.connections SET enabled=false WHERE connection_id='22222222-2222-4222-8222-222222222222';
+ EXCEPTION WHEN insufficient_privilege THEN rejected:=true;
+ END;
+ IF NOT rejected THEN RAISE EXCEPTION 'ordinary user update permitted'; END IF;
+ rejected := false;
+ BEGIN
+  PERFORM private_t19_custody.disconnect_connection(NULL,'22222222-2222-4222-8222-222222222222',NULL);
+ EXCEPTION WHEN insufficient_privilege THEN rejected:=true;
+ END;
+ IF NOT rejected THEN RAISE EXCEPTION 'ordinary user custody RPC permitted'; END IF;
+END $denied$;
+RESET SESSION AUTHORIZATION;
+DO $unchanged$
+BEGIN
+ IF (SELECT count(*) FROM private_t19_custody.connections)<>2
+ OR NOT EXISTS(SELECT 1 FROM private_t19_custody.connections
+ WHERE connection_id='22222222-2222-4222-8222-222222222222'
+ AND enabled AND generation=1 AND credential_version=1)
+ THEN RAISE EXCEPTION 'denied ordinary-user action mutated state'; END IF;
+END $unchanged$;
+\echo T19_02_WEB_SQLSTATE_42501_AND_UNCHANGED_PASS
+
 -- SET SESSION AUTHORIZATION is available only to disposable superuser harness.
 SET SESSION AUTHORIZATION t19_hosted_custody;
 DO $verify$
@@ -69,6 +104,8 @@ BEGIN
  IF NOT private_t19_custody.claim_operation('612be091-b1d7-4911-9c3b-143446a9fe27','22222222-2222-4222-8222-222222222222','staging','synthetic-shalean',1,1,'11111111-aaaa-4111-8111-111111111111','22222222-bbbb-4222-8222-222222222222',interval '1 minute') THEN RAISE EXCEPTION 'claim'; END IF;
  IF NOT private_t19_custody.mark_dispatched('11111111-aaaa-4111-8111-111111111111','22222222-bbbb-4222-8222-222222222222') THEN RAISE EXCEPTION 'dispatch'; END IF;
  IF private_t19_custody.publish_reference('11111111-aaaa-4111-8111-111111111111','22222222-bbbb-4222-8222-222222222222','44444444-4444-4444-8444-444444444444') THEN RAISE EXCEPTION 'unprepared publish'; END IF;
+ IF private_t19_custody.prepare_reference('11111111-aaaa-4111-8111-111111111111','22222222-bbbb-4222-8222-222222222222','55555555-5555-4555-8555-555555555555',NULL,'synthetic-shalean',1,1) THEN RAISE EXCEPTION 'null business prepare bypass'; END IF;
+ IF private_t19_custody.prepare_reference('11111111-aaaa-4111-8111-111111111111','22222222-bbbb-4222-8222-222222222222','55555555-5555-4555-8555-555555555555','612be091-b1d7-4911-9c3b-143446a9fe27','synthetic-shalean',NULL,1) THEN RAISE EXCEPTION 'null generation prepare bypass'; END IF;
  IF NOT private_t19_custody.prepare_reference('11111111-aaaa-4111-8111-111111111111','22222222-bbbb-4222-8222-222222222222','44444444-4444-4444-8444-444444444444','612be091-b1d7-4911-9c3b-143446a9fe27','synthetic-shalean',1,1) THEN RAISE EXCEPTION 'prepare'; END IF;
  IF private_t19_custody.publish_reference('11111111-aaaa-4111-8111-111111111111','22222222-bbbb-4222-8222-222222222222','55555555-5555-4555-8555-555555555555') THEN RAISE EXCEPTION 'foreign reference'; END IF;
  IF NOT private_t19_custody.publish_reference('11111111-aaaa-4111-8111-111111111111','22222222-bbbb-4222-8222-222222222222','44444444-4444-4444-8444-444444444444') THEN RAISE EXCEPTION 'publication'; END IF;
@@ -83,9 +120,13 @@ END $verify$;
 SET SESSION AUTHORIZATION t19_hosted_custody;
 DO $disconnect$
 BEGIN
+ IF private_t19_custody.disconnect_connection(NULL,'22222222-2222-4222-8222-222222222222',1) THEN RAISE EXCEPTION 'null business disconnect bypass'; END IF;
+ IF private_t19_custody.disconnect_connection('612be091-b1d7-4911-9c3b-143446a9fe27','22222222-2222-4222-8222-222222222222',NULL) THEN RAISE EXCEPTION 'null generation disconnect bypass'; END IF;
  IF NOT private_t19_custody.disconnect_connection('612be091-b1d7-4911-9c3b-143446a9fe27','22222222-2222-4222-8222-222222222222',1) THEN RAISE EXCEPTION 'disconnect'; END IF;
  IF private_t19_custody.disconnect_connection('612be091-b1d7-4911-9c3b-143446a9fe27','22222222-2222-4222-8222-222222222222',1) THEN RAISE EXCEPTION 'duplicate disconnect'; END IF;
  IF private_t19_custody.current_reference('612be091-b1d7-4911-9c3b-143446a9fe27','22222222-2222-4222-8222-222222222222','staging','synthetic-shalean',1,2) IS NOT NULL THEN RAISE EXCEPTION 'retired generation'; END IF;
 END $disconnect$;
 RESET SESSION AUTHORIZATION;
 \echo T19_02_D4_DISCONNECT_FENCE_PASS
+
+\echo T19_02_NULL_SCOPE_DENIAL_PASS

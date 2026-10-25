@@ -102,7 +102,7 @@ BEGIN
  IF session_user <> 't19_hosted_custody' THEN RAISE EXCEPTION 'custody identity required' USING ERRCODE='42501'; END IF;
  SELECT c0.* INTO c FROM private_t19_custody.connections c0 JOIN private_t19_custody.operations o ON o.connection_id=c0.connection_id
  WHERE o.operation_id=p_operation FOR UPDATE OF c0;
- IF NOT FOUND OR NOT c.enabled OR c.business_id<>p_business OR c.organization_id<>p_organization OR c.generation<>p_generation OR c.credential_version<>p_version THEN RETURN false; END IF;
+ IF NOT FOUND OR NOT c.enabled OR c.business_id IS DISTINCT FROM p_business OR c.organization_id IS DISTINCT FROM p_organization OR c.generation IS DISTINCT FROM p_generation OR c.credential_version IS DISTINCT FROM p_version THEN RETURN false; END IF;
  IF p_reference IS NULL OR NOT EXISTS(SELECT 1 FROM private_t19_custody.operations WHERE operation_id=p_operation AND lease_id=p_lease AND phase='dispatched' AND lease_expires_at>clock_timestamp()) THEN RETURN false; END IF;
  INSERT INTO private_t19_custody.prepared_references(reference,operation_id,lease_id,connection_id,business_id,environment,organization_id,generation,credential_version)
  VALUES(p_reference,p_operation,p_lease,c.connection_id,c.business_id,c.environment,c.organization_id,c.generation,c.credential_version+1);
@@ -133,7 +133,7 @@ DECLARE c private_t19_custody.connections%ROWTYPE;
 BEGIN
  IF session_user <> 't19_hosted_custody' THEN RAISE EXCEPTION 'custody identity required' USING ERRCODE='42501'; END IF;
  SELECT * INTO c FROM private_t19_custody.connections WHERE connection_id=p_connection FOR UPDATE;
- IF NOT FOUND OR NOT c.enabled OR c.business_id<>p_business OR c.generation<>p_generation THEN RETURN false; END IF;
+ IF NOT FOUND OR NOT c.enabled OR c.business_id IS DISTINCT FROM p_business OR c.generation IS DISTINCT FROM p_generation THEN RETURN false; END IF;
  UPDATE private_t19_custody.operations SET phase=CASE WHEN phase IN ('dispatched','prepared') THEN 'recovery_required' ELSE 'fenced' END WHERE connection_id=p_connection AND phase IN ('claimed','dispatched','prepared');
  UPDATE private_t19_custody.connections SET enabled=false,generation=generation+1 WHERE connection_id=p_connection;
  RETURN true;
