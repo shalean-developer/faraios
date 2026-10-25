@@ -120,3 +120,15 @@ test('consent rejects changed or missing imported manifest digest before connect
  const h=harness();const changed=createConnectionService({vault:h.vault,sessions:h.sessions,manifest:{...manifest,identity:'changed@example.invalid',approvalReference:'different-approval'},execution:true,fetchImpl:()=>{throw Error('must not fetch');},now:()=>1000});
  await rejected(changed.service.authorise('owner'),'credentials');assert.deepEqual(h.db.connections,{});assert.equal(h.calls.length,0);
 });
+
+test('disabled connection rejects a previously issued callback without token exchange',async()=>{
+ const h=harness();
+ const {authorizationUrl}=await h.service.authorise('owner');
+ const state=new URL(authorizationUrl).searchParams.get('state');
+ const disabled=await h.service.disable('owner');
+ assert.equal(disabled.status,'disabled');
+ await rejected(h.service.callback('owner',state,'dummy-code'),'oauth_state');
+ assert.equal(h.calls.length,0);
+ assert.equal(h.db.connections[businessId].credentials,undefined);
+ assert.equal(h.db.connections[businessId].status,'disabled');
+});
