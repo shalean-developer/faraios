@@ -6,6 +6,7 @@ on:
       - 'test-support/t19-02-hosted-review-acceptance.sql'
       - 'test-support/t19-02-concurrency-rollback.sh'
       - 'test-support/t19-02-publish-disconnect-races.sh'
+      - 'test-support/t19-02-rollback-rehearsal.sh'
       - '.github/workflows/t19-02-hosted-candidate.yml'
 permissions:
   contents: read
@@ -60,3 +61,6 @@ jobs:
 
       - name: Assert physical publication/disconnect races and precommit abort
         run: bash test-support/t19-02-publish-disconnect-races.sh
+
+      - name: Rehearse disposable-only reverse dependency rollback
+        run: bash test-support/t19-02-rollback-rehearsal.sh
