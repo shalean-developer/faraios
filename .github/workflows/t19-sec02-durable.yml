@@ -4,6 +4,7 @@ on:
     paths:
       - 'test-support/t19-sec02-durable.sql'
       - 'test-support/t19-sec02-durable-test.sql'
+      - 'test-support/t19-sec02-adversarial.sh'
       - '.github/workflows/t19-sec02-durable.yml'
 permissions:
   contents: read
@@ -55,3 +56,6 @@ jobs:
             done
           done
           echo T19_SEC02_DURABLE_ROLE_DENIAL_PASS
+
+      - name: Verify adversarial concurrent lease, disconnect, expiry and recovery
+        run: bash test-support/t19-sec02-adversarial.sh
