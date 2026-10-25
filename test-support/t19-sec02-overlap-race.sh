@@ -29,7 +29,7 @@ for first in disconnect publish; do
    second_sql="select custody_durable.disconnect(row('612be091-b1d7-4911-9c3b-143446a9fe27'::uuid,'synthetic','synthetic','22222222-2222-4222-8222-222222222222'::uuid,1,'synthetic-shalean',2)::custody_durable.binding)"
  fi
  # First connection explicitly locks row and holds it until second is attempting its operation.
- PGUSER=t19_custody PGPASSWORD=fake-custody-only psql -X -qAt -v ON_ERROR_STOP=1 -c "BEGIN; SELECT 1 FROM custody_durable.connections FOR UPDATE; SELECT pg_sleep(1); $first_sql; COMMIT;" >"$d/first" &
+ PGUSER=t19_custody PGPASSWORD=fake-custody-only psql -X -qAt -v ON_ERROR_STOP=1 -c "BEGIN; $first_sql; SELECT pg_sleep(1); COMMIT;" >"$d/first" &
  p1=$!
  sleep 0.2
  PGUSER=t19_custody PGPASSWORD=fake-custody-only psql -X -qAt -v ON_ERROR_STOP=1 -c "$second_sql" >"$d/second" &
