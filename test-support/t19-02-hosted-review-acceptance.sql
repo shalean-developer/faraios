@@ -48,3 +48,44 @@ END $ops$;
 RESET SESSION AUTHORIZATION;
 \echo T19_02_DURABLE_CLAIM_DISPATCH_QUARANTINE_PASS
 \echo T19_02_TWO_BUSINESS_C1_DENIAL_PASS
+
+
+-- Publication and disconnect are serialized on the same connection lock.
+SET SESSION AUTHORIZATION t19_hosted_custody;
+DO $publication$
+DECLARE ok boolean;
+BEGIN
+ SELECT private_t19_custody.claim_operation('99999999-9999-4999-8999-999999999999','88888888-8888-4888-8888-888888888888','staging','synthetic-bokkie',1,1,'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','ffffffff-ffff-4fff-8fff-ffffffffffff',interval '1 minute') INTO ok;
+ IF ok THEN RAISE EXCEPTION 'quarantine falsely reclaimed'; END IF;
+ SELECT private_t19_custody.claim_operation('612be091-b1d7-4911-9c3b-143446a9fe27','22222222-2222-4222-8222-222222222222','staging','synthetic-shalean',1,1,'11111111-aaaa-4111-8111-111111111111','22222222-bbbb-4222-8222-222222222222',interval '1 minute') INTO ok;
+ IF ok THEN RAISE EXCEPTION 'disabled connection claimed'; END IF;
+END $publication$;
+RESET SESSION AUTHORIZATION;
+-- Re-enable the disposable first connection only for a controlled publication.
+UPDATE private_t19_custody.connections SET enabled=true WHERE organization_id='synthetic-shalean';
+SET SESSION AUTHORIZATION t19_hosted_custody;
+DO $publication$
+BEGIN
+ IF NOT private_t19_custody.claim_operation('612be091-b1d7-4911-9c3b-143446a9fe27','22222222-2222-4222-8222-222222222222','staging','synthetic-shalean',1,1,'11111111-aaaa-4111-8111-111111111111','22222222-bbbb-4222-8222-222222222222',interval '1 minute') THEN RAISE EXCEPTION 'claim'; END IF;
+ IF NOT private_t19_custody.mark_dispatched('11111111-aaaa-4111-8111-111111111111','22222222-bbbb-4222-8222-222222222222') THEN RAISE EXCEPTION 'dispatch'; END IF;
+ IF private_t19_custody.publish_reference('11111111-aaaa-4111-8111-111111111111','22222222-bbbb-4222-8222-222222222222','44444444-4444-4444-8444-444444444444') THEN RAISE EXCEPTION 'unprepared publish'; END IF;
+ IF NOT private_t19_custody.prepare_reference('11111111-aaaa-4111-8111-111111111111','22222222-bbbb-4222-8222-222222222222','44444444-4444-4444-8444-444444444444','612be091-b1d7-4911-9c3b-143446a9fe27','synthetic-shalean',1,1) THEN RAISE EXCEPTION 'prepare'; END IF;
+ IF private_t19_custody.publish_reference('11111111-aaaa-4111-8111-111111111111','22222222-bbbb-4222-8222-222222222222','55555555-5555-4555-8555-555555555555') THEN RAISE EXCEPTION 'foreign reference'; END IF;
+ IF NOT private_t19_custody.publish_reference('11111111-aaaa-4111-8111-111111111111','22222222-bbbb-4222-8222-222222222222','44444444-4444-4444-8444-444444444444') THEN RAISE EXCEPTION 'publication'; END IF;
+ IF private_t19_custody.publish_reference('11111111-aaaa-4111-8111-111111111111','22222222-bbbb-4222-8222-222222222222','44444444-4444-4444-8444-444444444444') THEN RAISE EXCEPTION 'replay'; END IF;
+END $publication$;
+RESET SESSION AUTHORIZATION;
+DO $verify$ BEGIN
+ IF NOT EXISTS(SELECT 1 FROM private_t19_custody.connections WHERE organization_id='synthetic-shalean' AND credential_version=2 AND sealed_reference='44444444-4444-4444-8444-444444444444'::uuid) THEN RAISE EXCEPTION 'missing published state'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM private_t19_custody.prepared_references WHERE consumed AND reference='44444444-4444-4444-8444-444444444444'::uuid) THEN RAISE EXCEPTION 'missing consumption'; END IF;
+END $verify$;
+\echo T19_02_ATOMIC_PUBLICATION_REPLAY_PASS
+SET SESSION AUTHORIZATION t19_hosted_custody;
+DO $disconnect$
+BEGIN
+ IF NOT private_t19_custody.disconnect_connection('612be091-b1d7-4911-9c3b-143446a9fe27','22222222-2222-4222-8222-222222222222',1) THEN RAISE EXCEPTION 'disconnect'; END IF;
+ IF private_t19_custody.disconnect_connection('612be091-b1d7-4911-9c3b-143446a9fe27','22222222-2222-4222-8222-222222222222',1) THEN RAISE EXCEPTION 'duplicate disconnect'; END IF;
+ IF private_t19_custody.current_reference('612be091-b1d7-4911-9c3b-143446a9fe27','22222222-2222-4222-8222-222222222222','staging','synthetic-shalean',1,2) IS NOT NULL THEN RAISE EXCEPTION 'retired generation'; END IF;
+END $disconnect$;
+RESET SESSION AUTHORIZATION;
+\echo T19_02_D4_DISCONNECT_FENCE_PASS
