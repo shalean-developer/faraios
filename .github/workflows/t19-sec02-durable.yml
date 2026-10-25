@@ -9,6 +9,7 @@ on:
       - 'test-support/t19-sec02-simulated-provider.sh'
       - 'test-support/t19-sec02-overlap-race.sh'
       - 'test-support/t19-sec02-inflight-kill.sh'
+      - 'test-support/t19-sec02-commit-crash.sh'
       - 'test-support/t19-sec02-seven-field.sh'
       - 'test-support/t19-sec02-adversarial.sh'
       - 'test-support/t19-sec02-restart.sh'
@@ -87,3 +88,6 @@ jobs:
 
       - name: Verify killed in-flight publisher rolls back transaction
         run: bash test-support/t19-sec02-inflight-kill.sh
+
+      - name: Verify precommit backend crash and postcommit replay fencing
+        run: bash test-support/t19-sec02-commit-crash.sh
