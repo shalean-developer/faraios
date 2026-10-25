@@ -33,6 +33,16 @@ for role in t19_invoice_worker t19_app_worker; do
   grep -q 'permission denied' "$d/$role.readerr" || exit 1
 done
 echo T19_SEC02_ORDINARY_LOGIN_DENIAL_PASS
+# SECURITY GAP CHARACTERISATION (expected unsafe behavior; NOT an acceptance pass):
+# The currently permitted consumer can fabricate a new nonce and transition
+# a dispatched operation without cryptographic verification. Keep the test
+# explicit so green CI cannot be misrepresented as proof of a sealed boundary.
+admin "insert into evidence_guard.operations(operation_id,c1_key,lease) values('op-direct-bypass','scope-direct','lease-direct')"
+direct="SELECT evidence_guard.consume_verified('forged-fingerprint-without-signature','provider_result','fabricated-nonce','op-direct-bypass','scope-direct','lease-direct')"
+[[ "$(consume "$direct")" == t ]] || { echo "SEC02_BOUNDARY_BEHAVIOR_CHANGED_REVIEW_REQUIRED"; exit 1; }
+[[ "$(admin "select state from evidence_guard.operations where operation_id='op-direct-bypass'")" == verified ]] || exit 1
+[[ "$(admin "select count(*) from evidence_guard.receipts where nonce='fabricated-nonce'")" == 1 ]] || exit 1
+echo T19_SEC02_DIRECT_CONSUMER_BYPASS_CONFIRMED_UNSAFE
 # A killed transaction cannot persist its consumed nonce or publication transition.
 admin "insert into evidence_guard.operations(operation_id,c1_key,lease) values('op-four','scope-four','lease-four')"
 PGUSER=t19_evidence_consumer PGPASSWORD=fake-consumer-only psql -X -qAt -v ON_ERROR_STOP=1 -c "BEGIN; SELECT evidence_guard.consume_verified('synthetic-pinned-fingerprint','provider_result','nonce-four','op-four','scope-four','lease-four'); SELECT pg_sleep(5); COMMIT;" >"$d/interrupted" 2>&1 & worker=$!
