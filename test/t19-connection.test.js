@@ -132,3 +132,26 @@ test('disabled connection rejects a previously issued callback without token exc
  assert.equal(h.db.connections[businessId].credentials,undefined);
  assert.equal(h.db.connections[businessId].status,'disabled');
 });
+
+test('repeated owner disconnect is idempotent and does not overwrite cleanup or generation',async()=>{
+ const h=harness();
+ await h.consent();
+ const first=await h.service.disable('owner');
+ const snapshot=h.db;
+ const writes=h.writes;
+ const second=await h.service.disable('owner');
+ assert.equal(first.generation,2);
+ assert.deepEqual(second,first);
+ assert.equal(h.writes,writes);
+ assert.deepEqual(h.db,snapshot);
+ assert.equal(h.db.connections[businessId].events.filter(e=>e.event==='locally_disabled').length,1);
+});
+test('concurrent synthetic disconnects serialize to one generation increment',async()=>{
+ const h=harness();
+ await h.consent();
+ const [one,two]=await Promise.all([h.service.disable('owner'),h.service.disable('owner')]);
+ assert.equal(one.generation,2);
+ assert.deepEqual(two,one);
+ assert.equal(h.db.connections[businessId].generation,2);
+ assert.equal(h.db.connections[businessId].events.filter(e=>e.event==='locally_disabled').length,1);
+});
