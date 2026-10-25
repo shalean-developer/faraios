@@ -25,7 +25,7 @@ test('authenticated evidence invokes restricted parameterized SQL and rejects re
  const verified=await bridge.verifyAndCommit({evidence:e,signature:signature()});
  assert.equal(verified.operation,e.operation);
  assert.equal(calls.length,1);
- assert.match(calls[0].sql,/^select evidence_guard\.consume_verified\(\$1,\$2,\$3,\$4,\$5,\$6\)/);
+ assert.match(calls[0].sql,/^select evidence_guard\.consume_verified\(\$1,\$2,\$3,\$4,\$5,\$6,\$7\)/);
  assert.equal(calls[0].params[3],'operation-1');
  assert.equal(calls[0].params[5],'lease-1');
  assert.match(calls[0].params[4],/synthetic-shalean/);
