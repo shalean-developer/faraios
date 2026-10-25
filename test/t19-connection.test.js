@@ -21,6 +21,40 @@ function harness({execution=true,fetchOverride,manifestOverride={}}={}){
  return {...built,calls,users,vault,sessions,get db(){return structuredClone(db);},get reads(){return reads;},get writes(){return writes;},setNow:value=>{current=value;},async consent(){const start=await built.service.authorise('owner');const state=new URL(start.authorizationUrl).searchParams.get('state');await built.service.callback('owner',state,'dummy-code');return state;}};
 }
 const rejected=(promise,code)=>assert.rejects(promise,e=>e.code===code);
+
+test('callback rechecks approval and state deadlines after asynchronous membership and custody work',async()=>{
+ for(const deadline of ['approval','state'])for(const pauseAt of ['membership','read','write']){
+  const h=harness({manifestOverride:{endsAt:deadline==='state'?600000:60000}});
+  const state=new URL((await h.service.authorise('owner')).authorizationUrl).searchParams.get('state');
+  const target=pauseAt==='membership'?h.sessions:h.vault,key=pauseAt==='membership'?'read':pauseAt;
+  const original=target[key];target[key]=async(...args)=>{const result=await original(...args);h.setNow(deadline==='state'?301000:60000);return result;};
+  await rejected(h.service.callback('owner',state,'dummy-code'),deadline==='state'?'oauth_state':'approval_required');
+  assert.equal(h.calls.length,0,`${deadline}/${pauseAt} must not dispatch`);
+  assert.equal(h.db.connections[businessId].credentials,undefined);
+  await assert.rejects(h.service.callback('owner',state,'dummy-code'));
+  await h.service.disable('owner');assert.equal(h.db.connections[businessId].status,'disabled');
+ }
+});
+
+test('consent and verification cannot cross approval expiry during membership or vault reads',async()=>{
+ for(const action of ['authorise','verify'])for(const pauseAt of ['membership','read']){
+  const h=harness();if(action==='verify')await h.consent();
+  const target=pauseAt==='membership'?h.sessions:h.vault,original=target.read;
+  target.read=async(...args)=>{const result=await original(...args);h.setNow(60000);return result;};
+  await rejected(h.service[action]('owner'),'approval_required');
+  assert.equal(h.calls.length,action==='verify'?1:0);
+  assert.equal(h.db.connections[businessId]?.evidence,undefined);
+ }
+});
+
+test('verification guard rechecks expiry after membership immediately before each GET',async()=>{
+ for(const guardRead of [2,4]){
+  const h=harness();await h.consent();let reads=0;const original=h.sessions.read;
+  h.sessions.read=async(...args)=>{const result=await original(...args);if(++reads===guardRead)h.setNow(60000);return result;};
+  await rejected(h.service.verify('owner'),'approval_required');
+  assert.equal(h.calls.length,guardRead===2?1:2);assert.equal(h.db.connections[businessId].evidence,undefined);
+ }
+});
 test('review manifest matches registered callback but remains unapproved; former callback fails execution validation',()=>{
  const review=JSON.parse(readFileSync(new URL('../config/t19-shalean-review.json',import.meta.url),'utf8'));
  validateManifest(review);assert.equal(review.redirectUri,origin+'/zoho/callback');assert.equal(review.redirectUri,review.clientVerification.registeredRedirectUri);assert.equal(review.clientVerification.callbackMatchesRequired,true);assert.equal(review.approved,false);
@@ -60,6 +94,17 @@ test('HTTP host/origin/CSRF/method/body and foreign route restrictions',async t=
  assert.equal((await send({path:`/connections/${businessId}?organization_id=999`,headers:{Cookie:cookie}})).status,400);
  assert.equal(h.calls.length,0);assert.equal(h.reads,0);
 });
+test('HTTP callback crossing expiry redirects safely without token dispatch or secret reflection',async t=>{
+ const h=harness(),{send,cookie,csrf}=await httpHarness(t,h);
+ const start=await send({path:`/connections/${businessId}/authorise`,method:'POST',data:{},headers:{Cookie:cookie,'x-csrf-token':csrf}});
+ const state=new URL(start.body.authorizationUrl).searchParams.get('state'),read=h.sessions.read;
+ h.sessions.read=async(...args)=>{const user=await read(...args);h.setNow(60000);return user;};
+ const response=await send({path:'/zoho/callback?state='+state+'&code=dummy-sensitive-code',headers:{Cookie:cookie}});
+ assert.equal(response.status,303);assert.equal(response.headers.location,'/');assert.equal(h.calls.length,0);
+ assert.doesNotMatch(JSON.stringify(response),/dummy-sensitive-code|dummy-client-secret|dummy-access/);
+ assert.equal(h.db.connections[businessId].credentials,undefined);
+});
+
 test('registered callback matches consent and exchange, rejects old route and duplicate state',async t=>{const h=harness();const {send,cookie,csrf}=await httpHarness(t,h);
  const start=await send({path:`/connections/${businessId}/authorise`,method:'POST',data:{},headers:{Cookie:cookie,'x-csrf-token':csrf}});const state=new URL(start.body.authorizationUrl).searchParams.get('state');
  assert.equal(new URL(start.body.authorizationUrl).searchParams.get('redirect_uri'),origin+'/zoho/callback');
