@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'test-support/t19-sec02-durable.sql'
+      - 'src/t19-restricted-custody-core.js'
+      - 'test-support/t19-restricted-native-pg.mjs'
       - 'test-support/t19-sec02-durable-test.sql'
       - 'test-support/t19-sec02-atomic-rejection.sql'
       - 'test-support/t19-sec02-effective-privileges.sh'
@@ -91,3 +93,8 @@ jobs:
 
       - name: Verify precommit backend crash and postcommit replay fencing
         run: bash test-support/t19-sec02-commit-crash.sh
+
+      - name: Run restricted custody core through real disposable PostgreSQL RPCs
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -c "TRUNCATE custody_durable.prepared_refs,custody_durable.operations; UPDATE custody_durable.connections SET enabled=true,generation=1,credential_version=1,reference='33333333-3333-4333-8333-333333333333';"
+          node test-support/t19-restricted-native-pg.mjs

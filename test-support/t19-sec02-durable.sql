@@ -159,12 +159,23 @@ CREATE FUNCTION custody_durable.recover(b custody_durable.binding, op uuid, leas
      AND phase IN ('claimed','dispatched') AND lease_until<=clock_timestamp();
   RETURN FOUND;
  END $$;
+-- Trusted, scoped metadata read: never grant direct table SELECT to custody login.
+CREATE FUNCTION custody_durable.current_reference(b custody_durable.binding)
+ RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $restricted$
+ DECLARE c custody_durable.connections%ROWTYPE;
+ BEGIN
+  IF session_user <> 't19_custody' THEN RAISE EXCEPTION 'custody identity required' USING ERRCODE='42501'; END IF;
+  SELECT * INTO c FROM custody_durable.connections WHERE connection_id=(b).connection_id;
+  IF NOT FOUND OR NOT c.enabled OR NOT custody_durable.match_binding(c,b) THEN RETURN NULL; END IF;
+  RETURN c.reference;
+ END $restricted$;
 -- The function owner is a dedicated NOLOGIN non-superuser; it owns only this fixture schema.
 ALTER TABLE custody_durable.connections OWNER TO t19_durable_owner;
 ALTER TABLE custody_durable.operations OWNER TO t19_durable_owner;
 ALTER TABLE custody_durable.prepared_refs OWNER TO t19_durable_owner;
 ALTER TYPE custody_durable.binding OWNER TO t19_durable_owner;
 ALTER FUNCTION custody_durable.match_binding(custody_durable.connections,custody_durable.binding) OWNER TO t19_durable_owner;
+ALTER FUNCTION custody_durable.current_reference(custody_durable.binding) OWNER TO t19_durable_owner;
 ALTER FUNCTION custody_durable.claim(custody_durable.binding,uuid,uuid,interval) OWNER TO t19_durable_owner;
 ALTER FUNCTION custody_durable.dispatch(custody_durable.binding,uuid,uuid) OWNER TO t19_durable_owner;
 ALTER FUNCTION custody_durable.prepare(custody_durable.binding,uuid,uuid,uuid) OWNER TO t19_durable_owner;
@@ -175,7 +186,8 @@ REVOKE ALL ON ALL FUNCTIONS IN SCHEMA custody_durable FROM PUBLIC;
 GRANT USAGE ON SCHEMA custody_durable TO t19_custody,t19_sealer;
 GRANT USAGE ON TYPE custody_durable.binding TO t19_sealer;
 GRANT USAGE ON TYPE custody_durable.binding TO t19_custody;
-GRANT EXECUTE ON FUNCTION custody_durable.claim(custody_durable.binding,uuid,uuid,interval),
+GRANT EXECUTE ON FUNCTION custody_durable.current_reference(custody_durable.binding),
+ custody_durable.claim(custody_durable.binding,uuid,uuid,interval),
  custody_durable.dispatch(custody_durable.binding,uuid,uuid),
  custody_durable.publish(custody_durable.binding,uuid,uuid,uuid),
  custody_durable.disconnect(custody_durable.binding),
