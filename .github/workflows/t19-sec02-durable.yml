@@ -8,6 +8,7 @@ on:
       - 'test-support/t19-sec02-effective-privileges.sh'
       - 'test-support/t19-sec02-simulated-provider.sh'
       - 'test-support/t19-sec02-overlap-race.sh'
+      - 'test-support/t19-sec02-inflight-kill.sh'
       - 'test-support/t19-sec02-seven-field.sh'
       - 'test-support/t19-sec02-adversarial.sh'
       - 'test-support/t19-sec02-restart.sh'
@@ -83,3 +84,6 @@ jobs:
         run: bash test-support/t19-sec02-seven-field.sh
       - name: Verify overlapping physical transaction race orders
         run: bash test-support/t19-sec02-overlap-race.sh
+
+      - name: Verify killed in-flight publisher rolls back transaction
+        run: bash test-support/t19-sec02-inflight-kill.sh
