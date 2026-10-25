@@ -2,6 +2,7 @@
 set -euo pipefail
 [[ "$PGDATABASE" == faraios_t19_test && "$PGHOST" == 127.0.0.1 ]] || exit 90
 admin() { PGUSER=t19_fixture PGPASSWORD=synthetic-only psql -X -qAt -v ON_ERROR_STOP=1 -c "$1"; }
+sealer() { PGUSER=t19_sealer PGPASSWORD=fake-sealer-only psql -X -qAt -v ON_ERROR_STOP=1 -c "$1"; }
 custody() { PGUSER=t19_custody PGPASSWORD=fake-custody-only psql -X -qAt -v ON_ERROR_STOP=1 -c "$1"; }
 conn="'22222222-2222-4222-8222-222222222222'::uuid"
 b="row('612be091-b1d7-4911-9c3b-143446a9fe27'::uuid,'synthetic','synthetic',$conn,1,'synthetic-shalean',1)::custody_durable.binding"
@@ -11,7 +12,7 @@ op2="'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid"
 l1="'11111111-1111-4111-8111-111111111111'::uuid"
 l2="'22222222-2222-4222-8222-222222222223'::uuid"
 ref="'cccccccc-cccc-4ccc-8ccc-cccccccccccc'::uuid"
-reset_db() { admin "TRUNCATE custody_durable.operations; UPDATE custody_durable.connections SET enabled=true,generation=1,credential_version=1,reference='33333333-3333-4333-8333-333333333333' WHERE connection_id=$conn"; }
+reset_db() { admin "TRUNCATE custody_durable.prepared_refs, custody_durable.operations; UPDATE custody_durable.connections SET enabled=true,generation=1,credential_version=1,reference='33333333-3333-4333-8333-333333333333' WHERE connection_id=$conn"; }
 check() { [[ "$1" == "$2" ]] || { echo "FAIL $3 expected $2 got $1"; exit 1; }; echo "PASS $3"; }
 reset_db
 d="$(mktemp -d)"; trap 'rm -rf "$d"' EXIT
@@ -35,6 +36,8 @@ check "$(custody "select custody_durable.publish($b,$op1,$l1,$ref)")" f disconne
 reset_db
 check "$(custody "select custody_durable.claim($b,$op1,$l1,interval '1 minute')")" t claim_for_publish
 check "$(custody "select custody_durable.dispatch($b,$op1,$l1)")" t dispatch_for_publish
+check "$(custody "select custody_durable.publish($b,$op1,$l1,$ref)")" f unprepared_rejected
+check "$(sealer "select custody_durable.prepare($b,$op1,$l1,$ref)")" t sealed_reference_registered
 check "$(custody "select custody_durable.publish($b,$op1,$l1,$ref)")" t publish_wins
 check "$(custody "select custody_durable.disconnect($b2)")" t disconnect_after_publish
 check "$(admin "select generation||':'||credential_version||':'||enabled from custody_durable.connections where connection_id=$conn")" "2:2:false" published_then_disconnected
