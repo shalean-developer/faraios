@@ -33,7 +33,7 @@ jobs:
       PGPASSWORD: synthetic-only
       PGSSLMODE: disable
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Ensure local-only PostgreSQL client
         run: |
           set -euo pipefail
