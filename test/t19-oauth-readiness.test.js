@@ -30,3 +30,12 @@ test('technical settings are collapsed and stored configuration remains non-auth
  assert.match(html,/No OAuth, credential storage or invoice synchronisation will start/);
  assert.doesNotMatch(html,/oauth\/v2|refresh_token|client_secret|onclick=/i);
 });
+
+test('connection card has one provider heading and advanced settings start collapsed',()=>{
+ const html=renderInvoices({id:a,name:'Shalean'},[],{settings:true,owner:true,connection:{...conn(a,'943440851'),credential_key:'FARAIOS_SHALEAN_TEST',version:1}});
+ assert.equal((html.match(/<h2>Accounting connection<\/h2>/g)||[]).length,0);
+ assert.equal((html.match(/<h3>Zoho Books<\/h3>/g)||[]).length,1);
+ assert.match(html,/<details class="connection-advanced"><summary>Advanced connection settings<\/summary>/);
+ assert.doesNotMatch(html,/<details[^>]*\sopen(?:\s|=|>)/);
+ assert.match(html,/button type="button" disabled/);
+});
