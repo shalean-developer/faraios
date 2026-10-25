@@ -79,7 +79,7 @@ CREATE FUNCTION custody_durable.dispatch(b custody_durable.binding, op uuid, lea
   RETURN FOUND;
  END $$;
 CREATE FUNCTION custody_durable.prepare(b custody_durable.binding, op uuid, lease uuid, sealed_ref uuid)
- RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $
+ RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
  DECLARE c custody_durable.connections%ROWTYPE;
  BEGIN
   IF session_user <> 't19_sealer' THEN RAISE EXCEPTION 'sealer identity required' USING ERRCODE='42501'; END IF;
@@ -94,7 +94,7 @@ CREATE FUNCTION custody_durable.prepare(b custody_durable.binding, op uuid, leas
     (reference,operation_id,lease_id,business_id,environment,provider,connection_id,generation,organization_id,credential_version)
   VALUES(sealed_ref,op,lease,(b).business_id,(b).environment,(b).provider,(b).connection_id,(b).generation,(b).organization_id,(b).credential_version+1);
   RETURN true;
- END $;
+ END $$;
 CREATE FUNCTION custody_durable.publish(b custody_durable.binding, op uuid, lease uuid, sealed_ref uuid)
  RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
  DECLARE c custody_durable.connections%ROWTYPE;
