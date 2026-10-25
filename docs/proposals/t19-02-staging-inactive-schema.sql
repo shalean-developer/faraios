@@ -14,9 +14,11 @@ BEGIN
  THEN RAISE EXCEPTION 'custody schema already exists: audit rather than overwrite';
  END IF;
 END $guard$;
-CREATE ROLE t19_hosted_owner NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
 CREATE ROLE t19_hosted_custody NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
-CREATE SCHEMA private_t19_custody AUTHORIZATION t19_hosted_owner;
+-- Retain schema/table ownership with the migration executor (Supabase-managed postgres).
+-- Do NOT assign owner to a new NOLOGIN role: managed postgres lacks SET ROLE to that role.
+-- This remains an inactive schema; later SECURITY DEFINER ownership needs separate review.
+CREATE SCHEMA private_t19_custody;
 REVOKE ALL ON SCHEMA private_t19_custody FROM PUBLIC;
 CREATE TABLE private_t19_custody.connections (
   connection_id uuid PRIMARY KEY,
@@ -51,13 +53,11 @@ CREATE TABLE private_t19_custody.prepared_references (
   credential_version bigint NOT NULL,
   consumed boolean NOT NULL DEFAULT false
 );
-ALTER TABLE private_t19_custody.connections OWNER TO t19_hosted_owner;
-ALTER TABLE private_t19_custody.operations OWNER TO t19_hosted_owner;
-ALTER TABLE private_t19_custody.prepared_references OWNER TO t19_hosted_owner;
 REVOKE ALL ON ALL TABLES IN SCHEMA private_t19_custody FROM PUBLIC;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA private_t19_custody FROM PUBLIC;
 -- NO EXECUTE OR TABLE GRANTS to any runtime identity in this phase.
--- Neither role can LOGIN. The schema is inaccessible to web/invoice processes.
+-- The custody role cannot LOGIN; no grants are given to it yet.
+-- Migration-executor owner remains privileged: independent effective-grants review is mandatory.
 COMMIT;
 -- Approval gate 2 (separate): exact RPC implementation and grants after independent review.
 -- Approval gate 3 (separate): encrypted Vault material and authenticated machine identity.
