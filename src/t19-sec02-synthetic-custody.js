@@ -14,7 +14,7 @@ export function createSyntheticRestrictedCustody({sealIdentity, publishIdentity,
     authenticate(identity,publishIdentity);
     const b=credentialBinding(binding), k=key(b);
     if (!operation || !lease || operations.has(operation)) throw denied();
-    if ([...operations.values()].some(x=>x.k===k && ['dispatched','uncertain'].includes(x.state))) throw unknown();
+    if ([...operations.values()].some(x=>x.k===k && ['dispatched','uncertain','reauthorisation_required','verified'].includes(x.state))) throw unknown();
     operations.set(operation,{k,lease,state:'dispatched'});
     audit.push({event:'dispatch_intent',operation,k});
   }
