@@ -161,14 +161,14 @@ CREATE FUNCTION custody_durable.recover(b custody_durable.binding, op uuid, leas
  END $$;
 -- Trusted, scoped metadata read: never grant direct table SELECT to custody login.
 CREATE FUNCTION custody_durable.current_reference(b custody_durable.binding)
- RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $
+ RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $restricted$
  DECLARE c custody_durable.connections%ROWTYPE;
  BEGIN
   IF session_user <> 't19_custody' THEN RAISE EXCEPTION 'custody identity required' USING ERRCODE='42501'; END IF;
   SELECT * INTO c FROM custody_durable.connections WHERE connection_id=(b).connection_id;
   IF NOT FOUND OR NOT c.enabled OR NOT custody_durable.match_binding(c,b) THEN RETURN NULL; END IF;
   RETURN c.reference;
- END $;
+ END $restricted$;
 -- The function owner is a dedicated NOLOGIN non-superuser; it owns only this fixture schema.
 ALTER TABLE custody_durable.connections OWNER TO t19_durable_owner;
 ALTER TABLE custody_durable.operations OWNER TO t19_durable_owner;
