@@ -18,3 +18,25 @@ test('invalid references and duplicate versions denied',async()=>{const v=create
 test('references are random opaque handles, not binding metadata',async()=>{const v=createSyntheticCustody(),r=v.provision(A,material(A)),other=createSyntheticCustody().provision(A,material(A));assert.match(r,/^[0-9a-f-]{36}$/i);assert.notEqual(r,other);assert.ok(!r.includes(A.business_id));await assert.rejects(v.read(B,r));});
 test('synthetic material rejects unknown fields and credential-shaped values',()=>{const v=createSyntheticCustody();for(const m of [{...material(A),client_secret:'SECRET'}, {...material(A),refresh_token:'real-live-credential'}, {...material(A),access_token:'bad'}, {kind:'synthetic',organization_id:A.organization_id}])assert.throws(()=>v.provision(A,m));});
 test('confirmed invalid grant enters terminal reauthorisation while uncertainty remains held',async()=>{const v=createSyntheticCustody(),r=v.provision(A,material(A)),c=createSyntheticCoordinator({custody:v,binding:A,reference:r});const lease=await c.claim(A);await c.dispatch(A,lease,()=>({kind:'invalid_grant'}));await c.fail(A,lease,'reauthorisation_required');await c.fail(A,lease,'recovery_required');assert.equal(c.status().status,'reauthorisation_required');await assert.rejects(c.claim(A));});
+
+test('F3: disconnect during delayed custody read cannot publish stale synthetic credential',async()=>{
+ const custody=createSyntheticCustody(),reference=custody.provision(A,material(A));
+ const next={...A,credential_version:2};
+ const sealed=await custody.seal(next,material(next));
+ let enterRead,releaseRead;
+ const entered=new Promise(resolve=>enterRead=resolve);
+ const blocked=new Promise(resolve=>releaseRead=resolve);
+ const delayed={read:async(...args)=>{enterRead();await blocked;return custody.read(...args);}};
+ const c=createSyntheticCoordinator({custody:delayed,binding:A,reference});
+ const lease=await c.claim(A);
+ await c.dispatch(A,lease,()=>({kind:'success'}));
+ const completion=c.complete(A,lease,sealed);
+ await entered;
+ c.disconnect();
+ releaseRead();
+ await assert.rejects(completion,e=>e.code==='stale');
+ assert.equal(c.status().status,'disabled');
+ assert.equal(c.status().binding.credential_version,1);
+ assert.equal(c.status().hasLease,false);
+ await assert.rejects(c.current(next));
+});
