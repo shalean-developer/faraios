@@ -7,7 +7,9 @@ DO $$ BEGIN
      OR current_setting('faraios.sec02',true) IS DISTINCT FROM 'synthetic'
   THEN RAISE EXCEPTION 'disposable SEC-02 context required'; END IF;
 END $$;
-CREATE SCHEMA custody_durable;
+CREATE ROLE t19_durable_owner NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+CREATE ROLE t19_sealer LOGIN PASSWORD 'fake-sealer-only' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+CREATE SCHEMA custody_durable AUTHORIZATION t19_durable_owner;
 REVOKE ALL ON SCHEMA custody_durable FROM PUBLIC;
 CREATE TYPE custody_durable.binding AS (
  business_id uuid, environment text, provider text, connection_id uuid,
@@ -28,6 +30,13 @@ CREATE TABLE custody_durable.operations (
  lease_id uuid NOT NULL, lease_until timestamptz NOT NULL,
  phase text NOT NULL CHECK(phase IN ('claimed','dispatched','published','fenced','recovery_required')),
  next_reference uuid, created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+CREATE TABLE custody_durable.prepared_refs (
+ reference uuid PRIMARY KEY, operation_id uuid NOT NULL UNIQUE,
+ lease_id uuid NOT NULL, business_id uuid NOT NULL, environment text NOT NULL,
+ provider text NOT NULL, connection_id uuid NOT NULL, generation integer NOT NULL,
+ organization_id text NOT NULL, credential_version integer NOT NULL,
+ consumed boolean NOT NULL DEFAULT false
 );
 CREATE UNIQUE INDEX one_pending_connection_operation ON custody_durable.operations(connection_id)
  WHERE phase IN ('claimed','dispatched','recovery_required');
@@ -69,6 +78,23 @@ CREATE FUNCTION custody_durable.dispatch(b custody_durable.binding, op uuid, lea
     AND lease_until>clock_timestamp();
   RETURN FOUND;
  END $$;
+CREATE FUNCTION custody_durable.prepare(b custody_durable.binding, op uuid, lease uuid, sealed_ref uuid)
+ RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $
+ DECLARE c custody_durable.connections%ROWTYPE;
+ BEGIN
+  IF session_user <> 't19_sealer' THEN RAISE EXCEPTION 'sealer identity required' USING ERRCODE='42501'; END IF;
+  IF sealed_ref IS NULL THEN RETURN false; END IF;
+  SELECT * INTO c FROM custody_durable.connections WHERE connection_id=(b).connection_id FOR UPDATE;
+  IF NOT FOUND OR NOT c.enabled OR NOT custody_durable.match_binding(c,b) THEN RETURN false; END IF;
+  IF NOT EXISTS (SELECT 1 FROM custody_durable.operations
+     WHERE operation_id=op AND connection_id=c.connection_id AND lease_id=lease
+       AND phase='dispatched' AND generation=c.generation AND credential_version=c.credential_version
+       AND lease_until>clock_timestamp()) THEN RETURN false; END IF;
+  INSERT INTO custody_durable.prepared_refs
+    (reference,operation_id,lease_id,business_id,environment,provider,connection_id,generation,organization_id,credential_version)
+  VALUES(sealed_ref,op,lease,(b).business_id,(b).environment,(b).provider,(b).connection_id,(b).generation,(b).organization_id,(b).credential_version+1);
+  RETURN true;
+ END $;
 CREATE FUNCTION custody_durable.publish(b custody_durable.binding, op uuid, lease uuid, sealed_ref uuid)
  RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
  DECLARE c custody_durable.connections%ROWTYPE;
@@ -77,6 +103,13 @@ CREATE FUNCTION custody_durable.publish(b custody_durable.binding, op uuid, leas
   IF sealed_ref IS NULL THEN RETURN false; END IF;
   SELECT * INTO c FROM custody_durable.connections WHERE connection_id=(b).connection_id FOR UPDATE;
   IF NOT FOUND OR NOT c.enabled OR NOT custody_durable.match_binding(c,b) THEN RETURN false; END IF;
+  UPDATE custody_durable.prepared_refs SET consumed=true
+   WHERE reference=sealed_ref AND operation_id=op AND lease_id=lease
+   AND business_id=(b).business_id AND environment=(b).environment
+   AND provider=(b).provider AND connection_id=(b).connection_id
+   AND generation=(b).generation AND organization_id=(b).organization_id
+   AND credential_version=(b).credential_version+1 AND NOT consumed;
+  IF NOT FOUND THEN RETURN false; END IF;
   UPDATE custody_durable.operations SET phase='published',next_reference=sealed_ref
    WHERE operation_id=op AND connection_id=c.connection_id AND generation=c.generation
     AND credential_version=c.credential_version AND lease_id=lease AND phase='dispatched'
@@ -111,8 +144,21 @@ CREATE FUNCTION custody_durable.recover(b custody_durable.binding, op uuid, leas
      AND phase IN ('claimed','dispatched') AND lease_until<=clock_timestamp();
   RETURN FOUND;
  END $$;
+-- The function owner is a dedicated NOLOGIN non-superuser; it owns only this fixture schema.
+ALTER TABLE custody_durable.connections OWNER TO t19_durable_owner;
+ALTER TABLE custody_durable.operations OWNER TO t19_durable_owner;
+ALTER TABLE custody_durable.prepared_refs OWNER TO t19_durable_owner;
+ALTER TYPE custody_durable.binding OWNER TO t19_durable_owner;
+ALTER FUNCTION custody_durable.match_binding(custody_durable.connections,custody_durable.binding) OWNER TO t19_durable_owner;
+ALTER FUNCTION custody_durable.claim(custody_durable.binding,uuid,uuid,interval) OWNER TO t19_durable_owner;
+ALTER FUNCTION custody_durable.dispatch(custody_durable.binding,uuid,uuid) OWNER TO t19_durable_owner;
+ALTER FUNCTION custody_durable.prepare(custody_durable.binding,uuid,uuid,uuid) OWNER TO t19_durable_owner;
+ALTER FUNCTION custody_durable.publish(custody_durable.binding,uuid,uuid,uuid) OWNER TO t19_durable_owner;
+ALTER FUNCTION custody_durable.disconnect(custody_durable.binding) OWNER TO t19_durable_owner;
+ALTER FUNCTION custody_durable.recover(custody_durable.binding,uuid,uuid) OWNER TO t19_durable_owner;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA custody_durable FROM PUBLIC;
-GRANT USAGE ON SCHEMA custody_durable TO t19_custody;
+GRANT USAGE ON SCHEMA custody_durable TO t19_custody,t19_sealer;
+GRANT USAGE ON TYPE custody_durable.binding TO t19_sealer;
 GRANT USAGE ON TYPE custody_durable.binding TO t19_custody;
 GRANT EXECUTE ON FUNCTION custody_durable.claim(custody_durable.binding,uuid,uuid,interval),
  custody_durable.dispatch(custody_durable.binding,uuid,uuid),
