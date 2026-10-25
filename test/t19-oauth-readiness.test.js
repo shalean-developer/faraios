@@ -16,3 +16,17 @@ test('rendered action inert without secrets or provider URL',()=>{const html=ren
 
 test('settings projection refuses persisted foreign business binding',()=>{const html=renderInvoices({id:a,name:'Shalean'},[],{settings:true,owner:true,connection:{...conn(b,'943440162'),version:1}});assert.match(html,/data-readiness="unavailable"/);assert.match(html,/button type="button" disabled/);});
 test('settings projection refuses missing or incorrect stored environment',()=>{for(const connection of [{...conn(a,'943440851'),environment:'production'},(()=>{const c=conn(a,'943440851');delete c.environment;return c;})()]){const html=renderInvoices({id:a,name:'Shalean'},[],{settings:true,owner:true,connection});assert.match(html,/data-readiness="unavailable"/);}});
+
+test('inactive status labels distinguish missing, saved-disabled, and held configuration',()=>{
+ assert.match(renderZohoReadiness(status(a,null)),/Not connected/);
+ assert.match(renderZohoReadiness(status(a,conn(a,'943440851'))),/Disconnected/);
+ assert.match(renderZohoReadiness(status(a,{...conn(a,'943440851'),enabled:true})),/Verification required/);
+});
+test('technical settings are collapsed and stored configuration remains non-authorising',()=>{
+ const html=renderInvoices({id:a,name:'Shalean'},[],{settings:true,owner:true,connection:{...conn(a,'943440851'),credential_key:'FARAIOS_SHALEAN_TEST',version:1}});
+ assert.match(html,/<details class="connection-advanced">/);
+ assert.match(html,/<summary>Advanced connection settings<\/summary>/);
+ assert.match(html,/Save staging configuration/);
+ assert.match(html,/No OAuth, credential storage or invoice synchronisation will start/);
+ assert.doesNotMatch(html,/oauth\/v2|refresh_token|client_secret|onclick=/i);
+});
