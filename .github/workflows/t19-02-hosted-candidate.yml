@@ -1,0 +1,50 @@
+name: T19-02 hosted-candidate disposable SQL
+on:
+  pull_request:
+    paths:
+      - 'test-support/t19-02-hosted-candidate.sql'
+      - '.github/workflows/t19-02-hosted-candidate.yml'
+permissions:
+  contents: read
+jobs:
+  candidate-disposable:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: synthetic-only
+          POSTGRES_DB: faraios_t19_review_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d faraios_t19_review_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGDATABASE: faraios_t19_review_test
+      PGUSER: postgres
+      PGPASSWORD: synthetic-only
+      PGSSLMODE: disable
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install PostgreSQL client
+        run: command -v psql || (sudo apt-get update -qq && sudo apt-get install -y postgresql-client)
+      - name: Run candidate schema in disposable PostgreSQL
+        run: psql -X -v ON_ERROR_STOP=1 -f test-support/t19-02-hosted-candidate.sql
+      - name: Verify restricted role grants and deny ordinary users
+        run: |
+          psql -X -v ON_ERROR_STOP=1 <<'SQL'
+          DO $check$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='t19_hosted_owner' AND NOT rolcanlogin) THEN RAISE EXCEPTION 'owner identity'; END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='t19_hosted_custody' AND NOT rolcanlogin) THEN RAISE EXCEPTION 'custody login must remain disabled'; END IF;
+            IF has_schema_privilege('public','private_t19_custody','USAGE') THEN RAISE EXCEPTION 'schema public'; END IF;
+            IF has_function_privilege('public','private_t19_custody.current_reference(uuid,uuid,text,text,integer,integer)','EXECUTE') THEN RAISE EXCEPTION 'RPC public'; END IF;
+            IF NOT has_function_privilege('t19_hosted_custody','private_t19_custody.current_reference(uuid,uuid,text,text,integer,integer)','EXECUTE') THEN RAISE EXCEPTION 'custody EXECUTE absent'; END IF;
+          END $check$;
+          SQL
+          echo T19_02_DISPOSABLE_CANDIDATE_PASS
