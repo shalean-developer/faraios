@@ -6,6 +6,7 @@ on:
       - 'test-support/t19-sec02-durable-test.sql'
       - 'test-support/t19-sec02-atomic-rejection.sql'
       - 'test-support/t19-sec02-effective-privileges.sh'
+      - 'test-support/t19-sec02-simulated-provider.sh'
       - 'test-support/t19-sec02-adversarial.sh'
       - 'test-support/t19-sec02-restart.sh'
       - '.github/workflows/t19-sec02-durable.yml'
@@ -72,3 +73,6 @@ jobs:
 
       - name: Verify uncertainty and replay fencing after PostgreSQL restart
         run: bash test-support/t19-sec02-restart.sh
+
+      - name: Simulated provider rotation interrupted before sealing
+        run: bash test-support/t19-sec02-simulated-provider.sh
