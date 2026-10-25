@@ -3,7 +3,7 @@ set -euo pipefail
 [[ "${PGDATABASE:-}" == "faraios_t19_test" && "${PGHOST:-}" == "127.0.0.1" ]] || exit 90
 admin() { PGUSER=t19_fixture PGPASSWORD=synthetic-only psql -X -qAt -v ON_ERROR_STOP=1 -c "$1"; }
 consume() { PGUSER=t19_evidence_consumer PGPASSWORD=fake-consumer-only psql -X -qAt -v ON_ERROR_STOP=1 -c "$1"; }
-proof() { printf '%s\\037%s\\037%s\\037%s\\037%s\\037%s' "$1" "$2" "$3" "$4" "$5" "$6" | openssl dgst -sha256 -hmac synthetic-verifier-key-keep-out-of-real-systems -r | cut -d' ' -f1; }
+proof() { printf '%s\037%s\037%s\037%s\037%s\037%s' "$1" "$2" "$3" "$4" "$5" "$6" | openssl dgst -sha256 -hmac synthetic-verifier-key-keep-out-of-real-systems -r | cut -d' ' -f1; }
 # The isolated test harness signs synthetic tuples; the SQL consumer login cannot read the publication key.
 sql="SELECT evidence_guard.consume_verified('synthetic-pinned-fingerprint','provider_result','nonce-one','op-one','synthetic-seven-field-binding','lease-one','$(proof synthetic-pinned-fingerprint provider_result nonce-one op-one synthetic-seven-field-binding lease-one)')"
 [[ "$(consume "$sql")" == t ]] || { echo "FAIL valid consume"; exit 1; }
