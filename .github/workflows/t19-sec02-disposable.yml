@@ -1,0 +1,63 @@
+name: T19 SEC-02 disposable PostgreSQL
+on:
+  pull_request:
+    paths:
+      - 'test-support/t19-sec02-disposable-fixture.sql'
+      - 'test-support/t19-a12-f2-privilege-probe.sql'
+      - '.github/workflows/t19-sec02-disposable.yml'
+      - 'test-support/t19-sec02-separate-sessions.sh'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic-privilege-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: t19_fixture
+          POSTGRES_PASSWORD: synthetic-only
+          POSTGRES_DB: faraios_t19_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U t19_fixture -d faraios_t19_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGDATABASE: faraios_t19_test
+      PGUSER: t19_fixture
+      PGPASSWORD: synthetic-only
+      PGSSLMODE: disable
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure local-only PostgreSQL client
+        run: |
+          set -euo pipefail
+          command -v psql || { sudo apt-get update -qq && sudo apt-get install -y postgresql-client; }
+          psql -X -Atc 'select current_database(), current_user'
+      - name: Build isolated SEC-02 fixture
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 \
+            -c "set faraios.sec02 = 'synthetic'" \
+            -f test-support/t19-sec02-disposable-fixture.sql
+      - name: Verify A12 F2 direct denial and custody allow
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 \
+            -c "set faraios.a12_f2 = 'synthetic'" \
+            -f test-support/t19-a12-f2-privilege-probe.sql
+          echo "T19_A12_F2_DIRECT_GRANT_PROBE_PASS"
+      - name: Inspect resulting fixture scope
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -Atc "
+            select case when count(*) = 4 then 'PRINCIPALS_PRESENT' else 'INVALID' end
+            from pg_roles where rolname in ('t19_web','t19_invoice_worker','t19_historical_publisher','t19_custody');
+          "
+      - name: Verify actual separate attacker login sessions
+        run: bash test-support/t19-sec02-separate-sessions.sh
