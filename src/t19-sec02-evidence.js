@@ -29,8 +29,14 @@ export function createCustodyEvidenceVerifier({sealerPublicKey,providerVerifierP
       if(sig.length!==64 || !verifySignature(null,message,keys[index],sig)) throw fail();
       // Must be a durable, atomic insert-if-absent keyed by purpose/signing-key/nonce.
       // Caller must implement a transactional DB boundary, NEVER in-memory Set in deployment.
-      const accepted=await consumeNonce({purpose:evidence.purpose,nonce:evidence.nonce,
-        signerFingerprint:keys[index].export({type:'spki',format:'der'}).toString('base64url')});
+      const accepted=await consumeNonce(Object.freeze({
+        purpose:evidence.purpose, nonce:evidence.nonce,
+        signerFingerprint:keys[index].export({type:'spki',format:'der'}).toString('base64url'),
+        operation:evidence.operation, lease:evidence.lease,
+        c1Key:bindingKey(credentialBinding(evidence.binding)),
+        reference:evidence.purpose==='sealed_reference'?evidence.reference:null,
+        outcome:evidence.purpose==='provider_result'?evidence.outcome:null
+      }));
       if(accepted!==true) throw fail();
       return Object.freeze({purpose:evidence.purpose,binding:credentialBinding(evidence.binding),
         operation:evidence.operation,lease:evidence.lease,reference:evidence.reference??null,outcome:evidence.outcome??null});
