@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'test-support/t19-02-hosted-candidate.sql'
+      - 'test-support/t19-02-hosted-review-acceptance.sql'
       - '.github/workflows/t19-02-hosted-candidate.yml'
 permissions:
   contents: read
@@ -48,3 +49,6 @@ jobs:
           END $check$;
           SQL
           echo T19_02_DISPOSABLE_CANDIDATE_PASS
+
+      - name: Assert scoped two-business C1 metadata and disabled-state denials
+        run: psql -X -v ON_ERROR_STOP=1 -f test-support/t19-02-hosted-review-acceptance.sql
