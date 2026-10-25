@@ -40,8 +40,9 @@ echo T19_SEC02_ORDINARY_LOGIN_DENIAL_PASS
 # a dispatched operation without cryptographic verification. Keep the test
 # explicit so green CI cannot be misrepresented as proof of a sealed boundary.
 admin "insert into evidence_guard.operations(operation_id,c1_key,lease) values('op-direct-bypass','scope-direct','lease-direct')"
-direct="SELECT evidence_guard.consume_verified('forged-fingerprint-without-signature','provider_result','fabricated-nonce','op-direct-bypass','scope-direct','lease-direct','unverified-forged-proof')"
-[[ "$(consume "$direct")" == f ]] || { echo "FAIL direct forged evidence accepted"; exit 1; }
+direct="SELECT evidence_guard.consume_verified('forged-fingerprint-without-signature','provider_result','fabricated-nonce','op-direct-bypass','scope-direct','lease-direct','0000000000000000000000000000000000000000000000000000000000000000')"
+if consume "$direct" >"$d/direct-out" 2>"$d/direct-err"; then echo "FAIL direct forged evidence accepted"; exit 1; fi
+grep -q 'unauthenticated publication' "$d/direct-err" || { cat "$d/direct-err"; exit 1; }
 [[ "$(admin "select state from evidence_guard.operations where operation_id='op-direct-bypass'")" == dispatched ]] || exit 1
 [[ "$(admin "select count(*) from evidence_guard.receipts where nonce='fabricated-nonce'")" == 0 ]] || exit 1
 echo T19_SEC02_DIRECT_FORGED_PUBLICATION_DENIED
