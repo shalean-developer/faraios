@@ -16,6 +16,20 @@ DECLARE
  IF custody_durable.dispatch(bad,op,lease) THEN RAISE EXCEPTION 'foreign dispatch'; END IF;
  IF NOT custody_durable.dispatch(b,op,lease) THEN RAISE EXCEPTION 'dispatch'; END IF;
  IF custody_durable.publish(b,op,'00000000-0000-4000-8000-000000000000',ref) THEN RAISE EXCEPTION 'wrong lease'; END IF;
+ IF custody_durable.publish(b,op,lease,ref) THEN RAISE EXCEPTION 'unprepared publication'; END IF;
+ END $test$;
+RESET SESSION AUTHORIZATION;
+SET SESSION AUTHORIZATION t19_sealer;
+SELECT custody_durable.prepare(row('612be091-b1d7-4911-9c3b-143446a9fe27'::uuid,'synthetic','synthetic','22222222-2222-4222-8222-222222222222'::uuid,1,'synthetic-shalean',1)::custody_durable.binding,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid,'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid,'cccccccc-cccc-4ccc-8ccc-cccccccccccc'::uuid);
+RESET SESSION AUTHORIZATION;
+SET SESSION AUTHORIZATION t19_custody;
+DO $test$
+DECLARE
+ b custody_durable.binding := ROW('612be091-b1d7-4911-9c3b-143446a9fe27'::uuid,'synthetic','synthetic','22222222-2222-4222-8222-222222222222'::uuid,1,'synthetic-shalean',1);
+ op uuid := 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ lease uuid := 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+ ref uuid := 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+ BEGIN
  IF NOT custody_durable.publish(b,op,lease,ref) THEN RAISE EXCEPTION 'publish'; END IF;
  IF custody_durable.publish(b,op,lease,ref) THEN RAISE EXCEPTION 'publication replay'; END IF;
  IF custody_durable.claim(b,'ffffffff-ffff-4fff-8fff-ffffffffffff',lease,interval '1 minute') THEN RAISE EXCEPTION 'stale version'; END IF;
