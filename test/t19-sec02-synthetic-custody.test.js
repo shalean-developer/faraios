@@ -37,5 +37,6 @@ test('invalid grant is fenced and never auto-refreshes',()=>{
  const s=make();begin(s);
  s.verifyResult({identity:ids.verifierIdentity,binding,operation:op,lease,result:{kind:'invalid_grant'}});
  assert.equal(s.status({identity:ids.publishIdentity,operation:op}),'reauthorisation_required');
+ assert.throws(()=>s.begin({identity:ids.publishIdentity,binding,operation:'replay-op',lease:'replay-lease'}));
  assert.throws(()=>s.prepare({identity:ids.sealIdentity,binding,operation:op,lease,reference:ref}));
 });
