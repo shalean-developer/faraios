@@ -9,14 +9,14 @@ const e={purpose:'provider_result',binding,operation:'operation-1',lease:'lease-
 const signature=()=>sign(null,canonicalCustodyEvidence(e),b.privateKey).toString('base64url');
 test('forged evidence never reaches injected DB caller',async()=>{
  let count=0;
- const bridge=createRestrictedEvidenceBridge({sealerPublicKey:a.publicKey,providerVerifierPublicKey:b.publicKey,db:{query:async()=>{count++;return {rows:[{accepted:true}]};}}});
+ const bridge=createRestrictedEvidenceBridge({sealerPublicKey:a.publicKey,providerVerifierPublicKey:b.publicKey,publicationKey:'synthetic-verifier-key-keep-out-of-real-systems',db:{query:async()=>{count++;return {rows:[{accepted:true}]};}}});
  await assert.rejects(bridge.verifyAndCommit({evidence:{...e,outcome:'success'},signature:signature()}));
  await assert.rejects(bridge.verifyAndCommit({evidence:e,signature:sign(null,canonicalCustodyEvidence(e),a.privateKey).toString('base64url')}));
  assert.equal(count,0);
 });
 test('authenticated evidence invokes restricted parameterized SQL and rejects replay',async()=>{
  const seen=new Set(),calls=[];
- const bridge=createRestrictedEvidenceBridge({sealerPublicKey:a.publicKey,providerVerifierPublicKey:b.publicKey,db:{query:async(sql,params)=>{
+ const bridge=createRestrictedEvidenceBridge({sealerPublicKey:a.publicKey,providerVerifierPublicKey:b.publicKey,publicationKey:'synthetic-verifier-key-keep-out-of-real-systems',db:{query:async(sql,params)=>{
   calls.push({sql,params});
   const k=JSON.stringify(params.slice(0,3));
   if(seen.has(k))return {rows:[{accepted:false}]};
@@ -33,6 +33,6 @@ test('authenticated evidence invokes restricted parameterized SQL and rejects re
  assert.equal(calls.length,2);
 });
 test('database exception fails closed',async()=>{
- const bridge=createRestrictedEvidenceBridge({sealerPublicKey:a.publicKey,providerVerifierPublicKey:b.publicKey,db:{query:async()=>{throw new Error('synthetic-db-unavailable');}}});
+ const bridge=createRestrictedEvidenceBridge({sealerPublicKey:a.publicKey,providerVerifierPublicKey:b.publicKey,publicationKey:'synthetic-verifier-key-keep-out-of-real-systems',db:{query:async()=>{throw new Error('synthetic-db-unavailable');}}});
  await assert.rejects(bridge.verifyAndCommit({evidence:e,signature:signature()}));
 });
