@@ -5,6 +5,7 @@ on:
       - 'test-support/t19-sec02-durable.sql'
       - 'test-support/t19-sec02-durable-test.sql'
       - 'test-support/t19-sec02-adversarial.sh'
+      - 'test-support/t19-sec02-restart.sh'
       - '.github/workflows/t19-sec02-durable.yml'
 permissions:
   contents: read
@@ -59,3 +60,6 @@ jobs:
 
       - name: Verify adversarial concurrent lease, disconnect, expiry and recovery
         run: bash test-support/t19-sec02-adversarial.sh
+
+      - name: Verify uncertainty and replay fencing after PostgreSQL restart
+        run: bash test-support/t19-sec02-restart.sh
