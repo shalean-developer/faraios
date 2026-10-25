@@ -18,19 +18,19 @@ const vault={
 };
 let op,leaseId;
 const coordinator={
- async current(){const s=run('t19_fixture',`select reference from custody_durable.connections where connection_id=${uuid(b.connection_id)}`);return {reference:s};},
- async claim(binding,operationId){op=randomUUID();leaseId=randomUUID();assert.equal(run('t19_custody',`select custody_durable.claim(${row(binding)},${uuid(op)},${uuid(leaseId)},interval '2 minutes')`),'t');return {id:leaseId,operationId:op};},
+ async current(binding){assert.deepEqual(binding,b);const reference=run('t19_fixture',`select reference from custody_durable.connections where connection_id=${uuid(binding.connection_id)} and business_id=${uuid(binding.business_id)} and enabled and generation=${binding.generation} and credential_version=${binding.credential_version}`);if(!reference)throw Error('stale');return {reference};},
+ async claim(binding,operationId){op=operationId;leaseId=randomUUID();assert.equal(run('t19_custody',`select custody_durable.claim(${row(binding)},${uuid(op)},${uuid(leaseId)},interval '2 minutes')`),'t');return {id:leaseId,operationId:op};},
  async dispatch(binding,lease,effect){assert.equal(run('t19_custody',`select custody_durable.dispatch(${row(binding)},${uuid(lease.operationId)},${uuid(lease.id)})`),'t');return effect();},
  async complete(binding,lease,ref){assert.equal(run('t19_sealer',`select custody_durable.prepare(${row(binding)},${uuid(lease.operationId)},${uuid(lease.id)},${uuid(ref)})`),'t');assert.equal(run('t19_custody',`select custody_durable.publish(${row(binding)},${uuid(lease.operationId)},${uuid(lease.id)},${uuid(ref)})`),'t');},
- async fail(){throw Error('no automatic uncertain-operation resolution in this fixture');}
+ async fail(binding,lease,state){if(state!=='recovery_required'&&state!=='idle'&&state!=='reauthorisation_required')throw Error('invalid_state');if(state==='recovery_required'){run('t19_fixture',`update custody_durable.operations set phase='recovery_required' where operation_id=${uuid(lease.operationId)} and lease_id=${uuid(lease.id)} and phase='dispatched'`);return;}throw Error('terminal path not implemented in disposable fixture');}
 };
 const svc=createRestrictedCustodyCore({authorize:async({principal})=>principal==='custody-service-synthetic',coordinator,vault,provider:{refresh:async()=>dummyRefresh()}});
-await assert.rejects(svc.refresh({principal:'ordinary-invoice-worker',binding:b,operationId:'job-12345678'}),{code:'custody_denied'});
+await assert.rejects(svc.refresh({principal:'ordinary-invoice-worker',binding:b,operationId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'}),{code:'custody_denied'});
 const foreign={...b,business_id:randomUUID()};
 await assert.rejects(svc.refresh({principal:'custody-service-synthetic',binding:foreign,operationId:'job-12345678'}));
 const answer=await svc.refresh({principal:'custody-service-synthetic',binding:b,operationId:'job-12345678'});
 assert.equal(answer.status,'completed');assert.equal(JSON.stringify(answer).includes('dummy-'),false);
 assert.equal(run('t19_fixture',`select credential_version from custody_durable.connections where connection_id=${uuid(b.connection_id)}`),'2');
 assert.equal(run('t19_fixture',`select count(*) from custody_durable.operations where phase='published'`),'1');
-await assert.rejects(svc.refresh({principal:'custody-service-synthetic',binding:b,operationId:'job-87654321'}));
+await assert.rejects(svc.refresh({principal:'custody-service-synthetic',binding:b,operationId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'}));
 console.log('T19_CUSTODY_NATIVE_PG_INTEGRATION_PASS');
