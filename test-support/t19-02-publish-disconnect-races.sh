@@ -46,7 +46,7 @@ echo T19_02_DISCONNECT_FIRST_PUBLISH_RACE_PASS
 reset_fixture;prepare
 (sql "BEGIN; SET LOCAL SESSION AUTHORIZATION t19_hosted_custody; SELECT private_t19_custody.publish_reference('$op','$lease','$ref'); SELECT pg_sleep(8); COMMIT;" >"$d/interrupted" 2>&1) & worker=$!
 sleep 1
-pid="$(sql "select pid from pg_stat_activity where query like '%publish_reference%' and query like '%pg_sleep(8)%' and state='active' order by backend_start desc limit 1")"
+pid="$(sql "select pid from pg_stat_activity where query like '%publish_reference%' and query like '%pg_sleep(8)%' and state='active' and pid <> pg_backend_pid() order by backend_start desc limit 1")"
 [[ "$pid" =~ ^[0-9]+$ ]] || exit 1
 [[ "$(sql "select pg_terminate_backend($pid)")" == t ]] || exit 1
 wait "$worker" && exit 1 || true
