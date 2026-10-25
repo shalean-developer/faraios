@@ -29,7 +29,11 @@ CREATE TABLE evidence_guard.receipts (
 );
 CREATE TABLE evidence_guard.operations (
  operation_id text PRIMARY KEY, c1_key text NOT NULL,
- lease text NOT NULL, state text NOT NULL DEFAULT 'dispatched'
+ lease text NOT NULL, generation integer NOT NULL DEFAULT 1 CHECK (generation>0),
+ credential_version integer NOT NULL DEFAULT 1 CHECK (credential_version>0),
+ lease_expires_at timestamptz NOT NULL DEFAULT (clock_timestamp()+interval '10 minutes'),
+ disconnected boolean NOT NULL DEFAULT false,
+ state text NOT NULL DEFAULT 'dispatched'
  CHECK(state IN ('dispatched','verified','recovery_required'))
 );
 CREATE FUNCTION evidence_guard.consume_verified(
@@ -52,7 +56,9 @@ BEGIN
  SELECT * INTO current_op FROM evidence_guard.operations
   WHERE operations.operation_id=consume_verified.operation_id FOR UPDATE;
  IF NOT FOUND OR current_op.c1_key<>consume_verified.c1_key OR current_op.lease<>consume_verified.lease
-  OR current_op.state<>'dispatched' THEN RETURN false; END IF;
+  OR current_op.state<>'dispatched' OR current_op.disconnected
+  OR current_op.lease_expires_at<=clock_timestamp()
+  OR current_op.generation<1 OR current_op.credential_version<1 THEN RETURN false; END IF;
  INSERT INTO evidence_guard.receipts(signer_fingerprint,purpose,nonce,operation_id,c1_key,lease)
  VALUES(fingerprint,purpose,nonce,operation_id,c1_key,lease)
  ON CONFLICT DO NOTHING;
