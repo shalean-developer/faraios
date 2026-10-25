@@ -165,6 +165,7 @@ GRANT EXECUTE ON FUNCTION custody_durable.claim(custody_durable.binding,uuid,uui
  custody_durable.publish(custody_durable.binding,uuid,uuid,uuid),
  custody_durable.disconnect(custody_durable.binding),
  custody_durable.recover(custody_durable.binding,uuid,uuid) TO t19_custody;
+GRANT EXECUTE ON FUNCTION custody_durable.prepare(custody_durable.binding,uuid,uuid,uuid) TO t19_sealer;
 INSERT INTO custody_durable.connections(connection_id,business_id,environment,provider,organization_id,generation,credential_version,reference)
  VALUES('22222222-2222-4222-8222-222222222222','612be091-b1d7-4911-9c3b-143446a9fe27','synthetic','synthetic','synthetic-shalean',1,1,'33333333-3333-4333-8333-333333333333');
 COMMIT;
