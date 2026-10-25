@@ -35,10 +35,8 @@ for role in t19_invoice_worker t19_app_worker; do
   grep -q 'permission denied' "$d/$role.readerr" || exit 1
 done
 echo T19_SEC02_ORDINARY_LOGIN_DENIAL_PASS
-# SECURITY GAP CHARACTERISATION (expected unsafe behavior; NOT an acceptance pass):
-# The currently permitted consumer can fabricate a new nonce and transition
-# a dispatched operation without cryptographic verification. Keep the test
-# explicit so green CI cannot be misrepresented as proof of a sealed boundary.
+# Verify that possession of the consumer login without the synthetic proof key
+# cannot publish fabricated evidence.
 admin "insert into evidence_guard.operations(operation_id,c1_key,lease) values('op-direct-bypass','scope-direct','lease-direct')"
 direct="SELECT evidence_guard.consume_verified('forged-fingerprint-without-signature','provider_result','fabricated-nonce','op-direct-bypass','scope-direct','lease-direct','0000000000000000000000000000000000000000000000000000000000000000')"
 if consume "$direct" >"$d/direct-out" 2>"$d/direct-err"; then echo "FAIL direct forged evidence accepted"; exit 1; fi
@@ -46,6 +44,20 @@ grep -q 'unauthenticated publication' "$d/direct-err" || { cat "$d/direct-err"; 
 [[ "$(admin "select state from evidence_guard.operations where operation_id='op-direct-bypass'")" == dispatched ]] || exit 1
 [[ "$(admin "select count(*) from evidence_guard.receipts where nonce='fabricated-nonce'")" == 0 ]] || exit 1
 echo T19_SEC02_DIRECT_FORGED_PUBLICATION_DENIED
+# D4 and expiry must fence valid proofs, leaving receipts unchanged.
+for case_name in expired disconnected recovery; do
+  op="op-$case_name"
+  admin "insert into evidence_guard.operations(operation_id,c1_key,lease) values('$op','scope-$case_name','lease-$case_name')"
+  case "$case_name" in
+    expired) admin "update evidence_guard.operations set lease_expires_at=clock_timestamp()-interval '1 second' where operation_id='$op'";;
+    disconnected) admin "update evidence_guard.operations set disconnected=true where operation_id='$op'";;
+    recovery) admin "update evidence_guard.operations set state='recovery_required' where operation_id='$op'";;
+  esac
+  candidate="SELECT evidence_guard.consume_verified('synthetic-pinned-fingerprint','provider_result','nonce-$case_name','$op','scope-$case_name','lease-$case_name','$(proof synthetic-pinned-fingerprint provider_result nonce-$case_name "$op" scope-$case_name lease-$case_name)')"
+  [[ "$(consume "$candidate")" == f ]] || { echo "FAIL $case_name fence"; exit 1; }
+  [[ "$(admin "select count(*) from evidence_guard.receipts where nonce='nonce-$case_name'")" == 0 ]] || exit 1
+done
+echo T19_SEC02_EXPIRY_DISCONNECT_RECOVERY_DENIAL_PASS
 # A killed transaction cannot persist its consumed nonce or publication transition.
 admin "insert into evidence_guard.operations(operation_id,c1_key,lease) values('op-four','scope-four','lease-four')"
 PGUSER=t19_evidence_consumer PGPASSWORD=fake-consumer-only psql -X -qAt -v ON_ERROR_STOP=1 -c "BEGIN; SELECT evidence_guard.consume_verified('synthetic-pinned-fingerprint','provider_result','nonce-four','op-four','scope-four','lease-four','$(proof synthetic-pinned-fingerprint provider_result nonce-four op-four scope-four lease-four)'); SELECT pg_sleep(5); COMMIT;" >"$d/interrupted" 2>&1 & worker=$!
