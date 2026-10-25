@@ -6,7 +6,7 @@ lease='77777777-7777-4777-8777-777777777777'
 epoch='55555555-5555-4555-8555-555555555555'
 ref='88888888-8888-4888-8888-888888888888'
 binding='{"business_id":"612be091-b1d7-4911-9c3b-143446a9fe27","environment":"synthetic","provider":"synthetic","connection_id":"44444444-4444-4444-8444-444444444444","generation":1,"organization_id":"synthetic-shalean","credential_version":1}'
-custody() { PGUSER=t19_custody PGPASSWORD=fake-custody-only psql -X -qAt -v ON_ERROR_STOP=1 -c "$1"; }
+custody() { PGUSER=t19_custody PGPASSWORD=fake-custody-only psql -X -qAt -v VERBOSITY=sqlstate -v ON_ERROR_STOP=1 -c "$1"; }
 admin() { PGUSER=t19_fixture PGPASSWORD=synthetic-only psql -X -qAt -v ON_ERROR_STOP=1 -c "$1"; }
 step() { custody "select custody_test.fenced_step('$1','$binding'::jsonb,'$op'::uuid,'$lease'::uuid,'$epoch'::uuid,${2:-null})"; }
 expect_denied() {
