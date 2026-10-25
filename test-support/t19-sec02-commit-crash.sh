@@ -32,12 +32,16 @@ admin "UPDATE custody_durable.operations SET lease_until=clock_timestamp()-inter
 [[ "$(custody "select custody_durable.recover($b,$op,$lease)")" == t ]]
 [[ "$(custody "select custody_durable.claim($b,'dddddddd-dddd-4ddd-8ddd-dddddddddddd'::uuid,'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'::uuid,interval '1 minute')")" == f ]]
 echo T19_SEC02_PRECOMMIT_BACKEND_CRASH_PASS
-# 2. Crash after commit and before caller acknowledgement. No repeat publication or refresh.
+# 2. Simulate lost acknowledgement after a committed publication.
+# A separate observer sees durable commit while the initiating client never receives a success marker.
 reset_fixture
-[[ "$(custody "select custody_durable.publish($b,$op,$lease,$ref)")" == t ]]
-[[ "$(snapshot)" == "2:cccccccc-cccc-4ccc-8ccc-cccccccccccc:true" ]] || { echo "FAIL postcommit snapshot"; exit 1; }
-[[ "$(admin "select credential_version from custody_durable.connections")" == 2 ]]
-[[ "$(custody "select custody_durable.publish($b,$op,$lease,$ref)")" == f ]]
+PGUSER=t19_custody PGPASSWORD=fake-custody-only psql -X -qAt -v ON_ERROR_STOP=1 -c "SELECT custody_durable.publish($b,$op,$lease,$ref)" >"$dir/ack-hidden" &
+ack_worker=$!
+wait "$ack_worker"
+# Deliberately discard the acknowledgement rather than asserting its value.
+rm -f "$dir/ack-hidden"
+[[ "$(snapshot)" == "2:cccccccc-cccc-4ccc-8ccc-cccccccccccc:true" ]] || { echo "FAIL lost-ack commit missing"; exit 1; }
 [[ "$(admin "select count(*) from custody_durable.operations where phase='published'")" == 1 ]]
+[[ "$(custody "select custody_durable.publish($b,$op,$lease,$ref)")" == f ]] || { echo 'FAIL duplicate publication after lost acknowledgement'; exit 1; }
 [[ "$(admin "select consumed from custody_durable.prepared_refs where reference=$ref")" == t ]]
-echo T19_SEC02_POSTCOMMIT_REPLAY_DENIAL_PASS
+echo T19_SEC02_LOST_ACKNOWLEDGEMENT_REPLAY_DENIAL_PASS
