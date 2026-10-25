@@ -103,18 +103,33 @@ CREATE FUNCTION custody_durable.publish(b custody_durable.binding, op uuid, leas
   IF sealed_ref IS NULL THEN RETURN false; END IF;
   SELECT * INTO c FROM custody_durable.connections WHERE connection_id=(b).connection_id FOR UPDATE;
   IF NOT FOUND OR NOT c.enabled OR NOT custody_durable.match_binding(c,b) THEN RETURN false; END IF;
-  UPDATE custody_durable.prepared_refs SET consumed=true
-   WHERE reference=sealed_ref AND operation_id=op AND lease_id=lease
-   AND business_id=(b).business_id AND environment=(b).environment
-   AND provider=(b).provider AND connection_id=(b).connection_id
-   AND generation=(b).generation AND organization_id=(b).organization_id
-   AND credential_version=(b).credential_version+1 AND NOT consumed;
-  IF NOT FOUND THEN RETURN false; END IF;
+  -- Validate BOTH preconditions under the connection row lock before mutating.
+  -- If either fails, return without consuming a reference or changing operation state.
+  IF NOT EXISTS (
+     SELECT 1 FROM custody_durable.operations
+     WHERE operation_id=op AND connection_id=c.connection_id
+       AND generation=c.generation AND credential_version=c.credential_version
+       AND lease_id=lease AND phase='dispatched' AND lease_until>clock_timestamp()
+  ) OR NOT EXISTS (
+     SELECT 1 FROM custody_durable.prepared_refs
+     WHERE reference=sealed_ref AND operation_id=op AND lease_id=lease
+       AND business_id=(b).business_id AND environment=(b).environment
+       AND provider=(b).provider AND connection_id=(b).connection_id
+       AND generation=(b).generation AND organization_id=(b).organization_id
+       AND credential_version=(b).credential_version+1 AND NOT consumed
+  ) THEN RETURN false; END IF;
   UPDATE custody_durable.operations SET phase='published',next_reference=sealed_ref
    WHERE operation_id=op AND connection_id=c.connection_id AND generation=c.generation
-    AND credential_version=c.credential_version AND lease_id=lease AND phase='dispatched'
-    AND lease_until>clock_timestamp();
-  IF NOT FOUND THEN RETURN false; END IF;
+     AND credential_version=c.credential_version AND lease_id=lease AND phase='dispatched'
+     AND lease_until>clock_timestamp();
+  IF NOT FOUND THEN RAISE EXCEPTION 'publication operation fence changed' USING ERRCODE='40001'; END IF;
+  UPDATE custody_durable.prepared_refs SET consumed=true
+   WHERE reference=sealed_ref AND operation_id=op AND lease_id=lease
+     AND business_id=(b).business_id AND environment=(b).environment
+     AND provider=(b).provider AND connection_id=(b).connection_id
+     AND generation=(b).generation AND organization_id=(b).organization_id
+     AND credential_version=(b).credential_version+1 AND NOT consumed;
+  IF NOT FOUND THEN RAISE EXCEPTION 'publication reference fence changed' USING ERRCODE='40001'; END IF;
   UPDATE custody_durable.connections SET credential_version=credential_version+1,reference=sealed_ref
    WHERE connection_id=c.connection_id;
   RETURN true;
