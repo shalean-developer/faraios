@@ -20,7 +20,7 @@ test('settings projection refuses missing or incorrect stored environment',()=>{
 test('inactive status labels distinguish missing, saved-disabled, and held configuration',()=>{
  assert.match(renderZohoReadiness(status(a,null)),/Not connected/);
  assert.match(renderZohoReadiness(status(a,conn(a,'943440851'))),/Disconnected/);
- assert.match(renderZohoReadiness(status(a,{...conn(a,'943440851'),enabled:true)),/Verification required/);
+ assert.match(renderZohoReadiness(status(a,{...conn(a,'943440851',enabled:true})),/Verification required/);
 });
 test('technical settings are collapsed and stored configuration remains non-authorising',()=>{
  const html=renderInvoices({id:a,name:'Shalean'},[],{settings:true,owner:true,connection:{...conn(a,'943440851'),credential_key:'FARAIOS_SHALEAN_TEST',version:1}});
