@@ -5,6 +5,7 @@ on:
       - 'test-support/t19-sec02-disposable-fixture.sql'
       - 'test-support/t19-a12-f2-privilege-probe.sql'
       - '.github/workflows/t19-sec02-disposable.yml'
+      - 'test-support/t19-sec02-separate-sessions.sh'
   workflow_dispatch:
 permissions:
   contents: read
@@ -58,3 +59,5 @@ jobs:
             select case when count(*) = 4 then 'PRINCIPALS_PRESENT' else 'INVALID' end
             from pg_roles where rolname in ('t19_web','t19_invoice_worker','t19_historical_publisher','t19_custody');
           "
+      - name: Verify actual separate attacker login sessions
+        run: bash test-support/t19-sec02-separate-sessions.sh
