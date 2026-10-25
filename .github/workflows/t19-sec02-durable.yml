@@ -1,0 +1,93 @@
+name: T19 SEC-02 durable fencing synthetic
+on:
+  pull_request:
+    paths:
+      - 'test-support/t19-sec02-durable.sql'
+      - 'test-support/t19-sec02-durable-test.sql'
+      - 'test-support/t19-sec02-atomic-rejection.sql'
+      - 'test-support/t19-sec02-effective-privileges.sh'
+      - 'test-support/t19-sec02-simulated-provider.sh'
+      - 'test-support/t19-sec02-overlap-race.sh'
+      - 'test-support/t19-sec02-inflight-kill.sh'
+      - 'test-support/t19-sec02-commit-crash.sh'
+      - 'test-support/t19-sec02-seven-field.sh'
+      - 'test-support/t19-sec02-adversarial.sh'
+      - 'test-support/t19-sec02-restart.sh'
+      - '.github/workflows/t19-sec02-durable.yml'
+permissions:
+  contents: read
+jobs:
+  durable-disposable:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: t19_fixture
+          POSTGRES_PASSWORD: synthetic-only
+          POSTGRES_DB: faraios_t19_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U t19_fixture -d faraios_t19_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGDATABASE: faraios_t19_test
+      PGUSER: t19_fixture
+      PGPASSWORD: synthetic-only
+      PGSSLMODE: disable
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client if necessary
+        run: command -v psql || (sudo apt-get update -qq && sudo apt-get install -y postgresql-client)
+      - name: Establish earlier synthetic role fixture
+        run: psql -X -v ON_ERROR_STOP=1 -c "set faraios.sec02='synthetic'" -f test-support/t19-sec02-disposable-fixture.sql
+      - name: Establish durable C1 test fixture
+        run: psql -X -v ON_ERROR_STOP=1 -c "set faraios.sec02='synthetic'" -f test-support/t19-sec02-durable.sql
+      - name: Reject publication without any protected-state mutation
+        run: psql -X -v ON_ERROR_STOP=1 -f test-support/t19-sec02-atomic-rejection.sql
+      - name: Reset synthetic fixture after rejection tests
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -c "TRUNCATE custody_durable.prepared_refs,custody_durable.operations; UPDATE custody_durable.connections SET enabled=true,generation=1,credential_version=1,reference='33333333-3333-4333-8333-333333333333';"
+      - name: Verify fenced publication and disconnect
+        run: psql -X -v ON_ERROR_STOP=1 -f test-support/t19-sec02-durable-test.sql
+      - name: Verify only custody can execute or inspect
+        shell: bash
+        run: |
+          set -euo pipefail
+          for entry in t19_web:fake-web-only t19_invoice_worker:fake-invoice-only t19_historical_publisher:fake-historical-only; do
+            role="${entry%%:*}"; pass="${entry#*:}"
+            for sql in "select * from custody_durable.connections" "select * from custody_durable.operations" "select custody_durable.disconnect(null::custody_durable.binding)"; do
+              set +e
+              out="$(PGUSER="$role" PGPASSWORD="$pass" psql -X -v VERBOSITY=sqlstate -v ON_ERROR_STOP=1 -c "$sql" 2>&1)"
+              code=$?
+              set -e
+              if [[ $code -eq 0 || "$out" != *42501* ]]; then echo "FAILED denied role $role"; exit 1; fi
+            done
+          done
+          echo T19_SEC02_DURABLE_ROLE_DENIAL_PASS
+
+      - name: Verify effective grants, impersonation and cross-role denials
+        run: bash test-support/t19-sec02-effective-privileges.sh
+      - name: Verify adversarial concurrent lease, disconnect, expiry and recovery
+        run: bash test-support/t19-sec02-adversarial.sh
+
+      - name: Verify uncertainty and replay fencing after PostgreSQL restart
+        run: bash test-support/t19-sec02-restart.sh
+
+      - name: Simulated provider rotation interrupted before sealing
+        run: bash test-support/t19-sec02-simulated-provider.sh
+
+      - name: Verify seven-field prepared-reference binding
+        run: bash test-support/t19-sec02-seven-field.sh
+      - name: Verify overlapping physical transaction race orders
+        run: bash test-support/t19-sec02-overlap-race.sh
+
+      - name: Verify killed in-flight publisher rolls back transaction
+        run: bash test-support/t19-sec02-inflight-kill.sh
+
+      - name: Verify precommit backend crash and postcommit replay fencing
+        run: bash test-support/t19-sec02-commit-crash.sh
