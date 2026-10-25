@@ -20,6 +20,19 @@ d="$(mktemp -d)";trap 'rm -rf "$d"' EXIT
 wait "$a";wait "$b"
 [[ "$(sort "$d/one" "$d/two")" == "$(printf 'f\nt')" ]] || { echo "FAIL simultaneous replay";exit 1; }
 [[ "$(admin "select count(*) from evidence_guard.receipts where operation_id='op-three'")" == 1 ]] || exit 1
+# Separate disposable application and invoice logins must have no publication RPC or table access.
+for role in t19_invoice_worker t19_app_worker; do
+  if [[ "$role" == t19_invoice_worker ]]; then password=fake-worker-only; else password=fake-app-only; fi
+  if PGUSER="$role" PGPASSWORD="$password" psql -X -qAt -v ON_ERROR_STOP=1 -c "$sql" >"$d/$role.out" 2>"$d/$role.err"; then
+    echo "FAIL $role bypassed publication boundary"; exit 1
+  fi
+  grep -q 'permission denied' "$d/$role.err" || { cat "$d/$role.err"; exit 1; }
+  if PGUSER="$role" PGPASSWORD="$password" psql -X -qAt -v ON_ERROR_STOP=1 -c 'select * from evidence_guard.receipts' >"$d/$role.read" 2>"$d/$role.readerr"; then
+    echo "FAIL $role read receipts"; exit 1
+  fi
+  grep -q 'permission denied' "$d/$role.readerr" || exit 1
+done
+echo T19_SEC02_ORDINARY_LOGIN_DENIAL_PASS
 # A killed transaction cannot persist its consumed nonce or publication transition.
 admin "insert into evidence_guard.operations(operation_id,c1_key,lease) values('op-four','scope-four','lease-four')"
 PGUSER=t19_evidence_consumer PGPASSWORD=fake-consumer-only psql -X -qAt -v ON_ERROR_STOP=1 -c "BEGIN; SELECT evidence_guard.consume_verified('synthetic-pinned-fingerprint','provider_result','nonce-four','op-four','scope-four','lease-four'); SELECT pg_sleep(5); COMMIT;" >"$d/interrupted" 2>&1 & worker=$!
