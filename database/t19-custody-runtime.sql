@@ -345,12 +345,20 @@ revoke execute on all functions in schema vault from public,anon,authenticated,s
 grant select on vault.decrypted_secrets to t19_runtime_owner;
 grant execute on function vault.create_secret(text,text,text,uuid) to t19_runtime_owner;
 grant execute on function auth.uid(),audit.claim_invoice_sync(uuid,uuid,uuid,text),audit.finish_invoice_sync(uuid,uuid,uuid,uuid,text,text,jsonb) to t19_runtime_owner;
+-- Owner transfer is transaction-scoped. PostgreSQL 17 requires new-owner CREATE
+-- on this schema and executor SET ROLE authority, even for ALTER FUNCTION OWNER.
+-- Restore the creator-admin membership to its original SET FALSE state below.
+grant create on schema private_t19_custody to t19_runtime_owner;
+grant t19_runtime_owner to postgres with set true, inherit false;
 alter function private_t19_custody.binding(private_t19_custody.connections) owner to t19_runtime_owner;
 alter function private_t19_custody.non_vat_snapshot(jsonb,integer) owner to t19_runtime_owner;
 alter function private_t19_custody.allowed(uuid,uuid,boolean) owner to t19_runtime_owner;
 alter function private_t19_custody.runtime(text,jsonb) owner to t19_runtime_owner;
 alter function private_t19_custody.enqueue(uuid,uuid,uuid,text) owner to t19_runtime_owner;
 alter function private_t19_custody.disconnect(uuid,uuid,bigint) owner to t19_runtime_owner;
+-- Do not leave function-creation or SET ROLE rights after ownership transfer.
+revoke create on schema private_t19_custody from t19_runtime_owner;
+grant t19_runtime_owner to postgres with set false, inherit false;
 revoke all on all tables in schema private_t19_custody from public,anon,authenticated,service_role,t19_hosted_custody;
 revoke all on all functions in schema private_t19_custody from public,anon,authenticated,service_role,t19_hosted_custody;
 grant usage on schema private_t19_custody to authenticated,t19_hosted_custody;
