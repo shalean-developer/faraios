@@ -94,11 +94,11 @@ create policy custody_function_owner on private_t19_custody.oauth_states to t19_
 -- requires SET privilege on the target role and CREATE for the new owner.
 grant t19_runtime_owner to current_user with set true, inherit false;
 grant create on schema private_t19_custody to t19_runtime_owner;
-do $ begin
+do $op02$ begin
  if not pg_has_role(current_user,'t19_runtime_owner','SET')
     or not has_schema_privilege('t19_runtime_owner','private_t19_custody','CREATE')
  then raise exception 'OP-02 temporary ownership authority missing' using errcode='42501'; end if;
-end $;
+end $op02$;
 alter function private_t19_custody.oauth(text,jsonb) owner to t19_runtime_owner;
 revoke all on private_t19_custody.oauth_clients,private_t19_custody.oauth_states from public,anon,authenticated,service_role,t19_hosted_custody;
 revoke all on function private_t19_custody.oauth(text,jsonb) from public,anon,authenticated,service_role;
@@ -131,11 +131,11 @@ alter function private_t19_custody.revoke_grant(text,jsonb) owner to t19_runtime
 -- schema CREATE; rollback of this transaction also rolls back both grants.
 revoke create on schema private_t19_custody from t19_runtime_owner;
 grant t19_runtime_owner to current_user with set false, inherit false;
-do $ begin
+do $op02$ begin
  if pg_has_role(current_user,'t19_runtime_owner','SET')
     or has_schema_privilege('t19_runtime_owner','private_t19_custody','CREATE')
  then raise exception 'OP-02 temporary ownership authority leaked' using errcode='42501'; end if;
-end $;
+end $op02$;
 revoke all on function private_t19_custody.revoke_grant(text,jsonb) from public,anon,authenticated,service_role;
 grant execute on function private_t19_custody.revoke_grant(text,jsonb) to t19_hosted_custody;
 commit;
