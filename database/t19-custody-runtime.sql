@@ -36,7 +36,7 @@ create unique index custody_invoice_job on private_t19_custody.jobs(invoice_id) 
 create unique index custody_refresh_job on private_t19_custody.jobs(connection_id,generation) where kind='refresh' and state in ('pending','running','retry','recovery_required');
 create table private_t19_custody.events(
  id bigint generated always as identity primary key,business_id uuid not null,connection_id uuid not null,
- operation_id uuid,kind text not null,at timestamptz not null default clock_timestamp()
+ operation_id uuid,kind text not null,actor uuid,previous_actor uuid,at timestamptz not null default clock_timestamp()
 );
 create table private_t19_custody.revocations(
  connection_id uuid not null references private_t19_custody.connections(connection_id),generation bigint not null,
@@ -57,7 +57,7 @@ language sql stable security definer set search_path=pg_catalog as $$
 $$;
 create function private_t19_custody.runtime(action text,p jsonb) returns jsonb
 language plpgsql security definer set search_path=pg_catalog as $$
-declare c private_t19_custody.connections; j private_t19_custody.jobs; o private_t19_custody.operations;
+declare c private_t19_custody.connections; j private_t19_custody.jobs; o private_t19_custody.operations; previous private_t19_custody.jobs;
  r uuid; v jsonb; b jsonb; result jsonb; claim jsonb; target uuid;
 begin
  if session_user <> 't19_hosted_custody' then raise exception 'custody_denied' using errcode='42501';end if;
@@ -116,7 +116,16 @@ begin
  end if;
  if action='resolve' and (not c.enabled or c.status<>'connected' or c.generation<>j.generation
  or not private_t19_custody.allowed(j.business_id,j.actor)) then
-  update private_t19_custody.jobs set state=case when dispatched then 'recovery_required' else 'cancelled' end,
+  -- Refresh dispatch is recorded in operations, not the invoice dispatch flag.
+  if j.kind='refresh' then
+   select * into o from private_t19_custody.operations where operation_id=j.id for update;
+   update private_t19_custody.operations set phase=case when phase='claimed' then 'fenced' else 'recovery_required' end
+    where operation_id=j.id and phase in ('claimed','dispatched','prepared');
+   if o.phase in ('dispatched','prepared','recovery_required') and c.generation=j.generation then
+    update private_t19_custody.connections set enabled=false,status='recovery_required' where connection_id=c.connection_id;
+   end if;
+  end if;
+  update private_t19_custody.jobs set state=case when dispatched or (j.kind='refresh' and o.phase in ('dispatched','prepared','recovery_required')) then 'recovery_required' else 'cancelled' end,
    error_code='authority_changed' where id=j.id and state in ('pending','running','retry');
   return jsonb_build_object('authorized',false);
  end if;
@@ -128,8 +137,25 @@ begin
   return jsonb_build_object('id',j.id,'machine_id',j.machine_id,'kind',j.kind,'authorized',true,'binding',b);
  end if;
  if action='ensure_refresh' and j.kind='invoice' then
-  select id into r from private_t19_custody.jobs where connection_id=c.connection_id and generation=c.generation
-   and kind='refresh' and state in ('pending','running','retry','recovery_required');
+  select * into previous from private_t19_custody.jobs where connection_id=c.connection_id and generation=c.generation
+   and kind='refresh' and state in ('pending','running','retry','recovery_required') for update;
+  r:=previous.id;
+  if r is not null and (not private_t19_custody.allowed(previous.business_id,previous.actor)
+   or not exists(select 1 from private_t19_custody.machines m join private_t19_custody.machine_businesses mb on mb.machine_id=m.id
+    where m.id=previous.machine_id and m.active and mb.business_id=previous.business_id and mb.active)) then
+   select * into o from private_t19_custody.operations where operation_id=r for update;
+   if o.phase in ('dispatched','prepared','recovery_required') or previous.state='recovery_required' then
+    update private_t19_custody.operations set phase='recovery_required' where operation_id=r and phase in ('dispatched','prepared');
+    update private_t19_custody.jobs set state='recovery_required',error_code='refresh_uncertain' where id=r;
+    update private_t19_custody.connections set enabled=false,status='recovery_required' where connection_id=c.connection_id;
+    -- Commit the hold; returning null makes the adapter refuse without rolling it back.
+    return null;
+   end if;
+   if o.phase='claimed' then update private_t19_custody.operations set phase='fenced' where operation_id=r;end if;
+   update private_t19_custody.jobs set state='cancelled',error_code='authority_changed' where id=r;
+   insert into private_t19_custody.events(business_id,connection_id,operation_id,kind) values(c.business_id,c.connection_id,r,'refresh_authority_retired');
+   r:=null;
+  end if;
   if r is null then
    insert into private_t19_custody.jobs(connection_id,business_id,generation,machine_id,actor,kind)
    values(c.connection_id,c.business_id,c.generation,j.machine_id,j.actor,'refresh') returning id into r;
