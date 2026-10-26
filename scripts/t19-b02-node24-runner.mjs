@@ -35,7 +35,8 @@ if(isMain){
  const digest=createHash('sha256').update(sql).digest('hex');
  if(!process.env.T19_B02_SQL_SHA256||digest!==process.env.T19_B02_SQL_SHA256)throw new Error('SQL byte digest mismatch');
  const chunks=splitSql(sql);
- if(chunks.length<15||!/^BEGIN\s*;/i.test(chunks[0])||!/^ROLLBACK\s*;/i.test(chunks.at(-2))||!/^SELECT\s/i.test(chunks.at(-1)))throw new Error('Unexpected exact SQL layout');
+ const stripLeadingComments=x=>x.replace(/^(?:\s*--[^\n]*\n)*/, '').trim();
+ if(chunks.length<15||!/^BEGIN\s*;/i.test(stripLeadingComments(chunks[0]))||!/^ROLLBACK\s*;/i.test(stripLeadingComments(chunks.at(-2)))||!/^SELECT\s/i.test(stripLeadingComments(chunks.at(-1))))throw new Error('Unexpected exact SQL layout');
  const address=process.env.T19_B02_STAGING_DB_URL;
  if(!address)throw new Error('Separate staging DB URL required');
  const url=new URL(address);
