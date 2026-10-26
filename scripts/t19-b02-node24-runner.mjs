@@ -26,6 +26,28 @@ export function splitSql(sql) {
  return parts;
 }
 
+export async function executeRollbackProbe(client,chunks) {
+ let begun=false,rolled=false;
+ try {
+  for(let i=0;i<chunks.length;i++){
+   const result=await client.query(chunks[i]);
+   if(i===0)begun=true;
+   if(i===chunks.length-2)rolled=true;
+   if(i===chunks.length-1){
+    const r=result.rows?.[0]||{};
+    if(Number(r.leftover_roles)!==0||Number(r.leftover_schemas)!==0||Number(r.leftover_functions)!==0)
+     throw new Error('Scratch objects remained');
+   }
+  }
+  if(!rolled)throw new Error('Transaction did not reach ROLLBACK');
+ } catch(error) {
+  if(begun&&!rolled) {
+   try{await client.query('ROLLBACK');}
+   catch { throw new AggregateError([error,new Error('Rollback confirmation unavailable')],'Rollback uncertain'); }
+  }
+  throw error;
+ }
+}
 const isMain=process.argv[1]&&new URL(import.meta.url).pathname===process.argv[1];
 if(isMain){
  if(process.version.split('.')[0]!=='v24')throw new Error('Node.js 24 required');
@@ -42,24 +64,13 @@ if(isMain){
  const url=new URL(address);
  if(url.hostname!=='db.xdmfyrsauvqznkloroxg.supabase.co'||url.pathname!=='/postgres')throw new Error('Destination not allowlisted staging DB');
  const client=new Client({connectionString:address,ssl:{rejectUnauthorized:true},connectionTimeoutMillis:10000});
- let begun=false,rolled=false;
  try{
   await client.connect();
   const check=await client.query("select current_user, session_user, current_setting('server_version_num')::int as version");
   if(check.rows[0].current_user!=='postgres'||check.rows[0].session_user!=='postgres'||check.rows[0].version<170000)throw new Error('Wrong SQL identity');
-  for(let i=0;i<chunks.length;i++){
-   const result=await client.query(chunks[i]);
-   if(i===0)begun=true;
-   if(i===chunks.length-2)rolled=true;
-   if(i===chunks.length-1){
-    const r=result.rows[0]||{};
-    if(Number(r.leftover_roles)!==0||Number(r.leftover_schemas)!==0||Number(r.leftover_functions)!==0)throw new Error('Scratch objects remained');
-   }
-  }
-  if(!rolled)throw new Error('Transaction did not reach ROLLBACK');
+  await executeRollbackProbe(client,chunks);
   console.log('T19_B02_RUNNER_ROLLBACK_AND_ZERO_SCRATCH_PASS');
  }catch(error){
-  if(begun&&!rolled){try{await client.query('ROLLBACK');}catch{}}
   console.error('T19_B02_RUNNER_FAIL',String(error.code||'VERIFY_FAILED'));
   process.exitCode=1;
  }finally{await client.end().catch(()=>{});}
