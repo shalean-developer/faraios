@@ -57,6 +57,11 @@ async function setup(t,options){
  const enqueue=(biz,cid,invoice=null,who=owner)=>f.as(who,()=>db.query('select private_t19_custody.enqueue($1,$2,$3,$4) id',[biz,cid,invoice,invoice?'123':null])).then(r=>r.rows[0].id);
  return {...f,api,bindings,enqueue,query};
 }
+test('Vault fixture has the managed four-argument routine identity, not a three-argument substitute',async t=>{
+ const f=await setup(t);
+ const r=await f.db.query("select to_regprocedure('vault.create_secret(text,text,text,uuid)') is not null as matched, to_regprocedure('vault.create_secret(text,text,text)') is null as absent");
+ assert.deepEqual(r.rows[0],{matched:true,absent:true});
+});
 test('runtime SQL and concrete adapter preserve scoped durable refresh publication and denial',async t=>{
  const f=await setup(t),{db,api,bindings:[binding]}=f;
  await assert.rejects(f.enqueue(a,ca,null,manager));
