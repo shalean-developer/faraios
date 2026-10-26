@@ -62,6 +62,13 @@ export function createAuthSessions({createClient,now=()=>Date.now()}) {
       const session=sessions.get(id);if(!session)throw new Error('Invoice access denied');
       return action(session.client,identity.businesses.find(b=>b.id===businessId),identity.userId,identity.memberships.some(m=>m.businessId===businessId&&m.role==='owner'));
     },
+    async withAccountingSession(id,action){
+      // Server-only mTLS forwarding. read() verifies Auth and current membership;
+      // getSession is used by the proxy solely to transport the access token.
+      if(!await this.read(id))throw new Error('Accounting access denied');
+      const session=sessions.get(id);if(!session)throw new Error('Accounting access denied');
+      return action(session.client);
+    },
     async withQuotes(id,businessId,action){
       const identity=await this.read(id);
       if(!identity?.businessIds.includes(businessId)||!canAccess({userId:identity.userId,businessId,permission:'quotes.manage',memberships:identity.memberships}))throw new Error('Quote access denied');
