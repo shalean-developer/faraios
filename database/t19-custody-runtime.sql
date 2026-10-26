@@ -340,10 +340,14 @@ end $$;
 grant usage on all sequences in schema private_t19_custody to t19_runtime_owner;
 -- Review this database-wide Vault boundary against an inventory of all consumers
 -- before approval. No ordinary REST/worker identity may decrypt or replace secrets.
-revoke all on all tables in schema vault from public,anon,authenticated,service_role,t19_hosted_custody;
-revoke execute on all functions in schema vault from public,anon,authenticated,service_role,t19_hosted_custody;
+-- OP-03: keep existing provider-managed Vault grants untouched.
+-- service_role and supabase_admin currently have managed Vault capabilities;
+-- consumer and indirect-execution assessment remains an operational gate.
+-- Grant only the two exact operations needed by the private runtime owner.
 grant select on vault.decrypted_secrets to t19_runtime_owner;
-grant execute on function vault.create_secret(text,text,text) to t19_runtime_owner;
+-- The installed signature includes a defaulted fourth argument; GRANT requires
+-- the full identity even when callers pass only one or three arguments.
+grant execute on function vault.create_secret(text,text,text,uuid) to t19_runtime_owner;
 grant execute on function auth.uid(),audit.claim_invoice_sync(uuid,uuid,uuid,text),audit.finish_invoice_sync(uuid,uuid,uuid,uuid,text,text,jsonb) to t19_runtime_owner;
 -- OP-02: temporary transfer authority, confined to this transaction.
 -- The creator's automatic membership is NOINHERIT/NOSET; ALTER FUNCTION OWNER
