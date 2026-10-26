@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {CURRENT_SCOPE,installProfile} from './backup-profile-fixture.js';
 import {validateScope} from '../scripts/backup-scope.mjs';
-import {SOURCE,loadCurrentProfile,capture,run,windowsEnvironment} from '../scripts/backup-staging.mjs';
+import {SOURCE,loadCurrentProfile,capture,run,windowsEnvironment,writePrivate} from '../scripts/backup-staging.mjs';
 
 async function fixture(t,install=true){
  const home=await realpath(await mkdtemp(join(tmpdir(),'t11-profile-test-')));
@@ -16,7 +16,7 @@ async function fixture(t,install=true){
 
 test('profile contract rejects unknown versions, source, fields, unsorted/duplicate names and invalid hashes',()=>{
  const valid=validateScope(CURRENT_SCOPE,SOURCE);assert.ok(Object.isFrozen(valid.tables));
- for(const mutate of [p=>p.version=2,p=>p.source='other',p=>p.id="bad'",p=>p.tables.reverse(),p=>p.tables.push(p.tables[0]),p=>p.tables=['public.only'],p=>p.catalog='bad',p=>p.extra=true,p=>p.tables[0]='vault.secrets']){
+ for(const mutate of [p=>p.version=1,p=>p.source='other',p=>p.id="bad'",p=>p.tables.reverse(),p=>p.tables.push(p.tables[0]),p=>p.tables=['public.only'],p=>p.catalog='bad',p=>p.extra=true,p=>p.tables[0]='vault.secrets']){
   const p=structuredClone(CURRENT_SCOPE);mutate(p);assert.throws(()=>validateScope(p,SOURCE));
  }
 });
@@ -36,7 +36,7 @@ test('profile loader freezes reviewed values and detects edits and identical-con
  await writeFile(file,JSON.stringify({...CURRENT_SCOPE,catalog:'4'.repeat(64)}));
  await assert.rejects(loaded.check(),{code:'PRIVATE_PROFILE_CHANGED'});
  const second=await loadCurrentProfile(home);await rename(file,file+'.old');
- await writeFile(file,JSON.stringify({...CURRENT_SCOPE,catalog:'4'.repeat(64)}),{mode:0o600});
+ await writePrivate(file,JSON.stringify({...CURRENT_SCOPE,catalog:'4'.repeat(64)}));
  await assert.rejects(second.check(),{code:'PRIVATE_PROFILE_CHANGED'});
 });
 

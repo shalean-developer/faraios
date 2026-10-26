@@ -15,7 +15,7 @@ function manifest() {
 
 function currentManifest() {
  const m=manifest();
- return {...m,scope:CURRENT_SCOPE.id,catalog_sha256:CURRENT_SCOPE.catalog,restore_catalog:{application:CURRENT_SCOPE.application,managed:CURRENT_SCOPE.managed},tables:[...CURRENT_SCOPE.tables.map((name,i)=>{const [schema,table]=name.split('.');return {schema,table,owner:'postgres',rls:true,rows:i===0?2:0,sha256:'a'.repeat(64)};}),...m.tables.filter(t=>!['public','audit'].includes(t.schema))]};
+ return {...m,scope:CURRENT_SCOPE.id,catalog_version:2,sequence_state:[{schema:'auth',sequence:'refresh_tokens_id_seq',last_value:'50'}],catalog_sha256:CURRENT_SCOPE.catalog,restore_catalog:{application:CURRENT_SCOPE.application,managed:CURRENT_SCOPE.managed},tables:[...CURRENT_SCOPE.tables.map((name,i)=>{const [schema,table]=name.split('.');return {schema,table,owner:'postgres',rls:true,rows:i===0?2:0,sha256:'a'.repeat(64)};}),...m.tables.filter(t=>!['public','audit'].includes(t.schema))]};
 }
 
 function sqlFile(name,m=manifest()) {
@@ -39,7 +39,7 @@ async function home(t) {
  t.after(()=>rm(p,{recursive:true,force:true}));await installProfile(p);return p;
 }
 
-function mockRunner({change=false,failName,missingAuth=false,calls=[]}={}) {
+function mockRunner({change=false,failName,missingAuth=false,sequenceChange=false,calls=[]}={}) {
  let queries=0;
  return async (command,args,opts)=>{
   if(command!=='docker')return run(command,args,opts); // Real Windows ACL verification.
@@ -62,6 +62,7 @@ function mockRunner({change=false,failName,missingAuth=false,calls=[]}={}) {
   if(step==='metadata') {
    assert.equal(opts.failureContext,'pg-client');assert.ok(opts.input.startsWith('begin transaction'));
    if(change&&queries++>0)m.tables[0].sha256='f'.repeat(64);
+   if(sequenceChange&&queries++>0)m.sequence_state[0].last_value='51';
    return {stdout:JSON.stringify(m)+'\n',stderr:''};
   }
   assert.equal(opts.input,undefined);
@@ -81,7 +82,7 @@ test('source scope fails closed for foreign IDs, new schemas, storage, Vault, mi
 
 test('current scope rejects same-count substitution, ownership and catalog drift; legacy archives retain their original path',async()=>{
  validateManifest(currentManifest(),CURRENT_SCOPE);validateManifest(manifest());
- for(const mutate of [m=>m.tables[0].table='unreviewed',m=>m.tables[0].owner='service_role',m=>m.tables[0].rls=false,m=>m.tables.pop(),m=>m.catalog_sha256='0'.repeat(64),m=>m.restore_catalog.application='0'.repeat(64),m=>m.restore_catalog.managed='0'.repeat(64),m=>m.scope='unknown',m=>delete m.scope]) {
+ for(const mutate of [m=>m.tables[0].table='unreviewed',m=>m.tables[0].owner='service_role',m=>m.tables[0].rls=false,m=>m.tables.pop(),m=>m.catalog_sha256='0'.repeat(64),m=>m.restore_catalog.application='0'.repeat(64),m=>m.restore_catalog.managed='0'.repeat(64),m=>m.scope='unknown',m=>delete m.scope,m=>delete m.sequence_state,m=>m.catalog_version=1]) {
   const m=currentManifest();mutate(m);assert.throws(()=>validateManifest(m,CURRENT_SCOPE));
  }
  const key=randomBytes(32),id='a'.repeat(32);
@@ -413,4 +414,11 @@ test('profile change after metadata stops before the first data export',async t=
   return result;
  }}),{code:'PRIVATE_PROFILE_CHANGED'});
  assert.equal(exports,0);assert.deepEqual(await readdir(join(p,'.faraios-recovery-keys')),[]);
+});
+
+
+test('sequence advancement during capture still blocks a ready archive',async t=>{
+ const p=await home(t);
+ await assert.rejects(capture({home:p,password:'synthetic private password',runner:mockRunner({sequenceChange:true})}),{code:'SOURCE_CHANGED_DURING_BACKUP'});
+ assert.deepEqual(await readdir(join(p,'.faraios-recovery-keys')),[]);
 });

@@ -91,6 +91,17 @@ async function exerciseRestore(manifest,files){
  assert.equal(current.scope,CURRENT_SCOPE.id);assert.deepEqual(current.restore_catalog,sourceCatalog);
  assert.ok(current.tables.filter(t=>['public','audit'].includes(t.schema)).every(t=>t.owner==='postgres'));
  console.log('T11_CURRENT_MANIFEST_SNAPSHOT_AND_PORTABLE_CATALOG=PASS');
+ await query(tlsServer,"select nextval('auth.refresh_tokens_id_seq');",true);
+ const advanced=JSON.parse((await query(tlsServer,currentSQL,false,false,false)).stdout);
+ assert.equal(advanced.catalog_sha256,current.catalog_sha256);
+ assert.deepEqual(advanced.restore_catalog,current.restore_catalog);
+ assert.notDeepEqual(advanced.sequence_state,current.sequence_state);
+ // Restore only the disposable fixture's known original sequence position.
+ await query(tlsServer,"select setval('auth.refresh_tokens_id_seq',50,true);",true);
+ const definitionDrift=JSON.parse((await query(tlsServer,"savepoint sequence_definition;alter sequence auth.refresh_tokens_id_seq increment by 2;"+currentSQL.replace(/^begin transaction isolation level repeatable read read only;\s*/, '').replace(/commit;\s*$/, '')+"rollback to savepoint sequence_definition;",true)).stdout);
+ assert.notEqual(definitionDrift.catalog_sha256,current.catalog_sha256);
+ console.log('T11_SEQUENCE_STATE_SEPARATE_FROM_PINNED_SCHEMA=PASS');
+
  for(const mutation of ['create domain public.t11_domain as text;','grant select(content) on public.sample to anon;','alter role anon bypassrls;','grant anon to authenticated;','alter default privileges grant select on tables to anon;']){
   const changed=JSON.parse((await query(tlsServer,"savepoint catalog_probe;"+mutation+"set local search_path='';"+catalogSQL+'rollback to savepoint catalog_probe;',true,true)).stdout);
   assert.notEqual(changed.application,sourceCatalog.application);

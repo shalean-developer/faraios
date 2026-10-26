@@ -54,7 +54,12 @@ export function validateManifest(m,scope) {
  }
  if(!names.has('auth.users') || !names.has('supabase_migrations.schema_migrations')) fail('SOURCE_SCOPE_CHANGED');
  if(m.scope!==undefined) {
-  if(!matchesCurrentScope(m,scope))fail('SOURCE_SCOPE_CHANGED');
+  if(!matchesCurrentScope(m,scope) || m.catalog_version!==2 || !Array.isArray(m.sequence_state))fail('SOURCE_SCOPE_CHANGED');
+  const sequenceNames=new Set();
+  for(const seq of m.sequence_state){
+   if(!seq || !['public','audit','auth','storage','supabase_migrations'].includes(seq.schema) || typeof seq.sequence!=='string' || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(seq.sequence) || (seq.last_value!==null && (typeof seq.last_value!=='string'||!/^[-]?[0-9]+$/.test(seq.last_value))) || sequenceNames.has(seq.schema+'.'+seq.sequence))fail('INVALID_MANIFEST');
+   sequenceNames.add(seq.schema+'.'+seq.sequence);
+  }
  } else if(m.tables.filter(t=>t.schema==='public').length!==15 || m.tables.filter(t=>t.schema==='audit').length!==2) fail('SOURCE_SCOPE_CHANGED');
  return m;
 }
@@ -379,7 +384,7 @@ export async function privateDirectory(path, runner=run,signal) {
  }
 }
 
-async function writePrivate(path,data,guard,runner,signal) {
+export async function writePrivate(path,data,guard,runner=run,signal) {
  await guard?.check();
  const f=await open(path,'wx',0o600);
  try {
