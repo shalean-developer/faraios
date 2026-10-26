@@ -1,0 +1,19 @@
+name: DEPLOY-153 disposable rollback rehearsal
+on:
+  pull_request:
+    paths:
+      - 'scripts/deploy-153-disposable-rollback.mjs'
+      - 'test/deploy-153-disposable-rollback.test.mjs'
+      - '.github/workflows/deploy-153-disposable-rollback.yml'
+permissions:
+  contents: read
+jobs:
+  rollback-rehearsal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24.22.1'
+      - run: node --test test/deploy-153-disposable-rollback.test.mjs
