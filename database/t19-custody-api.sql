@@ -21,8 +21,10 @@ begin
  select * into j from private_t19_custody.jobs where id=operation and business_id=business for update;
  if not found or not c.enabled or c.generation<>j.generation or j.kind<>'invoice' or j.state<>'recovery_required' then raise exception 'stale';end if;
  -- The durable dispatch flag is NEVER cleared; claim forces read-only reconcile.
- update private_t19_custody.jobs set state='retry',available_at=clock_timestamp() where id=j.id;
- insert into private_t19_custody.events(business_id,connection_id,operation_id,kind) values(business,c.connection_id,j.id,'reconciliation_requested');
+ -- A fresh authenticated request supplies current authority, not the retired actor.
+ update private_t19_custody.jobs set actor=auth.uid(),state='retry',available_at=clock_timestamp() where id=j.id;
+ insert into private_t19_custody.events(business_id,connection_id,operation_id,kind,actor,previous_actor)
+ values(business,c.connection_id,j.id,'reconciliation_requested',auth.uid(),j.actor);
  return j.id;
 end $$;
 alter function private_t19_custody.status(uuid) owner to t19_runtime_owner;

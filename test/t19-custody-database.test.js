@@ -260,3 +260,44 @@ test('review regressions: definitive invalid grant permits new owner consent wit
  await f.query('select private_t19_custody.oauth($1,$2)', ['begin',JSON.stringify({connectionId:ca,businessId:a,actor:owner,digest:'a'.repeat(64),sessionDigest:'b'.repeat(64)})]);
  assert.equal((await db.query('select phase from private_t19_custody.oauth_states where connection_id=$1',[ca])).rows[0].phase,'pending');
 });
+
+for(const resolveFirst of [false,true])for(const dispatched of [false,true])test('authority recovery: revoked refresh '+(dispatched?'stays quarantined':'is replaced before dispatch')+' resolveFirst='+resolveFirst,async t=>{
+ const f=await setup(t),{db,api,bindings:[binding]}=f;
+ const invoice=(await f.as(owner,()=>f.prepare(a,10))).rows[0].id;
+ await db.query("insert into public.business_memberships(business_id,user_id,role) values($1,$2,'manager')",[a,manager]);
+ const oldId=await f.enqueue(a,ca),old=api.operation(machine,oldId),lease=await old.coordinator.claim(binding,oldId);
+ if(dispatched)await old.coordinator.dispatch(binding,lease,async()=>{});
+ await db.query("update public.business_memberships set status='suspended' where business_id=$1 and user_id=$2",[a,owner]);
+ const invoiceJob=await f.enqueue(a,ca,invoice,manager),op=api.operation(machine,invoiceJob);
+ if(resolveFirst)assert.equal((await old.resolve()).authorized,false);
+ if(dispatched){
+  await assert.rejects(op.ensureRefresh());
+  assert.equal((await db.query('select status from private_t19_custody.connections where connection_id=$1',[ca])).rows[0].status,'recovery_required');
+  assert.equal((await db.query('select phase from private_t19_custody.operations where operation_id=$1',[oldId])).rows[0].phase,'recovery_required');
+ }else{
+  const next=await op.ensureRefresh();assert.notEqual(next,oldId);
+  assert.equal((await api.operation(machine,next).resolve()).authorized,true);
+  const newLease=await api.operation(machine,next).coordinator.claim(binding,next);assert.ok(newLease.id);
+  await assert.rejects(old.coordinator.dispatch(binding,lease,async()=>assert.fail('retired lease dispatched')));
+ }
+ assert.equal((await db.query('select status from private_t19_custody.connections where connection_id=$1',[cb])).rows[0].status,'connected');
+});
+
+test('authority recovery: current manager can reconcile a held invoice without clearing dispatch or generation',async t=>{
+ const f=await setup(t),{db,api}=f;
+ const invoice=(await f.as(owner,()=>f.prepare(a,10))).rows[0].id;
+ const job=await f.enqueue(a,ca,invoice),op=api.operation(machine,job);
+ const claim=await op.invoice.claim();await op.invoice.dispatch(claim.invoice.attempt_id);
+ await op.invoice.finish(claim.invoice.attempt_id,{outcome:'review_required',error_code:'unknown_outcome',receipt:null});
+ await db.query("insert into public.business_memberships(business_id,user_id,role) values($1,$2,'manager')",[a,manager]);
+ await db.query("update public.business_memberships set status='suspended' where business_id=$1 and user_id=$2",[a,owner]);
+ await assert.rejects(f.as(owner,()=>db.query('select public.t19_reconcile($1,$2)',[a,job])));
+ await assert.rejects(f.as(manager,()=>db.query('select public.t19_reconcile($1,$2)',[b,job])));
+ await f.as(manager,()=>db.query('select public.t19_reconcile($1,$2)',[a,job]));
+ assert.equal((await api.resolveAuthorizedOperation({machineId:machine,operationId:job})).authorized,true);
+ assert.equal((await op.invoice.claim()).mode,'reconcile');
+ const row=(await db.query('select actor,dispatched,generation from private_t19_custody.jobs where id=$1',[job])).rows[0];
+ assert.equal(row.actor,manager);assert.equal(row.dispatched,true);assert.equal(Number(row.generation),1);
+ const event=(await db.query("select actor,previous_actor from private_t19_custody.events where operation_id=$1 and kind='reconciliation_requested'",[job])).rows[0];
+ assert.equal(event.actor,manager);assert.equal(event.previous_actor,owner);
+});
