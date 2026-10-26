@@ -1,6 +1,16 @@
 -- REVIEW SOURCE ONLY. No hosted execution or public schema exposure is implied.
 begin;
 do $$ begin if current_setting('faraios.t19_runtime_review',true) is distinct from 'approved-source-test' then raise exception 'review context required';end if;end $$;
+-- OP-04: API activation is not approved; fail closed on absent prior source.
+do $t19_preflight$ begin
+ if not exists (select 1 from pg_roles where rolname='t19_runtime_owner')
+    or to_regclass('private_t19_custody.oauth_states') is null
+    or to_regprocedure('private_t19_custody.oauth(text,jsonb)') is null
+    or to_regprocedure('private_t19_custody.status(uuid)') is not null
+    or to_regprocedure('private_t19_custody.reconcile(uuid,uuid)') is not null
+    or to_regprocedure('public.t19_accounting_status(uuid)') is not null
+ then raise exception 'T19 API prerequisite/collision: stop and audit' using errcode='55000'; end if;
+end $t19_preflight$;
 create function private_t19_custody.status(business uuid) returns jsonb
 language plpgsql security definer set search_path=pg_catalog as $$
 begin
