@@ -6,6 +6,19 @@ do $$ begin
  if current_setting('faraios.t19_runtime_review',true) is distinct from 'approved-source-test'
  then raise exception 'T19 runtime SQL requires an explicit review execution context'; end if;
 end $$;
+-- OP-04: fail closed on missing inactive prerequisites or partial installation.
+-- This is a source-level collision guard, NOT project identity or authorisation.
+do $t19_preflight$ begin
+ if to_regclass('private_t19_custody.connections') is null
+    or to_regclass('private_t19_custody.operations') is null
+    or to_regclass('private_t19_custody.prepared_references') is null
+    or not exists (select 1 from pg_roles where rolname='t19_hosted_custody')
+    or exists (select 1 from pg_roles where rolname='t19_runtime_owner')
+    or to_regclass('private_t19_custody.machines') is not null
+    or to_regclass('private_t19_custody.jobs') is not null
+    or to_regprocedure('private_t19_custody.runtime(text,jsonb)') is not null
+ then raise exception 'T19 runtime prerequisite/collision: stop and audit' using errcode='55000'; end if;
+end $t19_preflight$;
 create role t19_runtime_owner nologin noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
 create table private_t19_custody.machines(
  id uuid primary key, fingerprint256 text not null unique check(fingerprint256 ~ '^[0-9a-f]{64}$'),
