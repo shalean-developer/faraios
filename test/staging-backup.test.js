@@ -4,11 +4,18 @@ import { mkdtemp, readFile, writeFile, readdir, rm, lstat, symlink, mkdir, renam
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
+import {matchesCurrentScope,currentManifestSQL} from '../scripts/backup-scope.mjs';
+import {CURRENT_SCOPE,installProfile} from './backup-profile-fixture.js';
 import { SOURCE, CLIENT_IMAGE, POOLER_HOST, ROOT_CERT_CONTAINER, ROOT_CERT_PATH, ROOT_CERT_SHA256, CLIENT_STARTED, verifyProviderCertificate, certificateMount, ensureClientImage, DUMPS, validateManifest, parseManifest, clientEnvironment, clientArgs, dumpSpec, parsePgManifest, cleanupClient, terminalFailure, sealBackup, openBackup, sha256, capture, verifyFile, run, privateDirectory, assertDataCoverage, assertCompleteDump, outsideGit, localDocker, windowsEnvironment, metadataFailureLabel } from '../scripts/backup-staging.mjs';
 
 function manifest() {
  const tables=[...Array.from({length:15},(_,i)=>({schema:'public',table:'t'+i,rls:true,rows:i===0?2:0,sha256:'a'.repeat(64)})),...Array.from({length:2},(_,i)=>({schema:'audit',table:'t'+i,rls:true,rows:0,sha256:'b'.repeat(64)})),{schema:'auth',table:'users',rls:true,rows:3,sha256:'c'.repeat(64)},{schema:'supabase_migrations',table:'schema_migrations',rls:false,rows:21,sha256:'d'.repeat(64)}];
  return {database_major:17,business_ids:['0cc3f518-d64e-40c2-8817-bc14d1ef1420','612be091-b1d7-4911-9c3b-143446a9fe27'],extensions:['btree_gist','pg_stat_statements','pgcrypto','plpgsql','supabase_vault','uuid-ossp'],extension_versions:{btree_gist:'1.7',pg_stat_statements:'1.11',pgcrypto:'1.3',plpgsql:'1.0',supabase_vault:'0.3.1','uuid-ossp':'1.1'},vault_secrets:0,storage_objects:0,storage_buckets:0,large_objects:0,unexpected_schemas:[],catalog_sha256:'e'.repeat(64),tables};
+}
+
+function currentManifest() {
+ const m=manifest();
+ return {...m,scope:CURRENT_SCOPE.id,catalog_version:2,sequence_state:[{schema:'auth',sequence:'refresh_tokens_id_seq',last_value:'50'}],catalog_sha256:CURRENT_SCOPE.catalog,restore_catalog:{application:CURRENT_SCOPE.application,managed:CURRENT_SCOPE.managed},tables:[...CURRENT_SCOPE.tables.map((name,i)=>{const [schema,table]=name.split('.');return {schema,table,owner:'postgres',rls:true,rows:i===0?2:0,sha256:'a'.repeat(64)};}),...m.tables.filter(t=>!['public','audit'].includes(t.schema))]};
 }
 
 function sqlFile(name,m=manifest()) {
@@ -21,7 +28,7 @@ function sqlFile(name,m=manifest()) {
 
 function payload(m=manifest()) {
  const files=DUMPS.map(([name])=>{const content=sqlFile(name,m);return {name,content,sha256:sha256(content)};});
- const content=JSON.stringify({before:m,after:m});files.push({name:'manifest.json',content,sha256:sha256(content)});
+ const content=JSON.stringify({...(m.scope?{version:1,source:SOURCE,filterSource:'supabase/cli@2.121.0',clientImage:CLIENT_IMAGE,started:'2026-10-26T08:00:00Z',finished:'2026-10-26T08:01:00Z'}:{}),before:m,after:m});files.push({name:'manifest.json',content,sha256:sha256(content)});
  return {source:SOURCE,files};
 }
 
@@ -29,10 +36,10 @@ async function home(t) {
  // Windows runner TEMP uses an 8.3 alias; production intentionally requires a
  // canonical private root, so resolve the synthetic fixture before testing it.
  const p=await realpath(await mkdtemp(join(tmpdir(),'faraios-backup-test-')));
- t.after(()=>rm(p,{recursive:true,force:true}));return p;
+ t.after(()=>rm(p,{recursive:true,force:true}));await installProfile(p);return p;
 }
 
-function mockRunner({change=false,failName,missingAuth=false,calls=[]}={}) {
+function mockRunner({change=false,failName,missingAuth=false,sequenceChange=false,calls=[]}={}) {
  let queries=0;
  return async (command,args,opts)=>{
   if(command!=='docker')return run(command,args,opts); // Real Windows ACL verification.
@@ -51,10 +58,11 @@ function mockRunner({change=false,failName,missingAuth=false,calls=[]}={}) {
   assert.ok(!args.some(a=>a.includes('synthetic private password')));
   assert.ok(args.includes(CLIENT_IMAGE));assert.equal(args[args.indexOf('--log-driver')+1],'none');
   const step=args[args.indexOf('--name')+1].replace(/^faraios-t11-[a-f0-9]{32}-/,'');
-  const m=manifest();
+  const m=currentManifest();
   if(step==='metadata') {
    assert.equal(opts.failureContext,'pg-client');assert.ok(opts.input.startsWith('begin transaction'));
    if(change&&queries++>0)m.tables[0].sha256='f'.repeat(64);
+   if(sequenceChange&&queries++>0)m.sequence_state[0].last_value='51';
    return {stdout:JSON.stringify(m)+'\n',stderr:''};
   }
   assert.equal(opts.input,undefined);
@@ -68,8 +76,25 @@ function mockRunner({change=false,failName,missingAuth=false,calls=[]}={}) {
 test('source scope fails closed for foreign IDs, new schemas, storage, Vault, missing history or lost RLS',()=>{
  validateManifest(manifest());
  for(const mutate of [m=>m.business_ids.reverse(),m=>m.unexpected_schemas=['new_private'],m=>m.storage_objects=1,m=>m.vault_secrets=1,m=>m.tables[0].rls=false,m=>m.tables=m.tables.filter(t=>t.schema!=='supabase_migrations'),m=>m.extensions.push('pg_net'),m=>m.tables[0].rows=-1]) {
-  const m=manifest();mutate(m);assert.throws(()=>validateManifest(m));
+  const m=manifest();mutate(m);assert.throws(()=>validateManifest(m,CURRENT_SCOPE));
  }
+});
+
+test('current scope rejects same-count substitution, ownership and catalog drift; legacy archives retain their original path',async()=>{
+ validateManifest(currentManifest(),CURRENT_SCOPE);validateManifest(manifest());
+ for(const mutate of [m=>m.tables[0].table='unreviewed',m=>m.tables[0].owner='service_role',m=>m.tables[0].rls=false,m=>m.tables.pop(),m=>m.catalog_sha256='0'.repeat(64),m=>m.restore_catalog.application='0'.repeat(64),m=>m.restore_catalog.managed='0'.repeat(64),m=>m.scope='unknown',m=>delete m.scope,m=>delete m.sequence_state,m=>m.catalog_version=1]) {
+  const m=currentManifest();mutate(m);assert.throws(()=>validateManifest(m,CURRENT_SCOPE));
+ }
+ const key=randomBytes(32),id='a'.repeat(32);
+ assert.ok(openBackup(sealBackup(payload(currentManifest()),key,id),key,CURRENT_SCOPE));
+ assert.throws(()=>openBackup(sealBackup(payload(currentManifest()),key,id),key));
+ assert.throws(()=>openBackup(sealBackup(payload(currentManifest()),key,id),key,{...CURRENT_SCOPE,catalog:'4'.repeat(64)}));
+ const p=payload(currentManifest()),f=p.files.at(-1),m=JSON.parse(f.content);m.finished='invalid';f.content=JSON.stringify(m);f.sha256=sha256(f.content);
+ assert.throws(()=>openBackup(sealBackup(p,key,id),key,CURRENT_SCOPE));
+ const raw=await readFile(new URL('../scripts/staging-backup-manifest.sql',import.meta.url),'utf8'),portable=await readFile(new URL('../scripts/restore-catalog.sql',import.meta.url),'utf8');
+ const sql=currentManifestSQL(raw,portable,CURRENT_SCOPE);
+ assert.match(sql,/set local search_path = ''/);assert.match(sql,/'restore_catalog'/);assert.match(sql,/'owner',owner/);
+ assert.ok(sql.startsWith('begin transaction isolation level repeatable read read only;'));
 });
 
 test('manifest parser accepts only the explicit single-row JSON contract',()=>{
@@ -104,14 +129,14 @@ test('authenticated encryption preserves Unicode SQL and rejects key, ciphertext
  const bytes=sealBackup(p,key,id);assert.deepEqual(openBackup(bytes,key).payload,p);
  assert.ok(!bytes.toString().includes('Réka'));assert.throws(()=>openBackup(bytes,randomBytes(32)));
  for(const alter of [e=>e.source='other',e=>e.id='2'.repeat(32),e=>e.tag=Buffer.alloc(16).toString('base64'),e=>e.ciphertext=Buffer.alloc(64).toString('base64')]) {
-  const e=JSON.parse(bytes);alter(e);assert.throws(()=>openBackup(Buffer.from(JSON.stringify(e)),key));
+  const e=JSON.parse(bytes);alter(e);assert.throws(()=>openBackup(Buffer.from(JSON.stringify(e)),key,CURRENT_SCOPE));
  }
 });
 
 test('archive validation rejects missing files, false checksums and inconsistent manifests even with a valid encryption key',()=>{
  const key=randomBytes(32),id='3'.repeat(32);
  for(const alter of [p=>p.files.pop(),p=>p.files[0].sha256='0'.repeat(64),p=>{const f=p.files.at(-1),m=JSON.parse(f.content);m.after.catalog_sha256='f'.repeat(64);f.content=JSON.stringify(m);f.sha256=sha256(f.content);}]) {
-  const p=payload();alter(p);assert.throws(()=>openBackup(sealBackup(p,key,id),key));
+  const p=payload();alter(p);assert.throws(()=>openBackup(sealBackup(p,key,id),key,CURRENT_SCOPE));
  }
 });
 
@@ -131,7 +156,7 @@ test('successful capture verifies the encrypted archive, separates keys and remo
  assert.equal((await verifyFile(report.artifact,join(p,'.faraios-recovery-keys'))).sha256,report.sha256);
  assert.deepEqual((await readdir(join(report.artifact,'..'))).sort(),[report.artifact.split(/[\\/]/).at(-1),report.artifact.split(/[\\/]/).at(-1)+'.sha256'].sort());
  assert.equal(calls.length,8);assert.equal(calls.filter(c=>!c.args[c.args.indexOf('--name')+1].endsWith('-metadata')).length,6);
- const key=await readFile(report.keyPath),opened=openBackup(await readFile(report.artifact),key);
+ const key=await readFile(report.keyPath),opened=openBackup(await readFile(report.artifact),key,CURRENT_SCOPE);
  assert.ok(opened.payload.files.find(f=>f.name==='data.sql').content.includes('Réka 😀'));
 });
 
@@ -163,7 +188,7 @@ test('child failures discard arbitrary stdout/stderr and return only fixed label
 test('cancellation cannot produce a ready archive and child cancellation is bounded',async t=>{
  const p=await home(t),controller=new AbortController();controller.abort();
  await assert.rejects(capture({home:p,password:'synthetic private password',npmPath:join(p,'npm-cli.js'),runner:mockRunner(),signal:controller.signal}),{code:'BACKUP_CANCELLED'});
- assert.deepEqual(await readdir(p),[]);
+ assert.deepEqual(await readdir(p),['.faraios-backup-profile']);
  const running=new AbortController();
  const child=run(process.execPath,['-e','setTimeout(()=>{},60000)'],{signal:running.signal});
  running.abort();await assert.rejects(child,{code:'BACKUP_CANCELLED'});
@@ -375,4 +400,25 @@ test('only a started container can classify PostgreSQL TLS text; raw output stay
  await assert.rejects(run(process.execPath,['-e',started],{failureContext:'pg-client'}),{code:'METADATA_TLS_FAILED'});
  // The command text alone is not the standalone runtime marker.
  await assert.rejects(run(process.execPath,['-e','console.error('+JSON.stringify("printf '%s\\n' '"+CLIENT_STARTED+"' >&2")+');'+body],{failureContext:'pg-client'}),{code:'CLIENT_CONTAINER_START_FAILED'});
+});
+
+
+test('profile change after metadata stops before the first data export',async t=>{
+ const p=await home(t),runner=mockRunner();let exports=0;
+ await assert.rejects(capture({home:p,password:'synthetic private password',runner:async(c,a,o)=>{
+  const result=await runner(c,a,o);
+  if(c==='docker'&&a[0]==='run'){
+   if(a[a.indexOf('--name')+1].endsWith('-metadata'))await writeFile(join(p,'.faraios-backup-profile','current.json'),JSON.stringify({...CURRENT_SCOPE,catalog:'4'.repeat(64)}));
+   else exports++;
+  }
+  return result;
+ }}),{code:'PRIVATE_PROFILE_CHANGED'});
+ assert.equal(exports,0);assert.deepEqual(await readdir(join(p,'.faraios-recovery-keys')),[]);
+});
+
+
+test('sequence advancement during capture still blocks a ready archive',async t=>{
+ const p=await home(t);
+ await assert.rejects(capture({home:p,password:'synthetic private password',runner:mockRunner({sequenceChange:true})}),{code:'SOURCE_CHANGED_DURING_BACKUP'});
+ assert.deepEqual(await readdir(join(p,'.faraios-recovery-keys')),[]);
 });

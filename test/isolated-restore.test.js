@@ -9,6 +9,8 @@ import {SOURCE,CLI,CLIENT_IMAGE,DUMPS,capture,run,BackupFailure,CLIENT_STARTED,m
 import {restoreFetch,createRestoreServer} from '../restore-rehearsal.mjs';
 import {createStagingServer} from '../src/staging-server.js';
 import {COMPONENT_PREFIX,ROLLBACK_MARKER} from '../scripts/restore-diagnostic.mjs';
+import {CURRENT_SCOPE,installProfile} from './backup-profile-fixture.js';
+import {verifyCheckpointFile} from '../scripts/restore-staging.mjs';
 const versions={btree_gist:'1.7',pg_stat_statements:'1.11',pgcrypto:'1.3',plpgsql:'1.0',supabase_vault:'0.3.1','uuid-ossp':'1.1'};
 function manifest(){return {version:1,source:SOURCE,filterSource:'supabase/cli@'+CLI,clientImage:CLIENT_IMAGE,finished:'2026-10-20T18:17:00Z',before:{catalog_sha256:RESTORE_CONFIG.captureCatalogSha256,extension_versions:{...versions},tables:[{schema:'public',table:'businesses',rows:2,sha256:'a'.repeat(64)},{schema:'auth',table:'users',rows:3,sha256:'b'.repeat(64)},{schema:'auth',table:'schema_migrations',rows:10,sha256:'c'.repeat(64)}]}};}
 function backup(m=manifest()){return {id:RESTORE_CONFIG.captureId,sha256:RESTORE_CONFIG.archiveSha256,payload:{files:[...['roles.sql','schema.sql','migration-schema.sql','data.sql','migration-data.sql','managed-schema-reference.sql'].map(name=>({name,content:'-- '+name+(name==='roles.sql'?'\n'+MANAGED_PARAMETER_GRANT:'')+(name==='data.sql'?`\nSELECT pg_catalog.setval('\"auth\".\"refresh_tokens_id_seq\"', 50, true);`:'')})),{name:'manifest.json',content:JSON.stringify(m)}]}};}
@@ -22,6 +24,14 @@ test('restore transport has one fixed destination and refuses inherited project/
 test('only exact archive and the reviewed capture catalog can enter restoration',()=>{
  validateRestoreBackup(backup());
  for(const mutate of [b=>b.id='0'.repeat(32),b=>b.sha256='0'.repeat(64),b=>b.payload.files.at(-1).content=JSON.stringify({...manifest(),source:DESTINATION}),b=>{const m=manifest();m.before.catalog_sha256='0'.repeat(64);b.payload.files.at(-1).content=JSON.stringify(m);}]){const b=backup();mutate(b);assert.throws(()=>validateRestoreBackup(b));}
+});
+
+test('fresh verification uses reviewed current catalog but cannot repoint the original restore destination',async()=>{
+ const m=manifest();Object.assign(m.before,{scope:CURRENT_SCOPE.id,catalog_version:2,sequence_state:[{schema:'auth',sequence:'refresh_tokens_id_seq',last_value:'50'}],catalog_sha256:CURRENT_SCOPE.catalog,restore_catalog:{application:CURRENT_SCOPE.application,managed:CURRENT_SCOPE.managed},tables:CURRENT_SCOPE.tables.map(name=>{const [schema,table]=name.split('.');return {schema,table,owner:'postgres',rls:true,rows:0,sha256:'a'.repeat(64)};})});
+ const c=await readFile(new URL('../scripts/restore-catalog.sql',import.meta.url),'utf8');
+ const sql=verificationSQL(m,c,CURRENT_SCOPE);assert.ok(sql.includes(CURRENT_SCOPE.application));assert.ok(sql.includes('"audit"."fixture_events"'));
+ const fresh=backup(m);fresh.id='f'.repeat(32);assert.throws(()=>validateRestoreBackup(fresh),{code:'RESTORE_CAPTURE_NOT_APPROVED'});
+ m.before.tables[0].owner='service_role';assert.throws(()=>verificationSQL(m,c,CURRENT_SCOPE),{code:'RESTORE_CAPTURE_CATALOG_NOT_REVIEWED'});
 });
 test('existing application/Auth/Vault/network state, structural drift and extension mismatch block import',()=>{
  validateDestination(metadata(),manifest());
@@ -100,6 +110,7 @@ test('restore launcher ignores accounting credentials and creates only its pinne
 test('private file/key loading and restore orchestration keep every destination client fixed and sanitize uncertain imports',async t=>{
  const home=await realpath(await mkdtemp(join(tmpdir(),'faraios-restore-test-')));t.after(()=>rm(home,{recursive:true,force:true}));
  const m={database_major:17,business_ids:['0cc3f518-d64e-40c2-8817-bc14d1ef1420','612be091-b1d7-4911-9c3b-143446a9fe27'],extensions:Object.keys(versions).sort(),extension_versions:versions,vault_secrets:0,storage_objects:0,storage_buckets:0,large_objects:0,unexpected_schemas:[],catalog_sha256:RESTORE_CONFIG.captureCatalogSha256,tables:[...Array.from({length:15},(_,i)=>({schema:'public',table:'t'+i,rls:true,rows:0,sha256:'a'.repeat(64)})),...Array.from({length:2},(_,i)=>({schema:'audit',table:'t'+i,rls:true,rows:0,sha256:'b'.repeat(64)})),{schema:'auth',table:'users',rls:true,rows:3,sha256:'c'.repeat(64)},{schema:'supabase_migrations',table:'schema_migrations',rls:false,rows:21,sha256:'d'.repeat(64)}]};
+ Object.assign(m,{scope:CURRENT_SCOPE.id,catalog_version:2,sequence_state:[{schema:'auth',sequence:'refresh_tokens_id_seq',last_value:'50'}],catalog_sha256:CURRENT_SCOPE.catalog,restore_catalog:{application:CURRENT_SCOPE.application,managed:CURRENT_SCOPE.managed},tables:[...CURRENT_SCOPE.tables.map(name=>{const [schema,table]=name.split('.');return {schema,table,owner:'postgres',rls:true,rows:0,sha256:'a'.repeat(64)};}),...m.tables.filter(t=>!['public','audit'].includes(t.schema))]});
  let restoring=false,sequencePending=false,uncertain=false,diagnosticFault=null,cancelAfterStep=null,cleanupAfterStep=null,pendingStep=null,controller;const calls=[];
  const runner=async(command,args,opts)=>{
   if(command!=='docker')return run(command,args,opts); // Use real Windows key/ACL checks.
@@ -138,8 +149,11 @@ test('private file/key loading and restore orchestration keep every destination 
   if(name==='data.sql')body+=`SELECT pg_catalog.setval('\"auth\".\"refresh_tokens_id_seq\"', 50, true);\n`;
   const banner='-- PostgreSQL database '+(name==='roles.sql'?'cluster ':'')+'dump';return {stdout:banner+'\n'+body+'\n'+banner+' complete\n'};
  };
+ await installProfile(home);
  const captured=await capture({home,password:'synthetic-private-password',runner});
- const saved={...RESTORE_CONFIG};Object.assign(RESTORE_CONFIG,{captureId:JSON.parse(await readFile(captured.artifact,'utf8')).id,archiveSha256:captured.sha256,importEnabled:true});
+ const checkpoint=await verifyCheckpointFile(captured.artifact,home);
+ assert.equal(checkpoint.checkpointArchiveVerification,'PASSED');assert.equal(checkpoint.restore,'NOT_RUN');assert.equal(checkpoint.recoveryReadiness,'PENDING_ISOLATED_RESTORE');
+ const saved={...RESTORE_CONFIG};Object.assign(RESTORE_CONFIG,{captureCatalogSha256:CURRENT_SCOPE.catalog,captureId:JSON.parse(await readFile(captured.artifact,'utf8')).id,archiveSha256:captured.sha256,importEnabled:true});
  restoring=true;
  try{
   for(const mode of ['preflight','verify','restore']){
