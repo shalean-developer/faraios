@@ -25,6 +25,8 @@ try{
 
  console.log('T19 isolated PostgreSQL:',(await run(executable('psql'),['-h','127.0.0.1','-p',String(port),'-U','postgres','-d','postgres','-X','-Atc','show server_version'])).trim());
  await run(process.execPath,['--test','--test-name-pattern=two business invoices','test/t19-custody-database.test.js'],{stream:true,extraEnv:{T19_CUSTODY_NATIVE_URL:`postgresql://postgres@127.0.0.1:${port}/postgres`,T19_PSQL:executable('psql')}});
+ await run(process.execPath,['--test','test/t19-op02-restricted-owner.test.js'],{stream:true,extraEnv:{T19_CUSTODY_NATIVE_URL:`postgresql://postgres@127.0.0.1:${port}/postgres`}});
+ console.log('T19_OP02_RESTRICTED_NATIVE_PASS');
  console.log('T19_NATIVE_ACCEPTANCE_PASSED');
 }finally{
  const hasPid=await stat(join(data,'postmaster.pid')).then(()=>true,e=>{if(e.code==='ENOENT')return false;throw e;});
