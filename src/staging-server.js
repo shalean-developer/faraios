@@ -4,7 +4,7 @@ import {listAdjustmentSources,readAdjustmentSource,appendAdjustmentReview,render
 import {listCancellationCases,readCancellationCase,appendCancellationCase,renderCancellationCases} from './cancellation-cases.js';
 import {readSupervisorAllowances,saveSupervisorAllowance,renderSupervisorAllowances,previewMonthlyEarnings,allowanceMonth} from './supervisor-allowances.js';
 import {parseEarningsRule,parseRand,listEarningsRules,saveEarningsRule,previewEarnings,renderEarningsRules,templateRule} from './earnings.js';
-import {listInvoices,readInvoice,bookingInvoice,accountingConnection,invoiceTotals,prepareInvoice,saveAccountingConnection,syncInvoice,renderInvoices} from './invoices.js';
+import {listInvoices,readInvoice,bookingInvoice,accountingConnection,invoiceTotals,prepareInvoice,saveAccountingConnection,syncInvoice,enqueueCustodyInvoice,renderInvoices} from './invoices.js';
 import {listQuotes,readQuote,quoteHandoff,quoteAcceptanceActor,createQuote,changeQuote,convertQuote,renderQuotes} from './quotes.js';
 import {listRecurring,readRecurring,recurringVisits,createRecurring,changeRecurring,generateRecurring,renderRecurring} from './recurring.js';
 import {calendarOptions,readCalendar,checkAvailability,renderCalendar} from './calendar.js';
@@ -23,10 +23,11 @@ const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const pageHtml=(title,body,business=null,identity=null,active='/dashboard',restoreTest=false)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS ${restoreTest?'restore test':'staging'}</title><link rel="stylesheet" href="/style.css"><script type="module" src="/dropdown.js"></script><script type="module" src="/date-time-picker.js"></script><script type="module" src="/catalogue-setup.js"></script>${title==='Quotes'?'<script type="module" src="/quote-detail.js"></script>':''}</head><body${business&&identity?' class="workspace-layout"':''}><div class="notice">FaraiOS ${restoreTest?'RESTORE TEST · Read-only recovery workspace · Integrations disabled':'STAGING · Test workspace · No production data'}</div>${business&&identity?renderWorkspaceFrame(identity,business,body,active):`<main class="${title==='Sign in'?'login':'workspace-page'}">${title==='Sign in'?'<div class="brand">FaraiOS</div>':''}${body}</main>`}</body></html>`;
 const form=(message,restoreTest=false)=>pageHtml('Sign in',`<h1>Welcome back</h1><p>${restoreTest?'Use your restored FaraiOS test account.':'Use your FaraiOS staging test account.'}</p>${message?`<p role="alert">${esc(message)}</p>`:''}<form method="post" action="/login" class="panel"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" maxlength="254" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><button type="submit">Sign in</button><p class="muted">Accounts are provisioned in staging. Never enter a production password here.</p></form>`,null,null,'/dashboard',restoreTest);
 
-export function createStagingServer({createClient,accountingWorker=null,accountingAdapter=null,now=()=>Date.now(),restoreTest=false,earningsTemplates={},hostedStaging=false,hostedFingerprint=null,hostedTransport='passenger',hostedReady=()=>false}){
+export function createStagingServer({createClient,accountingWorker=null,accountingAdapter=null,accountingProxy=null,now=()=>Date.now(),restoreTest=false,earningsTemplates={},hostedStaging=false,hostedFingerprint=null,hostedTransport='passenger',hostedReady=()=>false}){
   if(typeof hostedStaging!=='boolean'||hostedStaging&&(!['passenger','litespeed'].includes(hostedTransport)||restoreTest||accountingWorker||accountingAdapter||!/^[a-f0-9]{64}$/.test(hostedFingerprint??'')))throw new Error('Invalid hosted staging server');
   if(process.env.NODE_ENV==='production'&&!hostedStaging)throw new Error('Local staging server cannot run in production');
-  if(typeof restoreTest!=='boolean'||restoreTest&&(accountingWorker||accountingAdapter))throw new Error('Invalid isolated restore server');
+  if(typeof restoreTest!=='boolean'||restoreTest&&(accountingWorker||accountingAdapter||accountingProxy))throw new Error('Invalid isolated restore server');
+  if(accountingProxy!==null&&typeof accountingProxy!=='function'||accountingProxy&&(accountingWorker||accountingAdapter))throw new Error('Choose one accounting runtime');
   const cookieName=hostedStaging?'__Host-faraios_staging':restoreTest?'faraios_restore_test':'faraios_staging';
   const secure=hostedStaging?'; Secure':'';
   const loginForm=message=>form(message,restoreTest);
@@ -53,6 +54,7 @@ export function createStagingServer({createClient,accountingWorker=null,accounti
       activePath=url.pathname;
       if(restoreTest&&req.method!=='GET'&&!(req.method==='POST'&&['/login','/logout'].includes(url.pathname)))return send(405,'Restore test: business writes are disabled','text/plain');
       if(restoreTest&&req.method==='GET'&&url.pathname==='/restore-health')return send(200,JSON.stringify({environment:'restore-test',businessWrites:'disabled',accountingWorker:'disabled'}),'application/json');
+      if(accountingProxy&&url.pathname.startsWith('/accounting/'))return await accountingProxy({req,res,auth,origin,cookieName});
       if(req.method==='GET'&&url.pathname==='/date-time-values.js')return send(200,await readFile(new URL('../public/date-time-values.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/date-time-picker.js')return send(200,await readFile(new URL('../public/date-time-picker.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/dropdown.js')return send(200,await readFile(new URL('../public/dropdown.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
@@ -216,7 +218,7 @@ export function createStagingServer({createClient,accountingWorker=null,accounti
           const booking=invoice?await readBooking(client,business.id,invoice.booking_id):bookingId?await readBooking(client,business.id,bookingId):null;
           if(invoiceId&&!invoice||bookingId&&!booking||invoice&&!booking)return send(404,'Invoice or booking unavailable','text/plain');
           if(bookingId&&req.method==='GET'){const existing=await bookingInvoice(client,business.id,bookingId);if(existing)return redirect('/invoices?business='+encodeURIComponent(business.id)+'&invoice='+encodeURIComponent(existing.id));}
-          const show=async(options={})=>html('Invoices',renderInvoices(business,invoice||booking||settings?[]:await listInvoices(client,business.id),{invoice,booking,connection:await accountingConnection(client,business.id),totals:invoice||booking||settings?null:await invoiceTotals(client,business.id),owner,settings,workerConfigured:Boolean(accountingWorker&&accountingAdapter),...options}));
+          const show=async(options={})=>html('Invoices',renderInvoices(business,invoice||booking||settings?[]:await listInvoices(client,business.id),{invoice,booking,connection:await accountingConnection(client,business.id),totals:invoice||booking||settings?null:await invoiceTotals(client,business.id),owner,settings,workerConfigured:Boolean(accountingProxy||accountingWorker&&accountingAdapter),accountingRuntimeAvailable:Boolean(accountingProxy),...options}));
           if(req.method==='GET')return send(200,await show({message:url.searchParams.get('saved')==='1'?'Saved. Accounting status is shown below.':''}));
           if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
           if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
@@ -227,7 +229,9 @@ export function createStagingServer({createClient,accountingWorker=null,accounti
             if(action==='configure'&&settings){if(!owner)return send(403,'Owner access required','text/plain');await saveAccountingConnection(client,business.id,data);return redirect('/invoices?business='+encodeURIComponent(business.id)+'&settings=1&saved=1');}
             let saved=invoiceId;
             if(action==='prepare'&&booking&&!invoice)saved=await prepareInvoice(client,business.id,booking.id);
-            else if(action==='sync'&&invoice){if(booking.status==='cancelled')throw new Error('Cancelled booking needs accounting review.');await syncInvoice({worker:accountingWorker,adapter:accountingAdapter,businessId:business.id,invoice,actor,customerId:(data.get('external_customer_id')??'').trim()});}
+            else if(action==='sync'&&invoice){if(booking.status==='cancelled')throw new Error('Cancelled booking needs accounting review.');
+              if(accountingProxy)await enqueueCustodyInvoice(client,business.id,invoice.id,(data.get('external_customer_id')??'').trim());
+              else await syncInvoice({worker:accountingWorker,adapter:accountingAdapter,businessId:business.id,invoice,actor,customerId:(data.get('external_customer_id')??'').trim()});}
             else throw new Error('Choose an invoice action.');
             return redirect('/invoices?business='+encodeURIComponent(business.id)+'&invoice='+encodeURIComponent(saved)+'&saved=1');
           }catch(error){if(invoiceId)invoice=await readInvoice(client,business.id,invoiceId);return send(error.status??422,await show({message:error.message,error:true}));}

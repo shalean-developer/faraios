@@ -16,7 +16,8 @@ export function verifiedReceipt(invoice,binding,external){
  for(let n=0;n<lines.length;n++){const a=lines[n],b=external.line_items[n];if(!b||b.name!==a.name||Number(b.quantity)!==a.quantity||providerCents(b.rate)!==a.rate_cents||providerCents(b.item_total)!==a.total_cents||String(b.unit??'')!==a.unit_label||b.tax_id&&String(b.tax_id).trim()||b.discount_amount!==undefined&&providerCents(b.discount_amount)!==0)throw new AccountingError('mismatch');}
  return {organization_id:binding.organization_id,api_domain:binding.api_domain,invoice_id:external.invoice_id,invoice_number:external.invoice_number,reference_number:external.reference_number,customer_id:invoice.external_customer_id,currency_code:external.currency_code,total_cents:invoice.total_cents,status:'draft',price_lines:invoice.snapshot.price_lines};
 }
-export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>Date.now()}={}){
+export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>Date.now(),custodyAccess,guard,beforeCreate}={}){
+ if(custodyAccess&&[custodyAccess,guard,beforeCreate].some(fn=>typeof fn!=='function'))throw new AccountingError('credentials');
  const tokens=new Map();
  async function request(url,options={},postInvoice=false){
   let response;try{response=await fetchImpl(url,{...options,redirect:'error',signal:AbortSignal.timeout(12000)});}catch{throw new AccountingError('provider_unavailable',{uncertain:postInvoice});}
@@ -26,17 +27,22 @@ export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>
  }
  async function context(connection){
   if(!Object.hasOwn(zohoDomains,connection.api_domain)||!validId(connection.organization_id)||connection.environment!=='staging'||!connection.enabled)throw new AccountingError('organization');
+  let token,key;
+  if(custodyAccess){token=await custodyAccess(connection);if(typeof token!=='string'||!token)throw new AccountingError('credentials');}
+  else {
   const secret=await credentials?.(connection.credential_key);
   // Operator-provisioned pins are independent of browser-editable connection metadata.
   if(!secret||secret.business_id!==connection.business_id||secret.organization_id!==connection.organization_id||secret.api_domain!==connection.api_domain||secret.environment!=='staging'||secret.staging_organization_confirmed!==true||!secret.client_id||!secret.client_secret||!secret.refresh_token)throw new AccountingError('credentials');
-  const key=JSON.stringify([connection.business_id,connection.credential_key,connection.organization_id,connection.api_domain]),cached=tokens.get(key);let token;
+  key=JSON.stringify([connection.business_id,connection.credential_key,connection.organization_id,connection.api_domain]);const cached=tokens.get(key);
   if(cached&&cached.expires>now()+60000)token=cached.token;
   else{
    const body=new URLSearchParams({grant_type:'refresh_token',client_id:secret.client_id,client_secret:secret.client_secret,refresh_token:secret.refresh_token});
    const result=await request(zohoDomains[connection.api_domain]+'/oauth/v2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
    if(typeof result.access_token!=='string'||!result.access_token||result.api_domain!==connection.api_domain||!Number.isFinite(result.expires_in)||result.expires_in<=0)throw new AccountingError('credentials');token=result.access_token;tokens.set(key,{token,expires:now()+Math.min(result.expires_in,3600)*1000});
   }
+  }
   const call=async(path,{method='GET',body,query={}}={})=>{
+   if(custodyAccess){await guard();if(method==='POST')await beforeCreate();}
    const url=new URL(connection.api_domain+'/books/v3'+path);url.search=new URLSearchParams({organization_id:connection.organization_id,...query}).toString();
    try{return await request(url.href,{method,headers:{Authorization:'Zoho-oauthtoken '+token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})},method==='POST'&&path==='/invoices');}catch(error){if(error.code==='credentials')tokens.delete(key);throw error;}
   };

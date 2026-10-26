@@ -3,8 +3,9 @@
 // Worker receives only an operation outcome, never access or refresh tokens.
 import {credentialBinding, bindingKey} from './t19-c1.js';
 const denied=(code='custody_denied')=>Object.assign(new Error(code),{code});
-export function createRestrictedCustodyCore({authorize, coordinator, vault, provider}) {
+export function createRestrictedCustodyCore({authorize, coordinator, vault, provider, onPublished}) {
   if(typeof authorize!=='function'||!coordinator||!vault||typeof provider?.refresh!=='function'
+    ||onPublished!==undefined&&typeof onPublished!=='function'
     ||!['current','claim','dispatch','complete','fail'].every(k=>typeof coordinator[k]==='function')
     ||!['read','seal'].every(k=>typeof vault[k]==='function')) throw denied('configuration_rejected');
   async function refresh({principal,binding,operationId}) {
@@ -44,6 +45,13 @@ export function createRestrictedCustodyCore({authorize, coordinator, vault, prov
       // Adapter complete MUST compare seven-field binding, lease, expiry, disconnect
       // and sealed reference in one DB transaction; no direct worker access.
       await coordinator.complete(b,lease,reference);
+      // Optional custody-internal sink; never returned to the ordinary worker.
+      // Each use must recheck the current database binding and job authority.
+      if(onPublished){
+        if(typeof onPublished!=='function'||typeof outcome.access_token!=='string'||!outcome.access_token
+          ||!Number.isSafeInteger(outcome.expires_at))throw denied('uncertain_outcome');
+        await onPublished(next,{access_token:outcome.access_token,expires_at:outcome.expires_at,api_domain:material.api_domain});
+      }
       return Object.freeze({status:'completed',bindingKey:bindingKey(next)});
     }catch(error){
       if(lease){try{await coordinator.fail(b,lease,dispatched?'recovery_required':'idle');}catch{}}
