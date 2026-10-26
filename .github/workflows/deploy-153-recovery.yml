@@ -1,0 +1,30 @@
+name: Deployment recovery source preflight
+on:
+  pull_request:
+    paths:
+      - 'test/deploy-153-source-recovery.test.mjs'
+      - '.github/workflows/deploy-153-recovery.yml'
+      - '_passenger.cjs'
+      - 'hosted-staging.mjs'
+      - 'src/hosted-runtime.cjs'
+      - 'src/staging-server.js'
+      - 'src/hosted-staging.js'
+      - 'scripts/hosted-source-fingerprint.mjs'
+      - 'config/**'
+      - 'public/.htaccess'
+      - 'package.json'
+      - 'package-lock.json'
+permissions:
+  contents: read
+jobs:
+  source-recovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24.22.1'
+      - run: npm ci --ignore-scripts
+      - name: Offline preflight (no application startup)
+        run: node --test test/deploy-153-source-recovery.test.mjs
