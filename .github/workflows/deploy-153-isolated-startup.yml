@@ -1,0 +1,29 @@
+name: DEPLOY-153 isolated server startup
+on:
+  pull_request:
+    paths:
+      - 'test/deploy-153-isolated-startup.test.mjs'
+      - '.github/workflows/deploy-153-isolated-startup.yml'
+      - 'src/staging-server.js'
+      - 'src/hosted-staging.js'
+      - 'scripts/ci-policy.Dockerfile'
+      - 'package*.json'
+permissions:
+  contents: read
+jobs:
+  isolated-startup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build approved Node 24 test image
+        shell: bash
+        run: |
+          set -o pipefail
+          git archive --format=tar HEAD | docker build --file scripts/ci-policy.Dockerfile --tag faraios-deploy-153-test -
+      - name: Simulated startup under complete container network isolation
+        shell: bash
+        run: |
+          docker run --rm --network none --cpus 2 --memory 4g --cap-drop ALL \
+            --security-opt no-new-privileges --entrypoint /usr/local/bin/node \
+            faraios-deploy-153-test --test test/deploy-153-isolated-startup.test.mjs
