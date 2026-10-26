@@ -350,11 +350,11 @@ grant execute on function auth.uid(),audit.claim_invoice_sync(uuid,uuid,uuid,tex
 -- requires SET privilege on the target role and CREATE for the new owner.
 grant t19_runtime_owner to current_user with set true, inherit false;
 grant create on schema private_t19_custody to t19_runtime_owner;
-do $ begin
+do $op02$ begin
  if not pg_has_role(current_user,'t19_runtime_owner','SET')
     or not has_schema_privilege('t19_runtime_owner','private_t19_custody','CREATE')
  then raise exception 'OP-02 temporary ownership authority missing' using errcode='42501'; end if;
-end $;
+end $op02$;
 alter function private_t19_custody.binding(private_t19_custody.connections) owner to t19_runtime_owner;
 alter function private_t19_custody.non_vat_snapshot(jsonb,integer) owner to t19_runtime_owner;
 alter function private_t19_custody.allowed(uuid,uuid,boolean) owner to t19_runtime_owner;
@@ -365,11 +365,11 @@ alter function private_t19_custody.disconnect(uuid,uuid,bigint) owner to t19_run
 -- schema CREATE; rollback of this transaction also rolls back both grants.
 revoke create on schema private_t19_custody from t19_runtime_owner;
 grant t19_runtime_owner to current_user with set false, inherit false;
-do $ begin
+do $op02$ begin
  if pg_has_role(current_user,'t19_runtime_owner','SET')
     or has_schema_privilege('t19_runtime_owner','private_t19_custody','CREATE')
  then raise exception 'OP-02 temporary ownership authority leaked' using errcode='42501'; end if;
-end $;
+end $op02$;
 revoke all on all tables in schema private_t19_custody from public,anon,authenticated,service_role,t19_hosted_custody;
 revoke all on all functions in schema private_t19_custody from public,anon,authenticated,service_role,t19_hosted_custody;
 grant usage on schema private_t19_custody to authenticated,t19_hosted_custody;
