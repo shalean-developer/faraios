@@ -1,0 +1,63 @@
+name: T19 B02 CI transport discovery (read-only)
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - '.github/workflows/t19-b02-ci-transport.yml'
+      - 'scripts/t19-b02-node24-runner.mjs'
+      - 'docs/proposals/t19-b02-managed-role-rollback.sql'
+      - 'test/t19-b02-node24-runner.test.js'
+      - 'package-lock.json'
+      - 'package.json'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-and-connectivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Fail closed on source drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object scripts/t19-b02-node24-runner.mjs)" = "c52227647fd2a647189d6fbbe888edb98597deb7"
+          test "$(git hash-object docs/proposals/t19-b02-managed-role-rollback.sql)" = "89e13e8b55cec5503a67ed5486739e9d1d7560b4"
+          test "$(git hash-object test/t19-b02-node24-runner.test.js)" = "4d6a88bec55799fa62a5efaeab0f3af471e62ab3"
+      - name: Install locked dependencies without scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run isolated offline tests only
+        run: node --test test/t19-b02-node24-runner.test.js
+      - name: Check GitHub runner IPv4 TCP routing without credentials
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import dns from 'node:dns/promises';
+          import net from 'node:net';
+          const host='aws-0-eu-west-1.pooler.supabase.com';
+          const ips=await dns.lookup(host,{family:4,all:true});
+          if(!ips.length)throw new Error('POOLER_IPV4_DNS_EMPTY');
+          console.log('POOLER_IPV4_DNS: PASS');
+          const connect=()=>new Promise(resolve=>{
+            const sock=net.connect({host,port:5432,family:4});
+            let settled=false;
+            const done=v=>{if(settled)return;settled=true;sock.destroy();resolve(v)};
+            sock.setTimeout(5000);
+            sock.once('connect',()=>done('REACHABLE'));
+            sock.once('timeout',()=>done('TIMEOUT'));
+            sock.once('error',e=>done(e.code||'ERROR'));
+          });
+          const result=await connect();
+          console.log('SESSION_POOLER_TCP_5432:',result);
+          if(result!=='REACHABLE')process.exitCode=2;
+          NODE
+# No DATABASE_URL, secrets, PostgreSQL client connection, SQL execution, schema mutation or deployment.
