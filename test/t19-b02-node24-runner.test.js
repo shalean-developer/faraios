@@ -44,14 +44,25 @@ test('nonzero final scratch state is failure even after rollback',async()=>{
  await assert.rejects(executeRollbackProbe(client,['BEGIN;','ROLLBACK;','SELECT final']),/Scratch objects remained/);
 });
 
+// Build deliberately synthetic connection inputs from fields, never embedded URI credentials.
+function syntheticTarget(password='synthetic-only') {
+ const u=new URL('postgresql://placeholder.invalid');
+ u.hostname='aws-0-eu-west-1.pooler.supabase.com';
+ u.port='5432';
+ u.pathname='/postgres';
+ u.username='postgres.xdmfyrsauvqznkloroxg';
+ u.password=password;
+ return u.toString();
+}
+
 test('exact staging session pooler identity and strict TLS',()=>{
- const target=parseStagingPoolerTarget('postgresql://postgres.xdmfyrsauvqznkloroxg:synthetic-only@aws-0-eu-west-1.pooler.supabase.com:5432/postgres');
+ const target=parseStagingPoolerTarget(syntheticTarget());
  assert.deepEqual(target,{host:'aws-0-eu-west-1.pooler.supabase.com',port:5432,database:'postgres',user:'postgres.xdmfyrsauvqznkloroxg',password:'synthetic-only',ssl:{rejectUnauthorized:true},connectionTimeoutMillis:10000});
  assert.equal(Object.hasOwn(target,'connectionString'),false);
 });
 
 test('reject wrong project, direct URL, transactional port and credential-free targets',()=>{
- const ok='postgresql://postgres.xdmfyrsauvqznkloroxg:synthetic-only@aws-0-eu-west-1.pooler.supabase.com:5432/postgres';
+ const ok=syntheticTarget();
  for(const bad of [
   ok.replace('xdmfyrsauvqznkloroxg','paqjwfulwywtsyyvdxrq'),
   ok.replace('aws-0-eu-west-1.pooler.supabase.com','db.xdmfyrsauvqznkloroxg.supabase.co'),
@@ -68,6 +79,6 @@ test('reject wrong project, direct URL, transactional port and credential-free t
 });
 
 test('password is decoded only after strict endpoint verification',()=>{
- const target=parseStagingPoolerTarget('postgresql://postgres.xdmfyrsauvqznkloroxg:foo%40bar%3Abaz@aws-0-eu-west-1.pooler.supabase.com:5432/postgres');
+ const target=parseStagingPoolerTarget(syntheticTarget('foo@bar:baz'));
  assert.equal(target.password,'foo@bar:baz');
 });
