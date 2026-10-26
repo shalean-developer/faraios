@@ -89,6 +89,11 @@ alter table private_t19_custody.oauth_clients enable row level security;
 alter table private_t19_custody.oauth_states enable row level security;
 create policy custody_function_owner on private_t19_custody.oauth_clients to t19_runtime_owner using(true) with check(true);
 create policy custody_function_owner on private_t19_custody.oauth_states to t19_runtime_owner using(true) with check(true);
+-- Owner transfer is transaction-scoped. PostgreSQL 17 requires new-owner CREATE
+-- on this schema and executor SET ROLE authority, even for ALTER FUNCTION OWNER.
+-- Restore the creator-admin membership to its original SET FALSE state below.
+grant create on schema private_t19_custody to t19_runtime_owner;
+grant t19_runtime_owner to postgres with set true, inherit false;
 alter function private_t19_custody.oauth(text,jsonb) owner to t19_runtime_owner;
 revoke all on private_t19_custody.oauth_clients,private_t19_custody.oauth_states from public,anon,authenticated,service_role,t19_hosted_custody;
 revoke all on function private_t19_custody.oauth(text,jsonb) from public,anon,authenticated,service_role;
@@ -117,6 +122,9 @@ begin
  end if;raise exception 'custody_denied';
 end $$;
 alter function private_t19_custody.revoke_grant(text,jsonb) owner to t19_runtime_owner;
+-- Do not leave function-creation or SET ROLE rights after ownership transfer.
+revoke create on schema private_t19_custody from t19_runtime_owner;
+grant t19_runtime_owner to postgres with set false, inherit false;
 revoke all on function private_t19_custody.revoke_grant(text,jsonb) from public,anon,authenticated,service_role;
 grant execute on function private_t19_custody.revoke_grant(text,jsonb) to t19_hosted_custody;
 commit;
