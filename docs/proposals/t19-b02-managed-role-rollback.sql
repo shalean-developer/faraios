@@ -48,17 +48,17 @@ END $denial$;
 RESET ROLE;
 -- Only privileged staging executor supplies temporary SET and CREATE authority.
 GRANT t19_b02_qa_owner TO t19_b02_qa_executor WITH SET TRUE, INHERIT FALSE;
-GRANT CREATE ON SCHEMA t19_b02_qa_schema TO t19_b02_qa_owner;
 SET LOCAL ROLE t19_b02_qa_executor;
+GRANT CREATE ON SCHEMA t19_b02_qa_schema TO t19_b02_qa_owner;
 DO $allowed$
 BEGIN
  IF NOT pg_has_role(current_user,'t19_b02_qa_owner','SET')
  THEN RAISE EXCEPTION 'Temporary SET authority missing' USING ERRCODE='55000'; END IF;
 END $allowed$;
 ALTER FUNCTION t19_b02_qa_schema.probe() OWNER TO t19_b02_qa_owner;
-RESET ROLE;
--- Remove every temporary authority *before* rollback; verify denial again.
+-- The schema owner, not postgres, must revoke CREATE from the function owner.
 REVOKE CREATE ON SCHEMA t19_b02_qa_schema FROM t19_b02_qa_owner;
+RESET ROLE;
 GRANT t19_b02_qa_owner TO t19_b02_qa_executor WITH SET FALSE, INHERIT FALSE;
 SET LOCAL ROLE t19_b02_qa_executor;
 DO $cleanup$
@@ -85,6 +85,8 @@ END $abort_probe$;
 -- Final transaction-wide rollback, including both synthetic roles and schema.
 ROLLBACK;
 -- Must yield 0,0,0. This read-only verification runs after rollback.
+-- The run is NOT accepted without externally asserting the three zeros and
+-- independently comparing before/after protected catalog and financial digests.
 SELECT (SELECT count(*) FROM pg_roles WHERE rolname IN ('t19_b02_qa_executor','t19_b02_qa_owner')) AS leftover_roles,
        (SELECT count(*) FROM pg_namespace WHERE nspname='t19_b02_qa_schema') AS leftover_schemas,
        (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON p.pronamespace=n.oid WHERE n.nspname='t19_b02_qa_schema') AS leftover_functions;
