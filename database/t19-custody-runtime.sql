@@ -345,12 +345,31 @@ revoke execute on all functions in schema vault from public,anon,authenticated,s
 grant select on vault.decrypted_secrets to t19_runtime_owner;
 grant execute on function vault.create_secret(text,text,text) to t19_runtime_owner;
 grant execute on function auth.uid(),audit.claim_invoice_sync(uuid,uuid,uuid,text),audit.finish_invoice_sync(uuid,uuid,uuid,uuid,text,text,jsonb) to t19_runtime_owner;
+-- OP-02: temporary transfer authority, confined to this transaction.
+-- The creator's automatic membership is NOINHERIT/NOSET; ALTER FUNCTION OWNER
+-- requires SET privilege on the target role and CREATE for the new owner.
+grant t19_runtime_owner to current_user with set true, inherit false;
+grant create on schema private_t19_custody to t19_runtime_owner;
+do $ begin
+ if not pg_has_role(current_user,'t19_runtime_owner','SET')
+    or not has_schema_privilege('t19_runtime_owner','private_t19_custody','CREATE')
+ then raise exception 'OP-02 temporary ownership authority missing' using errcode='42501'; end if;
+end $;
 alter function private_t19_custody.binding(private_t19_custody.connections) owner to t19_runtime_owner;
 alter function private_t19_custody.non_vat_snapshot(jsonb,integer) owner to t19_runtime_owner;
 alter function private_t19_custody.allowed(uuid,uuid,boolean) owner to t19_runtime_owner;
 alter function private_t19_custody.runtime(text,jsonb) owner to t19_runtime_owner;
 alter function private_t19_custody.enqueue(uuid,uuid,uuid,text) owner to t19_runtime_owner;
 alter function private_t19_custody.disconnect(uuid,uuid,bigint) owner to t19_runtime_owner;
+-- Restore the creator's existing ADMIN/NOINHERIT/NOSET membership and remove
+-- schema CREATE; rollback of this transaction also rolls back both grants.
+revoke create on schema private_t19_custody from t19_runtime_owner;
+grant t19_runtime_owner to current_user with set false, inherit false;
+do $ begin
+ if pg_has_role(current_user,'t19_runtime_owner','SET')
+    or has_schema_privilege('t19_runtime_owner','private_t19_custody','CREATE')
+ then raise exception 'OP-02 temporary ownership authority leaked' using errcode='42501'; end if;
+end $;
 revoke all on all tables in schema private_t19_custody from public,anon,authenticated,service_role,t19_hosted_custody;
 revoke all on all functions in schema private_t19_custody from public,anon,authenticated,service_role,t19_hosted_custody;
 grant usage on schema private_t19_custody to authenticated,t19_hosted_custody;
