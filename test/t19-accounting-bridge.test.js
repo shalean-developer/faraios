@@ -9,6 +9,7 @@ import {once} from 'node:events';
 import {createAccountingProxy} from '../src/t19-accounting-proxy.js';
 import {createRestrictedAccountingService} from '../src/t19-accounting-service.js';
 import {createStagingServer} from '../src/staging-server.js';
+import {runAccountingPass} from '../src/t19-deployment.js';
 const uid='00000000-0000-4000-8000-000000000001',business='10000000-0000-4000-8000-000000000001';
 test('web session crosses actual mTLS boundary with verified token and current memberships only',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'faraios-t19-bridge-'));let web,custody,active=true,verifications=0;
@@ -31,10 +32,13 @@ test('web session crosses actual mTLS boundary with verified token and current m
   let proxy;
   web=createStagingServer({createClient:()=>client,accountingProxy:args=>proxy(args)});web.listen(0,'127.0.0.1');await once(web,'listening');
   const origin='http://127.0.0.1:'+web.address().port;
-  custody=createRestrictedAccountingService({database:{findMachineByFingerprint:async fingerprint=>({id:'fixture-web-machine',fingerprint256:fingerprint,active:true})},
+  custody=createRestrictedAccountingService({database:{pending:async()=>[],findMachineByFingerprint:async fingerprint=>({id:'fixture-web-machine',fingerprint256:fingerprint,active:true})},
    query:async()=>{throw Error('not_expected');},createUserClient:token=>{assert.equal(token,'test-verified-user-token');return client;},
    fetchImpl:async()=>{throw Error('provider_must_not_run');},origin,tls,sessionCookie:'faraios_staging'});
   custody.listen(0,'127.0.0.1');await once(custody,'listening');
+  const scheduler={mode:'scheduler',enabled:true,endpoint:'https://127.0.0.1:'+custody.address().port+'/',tls};
+  assert.deepEqual(await runAccountingPass(scheduler),{processed:0,held:0});
+  await assert.rejects(runAccountingPass({...scheduler,tls:{ca:tls.cert}}),{message:'accounting_pass_unconfirmed'});
   proxy=createAccountingProxy({endpoint:'https://127.0.0.1:'+custody.address().port+'/',tls});
   const login=await fetch(origin+'/login',{method:'POST',redirect:'manual',headers:{Origin:origin,'Content-Type':'application/x-www-form-urlencoded'},body:'email=fixture%40test.invalid&password=test-only'});
   assert.equal(login.status,303);const cookie=login.headers.get('set-cookie').split(';')[0];

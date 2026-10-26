@@ -1,0 +1,12 @@
+# REVIEW ONLY. A oneshot unit cannot overlap itself; no missed-run catch-up.
+[Unit]
+Description=FaraiOS staging accounting schedule
+
+[Timer]
+OnActiveSec=60
+OnUnitInactiveSec=60
+Unit=faraios-accounting-pass.service
+Persistent=false
+
+[Install]
+WantedBy=timers.target

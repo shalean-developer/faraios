@@ -22,7 +22,8 @@ export function assertStagingConfig(config){
 }
 
 /** Only this SDK dispatch is constrained; this is not an OS network sandbox. */
-export function createStagingFetch(dispatch=globalThis.fetch){
+export function createStagingFetch(dispatch=globalThis.fetch,{accounting=false}={}){
+  if(typeof accounting!=='boolean')throw new Error('Invalid accounting capability');
   return async(input,init={})=>{
     let request,url;
     try{request=new Request(input,init);url=new URL(request.url);}catch{throw new Error('Hosted staging outbound request blocked');}
@@ -34,8 +35,8 @@ export function createStagingFetch(dispatch=globalThis.fetch){
       if(url.pathname==='/auth/v1/logout')allowed=method==='POST'&&url.search==='?scope=local';
       const table=url.pathname.match(/^\/rest\/v1\/([a-z_]+)$/)?.[1];
       if(table)allowed=tables.get(table)?.includes(method)??false;
-      const rpc=url.pathname.match(/^\/rest\/v1\/rpc\/([a-z_]+)$/)?.[1];
-      if(rpc)allowed=rpcs.has(rpc)&&method==='POST'&&!url.search;
+      const rpc=url.pathname.match(/^\/rest\/v1\/rpc\/([a-z_][a-z0-9_]*?)$/)?.[1];
+      if(rpc)allowed=(rpcs.has(rpc)||accounting&&['t19_accounting_status','t19_enqueue_invoice'].includes(rpc))&&method==='POST'&&!url.search;
       // No profile/schema override through headers, including service-role schemas.
       if(['accept-profile','content-profile'].some(h=>request.headers.has(h)&&request.headers.get(h)!=='public'))allowed=false;
     }
