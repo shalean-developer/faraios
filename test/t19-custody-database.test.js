@@ -57,15 +57,24 @@ async function setup(t,options){
  const enqueue=(biz,cid,invoice=null,who=owner)=>f.as(who,()=>db.query('select private_t19_custody.enqueue($1,$2,$3,$4) id',[biz,cid,invoice,invoice?'123':null])).then(r=>r.rows[0].id);
  return {...f,api,bindings,enqueue,query};
 }
-test('T19-02A runtime transfer leaves no CREATE or SET privilege',async t=>{
+test('T19-02A ownership transfer restores explicit schema grants and membership SET option',async t=>{
  const f=await setup(t);
+ // postgres is a superuser in this disposable fixture; effective privilege
+ // functions for that executor do not establish the retained ACL or role option.
+ // The non-superuser effective SET/CREATE denial is tested separately by OP-02.
  const result=(await f.db.query(`select
-  has_schema_privilege('t19_runtime_owner','private_t19_custody','CREATE') as owner_can_create,
-  pg_has_role('postgres','t19_runtime_owner','SET') as executor_can_set,
+  (select count(*)::int from pg_namespace n cross join lateral
+    aclexplode(coalesce(n.nspacl,acldefault('n',n.nspowner))) acl
+   where n.nspname='private_t19_custody'
+     and acl.grantee='t19_runtime_owner'::regrole
+     and acl.privilege_type='CREATE') as explicit_create_grants,
+  (select count(*)::int from pg_auth_members m
+   where m.roleid='t19_runtime_owner'::regrole and m.member='postgres'::regrole
+     and m.set_option) as executor_set_memberships,
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid=p.pronamespace
    where n.nspname='private_t19_custody' and p.proowner='t19_runtime_owner'::regrole) as owned_functions`)).rows[0];
- assert.equal(result.owner_can_create,false);
- assert.equal(result.executor_can_set,false);
+ assert.equal(result.explicit_create_grants,0,'temporary schema CREATE grant must be revoked');
+ assert.equal(result.executor_set_memberships,0,'temporary role SET option must be reset');
  assert.ok(result.owned_functions>0,'runtime owner must own private functions');
 });
 test('T19-02A Vault fixture retains exact four-argument identity',async t=>{
