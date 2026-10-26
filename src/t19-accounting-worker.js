@@ -6,9 +6,11 @@ export function createAccountingWorker({database,runner,authenticateMachine}){
   const outcomes=[];
   for(const operationId of ids){
    const current=await authenticateMachine(transport);if(!current?.active||current.id!==machine.id)throw Error('custody_denied');
-   const job=await database.resolveAuthorizedOperation({machineId:machine.id,operationId,action:'refresh'});
-   if(job.kind!=='invoice')continue;
-   try{outcomes.push(await runner.run(transport,{operationId}));}catch{outcomes.push({operationId,status:'review_required'});}
+   try{
+    const job=await database.resolveAuthorizedOperation({machineId:machine.id,operationId,action:'refresh'});
+    if(job.authorized!==true||job.kind!=='invoice')continue;
+    outcomes.push(await runner.run(transport,{operationId}));
+   }catch{outcomes.push({operationId,status:'review_required'});}
   }
   return outcomes;
  }});

@@ -70,6 +70,9 @@ begin
    select j0.id from private_t19_custody.jobs j0 join private_t19_custody.machines m on m.id=j0.machine_id
    join private_t19_custody.machine_businesses mb on mb.machine_id=m.id and mb.business_id=j0.business_id
    where m.id=(p->>'machineId')::uuid and m.active and mb.active and j0.available_at<=clock_timestamp()
+   and private_t19_custody.allowed(j0.business_id,j0.actor)
+   and exists(select 1 from private_t19_custody.connections c0 where c0.connection_id=j0.connection_id
+    and c0.enabled and c0.status='connected' and c0.generation=j0.generation)
    and (j0.state in ('pending','retry') or (j0.state='running' and j0.lease_until<clock_timestamp()))
    order by j0.available_at limit 20
   ) q;return result;
@@ -88,7 +91,13 @@ begin
  if action='fail' then
   select * into o from private_t19_custody.operations where operation_id=j.id for update;
   if o.lease_id is distinct from (p->>'leaseId')::uuid then return 'false'::jsonb;end if;
-  if o.phase in ('dispatched','prepared') then
+  if o.phase='dispatched' and p->>'state'='reauthorisation_required' then
+   update private_t19_custody.operations set phase='fenced' where operation_id=j.id;
+   update private_t19_custody.jobs set state='cancelled',error_code='invalid_grant' where id=j.id;
+   if c.generation=o.generation then
+    update private_t19_custody.connections set enabled=false,status='reauthorisation_required' where connection_id=c.connection_id;
+   end if;
+  elsif o.phase in ('dispatched','prepared') then
    update private_t19_custody.operations set phase='recovery_required' where operation_id=j.id;
    update private_t19_custody.jobs set state='recovery_required',error_code='refresh_uncertain' where id=j.id;
    if c.generation=o.generation then
@@ -104,6 +113,12 @@ begin
   if j.attempt_id is not distinct from (p->>'attemptId')::uuid and j.state='running' then
    update private_t19_custody.jobs set state=case when dispatched then 'recovery_required' else 'cancelled' end,error_code='authority_changed' where id=j.id;
   end if;return jsonb_build_object('status','recovery_required');
+ end if;
+ if action='resolve' and (not c.enabled or c.status<>'connected' or c.generation<>j.generation
+ or not private_t19_custody.allowed(j.business_id,j.actor)) then
+  update private_t19_custody.jobs set state=case when dispatched then 'recovery_required' else 'cancelled' end,
+   error_code='authority_changed' where id=j.id and state in ('pending','running','retry');
+  return jsonb_build_object('authorized',false);
  end if;
  if not c.enabled or c.status<>'connected' or c.generation<>j.generation
  or not private_t19_custody.allowed(j.business_id,j.actor)
@@ -129,12 +144,19 @@ begin
   if result->'binding' is distinct from b then raise exception 'custody_denied';end if;return result;
  end if;
  if action='claim' then
-  if j.kind<>'refresh' or j.state<>'pending' then raise exception 'stale';end if;
+  if j.kind<>'refresh' then raise exception 'stale';end if;
+  select * into o from private_t19_custody.operations where operation_id=j.id for update;
+  if j.state='running' and o.phase='claimed' and o.lease_expires_at<=clock_timestamp() then
+   update private_t19_custody.operations set phase='fenced' where operation_id=j.id;
+  elsif j.state<>'pending' then raise exception 'stale';end if;
   -- Expired undispatched claims can be fenced. Dispatched/prepared leases require review.
   update private_t19_custody.operations set phase='fenced' where connection_id=c.connection_id and phase='claimed' and lease_expires_at<=clock_timestamp();
   insert into private_t19_custody.operations(operation_id,connection_id,generation,credential_version,lease_id,lease_expires_at,phase)
-  values(j.id,c.connection_id,c.generation,c.credential_version,(p->>'leaseId')::uuid,clock_timestamp()+interval '2 minutes','claimed');
-  update private_t19_custody.jobs set state='running' where id=j.id;
+  values(j.id,c.connection_id,c.generation,c.credential_version,(p->>'leaseId')::uuid,clock_timestamp()+interval '2 minutes','claimed')
+  on conflict(operation_id) do update set lease_id=excluded.lease_id,lease_expires_at=excluded.lease_expires_at,phase='claimed'
+   where private_t19_custody.operations.phase='fenced';
+  if not found then raise exception 'stale';end if;
+  update private_t19_custody.jobs set state='running',lease_until=clock_timestamp()+interval '2 minutes' where id=j.id;
   return jsonb_build_object('id',p->>'leaseId','operationId',j.id);
  end if;
  if action in ('dispatch','seal','publish') then

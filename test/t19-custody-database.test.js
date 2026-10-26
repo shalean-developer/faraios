@@ -214,3 +214,49 @@ test('background pass backs off before dispatch and stops bounded retries with v
  }
  assert.equal(requests,5);
 });
+
+test('review regressions: revoked jobs cannot starve other businesses and resolution races are isolated',async t=>{
+ const f=await setup(t),{db,api}=f;
+ const ia=(await f.as(owner,()=>f.prepare(a,10))).rows[0].id;
+ const ib=(await f.as(owner,()=>f.prepare(b,20))).rows[0].id;
+ const ja=await f.enqueue(a,ca,ia),jb=await f.enqueue(b,cb,ib);
+ await db.query('delete from public.business_memberships where business_id=$1 and user_id=$2',[a,owner]);
+ assert.deepEqual(await api.pending(machine),[jb]);
+ assert.equal((await api.resolveAuthorizedOperation({machineId:machine,operationId:ja})).authorized,false);
+ assert.equal((await db.query('select state from private_t19_custody.jobs where id=$1',[ja])).rows[0].state,'cancelled');
+ const ran=[];
+ const worker=createAccountingWorker({authenticateMachine:async()=>({id:machine,active:true}),
+  database:{pending:async()=>[ja,jb],resolveAuthorizedOperation:async p=>{if(p.operationId===ja)throw Error('revoked_during_pass');return api.resolveAuthorizedOperation(p);}},
+  runner:{run:async(_t,p)=>{ran.push(p.operationId);return {operationId:p.operationId,status:'matched'};}}});
+ assert.equal((await worker.runOnce({})).length,2);assert.deepEqual(ran,[jb]);
+});
+
+test('review regressions: refresh crash reclaim fences old lease and never replays dispatched refresh',async t=>{
+ const f=await setup(t),{db,api,bindings:[binding]}=f;
+ const operationId=await f.enqueue(a,ca),old=api.operation(machine,operationId);
+ const lease=await old.coordinator.claim(binding,operationId);
+ await assert.rejects(api.operation(machine,operationId).coordinator.claim(binding,operationId));
+ await db.query("update private_t19_custody.operations set lease_expires_at=clock_timestamp()-interval '1 second' where operation_id=$1",[operationId]);
+ await db.query("update private_t19_custody.jobs set lease_until=clock_timestamp()-interval '1 second' where id=$1",[operationId]);
+ assert.ok((await api.pending(machine)).includes(operationId));
+ const next=api.operation(machine,operationId),replacement=await next.coordinator.claim(binding,operationId);
+ assert.notEqual(replacement.id,lease.id);
+ await assert.rejects(old.coordinator.dispatch(binding,lease,async()=>assert.fail('stale lease dispatched')));
+ await next.coordinator.dispatch(binding,replacement,async()=>{});
+ await db.query("update private_t19_custody.operations set lease_expires_at=clock_timestamp()-interval '1 second' where operation_id=$1",[operationId]);
+ await assert.rejects(api.operation(machine,operationId).coordinator.claim(binding,operationId));
+ await next.coordinator.fail(binding,replacement,'recovery_required');
+ assert.equal((await db.query('select phase from private_t19_custody.operations where operation_id=$1',[operationId])).rows[0].phase,'recovery_required');
+});
+
+test('review regressions: definitive invalid grant permits new owner consent without uncertainty waiver',async t=>{
+ const f=await setup(t),{db,api,bindings:[binding]}=f;
+ const operationId=await f.enqueue(a,ca),adapters=api.operation(machine,operationId);
+ const core=createRestrictedCustodyCore({...adapters,authorize:async()=>true,provider:{refresh:async()=>({kind:'invalid_grant'})}});
+ assert.equal((await core.refresh({binding,operationId,principal:machine})).status,'reauthorisation_required');
+ assert.equal((await db.query('select phase from private_t19_custody.operations where operation_id=$1',[operationId])).rows[0].phase,'fenced');
+ const ref=(await db.query('select vault.create_secret($1) id',[JSON.stringify({business_id:a,organization_id:'111',environment:'staging',client_id:'test-client',client_secret:'test-secret'})])).rows[0].id;
+ await db.query("insert into private_t19_custody.oauth_clients values($1,$2,'https://accounting.test.invalid/accounting/zoho/callback','owner@test.invalid','123','456','ZAR','reviewed-test',true)",[ca,ref]);
+ await f.query('select private_t19_custody.oauth($1,$2)', ['begin',JSON.stringify({connectionId:ca,businessId:a,actor:owner,digest:'a'.repeat(64),sessionDigest:'b'.repeat(64)})]);
+ assert.equal((await db.query('select phase from private_t19_custody.oauth_states where connection_id=$1',[ca])).rows[0].phase,'pending');
+});
