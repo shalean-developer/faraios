@@ -343,7 +343,7 @@ grant usage on all sequences in schema private_t19_custody to t19_runtime_owner;
 revoke all on all tables in schema vault from public,anon,authenticated,service_role,t19_hosted_custody;
 revoke execute on all functions in schema vault from public,anon,authenticated,service_role,t19_hosted_custody;
 grant select on vault.decrypted_secrets to t19_runtime_owner;
-grant execute on function vault.create_secret(text,text,text) to t19_runtime_owner;
+grant execute on function vault.create_secret(text,text,text,uuid) to t19_runtime_owner;
 grant execute on function auth.uid(),audit.claim_invoice_sync(uuid,uuid,uuid,text),audit.finish_invoice_sync(uuid,uuid,uuid,uuid,text,text,jsonb) to t19_runtime_owner;
 alter function private_t19_custody.binding(private_t19_custody.connections) owner to t19_runtime_owner;
 alter function private_t19_custody.non_vat_snapshot(jsonb,integer) owner to t19_runtime_owner;
