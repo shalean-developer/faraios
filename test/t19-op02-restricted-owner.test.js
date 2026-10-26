@@ -21,9 +21,8 @@ test('OP-02: non-superuser transfer authority is temporary and cannot be inherit
     await admin.query("create role op02_restricted login nosuperuser nocreatedb nocreaterole noinherit");
     await admin.query("create role op02_owner nologin nosuperuser nocreatedb nocreaterole noinherit");
     await admin.query("create schema op02_synthetic authorization op02_restricted");
-    await admin.query("grant op02_owner to op02_restricted with admin false, inherit false, set false");
+    await admin.query("grant op02_owner to op02_restricted with admin true, inherit false, set false");
     // Login is authenticated as restricted executor; it must not have pre-existing SET.
-    const actor=new Client({connectionString:target,ssl:false,user:'op02_restricted'});
     // Auth setup is test-runner-specific. Instead run SET SESSION AUTHORIZATION from
     // a privileged fixture connection: session_user becomes restricted.
     await admin.query('set session authorization op02_restricted');
