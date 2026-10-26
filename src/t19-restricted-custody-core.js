@@ -38,7 +38,7 @@ export function createRestrictedCustodyCore({authorize, coordinator, vault, prov
       const next=credentialBinding({...b,credential_version:b.credential_version+1});
       // Zoho may refresh access without rotating the long-lived refresh token.
       // Only the trusted provider adapter classifies success; no caller outcome.
-      const reference=await vault.seal(next,{...material,refresh_token:outcome.refresh_token??material.refresh_token});
+      const reference=await vault.seal(next,{...material,binding:next,refresh_token:outcome.refresh_token??material.refresh_token});
       if(await authorize({principal,binding:b,operationId,action:'complete'})!==true)
         throw denied('stale');
       // Adapter complete MUST compare seven-field binding, lease, expiry, disconnect
