@@ -8,13 +8,24 @@ export function providerCents(value){
  const n=Number(m[1])*100+Number((m[2]??'').padEnd(2,'0'));if(!Number.isSafeInteger(n)||n>2147483647)throw new AccountingError('mismatch');return n;
 }
 export function verifiedReceipt(invoice,binding,external){
+ const tax=verifiedNonVatSnapshot(invoice);
  const lines=invoice.snapshot.price_lines.filter(l=>l.quantity>0);
  if(invoice.snapshot.price_lines.some(l=>l.quantity===0&&l.total_cents!==0))throw new AccountingError('mismatch');
  if(!external||!validId(external.invoice_id)||typeof external.invoice_number!=='string'||!external.invoice_number.trim()||external.invoice_number.length>100||external.reference_number!=='FaraiOS:'+invoice.id||String(external.customer_id)!==invoice.external_customer_id||external.currency_code!==invoice.currency||external.status!=='draft'||external.is_emailed!==false||providerCents(external.total)!==invoice.total_cents||!Array.isArray(external.line_items)||external.line_items.length!==lines.length)throw new AccountingError('mismatch');
  if(invoice.external_invoice_id&&external.invoice_id!==invoice.external_invoice_id)throw new AccountingError('mismatch');
- for(const field of ['tax_total','discount_total','shipping_charge','adjustment','payment_made','credits_applied','write_off_amount'])if(external[field]!==undefined&&providerCents(external[field])!==0)throw new AccountingError('mismatch');
+ if(providerCents(external.tax_total)!==0||providerCents(external.sub_total)!==tax.net_cents)throw new AccountingError('mismatch');
+ if(external.taxes!==undefined&&(!Array.isArray(external.taxes)||external.taxes.length!==0))throw new AccountingError('mismatch');
+ for(const line of external.line_items)if(line?.tax_percentage!==undefined&&providerCents(line.tax_percentage)!==0)throw new AccountingError('mismatch');
+ for(const field of ['discount_total','shipping_charge','adjustment','payment_made','credits_applied','write_off_amount'])if(external[field]!==undefined&&providerCents(external[field])!==0)throw new AccountingError('mismatch');
  for(let n=0;n<lines.length;n++){const a=lines[n],b=external.line_items[n];if(!b||b.name!==a.name||Number(b.quantity)!==a.quantity||providerCents(b.rate)!==a.rate_cents||providerCents(b.item_total)!==a.total_cents||String(b.unit??'')!==a.unit_label||b.tax_id&&String(b.tax_id).trim()||b.discount_amount!==undefined&&providerCents(b.discount_amount)!==0)throw new AccountingError('mismatch');}
- return {organization_id:binding.organization_id,api_domain:binding.api_domain,invoice_id:external.invoice_id,invoice_number:external.invoice_number,reference_number:external.reference_number,customer_id:invoice.external_customer_id,currency_code:external.currency_code,total_cents:invoice.total_cents,status:'draft',price_lines:invoice.snapshot.price_lines};
+ return {organization_id:binding.organization_id,api_domain:binding.api_domain,invoice_id:external.invoice_id,invoice_number:external.invoice_number,reference_number:external.reference_number,customer_id:invoice.external_customer_id,currency_code:external.currency_code,total_cents:invoice.total_cents,status:'draft',price_lines:invoice.snapshot.price_lines,tax_snapshot:tax,provider_tax_cents:0,provider_net_cents:tax.net_cents};
+}
+// Missing historical tax evidence is never inferred from today's business settings.
+export function verifiedNonVatSnapshot(invoice){
+ const t=invoice?.snapshot?.tax_snapshot;
+ if(t?.enabled===true)throw new AccountingError('vat_not_supported');
+ if(!t||t.enabled!==false||t.price_basis!=='customer_total'||!Number.isSafeInteger(t.policy_version)||t.policy_version<0||t.rate_bps!==0||t.vat_cents!==0||t.vat_number!==null||t.registration_date!==null||!Number.isSafeInteger(invoice.total_cents)||invoice.total_cents<0||t.total_cents!==invoice.total_cents||t.net_cents!==invoice.total_cents)throw new AccountingError('mismatch');
+ return t;
 }
 export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>Date.now(),custodyAccess,guard,beforeCreate}={}){
  if(custodyAccess&&[custodyAccess,guard,beforeCreate].some(fn=>typeof fn!=='function'))throw new AccountingError('credentials');
@@ -53,7 +64,7 @@ export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>
  return {async sync(claim){
   const {invoice,connection,mode}=claim;let posted=false;
   try{
-   if(invoice.snapshot.tax_snapshot?.enabled)throw new AccountingError('vat_not_supported');
+   verifiedNonVatSnapshot(invoice);
    const call=await context(connection);
    const contact=(await call('/contacts/'+invoice.external_customer_id)).contact;
    // This is an explicit customer binding, never an email/name-only auto-link.

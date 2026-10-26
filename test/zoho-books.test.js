@@ -5,6 +5,7 @@ const id='00000000-0000-4000-8000-000000000001';
 const connection={business_id:'business-A',organization_id:'111',api_domain:'https://www.zohoapis.com',credential_key:'A_TEST',enabled:true,environment:'staging'};
 const invoice={id,business_id:connection.business_id,currency:'ZAR',total_cents:10001,external_customer_id:'123',snapshot:{local_start:'2026-11-02T09:00:00',customer_snapshot:{name:'Synthetic'},price_lines:[{name:'Saved service',quantity:1,rate_cents:10001,total_cents:10001,unit_label:'visit'}]}};
 const secret={...connection,client_id:'synthetic-client',client_secret:'SENSITIVE_SYNTHETIC_SECRET',refresh_token:'SENSITIVE_SYNTHETIC_REFRESH',staging_organization_confirmed:true};
+invoice.snapshot.tax_snapshot={enabled:false,policy_version:0,price_basis:'customer_total',rate_bps:0,vat_number:null,registration_date:null,net_cents:10001,vat_cents:0,total_cents:10001};
 const external={invoice_id:'9001',invoice_number:'TEST-0001',reference_number:'FaraiOS:'+id,customer_id:'123',currency_code:'ZAR',status:'draft',is_emailed:false,total:'100.01',tax_total:0,shipping_charge:0,adjustment:0,payment_made:0,credits_applied:0,line_items:[{name:'Saved service',quantity:1,rate:'100.01',item_total:'100.01',unit:'visit',tax_id:'',discount_amount:0}]};
 function fixture({found=[],override={},failure=null,claimMode='create'}={}){
  const calls=[];let posts=0;
@@ -24,6 +25,21 @@ function fixture({found=[],override={},failure=null,claimMode='create'}={}){
  const adapter=createZohoBooks({credentials:async alias=>{assert.equal(alias,'A_TEST');return secret;},fetchImpl});
  return {adapter,calls,posts:()=>posts,claim:{invoice:structuredClone(invoice),connection:{...connection},mode:claimMode}};
 }
+external.sub_total='100.01';
+
+test('unverified saved tax evidence stops before credentials or provider traffic',async()=>{
+ for(const tax of [undefined,null,{}, {enabled:'false'},{...invoice.snapshot.tax_snapshot,vat_cents:1},{...invoice.snapshot.tax_snapshot,net_cents:10000},{...invoice.snapshot.tax_snapshot,policy_version:-1},{...invoice.snapshot.tax_snapshot,enabled:true}]){
+  const f=fixture();f.claim.invoice.snapshot.tax_snapshot=tax;
+  const r=await f.adapter.sync(f.claim);assert.notEqual(r.outcome,'matched');assert.equal(r.receipt,null);assert.equal(f.calls.length,0);assert.equal(f.posts(),0);
+  assert.throws(()=>verifiedReceipt(f.claim.invoice,connection,external));
+ }
+});
+
+test('non-VAT receipt requires explicit tax/net evidence and rejects tax classifications',()=>{
+ for(const patch of [{tax_total:undefined},{sub_total:undefined},{sub_total:'100.00'},{taxes:[{tax_name:'Unverified',tax_amount:0}]}])assert.throws(()=>verifiedReceipt(invoice,connection,{...external,...patch}),/mismatch/);
+ const r=verifiedReceipt(invoice,connection,external);assert.deepEqual(r.tax_snapshot,invoice.snapshot.tax_snapshot);assert.equal(r.provider_tax_cents,0);assert.equal(r.provider_net_cents,10001);
+ const changed=structuredClone(external);changed.line_items[0].tax_percentage=15;assert.throws(()=>verifiedReceipt(invoice,connection,changed),/mismatch/);
+});
 test('Zoho adapter creates once, reads back exact draft and reuses the same identity',async()=>{
  const f=fixture(),r=await f.adapter.sync(f.claim);assert.equal(r.outcome,'matched');assert.equal(r.receipt.total_cents,10001);assert.equal(f.posts(),1);assert.deepEqual(r.receipt.price_lines,invoice.snapshot.price_lines);
  const existing=fixture({found:[{invoice_id:'9001',reference_number:'FaraiOS:'+id}]});assert.equal((await existing.adapter.sync(existing.claim)).outcome,'matched');assert.equal(existing.posts(),0);

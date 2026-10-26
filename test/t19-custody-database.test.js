@@ -13,8 +13,26 @@ import {once} from 'node:events';
 import {Client} from 'pg';
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 const a=id(10),b=id(20),owner=id(1),manager=id(2),machine=id(900),ca=id(901),cb=id(902);
-async function setup(t){
- const f=await invoiceFixture(),db=f.db;t.after(()=>db.close());
+test('VAT evidence: legacy invoices cannot enqueue or claim and retain their saved totals',async t=>{
+ const f=await setup(t,{legacyVat:true}),{db}=f;
+ const invoice=(await f.as(owner,()=>f.prepare(a,10))).rows[0].id;
+ const before=(await db.query('select snapshot,total_cents from public.business_invoices where id=$1',[invoice])).rows[0];
+ await assert.rejects(f.enqueue(a,ca,invoice),/tax_evidence_required/);
+ // Reproduce a job queued before this guard; no historical invoice rewrite.
+ const job=(await db.query("insert into private_t19_custody.jobs(connection_id,business_id,generation,machine_id,actor,kind,invoice_id,customer_id) values($1,$2,1,$3,$4,'invoice',$5,'123') returning id",[ca,a,machine,owner,invoice])).rows[0].id;
+ await assert.rejects(f.query('select private_t19_custody.runtime($1,$2)',['invoice_claim',JSON.stringify({machineId:machine,operationId:job})]),/tax_evidence_required/);
+ assert.deepEqual((await db.query('select snapshot,total_cents from public.business_invoices where id=$1',[invoice])).rows[0],before);
+});
+test('VAT evidence: SQL publication binds receipt tax snapshot and observed net/tax cents',async t=>{
+ const f=await setup(t),{db}=f;
+ const invoice=(await f.as(owner,()=>f.prepare(a,10))).rows[0].id;
+ const job=await f.enqueue(a,ca,invoice),op=f.api.operation(machine,job),claim=await op.invoice.claim(),i=claim.invoice;
+ const receipt={organization_id:'111',api_domain:'https://www.zohoapis.com',reference_number:'FaraiOS:'+invoice,customer_id:'123',currency_code:'ZAR',status:'draft',total_cents:i.total_cents,price_lines:i.snapshot.price_lines,invoice_id:'9001',invoice_number:'TEST-1',tax_snapshot:i.snapshot.tax_snapshot,provider_tax_cents:0,provider_net_cents:i.total_cents};
+ for(const patch of [{tax_snapshot:null},{tax_snapshot:{...receipt.tax_snapshot,policy_version:999}},{provider_tax_cents:1},{provider_net_cents:9999},{provider_tax_cents:'0'}])await assert.rejects(f.query('select private_t19_custody.runtime($1,$2)',['invoice_finish',JSON.stringify({machineId:machine,operationId:job,attemptId:i.attempt_id,result:{outcome:'matched',error_code:'',receipt:{...receipt,...patch}}})]),/tax_receipt_mismatch/);
+ assert.equal((await op.invoice.finish(i.attempt_id,{outcome:'matched',error_code:'',receipt})).status,'matched');
+});
+async function setup(t,options){
+ const f=await invoiceFixture(options),db=f.db;t.after(()=>db.close());
  // PostgreSQL-backed test substitute ONLY: does not prove Supabase Vault encryption.
  await db.exec(`create schema vault;create table vault.test_secrets(id uuid primary key default gen_random_uuid(),decrypted_secret text);
  create view vault.decrypted_secrets as select * from vault.test_secrets;
@@ -120,7 +138,7 @@ test('two business invoices run through durable SQL, scoped refresh and internal
   if(u.pathname.endsWith('/contacts/123'))return reply({contact:{contact_id:'123',status:'active',currency_code:'ZAR',contact_name:'Synthetic customer'}});
   if(options.method==='POST'){
    posts++;const body=JSON.parse(options.body),remote=org+'99';
-   records.set(remote,{...body,invoice_id:remote,invoice_number:org+'-1',status:'draft',is_emailed:false,currency_code:'ZAR',total:100,
+   records.set(remote,{...body,invoice_id:remote,invoice_number:org+'-1',status:'draft',is_emailed:false,currency_code:'ZAR',total:100,sub_total:100,tax_total:0,
     line_items:body.line_items.map(l=>({...l,item_total:l.quantity*l.rate}))});
    if(org==='222'&&loseB){loseB=false;throw Error('response_lost_after_provider_commit');}
    return reply({invoice:{invoice_id:remote}});
