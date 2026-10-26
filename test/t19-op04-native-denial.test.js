@@ -14,7 +14,7 @@ test('OP-04 actual SQLSTATE 55000 collision denial and aborted transaction integ
  const sqls={};
  for(const name of ['runtime','oauth','api']){
   const src=await readFile(new URL('../database/t19-custody-'+name+'.sql',import.meta.url),'utf8');
-  const match=src.match(/do \\$t19_preflight\\$ begin[\\s\\S]*?end \\$t19_preflight\\$;/i);
+  const match=src.match(new RegExp('do \\$t19_preflight\\$ begin[\\s\\S]*?end \\$t19_preflight\\$;', 'i'));
   assert.ok(match,'expected exact OP-04 guard for '+name);
   sqls[name]=match[0];
  }
