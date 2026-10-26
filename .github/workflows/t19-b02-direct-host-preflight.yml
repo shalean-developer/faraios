@@ -1,0 +1,36 @@
+name: T19 B02 direct database transport preflight (no credentials)
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - '.github/workflows/t19-b02-direct-host-preflight.yml'
+permissions:
+  contents: read
+jobs:
+  connectivity-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify direct staging target DNS and TCP without authentication
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import dns from 'node:dns/promises';
+          import net from 'node:net';
+          const host='db.xdmfyrsauvqznkloroxg.supabase.co';
+          const resolved=await dns.lookup(host,{all:true});
+          if(!resolved.length)throw Error('DIRECT_DNS_EMPTY');
+          console.log('DIRECT_DNS_FAMILIES:',[...new Set(resolved.map(v=>v.family))].join(','));
+          const checks=await Promise.all(resolved.map(({address,family})=>new Promise(resolve=>{
+            const socket=net.connect({host:address,port:5432,family});
+            let finished=false;
+            const done=result=>{if(finished)return;finished=true;socket.destroy();resolve({family,result})};
+            socket.setTimeout(5000);
+            socket.once('connect',()=>done('REACHABLE'));
+            socket.once('timeout',()=>done('TIMEOUT'));
+            socket.once('error',err=>done(err.code||'ERROR'));
+          })));
+          for(const {family,result} of checks)console.log('DIRECT_TCP_FAMILY_'+family+':',result);
+          if(!checks.some(c=>c.result==='REACHABLE'))process.exitCode=2;
+          NODE
+# No checkout, credentials, PostgreSQL login, SQL, financial state, mutations, or deployment.
