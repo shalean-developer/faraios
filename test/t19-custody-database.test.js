@@ -57,6 +57,33 @@ async function setup(t,options){
  const enqueue=(biz,cid,invoice=null,who=owner)=>f.as(who,()=>db.query('select private_t19_custody.enqueue($1,$2,$3,$4) id',[biz,cid,invoice,invoice?'123':null])).then(r=>r.rows[0].id);
  return {...f,api,bindings,enqueue,query};
 }
+test('T19-02A ownership transfer restores explicit schema grants and membership SET option',async t=>{
+ const f=await setup(t);
+ // postgres is a superuser in this disposable fixture; effective privilege
+ // functions for that executor do not establish the retained ACL or role option.
+ // The non-superuser effective SET/CREATE denial is tested separately by OP-02.
+ const result=(await f.db.query(`select
+  (select count(*)::int from pg_namespace n cross join lateral
+    aclexplode(coalesce(n.nspacl,acldefault('n',n.nspowner))) acl
+   where n.nspname='private_t19_custody'
+     and acl.grantee='t19_runtime_owner'::regrole
+     and acl.privilege_type='CREATE') as explicit_create_grants,
+  (select count(*)::int from pg_auth_members m
+   where m.roleid='t19_runtime_owner'::regrole and m.member='postgres'::regrole
+     and m.set_option) as executor_set_memberships,
+  (select count(*)::int from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+   where n.nspname='private_t19_custody' and p.proowner='t19_runtime_owner'::regrole) as owned_functions`)).rows[0];
+ assert.equal(result.explicit_create_grants,0,'temporary schema CREATE grant must be revoked');
+ assert.equal(result.executor_set_memberships,0,'temporary role SET option must be reset');
+ assert.ok(result.owned_functions>0,'runtime owner must own private functions');
+});
+test('T19-02A Vault fixture retains exact four-argument identity',async t=>{
+ const f=await setup(t);
+ const result=(await f.db.query(`select
+  to_regprocedure('vault.create_secret(text,text,text,uuid)') is not null as matched,
+  to_regprocedure('vault.create_secret(text,text,text)') is null as absent`)).rows[0];
+ assert.deepEqual(result,{matched:true,absent:true});
+});
 test('runtime SQL and concrete adapter preserve scoped durable refresh publication and denial',async t=>{
  const f=await setup(t),{db,api,bindings:[binding]}=f;
  await assert.rejects(f.enqueue(a,ca,null,manager));
