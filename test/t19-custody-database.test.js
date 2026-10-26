@@ -36,7 +36,7 @@ async function setup(t,options){
  // PostgreSQL-backed test substitute ONLY: does not prove Supabase Vault encryption.
  await db.exec(`create schema vault;create table vault.test_secrets(id uuid primary key default gen_random_uuid(),decrypted_secret text);
  create view vault.decrypted_secrets as select * from vault.test_secrets;
- create function vault.create_secret(secret text,name text default null,description text default null) returns uuid language plpgsql security definer as $$declare r uuid;begin insert into vault.test_secrets(decrypted_secret) values(secret) returning id into r;return r;end$$;
+ create function vault.create_secret(secret text,name text default null,description text default null,key_id uuid default null) returns uuid language plpgsql security definer as $$declare r uuid;begin insert into vault.test_secrets(decrypted_secret) values(secret) returning id into r;return r;end$$;
  set faraios.t19_02_approved_project_ref='xdmfyrsauvqznkloroxg';`);
  await db.exec(await readFile(new URL('../docs/proposals/t19-02-staging-inactive-schema.sql',import.meta.url),'utf8'));
  await db.exec("set faraios.t19_runtime_review='approved-source-test';"+await readFile(new URL('../database/t19-custody-runtime.sql',import.meta.url),'utf8'));
