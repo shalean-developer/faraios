@@ -1,0 +1,27 @@
+name: T19 B02 session pooler source regression
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'scripts/t19-b02-node24-runner.mjs'
+      - 'test/t19-b02-node24-runner.test.js'
+      - '.github/workflows/t19-b02-session-source.yml'
+permissions:
+  contents: read
+jobs:
+  offline-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify original SQL Git blob unchanged
+        run: test "$(git hash-object docs/proposals/t19-b02-managed-role-rollback.sql)" = "89e13e8b55cec5503a67ed5486739e9d1d7560b4"
+      - name: Offline regression tests only
+        run: node --test test/t19-b02-node24-runner.test.js
+# No credentials, hosted DB sessions, SQL execution or deployments.
