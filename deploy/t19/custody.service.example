@@ -1,0 +1,22 @@
+# REVIEW ONLY. Install/enable only after exact hosted deployment approval.
+[Unit]
+Description=FaraiOS staging restricted accounting custody
+After=network-online.target
+
+[Service]
+Type=simple
+User=faraios-custody
+Group=faraios-custody
+WorkingDirectory=/opt/faraios/current
+ExecStart=/usr/bin/node /opt/faraios/current/scripts/t19-runtime.mjs custody /etc/faraios/custody.json
+Restart=no
+TimeoutStopSec=45
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

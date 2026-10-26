@@ -1,0 +1,19 @@
+# REVIEW ONLY. Separate scheduler identity: no database or provider credentials.
+[Unit]
+Description=FaraiOS staging bounded accounting pass
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=faraios-scheduler
+Group=faraios-scheduler
+WorkingDirectory=/opt/faraios/current
+ExecStart=/usr/bin/node /opt/faraios/current/scripts/t19-runtime.mjs run /etc/faraios/scheduler.json
+TimeoutStartSec=630
+Restart=no
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6

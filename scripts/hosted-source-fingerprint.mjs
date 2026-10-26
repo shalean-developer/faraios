@@ -3,7 +3,7 @@ import {readFile,readdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 export async function hostedSourceFingerprint(){
   const root=new URL('../',import.meta.url);
-  const files=['_passenger.cjs','hosted-staging.mjs','package.json','package-lock.json','scripts/hosted-source-fingerprint.mjs'];
+  const files=['_passenger.cjs','_accounting.cjs','hosted-staging.mjs','package.json','package-lock.json','scripts/hosted-source-fingerprint.mjs','scripts/t19-runtime.mjs'];
   for(const dir of ['src','public','config']){
     const entries=await readdir(new URL(dir+'/',root),{withFileTypes:true});
     for(const entry of entries){if(!entry.isFile())throw new Error('Unexpected hosted source directory');files.push(dir+'/'+entry.name);}
