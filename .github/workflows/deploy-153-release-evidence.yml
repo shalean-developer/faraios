@@ -1,0 +1,19 @@
+name: DEPLOY-153 release evidence policy
+on:
+  pull_request:
+    paths:
+      - 'scripts/deploy-153-release-evidence.mjs'
+      - 'test/deploy-153-release-evidence.test.mjs'
+      - '.github/workflows/deploy-153-release-evidence.yml'
+permissions:
+  contents: read
+jobs:
+  release-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24.22.1'
+      - run: node --test test/deploy-153-release-evidence.test.mjs
