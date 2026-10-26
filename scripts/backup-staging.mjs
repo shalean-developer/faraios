@@ -8,6 +8,7 @@ import { spawn } from 'node:child_process';
 import { dumpSchemaScript, dumpDataScript, dumpRoleScript, INTERNAL_SCHEMAS, EXCLUDED_SCHEMAS, RESERVED_ROLES, ALLOWED_CONFIGS } from './vendor/supabase-pg-dump.mjs';
 import { createInterface } from 'node:readline/promises';
 import { Writable } from 'node:stream';
+import {validateScope,matchesCurrentScope,currentManifestSQL} from './backup-scope.mjs';
 
 export const SOURCE = 'xdmfyrsauvqznkloroxg';
 export const CLI = '2.121.0'; // Vendored filter provenance, not an executed CLI.
@@ -40,7 +41,7 @@ export const sha256 = value => createHash('sha256').update(value).digest('hex');
 const same = (a,b) => JSON.stringify(a)===JSON.stringify(b);
 const aad = header => Buffer.from(JSON.stringify(header));
 
-export function validateManifest(m) {
+export function validateManifest(m,scope) {
  if (!m || m.database_major!==17 || !same(m.business_ids,BUSINESS_IDS) || !same(m.extensions,EXTENSIONS) || m.vault_secrets!==0 || m.storage_objects!==0 || m.storage_buckets!==0 || m.large_objects!==0 || !same(m.unexpected_schemas,[]) || !/^[a-f0-9]{64}$/.test(m.catalog_sha256) || !Array.isArray(m.tables)) fail('SOURCE_SCOPE_CHANGED');
  const names=new Set();
  if(!m.extension_versions||Object.keys(m.extension_versions).sort().join(',')!==EXTENSIONS.join(',')||Object.values(m.extension_versions).some(v=>typeof v!=='string'||v.length===0)) fail('INVALID_MANIFEST');
@@ -51,7 +52,10 @@ export function validateManifest(m) {
   if(['public','audit'].includes(t.schema)&&t.rls!==true) fail('SOURCE_RLS_CHANGED');
   if(['storage.buckets_vectors','storage.vector_indexes'].includes(name)&&t.rows!==0) fail('VECTOR_DATA_UNSUPPORTED');
  }
- if(m.tables.filter(t=>t.schema==='public').length!==15 || m.tables.filter(t=>t.schema==='audit').length!==2 || !names.has('auth.users') || !names.has('supabase_migrations.schema_migrations')) fail('SOURCE_SCOPE_CHANGED');
+ if(!names.has('auth.users') || !names.has('supabase_migrations.schema_migrations')) fail('SOURCE_SCOPE_CHANGED');
+ if(m.scope!==undefined) {
+  if(!matchesCurrentScope(m,scope))fail('SOURCE_SCOPE_CHANGED');
+ } else if(m.tables.filter(t=>t.schema==='public').length!==15 || m.tables.filter(t=>t.schema==='audit').length!==2) fail('SOURCE_SCOPE_CHANGED');
  return m;
 }
 
@@ -89,11 +93,11 @@ export function assertCompleteDump(name,content) {
  if(lines.filter(l=>l===start).length!==1||lines.filter(l=>l===end).length!==1||lines.indexOf(end)<=lines.indexOf(start))fail('DUMP_INCOMPLETE_OR_RETRIED');
 }
 
-export function parseManifest(stdout) {
+export function parseManifest(stdout,scope) {
  let rows;
  try { const parsed=JSON.parse(stdout); rows=Array.isArray(parsed)?parsed:parsed.rows; } catch { fail('MANIFEST_OUTPUT_INVALID'); }
  if(!Array.isArray(rows)||rows.length!==1||!rows[0]?.manifest) fail('MANIFEST_OUTPUT_INVALID');
- return validateManifest(rows[0].manifest);
+ return validateManifest(rows[0].manifest,scope);
 }
 
 export function clientEnvironment(password, original=process.env) {
@@ -158,9 +162,9 @@ export function clientArgs(id,step,script,env,input=false) {
   ...(input?['--interactive']:[]),...keys.flatMap(k=>['--env',k]),'--entrypoint','/bin/bash',CLIENT_IMAGE,'-c',"printf '%s\\n' '"+CLIENT_STARTED+"' >&2\n"+script];
 }
 
-export function parsePgManifest(stdout) {
+export function parsePgManifest(stdout,scope) {
  let m;try{m=JSON.parse(stdout);}catch{fail('MANIFEST_OUTPUT_INVALID');}
- return validateManifest(m);
+ return validateManifest(m,scope);
 }
 
 // Remove only containers bearing this exact random run label and exact name.
@@ -283,6 +287,39 @@ export function directoryGuard(signal) {
  return {check,async add(path){await check();await outsideGit(path);await plainDirectory(path);snapshots.set(path,await lstat(path));}};
 }
 
+// Fixed local configuration; never an environment override or archive trust anchor.
+export async function loadCurrentProfile(home=homedir(),runner=run,signal) {
+ const root=join(home,'.faraios-backup-profile'),path=join(root,'current.json');
+ const guard=directoryGuard(signal);let initial;
+ const read=async()=>{
+  try {
+   await guard.check();await outsideGit(root);await plainDirectory(root);
+   const dir=await lstat(root),stat=await lstat(path);
+   if(!stat.isFile()||stat.isSymbolicLink()||stat.nlink!==1||stat.size>65536)fail('PRIVATE_PROFILE_UNSAFE');
+   if(process.platform==='win32'){await verifyWindowsACL(root,true,runner,signal);await verifyWindowsACL(path,false,runner,signal);}
+   else if((dir.mode&0o077)||(stat.mode&0o077)||dir.uid!==process.getuid()||stat.uid!==process.getuid())fail('PRIVATE_PROFILE_UNSAFE');
+   const handle=await open(path,'r');
+   try {
+    const opened=await handle.stat();
+    if(opened.dev!==stat.dev||opened.ino!==stat.ino)fail('PRIVATE_PROFILE_CHANGED');
+    const buffer=Buffer.alloc(65537);const {bytesRead}=await handle.read(buffer,0,buffer.length,0);const bytes=buffer.subarray(0,bytesRead);const after=await lstat(path),finished=await handle.stat();await guard.check();
+    if(bytes.length!==stat.size||bytes.length>65536||after.isSymbolicLink()||after.dev!==stat.dev||after.ino!==stat.ino||finished.size!==stat.size||finished.mtimeMs!==stat.mtimeMs||finished.ctimeMs!==stat.ctimeMs)fail('PRIVATE_PROFILE_CHANGED');
+    const identity=[stat.dev,stat.ino,stat.size,stat.mtimeMs,stat.ctimeMs,sha256(bytes)];
+    if(initial&&!same(initial,identity))fail('PRIVATE_PROFILE_CHANGED');
+    initial??=identity;
+    return validateScope(JSON.parse(bytes.toString('utf8')),SOURCE);
+   } finally {await handle.close();}
+  } catch(e) {
+   if(e.code==='BACKUP_CANCELLED')throw e;
+   if(e.code==='ENOENT')fail('PRIVATE_PROFILE_MISSING');
+   if(e.code==='PRIVATE_PROFILE_CHANGED')throw e;
+   fail('PRIVATE_PROFILE_UNSAFE_OR_INVALID');
+  }
+ };
+ try {await guard.add(root);}catch(e){if(e.code==='ENOENT')fail('PRIVATE_PROFILE_MISSING');if(e.code==='BACKUP_CANCELLED')throw e;fail('PRIVATE_PROFILE_UNSAFE_OR_INVALID');}
+ const scope=await read();return {scope,check:async()=>{await read();}};
+}
+
 export async function localDocker(env,runner=run,signal) {
  checkCancelled(signal);
  const context=(await runner('docker',['context','show'],{env,timeout:15000,signal})).stdout.trim();
@@ -365,7 +402,7 @@ export function sealBackup(payload,key,id) {
  return Buffer.from(JSON.stringify({...header,iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),ciphertext:encrypted.toString('base64')}));
 }
 
-export function openBackup(bytes,key) {
+function decryptBackup(bytes,key) {
  try {
   if(bytes.length>MAX_ARCHIVE||key.length!==32) fail('ARCHIVE_INVALID');
   const e=JSON.parse(bytes.toString('utf8'));
@@ -380,12 +417,19 @@ export function openBackup(bytes,key) {
   for(const f of p.files) {
    if(typeof f.content!=='string'||sha256(Buffer.from(f.content,'utf8'))!==f.sha256) fail('ARCHIVE_INVALID');
   }
+  return {id:e.id,payload:p};
+ } catch { fail('ARCHIVE_VERIFICATION_FAILED'); }
+}
+export function openBackup(bytes,key,scope) {
+ try {
+  const result=decryptBackup(bytes,key),p=result.payload;
   const m=JSON.parse(p.files.find(f=>f.name==='manifest.json').content);
-  validateManifest(m.before);validateManifest(m.after);
+  validateManifest(m.before,scope);validateManifest(m.after,scope);
+  if(m.before.scope!==undefined && (m.version!==1 || m.source!==SOURCE || m.filterSource!=='supabase/cli@'+CLI || m.clientImage!==CLIENT_IMAGE || !Number.isFinite(Date.parse(m.started)) || !Number.isFinite(Date.parse(m.finished)) || Date.parse(m.finished)<Date.parse(m.started)))fail('ARCHIVE_VERIFICATION_FAILED');
   if(!same(m.before,m.after)) fail('SOURCE_CHANGED_DURING_BACKUP');
   for(const [name] of DUMPS) assertCompleteDump(name,p.files.find(f=>f.name===name).content);
   assertDataCoverage(p.files,m.before);
-  return {id:e.id,payload:p};
+  return result;
  } catch { fail('ARCHIVE_VERIFICATION_FAILED'); }
 }
 
@@ -411,7 +455,13 @@ export async function readVerifiedBackup(archive,keyRoot,runner=run,signal) {
   if(!opened.isFile()||current.isSymbolicLink()||opened.dev!==k.dev||opened.ino!==k.ino||current.dev!==k.dev||current.ino!==k.ino)fail('KEY_FILE_CHANGED');
   key=await handle.readFile();await guard.check();
  } finally {await handle.close();}
- try { const result=openBackup(bytes,key);return {id:result.id,sha256:sha256(bytes),fileCount:result.payload.files.length,payload:result.payload}; }
+ try {
+  const decoded=decryptBackup(bytes,key);
+  let m;try{m=JSON.parse(decoded.payload.files.find(f=>f.name==='manifest.json').content);}catch{fail('ARCHIVE_VERIFICATION_FAILED');}
+  const profile=m.before?.scope!==undefined?await loadCurrentProfile(dirname(keyRoot),runner,signal):undefined;
+  const result=openBackup(bytes,key,profile?.scope);await profile?.check();
+  return {id:result.id,sha256:sha256(bytes),fileCount:result.payload.files.length,payload:result.payload,scope:profile?.scope,checkProfile:profile?.check};
+ }
  finally { key.fill(0); }
 }
 
@@ -422,6 +472,7 @@ export async function verifyFile(archive,keyRoot,runner=run,signal) {
 
 export async function capture({home=homedir(),password,runner=run,progress=()=>{},signal,removeWorkdir=path=>rm(path,{recursive:true})}) {
  if(signal?.aborted) fail('BACKUP_CANCELLED');
+ const profile=await loadCurrentProfile(home,runner,signal),scope=profile.scope;
  const root=join(home,'.faraios-backups'),keyRoot=join(home,'.faraios-recovery-keys');
  // Refuse command-line credentials, inherited project/host overrides and repo-local dumps.
  let env=clientEnvironment(password);
@@ -433,13 +484,13 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
  const id=randomBytes(16).toString('hex'),work=join(root,id),temporary=join(work,'private-export');
  await guard.check();await privateDirectory(work,runner,signal);await guard.add(work);
  await guard.check();await privateDirectory(temporary,runner,signal);await guard.add(temporary);
- const sql=await readFile(new URL('./staging-backup-manifest.sql',import.meta.url),'utf8');
+ const sql=currentManifestSQL(await readFile(new URL('./staging-backup-manifest.sql',import.meta.url),'utf8'),await readFile(new URL('./restore-catalog.sql',import.meta.url),'utf8'),scope);
  const client=async (step,script,extra={},input)=>{
   checkCancelled(signal);
   const heartbeat=setInterval(()=>progress('This backup step is still running...'),20000);
   const childEnv={...env,...extra};
   try {
-   await guard.check();await verifyProviderCertificate();checkCancelled(signal);
+   await guard.check();await profile.check();await verifyProviderCertificate();checkCancelled(signal);
    const result=await runner('docker',clientArgs(id,step,script,childEnv,input!==undefined),{cwd:temporary,env:childEnv,signal,input,maxOutput:MAX_FILE,failureContext:'pg-client'});
    await guard.check();return result;
   } finally {
@@ -455,14 +506,18 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
   const imageHeartbeat=setInterval(()=>progress('This backup step is still running...'),20000);
   try{await ensureClientImage(env,runner,signal);}finally{clearInterval(imageHeartbeat);}
   progress('Checking source metadata');
-  const readManifest=async()=>parsePgManifest((await client('metadata','exec psql -X -w -q -A -t --set=ON_ERROR_STOP=1',{},sql)).stdout);
+  const readManifest=async()=>{
+   const m=parsePgManifest((await client('metadata','exec psql -X -w -q -A -t --set=ON_ERROR_STOP=1',{},sql)).stdout,scope);
+   if(m.scope!==scope.id || !matchesCurrentScope(m,scope))fail('SOURCE_SCOPE_CHANGED');
+   return m;
+  };
   const before=await readManifest();
   const files=[];let totalBytes=0;
   for(const [name] of DUMPS) {
    progress('Exporting '+name);
    let result;
    try { const spec=dumpSpec(name);result=await client(name.replace('.sql',''),spec.script,spec.env); }
-   catch(error) { if(['BACKUP_CANCELLED','CONTAINER_CLEANUP_FAILED','CHILD_TIMEOUT','CHILD_OUTPUT_TOO_LARGE','CLIENT_CONTAINER_START_FAILED','CLIENT_CONTAINER_PROCESS_FAILED','PROVIDER_CA_INVALID'].includes(error.code))throw error;fail('DUMP_'+name.replace(/\.sql$/,'').replaceAll('-','_').toUpperCase()+'_FAILED'); }
+   catch(error) { if(['BACKUP_CANCELLED','CONTAINER_CLEANUP_FAILED','CHILD_TIMEOUT','CHILD_OUTPUT_TOO_LARGE','CLIENT_CONTAINER_START_FAILED','CLIENT_CONTAINER_PROCESS_FAILED','PROVIDER_CA_INVALID','PRIVATE_PROFILE_CHANGED','PRIVATE_PROFILE_MISSING','PRIVATE_PROFILE_UNSAFE_OR_INVALID'].includes(error.code))throw error;fail('DUMP_'+name.replace(/\.sql$/,'').replaceAll('-','_').toUpperCase()+'_FAILED'); }
    const bytes=result.stdoutBytes??Buffer.from(result.stdout,'utf8'),content=bytes.toString('utf8');
    totalBytes+=bytes.length;
    if(bytes.length===0||bytes.length>MAX_FILE||totalBytes>MAX_PAYLOAD/2)fail('BACKUP_TOO_LARGE');
@@ -478,12 +533,13 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
   const content=JSON.stringify(manifest);files.push({name:'manifest.json',content,sha256:sha256(content)});
   assertDataCoverage(files,before);
   if(Buffer.byteLength(JSON.stringify(files))>MAX_PAYLOAD/2) fail('BACKUP_TOO_LARGE');
+  await profile.check();
   progress('Encrypting and verifying locally');
   if(signal?.aborted) fail('BACKUP_CANCELLED');
   const key=randomBytes(32);
   try {
    keyPath=join(keyRoot,id+'.key');await writePrivate(keyPath,key,guard,runner,signal);
-   const bytes=sealBackup({source:SOURCE,files},key,id);openBackup(bytes,key);
+   const bytes=sealBackup({source:SOURCE,files},key,id);openBackup(bytes,key,scope);
    artifact=join(work,'faraios-staging-'+id+'.fbackup');await writePrivate(artifact,bytes,guard,runner,signal);
    await guard.check();
    const result=await verifyFile(artifact,keyRoot,runner,signal);
@@ -493,6 +549,7 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
   if(signal?.aborted) fail('BACKUP_CANCELLED');
   await guard.check();await removeWorkdir(temporary);
   if(signal?.aborted)fail('BACKUP_CANCELLED');
+  await profile.check();
   cleanup='PASSED';completed=true;
   return {source:SOURCE,artifact,keyPath,sha256:checksum,privateWorkdirCleanup:cleanup,helperPlaintextSQLFiles:'NEVER_WRITTEN',encryptedLocalVerification:'PASSED',offsiteBackup:'PENDING',offlineKeyCopy:'PENDING',restore:'NOT_RUN'};
  } finally {

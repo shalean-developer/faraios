@@ -5,9 +5,10 @@ import {pathToFileURL} from 'node:url';
 import {randomBytes} from 'node:crypto';
 import {createInterface} from 'node:readline/promises';
 import {Writable} from 'node:stream';
-import {SOURCE,CLI,CLIENT_IMAGE,BackupFailure,readVerifiedBackup,clientEnvironment,clientArgs,localDocker,ensureClientImage,verifyProviderCertificate,cleanupClient,run} from './backup-staging.mjs';
+import {SOURCE,CLI,CLIENT_IMAGE,BackupFailure,readVerifiedBackup,clientEnvironment,clientArgs,localDocker,ensureClientImage,verifyProviderCertificate,cleanupClient,run,validateManifest} from './backup-staging.mjs';
 import {ACTOR_SQL,validateSchemaReplay,diagnosticSQL,diagnosticMetadataSQL,parseDiagnosticOutput,compareCatalogComponents,validateSequenceState} from './restore-diagnostic.mjs';
 import {RECONSTRUCT_WORKING_DAYS_SQL} from './restore-constraint.mjs';
+import {matchesCurrentScope} from './backup-scope.mjs';
 
 export const DESTINATION='zrlojsvkqipuwkkyfrkn';
 export const RESTORE_CONFIG=JSON.parse(await readFile(new URL('../config/restore-test.json',import.meta.url),'utf8'));
@@ -45,6 +46,26 @@ export function validateRestoreBackup(backup){
  sequenceAssignments(backup.payload.files);
  preserveManagedParameterGrant(backup.payload.files.find(f=>f.name==='roles.sql')?.content);
  return m;
+}
+
+// Offline preparation only. Never authorizes replay into the used T11 project.
+// readVerifiedBackup authenticates archive/member hashes, coverage and private
+// key ACLs before this validates the current reviewed restore catalog/SQL.
+export function validateCheckpointBackup(backup) {
+ const scope=backup.scope;
+ const m=JSON.parse(backup.payload.files.find(f=>f.name==='manifest.json').content);
+ validateManifest(m.before,scope);validateManifest(m.after,scope);
+ if(!matchesCurrentScope(m.before,scope)||!matchesCurrentScope(m.after,scope)||JSON.stringify(m.before)!==JSON.stringify(m.after))fail('RESTORE_CAPTURE_CATALOG_NOT_REVIEWED');
+ if(m.version!==1||m.source!==SOURCE||m.filterSource!=='supabase/cli@'+CLI||m.clientImage!==CLIENT_IMAGE||!Number.isFinite(Date.parse(m.started))||!Number.isFinite(Date.parse(m.finished))||Date.parse(m.finished)<Date.parse(m.started))fail('RESTORE_MANIFEST_INVALID');
+ const files=Object.fromEntries(backup.payload.files.map(f=>[f.name,f.content]));
+ validateSchemaReplay(preserveManagedParameterGrant(files['roles.sql']));
+ validateSchemaReplay(files['schema.sql']);validateSchemaReplay(files['migration-schema.sql']);
+ sequenceAssignments(backup.payload.files);
+ return {checkpointArchiveVerification:'PASSED',source:SOURCE,scope:scope.id,captureId:backup.id,sha256:backup.sha256,captureStarted:m.started,captureFinished:m.finished,restoreCatalogVerification:'PASSED',restore:'NOT_RUN',recoveryReadiness:'PENDING_ISOLATED_RESTORE'};
+}
+
+export async function verifyCheckpointFile(archive,home=homedir()) {
+ return validateCheckpointBackup(await readVerifiedBackup(resolve(archive),join(home,'.faraios-recovery-keys')));
 }
 
 export function validateDestination(metadata,manifest){
@@ -113,17 +134,17 @@ export function sequenceAssignments(files,approved=true){
 export function sequenceVerificationSQL(states){
  return `DO $t11_sequences$ DECLARE v text; called boolean; BEGIN\n`+states.map(s=>`SELECT last_value::text,is_called INTO v,called FROM ${identifier(s.schema)}.${identifier(s.sequence)}; IF v<>${literal(s.value)} OR called<>${s.isCalled} THEN RAISE EXCEPTION 'RESTORE_SEQUENCE_STATE_PENDING'; END IF;`).join('\n')+"\nEND $t11_sequences$;\nSELECT 'FARAIOS_T11_SEQUENCES_VALIDATED';\n";
 }
-export function finishSequencesSQL(manifest,catalogSQL,states){
+export function finishSequencesSQL(manifest,catalogSQL,states,scope){
  // setval cannot roll back. It is allowed only after an independent row/catalog
  // recheck on the held, unused destination; no table or schema changes here.
- return verificationSQL(manifest,catalogSQL)+states.map(s=>`SELECT pg_catalog.setval(${literal(identifier(s.schema)+'.'+identifier(s.sequence))},${s.value},${s.isCalled});`).join('\n')+'\n'+sequenceVerificationSQL(states);
+ return verificationSQL(manifest,catalogSQL,scope)+states.map(s=>`SELECT pg_catalog.setval(${literal(identifier(s.schema)+'.'+identifier(s.sequence))},${s.value},${s.isCalled});`).join('\n')+'\n'+sequenceVerificationSQL(states);
 }
 
 // The same emptiness and catalog checks run again inside the import transaction.
-function catalogCheck(sql,application){
+function catalogCheck(sql,application,managed=RESTORE_CONFIG.managedCatalogSha256){
  return `DO $t11_catalog$ DECLARE actual jsonb; BEGIN
  SELECT catalog INTO actual FROM (${trimSQL(sql)}) q;
- IF actual->>'application'<>${literal(application)} OR actual->>'managed'<>${literal(RESTORE_CONFIG.managedCatalogSha256)} THEN RAISE EXCEPTION 'RESTORE_CATALOG_MISMATCH'; END IF;
+ IF actual->>'application'<>${literal(application)} OR actual->>'managed'<>${literal(managed)} THEN RAISE EXCEPTION 'RESTORE_CATALOG_MISMATCH'; END IF;
  END $t11_catalog$;\n`;
 }
 function emptyCheck(sql){
@@ -133,8 +154,9 @@ function emptyCheck(sql){
  END $t11_empty$;\n`;
 }
 
-export function verificationSQL(manifest,catalogSQL){
+export function verificationSQL(manifest,catalogSQL,scope){
  const m=manifest.before;
+ if(m.scope!==undefined && !matchesCurrentScope(m,scope))fail('RESTORE_CAPTURE_CATALOG_NOT_REVIEWED');
  const assertions=[];
  for(const t of m.tables){
   if(t.schema==='auth'&&t.table==='schema_migrations'||t.schema==='storage'&&t.table==='migrations')continue;
@@ -144,7 +166,7 @@ export function verificationSQL(manifest,catalogSQL){
  IF n<>${t.rows} OR actual_hash<>${literal(t.sha256)} THEN RAISE EXCEPTION 'RESTORE_DATA_MISMATCH'; END IF;`);
  }
  const versions=Object.entries(m.extension_versions).sort().map(([k,v])=>literal(k)+','+literal(v)).join(',');
- return limits+catalogCheck(catalogSQL,RESTORE_CONFIG.applicationCatalogSha256)+`DO $t11_rows$ DECLARE n bigint; actual_hash text; BEGIN
+ return limits+catalogCheck(catalogSQL,m.scope!==undefined?scope.application:RESTORE_CONFIG.applicationCatalogSha256,m.scope!==undefined?scope.managed:RESTORE_CONFIG.managedCatalogSha256)+`DO $t11_rows$ DECLARE n bigint; actual_hash text; BEGIN
  ${assertions.join('\n')}
  IF (SELECT jsonb_object_agg(extname,extversion) FROM pg_extension)<>jsonb_build_object(${versions}) THEN RAISE EXCEPTION 'RESTORE_EXTENSION_MISMATCH'; END IF;
  IF EXISTS(SELECT 1 FROM public.business_accounting_connections WHERE enabled) THEN RAISE EXCEPTION 'RESTORE_ACCOUNTING_ENABLED'; END IF;
@@ -163,7 +185,7 @@ export function importSQL(backup,manifest,catalogSQL,preflightSQL){
  const {rewritten}=sequenceAssignments(backup.payload.files,false);
  // The complete unchanged schema/role/ACL fingerprints must pass BEFORE the
  // first account/business row is replayed, then again with row digests at end.
- return schemaReplaySQL(backup,catalogSQL,preflightSQL)+catalogCheck(catalogSQL,RESTORE_CONFIG.applicationCatalogSha256)+['data.sql','migration-data.sql'].map(name=>limits+rewritten[name]+'\n').join('\n')+verificationSQL(manifest,catalogSQL);
+ return schemaReplaySQL(backup,catalogSQL,preflightSQL)+catalogCheck(catalogSQL,RESTORE_CONFIG.applicationCatalogSha256)+['data.sql','migration-data.sql'].map(name=>limits+rewritten[name]+'\n').join('\n')+verificationSQL(manifest,catalogSQL,backup.scope);
 }
 
 export async function restoreArchive({archive,password,mode='restore',home=homedir(),runner=run,signal,progress=()=>{}}){
@@ -184,13 +206,13 @@ export async function restoreArchive({archive,password,mode='restore',home=homed
  try{
   await verifyProviderCertificate();env=await localDocker(env,runner,signal);await ensureClientImage(env,runner,signal);
   const client=async(step,input,write=false)=>{
-   cancelled(signal);await verifyProviderCertificate();
+   cancelled(signal);await backup.checkProfile?.();await verifyProviderCertificate();
    const childEnv={...env,PGOPTIONS:restoreEnvironment(password,{},write).PGOPTIONS};
    const heartbeat=setInterval(()=>progress('This restore step is still running...'),20000);
    let result;
    try{result=await runner('docker',clientArgs(id,step,'exec psql -X -w -q -A -t --set=ON_ERROR_STOP=1 --single-transaction --file=-',childEnv,true),{env:childEnv,input,signal,maxOutput:1024*1024,failureContext:'pg-client'});}
    finally{clearInterval(heartbeat);try{await cleanupClient(id,step,env,runner);}finally{delete childEnv.PGPASSWORD;}}
-   cancelled(signal);return result;
+   cancelled(signal);await backup.checkProfile?.();return result;
   };
   if(mode==='diagnose'){
    const metadataQuery=diagnosticMetadataSQL(catalogSQL,preflightSQL,limits);
@@ -216,7 +238,7 @@ export async function restoreArchive({archive,password,mode='restore',home=homed
   progress(mode==='verify'?'Verifying restored data without writes':mode==='finish-sequences'?'Rechecking committed restore before sequence completion':'Importing and verifying tables/schema in one transaction');
   importStarted=mode==='restore';
   if(mode!=='finish-sequences'){
-   const result=await client(mode==='verify'?'restore-verify':'restore-import',mode==='verify'?verificationSQL(manifest,catalogSQL):importSQL(backup,manifest,catalogSQL,preflightSQL),mode==='restore');
+   const result=await client(mode==='verify'?'restore-verify':'restore-import',mode==='verify'?verificationSQL(manifest,catalogSQL,backup.scope):importSQL(backup,manifest,catalogSQL,preflightSQL),mode==='restore');
    if(!result.stdout.split(/\r?\n/).includes('FARAIOS_T11_RESTORE_VALIDATED'))fail('RESTORE_VALIDATION_MARKER_MISSING');
    if(mode==='verify'){
     let sequenceResult;
@@ -227,7 +249,7 @@ export async function restoreArchive({archive,password,mode='restore',home=homed
   }
   if(mode!=='verify'){
    sequenceStarted=true;progress('Completing sequence positions after committed row/catalog validation');
-   const result=await client('restore-sequences',finishSequencesSQL(manifest,catalogSQL,states),true);
+   const result=await client('restore-sequences',finishSequencesSQL(manifest,catalogSQL,states,backup.scope),true);
    if(!result.stdout.split(/\r?\n/).includes('FARAIOS_T11_SEQUENCES_VALIDATED'))fail('RESTORE_VALIDATION_MARKER_MISSING');
   }
   cancelled(signal);
@@ -250,6 +272,9 @@ async function pickArchive(signal){
 
 async function main(){
  const args=process.argv.slice(2);
+ if(args.length===2&&args[0]==='--verify-checkpoint-file'){
+  console.log(JSON.stringify(await verifyCheckpointFile(args[1]),null,2));return;
+ }
  if(!process.stdin.isTTY||!process.stdout.isTTY)fail('RUN_INTERACTIVELY');
  if(args.length&&!(args.length===1&&args[0]==='--diagnose-catalog')&&!(args.length===2&&['--restore-file','--preflight-file','--verify-restored-file','--finish-sequences-file','--diagnose-catalog-file'].includes(args[0])))fail('RESTORE_OPTIONS_INVALID');
  const mode=args[0]==='--preflight-file'?'preflight':args[0]==='--verify-restored-file'?'verify':args[0]==='--finish-sequences-file'?'finish-sequences':args[0]?.startsWith('--diagnose-catalog')?'diagnose':'restore';

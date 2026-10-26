@@ -1,6 +1,8 @@
 // CI-only disposable PostgreSQL tests plus a credential-free public pooler TLS handshake.
 // The public handshake closes before PostgreSQL startup/authentication/query traffic.
 import assert from 'node:assert/strict';
+import {currentManifestSQL} from './backup-scope.mjs';
+const CURRENT_SCOPE={id:'synthetic-v1'};
 import {importSQL,schemaReplaySQL,verificationSQL,sequenceAssignments,sequenceVerificationSQL,finishSequencesSQL,RESTORE_CONFIG,MANAGED_PARAMETER_GRANT,RESTORE_CREATION_DEFAULTS_SQL} from './restore-staging.mjs';
 import {catalogComponentsSQL,diagnosticSQL,diagnosticMetadataSQL,parseDiagnosticOutput,compareCatalogComponents,validateSequenceState} from './restore-diagnostic.mjs';
 import {WORKING_DAYS_SOURCE_DEF,WORKING_DAYS_CHECK,RECONSTRUCT_WORKING_DAYS_SQL} from './restore-constraint.mjs';
@@ -84,6 +86,11 @@ async function exerciseRestore(manifest,files){
  };
  const catalog=async host=>JSON.parse((await query(host,"SET LOCAL search_path='';"+catalogSQL)).stdout);
  const sourceCatalog=await catalog(tlsServer);
+ const currentSQL=currentManifestSQL(await readFile(new URL('./staging-backup-manifest.sql',import.meta.url),'utf8'),catalogSQL,CURRENT_SCOPE);
+ const current=JSON.parse((await query(tlsServer,currentSQL,false,false,false)).stdout);
+ assert.equal(current.scope,CURRENT_SCOPE.id);assert.deepEqual(current.restore_catalog,sourceCatalog);
+ assert.ok(current.tables.filter(t=>['public','audit'].includes(t.schema)).every(t=>t.owner==='postgres'));
+ console.log('T11_CURRENT_MANIFEST_SNAPSHOT_AND_PORTABLE_CATALOG=PASS');
  for(const mutation of ['create domain public.t11_domain as text;','grant select(content) on public.sample to anon;','alter role anon bypassrls;','grant anon to authenticated;','alter default privileges grant select on tables to anon;']){
   const changed=JSON.parse((await query(tlsServer,"savepoint catalog_probe;"+mutation+"set local search_path='';"+catalogSQL+'rollback to savepoint catalog_probe;',true,true)).stdout);
   assert.notEqual(changed.application,sourceCatalog.application);
