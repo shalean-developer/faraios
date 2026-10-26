@@ -55,6 +55,14 @@ language sql stable security definer set search_path=pg_catalog as $$
  where m.business_id=b and m.user_id=u and m.status='active' and b0.status='active'
  and (m.role='owner' or (not owner_only and m.role='manager')))
 $$;
+-- Only explicit saved non-VAT evidence is supported until provider mappings pass.
+create function private_t19_custody.non_vat_snapshot(t jsonb,total integer) returns boolean
+language sql immutable set search_path=pg_catalog as $$
+ select coalesce(t @> jsonb_build_object('enabled',false,'price_basis','customer_total','rate_bps',0,
+ 'vat_cents',0,'vat_number',null,'registration_date',null,'net_cents',total,'total_cents',total)
+ and jsonb_typeof(t->'policy_version')='number' and (t->>'policy_version') ~ '^(0|[1-9][0-9]*)$'
+ and (t->>'policy_version')::numeric<=9007199254740991 and total>=0,false)
+$$;
 create function private_t19_custody.runtime(action text,p jsonb) returns jsonb
 language plpgsql security definer set search_path=pg_catalog as $$
 declare c private_t19_custody.connections; j private_t19_custody.jobs; o private_t19_custody.operations; previous private_t19_custody.jobs;
@@ -215,6 +223,8 @@ begin
  end if;
  if j.kind<>'invoice' then raise exception 'custody_denied';end if;
  if action='invoice_claim' then
+  if not exists(select 1 from public.business_invoices i where i.id=j.invoice_id and i.business_id=j.business_id
+   and private_t19_custody.non_vat_snapshot(i.snapshot->'tax_snapshot',i.total_cents)) then raise exception 'tax_evidence_required';end if;
   if j.available_at>clock_timestamp() or j.state not in ('pending','retry','running')
    or (j.state='running' and j.lease_until>clock_timestamp()) then raise exception 'stale';end if;
   claim:=audit.claim_invoice_sync(j.business_id,j.invoice_id,j.actor,j.customer_id);
@@ -242,6 +252,11 @@ begin
    update private_t19_custody.jobs set dispatched=true where id=j.id;return 'true'::jsonb;
   end if;
   result:=p->'result';
+  if result->>'outcome'='matched' and not exists(select 1 from public.business_invoices i where i.id=j.invoice_id and i.business_id=j.business_id
+   and private_t19_custody.non_vat_snapshot(i.snapshot->'tax_snapshot',i.total_cents)
+   and result->'receipt'->'tax_snapshot'=i.snapshot->'tax_snapshot'
+   and result->'receipt'->'provider_tax_cents'='0'::jsonb
+   and result->'receipt'->'provider_net_cents'=to_jsonb(i.total_cents)) then raise exception 'tax_receipt_mismatch';end if;
   if result->>'outcome' not in ('matched','failed','review_required') or result->>'error_code' is null then raise exception 'custody_denied';end if;
   perform audit.finish_invoice_sync(j.business_id,j.invoice_id,j.attempt_id,j.actor,result->>'outcome',result->>'error_code',nullif(result->'receipt','null'));
   update private_t19_custody.jobs set dispatched=dispatched or result->>'outcome' in ('matched','review_required'),state=case when result->>'outcome'='matched' then 'completed'
@@ -266,6 +281,8 @@ begin
  if m is null then raise exception 'custody_denied';end if;
  if invoice is not null and not exists(select 1 from public.business_invoices i where i.id=invoice and i.business_id=business) then raise exception 'custody_denied';end if;
  if invoice is not null then
+  if not exists(select 1 from public.business_invoices i where i.id=invoice and i.business_id=business
+   and private_t19_custody.non_vat_snapshot(i.snapshot->'tax_snapshot',i.total_cents)) then raise exception 'tax_evidence_required';end if;
   select id into result from private_t19_custody.jobs where invoice_id=invoice and business_id=business;
   if found then
    update private_t19_custody.jobs set state='retry',available_at=clock_timestamp() where id=result and state='completed';
@@ -329,6 +346,7 @@ grant select on vault.decrypted_secrets to t19_runtime_owner;
 grant execute on function vault.create_secret(text,text,text) to t19_runtime_owner;
 grant execute on function auth.uid(),audit.claim_invoice_sync(uuid,uuid,uuid,text),audit.finish_invoice_sync(uuid,uuid,uuid,uuid,text,text,jsonb) to t19_runtime_owner;
 alter function private_t19_custody.binding(private_t19_custody.connections) owner to t19_runtime_owner;
+alter function private_t19_custody.non_vat_snapshot(jsonb,integer) owner to t19_runtime_owner;
 alter function private_t19_custody.allowed(uuid,uuid,boolean) owner to t19_runtime_owner;
 alter function private_t19_custody.runtime(text,jsonb) owner to t19_runtime_owner;
 alter function private_t19_custody.enqueue(uuid,uuid,uuid,text) owner to t19_runtime_owner;

@@ -5,7 +5,7 @@ import {Client} from 'pg';
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 const owner=id(1),manager=id(2),staff=id(3),a=id(10),b=id(20);
 const files=['identity-draft.sql','audit-draft.sql','business-settings-draft.sql','catalogue-draft.sql','customers-draft.sql','bookings-draft.sql','bookings-context-hardening-draft.sql','cleaning-profiles-draft.sql','cleaning-assessments-draft.sql','cleaning-assessment-review-hardening-draft.sql','staff-teams-draft.sql','availability-draft.sql','recurring-draft.sql','quotes-draft.sql','quote-acceptance-actor-draft.sql','invoices-draft.sql'];
-export async function invoiceFixture(){
+export async function invoiceFixture({legacyVat=false}={}){
  let db;
  if(process.env.T19_CUSTODY_NATIVE_URL){
   const target=new URL(process.env.T19_CUSTODY_NATIVE_URL);
@@ -16,6 +16,10 @@ export async function invoiceFixture(){
  }else db=new PGlite({extensions:{btree_gist}});
  await db.exec("create role anon;create role authenticated;create role service_role;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant usage on schema public to service_role;grant execute on function auth.uid() to authenticated;");
  for(const file of files)await db.exec(await readFile(new URL('../database/'+file,import.meta.url),'utf8'));
+ if(!legacyVat){
+  await db.exec(await readFile(new URL('../database/earnings-rules-draft.sql',import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../supabase/migrations/20261021223123_business_vat_settings.sql',import.meta.url),'utf8'));
+ }
  await db.query("insert into auth.users values($1,'owner@test.invalid'),($2,'manager@test.invalid'),($3,'staff@test.invalid')",[owner,manager,staff]);
  await db.query("insert into public.businesses(id,name,industry) values($1,'A','cleaning'),($2,'B','cleaning')",[a,b]);
  await db.query("insert into public.business_memberships(business_id,user_id,role) values($1,$3,'owner'),($2,$3,'owner'),($2,$4,'manager'),($1,$5,'staff'),($2,$5,'staff')",[a,b,owner,manager,staff]);
