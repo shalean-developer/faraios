@@ -3,6 +3,17 @@ begin;
 do $$ begin
  if current_setting('faraios.t19_runtime_review',true) is distinct from 'approved-source-test' then raise exception 'review context required';end if;
 end $$;
+-- OP-04: check committed runtime prerequisite and reject partial OAuth state.
+do $t19_preflight$ begin
+ if not exists (select 1 from pg_roles where rolname='t19_runtime_owner')
+    or to_regclass('private_t19_custody.jobs') is null
+    or to_regclass('private_t19_custody.revocations') is null
+    or to_regprocedure('private_t19_custody.runtime(text,jsonb)') is null
+    or to_regclass('private_t19_custody.oauth_clients') is not null
+    or to_regclass('private_t19_custody.oauth_states') is not null
+    or to_regprocedure('private_t19_custody.oauth(text,jsonb)') is not null
+ then raise exception 'T19 OAuth prerequisite/collision: stop and audit' using errcode='55000'; end if;
+end $t19_preflight$;
 create table private_t19_custody.oauth_clients(
  connection_id uuid primary key references private_t19_custody.connections(connection_id),
  client_reference uuid not null,redirect_uri text not null,identity_email text not null,user_id text not null,role_id text not null,
