@@ -57,6 +57,15 @@ async function setup(t,options){
  const enqueue=(biz,cid,invoice=null,who=owner)=>f.as(who,()=>db.query('select private_t19_custody.enqueue($1,$2,$3,$4) id',[biz,cid,invoice,invoice?'123':null])).then(r=>r.rows[0].id);
  return {...f,api,bindings,enqueue,query};
 }
+test('function ownership transfer leaves neither CREATE nor executor SET path',async t=>{
+ const f=await setup(t);
+ const result=await f.db.query(`select
+  has_schema_privilege('t19_runtime_owner','private_t19_custody','CREATE') as owner_can_create,
+  pg_has_role('postgres','t19_runtime_owner','SET') as executor_can_set,
+  (select count(*)::int from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+   where n.nspname='private_t19_custody' and p.proowner='t19_runtime_owner'::regrole) as owned_functions`);
+ assert.deepEqual(result.rows[0],{owner_can_create:false,executor_can_set:false,owned_functions:10});
+});
 test('Vault fixture has the managed four-argument routine identity, not a three-argument substitute',async t=>{
  const f=await setup(t);
  const r=await f.db.query("select to_regprocedure('vault.create_secret(text,text,text,uuid)') is not null as matched, to_regprocedure('vault.create_secret(text,text,text)') is null as absent");
