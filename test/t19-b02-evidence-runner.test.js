@@ -83,3 +83,9 @@ test('altered or missing CA fails closed before client creation',async()=>{
  await assert.rejects(loadPinnedSupabaseCA(async()=>Buffer.from('invalid')),/integrity/);
  await assert.rejects(loadPinnedSupabaseCA(async()=>{throw Error('missing')}),/missing/);
 });
+
+test('database identity categories remain fixed and redact details',()=>{
+ for(const category of ['IDENTITY_ROLE_MISMATCH','IDENTITY_VERSION_MISMATCH','IDENTITY_NOT_READ_ONLY','IDENTITY_BACKEND_INVALID','IDENTITY_PG_SSL_UNVERIFIED']){
+  assert.equal(safeEvidenceFailure({message:category,detail:'private-password'}),category);
+ }
+});
