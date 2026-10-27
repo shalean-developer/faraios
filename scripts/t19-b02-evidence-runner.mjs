@@ -21,6 +21,19 @@ export function safeEvidenceFailure(error) {
  if(error?.code && /^[0-9A-Z]{5}$/.test(error.code))return 'DATABASE_QUERY';
  return 'UNCLASSIFIED_NO_GO';
 }
+export async function loadPinnedSupabaseCA(read=readFile) {
+ const ca=await read(new URL('../test-support/t19-b02-supabase-root-2021.crt',import.meta.url));
+ const bytes=Buffer.isBuffer(ca)?ca:Buffer.from(ca);
+ const digest=createHash('sha256').update(bytes).digest('hex');
+ if(digest!=='700723581420dd1ac98fd7e9ac529f0ef210eadcaf87fc868a3ad7d114c2f3b7')throw Error('Pinned CA integrity mismatch');
+ if(!bytes.toString('utf8').startsWith('-----BEGIN CERTIFICATE-----'))throw Error('Pinned CA invalid');
+ return bytes.toString('utf8');
+}
+export async function protectedReadOnlyTarget(credential,read=readFile) {
+ const target=parseStagingPoolerTarget(credential);
+ const ca=await loadPinnedSupabaseCA(read);
+ return {...target,ssl:{ca,rejectUnauthorized:true,servername:target.host}};
+}
 export async function evidenceGate({ref,environment,project,runner,sql,collector,approval,credential}){
  if(ref!=='refs/heads/staging'||environment!=='staging'||project!=='xdmfyrsauvqznkloroxg'||approval!=='READ-ONLY-EVIDENCE-ONLY')throw Error('Read-only evidence gate refused');
  const expected={runner:['scripts/t19-b02-node24-runner.mjs','03d7a733f63e70928faeb3bc3bc3c21741840327'],sql:['docs/proposals/t19-b02-managed-role-rollback.sql','89e13e8b55cec5503a67ed5486739e9d1d7560b4'],collector:['scripts/t19-b02-readonly-fingerprints.mjs','3d9e04bee78db411567523b3df269a82a018f977']};
@@ -54,8 +67,9 @@ export async function verifyIndependentReadOnlyEvidence(clientFactory,snapshot=c
 if(process.argv[1]&&new URL(import.meta.url).pathname===process.argv[1]){
  try{
   if(process.env.T19_B02_RUNNER_APPROVED)throw Error('Mutation approval flag must be absent');
-  const target=await evidenceGate({ref:process.env.GITHUB_REF,environment:process.env.T19_B02_ENVIRONMENT,project:process.env.T19_B02_PROJECT_REF,runner:process.env.T19_B02_RUNNER_BLOB,sql:process.env.T19_B02_SQL_BLOB,collector:process.env.T19_B02_COLLECTOR_BLOB,approval:process.env.T19_B02_EVIDENCE_MODE,credential:process.env.T19_B02_STAGING_DB_URL});
-  const result=await verifyIndependentReadOnlyEvidence(()=>new Client(target));
+  await evidenceGate({ref:process.env.GITHUB_REF,environment:process.env.T19_B02_ENVIRONMENT,project:process.env.T19_B02_PROJECT_REF,runner:process.env.T19_B02_RUNNER_BLOB,sql:process.env.T19_B02_SQL_BLOB,collector:process.env.T19_B02_COLLECTOR_BLOB,approval:process.env.T19_B02_EVIDENCE_MODE,credential:process.env.T19_B02_STAGING_DB_URL});
+  const protectedTarget=await protectedReadOnlyTarget(process.env.T19_B02_STAGING_DB_URL);
+  const result=await verifyIndependentReadOnlyEvidence(()=>new Client(protectedTarget));
   console.log(JSON.stringify(result));
  }catch(err){console.error('T19_B02_EVIDENCE_NO_GO',safeEvidenceFailure(err));process.exitCode=1;}
 }
