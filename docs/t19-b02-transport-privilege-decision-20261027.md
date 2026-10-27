@@ -75,3 +75,14 @@ Recovery evidence: authenticated 2026-10-26 protected v2 encrypted checkpoint; `
 
 **Disposition:** connection compatibility PARTIAL / recovery verification NOT PASS. One-off SSL enforcement maintenance can be considered only as an explicitly risk-accepted staging configuration operation (separate from custody activation), after owner confirms no concurrent staging use, accepts a provider-managed reboot and the residual no-proven-restore exposure, approves maintenance/rollback responsibility, and records pre/post baseline. Do not imply this decision preauthorizes the toggle, rollback, GitHub privileged checks, migrations or accounting. Gate B-02 stays NO-GO.
 
+
+
+## Owner decision — 2026-10-27: SSL maintenance HOLD, restore verification first
+
+Owner expressly selected: **Keep FaraiOS staging SSL enforcement OFF. Prioritize resolving restore verification before maintenance authorization.**
+
+This supersedes the optional maintenance risk-acceptance proposal; there is **no** approval for the SSL toggle, provider-managed reboot, a rollback of the toggle, or privileged Gate B-02 execution.
+
+Next bounded task: `T19-RESTORE-VERIFY-01` — read-only reconstruction of the existing authenticated checkpoint evidence, exact managed Auth/Storage/catalog mismatches and candidate restore destination constraints; derive a minimal source-only or isolated rehearsal plan with separately authorized prerequisites. Never decrypt/move backup, provision destination, use protected key, execute restore, change current databases or rerun obsolete candidates without separate approval.
+
+Gate B-02 remains NO-GO; A12 unresolved; accounting activation NO-GO; T20 Not started.
