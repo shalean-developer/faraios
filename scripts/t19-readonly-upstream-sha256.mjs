@@ -19,17 +19,15 @@ for(const [key,spec] of Object.entries(sources)){
 }
 const hash=(algorithm,bytes)=>createHash(algorithm).update(bytes).digest('hex');
 async function get(key,record){
- const url=`https://api.github.com/repos/${sources[key].repo}/git/blobs/${record.sha}`;
+ const url=`https://raw.githubusercontent.com/${sources[key].repo}/${key==='Auth'?'4eee58f296d9698a1c2c0ae14d7a0b379c7622d3':'d2836fe9e8157f4fc558af0071a7671d373ff3ef'}/${record.path}`;
  const controller=new AbortController();
  const timeout=setTimeout(()=>controller.abort(),20000);
  let response;
  try{response=await fetch(url,{headers:{Accept:'application/vnd.github+json','User-Agent':'faraios-t19-readonly-inventory'},signal:controller.signal});}
  finally{clearTimeout(timeout);}
  if(!response.ok)throw Error(`GitHub HTTP ${response.status} fetching ${key}/${record.path}`);
- const json=await response.json();
- if(json.sha!==record.sha||json.encoding!=='base64'||!Number.isSafeInteger(json.size)||json.size>1048576)throw Error('Invalid Git blob metadata');
- const bytes=Buffer.from(json.content.replace(/\s/g,''),'base64');
- if(bytes.length!==json.size||hash('sha1',Buffer.concat([Buffer.from(`blob ${bytes.length}\0`),bytes]))!==record.sha)throw Error('Git blob bytes mismatch');
+ const bytes=Buffer.from(await response.arrayBuffer());
+ if(bytes.length>1048576||hash('sha1',Buffer.concat([Buffer.from(`blob ${bytes.length}\\0`),bytes]))!==record.sha)throw Error('Git blob bytes mismatch');
  return hash('sha256',bytes).toUpperCase();
 }
 console.log('component,path,git_blob_sha1,file_sha256');
