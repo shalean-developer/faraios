@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "executionAllowed": false,
+  "containerName": "faraios-t19-managed-qa",
+  "network": "none",
+  "ports": [],
+  "mounts": [],
+  "credentialsAllowed": false,
+  "autoPull": false,
+  "images": {
+    "postgres": "sha256:d6844e71062a3c8e2f8021d644802850760ef970a45ac163ec8c9f0171075bda",
+    "auth": "sha256:839f529492d116b4e8b7777c953a27c381d34c15a744b1bcefde5eefaa1f9f9f",
+    "storage": "sha256:b8f956b64ea3aee1dfc2cd9f0c9ce8d74335405992a90281bb5a979d1d552c22"
+  },
+  "localSql": [
+    "database/t19-custody-runtime.sql",
+    "database/t19-custody-oauth.sql",
+    "database/t19-custody-api.sql"
+  ]
+}
