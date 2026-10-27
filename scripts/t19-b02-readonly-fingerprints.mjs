@@ -29,16 +29,28 @@ const CATALOG_SQL=`SELECT md5(coalesce(string_agg(item,'|' ORDER BY item),'')) A
  UNION ALL
  SELECT 'defaultacl:'||d.oid::text||':'||d.defaclrole::text||':'||d.defaclnamespace::text||':'||d.defaclobjtype::text||':'||d.defaclacl::text
  FROM pg_default_acl d WHERE d.defaclnamespace=(SELECT oid FROM pg_namespace WHERE nspname='private_t19_custody')
+ UNION ALL
+ SELECT 'column:'||a.attrelid::text||':'||a.attnum::text||':'||a.attname||':'||a.atttypid::text||':'||a.attnotnull::text||':'||coalesce(a.attacl::text,'')
+ FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='private_t19_custody' AND a.attnum>0 AND NOT a.attisdropped
+ UNION ALL
+ SELECT 'vaultschema:'||n.nspname||':'||n.nspowner::text||':'||coalesce(n.nspacl::text,'')
+ FROM pg_namespace n WHERE n.nspname='vault'
+ UNION ALL
+ SELECT 'vaultrelation:'||c.relname||':'||c.relowner::text||':'||coalesce(c.relacl::text,'')
+ FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='vault' AND c.relname IN ('secrets','decrypted_secrets')
+ UNION ALL
+ SELECT 'vaultfunction:'||p.oid::text||':'||p.proname||':'||p.proowner::text||':'||coalesce(p.proacl::text,'')
+ FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='vault'
 ) x`;
-export async function collectProtectedSnapshot(client,{connectionId,readOnly=true}={}){
- if(!readOnly||!connectionId)throw Error('Independent readonly connection required');
+export async function collectProtectedSnapshot(client,{readOnly=true}={}){
+ if(!readOnly)throw Error('Read-only snapshot required');
  const rows={};
  let begun=false;
  try{
   await client.query('BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');begun=true;
-  const who=await client.query("SELECT current_user AS u,session_user AS s,current_setting('server_version_num')::int AS v,current_setting('transaction_read_only') AS ro");
+  const who=await client.query("SELECT current_user AS u,session_user AS s,current_setting('server_version_num')::int AS v,current_setting('transaction_read_only') AS ro,pg_backend_pid()::int AS backend, (SELECT ssl FROM pg_stat_ssl WHERE pid=pg_backend_pid()) AS tls");
   const w=who.rows?.[0];
-  if(!w||w.u!=='postgres'||w.s!=='postgres'||Number(w.v)<170000||w.ro!=='on')throw Error('Unexpected staging read-only identity');
+  if(!w||w.u!=='postgres'||w.s!=='postgres'||Number(w.v)<170000||w.ro!=='on'||!Number.isInteger(Number(w.backend))||Number(w.backend)<=0||w.tls!==true)throw Error('Unexpected staging read-only identity');
   const scratch=await client.query("SELECT (SELECT count(*)::int FROM pg_roles WHERE rolname IN ('t19_b02_qa_executor','t19_b02_qa_owner')) AS roles,(SELECT count(*)::int FROM pg_namespace WHERE nspname='t19_b02_qa_schema') AS schemas,(SELECT count(*)::int FROM pg_proc p JOIN pg_namespace n ON p.pronamespace=n.oid WHERE n.nspname='t19_b02_qa_schema') AS functions");
   const x=scratch.rows[0];
   if(Number(x.roles)||Number(x.schemas)||Number(x.functions))throw Error('Scratch objects detected');
@@ -51,6 +63,6 @@ export async function collectProtectedSnapshot(client,{connectionId,readOnly=tru
   const vault=await client.query('SELECT count(*)::bigint AS n FROM vault.secrets');
   await client.query('COMMIT');begun=false;
   const hash=o=>createHash('sha256').update(JSON.stringify(o)).digest('hex');
-  return {connectionId,scratchRoles:0,scratchSchemas:0,scratchFunctions:0,catalogDigest:hash(cat.rows),financialDigest:hash(rows),vaultSecretCount:String(vault.rows[0].n),tableCounts:Object.fromEntries(Object.entries(rows).map(([n,v])=>[n,v.count]))};
+  return {connectionId:String(w.backend),scratchRoles:0,scratchSchemas:0,scratchFunctions:0,catalogDigest:hash(cat.rows),financialDigest:hash(rows),vaultSecretCount:String(vault.rows[0].n),tableCounts:Object.fromEntries(Object.entries(rows).map(([n,v])=>[n,v.count]))};
  }catch(e){if(begun)await client.query('ROLLBACK').catch(()=>{});throw e;}
 }
