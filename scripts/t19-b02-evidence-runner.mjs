@@ -13,6 +13,7 @@ export function safeEvidenceFailure(error) {
  if(message==='Database session close unverified')return 'SESSION_CLOSE';
  if(message.includes('Independent backend')||message.includes('Independent client'))return 'SESSION_INDEPENDENCE';
  if(message.includes('Protected baseline changed'))return 'PROTECTED_DRIFT';
+ if(['IDENTITY_ROLE_MISMATCH','IDENTITY_VERSION_MISMATCH','IDENTITY_NOT_READ_ONLY','IDENTITY_BACKEND_INVALID','IDENTITY_PG_SSL_UNVERIFIED'].includes(message))return message;
  if(message.includes('staging read-only identity'))return 'TLS_OR_DATABASE_IDENTITY';
  if(message.includes('Scratch objects')||message.includes('fingerprint')||message.includes('Read-only snapshot'))return 'SNAPSHOT_EVIDENCE';
  if(['ENOTFOUND','EAI_AGAIN','ENETUNREACH','ECONNREFUSED','ETIMEDOUT','ECONNRESET'].includes(error?.code))return 'NETWORK';

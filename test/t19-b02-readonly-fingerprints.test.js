@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {PROTECTED_TABLES,tableFingerprintQuery,collectProtectedSnapshot} from '../scripts/t19-b02-readonly-fingerprints.mjs';
+import {PROTECTED_TABLES,tableFingerprintQuery,collectProtectedSnapshot,classifyReadOnlyIdentity} from '../scripts/t19-b02-readonly-fingerprints.mjs';
 test('only reviewed staging finance and custody tables are fingerprinted',()=>{
  assert.equal(PROTECTED_TABLES.length,8);
  assert.throws(()=>tableFingerprintQuery('public.customers'));
@@ -32,14 +32,32 @@ test('read-only repeatable-read snapshot uses no write SQL and no raw data outpu
 test('fail closed on failed identity and rollback',async()=>{
  const {client,seen}=mock();
  const old=client.query;client.query=async sql=>sql.startsWith('SELECT current_user')?{rows:[{u:'anon',s:'anon',v:170000,ro:'on',backend:17382,tls:true}]}:old(sql);
- await assert.rejects(collectProtectedSnapshot(client),/identity/);
+ await assert.rejects(collectProtectedSnapshot(client),/IDENTITY_ROLE_MISMATCH/);
  assert.equal(seen.at(-1),'ROLLBACK');
 });
 test('reject unavailable TLS or database backend session evidence',async()=>{
  for(const change of [{tls:false},{backend:null}]){
   const {client}=mock();const original=client.query;
   client.query=async sql=>sql.startsWith('SELECT current_user')?{rows:[{u:'postgres',s:'postgres',v:170011,ro:'on',backend:17381,tls:true,...change}]}:original(sql);
-  await assert.rejects(collectProtectedSnapshot(client),/identity/);
+  await assert.rejects(collectProtectedSnapshot(client),/IDENTITY_(PG_SSL_UNVERIFIED|BACKEND_INVALID)/);
  }
 });
 test('reject non-readonly request',async()=>{await assert.rejects(collectProtectedSnapshot(mock().client,{readOnly:false}),/Read-only/);});
+
+test('identity diagnostics are fixed categories, never row values',()=>{
+ const base={u:'postgres',s:'postgres',v:170011,ro:'on',backend:17381,tls:true};
+ const cases=[
+  [{u:'other'},'IDENTITY_ROLE_MISMATCH'],
+  [{s:'other'},'IDENTITY_ROLE_MISMATCH'],
+  [{v:160000},'IDENTITY_VERSION_MISMATCH'],
+  [{ro:'off'},'IDENTITY_NOT_READ_ONLY'],
+  [{backend:null},'IDENTITY_BACKEND_INVALID'],
+  [{tls:false},'IDENTITY_PG_SSL_UNVERIFIED'],
+ ];
+ assert.equal(classifyReadOnlyIdentity(base),null);
+ for(const [change,expected] of cases){
+  const actual=classifyReadOnlyIdentity({...base,...change,untrusted:'private-row-content'});
+  assert.equal(actual,expected);
+  assert.ok(!actual.includes('private-row-content'));
+ }
+});
