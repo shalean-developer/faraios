@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {PROTECTED_TABLES,tableFingerprintQuery,collectProtectedSnapshot} from '../scripts/t19-b02-readonly-fingerprints.mjs';
+import {PROTECTED_TABLES,tableFingerprintQuery,collectProtectedSnapshot,classifyReadOnlyIdentity} from '../scripts/t19-b02-readonly-fingerprints.mjs';
 test('only reviewed staging finance and custody tables are fingerprinted',()=>{
  assert.equal(PROTECTED_TABLES.length,8);
  assert.throws(()=>tableFingerprintQuery('public.customers'));
@@ -43,3 +43,21 @@ test('reject unavailable TLS or database backend session evidence',async()=>{
  }
 });
 test('reject non-readonly request',async()=>{await assert.rejects(collectProtectedSnapshot(mock().client,{readOnly:false}),/Read-only/);});
+
+test('identity diagnostics are fixed categories, never row values',()=>{
+ const base={u:'postgres',s:'postgres',v:170011,ro:'on',backend:17381,tls:true};
+ const cases=[
+  [{u:'other'},'IDENTITY_ROLE_MISMATCH'],
+  [{s:'other'},'IDENTITY_ROLE_MISMATCH'],
+  [{v:160000},'IDENTITY_VERSION_MISMATCH'],
+  [{ro:'off'},'IDENTITY_NOT_READ_ONLY'],
+  [{backend:null},'IDENTITY_BACKEND_INVALID'],
+  [{tls:false},'IDENTITY_PG_SSL_UNVERIFIED'],
+ ];
+ assert.equal(classifyReadOnlyIdentity(base),null);
+ for(const [change,expected] of cases){
+  const actual=classifyReadOnlyIdentity({...base,...change,untrusted:'private-row-content'});
+  assert.equal(actual,expected);
+  assert.ok(!actual.includes('private-row-content'));
+ }
+});
