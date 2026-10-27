@@ -1,0 +1,23 @@
+name: T19 B02 independent protected-state fingerprint offline tests
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'scripts/t19-b02-readonly-fingerprints.mjs'
+      - 'test/t19-b02-readonly-fingerprints.test.js'
+      - '.github/workflows/t19-b02-readonly-fingerprints.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test test/t19-b02-readonly-fingerprints.test.js
+# No credentials, hosted connections, GitHub Environment references or mutation SQL.
