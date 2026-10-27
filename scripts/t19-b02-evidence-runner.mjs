@@ -37,7 +37,7 @@ export async function protectedReadOnlyTarget(credential,read=readFile) {
 }
 export async function evidenceGate({ref,environment,project,runner,sql,collector,approval,credential}){
  if(ref!=='refs/heads/staging'||environment!=='staging'||project!=='xdmfyrsauvqznkloroxg'||approval!=='READ-ONLY-EVIDENCE-ONLY')throw Error('Read-only evidence gate refused');
- const expected={runner:['scripts/t19-b02-node24-runner.mjs','03d7a733f63e70928faeb3bc3bc3c21741840327'],sql:['docs/proposals/t19-b02-managed-role-rollback.sql','89e13e8b55cec5503a67ed5486739e9d1d7560b4'],collector:['scripts/t19-b02-readonly-fingerprints.mjs','3d9e04bee78db411567523b3df269a82a018f977']};
+ const expected={runner:['scripts/t19-b02-node24-runner.mjs','03d7a733f63e70928faeb3bc3bc3c21741840327'],sql:['docs/proposals/t19-b02-managed-role-rollback.sql','89e13e8b55cec5503a67ed5486739e9d1d7560b4'],collector:['scripts/t19-b02-readonly-fingerprints.mjs','d6582da1d16bc65e427208cb926f8a97a5b15cc7']};
  for(const [name,[path,digest]] of Object.entries(expected)){
   const bytes=await readFile(new URL('../'+path,import.meta.url));
   if(sha(bytes)!==digest)throw Error(name+' source drift');
