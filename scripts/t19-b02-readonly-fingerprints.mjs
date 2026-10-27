@@ -45,7 +45,7 @@ export async function collectProtectedSnapshot(client,{connectionId,readOnly=tru
   const cat=await client.query(CATALOG_SQL);
   for(const name of PROTECTED_TABLES){
    const res=await client.query(tableFingerprintQuery(name));
-   if(!res.rows?.[0]||!/^\d{32}$/.test(res.rows[0].fingerprint))throw Error('Missing financial fingerprint');
+   if(!res.rows?.[0]||!/^[a-f0-9]{32}$/i.test(res.rows[0].fingerprint))throw Error('Missing financial fingerprint');
    rows[name]={count:String(res.rows[0].n),digest:res.rows[0].fingerprint};
   }
   const vault=await client.query('SELECT count(*)::bigint AS n FROM vault.secrets');
