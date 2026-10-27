@@ -66,7 +66,7 @@ for(const transport of ['passenger','litespeed'])test('hosted '+transport+' uses
   const token=[Buffer.from(JSON.stringify({alg:'HS256'})).toString('base64url'),Buffer.from(JSON.stringify({sub:uid,exp:Math.floor(Date.now()/1000)+3600,role:'authenticated'})).toString('base64url'),'synthetic'].join('.');
   const restricted=createStagingFetch(async r=>{
     calls.push({path:new URL(r.url).pathname,method:r.method});const path=new URL(r.url).pathname;
-    const body=path==='/auth/v1/token'?{access_token:token,refresh_token:'synthetic-refresh',token_type:'bearer',expires_in:3600,user:{id:uid,email:'qa@example.invalid'}}:path==='/auth/v1/user'?{id:uid}:path==='/rest/v1/business_memberships'?[{business_id:bid,user_id:uid,role:'manager',status:'active'}]:path==='/rest/v1/businesses'?[{id:bid,name:'Synthetic staging'}]:{};
+    const body=path==='/auth/v1/token'?{access_token:token,refresh_token:'synthetic-refresh',token_type:'bearer',expires_in:3600,user:{id:uid,email:'qa@example.invalid'}}:path==='/auth/v1/user'?{id:uid}:path==='/rest/v1/business_memberships'?[{business_id:bid,user_id:uid,role:'manager',status:'active'}]:path==='/rest/v1/businesses'?[{id:bid,name:'Synthetic staging'}]:path==='/rest/v1/business_catalogue'?[]:{};
     return new Response(JSON.stringify(body),{status:200,headers:{'Content-Type':'application/json'}});
   });
   const factory=()=>createClient(config.url,config.publishableKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:restricted}});
@@ -87,6 +87,17 @@ for(const transport of ['passenger','litespeed'])test('hosted '+transport+' uses
     assert.equal((await request('/login',{...post,headers:{...post.headers,Origin:'https://faraios.com'}})).status,403);assert.equal(calls.length,0);
     const login=await request('/login',post);assert.equal(login.status,303);const setCookie=login.headers.get('set-cookie');assert.match(setCookie,/^__Host-faraios_staging=/);assert.match(setCookie,/HttpOnly; SameSite=Strict; Path=\/; Max-Age=1800; Secure$/);assert.doesNotMatch(setCookie,/Domain=/i);
     const Cookie=setCookie.split(';')[0];assert.equal((await request('/dashboard',{headers:{Cookie}})).status,200);
+    // Exercise real hosted routes with a synthetic manager-only membership.
+    const foreign='20000000-0000-4000-8000-000000000002';
+    const permitted=await request('/catalogue?business='+bid,{headers:{Cookie}});
+    assert.equal(permitted.status,200);
+    const denied=await request('/catalogue?business='+foreign,{headers:{Cookie}});
+    assert.equal(denied.status,403);
+    assert.doesNotMatch(await denied.text(),/Synthetic staging/);
+    const missing=await request('/catalogue?business='+bid);
+    assert.equal(missing.status,303);
+    assert.equal(missing.headers.get('location'),'/login');
+    assert.equal((await request('/catalogue?business='+bid,{headers:{Cookie}})).status,200);
     const logout=await request('/logout',{method:'POST',headers:{Cookie,Origin:stagingOrigin,'Content-Type':'application/x-www-form-urlencoded'},body:''});assert.equal(logout.status,303);assert.match(logout.headers.get('set-cookie'),/Max-Age=0; Secure$/);
     assert.equal((await request('/dashboard',{headers:{Cookie}})).status,303);
     assert.ok(calls.some(c=>c.path==='/auth/v1/token'));assert.ok(calls.some(c=>c.path==='/auth/v1/logout'));
