@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {assessCounts} from '../scripts/verify-staging-rls-counts.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
@@ -214,4 +215,10 @@ test('verified hosting policy permits read/execute but no non-owner socket or an
     assert.throws(()=>runtime.assertSocketComponent(metadata(48,0o700,!directory),{...context,directory}),/private Unix/);
   }
   for(const patch of [{verifiedLiteSpeed:false},{socketPath:socketPath+'-other'}])assert.throws(()=>runtime.assertSocketComponent(metadata(48,0o755),{...context,...patch}),/private Unix/);
+});
+
+
+test('T19 manual RLS count-only acceptance fails closed and requires positive owner control',()=>{
+  assert.equal(assessCounts({managerBokkie:5,managerShalean:0,ownerShalean:3}),'PASS');
+  for(const counts of [{managerBokkie:0,managerShalean:0,ownerShalean:3},{managerBokkie:5,managerShalean:1,ownerShalean:3},{managerBokkie:5,managerShalean:0,ownerShalean:0},{managerBokkie:null,managerShalean:0,ownerShalean:3}])assert.match(assessCounts(counts),/^NO-GO/);
 });
