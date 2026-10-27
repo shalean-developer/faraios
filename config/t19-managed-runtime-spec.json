@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "executionAllowed": false,
+  "mode": "source-only",
+  "containerName": "faraios-t19-managed-qa",
+  "imagePull": "never",
+  "networkMode": "none",
+  "publishedPorts": [],
+  "bindMounts": [],
+  "credentialsAllowed": false,
+  "envAllowlist": [],
+  "security": {
+    "readOnlyRootFilesystem": true,
+    "noNewPrivileges": true,
+    "dropCapabilities": [
+      "ALL"
+    ],
+    "user": "non-root-required",
+    "privileged": false
+  },
+  "resources": {
+    "cpus": 1,
+    "memoryMiB": 512,
+    "pidsLimit": 64,
+    "storageMiB": 1024
+  },
+  "cleanup": {
+    "onlyNamedDisposableResources": true,
+    "requireIndependentOwnershipProof": true,
+    "unknownOutcome": "STOP_AND_INSPECT",
+    "neverRemoveUnownedResources": true
+  },
+  "bootstrap": {
+    "identity": "UNVERIFIED",
+    "leastPrivilegeGrantEvidence": false
+  },
+  "vault": {
+    "extensionAvailability": "UNVERIFIED"
+  },
+  "migrations": {
+    "managedOrder": "UNVERIFIED",
+    "rollbackEvidence": false
+  },
+  "catalog": {
+    "completeImageProvenance": false
+  },
+  "runtime": {
+    "containerExecutionImplemented": false
+  }
+}
