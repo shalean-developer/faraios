@@ -25,7 +25,7 @@ def fetch_blob(repo, blob):
     raw = base64.b64decode(data["content"], validate=False)
     if len(raw) > MAX_BLOB_BYTES or len(raw) != data.get("size"):
         raise ValueError("Unexpected blob size")
-    calculated_git_blob = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\\0" + raw).hexdigest()
+    calculated_git_blob = hashlib.sha1(b"blob " + str(len(raw)).encode() + bytes([0]) + raw).hexdigest()
     if calculated_git_blob != blob:
         raise ValueError("Fetched bytes do not match pinned Git blob")
     return hashlib.sha256(raw).hexdigest().upper()
@@ -41,7 +41,7 @@ def main():
             current = "Storage"
         elif line.startswith("## "):
             current = None
-        match = re.match(r"^\\| \`([^\`]+\\.sql)\` \\| \`([a-f0-9]{40})\` \\| PENDING \\|$", line)
+        match = re.match(r"^[|] `([^`]+[.]sql)` [|] `([a-f0-9]{40})` [|] PENDING [|]$", line)
         if current and match:
             rows.setdefault(current, []).append(match.groups())
     for section, required in EXPECTED_COUNTS.items():
