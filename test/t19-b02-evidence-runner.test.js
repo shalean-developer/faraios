@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {verifyIndependentReadOnlyEvidence,evidenceGate} from '../scripts/t19-b02-evidence-runner.mjs';
+import {verifyIndependentReadOnlyEvidence,evidenceGate,safeEvidenceFailure} from '../scripts/t19-b02-evidence-runner.mjs';
 test('wrong ref or approval fails before opening a database connection',async()=>{
  await assert.rejects(evidenceGate({ref:'refs/heads/staging',environment:'staging',project:'xdmfyrsauvqznkloroxg',approval:'EXECUTE',credential:''}),/gate refused/);
 });
@@ -42,4 +42,28 @@ test('reject reused client object even with different mock fingerprints',async()
  const one={connect:async()=>{},end:async()=>{}};
  let index=0;
  await assert.rejects(verifyIndependentReadOnlyEvidence(()=>one,async()=>snap(++index)),/Independent client objects/);
+});
+
+test('safe errors expose categories only and never secrets',()=>{
+ const secret='synthetic-only-private-password';
+ const cases=[
+  [{message:'Read-only evidence gate refused'},'GATE_DENIED'],
+  [{message:'runner source drift'},'SOURCE_IDENTITY'],
+  [{message:'Destination not allowlisted staging Session pooler'},'CONNECTION_CONFIG'],
+  [{message:'Database session close unverified'},'SESSION_CLOSE'],
+  [{message:'Independent backend identities not established'},'SESSION_INDEPENDENCE'],
+  [{message:'Protected baseline changed; concurrent activity or drift'},'PROTECTED_DRIFT'],
+  [{message:'Unexpected staging read-only identity'},'TLS_OR_DATABASE_IDENTITY'],
+  [{message:'Missing financial fingerprint'},'SNAPSHOT_EVIDENCE'],
+  [{code:'ECONNREFUSED',message:secret},'NETWORK'],
+  [{code:'28P01',message:secret},'DATABASE_AUTH'],
+  [{code:'UNABLE_TO_VERIFY_LEAF_SIGNATURE',message:secret},'TLS_CERTIFICATE'],
+  [{code:'42501',message:secret},'DATABASE_QUERY'],
+  [{message:secret},'UNCLASSIFIED_NO_GO']
+ ];
+ for(const [error,category] of cases){
+  const actual=safeEvidenceFailure(error);
+  assert.equal(actual,category);
+  assert.equal(actual.includes(secret),false);
+ }
 });

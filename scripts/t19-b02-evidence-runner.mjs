@@ -5,6 +5,22 @@ import {collectProtectedSnapshot} from './t19-b02-readonly-fingerprints.mjs';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 const sha=bytes=>createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');
+export function safeEvidenceFailure(error) {
+ const message=String(error?.message||'');
+ if(message==='Read-only evidence gate refused'||message==='Mutation approval flag must be absent')return 'GATE_DENIED';
+ if(message.includes('source drift')||message==='Environment source identity mismatch')return 'SOURCE_IDENTITY';
+ if(message.includes('staging DB URL')||message.includes('staging Session pooler')||message.includes('database password')||message.includes('DB URL'))return 'CONNECTION_CONFIG';
+ if(message==='Database session close unverified')return 'SESSION_CLOSE';
+ if(message.includes('Independent backend')||message.includes('Independent client'))return 'SESSION_INDEPENDENCE';
+ if(message.includes('Protected baseline changed'))return 'PROTECTED_DRIFT';
+ if(message.includes('staging read-only identity'))return 'TLS_OR_DATABASE_IDENTITY';
+ if(message.includes('Scratch objects')||message.includes('fingerprint')||message.includes('Read-only snapshot'))return 'SNAPSHOT_EVIDENCE';
+ if(['ENOTFOUND','EAI_AGAIN','ENETUNREACH','ECONNREFUSED','ETIMEDOUT','ECONNRESET'].includes(error?.code))return 'NETWORK';
+ if(['28P01','28000'].includes(error?.code))return 'DATABASE_AUTH';
+ if(['CERT_HAS_EXPIRED','UNABLE_TO_VERIFY_LEAF_SIGNATURE','SELF_SIGNED_CERT_IN_CHAIN','ERR_TLS_CERT_ALTNAME_INVALID'].includes(error?.code))return 'TLS_CERTIFICATE';
+ if(error?.code && /^[0-9A-Z]{5}$/.test(error.code))return 'DATABASE_QUERY';
+ return 'UNCLASSIFIED_NO_GO';
+}
 export async function evidenceGate({ref,environment,project,runner,sql,collector,approval,credential}){
  if(ref!=='refs/heads/staging'||environment!=='staging'||project!=='xdmfyrsauvqznkloroxg'||approval!=='READ-ONLY-EVIDENCE-ONLY')throw Error('Read-only evidence gate refused');
  const expected={runner:['scripts/t19-b02-node24-runner.mjs','03d7a733f63e70928faeb3bc3bc3c21741840327'],sql:['docs/proposals/t19-b02-managed-role-rollback.sql','89e13e8b55cec5503a67ed5486739e9d1d7560b4'],collector:['scripts/t19-b02-readonly-fingerprints.mjs','3d9e04bee78db411567523b3df269a82a018f977']};
@@ -41,5 +57,5 @@ if(process.argv[1]&&new URL(import.meta.url).pathname===process.argv[1]){
   const target=await evidenceGate({ref:process.env.GITHUB_REF,environment:process.env.T19_B02_ENVIRONMENT,project:process.env.T19_B02_PROJECT_REF,runner:process.env.T19_B02_RUNNER_BLOB,sql:process.env.T19_B02_SQL_BLOB,collector:process.env.T19_B02_COLLECTOR_BLOB,approval:process.env.T19_B02_EVIDENCE_MODE,credential:process.env.T19_B02_STAGING_DB_URL});
   const result=await verifyIndependentReadOnlyEvidence(()=>new Client(target));
   console.log(JSON.stringify(result));
- }catch(err){console.error('T19_B02_EVIDENCE_NO_GO',String(err.code||'verification_failed'));process.exitCode=1;}
+ }catch(err){console.error('T19_B02_EVIDENCE_NO_GO',safeEvidenceFailure(err));process.exitCode=1;}
 }
