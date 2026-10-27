@@ -1,0 +1,25 @@
+name: T19 B02 evidence source-only checks
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'scripts/t19-b02-evidence-runner.mjs'
+      - 'test/t19-b02-evidence-runner.test.js'
+      - '.github/workflows/t19-b02-evidence-source.yml'
+      - '.github/workflows/t19-b02-readonly-hosted.yml'
+permissions:
+  contents: read
+jobs:
+  source-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24.22.1'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test test/t19-b02-evidence-runner.test.js
+# No environment secrets in PR jobs.
