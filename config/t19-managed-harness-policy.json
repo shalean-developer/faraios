@@ -16,5 +16,10 @@
     "database/t19-custody-runtime.sql",
     "database/t19-custody-oauth.sql",
     "database/t19-custody-api.sql"
-  ]
+  ],
+  "localSqlSha256": {
+    "database/t19-custody-runtime.sql": "C058371A32B39DCE6328ADA6414D32D82A2579238D183CE001A054A0E6176130",
+    "database/t19-custody-oauth.sql": "ABA7DD7459DDC36EB76CCA3132B63D5ACDC0113D94BF63DE7ABEE57B1D1F0991",
+    "database/t19-custody-api.sql": "0CC52B840FA86CCBC7EFF3351FEDC2A7E969357ADA8BD51CD7C6B4F2A3AA967E"
+  }
 }
