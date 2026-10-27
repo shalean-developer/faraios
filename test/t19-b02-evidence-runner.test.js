@@ -32,3 +32,14 @@ test('snapshot failure is no-go and closes the session',async()=>{
  await assert.rejects(verifyIndependentReadOnlyEvidence(x.factory,async()=>{throw Error('read failure')}),/read failure/);
  assert.equal(x.get().closed>=1,true);
 });
+
+test('database close failure cannot claim independent evidence success',async()=>{
+ let n=0;
+ const factory=()=>({connect:async()=>{},end:async()=>{if(++n===1)throw Error('close failed')}});
+ await assert.rejects(verifyIndependentReadOnlyEvidence(factory,async()=>snap(111)),/close unverified/);
+});
+test('reject reused client object even with different mock fingerprints',async()=>{
+ const one={connect:async()=>{},end:async()=>{}};
+ let index=0;
+ await assert.rejects(verifyIndependentReadOnlyEvidence(()=>one,async()=>snap(++index)),/Independent client objects/);
+});
