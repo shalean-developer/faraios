@@ -1,0 +1,47 @@
+name: T19 B02 credential-free PostgreSQL TLS probe
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - '.github/workflows/t19-b02-tls-probe.yml'
+      - 'test-support/t19-b02-supabase-root-2021.crt'
+permissions:
+  contents: read
+jobs:
+  inspect-tls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Verify pinned public Supabase root certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '700723581420dd1ac98fd7e9ac529f0ef210eadcaf87fc868a3ad7d114c2f3b7  test-support/t19-b02-supabase-root-2021.crt' | sha256sum --check
+          openssl x509 -in test-support/t19-b02-supabase-root-2021.crt -noout -checkend 86400
+      - name: Verify pooler PostgreSQL TLS chain using pinned Supabase root
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import socket,ssl,struct
+          host='aws-0-eu-west-1.pooler.supabase.com'
+          with socket.create_connection((host,5432),timeout=8) as raw:
+              raw.settimeout(8)
+              raw.sendall(struct.pack('!II',8,80877103))
+              reply=raw.recv(1)
+              if reply!=b'S':
+                  raise RuntimeError('POSTGRES_TLS_NOT_OFFERED')
+              context=ssl.create_default_context(cafile='test-support/t19-b02-supabase-root-2021.crt')
+              context.check_hostname=True
+              context.verify_mode=ssl.CERT_REQUIRED
+              with context.wrap_socket(raw,server_hostname=host) as secure:
+                  certificate=secure.getpeercert()
+                  print('POSTGRES_TLS_HANDSHAKE: VERIFIED')
+                  print('POSTGRES_TLS_PROTOCOL:',secure.version())
+                  print('POSTGRES_TLS_HOSTNAME: VERIFIED')
+                  print('POSTGRES_TLS_CERT_PRESENT:',bool(certificate))
+          PY
+# No checkout, database credentials, login, financial queries, SQL or certificate bypass.
