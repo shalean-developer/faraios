@@ -4,6 +4,25 @@ import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {Client} from 'pg';
 
+// Staging-only Session pooler target, with no URL options that can override TLS or routing.
+export function parseStagingPoolerTarget(address) {
+ if(typeof address!=='string'||!address)throw new Error('Separate staging DB URL required');
+ let url;
+ try{url=new URL(address);}catch{throw new Error('Invalid staging DB URL');}
+ if(url.protocol!=='postgresql:'||
+    url.hostname!=='aws-0-eu-west-1.pooler.supabase.com'||
+    url.port!=='5432'||
+    url.pathname!=='/postgres'||
+    url.username!=='postgres.xdmfyrsauvqznkloroxg'||
+    !url.password||
+    url.search||url.hash)
+  throw new Error('Destination not allowlisted staging Session pooler');
+ let password;
+ try{password=decodeURIComponent(url.password);}catch{throw new Error('Malformed database password encoding');}
+ if(!password)throw new Error('Staging DB password missing');
+ return {host:url.hostname,port:5432,database:'postgres',user:'postgres.xdmfyrsauvqznkloroxg',password,ssl:{rejectUnauthorized:true},connectionTimeoutMillis:10000};
+}
+
 export function splitSql(sql) {
  const text=sql.replace(/^\\set ON_ERROR_STOP on\s*$/m,'');
  if (/^\\/m.test(text)) throw new Error('Unsupported psql meta-command');
@@ -59,11 +78,7 @@ if(isMain){
  const chunks=splitSql(sql);
  const stripLeadingComments=x=>x.replace(/^(?:\s*--[^\n]*\n)*/, '').trim();
  if(chunks.length<15||!/^BEGIN\s*;/i.test(stripLeadingComments(chunks[0]))||!/^ROLLBACK\s*;/i.test(stripLeadingComments(chunks.at(-2)))||!/^SELECT\s/i.test(stripLeadingComments(chunks.at(-1))))throw new Error('Unexpected exact SQL layout');
- const address=process.env.T19_B02_STAGING_DB_URL;
- if(!address)throw new Error('Separate staging DB URL required');
- const url=new URL(address);
- if(url.hostname!=='db.xdmfyrsauvqznkloroxg.supabase.co'||url.pathname!=='/postgres')throw new Error('Destination not allowlisted staging DB');
- const client=new Client({connectionString:address,ssl:{rejectUnauthorized:true},connectionTimeoutMillis:10000});
+ const client=new Client(parseStagingPoolerTarget(process.env.T19_B02_STAGING_DB_URL));
  try{
   await client.connect();
   const check=await client.query("select current_user, session_user, current_setting('server_version_num')::int as version");
