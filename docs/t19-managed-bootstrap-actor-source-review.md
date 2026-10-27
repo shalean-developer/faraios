@@ -17,6 +17,13 @@ Git blob SHA-1 identifies committed upstream contents, not SHA-256. Owner-local 
 2. Storage migration 0002 reads `storage.install_roles` and `storage.super_user` (default `supabase_storage_admin`). Role creation / grant paths and object ownership transfers depend on these settings and existing roles. A source default cannot establish historic host startup settings or effective grantor.
 3. Storage migration 0049 includes `grant all on storage.buckets, storage.objects to postgres with grant option`. PostgreSQL's two later reviewed migrations also contain grant-option statements. **The existence of these statements in more than one source does not establish the actual migration sequence or the grantor recorded on the existing staging tables.**
 
+
+## Additional pinned Storage runner inspection
+
+- `supabase/storage@v1.84.23` `src/internal/database/migrations/files.ts` (Git blob `9456d3af2324c6e01eff3dc69e3f5354710ba317`) delegates discovery to `postgres-migrations.loadMigrationFiles`, caches the loaded migration list, and supports `dbMigrationFreezeAt`. Source directory listing order is **not** established as execution order; the exact pinned dependency implementation and freeze setting must be reviewed.
+- `src/internal/database/migrations/migrate.ts` (Git blob `f3e387ef6704542dc37b06ea49f7620fd2a1d9ee`) imports `postgres-migrations` helpers, including `runMigration` and `validateMigrationHashes`, and reads `dbMigrationStrategy`, `dbInstallRoles`, `dbSuperUser` and the role settings. The deployed strategy/flags and original connection/session identity have **not** been captured.
+- Migration 0002 declares `storage.migrations.hash` as 40-character SHA-1 of filename/content, distinct from the owner's SHA-256 evidence CSV. Comparing CSV SHA-256 values directly to this 40-character on-database column would be invalid.
+
 ## Fail-closed acceptance checklist
 
 - [ ] Recover exact authorized Auth index worker command/config, connection identity and effective privileges from trusted startup provenance; prove all four index definitions, `indisvalid` and `indisready`.
