@@ -27,7 +27,7 @@ async function get(key,record){
  finally{clearTimeout(timeout);}
  if(!response.ok)throw Error(`GitHub HTTP ${response.status} fetching ${key}/${record.path}`);
  const bytes=Buffer.from(await response.arrayBuffer());
- if(bytes.length>1048576||hash('sha1',Buffer.concat([Buffer.from(`blob ${bytes.length}\\0`),bytes]))!==record.sha)throw Error('Git blob bytes mismatch');
+ if(bytes.length>1048576||hash('sha1',Buffer.concat([Buffer.concat([Buffer.from(`blob ${bytes.length}`),Buffer.from([0])]),bytes]))!==record.sha)throw Error('Git blob bytes mismatch');
  return hash('sha256',bytes).toUpperCase();
 }
 console.log('component,path,git_blob_sha1,file_sha256');
