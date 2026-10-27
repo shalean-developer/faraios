@@ -23,7 +23,8 @@ test('read-only repeatable-read snapshot uses no write SQL and no raw data outpu
  const {client,seen}=mock();const x=await collectProtectedSnapshot(client);
  assert.equal(Object.keys(x.tableCounts).length,8);
  assert.equal(x.tableCounts['public.business_invoices'],'2');
- assert.equal(x.financialDigest.length,64);\n assert.equal(x.connectionId,'17381');
+ assert.equal(x.financialDigest.length,64); 
+ assert.equal(x.connectionId,'17381');
  assert.equal(seen[0],'BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
  assert.equal(seen.at(-1),'COMMIT');
  assert.equal(seen.filter(s=>/\b(INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\b/i.test(s)).length,0);
