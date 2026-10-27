@@ -10,6 +10,10 @@ test('managed preflight remains fail-closed and read-only',()=>{
  assert.deepEqual(policy.mounts,[]);
  assert.equal(policy.credentialsAllowed,false);
  assert.equal(policy.autoPull,false);
+ assert.equal(policy.localSql.length,3);
+ assert.equal(Object.keys(policy.localSqlSha256).length,3);
+ for(const file of policy.localSql)assert.match(policy.localSqlSha256[file],/^[A-F0-9]{64}$/);
+ assert.match(source,/actual!==policy.localSqlSha256\[filename\]/);
  assert.match(source,/EXECUTION_NO_GO/);
  assert.match(source,/docker.*image|\['image','inspect'/);
  assert.doesNotMatch(source,/\['(?:run|pull|create|start|stop|rm|exec|network|volume)'/);
