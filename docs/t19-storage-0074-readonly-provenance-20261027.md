@@ -25,3 +25,6 @@
 5. Review any managed-platform change separately; no `ALTER TABLE`, `DROP CONSTRAINT`, `CREATE TRIGGER`, SQL repair or rebaseline is authorised.
 
 **Build Plan:** T19 In progress; A12 unresolved; managed bootstrap/restore NO-GO; Zoho accounting activation NO-GO; T20 Not started. This source/evidence PR is not independent security certification or production deployment approval.
+
+## Read-only startup log availability check — 18 October 2026 UTC
+Supabase unified logs were queried only through aggregate counts (no raw log messages, credentials or customer data extracted). Sources present: auth_logs, storage_logs, postgres_logs, pgbouncer_logs and others. Bounded keyword counts: auth_logs had 3 index-worker and 2 migration mentions; postgres_logs had 1 migration mention; storage_logs had no matching migration/index-worker/freeze references. Zero freeze mentions in those three sources. **These counts do not identify the database login role, startup flags, original Storage executor, or establish that logging is comprehensive.** Next step is scoped, sanitised provenance review of exact startup events under a separate evidence protocol; no credential-bearing raw log publication.
