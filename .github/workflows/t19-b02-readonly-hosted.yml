@@ -1,0 +1,38 @@
+name: T19 B02 read-only hosted evidence (separate manual gate)
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Enter READ-ONLY-EVIDENCE-ONLY (never authorizes rollback SQL)'
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: t19-b02-staging-evidence
+  cancel-in-progress: false
+jobs:
+  evidence:
+    if: github.ref == 'refs/heads/staging' && inputs.confirmation == 'READ-ONLY-EVIDENCE-ONLY'
+    runs-on: ubuntu-24.04
+    environment: faraios-t19-b02-staging-qa
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24.22.1'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify read-only staging evidence
+        env:
+          T19_B02_STAGING_DB_URL: ${{ secrets.T19_B02_STAGING_DB_URL }}
+          T19_B02_ENVIRONMENT: ${{ vars.T19_B02_ENVIRONMENT }}
+          T19_B02_PROJECT_REF: ${{ vars.T19_B02_PROJECT_REF }}
+          T19_B02_RUNNER_BLOB: ${{ vars.T19_B02_RUNNER_BLOB }}
+          T19_B02_SQL_BLOB: ${{ vars.T19_B02_SQL_BLOB }}
+          T19_B02_COLLECTOR_BLOB: ${{ vars.T19_B02_COLLECTOR_BLOB }}
+          T19_B02_EVIDENCE_MODE: ${{ inputs.confirmation }}
+        run: node scripts/t19-b02-evidence-runner.mjs
+# No mutation runner invocation, never logs table values or hashes.
