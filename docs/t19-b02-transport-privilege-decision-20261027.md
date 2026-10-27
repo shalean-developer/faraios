@@ -32,3 +32,23 @@ Candidate future transport (NOT approved): a provider-documented path whose clie
 No new SQL, role/grant/default privilege, Vault secret, Plesk deploy, GitHub protected-secret injection, OAuth/Zoho request, credential custody activation, invoice/financial write, production operation, or T20 work.
 
 **Acceptance:** Gate B-02 read-only decision **COMPLETE = NO-GO**; Gate B-02 hosted compatibility **OPEN**; A12/security acceptance and T19 operational activation **NO-GO**.
+
+
+## Provider-supported connection route assessment (2026-10-27 addendum)
+
+Authoritative current Supabase references:
+- https://supabase.com/docs/guides/platform/ssl-enforcement
+- https://supabase.com/docs/guides/database/connecting-to-postgres
+- https://supabase.com/docs/guides/database/connecting-to-postgres/pooling-and-limits
+
+**New material finding:** Supabase documents that its `Enforce SSL on incoming connections` database setting governs **both** client → shared Supavisor pooler **and** Supavisor → PostgreSQL backend. This is narrower and more actionable than assuming the internal hop can never be covered by provider controls. The prior run's `pg_stat_ssl=false` remains an actual failing test observation; the setting's current state has **not** been independently read, and documentation alone is not proof that it was enabled or effective for that run.
+
+**Preferred conditional path for review:** retain the existing IPv4 Session pooler at its already pinned project/region/port and verify the **existing** SSL-enforcement control state read-only through the Supabase dashboard. If it is disabled, do not switch it on under this decision: Supabase states changing SSL enforcement triggers a database reboot, which requires distinct impact assessment, quiet-window approval and exact owner authorization. After a separately approved change, revalidate `pg_stat_ssl` and verified client certificate/hostname in a single bounded read-only check. Do not infer a secure backend hop from the toggle alone. All future credential-bearing operation remains blocked pending independent confirmation of those results and privilege/recovery gates.
+
+**Alternative conditional path:** direct `db.<project-ref>.supabase.co:5432` removes the pooler hop and is Supabase's recommended connection for migrations and persistent backends. The direct endpoint generally requires IPv6 unless an IPv4 add-on is enabled; GitHub-hosted IPv6 direct reachability previously failed. No paid IPv4 add-on, network change, new execution host, or new connection source is approved. Do not substitute direct-connection credentials or URLs in the existing pinned runner without fresh design, exact SHA and owner approval.
+
+**Rejected for this gate:** transaction-mode pooler 6543, `sslmode=require` without CA/hostname verification, skipping `pg_stat_ssl`, replacing backend proof with browser HTTPS/API acceptance, repeated identical protected runs, changing managed SSL settings without approval, and any privileged SQL or operational migration.
+
+**Next permitted actions, read-only only:** (1) inspect the staging Supabase database settings screen for SSL enforcement state without toggling it; (2) reconcile with existing `pg_stat_ssl` read-only failure; (3) document whether a separate reboot/maintenance approval is required or whether an already-enabled control means a focused provider/transport discrepancy review is needed. If the state cannot be read, leave it UNKNOWN and maintain NO-GO.
+
+**No SSL toggle was read or changed in this assessment, no live connection retest performed, and no hosted privileges or application settings changed.**
