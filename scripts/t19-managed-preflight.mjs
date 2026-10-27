@@ -22,11 +22,14 @@ try{
  if(names.includes(policy.containerName))fail('CONTAINER','name collision');
  else console.log('CONTAINER_NAME_FREE');
 }catch{fail('CONTAINER','read-only inventory failed')}
+if(policy.localSql.length!==3||Object.keys(policy.localSqlSha256??{}).length!==3)throw Error('Incomplete SQL digest policy');
 for(const filename of policy.localSql){
  const full=resolve(root,filename);
  if(!full.startsWith(root+'/')&&!full.startsWith(root+'\\'))throw Error('Unsafe SQL location');
  const b=readFileSync(full);
- console.log('LOCAL_SQL_SHA256 '+filename+' '+createHash('sha256').update(b).digest('hex').toUpperCase());
+ const actual=createHash('sha256').update(b).digest('hex').toUpperCase();
+ if(!/^[A-F0-9]{64}$/.test(policy.localSqlSha256[filename]??'')||actual!==policy.localSqlSha256[filename])fail('LOCAL_SQL_SHA256',filename+' digest mismatch');
+ else console.log('LOCAL_SQL_SHA256_PASS '+filename+' '+actual);
 }
 for(const missing of ['VAULT_EXTENSION','BOOTSTRAP_ACTOR','MANAGED_MIGRATION_ORDER','IMAGE_PROVENANCE','RESOURCE_ISOLATION'])fail(missing,'independent runtime evidence required');
 console.log('EXECUTION_NO_GO');
