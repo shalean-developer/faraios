@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {verifyIndependentReadOnlyEvidence,evidenceGate,safeEvidenceFailure,loadPinnedSupabaseCA,protectedReadOnlyTarget} from '../scripts/t19-b02-evidence-runner.mjs';
+import {verifyIndependentReadOnlyEvidence,evidenceGate,safeEvidenceFailure,loadPinnedSupabaseCA,protectedReadOnlyTarget,verifyClientPoolerTls} from '../scripts/t19-b02-evidence-runner.mjs';
 test('wrong ref or approval fails before opening a database connection',async()=>{
  await assert.rejects(evidenceGate({ref:'refs/heads/staging',environment:'staging',project:'xdmfyrsauvqznkloroxg',approval:'EXECUTE',credential:''}),/gate refused/);
 });
 const snap=(id,drift=false)=>({connectionId:String(id),catalogDigest:'a',financialDigest:drift?'z':'b',vaultSecretCount:'0',tableCounts:{'public.business_invoices':'2'}});
 function inputs(results){
  let opened=0,closed=0,observed=0;
- const factory=()=>({connect:async()=>{opened++},end:async()=>{closed++}});
+ const factory=()=>({connect:async()=>{opened++},end:async()=>{closed++},connection:{stream:{encrypted:true,authorized:true,getPeerCertificate:()=>({subject:{CN:'pooler'}})}}});
  const snapshot=async()=>results[observed++];
  return {factory,snapshot,get:()=>({opened,closed,observed})};
 }
@@ -35,11 +35,11 @@ test('snapshot failure is no-go and closes the session',async()=>{
 
 test('database close failure cannot claim independent evidence success',async()=>{
  let n=0;
- const factory=()=>({connect:async()=>{},end:async()=>{if(++n===1)throw Error('close failed')}});
+ const factory=()=>({connect:async()=>{},end:async()=>{if(++n===1)throw Error('close failed')},connection:{stream:{encrypted:true,authorized:true,getPeerCertificate:()=>({subject:{CN:'pooler'}})}}});
  await assert.rejects(verifyIndependentReadOnlyEvidence(factory,async()=>snap(111)),/close unverified/);
 });
 test('reject reused client object even with different mock fingerprints',async()=>{
- const one={connect:async()=>{},end:async()=>{}};
+ const one={connect:async()=>{},end:async()=>{},connection:{stream:{encrypted:true,authorized:true,getPeerCertificate:()=>({subject:{CN:'pooler'}})}}};
  let index=0;
  await assert.rejects(verifyIndependentReadOnlyEvidence(()=>one,async()=>snap(++index)),/Independent client objects/);
 });
@@ -86,6 +86,16 @@ test('altered or missing CA fails closed before client creation',async()=>{
 
 test('database identity categories remain fixed and redact details',()=>{
  for(const category of ['IDENTITY_ROLE_MISMATCH','IDENTITY_VERSION_MISMATCH','IDENTITY_NOT_READ_ONLY','IDENTITY_BACKEND_INVALID','IDENTITY_PG_SSL_UNVERIFIED']){
-  assert.equal(safeEvidenceFailure({message:category,detail:'private-password'}),category);
+  assert.equal(safeEvidenceFailure({message:category,detail:'private-password'}),category==='IDENTITY_PG_SSL_UNVERIFIED'?'BACKEND_SSL_UNVERIFIED':category);
  }
+});
+
+test('client TLS requires encryption, verification and nonempty peer certificate',()=>{
+ const stream={encrypted:true,authorized:true,getPeerCertificate:()=>({subject:{CN:'pooler'}})};
+ assert.equal(verifyClientPoolerTls({connection:{stream}}),'CLIENT_TLS_VERIFIED');
+ for(const invalid of [{...stream,encrypted:false},{...stream,authorized:false},{...stream,getPeerCertificate:()=>({})}]){
+  assert.throws(()=>verifyClientPoolerTls({connection:{stream:invalid}}),/CLIENT_TLS_UNVERIFIED/);
+ }
+ assert.equal(safeEvidenceFailure({message:'CLIENT_TLS_UNVERIFIED'}),'CLIENT_TLS_UNVERIFIED');
+ assert.equal(safeEvidenceFailure({message:'IDENTITY_PG_SSL_UNVERIFIED'}),'BACKEND_SSL_UNVERIFIED');
 });

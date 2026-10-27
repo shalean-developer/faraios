@@ -13,7 +13,8 @@ export function safeEvidenceFailure(error) {
  if(message==='Database session close unverified')return 'SESSION_CLOSE';
  if(message.includes('Independent backend')||message.includes('Independent client'))return 'SESSION_INDEPENDENCE';
  if(message.includes('Protected baseline changed'))return 'PROTECTED_DRIFT';
- if(['IDENTITY_ROLE_MISMATCH','IDENTITY_VERSION_MISMATCH','IDENTITY_NOT_READ_ONLY','IDENTITY_BACKEND_INVALID','IDENTITY_PG_SSL_UNVERIFIED'].includes(message))return message;
+ if(['IDENTITY_ROLE_MISMATCH','IDENTITY_VERSION_MISMATCH','IDENTITY_NOT_READ_ONLY','IDENTITY_BACKEND_INVALID','IDENTITY_PG_SSL_UNVERIFIED'].includes(message))return message==='IDENTITY_PG_SSL_UNVERIFIED'?'BACKEND_SSL_UNVERIFIED':message;
+ if(message==='CLIENT_TLS_UNVERIFIED')return 'CLIENT_TLS_UNVERIFIED';
  if(message.includes('staging read-only identity'))return 'TLS_OR_DATABASE_IDENTITY';
  if(message.includes('Scratch objects')||message.includes('fingerprint')||message.includes('Read-only snapshot'))return 'SNAPSHOT_EVIDENCE';
  if(['ENOTFOUND','EAI_AGAIN','ENETUNREACH','ECONNREFUSED','ETIMEDOUT','ECONNRESET'].includes(error?.code))return 'NETWORK';
@@ -45,6 +46,15 @@ export async function evidenceGate({ref,environment,project,runner,sql,collector
  if(runner!==expected.runner[1]||sql!==expected.sql[1]||collector!==expected.collector[1])throw Error('Environment source identity mismatch');
  return parseStagingPoolerTarget(credential);
 }
+// Independently verify client -> pooler TLS before any financial/catalog query.
+// pg_stat_ssl measures the distinct pooler -> PostgreSQL hop, not this TLS session.
+export function verifyClientPoolerTls(client) {
+ const stream=client?.connection?.stream;
+ const peer=typeof stream?.getPeerCertificate==='function'?stream.getPeerCertificate():null;
+ if(stream?.encrypted!==true || stream?.authorized!==true || !peer || !Object.keys(peer).length)
+  throw new Error('CLIENT_TLS_UNVERIFIED');
+ return 'CLIENT_TLS_VERIFIED';
+}
 export async function verifyIndependentReadOnlyEvidence(clientFactory,snapshot=collectProtectedSnapshot){
  const results=[];
  let previousClient=null;
@@ -55,6 +65,7 @@ export async function verifyIndependentReadOnlyEvidence(clientFactory,snapshot=c
   let err;
   try{
    await client.connect();
+   verifyClientPoolerTls(client);
    results.push(await snapshot(client));
   }catch(e){err=e;}
   try{await client.end();}catch(e){throw new Error('Database session close unverified',{cause:err||e});}
