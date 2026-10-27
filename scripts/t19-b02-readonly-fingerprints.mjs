@@ -16,7 +16,7 @@ const CATALOG_SQL=`SELECT md5(coalesce(string_agg(item,'|' ORDER BY item),'')) A
  SELECT 'schema:'||n.nspname||':'||n.nspowner::text||':'||coalesce(n.nspacl::text,'') AS item
  FROM pg_namespace n WHERE n.nspname='private_t19_custody'
  UNION ALL
- SELECT 'relation:'||c.oid::text||':'||c.relname||':'||c.relkind||':'||c.relowner::text||':'||coalesce(c.relacl::text,'')
+ SELECT 'relation:'||c.oid::text||':'||c.relname||':'||c.relkind::text||':'||c.relowner::text||':'||coalesce(c.relacl::text,'')
  FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='private_t19_custody'
  UNION ALL
  SELECT 'function:'||p.oid::text||':'||p.proname||':'||p.proowner::text||':'||coalesce(p.proacl::text,'')
@@ -27,7 +27,7 @@ const CATALOG_SQL=`SELECT md5(coalesce(string_agg(item,'|' ORDER BY item),'')) A
  SELECT 'membership:'||m.roleid::text||':'||m.member::text||':'||m.admin_option::text||':'||m.inherit_option::text||':'||m.set_option::text
  FROM pg_auth_members m WHERE m.roleid=(SELECT oid FROM pg_roles WHERE rolname='t19_hosted_custody') OR m.member=(SELECT oid FROM pg_roles WHERE rolname='t19_hosted_custody')
  UNION ALL
- SELECT 'defaultacl:'||d.oid::text||':'||d.defaclrole::text||':'||d.defaclnamespace::text||':'||d.defaclobjtype||':'||d.defaclacl::text
+ SELECT 'defaultacl:'||d.oid::text||':'||d.defaclrole::text||':'||d.defaclnamespace::text||':'||d.defaclobjtype::text||':'||d.defaclacl::text
  FROM pg_default_acl d WHERE d.defaclnamespace=(SELECT oid FROM pg_namespace WHERE nspname='private_t19_custody')
 ) x`;
 export async function collectProtectedSnapshot(client,{connectionId,readOnly=true}={}){
