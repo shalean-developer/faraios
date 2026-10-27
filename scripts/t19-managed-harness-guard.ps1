@@ -14,7 +14,8 @@ foreach ($item in $expected) {
  if ($img.Id -ne $item.Id -or $img.Architecture -ne 'amd64' -or $img.Os -ne 'linux') { throw "Image mismatch: $($item.Name)" }
  Write-Output "$($item.Name): VERIFIED_LOCAL_IMAGE"
 }
-$existing = & docker container inspect $ContainerName --format '{{json .}}' 2>$null
-if ($LASTEXITCODE -eq 0 -and $existing) { throw 'Disposable container name already exists; refusing collision' }
+$names = @(& docker container ls --all --format '{{.Names}}')
+if ($LASTEXITCODE -ne 0) { throw 'Docker container inventory failed; refusing to proceed' }
+if ($names -contains $ContainerName) { throw 'Disposable container name already exists; refusing collision' }
 Write-Output 'DISPOSABLE_NAME_FREE'
 Write-Output 'EXECUTION_NO_GO: vault/extension, bootstrap actor, migration digests, full catalog and resource controls unverified'
