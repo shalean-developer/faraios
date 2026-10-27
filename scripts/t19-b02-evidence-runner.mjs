@@ -16,23 +16,24 @@ export async function evidenceGate({ref,environment,project,runner,sql,collector
  return parseStagingPoolerTarget(credential);
 }
 export async function verifyIndependentReadOnlyEvidence(clientFactory,snapshot=collectProtectedSnapshot){
- const sessions=[];
  const results=[];
- try{
-  for(let i=0;i<2;i++){
-   const client=clientFactory();sessions.push(client);
+ let previousClient=null;
+ for(let i=0;i<2;i++){
+  const client=clientFactory();
+  if(!client||client===previousClient)throw Error('Independent client objects required');
+  previousClient=client;
+  let err;
+  try{
    await client.connect();
-   const result=await snapshot(client);
-   results.push(result);
-   await client.end();
-  }
-  const [a,b]=results;
+   results.push(await snapshot(client));
+  }catch(e){err=e;}
+  try{await client.end();}catch(e){throw new Error('Database session close unverified',{cause:err||e});}
+  if(err)throw err;
+ }
+ const [a,b]=results;
   if(!a||!b||a.connectionId===b.connectionId)throw Error('Independent backend identities not established');
   if(a.catalogDigest!==b.catalogDigest||a.financialDigest!==b.financialDigest||a.vaultSecretCount!==b.vaultSecretCount||JSON.stringify(a.tableCounts)!==JSON.stringify(b.tableCounts))throw Error('Protected baseline changed; concurrent activity or drift');
   return {result:'READ_ONLY_EVIDENCE_PASS',independentSessions:true,protectedStateStable:true,tableCount:Object.keys(a.tableCounts).length};
- }finally{
-  await Promise.allSettled(sessions.map(c=>c.end()));
- }
 }
 if(process.argv[1]&&new URL(import.meta.url).pathname===process.argv[1]){
  try{
