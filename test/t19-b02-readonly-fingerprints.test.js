@@ -32,14 +32,14 @@ test('read-only repeatable-read snapshot uses no write SQL and no raw data outpu
 test('fail closed on failed identity and rollback',async()=>{
  const {client,seen}=mock();
  const old=client.query;client.query=async sql=>sql.startsWith('SELECT current_user')?{rows:[{u:'anon',s:'anon',v:170000,ro:'on',backend:17382,tls:true}]}:old(sql);
- await assert.rejects(collectProtectedSnapshot(client),/identity/);
+ await assert.rejects(collectProtectedSnapshot(client),/IDENTITY_ROLE_MISMATCH/);
  assert.equal(seen.at(-1),'ROLLBACK');
 });
 test('reject unavailable TLS or database backend session evidence',async()=>{
  for(const change of [{tls:false},{backend:null}]){
   const {client}=mock();const original=client.query;
   client.query=async sql=>sql.startsWith('SELECT current_user')?{rows:[{u:'postgres',s:'postgres',v:170011,ro:'on',backend:17381,tls:true,...change}]}:original(sql);
-  await assert.rejects(collectProtectedSnapshot(client),/identity/);
+  await assert.rejects(collectProtectedSnapshot(client),/IDENTITY_(PG_SSL_UNVERIFIED|BACKEND_INVALID)/);
  }
 });
 test('reject non-readonly request',async()=>{await assert.rejects(collectProtectedSnapshot(mock().client,{readOnly:false}),/Read-only/);});
