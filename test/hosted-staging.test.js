@@ -66,7 +66,7 @@ for(const transport of ['passenger','litespeed'])test('hosted '+transport+' uses
   const token=[Buffer.from(JSON.stringify({alg:'HS256'})).toString('base64url'),Buffer.from(JSON.stringify({sub:uid,exp:Math.floor(Date.now()/1000)+3600,role:'authenticated'})).toString('base64url'),'synthetic'].join('.');
   const restricted=createStagingFetch(async r=>{
     calls.push({path:new URL(r.url).pathname,method:r.method});const path=new URL(r.url).pathname;
-    const body=path==='/auth/v1/token'?{access_token:token,refresh_token:'synthetic-refresh',token_type:'bearer',expires_in:3600,user:{id:uid,email:'qa@example.invalid'}}:path==='/auth/v1/user'?{id:uid}:path==='/rest/v1/business_memberships'?[{business_id:bid,user_id:uid,role:'manager',status:'active'}]:path==='/rest/v1/businesses'?[{id:bid,name:'Synthetic staging'}]:{};
+    const body=path==='/auth/v1/token'?{access_token:token,refresh_token:'synthetic-refresh',token_type:'bearer',expires_in:3600,user:{id:uid,email:'qa@example.invalid'}}:path==='/auth/v1/user'?{id:uid}:path==='/rest/v1/business_memberships'?[{business_id:bid,user_id:uid,role:'manager',status:'active'}]:path==='/rest/v1/businesses'?[{id:bid,name:'Synthetic staging'}]:path==='/rest/v1/business_catalogue'?[]:{};
     return new Response(JSON.stringify(body),{status:200,headers:{'Content-Type':'application/json'}});
   });
   const factory=()=>createClient(config.url,config.publishableKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:restricted}});
