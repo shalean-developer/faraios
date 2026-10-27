@@ -52,3 +52,16 @@ Authoritative current Supabase references:
 **Next permitted actions, read-only only:** (1) inspect the staging Supabase database settings screen for SSL enforcement state without toggling it; (2) reconcile with existing `pg_stat_ssl` read-only failure; (3) document whether a separate reboot/maintenance approval is required or whether an already-enabled control means a focused provider/transport discrepancy review is needed. If the state cannot be read, leave it UNKNOWN and maintain NO-GO.
 
 **No SSL toggle was read or changed in this assessment, no live connection retest performed, and no hosted privileges or application settings changed.**
+
+
+## Staging SSL maintenance prechecks — read-only progress, 2026-10-27
+
+Target project `xdmfyrsauvqznkloroxg` returned `ACTIVE_HEALTHY`, PostgreSQL 17.11 (region eu-west-1). Owner screenshot verifies SSL enforcement OFF. SQL audit connection itself reported SSL true; this is not proof of enforcement or of the earlier GitHub pooler backend hop.
+
+An aggregate `pg_stat_activity` / `pg_stat_ssl` read (excluding the audit backend) showed PostgREST (2 SSL), pgbouncer (1 SSL), supabase_admin (1 SSL), pg_net (1 non-SSL), pg_cron scheduler (1 non-SSL), postgres_exporter (1 non-SSL). Local/unix socket traffic can legitimately appear non-SSL; those three entries do not establish externally insecure clients, nor do they prove compatibility after the SSL toggle. A point-in-time connection snapshot cannot enumerate dormant external clients and future scheduled tasks.
+
+Read-only protected baseline: Vault secret count 0, business invoices 2, enabled accounting connections 0. Existing FaraiOS app code uses Supabase HTTPS SDK; accounting worker and outbound dispatch remained disabled in last hosted health report.
+
+Recovery: authenticated encrypted checkpoint exists from 2026-10-26, but exact isolated restore/recovery verification remained NO-GO due managed-catalog compatibility and eligible destination limitations. Configuration rollback by toggling enforcement OFF is NOT database restoration, entails another potential reboot, and requires distinct owner approval.
+
+**Maintenance verdict:** PRECHECK PARTIAL; configuration change still HOLD. Before presenting an execution approval: inventory dormant/direct consumers and SSL client behavior; explicitly accept or resolve incomplete restore evidence; record quiet window/owner operator and objective stop conditions; verify fresh health/baselines. Do not misclassify provider-internal non-SSL entries as remote plaintext. No toggle, SQL changes, secret, deployment or provider action.
