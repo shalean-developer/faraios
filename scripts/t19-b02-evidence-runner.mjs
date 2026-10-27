@@ -15,14 +15,14 @@ export async function evidenceGate({ref,environment,project,runner,sql,collector
  if(runner!==expected.runner[1]||sql!==expected.sql[1]||collector!==expected.collector[1])throw Error('Environment source identity mismatch');
  return parseStagingPoolerTarget(credential);
 }
-export async function verifyIndependentReadOnlyEvidence(clientFactory){
+export async function verifyIndependentReadOnlyEvidence(clientFactory,snapshot=collectProtectedSnapshot){
  const sessions=[];
  const results=[];
  try{
   for(let i=0;i<2;i++){
    const client=clientFactory();sessions.push(client);
    await client.connect();
-   const result=await collectProtectedSnapshot(client);
+   const result=await snapshot(client);
    results.push(result);
    await client.end();
   }
