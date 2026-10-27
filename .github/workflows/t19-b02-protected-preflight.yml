@@ -1,0 +1,33 @@
+name: T19 B02 protected source-only preflight
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - '.github/workflows/t19-b02-protected-preflight.yml'
+      - 'scripts/t19-b02-protected-preflight.mjs'
+      - 'test/t19-b02-protected-preflight.test.js'
+      - 'scripts/t19-b02-node24-runner.mjs'
+      - 'docs/proposals/t19-b02-managed-role-rollback.sql'
+permissions:
+  contents: read
+jobs:
+  offline-preparation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify pinned source blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object scripts/t19-b02-node24-runner.mjs)" = "03d7a733f63e70928faeb3bc3bc3c21741840327"
+          test "$(git hash-object docs/proposals/t19-b02-managed-role-rollback.sql)" = "89e13e8b55cec5503a67ed5486739e9d1d7560b4"
+      - name: Verify pure source gate
+        run: node --test test/t19-b02-protected-preflight.test.js
+# Intentionally NO environment reference, no secrets, no database URL, no network database access,
+# no workflow_dispatch, no privileged pull_request_target, and no hosted SQL execution.
