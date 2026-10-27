@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {verifyIndependentReadOnlyEvidence,evidenceGate,safeEvidenceFailure} from '../scripts/t19-b02-evidence-runner.mjs';
+import {verifyIndependentReadOnlyEvidence,evidenceGate,safeEvidenceFailure,loadPinnedSupabaseCA,protectedReadOnlyTarget} from '../scripts/t19-b02-evidence-runner.mjs';
 test('wrong ref or approval fails before opening a database connection',async()=>{
  await assert.rejects(evidenceGate({ref:'refs/heads/staging',environment:'staging',project:'xdmfyrsauvqznkloroxg',approval:'EXECUTE',credential:''}),/gate refused/);
 });
@@ -66,4 +66,20 @@ test('safe errors expose categories only and never secrets',()=>{
   assert.equal(actual,category);
   assert.equal(actual.includes(secret),false);
  }
+});
+
+test('pinned CA is mandatory and strict TLS remains enabled',async()=>{
+ const ca=await loadPinnedSupabaseCA();
+ assert.match(ca,/BEGIN CERTIFICATE/);
+ const u=new URL('postgresql://placeholder.invalid');
+ u.hostname='aws-0-eu-west-1.pooler.supabase.com';u.port='5432';u.pathname='/postgres';u.username='postgres.xdmfyrsauvqznkloroxg';u.password=['fixture','only'].join('-');
+ const target=await protectedReadOnlyTarget(u.toString());
+ assert.equal(target.ssl.rejectUnauthorized,true);
+ assert.equal(target.ssl.servername,'aws-0-eu-west-1.pooler.supabase.com');
+ assert.equal(target.ssl.ca,ca);
+ assert.equal(Object.hasOwn(target,'connectionString'),false);
+});
+test('altered or missing CA fails closed before client creation',async()=>{
+ await assert.rejects(loadPinnedSupabaseCA(async()=>Buffer.from('invalid')),/integrity/);
+ await assert.rejects(loadPinnedSupabaseCA(async()=>{throw Error('missing')}),/missing/);
 });
