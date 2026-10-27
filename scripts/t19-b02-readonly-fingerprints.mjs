@@ -42,6 +42,15 @@ const CATALOG_SQL=`SELECT md5(coalesce(string_agg(item,'|' ORDER BY item),'')) A
  SELECT 'vaultfunction:'||p.oid::text||':'||p.proname||':'||p.proowner::text||':'||coalesce(p.proacl::text,'')
  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='vault'
 ) x`;
+// Fixed diagnostic categories only: never include SQL row values or credential data.
+export function classifyReadOnlyIdentity(w){
+ if(!w || w.u!=='postgres' || w.s!=='postgres')return 'IDENTITY_ROLE_MISMATCH';
+ if(!Number.isInteger(Number(w.v))||Number(w.v)<170000)return 'IDENTITY_VERSION_MISMATCH';
+ if(w.ro!=='on')return 'IDENTITY_NOT_READ_ONLY';
+ if(w.backend===null||w.backend===undefined||w.backend===''||!Number.isInteger(Number(w.backend))||Number(w.backend)<=0)return 'IDENTITY_BACKEND_INVALID';
+ if(w.tls!==true)return 'IDENTITY_PG_SSL_UNVERIFIED';
+ return null;
+}
 export async function collectProtectedSnapshot(client,{readOnly=true}={}){
  if(!readOnly)throw Error('Read-only snapshot required');
  const rows={};
@@ -50,7 +59,8 @@ export async function collectProtectedSnapshot(client,{readOnly=true}={}){
   await client.query('BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');begun=true;
   const who=await client.query("SELECT current_user AS u,session_user AS s,current_setting('server_version_num')::int AS v,current_setting('transaction_read_only') AS ro,pg_backend_pid()::int AS backend, (SELECT ssl FROM pg_stat_ssl WHERE pid=pg_backend_pid()) AS tls");
   const w=who.rows?.[0];
-  if(!w||w.u!=='postgres'||w.s!=='postgres'||Number(w.v)<170000||w.ro!=='on'||!Number.isInteger(Number(w.backend))||Number(w.backend)<=0||w.tls!==true)throw Error('Unexpected staging read-only identity');
+  const identityFailure=classifyReadOnlyIdentity(w);
+  if(identityFailure)throw new Error(identityFailure);
   const scratch=await client.query("SELECT (SELECT count(*)::int FROM pg_roles WHERE rolname IN ('t19_b02_qa_executor','t19_b02_qa_owner')) AS roles,(SELECT count(*)::int FROM pg_namespace WHERE nspname='t19_b02_qa_schema') AS schemas,(SELECT count(*)::int FROM pg_proc p JOIN pg_namespace n ON p.pronamespace=n.oid WHERE n.nspname='t19_b02_qa_schema') AS functions");
   const x=scratch.rows[0];
   if(Number(x.roles)||Number(x.schemas)||Number(x.functions))throw Error('Scratch objects detected');
