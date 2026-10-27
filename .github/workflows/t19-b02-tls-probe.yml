@@ -1,0 +1,37 @@
+name: T19 B02 credential-free PostgreSQL TLS probe
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - '.github/workflows/t19-b02-tls-probe.yml'
+permissions:
+  contents: read
+jobs:
+  inspect-tls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify pooler PostgreSQL TLS chain using system trust
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import socket,ssl,struct
+          host='aws-0-eu-west-1.pooler.supabase.com'
+          with socket.create_connection((host,5432),timeout=8) as raw:
+              raw.settimeout(8)
+              raw.sendall(struct.pack('!II',8,80877103))
+              reply=raw.recv(1)
+              if reply!=b'S':
+                  raise RuntimeError('POSTGRES_TLS_NOT_OFFERED')
+              context=ssl.create_default_context()
+              context.check_hostname=True
+              context.verify_mode=ssl.CERT_REQUIRED
+              with context.wrap_socket(raw,server_hostname=host) as secure:
+                  certificate=secure.getpeercert()
+                  print('POSTGRES_TLS_HANDSHAKE: VERIFIED')
+                  print('POSTGRES_TLS_PROTOCOL:',secure.version())
+                  print('POSTGRES_TLS_HOSTNAME: VERIFIED')
+                  print('POSTGRES_TLS_CERT_PRESENT:',bool(certificate))
+          PY
+# No checkout, database credentials, login, financial queries, SQL or certificate bypass.
