@@ -1,0 +1,27 @@
+# T19 read-only Storage 0074 and managed startup provenance audit — 2026-10-27
+
+**Scope:** existing FaraiOS staging project `xdmfyrsauvqznkloroxg`, managed catalog SELECTs and pinned upstream source inspection only. **No migration, permission, container, secret, OAuth or financial mutation.**
+
+## Directly observed: migration 0074
+- Pinned upstream Storage `supabase/storage@v1.84.23`, commit `d2836fe9e8157f4fc558af0071a7671d373ff3ef`, `migrations/tenant/0074-unlock-object-versioning.sql`, Git blob `d0e28135e866601b78de24dee901c026fcb4a2eb`.
+- The SQL drops `storage.buckets` constraint `buckets_versioning_dark_check`, creates/replaces `storage.enforce_versioning_status_transition()`, and creates trigger `enforce_versioning_status_transition`.
+- Current staging `pg_constraint` still contains `buckets_versioning_dark_check` with definition `CHECK ((versioning_status = 'DISABLED'::text))`.
+- Current staging `pg_trigger` has no non-internal trigger named `enforce_versioning_status_transition` on `storage.buckets`.
+- Previous read-only migration-history comparison: 74 rows; 73 pinned file-name stems match; `unlock-object-versioning` absent and library `create-migrations-table` additional. Current catalog matches a pre-0074 state for these inspected objects.
+
+**Disposition:** 0074 was **not applied in its expected form**, corroborated by history and catalog. Why is **unverified**. Do not run or force replay of the migration.
+
+## Runner and identity evidence
+- `supabase/storage@v1.84.23` `src/internal/database/migrations/files.ts` blob `9456d3af2324c6e01eff3dc69e3f5354710ba317` reads `dbMigrationFreezeAt`; `migrate.ts` blob `f3e387ef6704542dc37b06ea49f7620fd2a1d9ee` can select `upToMigration`, sets `storage.install_roles` and `storage.super_user` during migration sessions.
+- Original deployed settings, process identity, and migration-execution chronology have not been recovered.
+- Earlier read-only `pg_index` evidence confirms four Auth indexes valid and ready; this does **not** reveal the Auth worker's startup parameters, connection role or index-creation actor.
+- Existing Storage owners/grantors identify present PostgreSQL catalog state, **not historical bootstrap execution identities**.
+
+## Requirements for a qualified next verification
+1. Obtain sanitized provider-managed Auth startup and Storage migration logs or configuration receipts for the exact deployed service revisions; do not reveal passwords, tokens or environment secrets.
+2. Verify actual Storage `dbMigrationFreezeAt`, `upToMigration`, role settings, managed release revision, and any policy intentionally holding 0074.
+3. Verify actual Auth `IndexWorker.EnsureUserSearchIndexesExist`, `MaxUsersThreshold`, connection principal, and index-worker invocation.
+4. Reconcile the history table's own migration SHA-1 calculation against exact pinned Storage runner semantics, separately from the 149-file SHA-256 source inventory.
+5. Review any managed-platform change separately; no `ALTER TABLE`, `DROP CONSTRAINT`, `CREATE TRIGGER`, SQL repair or rebaseline is authorised.
+
+**Build Plan:** T19 In progress; A12 unresolved; managed bootstrap/restore NO-GO; Zoho accounting activation NO-GO; T20 Not started. This source/evidence PR is not independent security certification or production deployment approval.
