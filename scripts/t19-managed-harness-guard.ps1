@@ -18,4 +18,11 @@ $names = @(& docker container ls --all --format '{{.Names}}')
 if ($LASTEXITCODE -ne 0) { throw 'Docker container inventory failed; refusing to proceed' }
 if ($names -contains $ContainerName) { throw 'Disposable container name already exists; refusing collision' }
 Write-Output 'DISPOSABLE_NAME_FREE'
-Write-Output 'EXECUTION_NO_GO: vault/extension, bootstrap actor, migration digests, full catalog and resource controls unverified'
+@(
+ 'VAULT_EXTENSION_NO_GO: disposable Vault extension/version and isolated availability not verified',
+ 'BOOTSTRAP_ACTOR_NO_GO: restricted bootstrap identity, privileges and provenance not verified',
+ 'MIGRATION_DIGESTS_NO_GO: complete ordered migration manifest and SHA-256 digests not verified',
+ 'IMAGE_CATALOG_NO_GO: only three local images checked; full pinned managed catalog and provenance not verified',
+ 'RESOURCE_CONTROLS_NO_GO: CPU, memory, storage, network and cleanup isolation not verified',
+ 'EXECUTION_NO_GO: five managed-harness prerequisites remain unverified'
+) | ForEach-Object { Write-Output $_ }
