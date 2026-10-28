@@ -100,6 +100,7 @@ finally {
         $c=Inspect $containerId
       }
       if ($c.State.Running -or -not (Owned $c $containerId $nonce)) { throw 'QUARANTINE: unsafe stopped state' }
+      if (-not (Readback $c)) { throw 'QUARANTINE: Docker readback mismatch' }
       if (-not $receiptPath -or -not [IO.File]::Exists($receiptPath)) { throw 'QUARANTINE: missing durable receipt' }
       if (-not [IO.File]::Exists($intentPath)) { throw 'QUARANTINE: missing pre-create intent' }
       $intentCheck=Get-Content -Raw $intentPath | ConvertFrom-Json
