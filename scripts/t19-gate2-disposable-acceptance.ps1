@@ -38,7 +38,7 @@ function Readback([object]$obj) {
     $h.Privileged -eq $false -and $h.PublishAllPorts -eq $false -and
     @($h.Binds).Where({$_}).Count -eq 0 -and
     @($h.PortBindings.PSObject.Properties).Count -eq 0)
-  $mounts = @($obj.Mounts).Where({$_.Type -ne 'tmpfs'})
+  $mounts = @($obj.Mounts | Where-Object { $_.Type -ne 'tmpfs' })
   return ($limits -and $mounts.Count -eq 0 -and $obj.Config.User -eq '100:101')
 }
 try {
@@ -49,7 +49,7 @@ try {
   $folder=[IO.Path]::GetFullPath($EvidenceDirectory)
   [IO.Directory]::CreateDirectory($folder) | Out-Null
   $receiptPath=[IO.Path]::Combine($folder,"$nonce.json")
-  $args = @('create','--name',$name,'--pull','never','--network','none',
+  $createArgs = @('create','--name',$name,'--pull','never','--network','none',
     '--read-only','--cpus','1','--memory','512m','--memory-swap','512m','--pids-limit','64',
     '--cap-drop','ALL','--security-opt','no-new-privileges:true',
     '--user','100:101','--label',"faraios.t19.run-nonce=$nonce",
@@ -57,7 +57,7 @@ try {
     '--tmpfs','/var/run/postgresql:rw,nosuid,uid=100,gid=101,mode=0775,size=32m',
     '--tmpfs','/tmp:rw,nosuid,uid=100,gid=101,mode=1777,size=32m',
     '-e','POSTGRES_HOST_AUTH_METHOD=trust', $image)
-  $containerId = DockerRead $args
+  $containerId = DockerRead -arguments $createArgs
   if ($containerId -notmatch '^[a-f0-9]{64}$') { throw 'INVALID_CREATE_RESULT: manual review required' }
   $created = $true
   $record = @{version=1; id=$containerId;nonce=$nonce;name=$name;image=$image;state='CREATED';createdUtc=[DateTime]::UtcNow.ToString('o')}
