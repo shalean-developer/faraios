@@ -1,0 +1,11 @@
+# T19 Gate 2 — single disposable startup acceptance, pending exact-run authorization
+
+Scope: local Docker Desktop only; pinned Supabase PostgreSQL image sha256:d6844e71062a3c8e2f8021d644802850760ef970a45ac163ec8c9f0171075bda. Uses observed postgres account UID 100, GID 101, no published ports, network none, read-only root, CPU 1, memory/swap 512MiB, PID 64, cap-drop ALL, no-new-privileges, tmpfs PGDATA/socket/tmp. Synthetic local trust authentication only; no hosted data, external connections or financial credentials.
+
+**DO NOT EXECUTE YET**: the script is an execution-capable candidate. It is not approved by merging and it is not proof of PostgreSQL startup compatibility. A qualified security reviewer must review the PowerShell implementation, its file durability/cleanup/recovery, tmpfs ownership, trust auth in isolated network, Docker resource limits, potential postgres init scripts, and crash-recovery side effects. Owner must separately authorize exactly this local startup attempt. Operator must verify Docker Desktop's context and that the machine is disposable/test-only before running it.
+
+The script requires the explicit switch `-ApproveDisposableRun`. It checks name collision, image digest, creates a single labeled container, durably writes a local ownership receipt before starting, verifies configuration, attempts startup for up to 20 seconds, checks readiness, captures logs on success and removes only by exact ID after matching nonce/name/image/stopped state and local receipt. If receipt/inspect identity mismatches or cleanup is uncertain, it quarantines; NEVER prune or delete by name. Power loss during create-before-receipt can still leave an orphan requiring manual review. PowerShell/Windows receipt durability is not yet proved. A successful readiness result is not a pass for SQLSTATE rollback tests.
+
+After authorized execution, record result, readback JSON, Docker daemon version, Docker Desktop context, logs, safe cleanup and inventory evidence, then run a separately reviewed isolated SQL denial/rollback suite. Do not mark Gate 2 complete until both actual runtime and PostgreSQL integrity pass and independent reviewer signs off.
+
+T19 In progress · A12 unresolved · Zoho NO-GO · T20 Not started.
