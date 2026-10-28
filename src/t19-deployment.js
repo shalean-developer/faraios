@@ -1,3 +1,5 @@
+import {Server} from 'node:net';
+import {validateManagedTransport,wakeManagedCustody} from './t19-managed-wakeup.js';
 // Explicit staging composition only. Importing this module performs no I/O.
 import {readFile,lstat,realpath,open} from 'node:fs/promises';
 import {constants} from 'node:fs';
@@ -71,12 +73,15 @@ export async function loadAccountingDeployment(path){
   const c=JSON.parse(await protectedFile(path));
   const common=['version','mode','enabled','tls'];
   if(c.mode==='custody')exact(c,[...common,'port','database','publishableKey']);
-  else if(['web','scheduler'].includes(c.mode))exact(c,[...common,'endpoint']);else throw denied();
+  else if(['web','scheduler'].includes(c.mode))exact(c,[...common,'endpoint',...(Object.hasOwn(c,'transport')?['transport']:[])]);else throw denied();
   if(c.version!==1||typeof c.enabled!=='boolean')throw denied();
   exact(c.tls,['caFile','certFile','keyFile']);
   const tls={ca:await protectedFile(c.tls.caFile),cert:await protectedFile(c.tls.certFile),key:await protectedFile(c.tls.keyFile)};
   if(Object.values(tls).some(v=>!v.trim()))throw denied();
-  if(c.mode!=='custody')return Object.freeze({mode:c.mode,enabled:c.enabled,endpoint:endpoint(c.endpoint),tls});
+  if(c.mode!=='custody'){
+   validateManagedTransport(c.transport,c.endpoint);
+   return Object.freeze({mode:c.mode,enabled:c.enabled,endpoint:endpoint(c.endpoint),tls,...(c.transport?{transport:c.transport}:{})});
+  }
   exact(c.database,['host','port','passwordFile','caFile']);
   if(!Number.isInteger(c.port)||c.port<1024||c.port>65535||typeof c.database.host!=='string'||!c.database.host
    ||!Number.isInteger(c.database.port)||c.database.port<1||c.database.port>65535)throw denied();
@@ -89,7 +94,7 @@ export async function loadAccountingDeployment(path){
 }
 function enabled(c,mode){if(c?.enabled!==true||c.mode!==mode)throw denied();}
 export function deploymentProxy(c){enabled(c,'web');return createAccountingProxy(c);}
-export async function startAccountingCustody(c,{connect=connectCustodyPostgres,createService=createRestrictedAccountingService}={}){
+export async function startAccountingCustody(c,{connect=connectCustodyPostgres,createService=createRestrictedAccountingService,inspectListener=server=>Server.prototype.address.call(server)}={}){
  enabled(c,'custody');let db,server;
  try{
   db=await connect(c.database);
@@ -97,6 +102,8 @@ export async function startAccountingCustody(c,{connect=connectCustodyPostgres,c
    origin:stagingOrigin,sessionCookie:'__Host-faraios_staging',tls:c.tls});
   server.headersTimeout=15000;server.requestTimeout=30000;server.keepAliveTimeout=5000;
   server.listen(c.port,'127.0.0.1');await once(server,'listening');
+  const address=inspectListener(server);
+  if(address?.address!=='127.0.0.1'||address.family!=='IPv4'||address.port!==c.port)throw denied();
   let closing;
   const close=()=>closing??=(async()=>{
    // Drain accepted operations before DB shutdown. Never erase uncertain jobs.
@@ -106,8 +113,10 @@ export async function startAccountingCustody(c,{connect=connectCustodyPostgres,c
   return Object.freeze({server,close});
  }catch{if(server?.listening){server.closeAllConnections();await new Promise(r=>server.close(r));}if(db)await db.close();throw denied();}
 }
-export async function runAccountingPass(c){
+export async function runAccountingPass(c,{wake=wakeManagedCustody}={}){
  enabled(c,'scheduler');
+ validateManagedTransport(c.transport,c.endpoint);
+ if(c.transport){try{await wake();}catch{throw new Error('accounting_pass_unconfirmed');}}
  // A scheduler timeout never triggers automatic retransmission. Durable jobs own recovery.
  return new Promise((resolve,reject)=>{
   let timer;const fail=()=>{clearTimeout(timer);reject(new Error('accounting_pass_unconfirmed'));};

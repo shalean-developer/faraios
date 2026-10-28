@@ -1,3 +1,11 @@
+# Managed Plesk custody preparation — current28October2026
+
+The credential-free lifecycle now has bounded hosted PASS evidence in `t19-plesk-lifecycle-verification.md`, including late-generation reconciliation. `_custody.cjs` and `src/t19-managed-custody.cjs` prepare actual managed composition on isolateduid10521 without selecting or activating it. Config is fixed outside source; actual loopback binding is verified. Public startup responses carry no accounting authority. Optional `transport:"managed-custody-staging"` in protected web/scheduler configuration performs credential-free strict-HTTPS cold-start checks before the existing private mTLS request. Startup and interruption faults and actual TLS boundary regressions pass locally.
+
+This source preparation authorizes no credentials, hosted SQL/grants/Vault, provider consent, accounting activation or schedule. The subscription remains parked with its original settings. Full T19 still needs Gate2 exact pinned-image acceptance, operational A12/hosted security and recovery, independent business TEST grants, verified VAT/provider facts and provider E2E reconciliation. Older preparation/history below is retained; current owner-led reviewer governance remains as recorded in `t19-owner-led-acceptance-20261028.md`.
+
+---
+
 # Current Plesk deployment adaptation — 28 October 2026
 
 The owner instructed “Lets use what we have”. Root/systemd paths are one deployment option, not an intrinsic requirement of the accounting protocol. Current hosting was inspected read-only: Linux Node24.22.1; website uid10463/gid1003; OS-account home `/var/www/vhosts/faraios.com`, owned by10463, mode0710, not a symlink; app `/var/www/vhosts/faraios.com/staging.faraios.com/app`. Plesk scheduled tasks expose command/hourly/daily/cron-style configuration; current subscription task list is empty. The inspected task form was cancelled; no schedule, user, key, credential or service was created. No hosting plan or server was purchased.

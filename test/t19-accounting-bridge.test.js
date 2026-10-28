@@ -39,12 +39,14 @@ test('web session crosses actual mTLS boundary with verified token and current m
   const scheduler={mode:'scheduler',enabled:true,endpoint:'https://127.0.0.1:'+custody.address().port+'/',tls};
   assert.deepEqual(await runAccountingPass(scheduler),{processed:0,held:0});
   await assert.rejects(runAccountingPass({...scheduler,tls:{ca:tls.cert}}),{message:'accounting_pass_unconfirmed'});
-  proxy=createAccountingProxy({endpoint:'https://127.0.0.1:'+custody.address().port+'/',tls});
+  let wakes=0;const wake=async()=>{wakes++;};
+  assert.deepEqual(await runAccountingPass({...scheduler,transport:'managed-custody-staging'},{wake}),{processed:0,held:0});
+  proxy=createAccountingProxy({endpoint:'https://127.0.0.1:'+custody.address().port+'/',tls,transport:'managed-custody-staging'},{wake});
   const login=await fetch(origin+'/login',{method:'POST',redirect:'manual',headers:{Origin:origin,'Content-Type':'application/x-www-form-urlencoded'},body:'email=fixture%40test.invalid&password=test-only'});
   assert.equal(login.status,303);const cookie=login.headers.get('set-cookie').split(';')[0];
   const headers={Cookie:cookie,Authorization:'Bearer attacker-token','X-Faraios-Session':'forged'};
   const result=await fetch(origin+'/accounting/'+business+'/status',{headers});assert.equal(result.status,200);
-  assert.equal((await result.json()).business_id,business);assert.ok(verifications>0);
+  assert.equal((await result.json()).business_id,business);assert.ok(verifications>0);assert.equal(wakes,2);
   assert.equal((await fetch(origin+'/accounting/'+business+'/disconnect',{method:'POST',headers:{...headers,Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({connection:uid,generation:1})})).status,403);
   active=false;
   assert.equal((await fetch(origin+'/accounting/'+business+'/status',{headers})).status,403);

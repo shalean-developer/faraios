@@ -13,9 +13,11 @@ test('deployment config refuses unknown fields, repository secrets and disabled 
  const c={version:1,mode:'web',enabled:false,endpoint:'https://127.0.0.1:9443/',tls:{caFile:secret,certFile:secret,keyFile:secret}};
  const save=async v=>writeFile(path,JSON.stringify(v),{mode:0o600});
  await save(c);const loaded=await loadAccountingDeployment(path);assert.throws(()=>deploymentProxy(loaded));
- for(const override of [{endpoint:'http://127.0.0.1/'},{endpoint:'https://a.invalid/custody/run'},{enabled:'true'},{password:'DO_NOT_EXPOSE'}]){
+ for(const override of [{endpoint:'http://127.0.0.1/'},{endpoint:'https://a.invalid/custody/run'},{enabled:'true'},{password:'DO_NOT_EXPOSE'},{transport:'caller-approved'}]){
   await save({...c,...override});await assert.rejects(loadAccountingDeployment(path),e=>e.message==='accounting_deployment_rejected'&&!e.cause);
  }
+ await save({...c,transport:'managed-custody-staging'});
+ assert.equal((await loadAccountingDeployment(path)).transport,'managed-custody-staging');
  await save(c);await mkdir(join(dir,'.git'));await assert.rejects(loadAccountingDeployment(path));
 });
 test('hosted RPC opt-in permits only authenticated accounting status/enqueue transport',async()=>{
@@ -34,7 +36,7 @@ test('custody launcher binds loopback and closes database exactly once on shutdo
  server.listen=(port,host)=>{assert.equal(host,'127.0.0.1');assert.equal(port,9443);queueMicrotask(()=>server.emit('listening'));};
  server.close=cb=>cb();server.closeAllConnections=()=>{};
  const c={mode:'custody',enabled:true,port:9443,database:{},tls:{},createUserClient:()=>{}};
- const deps={connect:async()=>({database:{},query:()=>{},close:async()=>{closed++;}}),createService:()=>server};
+ const deps={connect:async()=>({database:{},query:()=>{},close:async()=>{closed++;}}),createService:()=>server,inspectListener:()=>({address:'127.0.0.1',family:'IPv4',port:9443})};
  const app=await startAccountingCustody(c,deps);await Promise.all([app.close(),app.close()]);assert.equal(closed,1);
  await assert.rejects(startAccountingCustody({...c,enabled:false},deps));assert.equal(closed,1);
  await assert.rejects(startAccountingCustody(c,{...deps,createService:()=>{throw Error('SECRET');}}),{message:'accounting_deployment_rejected'});assert.equal(closed,2);

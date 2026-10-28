@@ -1,6 +1,26 @@
 # T19 Plesk lifecycle verification
 
-28 October 2026. Existing hosting only. Approved hosted attempt completed; lifecycle remains NOT VERIFIED.
+28 October 2026. Existing hosting only. Corrected credential-free hosted lifecycle PASS for the observed interval; full T19 remains NO-GO.
+
+## Corrected approved lifecycle run — bounded PASS
+
+Owner approved source8778edf6f65dd7a5bf04c3da1794284ccb56fc54 (probe SHA25608bfc6e8d1408f8a690343cea66c74f565d781a939c4792d333e98ab02d322b7). Preflight matched source and the exact four historical refusal journals. Strict HTTPS returned403/Unavailable. Kernel Unix-listener verification passed underuid10521. The first instance recorded readiness and10/20second heartbeats. Plesk Restart App was invoked by58173ms; originalpid3376255 recorded SIGTERM and disappeared, while newpid3377021/new nonce recorded readiness and heartbeat. No direct kill or Docker operation was used.
+
+An additional instancepid3377555/new nonce appeared during shutdown/reconfiguration; its exact trigger is not established. All three instances recorded SIGTERM. Final read-only process reconciliation found no additional owned Node process outside the CLI chain. Seven journals remain: four historical refusals and three reconciled lifecycle instances. No journal was deleted. The subscription was suspended, Node disabled and all original settings restored by128315ms, within five minutes. The owner-installed TLS certificate remains assigned.
+
+Structured evidence: `evidence/t19-plesk-lifecycle/lifecycle-pass-20261028.json`. PASS dimensions: strict TLS, cold start, kernel socket, observed heartbeat, controlled restart, original-instance absence and final parked-state reconciliation. This does not prove indefinite availability, startup after reboot, database drain, provider recovery or accounting acceptance. The actual managed service must support late generations and rely on durable database leases/generation fences.
+
+## Inactive managed service composition
+
+`_custody.cjs` is an explicit alternative startup for the separateuid10521 subscription, never the default website startup. It requires the exact source root `/var/www/vhosts/custody-staging.faraios.com/app`, `_custody.cjs`, approved TLS-vhost Unix socket and installed LiteSpeed loader. Kernel Unix-listener verification precedes any private config read/database start. Its only config path is the protected `.faraios-t19-custody/custody.json` outside the checkout. Existing least-privilege DB/mTLS/operation implementations are reused; no service-role or environment fallback is added.
+
+The public managed HTTP listener returns onlyUnavailable (503 while preparing,403 after private service readiness); it never proxies or dispatches accounting. The private TLS listener must actually bind the requested port on127.0.0.1/IPv4, verified using the native net.Server address implementation. Signals close public intake and drain the delegated service; a signal during loading/startup also closes a late service. No scheduler or background job starts on import or startup alone.
+
+Web/scheduler protected configuration may explicitly select `transport:"managed-custody-staging"` with a loopback HTTPS endpoint. The fixed public HTTPS wakeup sends only an inertGET/, no client certificate, key, user cookie/token, business ID or body. It requires the exactUnavailable denial, strict public TLS, bounded10second startup checks and process-local coalescing. Only503 preparation responses retry; business/provider operations never enter this loop. Web session validation precedes waking; wake failure prevents the private request. The subsequent private request still requires actual mTLS and database-verified machine/business grants. Direct transport remains unchanged when no transport profile is selected.
+
+Prepared source only. No new service source, credentials, database grants or schedule were installed or activated on the custody host by this composition work. Its hosted mTLS/credential/SQL/recovery acceptance still requires separately authorized execution after the existing gates pass. Local real HTTP/TLS, permission, startup/interruption, invalid TLS and business-boundary regressions are in `evidence/t19-plesk-lifecycle/managed-composition-local.tap`; they do not replace hosted security/provider acceptance.
+
+Historical records below retain their original attempted-revision conclusions and are superseded only for the corrected probe's bounded lifecycle result.
 
 ## Approved diagnostic result and correction
 

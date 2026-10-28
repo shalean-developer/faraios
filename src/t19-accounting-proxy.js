@@ -1,7 +1,9 @@
+import {validateManagedTransport,wakeManagedCustody} from './t19-managed-wakeup.js';
 import {request} from 'node:https';
 // Approved web -> isolated custody transport. Never forwards browser authority
 // headers; the user's verified Auth access token travels only over pinned mTLS.
-export function createAccountingProxy({endpoint,tls}){
+export function createAccountingProxy({endpoint,tls,transport},{wake=wakeManagedCustody}={}){
+ validateManagedTransport(transport,endpoint);
  const target=new URL(endpoint);
  if(target.protocol!=='https:'||target.username||target.password||target.pathname!=='/'||target.search||target.hash||!tls?.ca||!tls.cert||!tls.key)throw Error('configuration_rejected');
  return async({req,res,auth,origin,cookieName})=>{
@@ -19,6 +21,7 @@ export function createAccountingProxy({endpoint,tls}){
    const headers={Host:new URL(origin).host,Cookie:name+'='+sid,Authorization:'Bearer '+token,'X-Faraios-Session':sid};
    if(req.headers.origin)headers.Origin=req.headers.origin;
    if(req.headers['content-type'])headers['Content-Type']=req.headers['content-type'];
+   if(transport)await wake();
    const result=await new Promise((resolve,reject)=>{
     let timer;
     const upstream=request(new URL(req.url,target),{method:req.method,headers,ca:tls.ca,cert:tls.cert,key:tls.key,rejectUnauthorized:true},response=>{
