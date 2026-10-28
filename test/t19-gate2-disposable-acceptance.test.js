@@ -6,4 +6,6 @@ test('resource guard and ownership cleanup by immutable ID',()=>{for(const x of 
 test('DockerRead calls pass the entire array through a named parameter',()=>{
  assert.doesNotMatch(s,/DockerRead @\(/);
  assert.ok((s.match(/DockerRead -arguments @\(/g)||[]).length>=6);
+ assert.match(s,/DockerRead -arguments \$createArgs/);
+ assert.doesNotMatch(s,/\$containerId = DockerRead \$args/);
 });
