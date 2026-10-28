@@ -8,7 +8,7 @@ import {spawn} from 'node:child_process';
 
 export const IMAGE='sha256:d6844e71062a3c8e2f8021d644802850760ef970a45ac163ec8c9f0171075bda';
 export const NAME='faraios-t19-managed-qa';
-export const SCOPE='t19-local-disposable-start-readiness-synthetic-sql-stop-remove-v3';
+export const SCOPE='t19-local-disposable-start-readiness-synthetic-sql-stop-remove-v4';
 const ID=/^[a-f0-9]{64}$/, NONCE=/^[a-f0-9]{32}$/;
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const TRUST='/etc/faraios/t19-gate2-trust.json';
@@ -50,15 +50,17 @@ function fingerprint(pem){const key=createPublicKey(pem);if(key.asymmetricKeyTyp
 export function checkApproval({approval,trust,bundleSha256,binarySha256,hostBootSha256,now=Date.now()}){
  const r=approval?.receipt;
  const fields=['version','scope','bundleSha256','binarySha256','policySha256','inventorySha256','baselineCount','hostBootSha256','daemonIdSha256','context','nonce','issuedAt','expiresAt'];
- if(!r||!equal(Object.keys(r).sort(),fields.sort())||r.version!==3||r.scope!==SCOPE||
+ if(!r||!equal(Object.keys(r).sort(),fields.sort())||r.version!==4||r.scope!==SCOPE||
   r.bundleSha256!==bundleSha256||r.binarySha256!==binarySha256||r.policySha256!==policyDigest()||
   !ID.test(r.inventorySha256??'')||![0,13].includes(r.baselineCount)||
   !ID.test(hostBootSha256??'')||r.hostBootSha256!==hostBootSha256||!ID.test(r.daemonIdSha256??'')||
   r.context!==trust.context||!NONCE.test(r.nonce??'')||
   !Number.isSafeInteger(r.issuedAt)||!Number.isSafeInteger(r.expiresAt)||r.issuedAt>now||
   r.expiresAt<=now||r.expiresAt-r.issuedAt>900000||now-r.issuedAt>900000)fail('EXACT_APPROVAL_INVALID');
- if(fingerprint(trust.ownerKey)===fingerprint(trust.reviewerKey))fail('INDEPENDENT_KEYS_REQUIRED');
- for(const [name,key] of [['owner',trust.ownerKey],['reviewer',trust.reviewerKey]]){
+ // Owner-directed acceptance replaces the former second-reviewer signature.
+ // The owner public key remains independently provisioned, never caller-selected.
+ fingerprint(trust.ownerKey);
+ for(const [name,key] of [['owner',trust.ownerKey]]){
   const s=approval[name+'Signature'];
   if(typeof s!=='string'||!/^[A-Za-z0-9+/]{86}==$/.test(s)||
    !verify(null,Buffer.from(canonical(r)),createPublicKey(key),Buffer.from(s,'base64')))fail('SIGNATURE_INVALID');

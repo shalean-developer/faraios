@@ -8,19 +8,18 @@ import {spawn} from 'node:child_process';
 import {IMAGE,NAME,SCOPE,canonical,digest,policyDigest,createArgs,checkApproval,
  integratedRun,localJournal,boundedProcess,executeGate2,bundleDigest,recoverInterrupted} from '../scripts/t19-gate2-integrated.mjs';
 const keys=()=>generateKeyPairSync('ed25519');
-const owner=keys(),reviewer=keys();
+const owner=keys(),other=keys();
 const pem=k=>k.export({type:'spki',format:'pem'});
 const id='e'.repeat(64),nonce='f'.repeat(32),time=100000;
 function fixture(count=13){
  const calls=[],state={created:false,running:false};
  const baseline=Array.from({length:count},(_,i)=>({ID:digest('baseline'+i),Names:'existing-'+i,State:'running'})).sort((a,b)=>a.ID.localeCompare(b.ID));
- const trust={context:'default',dockerHost:'unix:///var/run/docker.sock',ownerKey:pem(owner.publicKey),reviewerKey:pem(reviewer.publicKey),
+ const trust={context:'default',dockerHost:'unix:///var/run/docker.sock',ownerKey:pem(owner.publicKey),
   imageEntrypoint:['docker-entrypoint.sh'],imageCmd:['postgres'],imageEnv:['PATH=/usr/bin:/bin']};
  const hostBootSha256=digest('fixture-host-boot');
- const receipt={version:3,scope:SCOPE,bundleSha256:digest('bundle'),binarySha256:digest('binary'),policySha256:policyDigest(),
+ const receipt={version:4,scope:SCOPE,bundleSha256:digest('bundle'),binarySha256:digest('binary'),policySha256:policyDigest(),
   inventorySha256:digest(baseline),baselineCount:count,hostBootSha256,daemonIdSha256:digest('fixture-daemon'),context:trust.context,nonce,issuedAt:time-1,expiresAt:time+60000};
- const signed=receipt=>({receipt,ownerSignature:sign(null,Buffer.from(canonical(receipt)),owner.privateKey).toString('base64'),
-  reviewerSignature:sign(null,Buffer.from(canonical(receipt)),reviewer.privateKey).toString('base64')});
+ const signed=receipt=>({receipt,ownerSignature:sign(null,Buffer.from(canonical(receipt)),owner.privateKey).toString('base64')});
  const args=createArgs(nonce),tmpfs={};for(let i=0;i<args.length;i++)if(args[i]==='--tmpfs'){const s=args[i+1],p=s.indexOf(':');tmpfs[s.slice(0,p)]=s.slice(p+1);}
  const container=()=>({Id:id,Image:IMAGE,Name:'/'+NAME,Config:{Image:IMAGE,User:'100:101',Labels:{'faraios.t19.run-nonce':nonce},
   Entrypoint:trust.imageEntrypoint,Cmd:trust.imageCmd,Env:[...trust.imageEnv,'POSTGRES_HOST_AUTH_METHOD=trust']},
@@ -49,7 +48,7 @@ function fixture(count=13){
   now:()=>time,sleep:async()=>{},sql:'fixed synthetic fixture',run,calls,state,baseline};
 }
 async function withJournal(fn){const dir=await mkdtemp(join(tmpdir(),'t19-g2-'));try{return await fn(localJournal(dir),dir);}finally{await rm(dir,{recursive:true,force:true});}}
-test('signed v3 lifecycle uses durable real files, fixed stdin, exact IDs and complete reconciliation',()=>withJournal(async(journal,dir)=>{
+test('signed v4 lifecycle uses durable real files, fixed stdin, exact IDs and complete reconciliation',()=>withJournal(async(journal,dir)=>{
  const f=fixture();const r=await integratedRun({...f,journal});assert.equal(r.status,'PASS');assert.equal(r.cleanupVerified,true);
  const intent=JSON.parse(await readFile(join(dir,nonce+'.intent'),'utf8'));assert.deepEqual(intent.baseline,f.baseline);
  assert.equal(JSON.parse(await readFile(join(dir,nonce+'.binding'),'utf8')).id,id);
@@ -59,13 +58,15 @@ test('signed v3 lifecycle uses durable real files, fixed stdin, exact IDs and co
  // Replay across a new gateway invocation with the same persistent directory.
  const replay=await integratedRun({...fixture(),journal});assert.equal(replay.status,'NO_GO');assert.equal(replay.mutationAttempted,false);
 }));
-test('independent owner/reviewer signatures and every exact binding are required',()=>{
+test('trusted owner signature and every exact binding are required',()=>{
  const f=fixture();assert.equal(checkApproval({...f,now:time}).nonce,nonce);
- for(const key of ['ownerSignature','reviewerSignature'])assert.throws(()=>checkApproval({...f,approval:{...f.approval,[key]:''},now:time}),/SIGNATURE/);
+ for(const key of ['ownerSignature'])assert.throws(()=>checkApproval({...f,approval:{...f.approval,[key]:''},now:time}),/SIGNATURE/);
  for(const [key,value] of Object.entries({scope:'startup-only',bundleSha256:digest('tamper'),binarySha256:digest('other'),policySha256:digest('other'),context:'remote',expiresAt:time-1,issuedAt:time+1,nonce:'bad'})){
   assert.throws(()=>checkApproval({...f,approval:f.signed({...f.receipt,[key]:value}),now:time}),/INVALID/);
  }
- assert.throws(()=>checkApproval({...f,trust:{...f.trust,reviewerKey:f.trust.ownerKey},now:time}),/INDEPENDENT/);
+ assert.throws(()=>checkApproval({...f,trust:{...f.trust,ownerKey:pem(other.publicKey)},now:time}),/SIGNATURE/);
+ assert.throws(()=>checkApproval({...f,approval:f.signed({...f.receipt,version:3}),now:time}),/INVALID/);
+ assert.throws(()=>checkApproval({...f,approval:{receipt:f.receipt,reviewerSignature:f.approval.ownerSignature},now:time}),/SIGNATURE/);
 });
 test('untrusted approval booleans cannot reach Docker or persistent state',()=>withJournal(async(journal)=>{
  const f=fixture();const r=await integratedRun({...f,journal,approval:{receipt:{...f.receipt,approved:true,consumed:true}}});
