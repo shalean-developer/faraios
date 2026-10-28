@@ -1,0 +1,70 @@
+✔ Auth email deny hook never reads a recipient, token or payload (4.35848ms)
+✔ hosted configuration and credential boundary fail closed without exposing values (1.074505ms)
+✔ outbound SDK boundary denies live providers, other projects, messaging Auth and redirects (5.70921ms)
+✔ T04 hosted SDK admits only synthetic journal reads and audited append RPCs (18.948526ms)
+✔ hosted passenger uses its reviewed transport, canonical origin and secure cookies with real SDK (50.72818ms)
+✔ hosted litespeed uses its reviewed transport, canonical origin and secure cookies with real SDK (21.934849ms)
+✔ local and restore retain production refusal, hosted rejects integration workers and non-Passenger boot (74.045805ms)
+✔ LiteSpeed managed edge requires private readiness and ignores all client TLS claims (0.395484ms)
+✔ runtime detection refuses generic loaders, wrong root/socket/startup and standalone fallback (4.774155ms)
+✖ actual Unix listener is required; TCP and symlink paths are refused (2.302125ms)
+✔ LiteSpeed denies requests until actual socket validation completes (4.765692ms)
+✖ inherited listener requires kernel-proven Unix identity and refuses TCP fd0 (3.186379ms)
+✔ verified hosting policy permits read/execute but no non-owner socket or ancestor write (0.735124ms)
+✔ T19 manual RLS count-only acceptance fails closed and requires positive owner control (0.244698ms)
+✔ web session crosses actual mTLS boundary with verified token and current memberships only (419.251483ms)
+✔ machine identity uses actual verified TLS peer and current server record (178.971665ms)
+✔ deployment config refuses unknown fields, repository secrets and disabled execution (39.307862ms)
+✔ hosted RPC opt-in permits only authenticated accounting status/enqueue transport (6.81322ms)
+✔ custody launcher binds loopback and closes database exactly once on shutdown/start failure (1.513374ms)
+✔ non-root private config locations retain symlink, hardlink, mode and ancestor denial (35.615032ms)
+✔ web configuration location accepts only an explicit versioned source setting (0.464819ms)
+✔ isolated encrypted vault with coordinator succeeds without returning tokens (4.329156ms)
+✔ cross-business binding, stale generation and disabled connection deny refresh (1.226703ms)
+✔ refresh timeout remains recovery-required across synthetic coordinator reopen (2.388439ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 22
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 596.91566
+
+✖ failing tests:
+
+test at test/hosted-staging.test.js:144:1
+✖ actual Unix listener is required; TCP and symlink paths are refused (2.302125ms)
+  Error: listen EPERM: operation not permitted /workspace/scratch/eb8d2d9e8ff9/faraios/t07-socket-NwQ423/app.sock
+      at Server.setupListenHandle [as _listen2] (node:net:2368:21)
+      at listenInCluster (node:net:2499:12)
+      at Server.listen (node:net:2641:5)
+      at file:///workspace/scratch/eb8d2d9e8ff9/faraios/test/hosted-staging.test.js:150:77
+      at new Promise (<anonymous>)
+      at TestContext.<anonymous> (file:///workspace/scratch/eb8d2d9e8ff9/faraios/test/hosted-staging.test.js:150:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '/workspace/scratch/eb8d2d9e8ff9/faraios/t07-socket-NwQ423/app.sock',
+    port: -1
+  }
+
+test at test/hosted-staging.test.js:173:1
+✖ inherited listener requires kernel-proven Unix identity and refuses TCP fd0 (3.186379ms)
+  Error: listen EPERM: operation not permitted /workspace/scratch/eb8d2d9e8ff9/faraios/t07-inherited-niE5pf/app.sock
+      at Server.setupListenHandle [as _listen2] (node:net:2368:21)
+      at listenInCluster (node:net:2499:12)
+      at Server.listen (node:net:2641:5)
+      at file:///workspace/scratch/eb8d2d9e8ff9/faraios/test/hosted-staging.test.js:180:77
+      at new Promise (<anonymous>)
+      at TestContext.<anonymous> (file:///workspace/scratch/eb8d2d9e8ff9/faraios/test/hosted-staging.test.js:180:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '/workspace/scratch/eb8d2d9e8ff9/faraios/t07-inherited-niE5pf/app.sock',
+    port: -1
+  }

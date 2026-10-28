@@ -1,3 +1,25 @@
+# Current Plesk deployment adaptation — 28 October 2026
+
+The owner instructed “Lets use what we have”. Root/systemd paths are one deployment option, not an intrinsic requirement of the accounting protocol. Current hosting was inspected read-only: Linux Node24.22.1; website uid10463/gid1003; OS-account home `/var/www/vhosts/faraios.com`, owned by10463, mode0710, not a symlink; app `/var/www/vhosts/faraios.com/staging.faraios.com/app`. Plesk scheduled tasks expose command/hourly/daily/cron-style configuration; current subscription task list is empty. The inspected task form was cancelled; no schedule, user, key, credential or service was created. No hosting plan or server was purchased.
+
+The web startup now reads the non-secret, versioned `config/t19-hosting.json` deployment setting. It explicitly selects `/var/www/vhosts/faraios.com/.faraios-t19/web.json`, outside this website's source/document root. There is no request parameter or environment-variable override and no automatic fallback or activation. `_passenger.cjs` remains selected in Plesk. Missing private configuration still fails closed if `_accounting.cjs` is explicitly selected later. The service and scheduler CLI already accept explicit absolute protected config paths, so neither intrinsically requires `/etc`.
+
+File loading now checks every ancestor for symlinks, unexpected owners, non-sticky shared write permissions and Git ancestry; secret/config files require owner-only permissions, one hard link, expected ownership and a bounded regular-file descriptor. Descriptor/path/ancestor identity changes are rejected. Root-owned sticky temporary directories support safe synthetic fixtures, not a deployment recommendation. Windows file modes still do not prove Windows ACL isolation and execution remains Linux-only.
+
+This adapts locations, not custody separation. **A0700 folder owned by the website user is not an independent credential-custody identity.** Only the narrowly scoped web mTLS config/certificates may eventually be placed in this web-user private folder. Database passwords, provider client secrets and refresh-token access must remain in the independently restricted custody identity/service and approved Vault grants. Do not reuse the production website identity as custody, expose secrets through Plesk command arguments/output/notifications, switch startup prematurely, or broaden Docker socket permissions.
+
+Before activating anything on existing resources, verify: a genuinely separate custody OS identity with private non-web files and least-privilege DB identity; a lifecycle manager supported by this plan; verified loopback/mTLS service reachability and access denials; a separate scheduler certificate/identity and reviewed bounded cadence; hosted recovery/backup/restore; operational SQL/grants; then approved TEST OAuth/provider operations. Plesk showing a cron form does not prove process supervision, separate identities, non-overlap or accounting acceptance. Do not run a persistent custody daemon by leaving a command-console window open or by unreviewed cron/nohup restart loops. Existing durable SQL operation leases and reconciliation rules remain mandatory.
+
+Docker is not a dependency of the hosted accounting service. The separately authorized disposable pinned-image Gate2 acceptance can use an eligible isolated execution environment; no permission to run Docker on this shared host is implied. No existing container may be modified.
+
+Regression evidence: private-directory acceptance and real filesystem mode/symlink/hardlink/oversize/Git-ancestor denials; explicit source-path contract; existing mTLS/custody/hosted tests. Local broader run has22PASS and2unchanged Unix-listener EPERM failures in this workspace, retained in `docs/evidence/t19-plesk-deployment/local-regressions.tap`; CI must establish the native listener scope. This is not runtime or provider acceptance. T19 remains In progress and T20 Not started.
+
+---
+
+# Historical systemd deployment preparation (retained)
+
+The following `/etc`/systemd example is an optional deployment model, not a requirement to buy another server. Old independent-reviewer prerequisites are superseded by the owner's28October owner-led acceptance direction. Technical and protected-operation gates remain effective. `_accounting.cjs` now obtains its config path from the reviewed deployment setting rather than a hard-coded `/etc` path.
+
 # T19 explicit deployment preparation
 
 Source only, based on staging c62c78acf1930ffa81307041673b67043b47234b. Issue140 remains open; A12 unresolved; accounting activation NO-GO. No launcher, unit, secret, SQL or provider operation was installed or activated. No T20–T23 changes. The PR containing this preparation needs its own review/merge governance; the PR143 exception does not extend.
