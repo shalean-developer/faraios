@@ -7,6 +7,8 @@ SET LOCAL statement_timeout='30s';
 DO $guard$
 BEGIN
  IF current_user<>'postgres' OR session_user<>'postgres'
+    OR NOT EXISTS(SELECT FROM pg_roles WHERE rolname='postgres' AND NOT rolsuper AND rolcreaterole)
+    OR NOT EXISTS(SELECT FROM pg_roles WHERE oid=10 AND rolname='supabase_admin' AND rolsuper)
     OR current_setting('server_version_num')::int<170000
     OR current_setting('faraios.t19_restore_candidate',true)
        IS DISTINCT FROM 'isolated-disposable-reviewed'
@@ -17,8 +19,10 @@ BEGIN
        ('anon','authenticated','service_role'))<>3
  THEN RAISE EXCEPTION 'CUSTODY_RECOVERY_DESTINATION_REFUSED' USING ERRCODE='55000'; END IF;
 END $guard$;
+SET LOCAL createrole_self_grant='';
 CREATE ROLE t19_hosted_custody NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
-GRANT t19_hosted_custody TO postgres WITH ADMIN TRUE, INHERIT FALSE, SET FALSE;
+-- PostgreSQL automatically records the creator ADMIN membership under the
+-- bootstrap superuser. Never forge or add a second grantor edge here.
 -- Retain schema/table ownership with the migration executor (Supabase-managed postgres).
 -- Do NOT assign owner to a new NOLOGIN role: managed postgres lacks SET ROLE to that role.
 -- This remains an inactive schema; later SECURITY DEFINER ownership needs separate review.

@@ -22,8 +22,10 @@ try{
  const who=(await client.query("SELECT current_user AS u,current_database() AS d,current_setting('server_version_num')::int AS v")).rows[0];
  assert.equal(who.u,'postgres');assert.equal(who.d,'postgres');assert.ok(who.v>=170000&&who.v<180000);
  await client.query('BEGIN');begun=true;
- await client.query("CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS; SET LOCAL faraios.t19_restore_candidate='isolated-disposable-reviewed';");
+ await client.query("CREATE ROLE fixture_admin SUPERUSER; SET SESSION AUTHORIZATION fixture_admin; ALTER ROLE postgres RENAME TO supabase_admin; CREATE ROLE postgres CREATEROLE BYPASSRLS; GRANT CREATE ON DATABASE postgres TO postgres; GRANT USAGE,CREATE ON SCHEMA public TO postgres; SET SESSION AUTHORIZATION postgres; CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS; SET LOCAL faraios.t19_restore_candidate='isolated-disposable-reviewed';");
  await client.query(body);
+ const membership=(await client.query("SELECT pg_get_userbyid(grantor) AS grantor,admin_option,inherit_option,set_option FROM pg_auth_members WHERE roleid='t19_hosted_custody'::regrole AND member='postgres'::regrole")).rows;
+ assert.deepEqual(membership,[{grantor:'supabase_admin',admin_option:true,inherit_option:false,set_option:false}]);
  await client.query("SET LOCAL search_path=''; SET LOCAL timezone='UTC';");
  const actual=(await client.query(projection)).rows[0].value;
  assert.equal(actual.constraints.length,13);
@@ -35,14 +37,16 @@ try{
  const changed=structuredClone(actual);changed.constraints[0][4]=false;
  assert.deepEqual(compareStructure(changed,expected).differingComponents,['constraints']);
  await client.query('ROLLBACK');begun=false;
- const clean=(await client.query("SELECT to_regnamespace('private_t19_custody') IS NULL AS absent, NOT EXISTS(SELECT FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role','t19_hosted_custody')) AS roles_absent")).rows[0];
+ await client.query('RESET SESSION AUTHORIZATION');
+ const clean=(await client.query("SELECT to_regnamespace('private_t19_custody') IS NULL AS absent, NOT EXISTS(SELECT FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role','t19_hosted_custody','fixture_admin','supabase_admin')) AS roles_absent")).rows[0];
  assert.deepEqual(clean,{absent:true,roles_absent:true});
  console.log('T19_NATIVE_PG17_RECOVERY_CATALOG_PASS');
+ console.log('T19_NATIVE_PG17_AUTOMATIC_BOOTSTRAP_GRANTOR_PASS');
  console.log('T19_NATIVE_PG17_NULLABILITY_AND_CONSTRAINT_DRIFT_REJECTED');
  console.log('T19_NATIVE_PG17_RECOVERY_FIXTURE_ROLLBACK_PASS');
 }catch{
  console.error('T19_NATIVE_PG17_RECOVERY_CATALOG_FAIL');process.exitCode=1;
 }finally{
- if(begun){try{await client.query('ROLLBACK');}catch{console.error('T19_NATIVE_PG17_ROLLBACK_UNKNOWN');process.exitCode=1;}}
+ if(begun){try{await client.query('ROLLBACK');await client.query('RESET SESSION AUTHORIZATION');}catch{console.error('T19_NATIVE_PG17_ROLLBACK_UNKNOWN');process.exitCode=1;}}
  await client.end();
 }
