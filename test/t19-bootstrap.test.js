@@ -82,3 +82,9 @@ test('real cleanup adapter removes only inspected bound resources and quarantine
  }
 });
 test('Docker log inspection includes stderr readiness messages',async()=>{const h=new Host({run:async()=>({code:0,stdout:Buffer.from('init complete\n'),stderr:Buffer.from('server ready')}),dir:'/unused',receipt:{nonce},expected:cat(),files,baseline:{}});assert.equal((await h.command(['container','logs','id'])).toString(),'init complete\nserver ready');});
+test('PostgreSQL logs cannot advance to SQL until the final socket answers readiness',async()=>{
+ let probes=0,queries=0;const h=new Host({run:async a=>{assert.ok(a.includes('pg_isready'));probes++;return {code:probes===1?2:probes===2?1:0,stdout:Buffer.alloc(0),stderr:Buffer.alloc(0)};},dir:'/unused',receipt:{nonce},expected:cat(),files,baseline:{}});
+ h.create=async()=>{const b={id:'a'.repeat(64)};h.bound.set('postgres',b);return b;};h.audit=h.absent=h.start=h.record=async()=>{};h.assertBound=async()=>({State:{Running:true}});h.command=async()=>Buffer.from('temporary server ready\nPostgreSQL init process complete\ndatabase system is ready to accept connections');
+ h.poll=async fn=>{for(let i=0;i<3;i++)if(await fn())return;assert.fail('readiness never completed');};h.sqlJSON=async()=>{queries++;assert.equal(probes,3);return {version:170011,bootstrap:true,managed:true,owners:2};};h.sql=async()=>{};
+ await h.postgres();assert.equal(queries,1);assert.equal(probes,3);
+});
