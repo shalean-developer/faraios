@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawn} from 'node:child_process';
 import {IMAGE,NAME,SCOPE,canonical,digest,policyDigest,createArgs,checkApproval,
- integratedRun,localJournal,boundedProcess,executeGate2,bundleDigest,recoverInterrupted} from '../scripts/t19-gate2-integrated.mjs';
+ integratedRun,localJournal,boundedProcess,executeGate2,bundleDigest,recoverInterrupted,nativeExecutionReport} from '../scripts/t19-gate2-integrated.mjs';
 const keys=()=>generateKeyPairSync('ed25519');
 const owner=keys(),other=keys();
 const pem=k=>k.export({type:'spki',format:'pem'});
@@ -41,7 +41,7 @@ function fixture(count=13){
   else if(command==='container stop')state.running=false;
   else if(command==='container rm')state.created=false;
   else if(command==='container exec'&&a.includes('psql'))stdout=state.sqlOutput??'NOTICE: T19_SQLSTATE_42501_PASS\nNOTICE: T19_DUPLICATE_23505_PASS\nNOTICE: T19_COLLISION_42P06_PASS\nNOTICE: T19_COLLISION_55000_PASS\nNOTICE: T19_ALLOWED_WRITE_PASS\nT19_ROLLBACK_PASS';
-  else if(command==='container logs')stdout='synthetic startup log';
+  else if(command==='container logs')stdout=state.startupLogs??'PostgreSQL init process complete; ready for start up.\n2026-10-28 16:47:08.576 UTC [1] LOG:  database system is ready to accept connections';
   return {stdout,stderr:''};
  };
  return {approval:signed(receipt),signed,receipt,trust,bundleSha256:receipt.bundleSha256,binarySha256:receipt.binarySha256,hostBootSha256,
@@ -50,6 +50,7 @@ function fixture(count=13){
 async function withJournal(fn){const dir=await mkdtemp(join(tmpdir(),'t19-g2-'));try{return await fn(localJournal(dir),dir);}finally{await rm(dir,{recursive:true,force:true});}}
 test('signed v4 lifecycle uses durable real files, fixed stdin, exact IDs and complete reconciliation',()=>withJournal(async(journal,dir)=>{
  const f=fixture();const r=await integratedRun({...f,journal});assert.equal(r.status,'PASS');assert.equal(r.cleanupVerified,true);
+ assert.equal(r.runtimeEvidence,false,'injected lifecycle is not native execution evidence');
  const intent=JSON.parse(await readFile(join(dir,nonce+'.intent'),'utf8'));assert.deepEqual(intent.baseline,f.baseline);
  assert.equal(JSON.parse(await readFile(join(dir,nonce+'.binding'),'utf8')).id,id);
  assert.deepEqual(JSON.parse(await readFile(join(dir,nonce+'.inventory-after'),'utf8')),f.baseline);
@@ -57,6 +58,88 @@ test('signed v4 lifecycle uses durable real files, fixed stdin, exact IDs and co
  for(const c of f.calls.filter(c=>c.a[0]==='container'&&['start','stop','rm','exec','logs','inspect'].includes(c.a[1])))assert.ok(c.a.includes(id));
  // Replay across a new gateway invocation with the same persistent directory.
  const replay=await integratedRun({...fixture(),journal});assert.equal(replay.status,'NO_GO');assert.equal(replay.mutationAttempted,false);
+}));
+test('Docker environment reordering preserves the complete signed lifecycle',()=>withJournal(async journal=>{
+ const f=fixture();f.trust.imageEnv.push('T19_VALUE=a=b','T19_EMPTY=');
+ f.state.tamper=c=>c.Config.Env.reverse();
+ const result=await integratedRun({...f,journal});
+ assert.equal(result.status,'PASS');assert.equal(result.cleanupVerified,true);
+}));
+for(const [name,change] of [
+ ['changed value',env=>env.map(v=>v.startsWith('PATH=')?'PATH=/changed':v)],
+ ['added entry',env=>[...env,'EXTRA=value']],
+ ['missing entry',env=>env.slice(1)],
+ ['identical duplicate',env=>[...env,env[0]]],
+ ['conflicting duplicate',env=>[...env,'PATH=/changed']],
+ ['missing equals',env=>[...env,'INVALID']],
+ ['empty name',env=>[...env,'=value']],
+ ['non-string',env=>[...env,null]],
+ ['nul byte',env=>[...env,'BAD=x\0y']],
+ ['non-array',()=>null]
+])test('container environment rejects '+name+' before start',()=>withJournal(async journal=>{
+ const f=fixture();f.state.tamper=c=>{c.Config.Env=change(c.Config.Env);};
+ const result=await integratedRun({...f,journal});
+ assert.equal(result.status,'QUARANTINE');
+ assert.equal(result.reason,name==='non-array'?'OWNERSHIP_OR_ISOLATION':'IMAGE_CONFIG_CHANGED');
+ assert.equal(f.calls.some(c=>['start','exec','stop','rm'].includes(c.a[1])),false);
+}));
+test('duplicate environment in trusted image fails before create',()=>withJournal(async journal=>{
+ const f=fixture();f.trust.imageEnv.push(f.trust.imageEnv[0]);
+ const result=await integratedRun({...f,journal});
+ assert.equal(result.status,'NO_GO');assert.equal(result.reason,'IMAGE_IDENTITY_CHANGED');
+ assert.equal(f.calls.some(c=>c.a[1]==='create'),false);
+}));
+test('image metadata environment order is immaterial',()=>withJournal(async journal=>{
+ const f=fixture();f.trust.imageEnv.push('T19_VALUE=a=b');
+ const original=f.run;
+ f.run=async(a,opts)=>{
+  const result=await original(a,opts);
+  if(a[0]==='image'&&a[1]==='inspect'){
+   const image=JSON.parse(result.stdout);image[0].Config.Env.reverse();
+   return {...result,stdout:JSON.stringify(image)};
+  }
+  return result;
+ };
+ assert.equal((await integratedRun({...f,journal})).status,'PASS');
+}));
+test('temporary bootstrap readiness cannot reach pg_isready or SQL',()=>withJournal(async journal=>{
+ const f=fixture();f.state.startupLogs='2026-10-28 [41] LOG: database system is ready to accept connections';
+ const result=await integratedRun({...f,journal});
+ assert.equal(result.reason,'READINESS_TIMEOUT');assert.equal(result.status,'QUARANTINE');
+ assert.equal(f.calls.some(c=>c.a[1]==='exec'),false);
+}));
+test('permanent readiness also requires vendor initialization completion',()=>withJournal(async journal=>{
+ const f=fixture();f.state.startupLogs='2026-10-28 [1] LOG: database system is ready to accept connections';
+ assert.equal((await integratedRun({...f,journal})).reason,'READINESS_TIMEOUT');
+ assert.equal(f.calls.some(c=>c.a[1]==='exec'),false);
+}));
+test('runner waits through bootstrap and recognizes permanent readiness on stderr',()=>withJournal(async journal=>{
+ const f=fixture(),original=f.run;let polls=0;
+ f.run=async(a,opts)=>{
+  const result=await original(a,opts);
+  if(a[0]==='container'&&a[1]==='logs'){
+   polls++;
+   if(polls<=3)return {...result,stdout:'2026-10-28 [41] LOG: database system is ready to accept connections',stderr:''};
+   return {...result,stdout:'PostgreSQL init process complete; ready for start up.\n',
+    stderr:'2026-10-28 [1] LOG: database system is ready to accept connections\n'};
+  }
+  return result;
+ };
+ assert.equal((await integratedRun({...f,journal})).status,'PASS');
+ const firstExec=f.calls.findIndex(c=>c.a[1]==='exec');
+ assert.equal(f.calls.slice(0,firstExec).filter(c=>c.a[1]==='logs').length,4);
+}));
+test('native reporting requires a complete reconciled lifecycle without altering the original report',()=>withJournal(async journal=>{
+ const f=fixture();const report=await integratedRun({...f,journal});
+ const native=nativeExecutionReport(report);
+ assert.equal(native.runtimeEvidence,true);assert.equal(report.runtimeEvidence,false);
+ assert.deepEqual({...native,runtimeEvidence:false},report);
+ for(const patch of [
+  {status:'QUARANTINE'},{status:'NO_GO'},{mutationAttempted:false},
+  {cleanupVerified:false},{containerId:'bad'},
+  {stages:report.stages.filter(s=>s!=='SQL_EVIDENCE')},
+  {stages:[...report.stages].reverse()}
+ ])assert.equal(nativeExecutionReport({...report,...patch,runtimeEvidence:true}).runtimeEvidence,false);
 }));
 test('trusted owner signature and every exact binding are required',()=>{
  const f=fixture();assert.equal(checkApproval({...f,now:time}).nonce,nonce);

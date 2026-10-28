@@ -6,7 +6,7 @@ import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 
-export const IMAGE='sha256:d6844e71062a3c8e2f8021d644802850760ef970a45ac163ec8c9f0171075bda';
+export const IMAGE='sha256:2b3159aaa54f5bfb06dffce70ee7b2481a3489fdfb607562e12b4940e26331f8';
 export const NAME='faraios-t19-managed-qa';
 export const SCOPE='t19-local-disposable-start-readiness-synthetic-sql-stop-remove-v4';
 const ID=/^[a-f0-9]{64}$/, NONCE=/^[a-f0-9]{32}$/;
@@ -28,6 +28,21 @@ export function canonical(x){
 }
 export const digest=x=>createHash('sha256').update(typeof x==='string'||Buffer.isBuffer(x)?x:canonical(x)).digest('hex');
 const equal=(a,b)=>canonical(a)===canonical(b);
+function equalEnvironment(actual,expected){
+ const normalize=entries=>{
+  if(!Array.isArray(entries))return null;
+  const names=new Set();
+  for(const entry of entries){
+   if(typeof entry!=='string'||entry.includes('\0'))return null;
+   const at=entry.indexOf('='),name=entry.slice(0,at);
+   if(at<1||names.has(name))return null;
+   names.add(name);
+  }
+  return [...entries].sort();
+ };
+ const a=normalize(actual),b=normalize(expected);
+ return a!==null&&b!==null&&equal(a,b);
+}
 const fail=code=>{throw Error(code);};
 export function createArgs(nonce){
  if(!NONCE.test(nonce??''))fail('NONCE_INVALID');
@@ -40,6 +55,7 @@ export function createArgs(nonce){
 export const policyDigest=()=>digest({scope:SCOPE,create:createArgs('0'.repeat(32)),
  commands:['context-inspect','daemon-info','image-inspect','inventory','inspect-owned-id','start-owned-id',
  'pg_isready-owned-id','psql-fixed-stdin-owned-id','logs-owned-id','stop-owned-id','remove-stopped-owned-id'],
+ readiness:['vendor-init-complete','pid1-server-ready','pg_isready'],
  maxMs:30000,maxBytes:1048576,platform:'linux',allowedBaselineCounts:[0,13]});
 export async function bundleDigest(){
  const files=['scripts/t19-gate2-integrated.mjs','database/t19-gate2-disposable-integrity.sql'];
@@ -207,7 +223,7 @@ export async function integratedRun({approval,trust,bundleSha256,binarySha256,ho
   if(x.Id!==id||!isolation(x,r.nonce))fail('OWNERSHIP_OR_ISOLATION');
   // Bind image defaults including entrypoint/cmd/env to independently reviewed image metadata.
   if(!equal(x.Config.Entrypoint,trust.imageEntrypoint)||!equal(x.Config.Cmd,trust.imageCmd)||
-   !equal(x.Config.Env,[...trust.imageEnv.filter(v=>!v.startsWith('POSTGRES_HOST_AUTH_METHOD=')),...ENV]))fail('IMAGE_CONFIG_CHANGED');
+   !equalEnvironment(x.Config.Env,[...trust.imageEnv.filter(v=>!v.startsWith('POSTGRES_HOST_AUTH_METHOD=')),...ENV]))fail('IMAGE_CONFIG_CHANGED');
   return x;
  };
  try{
@@ -223,7 +239,7 @@ export async function integratedRun({approval,trust,bundleSha256,binarySha256,ho
   const image=JSON.parse(await call(['image','inspect',IMAGE]));
   if(image.length!==1||image[0].Id!==IMAGE||image[0].Os!=='linux'||image[0].Architecture!=='amd64'||
    !equal(image[0].Config.Entrypoint,trust.imageEntrypoint)||!equal(image[0].Config.Cmd,trust.imageCmd)||
-   !equal(image[0].Config.Env,trust.imageEnv))fail('IMAGE_IDENTITY_CHANGED');
+   !equalEnvironment(image[0].Config.Env,trust.imageEnv))fail('IMAGE_IDENTITY_CHANGED');
   baseline=await list();
   if(baseline.length!==r.baselineCount||baseline.some(c=>c.Names.split(',').includes(NAME))||digest(baseline)!==r.inventorySha256)fail('BASELINE_CHANGED');
   // Recheck expiry immediately before single-use consumption. Any failure burns the grant.
@@ -242,6 +258,12 @@ export async function integratedRun({approval,trust,bundleSha256,binarySha256,ho
   const deadline=now()+20000;let ready=false;
   for(let attempt=0;attempt<20&&now()<deadline;attempt++){
    if(!(await inspect(id)).State?.Running)fail('STARTUP_STOPPED');
+   const startup=await dispatch(['container','logs','--tail','100',id],{timeoutMs:Math.max(1,Math.min(3000,deadline-now()))});
+   const startupLines=(startup.stdout+'\n'+startup.stderr).split(/\r?\n/);
+   const initialized=startupLines.some(line=>line.trim()==='PostgreSQL init process complete; ready for start up.');
+   const permanent=startupLines.some(line=>/\[1\]\s+LOG:\s+database system is ready to accept connections\s*$/.test(line));
+   if(!initialized||!permanent){await sleep(250);continue;}
+   if(now()>=deadline)break;
    try{await call(['container','exec',id,'pg_isready','-U','supabase_admin','-h','/var/run/postgresql'],{timeoutMs:Math.max(1,Math.min(3000,deadline-now()))});ready=true;break;}
    catch(e){if(e.message!=='PROCESS_EXIT_UNKNOWN')throw e;}
    await sleep(250);
@@ -288,10 +310,19 @@ export async function integratedRun({approval,trust,bundleSha256,binarySha256,ho
  return report;
 }
 
+// Reporting only: this grants no capability and is used by the protected native
+// entrypoint, never by the injectable lifecycle seam. Not independent attestation.
+export function nativeExecutionReport(report){
+ const complete=report.status==='PASS'&&report.mutationAttempted===true&&
+  report.cleanupVerified===true&&ID.test(report.containerId??'')&&
+  equal(report.stages,['NONCE_DURABLE','INTENT_DURABLE','READY','SQL_EVIDENCE','RECONCILED']);
+ return {...report,runtimeEvidence:complete};
+}
+
 export async function executeGate2(approval){
  // Windows/reparse points and cross-host/backup ledger monotonicity are not
  // attested. Do not pretend POSIX file fsync establishes those properties.
- if(process.platform!=='linux')return {status:'NO_GO',reason:'HOST_DURABILITY_NOT_REVIEWED',mutationAttempted:false};
+ if(process.platform!=='linux')return {status:'NO_GO',reason:'HOST_DURABILITY_NOT_REVIEWED',mutationAttempted:false,runtimeEvidence:false};
  try{
   // The reviewed bundle must be installed outside a caller-writable checkout.
   // Host administrators and the Node runtime remain inside the trust boundary.
@@ -302,9 +333,10 @@ export async function executeGate2(approval){
   const trust=JSON.parse(await readFile(TRUST,'utf8'));
   await protectedPath(trust.dockerBinary);
   if(!ID.test(trust.binarySha256??'')||digest(await readFile(trust.dockerBinary))!==trust.binarySha256)fail('DOCKER_BINARY_CHANGED');
-  return await integratedRun({approval,trust,bundleSha256:await bundleDigest(),binarySha256:trust.binarySha256,
+  const report=await integratedRun({approval,trust,bundleSha256:await bundleDigest(),binarySha256:trust.binarySha256,
    hostBootSha256:digest((await readFile('/proc/sys/kernel/random/boot_id','utf8')).trim()),
    run:boundedProcess(trust.dockerBinary,trust.context),journal:localJournal(STATE),
    sql:await readFile(join(root,'database/t19-gate2-disposable-integrity.sql'),'utf8')});
- }catch{return {status:'NO_GO',reason:'HOST_TRUST_UNAVAILABLE',mutationAttempted:false};}
+  return nativeExecutionReport(report);
+ }catch{return {status:'NO_GO',reason:'HOST_TRUST_UNAVAILABLE',mutationAttempted:false,runtimeEvidence:false};}
 }
