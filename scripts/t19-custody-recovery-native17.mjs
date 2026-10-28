@@ -36,6 +36,16 @@ try{
  assert.deepEqual(compareStructure(nullable,expected).differingComponents,['columns']);
  const changed=structuredClone(actual);changed.constraints[0][4]=false;
  assert.deepEqual(compareStructure(changed,expected).differingComponents,['constraints']);
+ // Validate the new managed catalogue projection on native PG17, using only
+ // empty scratch ledger tables inside this same rollback-only fixture.
+ await client.query('CREATE SCHEMA auth; CREATE SCHEMA storage; CREATE TABLE auth.schema_migrations(version text); CREATE TABLE storage.migrations(id int,name text,hash text);');
+ const bootstrapProjection=await readFile(new URL('./t19-bootstrap-catalog.sql',import.meta.url),'utf8');
+ // The fixture already has a transaction. Strip transaction control only;
+ // READ ONLY is validated by the separate embedded execution test.
+ const captureBody=bootstrapProjection.replace('BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;','').replace(/COMMIT;\s*$/,'');
+ const captured=(await client.query(captureBody)).find(r=>r.rows?.[0]?.jsonb_build_object)?.rows[0].jsonb_build_object;
+ assert.equal(captured.schemaVersion,1);assert.equal(Object.keys(captured.catalog).length,12);assert.equal(Object.keys(captured.catalog.managed).length,17);
+ console.log('T19_NATIVE_PG17_BOOTSTRAP_CAPTURE_SQL_PASS');
  await client.query('ROLLBACK');begun=false;
  await client.query('RESET SESSION AUTHORIZATION');
  const clean=(await client.query("SELECT to_regnamespace('private_t19_custody') IS NULL AS absent, NOT EXISTS(SELECT FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role','t19_hosted_custody','fixture_admin','supabase_admin')) AS roles_absent")).rows[0];
