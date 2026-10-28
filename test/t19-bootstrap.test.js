@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile,mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {EventEmitter} from 'node:events';
 import {PassThrough} from 'node:stream';
 import {generateKeyPairSync,sign} from 'node:crypto';
@@ -13,7 +15,7 @@ function specFixture(kind='postgres'){
  const s=containerSpec(nonce,kind,network),x={Id:'a'.repeat(64),Name:'/'+s.name,Image:s.image,Config:{Image:s.image,User:s.user,Labels:{'faraios.t19.bootstrap-nonce':nonce}},HostConfig:{NetworkMode:s.network,ReadonlyRootfs:true,Memory:536870912,MemorySwap:536870912,NanoCpus:1e9,PidsLimit:64,Privileged:false,PublishAllPorts:false,AutoRemove:false,RestartPolicy:{Name:'no'},Tmpfs:s.tmpfs,CapDrop:['ALL'],SecurityOpt:['no-new-privileges:true']},NetworkSettings:{Networks:{[network]:{NetworkID:'network-id'}},Ports:{}},Mounts:[]};return {s,x};
 }
 test('fixed creation bounds contain no restore, bind, published-port or pull capability',()=>{
- const {s}=specFixture();const a=createArgs(s);assert.equal(a[a.length-1],s.image);assert.ok(a.includes('/dev/stdin'));assert.equal(a[a.indexOf('--pull')+1],'never');assert.equal(a[a.indexOf('--network')+1],network);
+ const {s}=specFixture();const a=createArgs(s,undefined,'/private/env-test/values.env');assert.equal(a[a.length-1],s.image);assert.ok(a.includes('/private/env-test/values.env'));assert.throws(()=>createArgs(s,undefined,'/dev/stdin'));assert.equal(a[a.indexOf('--pull')+1],'never');assert.equal(a[a.indexOf('--network')+1],network);
  for(const bad of ['--privileged','--publish','-p','--mount','--volume','--cap-add'])assert.ok(!a.includes(bad));assert.throws(()=>containerSpec(nonce,'postgres','host'));assert.throws(()=>containerSpec('bad','postgres',network));
 });
 test('inspect verifies isolation rather than trusting creation arguments',()=>{
@@ -65,6 +67,7 @@ test('new capture SQL runs against a real embedded PostgreSQL catalogue and rema
 });
 test('real cleanup adapter removes only inspected bound resources and quarantines changed ownership',async()=>{
  for(const mode of ['owned','foreign','unknown']){
+  const privateDir=await mkdtemp(join(tmpdir(),'t19-cleanup-'));
   const {s,x}=specFixture();x.Config.Env=[];x.Config.Entrypoint=['docker-entrypoint.sh'];x.Config.Cmd=['postgres'];x.State={Running:true};
   let present=true;const mutations=[];const run=async a=>{
    let output='';if(a[0]==='container'&&a[1]==='inspect')output=JSON.stringify([x]);
@@ -75,10 +78,10 @@ test('real cleanup adapter removes only inspected bound resources and quarantine
    else if(a[0]==='container'&&a[1]==='ls')output=present?(a.includes('--quiet')?x.Id:JSON.stringify({ID:x.Id,State:x.State.Running?'running':'exited',Names:s.name,Image:s.image})):'';
    return {code:0,stdout:Buffer.from(output),stderr:Buffer.alloc(0)};
   };
-  const baseline={containers:[],networks:[],volumes:[]};const h=new Host({run,dir:'/unused',receipt:{nonce},expected:cat(),files,baseline});h.record=async()=>{};h.nets.set(network,'network-id');
+  const baseline={containers:[],networks:[],volumes:[]};const h=new Host({run,dir:privateDir,receipt:{nonce},expected:cat(),files,baseline});h.record=async()=>{};h.nets.set(network,'network-id');
   h.bound.set('postgres',{id:x.Id,s,expectedEnv:[],expectedEntrypoint:x.Config.Entrypoint,expectedCmd:x.Config.Cmd});
   if(mode==='foreign')x.Config.Labels={};if(mode==='unknown')h.unknown=true;
-  const clean=await h.cleanup();assert.equal(clean,mode==='owned');assert.deepEqual(mutations,mode==='owned'?['stop','rm','network-rm']:[]);
+  const clean=await h.cleanup();assert.equal(clean,mode==='owned');assert.deepEqual(mutations,mode==='owned'?['stop','rm','network-rm']:[]);await rm(privateDir,{recursive:true});
  }
 });
 test('Docker log inspection includes stderr readiness messages',async()=>{const h=new Host({run:async()=>({code:0,stdout:Buffer.from('init complete\n'),stderr:Buffer.from('server ready')}),dir:'/unused',receipt:{nonce},expected:cat(),files,baseline:{}});assert.equal((await h.command(['container','logs','id'])).toString(),'init complete\nserver ready');});
@@ -87,4 +90,15 @@ test('PostgreSQL logs cannot advance to SQL until the final socket answers readi
  h.create=async()=>{const b={id:'a'.repeat(64)};h.bound.set('postgres',b);return b;};h.audit=h.absent=h.start=h.record=async()=>{};h.assertBound=async()=>({State:{Running:true}});h.command=async()=>Buffer.from('temporary server ready\nPostgreSQL init process complete\ndatabase system is ready to accept connections');
  h.poll=async fn=>{for(let i=0;i<3;i++)if(await fn())return;assert.fail('readiness never completed');};h.sqlJSON=async()=>{queries++;assert.equal(probes,3);return {version:170011,bootstrap:true,managed:true,owners:2};};h.sql=async()=>{};
  await h.postgres();assert.equal(queries,1);assert.equal(probes,3);
+});
+test('Host.create gives the Docker client a private environment path and removes it after binding',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'t19-create-env-'));try{
+  const {s,x}=specFixture();x.Config.Env=['BASE=value','OPAQUE_VALUE=synthetic-only'];x.Config.Cmd=['postgres'];x.Config.Entrypoint=['docker-entrypoint.sh'];let envPath;
+  const run=async(a,options={})=>{let value;
+   if(a[0]==='image')value=JSON.stringify([{Config:{Env:['BASE=value'],Cmd:x.Config.Cmd,Entrypoint:x.Config.Entrypoint}}]);
+   else if(a[1]==='create'){envPath=a[a.indexOf('--env-file')+1];assert.notEqual(envPath,'/dev/stdin');assert.ok(!a.join(' ').includes('synthetic-only'));assert.ok(!options.stdin);assert.equal(await readFile(envPath,'utf8'),'OPAQUE_VALUE=synthetic-only\n');value=x.Id;}
+   else value=JSON.stringify([x]);return {code:0,stdout:Buffer.from(value),stderr:Buffer.alloc(0)};
+  };
+  const h=new Host({run,dir,receipt:{nonce},expected:cat(),files,baseline:{}});h.record=async()=>{};h.nets.set(network,'network-id');const b=await h.create('postgres',{OPAQUE_VALUE:'synthetic-only'});assert.equal(b.id,x.Id);assert.ok(envPath);assert.deepEqual(await import('node:fs/promises').then(fs=>fs.readdir(dir)),[]);
+ }finally{await rm(dir,{recursive:true,force:true});}
 });
