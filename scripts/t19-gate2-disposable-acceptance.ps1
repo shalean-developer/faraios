@@ -5,6 +5,8 @@ param([switch]$ApproveDisposableRun,[string]$EvidenceDirectory = ".\t19-gate2-ev
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if (-not $ApproveDisposableRun) { throw 'EXECUTION_NO_GO: exact-run approval required. No Docker operation performed.' }
+# A switch is not an authenticated run receipt. Never allow Docker mutations yet.
+throw 'EXECUTION_NO_GO: signed exact-run receipt verification and bounded Docker executor not implemented.'
 $image = 'sha256:d6844e71062a3c8e2f8021d644802850760ef970a45ac163ec8c9f0171075bda'
 $name = 'faraios-t19-managed-qa'
 $nonce = [guid]::NewGuid().ToString('N')
