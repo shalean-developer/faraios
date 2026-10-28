@@ -16,12 +16,12 @@ The authenticated B02 v2 managed-role test passed: observed 42501 denial and 550
 
 `docs/proposals/t19-inactive-custody-recovery.sql` derives table definitions from `docs/proposals/t19-02-staging-inactive-schema.sql` and RLS/revocations/assertions from the applied `docs/proposals/t19-a12-inactive-hardening.sql`. Historical sources remain unchanged.
 
-SQL SHA-256: `b3aa5f7578b8cbabeeb7343a8e1b26fadc59b9c6d19e4b73026534d446cae4c0`.
+SQL SHA-256: `c4533d4c70ffff471a60300dbefe2fc56f78ad46d3379a967e8b82781a993686`.
 
 | Object | Candidate recovery definition |
 |---|---|
 | Role | t19_hosted_custody: NOLOGIN, NOINHERIT, NOSUPERUSER, NOCREATEDB, NOCREATEROLE, NOREPLICATION, NOBYPASSRLS; no password or role configuration supplied |
-| Membership | postgres receives ADMIN TRUE, INHERIT FALSE, SET FALSE; exact source grantor/options and absence of other edges must be confirmed before acceptance |
+| Membership | Automatic creator membership: postgres receives ADMIN TRUE, INHERIT FALSE, SET FALSE from bootstrap superuser supabase_admin; no manual GRANT is issued |
 | Schema | private_t19_custody, explicitly postgres-owned; no app-role or PUBLIC access |
 | connections | Original 9 columns, UUID PK, staging/zoho/positive-version checks, original composite uniqueness, enabled defaults false |
 | operations | Original 7 columns, UUID PK, connection FK, original phase check and unique partial t19_one_open_operation index |
@@ -36,7 +36,7 @@ The overlay is a single transaction. It refuses a wrong SQL principal/version, m
 
 Compare the privately retained custody structural projection against candidate reconstruction: columns/types/defaults/nullability, constraints and validation/deferability, index definitions and validity, owner, RLS/FORCE RLS, explicit/effective schema/table/column/default ACLs including grantor/grantee/grant option, role flags/config/connection limit and every membership edge. Confirm empty tables, no functions, policies, custom types, sequences or unexpected objects. A matching subset of table names/RLS flags is insufficient. Do not silently generalize the broader public/Vault permissions or change existing service_role Vault capabilities.
 
-Remaining live role/default-ACL details and full candidate catalog parity are pending. This document does not claim they have passed. Private archive paths, ciphertext/member hashes, key material, financial fingerprints and rows must stay out of Git and CI.
+The owner subsequently verified role flags/defaults, empty tables and index readiness, and supplied the exact membership edge from supabase_admin to postgres. Full candidate catalog parity and the corrected role readback remain pending. This document does not claim they have passed. Private archive paths, ciphertext/member hashes, key material, financial fingerprints and rows must stay out of Git and CI.
 
 The offline `scripts/t19-custody-recovery-compare.mjs` compares the owner's saved custody definition against 17 canonical component fingerprints reconstructed from this candidate in embedded PostgreSQL. Its expected JSON contains synthetic source-derived fingerprints, not copied live evidence. It reads one private JSON file and prints only differing component names. Matching is limited to the reviewed projection, whose custody scope omits global role capabilities/memberships and some native readiness fields. The separate read-only `docs/proposals/t19-inactive-custody-recovery-readback.sql` checks exact role flags/config/limit/expiry, the single grantor/ADMIN/INHERIT/SET membership edge, empty table counts, six valid/ready indexes and absent runtime owner. Neither comparison authorizes a restore or substitutes for native managed-bootstrap equivalence.
 
@@ -65,3 +65,13 @@ Only the synthetic expected constraint fingerprint is corrected for the PG17 pro
 An explicit native PostgreSQL 17 CI regression runs the original unfiltered projection against this recovery definition, checks all 17 expected components and 13 constraints, rejects deliberate nullability/constraint drift and verifies transaction-wide removal of its synthetic roles and schema. It runs only inside the existing network-isolated CI policy container's fresh loopback cluster, before other suites. Candidate BEGIN/COMMIT is wrapped in a fixture transaction and always rolled back. A native CI PASS verifies this version-specific fixture; it does not qualify a managed Supabase bootstrap or authenticate/restore a protected archive.
 
 Official catalog references: https://www.postgresql.org/docs/17/catalog-pg-constraint.html and https://www.postgresql.org/docs/18/catalog-pg-constraint.html . Owner-host evidence is retained unchanged; rerun the corrected offline comparator and separately collect role/empty-state readback before declaring definition reconciliation complete.
+
+## Automatic creator membership provenance correction
+
+The owner's readback confirms exactly one edge: role t19_hosted_custody, member postgres, grantor supabase_admin, ADMIN true, INHERIT false, SET false. The earlier readback's expected postgres grantor was a synthetic-superuser fixture assumption; membershipConforms=false did not establish broader permissions on staging. No membership was changed on the source.
+
+PostgreSQL 17 documents that a non-superuser CREATEROLE creator automatically receives ADMIN TRUE / SET FALSE / INHERIT FALSE from the bootstrap superuser. Reference: https://www.postgresql.org/docs/17/role-attributes.html . The original inactive schema's CREATE ROLE (without a membership GRANT) is consistent with the observed source edge. Exact historical statement audit is not inferred merely from matching this mechanism.
+
+The recovery candidate now requires non-superuser postgres with CREATEROLE and bootstrap superuser supabase_admin at OID 10, sets local createrole_self_grant empty, and relies on CREATE ROLE's automatic membership. It removes the manual GRANT and never impersonates a grantor or rewrites pg_auth_members on a managed source. A standalone superuser-postgres candidate is rejected; it must first pass the separate managed-bootstrap qualification. Readback requires the observed supabase_admin bootstrap grantor and all original options, with exactly one relevant edge.
+
+Embedded tests model this principal arrangement and verify the automatic edge. Native PG17 CI models it inside its rollback-only synthetic fixture: temporary bootstrap-role rename, fresh non-superuser postgres principal, normal role creation, full structural comparison, exact automatic grantor/options, then rollback and original CI role restoration. These synthetic CI-only role operations are not a managed bootstrap recipe and must never be run against staging, any protected project, or an existing host database. Real managed destination qualification and archive restoration remain unverified.

@@ -9,7 +9,7 @@ SELECT jsonb_build_object(
  'membershipConforms',(
   SELECT count(*)=1 AND coalesce(bool_and(
    pg_get_userbyid(m.roleid)='t19_hosted_custody'
-   AND pg_get_userbyid(m.member)='postgres' AND pg_get_userbyid(m.grantor)='postgres'
+   AND pg_get_userbyid(m.member)='postgres' AND pg_get_userbyid(m.grantor)='supabase_admin' AND m.grantor=10
    AND m.admin_option AND NOT m.inherit_option AND NOT m.set_option),false)
   FROM pg_auth_members m WHERE m.roleid=(SELECT oid FROM pg_roles WHERE rolname='t19_hosted_custody')
     OR m.member=(SELECT oid FROM pg_roles WHERE rolname='t19_hosted_custody')),

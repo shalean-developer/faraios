@@ -14,7 +14,12 @@ const projection=(await readFile(new URL('../scripts/restore-catalog.sql',import
  .replace("select jsonb_object_agg(scope,encode(extensions.digest(value::text,'sha256'),'hex')) as catalog from catalogs;","select value from catalogs where scope='custody';");
 async function fixture(t){
  const db=new PGlite();t.after(()=>db.close());
- await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
+ await db.exec(`CREATE ROLE fixture_admin SUPERUSER;
+ SET SESSION AUTHORIZATION fixture_admin; ALTER ROLE postgres RENAME TO supabase_admin;
+ CREATE ROLE postgres CREATEROLE BYPASSRLS;
+ GRANT CREATE ON DATABASE postgres TO postgres; GRANT USAGE,CREATE ON SCHEMA public TO postgres;
+ SET SESSION AUTHORIZATION postgres;
+ CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
  CREATE SCHEMA vault; CREATE TABLE vault.unrelated(id integer); INSERT INTO vault.unrelated VALUES(7);
  GRANT USAGE ON SCHEMA vault TO service_role; GRANT SELECT ON vault.unrelated TO service_role;
  CREATE TABLE public.recovery_sentinel(id integer); INSERT INTO public.recovery_sentinel VALUES(9);`);
@@ -40,8 +45,8 @@ test('recovery recreates inactive constraints, index, RLS and denial boundaries'
  assert.deepEqual(compareStructure(changed,expected).differingComponents,['relations']);
  const role=(await db.query("SELECT rolcanlogin,rolsuper,rolinherit,rolcreaterole,rolcreatedb,rolreplication,rolbypassrls FROM pg_roles WHERE rolname='t19_hosted_custody'")).rows[0];
  assert.ok(Object.values(role).every(v=>v===false));
- const membership=(await db.query("SELECT admin_option,inherit_option,set_option FROM pg_auth_members WHERE roleid='t19_hosted_custody'::regrole AND member='postgres'::regrole")).rows;
- assert.deepEqual(membership,[{admin_option:true,inherit_option:false,set_option:false}]);
+ const membership=(await db.query("SELECT pg_get_userbyid(grantor) AS grantor,admin_option,inherit_option,set_option FROM pg_auth_members WHERE roleid='t19_hosted_custody'::regrole AND member='postgres'::regrole")).rows;
+ assert.deepEqual(membership,[{grantor:'supabase_admin',admin_option:true,inherit_option:false,set_option:false}]);
  const tables=(await db.query("SELECT relname,relrowsecurity,relforcerowsecurity,pg_get_userbyid(relowner) AS owner FROM pg_class WHERE relnamespace='private_t19_custody'::regnamespace AND relkind='r' ORDER BY relname")).rows;
  assert.equal(tables.length,3);
  assert.ok(tables.every(r=>r.relrowsecurity&&!r.relforcerowsecurity&&r.owner==='postgres'));
