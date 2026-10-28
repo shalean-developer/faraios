@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-28",
+  "scope": "Credential-free bounded retry after owner-installed HTTPS; subscription 846 only",
+  "probe_sha256": "c788b56986c024f7c3cc630f3298a0319f9a18c3d6984b1c367548e174edb60e",
+  "tls": {
+    "canonical_verified": true,
+    "www_verified": true,
+    "protocol": "TLSv1.3",
+    "expires": "2027-01-26T11:30:54Z"
+  },
+  "request": {
+    "strict_tls": true,
+    "status": 503,
+    "fixed_probe_denial": false,
+    "private_journals": 0
+  },
+  "diagnosis": {
+    "root_cause": "UNDETERMINED",
+    "plesk_error_log_bytes": 0,
+    "managed_config_read": "EACCES; no bypass attempted"
+  },
+  "rollback": {
+    "disabled_and_suspended_by_elapsed_ms": 194569,
+    "all_original_settings_restored_by_elapsed_ms": 234616,
+    "node_enabled": false,
+    "node_version": "25.9.0",
+    "application_root": "/httpdocs",
+    "document_root": "/httpdocs",
+    "startup": "app.js",
+    "private_entries": [],
+    "additional_owned_node_pids_outside_cli_chain": [],
+    "owner_installed_certificate_retained": true
+  },
+  "acceptance": {
+    "tls": "PASS",
+    "managed_startup": "NO_GO",
+    "heartbeat": "NOT_RUN",
+    "restart": "NOT_RUN",
+    "full_t19": "NO_GO",
+    "t20": "Not started"
+  }
+}

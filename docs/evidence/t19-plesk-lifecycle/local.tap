@@ -1,0 +1,17 @@
+✔ standalone, foreign identity and malformed managed contexts cannot start the probe (1.600866ms)
+✔ actual HTTP requests always receive denial without journaled request data (47.855893ms)
+✔ fixed deadline closes the owned listener and journal exactly once (37.183188ms)
+✔ TCP cannot masquerade as the managed Unix listener (1.298362ms)
+✔ listener-verification failure closes the probe without readiness (1.385863ms)
+✔ invalid duration cannot create an unlimited or long-lived test service (0.295454ms)
+✔ real private journal is exclusive and rejects changed permissions and symlink directories (8.859355ms)
+✔ startup diagnostic persists only fixed booleans and refuses a foreign identity (3.869936ms)
+✔ managed guard accepts LiteSpeed trailing separator while denying foreign and traversal roots (0.954003ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 194.357581

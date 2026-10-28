@@ -1,0 +1,220 @@
+{
+  "date": "2026-10-28",
+  "scope": "Owner-approved corrected five-minute credential-free lifecycle test",
+  "source": "8778edf6f65dd7a5bf04c3da1794284ccb56fc54",
+  "probe_sha256": "08bfc6e8d1408f8a690343cea66c74f565d781a939c4792d333e98ab02d322b7",
+  "activation_started_at": "2026-10-28T13:02:36.150Z",
+  "cold_start": {
+    "strict_tls": true,
+    "status": 403,
+    "fixed_denial": true
+  },
+  "restart_control_by_elapsed_ms": 58173,
+  "original_process_absent_after_restart": true,
+  "instances": [
+    {
+      "file": "lifecycle-29412ff8-7af2-4973-b75b-665a3628f2bf.jsonl",
+      "events": [
+        {
+          "event": "start",
+          "nonce": "29412ff8-7af2-4973-b75b-665a3628f2bf",
+          "pid": 3377555,
+          "ppid": 3375907,
+          "uid": 10521,
+          "startTicks": "125804453",
+          "socketPath": "/usr/local/lsws/extapp-sock/APVH_custody-staging.faraios.com:443:_.sock",
+          "at": 1793192631090
+        },
+        {
+          "event": "ready",
+          "nonce": "29412ff8-7af2-4973-b75b-665a3628f2bf",
+          "pid": 3377555,
+          "ppid": 3375907,
+          "uid": 10521,
+          "startTicks": "125804453",
+          "socketPath": "/usr/local/lsws/extapp-sock/APVH_custody-staging.faraios.com:443:_.sock",
+          "at": 1793192631099
+        },
+        {
+          "event": "heartbeat",
+          "nonce": "29412ff8-7af2-4973-b75b-665a3628f2bf",
+          "pid": 3377555,
+          "ppid": 3375907,
+          "uid": 10521,
+          "startTicks": "125804453",
+          "socketPath": "/usr/local/lsws/extapp-sock/APVH_custody-staging.faraios.com:443:_.sock",
+          "at": 1793192641096
+        },
+        {
+          "event": "heartbeat",
+          "nonce": "29412ff8-7af2-4973-b75b-665a3628f2bf",
+          "pid": 3377555,
+          "ppid": 3375907,
+          "uid": 10521,
+          "startTicks": "125804453",
+          "socketPath": "/usr/local/lsws/extapp-sock/APVH_custody-staging.faraios.com:443:_.sock",
+          "at": 1793192651097
+        },
+        {
+          "event": "SIGTERM",
+          "nonce": "29412ff8-7af2-4973-b75b-665a3628f2bf",
+          "pid": 3377555,
+          "ppid": 3375907,
+          "uid": 10521,
+          "startTicks": "125804453",
+          "socketPath": "/usr/local/lsws/extapp-sock/APVH_custody-staging.faraios.com:443:_.sock",
+          "at": 1793192651380
+        }
+      ]
+    },
+    {
+      "file": "lifecycle-4c7f722a-012c-4702-8e97-64b347cb628d.jsonl",
+      "events": [
+        {
+          "event": "start",
+          "nonce": "4c7f722a-012c-4702-8e97-64b347cb628d",
+          "pid": 3376255,
+          "ppid": 3375907,
+          "uid": 10521,
+          "startTicks": "125799422",
+          "socketPath": "/usr/local/lsws/extapp-sock/APVH_custody-staging.faraios.com:443:_.sock",
+          "at": 1793192580789
+        },
+        {
+          "event": "ready",
+          "nonce": "4c7f722a-012c-4702-8e97-64b347cb628d",
+          "pid": 3376255,
+          "ppid": 3375907,
+          "uid": 10521,
+          "startTicks": "125799422",
+          "socketPath": "/usr/local/lsws/extapp-sock/APVH_custody-staging.faraios.com:443:_.sock",
+          "at": 1793192580797
+        },
+        {
+          "event": "heartbeat",
+          "nonce": "4c7f722a-012c-4702-8e97-64b347cb628d",
+          "pid": 3376255,
+          "ppid": 3375907,
+          "uid": 10521,
+          "startTicks": "125799422",
+          "socketPath": "/usr/local/lsws/extapp-sock/APVH_custody-staging.faraios.com:443:_.sock",
+          "at": 1793192590794
+        },
+        {
+          "event": "heartbeat",
+          "nonce": "4c7f722a-012c-4702-8e97-64b347cb628d",
+          "pid": 3376255,
+          "ppid": 3375907,
+          "uid": 10521,
+          "startTicks": "125799422",
+          "socketPath": "/usr/local/lsws/extapp-sock/APVH_custody-staging.faraios.com:443:_.sock",
+          "at": 1793192600795
+        },
+        {
+          "event": "heartbeat",
+          "nonce": "4c7f722a-012c-4702-8e97-64b347cb628d",
+          "pid": 3376255,
+          "ppid": 3375907,
+          "uid": 10521,
+          "startTicks": "125799422",
+          "socketPath": "/usr/local/lsws/extapp-sock/APVH_custody-staging.faraios.com:443:_.sock",
+          "at": 1793192610796
+        },
+        {
+          "event": "SIGTERM",
+          "nonce": "4c7f722a-012c-4702-8e97-64b347cb628d",
+          "pid": 3376255,
+          "ppid": 3375907,
+          "uid": 10521,
+          "startTicks": "125799422",
+          "socketPath": "/usr/local/lsws/extapp-sock/APVH_custody-staging.faraios.com:443:_.sock",
+          "at": 1793192613088
+        }
+      ]
+    },
+    {
+      "file": "lifecycle-a91b369c-a244-419d-8748-c45db4acf98a.jsonl",
+      "events": [
+        {
+          "event": "start",
+          "nonce": "a91b369c-a244-419d-8748-c45db4acf98a",
+          "pid": 3377021,
+          "ppid": 3375907,
+          "uid": 10521,
+          "startTicks": "125802656",
+          "socketPath": "/usr/local/lsws/extapp-sock/APVH_custody-staging.faraios.com:443:_.sock",
+          "at": 1793192613124
+        },
+        {
+          "event": "ready",
+          "nonce": "a91b369c-a244-419d-8748-c45db4acf98a",
+          "pid": 3377021,
+          "ppid": 3375907,
+          "uid": 10521,
+          "startTicks": "125802656",
+          "socketPath": "/usr/local/lsws/extapp-sock/APVH_custody-staging.faraios.com:443:_.sock",
+          "at": 1793192613132
+        },
+        {
+          "event": "heartbeat",
+          "nonce": "a91b369c-a244-419d-8748-c45db4acf98a",
+          "pid": 3377021,
+          "ppid": 3375907,
+          "uid": 10521,
+          "startTicks": "125802656",
+          "socketPath": "/usr/local/lsws/extapp-sock/APVH_custody-staging.faraios.com:443:_.sock",
+          "at": 1793192623128
+        },
+        {
+          "event": "SIGTERM",
+          "nonce": "a91b369c-a244-419d-8748-c45db4acf98a",
+          "pid": 3377021,
+          "ppid": 3375907,
+          "uid": 10521,
+          "startTicks": "125802656",
+          "socketPath": "/usr/local/lsws/extapp-sock/APVH_custody-staging.faraios.com:443:_.sock",
+          "at": 1793192627002
+        }
+      ]
+    }
+  ],
+  "rollback": {
+    "restored_by_elapsed_ms": 128315,
+    "subscription": 846,
+    "status": "Suspended",
+    "node_enabled": false,
+    "node_version": "25.9.0",
+    "application_root": "/httpdocs",
+    "document_root": "/httpdocs",
+    "startup": "app.js",
+    "inventory": {
+      "uid": 10521,
+      "additionalOwnedNodePids": [],
+      "privateEntries": [
+        "lifecycle-1ba4d251-19a1-47d1-9f25-90dd35c205a7.jsonl",
+        "lifecycle-29412ff8-7af2-4973-b75b-665a3628f2bf.jsonl",
+        "lifecycle-4c7f722a-012c-4702-8e97-64b347cb628d.jsonl",
+        "lifecycle-5fefa927-0818-414a-829f-558e6f131ef5.jsonl",
+        "lifecycle-a91b369c-a244-419d-8748-c45db4acf98a.jsonl",
+        "lifecycle-c18a930b-3816-4330-ade4-0710483562c2.jsonl",
+        "lifecycle-f987b601-643c-453e-b4dc-68a4bdd42012.jsonl"
+      ]
+    }
+  },
+  "observations": [
+    "Three managed instances recorded, including an additional generation during shutdown/reconfiguration. Its exact trigger is not established. All three recorded SIGTERM and final owned-process inventory is empty.",
+    "Observed heartbeats and Plesk-triggered restart do not prove indefinite availability, startup after reboot, database draining or provider recovery."
+  ],
+  "acceptance": {
+    "tls": "PASS",
+    "cold_start": "PASS",
+    "kernel_unix_listener": "PASS",
+    "observed_heartbeat": "PASS",
+    "controlled_restart": "PASS",
+    "original_instance_absence": "PASS",
+    "final_owned_process_inventory": "PASS",
+    "parked_settings": "PASS",
+    "full_t19": "NO_GO",
+    "t20": "Not started"
+  }
+}
