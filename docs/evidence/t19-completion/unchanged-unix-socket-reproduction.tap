@@ -1,0 +1,48 @@
+TAP version 13
+# Subtest: actual Unix listener is required; TCP and symlink paths are refused
+not ok 1 - actual Unix listener is required; TCP and symlink paths are refused
+  ---
+  duration_ms: 18.098509
+  type: 'test'
+  location: '/workspace/scratch/eb8d2d9e8ff9/faraios/test/hosted-staging.test.js:144:1'
+  failureType: 'testCodeFailure'
+  error: 'listen EPERM: operation not permitted /workspace/scratch/eb8d2d9e8ff9/faraios/t07-socket-cwVg43/app.sock'
+  code: 'EPERM'
+  stack: |-
+    Server.setupListenHandle [as _listen2] (node:net:2368:21)
+    listenInCluster (node:net:2499:12)
+    Server.listen (node:net:2641:5)
+    file:///workspace/scratch/eb8d2d9e8ff9/faraios/test/hosted-staging.test.js:150:77
+    new Promise (<anonymous>)
+    TestContext.<anonymous> (file:///workspace/scratch/eb8d2d9e8ff9/faraios/test/hosted-staging.test.js:150:11)
+    async Test.run (node:internal/test_runner/test:1409:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+  ...
+# Subtest: inherited listener requires kernel-proven Unix identity and refuses TCP fd0
+not ok 2 - inherited listener requires kernel-proven Unix identity and refuses TCP fd0
+  ---
+  duration_ms: 9.925546
+  type: 'test'
+  location: '/workspace/scratch/eb8d2d9e8ff9/faraios/test/hosted-staging.test.js:173:1'
+  failureType: 'testCodeFailure'
+  error: 'listen EPERM: operation not permitted /workspace/scratch/eb8d2d9e8ff9/faraios/t07-inherited-Oeahe3/app.sock'
+  code: 'EPERM'
+  stack: |-
+    Server.setupListenHandle [as _listen2] (node:net:2368:21)
+    listenInCluster (node:net:2499:12)
+    Server.listen (node:net:2641:5)
+    file:///workspace/scratch/eb8d2d9e8ff9/faraios/test/hosted-staging.test.js:180:77
+    new Promise (<anonymous>)
+    TestContext.<anonymous> (file:///workspace/scratch/eb8d2d9e8ff9/faraios/test/hosted-staging.test.js:180:11)
+    async Test.run (node:internal/test_runner/test:1409:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 402.290096
