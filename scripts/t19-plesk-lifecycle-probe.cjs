@@ -73,17 +73,39 @@ function createProbe({journal,nonce=randomUUID(),durationMs=120000,heartbeatMs=1
  heartbeat=setInterval(()=>{try{if(ready)record('heartbeat');}catch{close('journal_error',1);}},heartbeatMs);
  return {server,close,nonce};
 }
+function startupFailure(stage,{directory=PRIVATE,uid=process.getuid?.(),context={}}={}){
+ // Fixed fields only: never serialize errors, argv, environment or requests.
+ const permitted=['managed_context','journal','process_identity','listener_setup'];
+ const event={event:'startup_refused',stage:permitted.includes(stage)?stage:'unknown',at:Date.now(),
+  context:{expectedUid:uid===UID,expectedRoot:context.root===ROOT,
+   expectedManagedRoot:context.managedRoot===ROOT,expectedStartup:context.startup==='probe.cjs',
+   expectedLoader:context.loader==='/usr/local/lsws/fcgi-bin/lsnode.js'}};
+ console.error('T19_LIFECYCLE_PROBE_REFUSED '+JSON.stringify(event));
+ if(uid!==UID)return false;
+ let journal;
+ try{journal=privateJournal(directory,randomUUID());journal.append(event);return true;}
+ catch{return false;}finally{journal?.close();}
+}
 function main(){
- assertManaged();const nonce=randomUUID(),journal=privateJournal(PRIVATE,nonce);
+ let stage='managed_context';
+ try{
+ assertManaged();stage='journal';const nonce=randomUUID(),journal=privateJournal(PRIVATE,nonce);
+ stage='process_identity';
  const stat=fs.readFileSync('/proc/self/stat','utf8'),startTicks=stat.slice(stat.lastIndexOf(')')+2).trim().split(/\s+/)[19];
+ stage='listener_setup';
  const probe=createProbe({journal,nonce,processInfo:{pid:process.pid,ppid:process.ppid,uid:process.getuid(),startTicks,socketPath:process.env.LSNODE_SOCKET},
   verify:server=>verifyUnixListener(server,process.env.LSNODE_SOCKET),onExit:code=>process.exit(code)});
  for(const signal of ['SIGTERM','SIGINT','SIGHUP'])process.once(signal,()=>probe.close(signal));
  // LiteSpeed redirects this HTTP listener to its managed private Unix socket.
  // No TCP, database, accounting, provider, child process or scheduler is started.
  try{probe.server.listen(0);}catch{probe.close('listen_refused',1);}
+ }catch{
+  startupFailure(stage,{context:{root:__dirname,managedRoot:process.env.LSNODE_ROOT,
+   startup:process.env.LSNODE_STARTUP_FILE,loader:process.argv[1]}});
+  process.exitCode=1;
+ }
 }
-module.exports={assertManaged,verifyUnixListener,privateJournal,createProbe};
+module.exports={assertManaged,verifyUnixListener,privateJournal,createProbe,startupFailure};
 if(require.main===module||process.argv[1]==='/usr/local/lsws/fcgi-bin/lsnode.js'){
  try{main();}catch{console.error('T19_LIFECYCLE_PROBE_REFUSED');process.exitCode=1;}
 }

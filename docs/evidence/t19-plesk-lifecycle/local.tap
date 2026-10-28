@@ -1,15 +1,16 @@
-✔ standalone, foreign identity and malformed managed contexts cannot start the probe (1.27758ms)
-✔ actual HTTP requests always receive denial without journaled request data (38.728913ms)
-✔ fixed deadline closes the owned listener and journal exactly once (36.01838ms)
-✔ TCP cannot masquerade as the managed Unix listener (1.638432ms)
-✔ listener-verification failure closes the probe without readiness (0.776758ms)
-✔ invalid duration cannot create an unlimited or long-lived test service (0.26592ms)
-✔ real private journal is exclusive and rejects changed permissions and symlink directories (6.661371ms)
-ℹ tests 7
+✔ standalone, foreign identity and malformed managed contexts cannot start the probe (1.082957ms)
+✔ actual HTTP requests always receive denial without journaled request data (46.670121ms)
+✔ fixed deadline closes the owned listener and journal exactly once (37.007714ms)
+✔ TCP cannot masquerade as the managed Unix listener (2.214508ms)
+✔ listener-verification failure closes the probe without readiness (0.686491ms)
+✔ invalid duration cannot create an unlimited or long-lived test service (0.331688ms)
+✔ real private journal is exclusive and rejects changed permissions and symlink directories (7.899312ms)
+✔ startup diagnostic persists only fixed booleans and refuses a foreign identity (3.620276ms)
+ℹ tests 8
 ℹ suites 0
-ℹ pass 7
+ℹ pass 8
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 171.036704
+ℹ duration_ms 182.572395

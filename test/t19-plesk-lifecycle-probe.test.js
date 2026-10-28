@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {userInfo} from 'node:os';
 import {EventEmitter,once} from 'node:events';
 const require=createRequire(import.meta.url);
-const {assertManaged,createProbe,privateJournal,verifyUnixListener}=require('../scripts/t19-plesk-lifecycle-probe.cjs');
+const {assertManaged,createProbe,privateJournal,verifyUnixListener,startupFailure}=require('../scripts/t19-plesk-lifecycle-probe.cjs');
 function fixture(options={}){
  const events=[],exits=[];let closed=0;
  const probe=createProbe({journal:{append:e=>events.push(e),close:()=>closed++},durationMs:1000,heartbeatMs:10,onExit:c=>exits.push(c),...options});
@@ -64,4 +64,25 @@ test('real private journal is exclusive and rejects changed permissions and syml
  await chmod(journal.file,0o644);assert.throws(()=>journal.append({event:'must-not-append'}),/REFUSED/);journal.close();
  const alias=dir+'-alias';await symlink(dir,alias);t.after(()=>rm(alias));assert.throws(()=>privateJournal(alias,'22345678-1234-4234-8234-123456789abc'),/REFUSED/);
  await chmod(dir,0o777);assert.throws(()=>privateJournal(dir,'32345678-1234-4234-8234-123456789abc'),/REFUSED/);await chmod(dir,0o700);
+});
+
+test('startup diagnostic persists only fixed booleans and refuses a foreign identity',async t=>{
+ let dir;
+ for(const parent of new Set([userInfo().homedir,process.cwd()])){
+  const candidate=await mkdtemp(join(parent,'t19-lifecycle-diagnostic-'));
+  try{const j=privateJournal(candidate,'42345678-1234-4234-8234-123456789abc');j.close();dir=candidate;break;}
+  catch(error){await rm(candidate,{recursive:true,force:true});if(error.message!=='T19_LIFECYCLE_PROBE_REFUSED')throw error;}
+ }
+ assert.ok(dir);t.after(()=>rm(dir,{recursive:true,force:true}));
+ const logs=[];t.mock.method(console,'error',line=>logs.push(line));
+ const context={root:'PRIVATE_TOKEN',managedRoot:'PRIVATE_TOKEN',startup:'PRIVATE_TOKEN',loader:'PRIVATE_TOKEN'};
+ assert.equal(startupFailure('PRIVATE_TOKEN',{directory:dir,uid:10463,context}),false);
+ assert.equal(startupFailure('managed_context',{directory:dir,uid:10521,context}),true);
+ const {readdir}=await import('node:fs/promises');
+ const files=await readdir(dir);assert.equal(files.length,2);
+ const events=await Promise.all(files.map(n=>readFile(join(dir,n),'utf8')));
+ assert.doesNotMatch(logs.join('')+events.join(''),/PRIVATE_TOKEN/);
+ const event=events.filter(Boolean).map(JSON.parse)[0];
+ assert.equal(event.event,'startup_refused');assert.equal(event.stage,'managed_context');
+ assert.deepEqual(event.context,{expectedUid:true,expectedRoot:false,expectedManagedRoot:false,expectedStartup:false,expectedLoader:false});
 });
