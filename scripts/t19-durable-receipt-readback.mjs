@@ -1,5 +1,6 @@
 // T19 local-only ownership journal. No Docker mutation or automatic cleanup.
-import {open,rename,readFile,unlink,mkdir} from 'node:fs/promises';
+import {open,rename,readFile,mkdir} from 'node:fs/promises';
+import {platform} from 'node:os';
 import {join,resolve} from 'node:path';
 import {correctedCandidate} from './t19-gate2-corrected-candidate.mjs';
 const HEX64=/^[0-9a-f]{64}$/,HEX32=/^[0-9a-f]{32}$/;
@@ -20,7 +21,10 @@ export async function writeReceiptOnce(directory,receipt){
   // Exclusive final reservation: rename() alone can overwrite existing files.
   const f=await open(destination,'wx',0o600);await f.close();
   await rename(temp,destination);
-  const dh=await open(dir,'r');try{await dh.sync();}finally{await dh.close();}
+  if(platform()!=='win32'){
+   const dh=await open(dir,'r');try{await dh.sync();}finally{await dh.close();}
+  }
+  // Windows directory durability remains UNVERIFIED. No live executor may rely on this journal.
  }catch(e){/* Retain .pending for forensic recovery; NEVER unlink unknown journal. */throw e;}
  return destination;
 }
