@@ -49,6 +49,12 @@ try {
   $folder=[IO.Path]::GetFullPath($EvidenceDirectory)
   [IO.Directory]::CreateDirectory($folder) | Out-Null
   $receiptPath=[IO.Path]::Combine($folder,"$nonce.json")
+  # Persist intent BEFORE Docker create; a crash leaves a discoverable nonce, never an untracked run.
+  $intentPath=[IO.Path]::Combine($folder,"$nonce.intent.json")
+  $intent=@{version=1; nonce=$nonce;name=$name;image=$image;state='INTENT';createdUtc=[DateTime]::UtcNow.ToString('o')}
+  $intentStream=[IO.File]::Open($intentPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+  try { $data=[Text.Encoding]::UTF8.GetBytes(($intent|ConvertTo-Json -Compress));$intentStream.Write($data,0,$data.Length);$intentStream.Flush($true) }
+  finally { $intentStream.Dispose() }
   $createArgs = @('create','--name',$name,'--pull','never','--network','none',
     '--read-only','--cpus','1','--memory','512m','--memory-swap','512m','--pids-limit','64',
     '--cap-drop','ALL','--security-opt','no-new-privileges:true',
@@ -95,6 +101,9 @@ finally {
       }
       if ($c.State.Running -or -not (Owned $c $containerId $nonce)) { throw 'QUARANTINE: unsafe stopped state' }
       if (-not $receiptPath -or -not [IO.File]::Exists($receiptPath)) { throw 'QUARANTINE: missing durable receipt' }
+      if (-not [IO.File]::Exists($intentPath)) { throw 'QUARANTINE: missing pre-create intent' }
+      $intentCheck=Get-Content -Raw $intentPath | ConvertFrom-Json
+      if ($intentCheck.nonce -cne $nonce -or $intentCheck.name -cne $name -or $intentCheck.image -cne $image) { throw 'QUARANTINE: intent mismatch' }
       $receipt=Get-Content -Raw $receiptPath | ConvertFrom-Json
       if ($receipt.id -cne $containerId -or $receipt.nonce -cne $nonce) { throw 'QUARANTINE: receipt mismatch' }
       [void](DockerRead -arguments @('container','rm',$containerId))
@@ -102,6 +111,10 @@ finally {
       if ($stillThere) { throw 'CONTAINER_REMAINS_AFTER_CLEANUP' }
       $cleaned=$true
     } catch { $errors.Add($_.Exception.Message) }
+  }
+  # Unknown create results must be investigated by nonce; no name-based deletion.
+  if (-not $created -and $receiptPath -and [IO.File]::Exists([IO.Path]::Combine($folder,"$nonce.intent.json"))) {
+    $errors.Add('MANUAL_RECOVERY_REQUIRED: inspect containers with faraios.t19.run-nonce label before retry; do not delete by name')
   }
   $status = if ($passed -and $cleaned) {'PASS'} elseif (-not $cleaned -and $created) {'QUARANTINE'} else {'FAIL'}
   Write-Output ("T19_GATE2_STARTUP_{0}; container={1}; nonce={2}; evidence={3}" -f $status,$containerId,$nonce,$receiptPath)
