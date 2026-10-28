@@ -1,5 +1,7 @@
 # T19 Gate 2 consolidated v2 candidate — DO NOT EXECUTE
 
+Historical v2 packet. The later [final source review and acceptance packet](t19-gate2-final-acceptance-20261028.md) supersedes its executable receipt/procedure details with v3 host/daemon/count binding and expanded evidence. Preserve this original packet and its limitations; neither version has runtime acceptance or execution approval.
+
 Prepared under the 28 October 2026 end-to-end mandate, in existing PR #209. This is an implementation/review packet, not a security PASS, host installation approval, Docker authorization, hosted SQL approval or accounting activation. T19 In progress; T20 Not started.
 
 The canonical tracker, AGENTS.md and current PR #209 review findings govern this packet. Earlier PowerShell/v1 review-only implementations and their original evidence are retained as history. **Do not remove the PowerShell execution block or use its approval switch.** The v2 branch in `gate2Execute` selects `executeGate2` and ignores caller-supplied trust, runner, SQL, nonce and review objects. V1 cannot authorize execution; its forgeable native adapter has been retired.

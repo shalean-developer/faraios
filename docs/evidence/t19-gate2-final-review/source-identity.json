@@ -1,0 +1,26 @@
+{
+  "implementation_sha": "ce37300933e2ed1e7864b8e992001dd24375e4b3",
+  "implementation_tree": "2ba545df921ba1cb3b535ab64a6d2b7394700ffa",
+  "base_sha": "6413058b75593addc2e028eca04db622205a0c1e",
+  "files": {
+    "scripts/t19-gate2-integrated.mjs": "4d18dc3f601c370a127da2ff3735318702f84b2ca222e5a42e314c4a25453c3a",
+    "scripts/t19-gate2-execution-gateway.mjs": "1acf6228be0cbb415fdae02104e833fde6f61a7b5f9719b5239d501ee5fe40e4",
+    "database/t19-gate2-disposable-integrity.sql": "5175b6d2b852623c233681392235f5fa17e06b56005b68dd4cf5934f4b0f7ec7",
+    "test/t19-gate2-integrated.test.js": "cb1fec4aff878a3ff10353ea02e213e88d068e8fc24141d03d22604742a1ff90",
+    "test/t19-gate2-execution-gateway.test.js": "9585a85bc815abb4885ff47f9432d1456929825cb19e3c7535542b3ec49d5c45",
+    "test/t19-gate2-sql-fixture.test.js": "9bf6ba70e05395678a84f8abbb9baaa20fee603451bdcf06358b4c4e42c06633",
+    ".github/workflows/ci.yml": "1d173285e8666fb5a700cf4dafbe49ae59fcd91fccf41ceb8ee46c119af60377",
+    "scripts/ci-policy.Dockerfile": "62cfc87715528cb765f3e25ed0c7d0354d31e609ad124cf1227a79d96d8ad417",
+    "scripts/run-ci-policy.sh": "c6b3036156df15b6d74b801d963ab3f73287959aeff8bbce1e0ed5740cf378db",
+    "scripts/check-backup-transport.mjs": "a5bf01e073cb46317592a43fa5f3ffd2a75bc3658a09b9479dd290bdfe8f6043"
+  },
+  "measured_local_node": {
+    "version": "24.22.1",
+    "sha256": "61ab14cd750fc24d5db53490ec5fc40f756e4b6e136b78cf7004265471d9bd1d"
+  },
+  "target_node_sha256": null,
+  "target_docker_sha256": null,
+  "target_host_boot_sha256": null,
+  "target_daemon_id_sha256": null,
+  "execution_authorized": false
+}

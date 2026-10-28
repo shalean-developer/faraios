@@ -1,0 +1,74 @@
+{
+  "date": "2026-10-28",
+  "source_sha": "ce37300933e2ed1e7864b8e992001dd24375e4b3",
+  "source_tree": "2ba545df921ba1cb3b535ab64a6d2b7394700ffa",
+  "reviewer_inventory": {
+    "requested_users": [],
+    "requested_teams": [],
+    "submitted_reviews": [],
+    "issue140_assignees": null,
+    "collaborator_endpoint": "connector rejected unsupported endpoint",
+    "self_hosted_runner_endpoint": "connector rejected unsupported endpoint",
+    "qualified_independent_reviewer_identified": false,
+    "assignment_sent": false
+  },
+  "workspace_host": {
+    "os": "Linux 6.18.55 x86_64",
+    "uid": 0,
+    "pid1": "supervisord",
+    "cpu_count": 9,
+    "ram_mib": 9967,
+    "filesystem": "overlay",
+    "free_disk_gib_approx": 28,
+    "executables": {
+      "docker": null,
+      "podman": null,
+      "psql": null,
+      "pwsh": null
+    },
+    "docker_socket_present": false,
+    "trust_registry_present": false,
+    "ledger_present": false,
+    "eligible": false
+  },
+  "github_hosted_option": {
+    "repo_visibility": "public",
+    "runner": "ubuntu-24.04 standard x64 VM",
+    "documented_vcpu": 4,
+    "documented_ram_gib": 16,
+    "documented_disk_gb": 14,
+    "standard_public_compute_minutes_cost_usd": 0,
+    "artifact_storage_cost": "not verified",
+    "eligible_for_gate2": "unverified",
+    "actual_runner_started": false
+  },
+  "financial_read_only_recheck": [
+    {
+      "organization_id": "943440851",
+      "enabled": false,
+      "invoice_count": 1,
+      "total_cents": 87500,
+      "not_synced": 1,
+      "mapped_or_active_attempts": 0
+    },
+    {
+      "organization_id": "943440162",
+      "enabled": false,
+      "invoice_count": 1,
+      "total_cents": 41000,
+      "not_synced": 1,
+      "mapped_or_active_attempts": 0
+    }
+  ],
+  "gitguardian_source": {
+    "check_id": 122742120089,
+    "conclusion": "success"
+  },
+  "foundation_current_source": "not executed",
+  "native_postgres_gate2": "not executed",
+  "docker_mutations_performed": [],
+  "gate2": "NO-GO",
+  "gate3": "Blocked",
+  "T19": "In progress",
+  "T20": "Not started"
+}
