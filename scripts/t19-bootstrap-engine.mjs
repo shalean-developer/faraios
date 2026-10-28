@@ -17,8 +17,9 @@ export function containerSpec(nonce,kind,network,env={}){
  const tmpfs=pg?{'/var/lib/postgresql/data':'rw,noexec,nosuid,nodev,uid=100,gid=101,mode=0700,size=384m','/var/run/postgresql':'rw,noexec,nosuid,nodev,uid=100,gid=101,mode=0775,size=32m','/tmp':'rw,noexec,nosuid,nodev,uid=100,gid=101,mode=1777,size=32m'}:{'/tmp':'rw,noexec,nosuid,nodev,uid=1000,gid=1000,mode=1777,size=32m',...(!auth?{'/var/lib/storage':'rw,noexec,nosuid,nodev,uid=1000,gid=1000,mode=0700,size=128m'}:{})};
  return {name:`t19-bootstrap-${nonce}-${kind}`,nonce,kind,network,image:IMAGES[pg?'postgres':auth?'auth':'storage'],user:pg?'100:101':'1000:1000',tmpfs,env};
 }
-export function createArgs(s,command){
- const a=['container','create','--name',s.name,'--pull','never','--network',s.network,'--read-only','--cpus','1','--memory','512m','--memory-swap','512m','--pids-limit','64','--cap-drop','ALL','--security-opt','no-new-privileges:true','--user',s.user,'--restart','no','--log-driver','local','--log-opt','max-size=1m','--log-opt','max-file=1','--label',LABEL+'='+s.nonce,'--env-file','/dev/stdin',...Object.entries(s.tmpfs).flatMap(([p,v])=>['--tmpfs',p+':'+v])];
+export function createArgs(s,command,environmentPath){
+ requireTrue(typeof environmentPath==='string'&&environmentPath.startsWith('/')&&!/[\r\n\0]/.test(environmentPath)&&!['/dev/','/proc/','/sys/'].some(p=>environmentPath.startsWith(p)),'ENV_FILE_PATH_INVALID');
+ const a=['container','create','--name',s.name,'--pull','never','--network',s.network,'--read-only','--cpus','1','--memory','512m','--memory-swap','512m','--pids-limit','64','--cap-drop','ALL','--security-opt','no-new-privileges:true','--user',s.user,'--restart','no','--log-driver','local','--log-opt','max-size=1m','--log-opt','max-file=1','--label',LABEL+'='+s.nonce,'--env-file',environmentPath,...Object.entries(s.tmpfs).flatMap(([p,v])=>['--tmpfs',p+':'+v])];
  if(command?.entrypoint)a.push('--entrypoint',command.entrypoint);
  a.push(s.image,...(command?.args??[]));return a;
 }

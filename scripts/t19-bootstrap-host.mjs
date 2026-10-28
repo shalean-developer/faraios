@@ -5,13 +5,14 @@ import {dirname,resolve,join} from 'node:path';
 import {createPublicKey,verify,randomBytes,createHmac} from 'node:crypto';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {canonical,digest,requireTrue,validNonce,containerSpec,createArgs,isolated,environment,tarFiles,ledgerChecks,INDEXES,FREEZE,IMAGES,LABEL,SCOPE,runBootstrap} from './t19-bootstrap-engine.mjs';
+import {withEnvironmentFile,environmentFilesAbsent} from './t19-bootstrap-env.mjs';
 import {compareStructure} from './t19-custody-recovery-compare.mjs';
 export const CATALOG_KEYS=['managed','roles','memberships','extensions','extensionFunctions','events','authLedger','storageLedger','indexStates','views','parameterACL','databaseACL'];
 const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const NODE_SHA='e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb';
 const DOCKER_SHA='cb92457611ccecae73e395a97673de28e397eaf020f807d91153960bbfe41b01';
 const TRUST='/etc/faraios/t19-gate2-trust.json';
-const SOURCES=['scripts/t19-bootstrap-engine.mjs','scripts/t19-bootstrap-host.mjs','scripts/t19-bootstrap-catalog.sql','config/t19-bootstrap-files.json','scripts/restore-catalog.sql','scripts/t19-custody-recovery-compare.mjs','test-support/t19-custody-recovery-expected.json','docs/proposals/t19-inactive-custody-recovery.sql','docs/proposals/t19-inactive-custody-recovery-readback.sql'];
+const SOURCES=['scripts/t19-bootstrap-env.mjs','scripts/t19-bootstrap-engine.mjs','scripts/t19-bootstrap-host.mjs','scripts/t19-bootstrap-catalog.sql','config/t19-bootstrap-files.json','scripts/restore-catalog.sql','scripts/t19-custody-recovery-compare.mjs','test-support/t19-custody-recovery-expected.json','docs/proposals/t19-inactive-custody-recovery.sql','docs/proposals/t19-inactive-custody-recovery-readback.sql'];
 export async function bundleDigest(){return digest(await Promise.all(SOURCES.map(async p=>[p,digest(await readFile(join(ROOT,p)))])));}
 export async function protectedPath(path,directory=false){
  const p=resolve(path);requireTrue(await realpath(p)===p,'PROTECTED_PATH_SYMLINK');
@@ -67,9 +68,11 @@ export class Host {
   requireTrue(this.bound.size<4,'CONTAINER_BUDGET');const s=containerSpec(this.nonce,kind,network,env),image=(await this.json(['image','inspect',s.image]))[0];
   const base=image.Config.Env??[];const names=new Set(Object.keys(env));const expected=[...base.filter(v=>!names.has(v.split('=')[0])),...Object.entries(env).map(([k,v])=>k+'='+v)];
   await this.record('container-intent',{name:s.name,image:s.image,kind,network,envNames:[...names].sort()});
-  const id=(await this.command(createArgs(s,command),{stdin:Object.entries(env).map(([k,v])=>k+'='+v).join('\n')+'\n'})).toString().trim();requireTrue(/^[a-f0-9]{64}$/.test(id),'CONTAINER_ID');
+  return await withEnvironmentFile(this.dir,env,async environmentPath=>{
+  const id=(await this.command(createArgs(s,command,environmentPath))).toString().trim();requireTrue(/^[a-f0-9]{64}$/.test(id),'CONTAINER_ID');
   const b={id,s,command,expectedEnv:expected,expectedEntrypoint:command?.entrypoint?[command.entrypoint]:image.Config.Entrypoint,expectedCmd:command?command.args??[]:image.Config.Cmd};this.bound.set(kind,b);await this.record('container-binding',{kind,id,name:s.name,image:s.image});
   await this.assertBound(b,expected);return b;
+  });
  }
  async assertBound(b,expected){const x=await this.inspect(b.id);requireTrue(isolated(x,b.s,this.nets.get(b.s.network)),'CONTAINER_ISOLATION');requireTrue(environment(x.Config.Env,expected??b.expectedEnv),'CONTAINER_ENVIRONMENT');requireTrue(canonical(x.Config.Entrypoint)===canonical(b.expectedEntrypoint),'CONTAINER_ENTRYPOINT');requireTrue(canonical(x.Config.Cmd)===canonical(b.expectedCmd),'CONTAINER_COMMAND');return x;}
  async absent(b,path){const r=await this.run(['container','cp',b.id+':'+path,'-'],{maxBytes:1048576});requireTrue(r.code===1&&/Could not find|not found|No such file/i.test(r.stderr.toString()),'UNREVIEWED_IMAGE_CONFIG');}
@@ -94,7 +97,7 @@ export class Host {
  }
  async sqlJSON(sql,user='postgres'){return JSON.parse((await this.sql(sql,user)).trim());}
  async poll(fn,code,timeoutMs=180000){const until=Date.now()+timeoutMs;while(Date.now()<until){if(await fn())return;await new Promise(r=>setTimeout(r,500));}throw Error(code);}
- async preflight(){requireTrue(canonical(await snapshot(this.run))===canonical(this.baseline),'BASELINE_CHANGED');}
+ async preflight(){requireTrue(await environmentFilesAbsent(this.dir),'STALE_ENVIRONMENT_FILE');requireTrue(canonical(await snapshot(this.run))===canonical(this.baseline),'BASELINE_CHANGED');}
  async node(b,code,input={}){return JSON.parse((await this.exec(b,['node','-e',code],JSON.stringify(input))).trim());}
  async remove(kind){const b=this.bound.get(kind);if(!b)return;let x=await this.assertBound(b);if(x.State.Running){await this.command(['container','stop','--timeout','10',b.id],{timeoutMs:15000});x=await this.assertBound(b);}requireTrue(!x.State.Running,'STOP_NOT_VERIFIED');await this.command(['container','rm',b.id]);this.bound.delete(kind);await this.record('removed',{kind,id:b.id});}
  async isolation(){
@@ -146,7 +149,7 @@ export class Host {
  async stableCatalog(){const after=await this.catalog();requireTrue(compareCatalog(after,this.before).match&&compareCatalog(after,this.expected).match,'CATALOG_UNSTABLE');const counts=await this.sqlJSON("SELECT jsonb_build_array((SELECT count(*) FROM auth.users),(SELECT count(*) FROM storage.objects),(SELECT count(*) FROM storage.buckets),(SELECT count(*) FROM vault.secrets),(SELECT count(*) FROM private_t19_custody.connections),(SELECT count(*) FROM private_t19_custody.operations),(SELECT count(*) FROM private_t19_custody.prepared_references));");requireTrue(counts.every(x=>x===0),'SYNTHETIC_DATA_REMAINS');await this.record('stable-catalog',{match:true,emptyCounts:counts});}
  async cleanup(){this.cleaning=true;let ok=!this.unknown;for(const kind of ['probe','sentinel','storage','auth','auth-migrate','postgres']){try{await this.remove(kind);}catch{ok=false;}}
   for(const [name,id] of [...this.nets].reverse()){try{const n=(await this.json(['network','inspect',id]))[0];requireTrue(n.Id===id&&n.Name===name&&n.Internal===true&&n.Labels?.[LABEL]===this.nonce&&!Object.keys(n.Containers??{}).length,'NETWORK_CLEANUP_OWNERSHIP');await this.command(['network','rm',id]);this.nets.delete(name);}catch{ok=false;}}
-  const after=await snapshot(this.run);const owned=await this.command(['container','ls','--all','--filter','label='+LABEL+'='+this.nonce,'--quiet']);const nets=await this.command(['network','ls','--filter','label='+LABEL+'='+this.nonce,'--quiet']);ok=ok&&canonical(after)===canonical(this.baseline)&&!owned.toString().trim()&&!nets.toString().trim();await this.record('cleanup',{verified:ok,baselineMatches:canonical(after)===canonical(this.baseline)});this.secrets.fill('');this.password='';this.jwtSecret='';return ok;
+  const after=await snapshot(this.run);const owned=await this.command(['container','ls','--all','--filter','label='+LABEL+'='+this.nonce,'--quiet']);const nets=await this.command(['network','ls','--filter','label='+LABEL+'='+this.nonce,'--quiet']);ok=ok&&canonical(after)===canonical(this.baseline)&&!owned.toString().trim()&&!nets.toString().trim();ok=await environmentFilesAbsent(this.dir)&&ok;await this.record('cleanup',{verified:ok,baselineMatches:canonical(after)===canonical(this.baseline)});this.secrets.fill('');this.password='';this.jwtSecret='';return ok;
  }
 }
 export async function snapshot(run){
