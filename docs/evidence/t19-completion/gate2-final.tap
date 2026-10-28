@@ -1,0 +1,328 @@
+TAP version 13
+# Subtest: valid signature still cannot authorize execution without anti-replay custody
+ok 1 - valid signature still cannot authorize execution without anti-replay custody
+  ---
+  duration_ms: 3.939982
+  type: 'test'
+  ...
+# Subtest: tampering and changed script deny
+ok 2 - tampering and changed script deny
+  ---
+  duration_ms: 0.968947
+  type: 'test'
+  ...
+# Subtest: read-only docker adapter allows exact inspect and rejects mutations
+ok 3 - read-only docker adapter allows exact inspect and rejects mutations
+  ---
+  duration_ms: 2.227839
+  type: 'test'
+  ...
+# Subtest: nonzero and invalid limits fail closed
+ok 4 - nonzero and invalid limits fail closed
+  ---
+  duration_ms: 0.241132
+  type: 'test'
+  ...
+# Subtest: hung child is terminated and quarantined
+ok 5 - hung child is terminated and quarantined
+  ---
+  duration_ms: 7.393673
+  type: 'test'
+  ...
+# Subtest: corrected candidate removes unverified forced UID and includes both required writable paths
+ok 6 - corrected candidate removes unverified forced UID and includes both required writable paths
+  ---
+  duration_ms: 1.244741
+  type: 'test'
+  ...
+# Subtest: unsafe or assumed candidate conditions remain denied
+ok 7 - unsafe or assumed candidate conditions remain denied
+  ---
+  duration_ms: 0.702345
+  type: 'test'
+  ...
+# Subtest: run is opt-in and never touches hosted systems
+ok 8 - run is opt-in and never touches hosted systems
+  ---
+  duration_ms: 1.843591
+  type: 'test'
+  ...
+# Subtest: resource guard and ownership cleanup by immutable ID
+ok 9 - resource guard and ownership cleanup by immutable ID
+  ---
+  duration_ms: 0.20626
+  type: 'test'
+  ...
+# Subtest: DockerRead calls pass the entire array through a named parameter
+ok 10 - DockerRead calls pass the entire array through a named parameter
+  ---
+  duration_ms: 0.204287
+  type: 'test'
+  ...
+# Subtest: pre-create intent precedes Docker create and ambiguous results require manual recovery
+ok 11 - pre-create intent precedes Docker create and ambiguous results require manual recovery
+  ---
+  duration_ms: 0.169134
+  type: 'test'
+  ...
+# Subtest: missing trusted key custody cannot access runner or nonce store
+ok 12 - missing trusted key custody cannot access runner or nonce store
+  ---
+  duration_ms: 1.049207
+  type: 'test'
+  ...
+# Subtest: valid independent signature still fails closed before replay consumption and mutation
+ok 13 - valid independent signature still fails closed before replay consumption and mutation
+  ---
+  duration_ms: 2.093457
+  type: 'test'
+  ...
+# Subtest: script tampering and unsigned inputs deny before mutations
+ok 14 - script tampering and unsigned inputs deny before mutations
+  ---
+  duration_ms: 0.42536
+  type: 'test'
+  ...
+# Subtest: nonce recovery only identifies, never grants removal
+ok 15 - nonce recovery only identifies, never grants removal
+  ---
+  duration_ms: 1.033143
+  type: 'test'
+  ...
+# Subtest: timeouts must use cancellable adapter contract
+ok 16 - timeouts must use cancellable adapter contract
+  ---
+  duration_ms: 0.684138
+  type: 'test'
+  ...
+# Subtest: each simulated interruption quarantines without mutation
+ok 17 - each simulated interruption quarantines without mutation
+  ---
+  duration_ms: 0.228634
+  type: 'test'
+  ...
+# Subtest: signed v2 lifecycle uses durable real files, fixed stdin, exact IDs and complete reconciliation
+ok 18 - signed v2 lifecycle uses durable real files, fixed stdin, exact IDs and complete reconciliation
+  ---
+  duration_ms: 85.452289
+  type: 'test'
+  ...
+# Subtest: independent owner/reviewer signatures and every exact binding are required
+ok 19 - independent owner/reviewer signatures and every exact binding are required
+  ---
+  duration_ms: 5.392164
+  type: 'test'
+  ...
+# Subtest: untrusted approval booleans cannot reach Docker or persistent state
+ok 20 - untrusted approval booleans cannot reach Docker or persistent state
+  ---
+  duration_ms: 3.282443
+  type: 'test'
+  ...
+# Subtest: concurrent one-use claims and partial nonce files fail closed across restart
+ok 21 - concurrent one-use claims and partial nonce files fail closed across restart
+  ---
+  duration_ms: 5.517383
+  type: 'test'
+  ...
+# Subtest: lost create result recovers nonce to exact identity and quarantines without cleanup
+ok 22 - lost create result recovers nonce to exact identity and quarantines without cleanup
+  ---
+  duration_ms: 25.302483
+  type: 'test'
+  ...
+# Subtest: timeouts at all mutating boundaries quarantine, never continue or auto-delete
+ok 23 - timeouts at all mutating boundaries quarantine, never continue or auto-delete
+  ---
+  duration_ms: 73.484217
+  type: 'test'
+  ...
+# Subtest: receipt failure after create preserves resource and recoverable intent
+ok 24 - receipt failure after create preserves resource and recoverable intent
+  ---
+  duration_ms: 11.526063
+  type: 'test'
+  ...
+# Subtest: foreign nonce, added capabilities, mounts, environment and wrong image forbid startup
+ok 25 - foreign nonce, added capabilities, mounts, environment and wrong image forbid startup
+  ---
+  duration_ms: 49.810532
+  type: 'test'
+  ...
+# Subtest: missing SQL evidence and final inventory drift cannot produce PASS
+ok 26 - missing SQL evidence and final inventory drift cannot produce PASS
+  ---
+  duration_ms: 31.464599
+  type: 'test'
+  ...
+# Subtest: changed baseline or wrong number of existing containers blocks create
+ok 27 - changed baseline or wrong number of existing containers blocks create
+  ---
+  duration_ms: 2.164393
+  type: 'test'
+  ...
+# Subtest: expiry during async intent persistence denies create; expiry after create denies start
+ok 28 - expiry during async intent persistence denies create; expiry after create denies start
+  ---
+  duration_ms: 14.028634
+  type: 'test'
+  ...
+# Subtest: durable binding substitution blocks cleanup even when runtime ownership matches
+ok 29 - durable binding substitution blocks cleanup even when runtime ownership matches
+  ---
+  duration_ms: 12.992337
+  type: 'test'
+  ...
+# Subtest: bounded adapter terminates an actual harmless child on deadline without invoking Docker
+ok 30 - bounded adapter terminates an actual harmless child on deadline without invoking Docker
+  ---
+  duration_ms: 45.015696
+  type: 'test'
+  ...
+# Subtest: real entrypoint denies without externally installed trust; executable digest is deterministic
+ok 31 - real entrypoint denies without externally installed trust; executable digest is deterministic
+  ---
+  duration_ms: 144.523521
+  type: 'test'
+  ...
+# Subtest: consume once is exclusive across store instances and concurrent requests
+ok 32 - consume once is exclusive across store instances and concurrent requests
+  ---
+  duration_ms: 10.531629
+  type: 'test'
+  ...
+# Subtest: invalid nonce never creates grant
+ok 33 - invalid nonce never creates grant
+  ---
+  duration_ms: 3.413671
+  type: 'test'
+  ...
+# Subtest: complete injected lifecycle executes and verifies cleanup in order
+ok 34 - complete injected lifecycle executes and verifies cleanup in order
+  ---
+  duration_ms: 1.494016
+  type: 'test'
+  ...
+# Subtest: unknown create and crash stages quarantine; no automatic deletion
+ok 35 - unknown create and crash stages quarantine; no automatic deletion
+  ---
+  duration_ms: 0.812231
+  type: 'test'
+  ...
+# Subtest: missing consumed grant prevents all effects
+ok 36 - missing consumed grant prevents all effects
+  ---
+  duration_ms: 0.596677
+  type: 'test'
+  ...
+# Subtest: identity matching is review-eligible but never permits actual cleanup
+ok 37 - identity matching is review-eligible but never permits actual cleanup
+  ---
+  duration_ms: 1.286484
+  type: 'test'
+  ...
+# Subtest: cleanup fencing denies tampered IDs, labels, stopped state, inventory
+ok 38 - cleanup fencing denies tampered IDs, labels, stopped state, inventory
+  ---
+  duration_ms: 0.34583
+  type: 'test'
+  ...
+# Subtest: startup remains denied even when fields are self asserted
+ok 39 - startup remains denied even when fields are self asserted
+  ---
+  duration_ms: 0.289785
+  type: 'test'
+  ...
+# Subtest: integration is read-only with bounded process calls
+ok 40 - integration is read-only with bounded process calls
+  ---
+  duration_ms: 1.291692
+  type: 'test'
+  ...
+# Subtest: legacy adapter cannot accept a caller-forged consumed grant
+ok 41 - legacy adapter cannot accept a caller-forged consumed grant
+  ---
+  duration_ms: 1.600826
+  type: 'test'
+  ...
+# Subtest: self-asserted independent PASS cannot unlock execution
+ok 42 - self-asserted independent PASS cannot unlock execution
+  ---
+  duration_ms: 0.946983
+  type: 'test'
+  ...
+# Subtest: missing or contradictory security review denies without touching key custody
+ok 43 - missing or contradictory security review denies without touching key custody
+  ---
+  duration_ms: 0.154612
+  type: 'test'
+  ...
+# Subtest: pinned independent key fingerprint resolves for verification only
+ok 44 - pinned independent key fingerprint resolves for verification only
+  ---
+  duration_ms: 1.486724
+  type: 'test'
+  ...
+# Subtest: wrong fingerprint and missing custody deny
+ok 45 - wrong fingerprint and missing custody deny
+  ---
+  duration_ms: 0.736117
+  type: 'test'
+  ...
+# Subtest: signed approval can trigger bounded read-only checks but never startup
+ok 46 - signed approval can trigger bounded read-only checks but never startup
+  ---
+  duration_ms: 1.719634
+  type: 'test'
+  ...
+# Subtest: invalid approval cannot query Docker
+ok 47 - invalid approval cannot query Docker
+  ---
+  duration_ms: 0.348925
+  type: 'test'
+  ...
+# Subtest: interrupt reconciliation never authorizes cleanup
+ok 48 - interrupt reconciliation never authorizes cleanup
+  ---
+  duration_ms: 0.207292
+  type: 'test'
+  ...
+# Subtest: dry-run checks only image identity and container inventory
+ok 49 - dry-run checks only image identity and container inventory
+  ---
+  duration_ms: 2.437574
+  type: 'test'
+  ...
+# Subtest: runtime readback demands enforceable limits
+ok 50 - runtime readback demands enforceable limits
+  ---
+  duration_ms: 0.553071
+  type: 'test'
+  ...
+# Subtest: even forged approval never mutates Docker
+ok 51 - even forged approval never mutates Docker
+  ---
+  duration_ms: 0.843098
+  type: 'test'
+  ...
+# Subtest: lost create result recovers exact nonce for manual review only
+ok 52 - lost create result recovers exact nonce for manual review only
+  ---
+  duration_ms: 0.356296
+  type: 'test'
+  ...
+# Subtest: stopped matching container and receipt cannot auto-delete
+ok 53 - stopped matching container and receipt cannot auto-delete
+  ---
+  duration_ms: 0.443076
+  type: 'test'
+  ...
+1..53
+# tests 53
+# suites 0
+# pass 53
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 633.664325

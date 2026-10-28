@@ -1,0 +1,22 @@
+TAP version 13
+# Subtest: embedded engine executes permitted/denied/duplicate/collision SQL and rolls back synthetic objects
+ok 1 - embedded engine executes permitted/denied/duplicate/collision SQL and rolls back synthetic objects
+  ---
+  duration_ms: 1701.120543
+  type: 'test'
+  ...
+# Subtest: denial fixture cannot misclassify inability to SET ROLE as protected-table denial
+ok 2 - denial fixture cannot misclassify inability to SET ROLE as protected-table denial
+  ---
+  duration_ms: 1254.849415
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3108.182539

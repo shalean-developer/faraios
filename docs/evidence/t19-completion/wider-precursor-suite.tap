@@ -1,0 +1,4681 @@
+TAP version 13
+# Subtest: business switcher lists only active permitted memberships
+ok 1 - business switcher lists only active permitted memberships
+  ---
+  duration_ms: 1.793636
+  type: 'test'
+  ...
+# Subtest: Bokkie manager cannot access Shalean or an unrelated business
+ok 2 - Bokkie manager cannot access Shalean or an unrelated business
+  ---
+  duration_ms: 0.300331
+  type: 'test'
+  ...
+# Subtest: roles do not grant implicit finance or membership administration
+ok 3 - roles do not grant implicit finance or membership administration
+  ---
+  duration_ms: 0.218027
+  type: 'test'
+  ...
+# Subtest: missing, revoked and unknown claims fail closed
+ok 4 - missing, revoked and unknown claims fail closed
+  ---
+  duration_ms: 0.196535
+  type: 'test'
+  ...
+# Subtest: record business is verified independently of selected dashboard
+ok 5 - record business is verified independently of selected dashboard
+  ---
+  duration_ms: 0.147772
+  type: 'test'
+  ...
+# Subtest: staff see and update only their assignments in an authorised business
+ok 6 - staff see and update only their assignments in an authorised business
+  ---
+  duration_ms: 0.128914
+  type: 'test'
+  ...
+# Subtest: earnings ownership prevents peer visibility
+ok 7 - earnings ownership prevents peer visibility
+  ---
+  duration_ms: 0.136565
+  type: 'test'
+  ...
+# Subtest: approved manager invoice and payment permissions remain business scoped
+ok 8 - approved manager invoice and payment permissions remain business scoped
+  ---
+  duration_ms: 0.164557
+  type: 'test'
+  ...
+# Subtest: owner retains restricted financial and administration actions
+ok 9 - owner retains restricted financial and administration actions
+  ---
+  duration_ms: 0.304528
+  type: 'test'
+  ...
+# Subtest: ordinary Node discovery does not execute the opt-in native accounting runner
+ok 10 - ordinary Node discovery does not execute the opt-in native accounting runner
+  ---
+  duration_ms: 188.569557
+  type: 'test'
+  ...
+# Subtest: Stage B synthetic database/API/worker contracts
+    # Subtest: RLS and function ACLs deny foreign members, staff, platform and fabricated worker completion
+    ok 1 - RLS and function ACLs deny foreign members, staff, platform and fabricated worker completion
+      ---
+      duration_ms: 40.917501
+      type: 'test'
+      ...
+    # Subtest: concurrent enqueue returns one durable identity and forged worker contexts fail before egress
+    ok 2 - concurrent enqueue returns one durable identity and forged worker contexts fail before egress
+      ---
+      duration_ms: 20.713789
+      type: 'test'
+      ...
+    # Subtest: broad fake token still routes only to server-pinned business and immutable intent
+    ok 3 - broad fake token still routes only to server-pinned business and immutable intent
+      ---
+      duration_ms: 61.247505
+      type: 'test'
+      ...
+    # Subtest: lost responses reconcile original identity without creating again; missing matches stay uncertain
+    ok 4 - lost responses reconcile original identity without creating again; missing matches stay uncertain
+      ---
+      duration_ms: 29.081814
+      type: 'test'
+      ...
+    # Subtest: concurrent claims, expired leases and stale finishes cannot replay dispatch
+    ok 5 - concurrent claims, expired leases and stale finishes cannot replay dispatch
+      ---
+      duration_ms: 48.082149
+      type: 'test'
+      ...
+    # Subtest: HTTP uses trusted sessions and real DB roles; forged org/role fields never reach worker
+    ok 6 - HTTP uses trusted sessions and real DB roles; forged org/role fields never reach worker
+      ---
+      duration_ms: 175.880461
+      type: 'test'
+      ...
+    # Subtest: membership revocation fences a previously valid queued actor
+    ok 7 - membership revocation fences a previously valid queued actor
+      ---
+      duration_ms: 7.894184
+      type: 'test'
+      ...
+    # Subtest: disconnect before dispatch stops egress; immutable generation and historical operation prevent replay
+    ok 8 - disconnect before dispatch stops egress; immutable generation and historical operation prevent replay
+      ---
+      duration_ms: 32.620243
+      type: 'test'
+      ...
+    # Subtest: disconnect after dispatch keeps late success uncertain; reauthorisation cannot move it
+    ok 9 - disconnect after dispatch keeps late success uncertain; reauthorisation cannot move it
+      ---
+      duration_ms: 30.453892
+      type: 'test'
+      ...
+    # Subtest: wrong organisation receipt quarantines connection and leaves no verified foreign receipt
+    ok 10 - wrong organisation receipt quarantines connection and leaves no verified foreign receipt
+      ---
+      duration_ms: 23.719456
+      type: 'test'
+      ...
+    # Subtest: duplicate provider matches require review and never retry synthetic creation
+    ok 11 - duplicate provider matches require review and never retry synthetic creation
+      ---
+      duration_ms: 62.812085
+      type: 'test'
+      ...
+    1..11
+ok 11 - Stage B synthetic database/API/worker contracts
+  ---
+  duration_ms: 4205.423691
+  type: 'test'
+  ...
+# Subtest: Stage B native PostgreSQL roles, HTTP, concurrent claims and disconnect contracts
+ok 12 - Stage B native PostgreSQL roles, HTTP, concurrent claims and disconnect contracts # SKIP
+  ---
+  duration_ms: 0.147332
+  type: 'test'
+  ...
+# Subtest: synthetic vault authenticates tenant/generation context, coalesces refresh and has no real-secret input
+ok 13 - synthetic vault authenticates tenant/generation context, coalesces refresh and has no real-secret input
+  ---
+  duration_ms: 1.082126
+  type: 'test'
+  ...
+# Subtest: audit records actor, before/after, timestamp and transaction; rolls back atomically
+ok 14 - audit records actor, before/after, timestamp and transaction; rolls back atomically
+  ---
+  duration_ms: 4182.73934
+  type: 'test'
+  ...
+# Subtest: audit owner reads are business scoped; manager, staff and anon cannot read or forge history
+ok 15 - audit owner reads are business scoped; manager, staff and anon cannot read or forge history
+  ---
+  duration_ms: 2378.618584
+  type: 'test'
+  ...
+# Subtest: logical application snapshot restores into an empty isolated database with audit and RLS intact
+ok 16 - logical application snapshot restores into an empty isolated database with audit and RLS intact
+  ---
+  duration_ms: 5384.659397
+  type: 'test'
+  ...
+# Subtest: real-auth session contract revalidates memberships and logout
+ok 17 - real-auth session contract revalidates memberships and logout
+  ---
+  duration_ms: 3.602845
+  type: 'test'
+  ...
+# Subtest: failed sign-in never creates a usable session
+ok 18 - failed sign-in never creates a usable session
+  ---
+  duration_ms: 0.713523
+  type: 'test'
+  ...
+# Subtest: independent connections prevent shared-cleaner overlaps and duplicate recurring/quote/invoice creation
+ok 19 - independent connections prevent shared-cleaner overlaps and duplicate recurring/quote/invoice creation # SKIP
+  ---
+  duration_ms: 1.027194
+  type: 'test'
+  ...
+# Subtest: atomic reservations reject cross-business overlaps and preserve tenant privacy
+ok 20 - atomic reservations reject cross-business overlaps and preserve tenant privacy
+  ---
+  duration_ms: 4548.184564
+  type: 'test'
+  ...
+# Subtest: calendar date validation, escaped rendering and safe booking conflict errors
+ok 21 - calendar date validation, escaped rendering and safe booking conflict errors
+  ---
+  duration_ms: 17.909013
+  type: 'test'
+  ...
+# Subtest: test/backup-profile-fixture.js
+ok 8 - test/backup-profile-fixture.js
+  ---
+  duration_ms: 106.763667
+  type: 'test'
+  ...
+# Subtest: profile contract rejects unknown versions, source, fields, unsorted/duplicate names and invalid hashes
+ok 23 - profile contract rejects unknown versions, source, fields, unsorted/duplicate names and invalid hashes
+  ---
+  duration_ms: 6.470234
+  type: 'test'
+  ...
+# Subtest: missing or malformed private profile refuses capture before any child process/export
+ok 24 - missing or malformed private profile refuses capture before any child process/export
+  ---
+  duration_ms: 92.704208
+  type: 'test'
+  ...
+# Subtest: profile loader freezes reviewed values and detects edits and identical-content replacement
+ok 25 - profile loader freezes reviewed values and detects edits and identical-content replacement
+  ---
+  duration_ms: 55.287507
+  type: 'test'
+  ...
+# Subtest: profile loader rejects linked root and Git ancestors
+ok 26 - profile loader rejects linked root and Git ancestors
+  ---
+  duration_ms: 47.512433
+  type: 'test'
+  ...
+# Subtest: unsafe profile permissions are rejected without repair
+ok 27 - unsafe profile permissions are rejected without repair
+  ---
+  duration_ms: 43.788817
+  type: 'test'
+  ...
+# Subtest: profile hard links are refused before reading profile contents
+ok 28 - profile hard links are refused before reading profile contents
+  ---
+  duration_ms: 29.322497
+  type: 'test'
+  ...
+# Subtest: booking input, duplicate submission comparison and optimistic mutations
+ok 29 - booking input, duplicate submission comparison and optimistic mutations
+  ---
+  duration_ms: 6.27423
+  type: 'test'
+  ...
+# Subtest: Postgres booking lifecycle, tenant links, snapshots, team and audit are enforced
+ok 30 - Postgres booking lifecycle, tenant links, snapshots, team and audit are enforced
+  ---
+  duration_ms: 7145.753415
+  type: 'test'
+  ...
+# Subtest: settings validate bounded inputs without injecting business scope
+ok 31 - settings validate bounded inputs without injecting business scope
+  ---
+  duration_ms: 4.241865
+  type: 'test'
+  ...
+# Subtest: saving settings always scopes the record to the server-authorised business
+ok 32 - saving settings always scopes the record to the server-authorised business
+  ---
+  duration_ms: 0.430507
+  type: 'test'
+  ...
+# Subtest: Postgres settings permit owners only, separate two businesses and record atomic audit
+ok 33 - Postgres settings permit owners only, separate two businesses and record atomic audit
+  ---
+  duration_ms: 4521.47759
+  type: 'test'
+  ...
+# Subtest: Postgres cancellation journal enforces tenant roles, replay, stale writes and refund reservations
+ok 34 - Postgres cancellation journal enforces tenant roles, replay, stale writes and refund reservations
+  ---
+  duration_ms: 4132.581012
+  type: 'test'
+  ...
+# Subtest: UI escapes evidence and does not offer owner approvals to managers
+ok 35 - UI escapes evidence and does not offer owner approvals to managers
+  ---
+  duration_ms: 2.636452
+  type: 'test'
+  ...
+# Subtest: review shows per-cleaner shares and unique labels across multiple refund controls
+ok 36 - review shows per-cleaner shares and unique labels across multiple refund controls
+  ---
+  duration_ms: 25.408765
+  type: 'test'
+  ...
+# Subtest: reconstruction rejects incomplete or foreign event journals
+ok 37 - reconstruction rejects incomplete or foreign event journals
+  ---
+  duration_ms: 0.449255
+  type: 'test'
+  ...
+# Subtest: complete booking schema retains snapshots and only permits approved stopping after work starts
+ok 38 - complete booking schema retains snapshots and only permits approved stopping after work starts
+  ---
+  duration_ms: 3286.205499
+  type: 'test'
+  ...
+# Subtest: cancellation HTTP prepares without changing booking, validates inputs, and enforces origin and scope
+ok 39 - cancellation HTTP prepares without changing booking, validates inputs, and enforces origin and scope
+  ---
+  duration_ms: 154.971325
+  type: 'test'
+  ...
+# Subtest: cancellation HTTP manager role boundary
+ok 40 - cancellation HTTP manager role boundary
+  ---
+  duration_ms: 23.731865
+  type: 'test'
+  ...
+# Subtest: cancellation HTTP staff role boundary
+ok 41 - cancellation HTTP staff role boundary
+  ---
+  duration_ms: 10.922184
+  type: 'test'
+  ...
+# Subtest: restore workspace denies cancellation writes
+ok 42 - restore workspace denies cancellation writes
+  ---
+  duration_ms: 7.576726
+  type: 'test'
+  ...
+# Subtest: exact 24-hour boundary is free; one second inside is late and stronger rights override
+ok 43 - exact 24-hour boundary is free; one second inside is late and stronger rights override
+  ---
+  duration_ms: 26.184125
+  type: 'test'
+  ...
+# Subtest: whole-booking charge is capped by labour, loss and R300, not headcount
+ok 44 - whole-booking charge is capped by labour, loss and R300, not headcount
+  ---
+  duration_ms: 0.642496
+  type: 'test'
+  ...
+# Subtest: customer pools allocate actual collected compensation proportionally without company top-up
+ok 45 - customer pools allocate actual collected compensation proportionally without company top-up
+  ---
+  duration_ms: 7.750192
+  type: 'test'
+  ...
+# Subtest: company cancellation tiers do not stack and are not limited by customer fee ceiling
+ok 46 - company cancellation tiers do not stack and are not limited by customer fee ceiling
+  ---
+  duration_ms: 1.111209
+  type: 'test'
+  ...
+# Subtest: partial performance, pending refunds and completed refunds cannot be refunded twice
+ok 47 - partial performance, pending refunds and completed refunds cannot be refunded twice
+  ---
+  duration_ms: 2.113756
+  type: 'test'
+  ...
+# Subtest: rescheduling retains original-slot fee, credits and new price acceptance
+ok 48 - rescheduling retains original-slot fee, credits and new price acceptance
+  ---
+  duration_ms: 3.137666
+  type: 'test'
+  ...
+# Subtest: unknown evidence, old agreements, duplicate workers and invalid event chronology block assessment
+ok 49 - unknown evidence, old agreements, duplicate workers and invalid event chronology block assessment
+  ---
+  duration_ms: 0.614013
+  type: 'test'
+  ...
+# Subtest: business-day targets start at request and include reviewed holidays
+ok 50 - business-day targets start at request and include reviewed holidays
+  ---
+  duration_ms: 3.584016
+  type: 'test'
+  ...
+# Subtest: preparer cannot approve; scope, immutable history, replay and stale versions are enforced
+ok 51 - preparer cannot approve; scope, immutable history, replay and stale versions are enforced
+  ---
+  duration_ms: 2.752817
+  type: 'test'
+  ...
+# Subtest: refund reservations prevent over-refund; uncertain submission remains reserved; completion is distinct
+ok 52 - refund reservations prevent over-refund; uncertain submission remains reserved; completion is distinct
+  ---
+  duration_ms: 1.724712
+  type: 'test'
+  ...
+# Subtest: all six saved configurations survive compact-form submission and Rand conversion
+ok 53 - all six saved configurations survive compact-form submission and Rand conversion
+  ---
+  duration_ms: 41.713037
+  type: 'test'
+  ...
+# Subtest: paid pet choices and optional delivery retain precision; invalid submissions retain raw values
+ok 54 - paid pet choices and optional delivery retain precision; invalid submissions retain raw values
+  ---
+  duration_ms: 8.546063
+  type: 'test'
+  ...
+# Subtest: setup enhancement reveals relevant controls, adds existing unused pet rows, and opens invalid sections
+ok 55 - setup enhancement reveals relevant controls, adds existing unused pet rows, and opens invalid sections
+  ---
+  duration_ms: 1.146463
+  type: 'test'
+  ...
+# Subtest: extras do not require a service team or cleaning profile
+ok 56 - extras do not require a service team or cleaning profile
+  ---
+  duration_ms: 0.843588
+  type: 'test'
+  ...
+# Subtest: read-only item links retain the catalogue and hourly services retain per-unit price wording
+ok 57 - read-only item links retain the catalogue and hourly services retain per-unit price wording
+  ---
+  duration_ms: 20.462992
+  type: 'test'
+  ...
+# Subtest: first-stage validation errors keep profile selection without requiring configuration
+ok 58 - first-stage validation errors keep profile selection without requiring configuration
+  ---
+  duration_ms: 0.74545
+  type: 'test'
+  ...
+# Subtest: category lists show applicability, correct base/rate labels and filtered results
+ok 59 - category lists show applicability, correct base/rate labels and filtered results
+  ---
+  duration_ms: 2.891896
+  type: 'test'
+  ...
+# Subtest: selecting a profile previews fields without validating or saving the draft
+ok 60 - selecting a profile previews fields without validating or saving the draft
+  ---
+  duration_ms: 0.575606
+  type: 'test'
+  ...
+# Subtest: catalogue money uses exact cents and rejects ambiguous prices and invalid options
+ok 61 - catalogue money uses exact cents and rejects ambiguous prices and invalid options
+  ---
+  duration_ms: 7.521443
+  type: 'test'
+  ...
+# Subtest: catalogue updates use business, item and version predicates; conflicts fail explicitly
+ok 62 - catalogue updates use business, item and version predicates; conflicts fail explicitly
+  ---
+  duration_ms: 2.137872
+  type: 'test'
+  ...
+# Subtest: catalogue Postgres separates businesses, limits manager/staff and preserves audit/version history
+ok 63 - catalogue Postgres separates businesses, limits manager/staff and preserves audit/version history
+  ---
+  duration_ms: 4421.834141
+  type: 'test'
+  ...
+# Subtest: delete scopes requests and renders escaped owner confirmation
+ok 64 - delete scopes requests and renders escaped owner confirmation
+  ---
+  duration_ms: 21.855785
+  type: 'test'
+  ...
+# Subtest: catalogue reads every scoped page before filtering and resolving applicability
+ok 65 - catalogue reads every scoped page before filtering and resolving applicability
+  ---
+  duration_ms: 2.381859
+  type: 'test'
+  ...
+# Subtest: all six profiles require explicit configuration and render only their own scope fields
+ok 66 - all six profiles require explicit configuration and render only their own scope fields
+  ---
+  duration_ms: 16.803903
+  type: 'test'
+  ...
+# Subtest: cleaning booking form selects service before scope and filters extras by saved applicability
+ok 67 - cleaning booking form selects service before scope and filters extras by saved applicability
+  ---
+  duration_ms: 50.760103
+  type: 'test'
+  ...
+# Subtest: equipment requires recorded distance evidence; duplicate scoped requests compare JSON values independent of key order
+ok 68 - equipment requires recorded distance evidence; duplicate scoped requests compare JSON values independent of key order
+  ---
+  duration_ms: 8.754336
+  type: 'test'
+  ...
+# Subtest: profile changes clear old configuration and pet choices remain service-specific
+ok 69 - profile changes clear old configuration and pet choices remain service-specific
+  ---
+  duration_ms: 0.533923
+  type: 'test'
+  ...
+# Subtest: office assessment parsing requires explicit charge, duration and reason and linen availability
+ok 70 - office assessment parsing requires explicit charge, duration and reason and linen availability
+  ---
+  duration_ms: 0.626992
+  type: 'test'
+  ...
+# Subtest: optional linen changes stay scoped to the configured business service
+ok 71 - optional linen changes stay scoped to the configured business service
+  ---
+  duration_ms: 0.649456
+  type: 'test'
+  ...
+# Subtest: profile preview marker accepts complete new-profile configuration in a single save
+ok 72 - profile preview marker accepts complete new-profile configuration in a single save
+  ---
+  duration_ms: 0.288444
+  type: 'test'
+  ...
+# Subtest: independent businesses use independently versioned configurations
+ok 73 - independent businesses use independently versioned configurations
+  ---
+  duration_ms: 1.793585
+  type: 'test'
+  ...
+# Subtest: invalid money and unknown pricing models are rejected
+ok 74 - invalid money and unknown pricing models are rejected
+  ---
+  duration_ms: 0.379831
+  type: 'test'
+  ...
+# Subtest: earnings options require explicit bounded parameters
+ok 75 - earnings options require explicit bounded parameters
+  ---
+  duration_ms: 4.565752
+  type: 'test'
+  ...
+# Subtest: historical snapshot is unchanged by later catalogue edits
+ok 76 - historical snapshot is unchanged by later catalogue edits
+  ---
+  duration_ms: 0.234933
+  type: 'test'
+  ...
+# Subtest: quantities and multiplication cannot produce unsafe or ambiguous amounts
+ok 77 - quantities and multiplication cannot produce unsafe or ambiguous amounts
+  ---
+  duration_ms: 0.375013
+  type: 'test'
+  ...
+# Subtest: currency, policy references and payout settings have no implicit defaults
+ok 78 - currency, policy references and payout settings have no implicit defaults
+  ---
+  duration_ms: 0.267392
+  type: 'test'
+  ...
+# Subtest: customer input validation, escaped notes and scoped optimistic writes
+ok 79 - customer input validation, escaped notes and scoped optimistic writes
+  ---
+  duration_ms: 6.144664
+  type: 'test'
+  ...
+# Subtest: Postgres customer notes and addresses enforce tenant/role boundaries, versions and audit
+ok 80 - Postgres customer notes and addresses enforce tenant/role boundaries, versions and audit
+  ---
+  duration_ms: 3163.006744
+  type: 'test'
+  ...
+# Subtest: normal server fails closed without explicit demo mode
+ok 81 - normal server fails closed without explicit demo mode
+  ---
+  duration_ms: 53.833141
+  type: 'test'
+  ...
+# Subtest: unauthenticated dashboard redirects and demo login is clearly labelled
+ok 82 - unauthenticated dashboard redirects and demo login is clearly labelled
+  ---
+  duration_ms: 34.91391
+  type: 'test'
+  ...
+# Subtest: manager dashboard and direct business requests enforce membership
+ok 83 - manager dashboard and direct business requests enforce membership
+  ---
+  duration_ms: 26.842188
+  type: 'test'
+  ...
+# Subtest: owner can switch both businesses, with no fabricated operational metrics
+ok 84 - owner can switch both businesses, with no fabricated operational metrics
+  ---
+  duration_ms: 18.42889
+  type: 'test'
+  ...
+# Subtest: cleaner has own earnings navigation, not finance
+ok 85 - cleaner has own earnings navigation, not finance
+  ---
+  duration_ms: 17.01488
+  type: 'test'
+  ...
+# Subtest: cross-origin and unknown demo sign-in attempts fail
+ok 86 - cross-origin and unknown demo sign-in attempts fail
+  ---
+  duration_ms: 5.607236
+  type: 'test'
+  ...
+# Subtest: logout invalidates server session
+ok 87 - logout invalidates server session
+  ---
+  duration_ms: 9.459297
+  type: 'test'
+  ...
+# Subtest: expired demo sessions cannot access dashboard
+ok 88 - expired demo sessions cannot access dashboard
+  ---
+  duration_ms: 3.69999
+  type: 'test'
+  ...
+# Subtest: login preserves same-origin form metadata without cross-site referrer disclosure
+ok 89 - login preserves same-origin form metadata without cross-site referrer disclosure
+  ---
+  duration_ms: 4.424234
+  type: 'test'
+  ...
+# Subtest: Postgres RLS isolates businesses and denies membership escalation
+ok 90 - Postgres RLS isolates businesses and denies membership escalation
+  ---
+  duration_ms: 3127.559142
+  type: 'test'
+  ...
+# Subtest: calendar arithmetic handles leap dates, month ends and year changes without timezone conversion
+ok 91 - calendar arithmetic handles leap dates, month ends and year changes without timezone conversion
+  ---
+  duration_ms: 10.374512
+  type: 'test'
+  ...
+# Subtest: booking, calendar and working-hours forms reuse the same field renderer without native temporal controls
+ok 92 - booking, calendar and working-hours forms reuse the same field renderer without native temporal controls
+  ---
+  duration_ms: 39.649856
+  type: 'test'
+  ...
+# Subtest: server rejects impossible or overflowing dates/times before any availability or booking write
+ok 93 - server rejects impossible or overflowing dates/times before any availability or booking write
+  ---
+  duration_ms: 1.711032
+  type: 'test'
+  ...
+# Subtest: shared pickers commit canonical values, cancel, navigate with keyboard, reset and retain typed validation
+ok 94 - shared pickers commit canonical values, cancel, navigate with keyboard, reset and retain typed validation
+  ---
+  duration_ms: 100.536849
+  type: 'test'
+  ...
+# Subtest: pointer focus transitions keep dates and custom time options clickable before focus settles
+ok 95 - pointer focus transitions keep dates and custom time options clickable before focus settles
+  ---
+  duration_ms: 49.711657
+  type: 'test'
+  ...
+# Subtest: single time choices span the day and preserve off-grid exact minutes without rounding
+ok 96 - single time choices span the day and preserve off-grid exact minutes without rounding
+  ---
+  duration_ms: 0.454453
+  type: 'test'
+  ...
+# Subtest: retains immutable prior release and returns to it after failed health
+ok 97 - retains immutable prior release and returns to it after failed health
+  ---
+  duration_ms: 57.179681
+  type: 'test'
+  ...
+# Subtest: successful verification promotes new release retaining old
+ok 98 - successful verification promotes new release retaining old
+  ---
+  duration_ms: 14.107971
+  type: 'test'
+  ...
+# Subtest: tampered candidate denied before active slot moves
+ok 99 - tampered candidate denied before active slot moves
+  ---
+  duration_ms: 22.159111
+  type: 'test'
+  ...
+# Subtest: synthetic isolated startup serves health and login while denying unsafe requests
+ok 100 - synthetic isolated startup serves health and login while denying unsafe requests
+  ---
+  duration_ms: 36.928356
+  type: 'test'
+  ...
+# Subtest: synthetic server denies all requests until private listener is ready
+ok 101 - synthetic server denies all requests until private listener is ready
+  ---
+  duration_ms: 3.787591
+  type: 'test'
+  ...
+# Subtest: matching inert staging release evidence passes
+ok 102 - matching inert staging release evidence passes
+  ---
+  duration_ms: 1.31076
+  type: 'test'
+  ...
+# Subtest: reject wrong SHA
+ok 103 - reject wrong SHA
+  ---
+  duration_ms: 0.591288
+  type: 'test'
+  ...
+# Subtest: reject inactive CI
+ok 104 - reject inactive CI
+  ---
+  duration_ms: 0.136675
+  type: 'test'
+  ...
+# Subtest: reject no rollback
+ok 105 - reject no rollback
+  ---
+  duration_ms: 0.122895
+  type: 'test'
+  ...
+# Subtest: reject accounting launcher
+ok 106 - reject accounting launcher
+  ---
+  duration_ms: 0.150796
+  type: 'test'
+  ...
+# Subtest: reject wrong environment
+ok 107 - reject wrong environment
+  ---
+  duration_ms: 0.105929
+  type: 'test'
+  ...
+# Subtest: reject fingerprint mismatch
+ok 108 - reject fingerprint mismatch
+  ---
+  duration_ms: 0.194122
+  type: 'test'
+  ...
+# Subtest: reject health wrong database
+ok 109 - reject health wrong database
+  ---
+  duration_ms: 0.202194
+  type: 'test'
+  ...
+# Subtest: reject health financial runtime
+ok 110 - reject health financial runtime
+  ---
+  duration_ms: 0.167652
+  type: 'test'
+  ...
+# Subtest: reject health payments
+ok 111 - reject health payments
+  ---
+  duration_ms: 0.191378
+  type: 'test'
+  ...
+# Subtest: reject health notifications
+ok 112 - reject health notifications
+  ---
+  duration_ms: 0.16672
+  type: 'test'
+  ...
+# Subtest: reject health wrong source
+ok 113 - reject health wrong source
+  ---
+  duration_ms: 0.18628
+  type: 'test'
+  ...
+# Subtest: reject health untrusted transport
+ok 114 - reject health untrusted transport
+  ---
+  duration_ms: 0.116615
+  type: 'test'
+  ...
+# Subtest: recovery checkout contains every declared startup prerequisite
+ok 115 - recovery checkout contains every declared startup prerequisite
+  ---
+  duration_ms: 6.551285
+  type: 'test'
+  ...
+# Subtest: lockfile matches package declarations and runtime major
+ok 116 - lockfile matches package declarations and runtime major
+  ---
+  duration_ms: 15.550569
+  type: 'test'
+  ...
+# Subtest: hosted entrypoints parse without starting a server
+ok 117 - hosted entrypoints parse without starting a server
+  ---
+  duration_ms: 356.986719
+  type: 'test'
+  ...
+# Subtest: standard launcher cannot opt in accounting proxy
+ok 118 - standard launcher cannot opt in accounting proxy
+  ---
+  duration_ms: 9.443161
+  type: 'test'
+  ...
+# Subtest: reusable dropdown supports keyboard commit, cancellation, validation, reset and native value
+ok 119 - reusable dropdown supports keyboard commit, cancellation, validation, reset and native value
+  ---
+  duration_ms: 12.655087
+  type: 'test'
+  ...
+# Subtest: duration floors, blocks, assessment and immutable quote/recurring snapshots
+ok 120 - duration floors, blocks, assessment and immutable quote/recurring snapshots
+  ---
+  duration_ms: 4427.141299
+  type: 'test'
+  ...
+# Subtest: daily limit totals travel/setup across businesses, denies bypasses and rolls failed teams back
+ok 121 - daily limit totals travel/setup across businesses, denies bypasses and rolls failed teams back
+  ---
+  duration_ms: 3815.270087
+  type: 'test'
+  ...
+# Subtest: duration controls round-trip without changing prices; work plans preserve explicit zero and trusted scope
+ok 122 - duration controls round-trip without changing prices; work plans preserve explicit zero and trusted scope
+  ---
+  duration_ms: 12.387214
+  type: 'test'
+  ...
+# Subtest: database journal preserves correction-only flow and reconstructs core including canonical replay
+ok 123 - database journal preserves correction-only flow and reconstructs core including canonical replay
+  ---
+  duration_ms: 3334.441841
+  type: 'test'
+  ...
+# Subtest: database role, source scope and own-record RLS fail closed; direct mutations are denied
+ok 124 - database role, source scope and own-record RLS fail closed; direct mutations are denied
+  ---
+  duration_ms: 2499.714795
+  type: 'test'
+  ...
+# Subtest: direct RPC rejects poison payloads and stale approvals without journal mutations
+ok 125 - direct RPC rejects poison payloads and stale approvals without journal mutations
+  ---
+  duration_ms: 3140.117919
+  type: 'test'
+  ...
+# Subtest: HTTP registers only scoped assigned synthetic source; form errors retain explicit blanks and choices
+ok 126 - HTTP registers only scoped assigned synthetic source; form errors retain explicit blanks and choices
+  ---
+  duration_ms: 120.012983
+  type: 'test'
+  ...
+# Subtest: HTTP fresh manager/staff roles cannot gain owner actions; staff can review own source only
+ok 127 - HTTP fresh manager/staff roles cannot gain owner actions; staff can review own source only
+  ---
+  duration_ms: 67.584234
+  type: 'test'
+  ...
+# Subtest: restore workspace disables all adjustment writes
+ok 128 - restore workspace disables all adjustment writes
+  ---
+  duration_ms: 5.448067
+  type: 'test'
+  ...
+# Subtest: staff HTTP records own review without granting owner approval or exposing another worker
+ok 129 - staff HTTP records own review without granting owner approval or exposing another worker
+  ---
+  duration_ms: 9.110772
+  type: 'test'
+  ...
+# Subtest: history reader rejects incomplete scope; renderer escapes evidence and creates unique labels
+ok 130 - history reader rejects incomplete scope; renderer escapes evidence and creates unique labels
+  ---
+  duration_ms: 1.017218
+  type: 'test'
+  ...
+# Subtest: paid R2500 plus missed R50 creates only R50 correction; replay cannot settle original again
+ok 131 - paid R2500 plus missed R50 creates only R50 correction; replay cannot settle original again
+  ---
+  duration_ms: 5.284151
+  type: 'test'
+  ...
+# Subtest: managers prepare; only owner approves, rejects, freezes or simulates
+ok 132 - managers prepare; only owner approves, rejects, freezes or simulates
+  ---
+  duration_ms: 1.581367
+  type: 'test'
+  ...
+# Subtest: reductions require lawful-basis, applicable agreement, fair process and full-entitlement evidence
+ok 133 - reductions require lawful-basis, applicable agreement, fair process and full-entitlement evidence
+  ---
+  duration_ms: 0.905831
+  type: 'test'
+  ...
+# Subtest: no fines, nonpayment, damage, refund clawbacks or negative reimbursements
+ok 134 - no fines, nonpayment, damage, refund clawbacks or negative reimbursements
+  ---
+  duration_ms: 1.135096
+  type: 'test'
+  ...
+# Subtest: one cleaner dispute never blocks another valid positive correction; staff only their own
+ok 135 - one cleaner dispute never blocks another valid positive correction; staff only their own
+  ---
+  duration_ms: 8.653184
+  type: 'test'
+  ...
+# Subtest: snapshot, version, occurrence and replacement links prevent silent rewrite and stale approval
+ok 136 - snapshot, version, occurrence and replacement links prevent silent rewrite and stale approval
+  ---
+  duration_ms: 1.128696
+  type: 'test'
+  ...
+# Subtest: unknowns stay unknown; negative/overflow/invalid dates and injected identity fields fail closed
+ok 137 - unknowns stay unknown; negative/overflow/invalid dates and injected identity fields fail closed
+  ---
+  duration_ms: 1.177129
+  type: 'test'
+  ...
+# Subtest: replay requires same actor, role and content; stale and out-of-order events cannot mutate history
+ok 138 - replay requires same actor, role and content; stale and out-of-order events cannot mutate history
+  ---
+  duration_ms: 0.51911
+  type: 'test'
+  ...
+# Subtest: one percentage pool, then equal shares and a per-cleaner cap
+ok 139 - one percentage pool, then equal shares and a per-cleaner cap
+  ---
+  duration_ms: 15.800835
+  type: 'test'
+  ...
+# Subtest: integer percentage rounding and stable leftover cents are reproducible
+ok 140 - integer percentage rounding and stable leftover cents are reproducible
+  ---
+  duration_ms: 0.728925
+  type: 'test'
+  ...
+# Subtest: missing choices, scope/hours, overflow and existing agreements cannot silently calculate
+ok 141 - missing choices, scope/hours, overflow and existing agreements cannot silently calculate
+  ---
+  duration_ms: 6.726333
+  type: 'test'
+  ...
+# Subtest: drafts preserve blanks and explicit zero; parsing excludes client business claims
+ok 142 - drafts preserve blanks and explicit zero; parsing excludes client business claims
+  ---
+  duration_ms: 0.885241
+  type: 'test'
+  ...
+# Subtest: six approved methods belong to the Shalean template, without an invented pay rate
+ok 143 - six approved methods belong to the Shalean template, without an invented pay rate
+  ---
+  duration_ms: 10.556925
+  type: 'test'
+  ...
+# Subtest: persistence uses business/service/version predicates; lists every scoped page
+ok 144 - persistence uses business/service/version predicates; lists every scoped page
+  ---
+  duration_ms: 2.293807
+  type: 'test'
+  ...
+# Subtest: rendering escapes data, offers no implicit rate, and limits changes to owner
+ok 145 - rendering escapes data, offers no implicit rate, and limits changes to owner
+  ---
+  duration_ms: 18.363095
+  type: 'test'
+  ...
+# Subtest: Postgres isolates setup, checks service scope, preserves versions and audits owner writes
+ok 146 - Postgres isolates setup, checks service scope, preserves versions and audits owner writes
+  ---
+  duration_ms: 3607.512271
+  type: 'test'
+  ...
+# Subtest: Auth email deny hook never reads a recipient, token or payload
+ok 147 - Auth email deny hook never reads a recipient, token or payload
+  ---
+  duration_ms: 5.567126
+  type: 'test'
+  ...
+# Subtest: hosted configuration and credential boundary fail closed without exposing values
+ok 148 - hosted configuration and credential boundary fail closed without exposing values
+  ---
+  duration_ms: 1.332082
+  type: 'test'
+  ...
+# Subtest: outbound SDK boundary denies live providers, other projects, messaging Auth and redirects
+ok 149 - outbound SDK boundary denies live providers, other projects, messaging Auth and redirects
+  ---
+  duration_ms: 6.975392
+  type: 'test'
+  ...
+# Subtest: T04 hosted SDK admits only synthetic journal reads and audited append RPCs
+ok 150 - T04 hosted SDK admits only synthetic journal reads and audited append RPCs
+  ---
+  duration_ms: 29.486021
+  type: 'test'
+  ...
+# Subtest: hosted passenger uses its reviewed transport, canonical origin and secure cookies with real SDK
+ok 151 - hosted passenger uses its reviewed transport, canonical origin and secure cookies with real SDK
+  ---
+  duration_ms: 91.753646
+  type: 'test'
+  ...
+# Subtest: hosted litespeed uses its reviewed transport, canonical origin and secure cookies with real SDK
+ok 152 - hosted litespeed uses its reviewed transport, canonical origin and secure cookies with real SDK
+  ---
+  duration_ms: 37.015977
+  type: 'test'
+  ...
+# Subtest: local and restore retain production refusal, hosted rejects integration workers and non-Passenger boot
+ok 153 - local and restore retain production refusal, hosted rejects integration workers and non-Passenger boot
+  ---
+  duration_ms: 106.694168
+  type: 'test'
+  ...
+# Subtest: LiteSpeed managed edge requires private readiness and ignores all client TLS claims
+ok 154 - LiteSpeed managed edge requires private readiness and ignores all client TLS claims
+  ---
+  duration_ms: 0.424658
+  type: 'test'
+  ...
+# Subtest: runtime detection refuses generic loaders, wrong root/socket/startup and standalone fallback
+ok 155 - runtime detection refuses generic loaders, wrong root/socket/startup and standalone fallback
+  ---
+  duration_ms: 12.207575
+  type: 'test'
+  ...
+# Subtest: actual Unix listener is required; TCP and symlink paths are refused
+not ok 156 - actual Unix listener is required; TCP and symlink paths are refused
+  ---
+  duration_ms: 9.505255
+  type: 'test'
+  location: '/workspace/scratch/eb8d2d9e8ff9/faraios/test/hosted-staging.test.js:144:1'
+  failureType: 'testCodeFailure'
+  error: 'listen EPERM: operation not permitted /workspace/scratch/eb8d2d9e8ff9/faraios/t07-socket-UnTIhh/app.sock'
+  code: 'EPERM'
+  stack: |-
+    Server.setupListenHandle [as _listen2] (node:net:2368:21)
+    listenInCluster (node:net:2499:12)
+    Server.listen (node:net:2641:5)
+    file:///workspace/scratch/eb8d2d9e8ff9/faraios/test/hosted-staging.test.js:150:77
+    new Promise (<anonymous>)
+    TestContext.<anonymous> (file:///workspace/scratch/eb8d2d9e8ff9/faraios/test/hosted-staging.test.js:150:11)
+    async Test.run (node:internal/test_runner/test:1409:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+# Subtest: LiteSpeed denies requests until actual socket validation completes
+ok 157 - LiteSpeed denies requests until actual socket validation completes
+  ---
+  duration_ms: 10.696915
+  type: 'test'
+  ...
+# Subtest: inherited listener requires kernel-proven Unix identity and refuses TCP fd0
+not ok 158 - inherited listener requires kernel-proven Unix identity and refuses TCP fd0
+  ---
+  duration_ms: 1.781367
+  type: 'test'
+  location: '/workspace/scratch/eb8d2d9e8ff9/faraios/test/hosted-staging.test.js:173:1'
+  failureType: 'testCodeFailure'
+  error: 'listen EPERM: operation not permitted /workspace/scratch/eb8d2d9e8ff9/faraios/t07-inherited-sNOrmM/app.sock'
+  code: 'EPERM'
+  stack: |-
+    Server.setupListenHandle [as _listen2] (node:net:2368:21)
+    listenInCluster (node:net:2499:12)
+    Server.listen (node:net:2641:5)
+    file:///workspace/scratch/eb8d2d9e8ff9/faraios/test/hosted-staging.test.js:180:77
+    new Promise (<anonymous>)
+    TestContext.<anonymous> (file:///workspace/scratch/eb8d2d9e8ff9/faraios/test/hosted-staging.test.js:180:11)
+    async Test.run (node:internal/test_runner/test:1409:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+# Subtest: verified hosting policy permits read/execute but no non-owner socket or ancestor write
+ok 159 - verified hosting policy permits read/execute but no non-owner socket or ancestor write
+  ---
+  duration_ms: 1.094835
+  type: 'test'
+  ...
+# Subtest: T19 manual RLS count-only acceptance fails closed and requires positive owner control
+ok 160 - T19 manual RLS count-only acceptance fails closed and requires positive owner control
+  ---
+  duration_ms: 0.278468
+  type: 'test'
+  ...
+# Subtest: verified identity uses database role, ignoring editable metadata
+ok 161 - verified identity uses database role, ignoring editable metadata
+  ---
+  duration_ms: 2.232095
+  type: 'test'
+  ...
+# Subtest: invalid and revoked auth fails before membership reads
+ok 162 - invalid and revoked auth fails before membership reads
+  ---
+  duration_ms: 0.81865
+  type: 'test'
+  ...
+# Subtest: membership failures never fall back to owner or demo role
+ok 163 - membership failures never fall back to owner or demo role
+  ---
+  duration_ms: 0.653602
+  type: 'test'
+  ...
+# Subtest: invoice preparation is scoped, immutable, idempotent and separate from operational/payment state
+ok 164 - invoice preparation is scoped, immutable, idempotent and separate from operational/payment state
+  ---
+  duration_ms: 4380.398824
+  type: 'test'
+  ...
+# Subtest: uncertain attempts never permit automatic re-creation, and cancellations hold accounting
+ok 165 - uncertain attempts never permit automatic re-creation, and cancellations hold accounting
+  ---
+  duration_ms: 3143.434762
+  type: 'test'
+  ...
+# Subtest: list and detail cancellation holds agree with whole-business totals and escaped saved values
+ok 166 - list and detail cancellation holds agree with whole-business totals and escaped saved values
+  ---
+  duration_ms: 39.195058
+  type: 'test'
+  ...
+# Subtest: server orchestration cannot accept a foreign claim and UI connection payload cannot carry secrets
+ok 167 - server orchestration cannot accept a foreign claim and UI connection payload cannot carry secrets
+  ---
+  duration_ms: 1.194024
+  type: 'test'
+  ...
+# Subtest: accepted quote handoff becomes one explicit invoice with the same frozen agreement
+ok 168 - accepted quote handoff becomes one explicit invoice with the same frozen agreement
+  ---
+  duration_ms: 2895.970604
+  type: 'test'
+  ...
+# Subtest: restore transport has one fixed destination and refuses inherited project/credential/trust overrides
+ok 169 - restore transport has one fixed destination and refuses inherited project/credential/trust overrides
+  ---
+  duration_ms: 2.993474
+  type: 'test'
+  ...
+# Subtest: only exact archive and the reviewed capture catalog can enter restoration
+ok 170 - only exact archive and the reviewed capture catalog can enter restoration
+  ---
+  duration_ms: 2.072444
+  type: 'test'
+  ...
+# Subtest: fresh verification uses reviewed current catalog but cannot repoint the original restore destination
+ok 171 - fresh verification uses reviewed current catalog but cannot repoint the original restore destination
+  ---
+  duration_ms: 15.618811
+  type: 'test'
+  ...
+# Subtest: existing application/Auth/Vault/network state, structural drift and extension mismatch block import
+ok 172 - existing application/Auth/Vault/network state, structural drift and extension mismatch block import
+  ---
+  duration_ms: 1.320244
+  type: 'test'
+  ...
+# Subtest: import checks empty destination again, never replays managed reference and validates before psql commits
+ok 173 - import checks empty destination again, never replays managed reference and validates before psql commits
+  ---
+  duration_ms: 2.61464
+  type: 'test'
+  ...
+# Subtest: only the exact existing managed parameter grant is omitted; unexpected ACL statements stop before connection
+ok 174 - only the exact existing managed parameter grant is omitted; unexpected ACL statements stop before connection
+  ---
+  duration_ms: 0.97154
+  type: 'test'
+  ...
+# Subtest: uncertain outcome retains only allowlisted cause observations
+ok 175 - uncertain outcome retains only allowlisted cause observations
+  ---
+  duration_ms: 0.325108
+  type: 'test'
+  ...
+# Subtest: sequence parsing preserves COPY records and rejects missing, duplicate, unknown or malformed assignments
+ok 176 - sequence parsing preserves COPY records and rejects missing, duplicate, unknown or malformed assignments
+  ---
+  duration_ms: 0.843367
+  type: 'test'
+  ...
+# Subtest: native sequence-pending stderr remains a fixed diagnostic through the production child classifier
+ok 177 - native sequence-pending stderr remains a fixed diagnostic through the production child classifier
+  ---
+  duration_ms: 186.928449
+  type: 'test'
+  ...
+# Subtest: restore outbound adapter permits destination reads and password/local logout only
+ok 178 - restore outbound adapter permits destination reads and password/local logout only
+  ---
+  duration_ms: 30.726215
+  type: 'test'
+  ...
+# Subtest: restore server has distinct cookie, visible restore marker and blocks every business mutation before auth
+ok 179 - restore server has distinct cookie, visible restore marker and blocks every business mutation before auth
+  ---
+  duration_ms: 150.131546
+  type: 'test'
+  ...
+# Subtest: restore launcher ignores accounting credentials and creates only its pinned read-only server
+ok 180 - restore launcher ignores accounting credentials and creates only its pinned read-only server
+  ---
+  duration_ms: 10.103583
+  type: 'test'
+  ...
+# Subtest: private file/key loading and restore orchestration keep every destination client fixed and sanitize uncertain imports
+ok 181 - private file/key loading and restore orchestration keep every destination client fixed and sanitize uncertain imports
+  ---
+  duration_ms: 2589.915301
+  type: 'test'
+  ...
+# Subtest: PAY03 closed month, fifth target, preceding banking day and earlier deadlines
+ok 182 - PAY03 closed month, fifth target, preceding banking day and earlier deadlines
+  ---
+  duration_ms: 3785.946249
+  type: 'test'
+  ...
+# Subtest: PAY03 submitted/unknown/partial/cleared and retries never duplicate original amount
+ok 183 - PAY03 submitted/unknown/partial/cleared and retries never duplicate original amount
+  ---
+  duration_ms: 2274.113098
+  type: 'test'
+  ...
+# Subtest: PAY03 own-worker disputes remove freeze; resolution needs refreeze; independent pools stay pending
+ok 184 - PAY03 own-worker disputes remove freeze; resolution needs refreeze; independent pools stay pending
+  ---
+  duration_ms: 2307.214133
+  type: 'test'
+  ...
+# Subtest: PAY03 direct RPC role/scope/type/replay guards and RLS enforce access
+ok 185 - PAY03 direct RPC role/scope/type/replay guards and RLS enforce access
+  ---
+  duration_ms: 2250.61988
+  type: 'test'
+  ...
+# Subtest: PAY03 links only approved correction delta; global claim prevents cross-period repayment and Stage2 simulation
+ok 186 - PAY03 links only approved correction delta; global claim prevents cross-period repayment and Stage2 simulation
+  ---
+  duration_ms: 2017.513983
+  type: 'test'
+  ...
+# Subtest: PAY03 partial clearing stays allocated to its line through dispute and resolution
+ok 187 - PAY03 partial clearing stays allocated to its line through dispute and resolution
+  ---
+  duration_ms: 1984.152872
+  type: 'test'
+  ...
+# Subtest: monthly HTTP scoped preparer, CSRF/body guards, fresh role and restore denial
+ok 188 - monthly HTTP scoped preparer, CSRF/body guards, fresh role and restore denial
+  ---
+  duration_ms: 121.472242
+  type: 'test'
+  ...
+# Subtest: monthly own-worker read/dispute has no owner controls and foreign worker is hidden
+ok 189 - monthly own-worker read/dispute has no owner controls and foreign worker is hidden
+  ---
+  duration_ms: 51.896299
+  type: 'test'
+  ...
+# Subtest: monthly errors preserve blanks; restore writes rejected
+ok 190 - monthly errors preserve blanks; restore writes rejected
+  ---
+  duration_ms: 27.422154
+  type: 'test'
+  ...
+# Subtest: monthly restore is read-only
+ok 191 - monthly restore is read-only
+  ---
+  duration_ms: 9.863903
+  type: 'test'
+  ...
+# Subtest: monthly summary never calls partial or unknown fully cleared and renderer escapes evidence
+ok 192 - monthly summary never calls partial or unknown fully cleared and renderer escapes evidence
+  ---
+  duration_ms: 2.66175
+  type: 'test'
+  ...
+# Subtest: monthly reconciliation accepts dot and comma cents without allowing grouping or extra precision
+ok 193 - monthly reconciliation accepts dot and comma cents without allowing grouping or extra precision
+  ---
+  duration_ms: 1.408657
+  type: 'test'
+  ...
+# Subtest: quote detail puts current states, saved total and main action first; disclosures preserve exact snapshots
+ok 194 - quote detail puts current states, saved total and main action first; disclosures preserve exact snapshots
+  ---
+  duration_ms: 31.56076
+  type: 'test'
+  ...
+# Subtest: address presentation removes only adjacent equal components
+ok 195 - address presentation removes only adjacent equal components
+  ---
+  duration_ms: 2.252325
+  type: 'test'
+  ...
+# Subtest: actor resolver binds every returned identity and degrades only unavailable labels
+ok 196 - actor resolver binds every returned identity and degrades only unavailable labels
+  ---
+  duration_ms: 2.258264
+  type: 'test'
+  ...
+# Subtest: reference copies the full canonical ID once and announces success
+ok 197 - reference copies the full canonical ID once and announces success
+  ---
+  duration_ms: 0.803358
+  type: 'test'
+  ...
+# Subtest: unavailable or denied clipboard reveals and selects a manual fallback
+ok 198 - unavailable or denied clipboard reveals and selects a manual fallback
+  ---
+  duration_ms: 0.429365
+  type: 'test'
+  ...
+# Subtest: quote input is date-independent and never submits client totals or acceptance actors
+ok 199 - quote input is date-independent and never submits client totals or acceptance actors
+  ---
+  duration_ms: 3.272067
+  type: 'test'
+  ...
+# Subtest: quotes enforce scoped acceptance, immutable conversion, atomic handoffs and direct-API protections
+ok 200 - quotes enforce scoped acceptance, immutable conversion, atomic handoffs and direct-API protections
+  ---
+  duration_ms: 4384.011369
+  type: 'test'
+  ...
+# Subtest: quote builders preserve all six configured profile prices and prior booking history
+ok 201 - quote builders preserve all six configured profile prices and prior booking history
+  ---
+  duration_ms: 3378.124204
+  type: 'test'
+  ...
+# Subtest: rollback-only staging acceptance script leaves existing records intact
+ok 202 - rollback-only staging acceptance script leaves existing records intact
+  ---
+  duration_ms: 2593.731623
+  type: 'test'
+  ...
+# Subtest: recorded actor lookup authorises the current caller and exposes only one stored actor
+ok 203 - recorded actor lookup authorises the current caller and exposes only one stored actor
+  ---
+  duration_ms: 2225.820008
+  type: 'test'
+  ...
+# Subtest: recurring schedules preserve agreements and history, enforce RLS and reject duplicate visits
+ok 204 - recurring schedules preserve agreements and history, enforce RLS and reject duplicate visits
+  ---
+  duration_ms: 4274.370689
+  type: 'test'
+  ...
+# Subtest: recurring form validation, safe RPC errors, and escaped history guidance
+ok 205 - recurring form validation, safe RPC errors, and escaped history guidance
+  ---
+  duration_ms: 19.806573
+  type: 'test'
+  ...
+# Subtest: original BETWEEN parse tree is reconstructed exactly after native-style deparse/reparse
+ok 206 - original BETWEEN parse tree is reconstructed exactly after native-style deparse/reparse
+  ---
+  duration_ms: 3082.775559
+  type: 'test'
+  ...
+# Subtest: reconstruction refuses unknown definitions, flags, comments, nonempty or inherited tables
+ok 207 - reconstruction refuses unknown definitions, flags, comments, nonempty or inherited tables
+  ---
+  duration_ms: 2089.93918
+  type: 'test'
+  ...
+# Subtest: original and replay working-days checks accept and reject the same boundary values
+ok 208 - original and replay working-days checks accept and reject the same boundary values
+  ---
+  duration_ms: 2057.603345
+  type: 'test'
+  ...
+# Subtest: normal import and sequence completion are held before any file, key or network access
+ok 209 - normal import and sequence completion are held before any file, key or network access
+  ---
+  duration_ms: 2.392626
+  type: 'test'
+  ...
+# Subtest: native schema envelope ignores quoted bodies/comments but rejects transaction, role, connection and data commands
+ok 210 - native schema envelope ignores quoted bodies/comments but rejects transaction, role, connection and data commands
+  ---
+  duration_ms: 2.011193
+  type: 'test'
+  ...
+# Subtest: diagnostic projection derives from the unchanged full catalog and only reports fixed component labels
+ok 211 - diagnostic projection derives from the unchanged full catalog and only reports fixed component labels
+  ---
+  duration_ms: 6.221599
+  type: 'test'
+  ...
+# Subtest: rollback acknowledgement and exact diagnostic shape are required; no raw output is returned
+ok 212 - rollback acknowledgement and exact diagnostic shape are required; no raw output is returned
+  ---
+  duration_ms: 3.220089
+  type: 'test'
+  ...
+# Subtest: offline restore handles empty snapshots, unordered rows and audit-probe name collision
+ok 213 - offline restore handles empty snapshots, unordered rows and audit-probe name collision
+  ---
+  duration_ms: 8644.846763
+  type: 'test'
+  ...
+# Subtest: only the fixed restored staff QA account is verified before global provider sign-out
+ok 214 - only the fixed restored staff QA account is verified before global provider sign-out
+  ---
+  duration_ms: 11.828625
+  type: 'test'
+  ...
+# Subtest: wrong verified account or failed verification cleans only the new session; no global action
+ok 215 - wrong verified account or failed verification cleans only the new session; no global action
+  ---
+  duration_ms: 3.050915
+  type: 'test'
+  ...
+# Subtest: failed password and lost global response cannot pass or trigger an automatic retry
+ok 216 - failed password and lost global response cannot pass or trigger an automatic retry
+  ---
+  duration_ms: 1.475157
+  type: 'test'
+  ...
+# Subtest: cancellation after verification prevents global action and gives local cleanup a fresh signal
+ok 217 - cancellation after verification prevents global action and gives local cleanup a fresh signal
+  ---
+  duration_ms: 3.434271
+  type: 'test'
+  ...
+# Subtest: a real expired deadline has a fixed label and no success or retry
+ok 218 - a real expired deadline has a fixed label and no success or retry
+  ---
+  duration_ms: 26.638405
+  type: 'test'
+  ...
+# Subtest: malformed password and unbounded deadline stop before any request
+ok 219 - malformed password and unbounded deadline stop before any request
+  ---
+  duration_ms: 1.301156
+  type: 'test'
+  ...
+# Subtest: CLI refuses arguments and noninteractive input without echoing values or contacting Auth
+ok 220 - CLI refuses arguments and noninteractive input without echoing values or contacting Auth
+  ---
+  duration_ms: 312.074598
+  type: 'test'
+  ...
+# Subtest: permission diagnostic parses numeric access ACLs including effective masks
+ok 221 - permission diagnostic parses numeric access ACLs including effective masks
+  ---
+  duration_ms: 2.02318
+  type: 'test'
+  ...
+# Subtest: unrecognized/incomplete ACL diagnostics fail without echoing input
+ok 222 - unrecognized/incomplete ACL diagnostics fail without echoing input
+  ---
+  duration_ms: 0.639451
+  type: 'test'
+  ...
+# Subtest: invalid socket paths do not invoke filesystem inspection or expose input
+ok 223 - invalid socket paths do not invoke filesystem inspection or expose input
+  ---
+  duration_ms: 0.610648
+  type: 'test'
+  ...
+# Subtest: malformed ACL structures and inconsistent effective permissions are rejected
+ok 224 - malformed ACL structures and inconsistent effective permissions are rejected
+  ---
+  duration_ms: 0.267362
+  type: 'test'
+  ...
+# Subtest: staff teams enforce tenant, owner writes, membership, immutable identity and audit in Postgres
+ok 225 - staff teams enforce tenant, owner writes, membership, immutable identity and audit in Postgres
+  ---
+  duration_ms: 3535.849206
+  type: 'test'
+  ...
+# Subtest: saved team assignment replaces manual choices and rejects revoked members
+ok 226 - saved team assignment replaces manual choices and rejects revoked members
+  ---
+  duration_ms: 3.294661
+  type: 'test'
+  ...
+# Subtest: booking assignment uses the business-specific profile label
+ok 227 - booking assignment uses the business-specific profile label
+  ---
+  duration_ms: 14.067639
+  type: 'test'
+  ...
+# Subtest: restore verifier uses only its fixed port/cookie and requires isolation before credential submission
+ok 228 - restore verifier uses only its fixed port/cookie and requires isolation before credential submission
+  ---
+  duration_ms: 94.493044
+  type: 'test'
+  ...
+# Subtest: manager verifier requires permitted reads, forbidden reads and local-session cleanup
+ok 229 - manager verifier requires permitted reads, forbidden reads and local-session cleanup
+  ---
+  duration_ms: 19.076085
+  type: 'test'
+  ...
+# Subtest: staff verifier requires permitted reads, forbidden reads and local-session cleanup
+ok 230 - staff verifier requires permitted reads, forbidden reads and local-session cleanup
+  ---
+  duration_ms: 21.746788
+  type: 'test'
+  ...
+# Subtest: shared staff must have both exact dashboard memberships while all office modules and settings stay denied
+ok 231 - shared staff must have both exact dashboard memberships while all office modules and settings stay denied
+  ---
+  duration_ms: 9.535269
+  type: 'test'
+  ...
+# Subtest: shared staff cannot pass with missing/extra membership, elevated role or exposed office access
+ok 232 - shared staff cannot pass with missing/extra membership, elevated role or exposed office access
+  ---
+  duration_ms: 20.64927
+  type: 'test'
+  ...
+# Subtest: shared mode rejects ambiguous boundaries and manager use before any request
+ok 233 - shared mode rejects ambiguous boundaries and manager use before any request
+  ---
+  duration_ms: 3.272597
+  type: 'test'
+  ...
+# Subtest: a foreign allow, extra business, owner access, wrong role or module failure cannot pass
+ok 234 - a foreign allow, extra business, owner access, wrong role or module failure cannot pass
+  ---
+  duration_ms: 20.058858
+  type: 'test'
+  ...
+# Subtest: failed sign-in and oversized/non-staging response stop before business reads
+ok 235 - failed sign-in and oversized/non-staging response stop before business reads
+  ---
+  duration_ms: 3.155582
+  type: 'test'
+  ...
+# Subtest: request errors are sanitized and logout failure cannot be reported as success
+ok 236 - request errors are sanitized and logout failure cannot be reported as success
+  ---
+  duration_ms: 24.402299
+  type: 'test'
+  ...
+# Subtest: foreign diagnostic/code/message properties cannot leak through the public failure label
+ok 237 - foreign diagnostic/code/message properties cannot leak through the public failure label
+  ---
+  duration_ms: 9.724023
+  type: 'test'
+  ...
+# Subtest: a failed own quote request retains earlier denial evidence and identifies only safe request metadata
+ok 238 - a failed own quote request retains earlier denial evidence and identifies only safe request metadata
+  ---
+  duration_ms: 2.219525
+  type: 'test'
+  ...
+# Subtest: only an expired local deadline is classified as a request timeout and cleanup gets a fresh deadline
+ok 239 - only an expired local deadline is classified as a request timeout and cleanup gets a fresh deadline
+  ---
+  duration_ms: 63.611469
+  type: 'test'
+  ...
+# Subtest: body failures retain a received HTTP status without passing an incomplete response
+ok 240 - body failures retain a received HTTP status without passing an incomplete response
+  ---
+  duration_ms: 88.079497
+  type: 'test'
+  ...
+# Subtest: cleanup transport diagnostics cannot overwrite the original failure or disclose transport errors
+ok 241 - cleanup transport diagnostics cannot overwrite the original failure or disclose transport errors
+  ---
+  duration_ms: 5.349068
+  type: 'test'
+  ...
+# Subtest: cancellation after sign-in still uses a fresh cleanup request
+ok 242 - cancellation after sign-in still uses a fresh cleanup request
+  ---
+  duration_ms: 2.195919
+  type: 'test'
+  ...
+# Subtest: ambiguous login outcomes report unconfirmed cleanup rather than inventing a session
+ok 243 - ambiguous login outcomes report unconfirmed cleanup rather than inventing a session
+  ---
+  duration_ms: 0.291027
+  type: 'test'
+  ...
+# Subtest: restore sign-in has a separate bounded deadline while module reads and cleanup keep their original deadlines
+ok 244 - restore sign-in has a separate bounded deadline while module reads and cleanup keep their original deadlines
+  ---
+  duration_ms: 69.187768
+  type: 'test'
+  ...
+# Subtest: lost login response retains its own actual deadline and unconfirmed cleanup
+ok 245 - lost login response retains its own actual deadline and unconfirmed cleanup
+  ---
+  duration_ms: 31.337355
+  type: 'test'
+  ...
+# Subtest: invalid options cannot send credentials to a configurable origin or accept secrets in arguments
+ok 246 - invalid options cannot send credentials to a configurable origin or accept secrets in arguments
+  ---
+  duration_ms: 0.980293
+  type: 'test'
+  ...
+# Subtest: hidden terminal input preserves password whitespace and never echoes it
+ok 247 - hidden terminal input preserves password whitespace and never echoes it
+  ---
+  duration_ms: 12.591481
+  type: 'test'
+  ...
+# Subtest: noninteractive CLI fails with a fixed label and no network or argument disclosure
+ok 248 - noninteractive CLI fails with a fixed label and no network or argument disclosure
+  ---
+  duration_ms: 138.637339
+  type: 'test'
+  ...
+# Subtest: real HTTP transport observes status and cookie cleanup independently of browser navigation
+ok 249 - real HTTP transport observes status and cookie cleanup independently of browser navigation
+  ---
+  duration_ms: 93.539366
+  type: 'test'
+  ...
+# Subtest: source scope fails closed for foreign IDs, new schemas, storage, Vault, missing history or lost RLS
+ok 250 - source scope fails closed for foreign IDs, new schemas, storage, Vault, missing history or lost RLS
+  ---
+  duration_ms: 10.629223
+  type: 'test'
+  ...
+# Subtest: current scope rejects same-count substitution, ownership and catalog drift; legacy archives retain their original path
+ok 251 - current scope rejects same-count substitution, ownership and catalog drift; legacy archives retain their original path
+  ---
+  duration_ms: 32.365325
+  type: 'test'
+  ...
+# Subtest: manifest parser accepts only the explicit single-row JSON contract
+ok 252 - manifest parser accepts only the explicit single-row JSON contract
+  ---
+  duration_ms: 1.422568
+  type: 'test'
+  ...
+# Subtest: password remains in child env; project, profile, PG, host and image overrides are removed
+ok 253 - password remains in child env; project, profile, PG, host and image overrides are removed
+  ---
+  duration_ms: 0.493301
+  type: 'test'
+  ...
+# Subtest: container commands enforce source-bound verified TLS, fixed image, no log output or credential arguments
+ok 254 - container commands enforce source-bound verified TLS, fixed image, no log output or credential arguments
+  ---
+  duration_ms: 1.287826
+  type: 'test'
+  ...
+# Subtest: authenticated encryption preserves Unicode SQL and rejects key, ciphertext, tag and source/header changes
+ok 255 - authenticated encryption preserves Unicode SQL and rejects key, ciphertext, tag and source/header changes
+  ---
+  duration_ms: 1.911211
+  type: 'test'
+  ...
+# Subtest: archive validation rejects missing files, false checksums and inconsistent manifests even with a valid encryption key
+ok 256 - archive validation rejects missing files, false checksums and inconsistent manifests even with a valid encryption key
+  ---
+  duration_ms: 1.997952
+  type: 'test'
+  ...
+# Subtest: coverage requires Auth rows, application rows, migration history and every app/audit RLS declaration
+ok 257 - coverage requires Auth rows, application rows, migration history and every app/audit RLS declaration
+  ---
+  duration_ms: 0.485169
+  type: 'test'
+  ...
+# Subtest: successful capture verifies the encrypted archive, separates keys and removes its static workdir
+ok 258 - successful capture verifies the encrypted archive, separates keys and removes its static workdir
+  ---
+  duration_ms: 681.69441
+  type: 'test'
+  ...
+# Subtest: concurrent source changes abort before creating a key or ready archive
+ok 259 - concurrent source changes abort before creating a key or ready archive
+  ---
+  duration_ms: 186.76114
+  type: 'test'
+  ...
+# Subtest: failed or incomplete dumps never produce a verified archive and never disclose child diagnostics
+ok 260 - failed or incomplete dumps never produce a verified archive and never disclose child diagnostics
+  ---
+  duration_ms: 210.058865
+  type: 'test'
+  ...
+# Subtest: private output directories reject symlinks and broad POSIX permissions
+ok 261 - private output directories reject symlinks and broad POSIX permissions
+  ---
+  duration_ms: 19.157698
+  type: 'test'
+  ...
+# Subtest: child failures discard arbitrary stdout/stderr and return only fixed labels
+ok 262 - child failures discard arbitrary stdout/stderr and return only fixed labels
+  ---
+  duration_ms: 105.911873
+  type: 'test'
+  ...
+# Subtest: cancellation cannot produce a ready archive and child cancellation is bounded
+ok 263 - cancellation cannot produce a ready archive and child cancellation is bounded
+  ---
+  duration_ms: 45.792232
+  type: 'test'
+  ...
+# Subtest: COPY coverage rejects empty bodies, wrong row counts, missing terminators and concatenated retry attempts
+ok 264 - COPY coverage rejects empty bodies, wrong row counts, missing terminators and concatenated retry attempts
+  ---
+  duration_ms: 3.113188
+  type: 'test'
+  ...
+# Subtest: canonical private boundaries reject an ancestor Git checkout and directory replacement before encryption
+ok 265 - canonical private boundaries reject an ancestor Git checkout and directory replacement before encryption
+  ---
+  duration_ms: 83.625363
+  type: 'test'
+  ...
+# Subtest: Docker environment overrides are removed and remote contexts fail before any credentialed database child
+ok 266 - Docker environment overrides are removed and remote contexts fail before any credentialed database child
+  ---
+  duration_ms: 0.50565
+  type: 'test'
+  ...
+# Subtest: runner deadline settles when an owned descendant holds inherited pipes open
+ok 267 - runner deadline settles when an owned descendant holds inherited pipes open
+  ---
+  duration_ms: 254.819395
+  type: 'test'
+  ...
+# Subtest: key boundary replacement stops before encryption and public key permissions fail retrieval
+ok 268 - key boundary replacement stops before encryption and public key permissions fail retrieval
+  ---
+  duration_ms: 430.362419
+  type: 'test'
+  ...
+# Subtest: cancellation during final workdir removal cannot return a PASSED report
+ok 269 - cancellation during final workdir removal cannot return a PASSED report
+  ---
+  duration_ms: 654.687159
+  type: 'test'
+  ...
+# Subtest: abort during local preflight stops the next Docker or Windows ACL child
+ok 270 - abort during local preflight stops the next Docker or Windows ACL child
+  ---
+  duration_ms: 28.063632
+  type: 'test'
+  ...
+# Subtest: metadata diagnostics map upstream text to fixed observations and discard all interpolated content
+ok 271 - metadata diagnostics map upstream text to fixed observations and discard all interpolated content
+  ---
+  duration_ms: 7.244966
+  type: 'test'
+  ...
+# Subtest: real child metadata failures expose no raw output and preserve timeout/cancellation labels
+ok 272 - real child metadata failures expose no raw output and preserve timeout/cancellation labels
+  ---
+  duration_ms: 411.82724
+  type: 'test'
+  ...
+# Subtest: a metadata diagnostic stops capture before dumps, keys or archives
+ok 273 - a metadata diagnostic stops capture before dumps, keys or archives
+  ---
+  duration_ms: 186.891001
+  type: 'test'
+  ...
+# Subtest: owned container cleanup is bounded, checks exact run/name and refuses ambiguous matches
+ok 274 - owned container cleanup is bounded, checks exact run/name and refuses ambiguous matches
+  ---
+  duration_ms: 0.804058
+  type: 'test'
+  ...
+# Subtest: stdin-only query runner accepts input and does not place query bytes into argv
+ok 275 - stdin-only query runner accepts input and does not place query bytes into argv
+  ---
+  duration_ms: 116.348426
+  type: 'test'
+  ...
+# Subtest: daemon cleanup failure blocks capture before keys or a success report
+ok 276 - daemon cleanup failure blocks capture before keys or a success report
+  ---
+  duration_ms: 124.891493
+  type: 'test'
+  ...
+# Subtest: cleanup failure retains its operator label after cancellation while other aborted errors are normalized
+ok 277 - cleanup failure retains its operator label after cancellation while other aborted errors are normalized
+  ---
+  duration_ms: 116.854361
+  type: 'test'
+  ...
+# Subtest: provider CA is pinned, self-signed, current and mounted read-only without accepting another trust anchor
+ok 278 - provider CA is pinned, self-signed, current and mounted read-only without accepting another trust anchor
+  ---
+  duration_ms: 16.01795
+  type: 'test'
+  ...
+# Subtest: image acquisition is credential-free and registry certificate errors retain an image-stage label
+ok 279 - image acquisition is credential-free and registry certificate errors retain an image-stage label
+  ---
+  duration_ms: 0.773943
+  type: 'test'
+  ...
+# Subtest: only a started container can classify PostgreSQL TLS text; raw output stays private
+ok 280 - only a started container can classify PostgreSQL TLS text; raw output stays private
+  ---
+  duration_ms: 454.415298
+  type: 'test'
+  ...
+# Subtest: profile change after metadata stops before the first data export
+ok 281 - profile change after metadata stops before the first data export
+  ---
+  duration_ms: 124.654917
+  type: 'test'
+  ...
+# Subtest: sequence advancement during capture still blocks a ready archive
+ok 282 - sequence advancement during capture still blocks a ready archive
+  ---
+  duration_ms: 228.154795
+  type: 'test'
+  ...
+# Subtest: staging login posts to provider contract and scopes authenticated dashboard
+ok 283 - staging login posts to provider contract and scopes authenticated dashboard
+  ---
+  duration_ms: 90.800166
+  type: 'test'
+  ...
+# Subtest: restore HTTP labels authenticated all-business and selected dashboards and keeps source default unchanged
+ok 284 - restore HTTP labels authenticated all-business and selected dashboards and keeps source default unchanged
+  ---
+  duration_ms: 42.149748
+  type: 'test'
+  ...
+# Subtest: staging login rejects foreign origins and throttles repeated failures
+ok 285 - staging login rejects foreign origins and throttles repeated failures
+  ---
+  duration_ms: 25.817456
+  type: 'test'
+  ...
+# Subtest: staging HTTP enforces manager workspace and cross-business denial
+ok 286 - staging HTTP enforces manager workspace and cross-business denial
+  ---
+  duration_ms: 12.581886
+  type: 'test'
+  ...
+# Subtest: staging HTTP enforces staff workspace and cross-business denial
+ok 287 - staging HTTP enforces staff workspace and cross-business denial
+  ---
+  duration_ms: 13.93509
+  type: 'test'
+  ...
+# Subtest: staging HTTP rechecks membership suspension without requiring logout
+ok 288 - staging HTTP rechecks membership suspension without requiring logout
+  ---
+  duration_ms: 12.630921
+  type: 'test'
+  ...
+# Subtest: staging HTTP rejects expired sessions and revoked identities
+ok 289 - staging HTTP rejects expired sessions and revoked identities
+  ---
+  duration_ms: 6.47466
+  type: 'test'
+  ...
+# Subtest: settings HTTP permits owner save and denies foreign business, CSRF and anonymous access
+ok 290 - settings HTTP permits owner save and denies foreign business, CSRF and anonymous access
+  ---
+  duration_ms: 15.009986
+  type: 'test'
+  ...
+# Subtest: settings HTTP denies manager reads and writes
+ok 291 - settings HTTP denies manager reads and writes
+  ---
+  duration_ms: 4.361374
+  type: 'test'
+  ...
+# Subtest: settings HTTP denies staff reads and writes
+ok 292 - settings HTTP denies staff reads and writes
+  ---
+  duration_ms: 8.286663
+  type: 'test'
+  ...
+# Subtest: catalogue HTTP owner create/edit rejects stale versions and foreign scope
+ok 293 - catalogue HTTP owner create/edit rejects stale versions and foreign scope
+  ---
+  duration_ms: 39.248468
+  type: 'test'
+  ...
+# Subtest: catalogue HTTP manager follows read/write restrictions
+ok 294 - catalogue HTTP manager follows read/write restrictions
+  ---
+  duration_ms: 8.850259
+  type: 'test'
+  ...
+# Subtest: catalogue HTTP staff follows read/write restrictions
+ok 295 - catalogue HTTP staff follows read/write restrictions
+  ---
+  duration_ms: 5.98929
+  type: 'test'
+  ...
+# Subtest: customer HTTP owner create/edit/address flow and stale/foreign denial
+ok 296 - customer HTTP owner create/edit/address flow and stale/foreign denial
+  ---
+  duration_ms: 47.283303
+  type: 'test'
+  ...
+# Subtest: customer HTTP manager create/edit/address flow and stale/foreign denial
+ok 297 - customer HTTP manager create/edit/address flow and stale/foreign denial
+  ---
+  duration_ms: 45.058299
+  type: 'test'
+  ...
+# Subtest: customer HTTP denies staff and anonymous reads/writes
+ok 298 - customer HTTP denies staff and anonymous reads/writes
+  ---
+  duration_ms: 5.386024
+  type: 'test'
+  ...
+# Subtest: booking HTTP owner lifecycle, duplicate submission, reschedule and cancel
+ok 299 - booking HTTP owner lifecycle, duplicate submission, reschedule and cancel
+  ---
+  duration_ms: 58.822318
+  type: 'test'
+  ...
+# Subtest: booking HTTP manager lifecycle, duplicate submission, reschedule and cancel
+ok 300 - booking HTTP manager lifecycle, duplicate submission, reschedule and cancel
+  ---
+  duration_ms: 31.646805
+  type: 'test'
+  ...
+# Subtest: booking HTTP denies staff and anonymous access
+ok 301 - booking HTTP denies staff and anonymous access
+  ---
+  duration_ms: 5.40407
+  type: 'test'
+  ...
+# Subtest: catalogue HTTP profile changes reset the old configuration before rendering new rules
+ok 302 - catalogue HTTP profile changes reset the old configuration before rendering new rules
+  ---
+  duration_ms: 14.943816
+  type: 'test'
+  ...
+# Subtest: catalogue focused creation, profile preview, single save, filters and deactivate keep owner guards
+ok 303 - catalogue focused creation, profile preview, single save, filters and deactivate keep owner guards
+  ---
+  duration_ms: 31.821072
+  type: 'test'
+  ...
+# Subtest: catalogue manager cannot preview or deactivate
+ok 304 - catalogue manager cannot preview or deactivate
+  ---
+  duration_ms: 4.487653
+  type: 'test'
+  ...
+# Subtest: catalogue staff cannot preview or deactivate
+ok 305 - catalogue staff cannot preview or deactivate
+  ---
+  duration_ms: 8.928768
+  type: 'test'
+  ...
+# Subtest: staff HTTP owner profile/team save, stale/tenant/CSRF guards and team assignment
+ok 306 - staff HTTP owner profile/team save, stale/tenant/CSRF guards and team assignment
+  ---
+  duration_ms: 31.090719
+  type: 'test'
+  ...
+# Subtest: staff HTTP manager read/write restrictions
+ok 307 - staff HTTP manager read/write restrictions
+  ---
+  duration_ms: 5.475117
+  type: 'test'
+  ...
+# Subtest: staff HTTP staff read/write restrictions
+ok 308 - staff HTTP staff read/write restrictions
+  ---
+  duration_ms: 6.823794
+  type: 'test'
+  ...
+# Subtest: staff HTTP anonymous redirects to login
+ok 309 - staff HTTP anonymous redirects to login
+  ---
+  duration_ms: 2.562891
+  type: 'test'
+  ...
+# Subtest: staff list keeps creation collapsed and editors focused for both categories
+ok 310 - staff list keeps creation collapsed and editors focused for both categories
+  ---
+  duration_ms: 7.484907
+  type: 'test'
+  ...
+# Subtest: calendar HTTP permits owner, validates dates and checks availability without writes
+ok 311 - calendar HTTP permits owner, validates dates and checks availability without writes
+  ---
+  duration_ms: 82.788872
+  type: 'test'
+  ...
+# Subtest: calendar HTTP permits manager, validates dates and checks availability without writes
+ok 312 - calendar HTTP permits manager, validates dates and checks availability without writes
+  ---
+  duration_ms: 22.283586
+  type: 'test'
+  ...
+# Subtest: calendar HTTP denies staff and redirects anonymous users
+ok 313 - calendar HTTP denies staff and redirects anonymous users
+  ---
+  duration_ms: 4.363136
+  type: 'test'
+  ...
+# Subtest: shared picker modules are served and owner calendar/settings render custom controls
+ok 314 - shared picker modules are served and owner calendar/settings render custom controls
+  ---
+  duration_ms: 45.694965
+  type: 'test'
+  ...
+# Subtest: recurring HTTP owner create, change and generation keep trusted business scope
+ok 315 - recurring HTTP owner create, change and generation keep trusted business scope
+  ---
+  duration_ms: 49.397229
+  type: 'test'
+  ...
+# Subtest: recurring HTTP manager create, change and generation keep trusted business scope
+ok 316 - recurring HTTP manager create, change and generation keep trusted business scope
+  ---
+  duration_ms: 47.437689
+  type: 'test'
+  ...
+# Subtest: recurring HTTP denies staff and anonymous access
+ok 317 - recurring HTTP denies staff and anonymous access
+  ---
+  duration_ms: 16.804953
+  type: 'test'
+  ...
+# Subtest: quote HTTP owner forms and RPCs keep scope and distinguish the invoice handoff
+ok 318 - quote HTTP owner forms and RPCs keep scope and distinguish the invoice handoff
+  ---
+  duration_ms: 55.042661
+  type: 'test'
+  ...
+# Subtest: quote HTTP manager forms and RPCs keep scope and distinguish the invoice handoff
+ok 319 - quote HTTP manager forms and RPCs keep scope and distinguish the invoice handoff
+  ---
+  duration_ms: 84.004018
+  type: 'test'
+  ...
+# Subtest: quote HTTP denies staff and anonymous reads and writes
+ok 320 - quote HTTP denies staff and anonymous reads and writes
+  ---
+  duration_ms: 4.925481
+  type: 'test'
+  ...
+# Subtest: module UI owner keeps business navigation, filtered lists and creation steps scoped
+ok 321 - module UI owner keeps business navigation, filtered lists and creation steps scoped
+  ---
+  duration_ms: 16.359764
+  type: 'test'
+  ...
+# Subtest: module UI manager keeps business navigation, filtered lists and creation steps scoped
+ok 322 - module UI manager keeps business navigation, filtered lists and creation steps scoped
+  ---
+  duration_ms: 18.880201
+  type: 'test'
+  ...
+# Subtest: invoice HTTP owner preserves source scope and exposes truthful configuration/holds
+ok 323 - invoice HTTP owner preserves source scope and exposes truthful configuration/holds
+  ---
+  duration_ms: 58.915632
+  type: 'test'
+  ...
+# Subtest: invoice HTTP manager preserves source scope and exposes truthful configuration/holds
+ok 324 - invoice HTTP manager preserves source scope and exposes truthful configuration/holds
+  ---
+  duration_ms: 37.216906
+  type: 'test'
+  ...
+# Subtest: invoice HTTP rejects staff and anonymous access without leaking financial drafts
+ok 325 - invoice HTTP rejects staff and anonymous access without leaking financial drafts
+  ---
+  duration_ms: 8.985813
+  type: 'test'
+  ...
+# Subtest: earnings owner setup and read-only preview enforce membership, origin, scope and saved version
+ok 326 - earnings owner setup and read-only preview enforce membership, origin, scope and saved version
+  ---
+  duration_ms: 27.554186
+  type: 'test'
+  ...
+# Subtest: restore workspace rejects earnings setup writes before business access
+ok 327 - restore workspace rejects earnings setup writes before business access
+  ---
+  duration_ms: 2.953117
+  type: 'test'
+  ...
+# Subtest: approved suggestions are limited to the explicitly mapped business and do not save on GET
+ok 328 - approved suggestions are limited to the explicitly mapped business and do not save on GET
+  ---
+  duration_ms: 17.247698
+  type: 'test'
+  ...
+# Subtest: VAT HTTP saves for owners, rejects anonymous/foreign/CSRF and preserves ordinary settings
+ok 329 - VAT HTTP saves for owners, rejects anonymous/foreign/CSRF and preserves ordinary settings
+  ---
+  duration_ms: 9.927077
+  type: 'test'
+  ...
+# Subtest: VAT HTTP denies manager
+ok 330 - VAT HTTP denies manager
+  ---
+  duration_ms: 2.871635
+  type: 'test'
+  ...
+# Subtest: VAT HTTP denies staff
+ok 331 - VAT HTTP denies staff
+  ---
+  duration_ms: 2.603792
+  type: 'test'
+  ...
+# Subtest: allowance HTTP owner saves, previews separate totals and rejects stale, cross-origin and foreign-scope writes
+ok 332 - allowance HTTP owner saves, previews separate totals and rejects stale, cross-origin and foreign-scope writes
+  ---
+  duration_ms: 153.841236
+  type: 'test'
+  ...
+# Subtest: allowance HTTP manager follows read/preview/write restrictions
+ok 333 - allowance HTTP manager follows read/preview/write restrictions
+  ---
+  duration_ms: 16.088626
+  type: 'test'
+  ...
+# Subtest: allowance HTTP staff follows read/preview/write restrictions
+ok 334 - allowance HTTP staff follows read/preview/write restrictions
+  ---
+  duration_ms: 12.346584
+  type: 'test'
+  ...
+# Subtest: restore workspace blocks allowance changes and monthly preview POSTs
+ok 335 - restore workspace blocks allowance changes and monthly preview POSTs
+  ---
+  duration_ms: 6.675721
+  type: 'test'
+  ...
+# Subtest: allowance form validates amount/month/version, leaves Off at zero and ignores client authority fields
+ok 336 - allowance form validates amount/month/version, leaves Off at zero and ignores client authority fields
+  ---
+  duration_ms: 4.698011
+  type: 'test'
+  ...
+# Subtest: monthly preview separates booking pay, retains earlier months and resolves scheduled revisions by effective month
+ok 337 - monthly preview separates booking pay, retains earlier months and resolves scheduled revisions by effective month
+  ---
+  duration_ms: 21.745526
+  type: 'test'
+  ...
+# Subtest: Postgres allowance RPC enforces owner/tenant/staff scope, future months and append-only audited revisions
+ok 338 - Postgres allowance RPC enforces owner/tenant/staff scope, future months and append-only audited revisions
+  ---
+  duration_ms: 2937.327895
+  type: 'test'
+  ...
+# Subtest: rollback-only staging acceptance script passes on a disposable fixture and leaves no allowances or businesses behind
+ok 339 - rollback-only staging acceptance script passes on a disposable fixture and leaves no allowances or businesses behind
+  ---
+  duration_ms: 2247.033504
+  type: 'test'
+  ...
+# Subtest: T19-02 specification remains fail-closed
+ok 340 - T19-02 specification remains fail-closed
+  ---
+  duration_ms: 2.057532
+  type: 'test'
+  ...
+# Subtest: no runtime implementation exists in this T19-02 change
+ok 341 - no runtime implementation exists in this T19-02 change
+  ---
+  duration_ms: 0.409175
+  type: 'test'
+  ...
+# Subtest: T19-03 candidate is strictly isolated and nonexecuting
+ok 342 - T19-03 candidate is strictly isolated and nonexecuting
+  ---
+  duration_ms: 1.246894
+  type: 'test'
+  ...
+# Subtest: candidate fail-closed mutations
+ok 343 - candidate fail-closed mutations
+  ---
+  duration_ms: 0.894564
+  type: 'test'
+  ...
+# Subtest: no docker execution or database access implemented
+ok 344 - no docker execution or database access implemented
+  ---
+  duration_ms: 0.566601
+  type: 'test'
+  ...
+# Subtest: no condition can authorize a create without signed receipt implementation
+ok 345 - no condition can authorize a create without signed receipt implementation
+  ---
+  duration_ms: 0.934725
+  type: 'test'
+  ...
+# Subtest: cleanup is denied even for matching synthetic identity
+ok 346 - cleanup is denied even for matching synthetic identity
+  ---
+  duration_ms: 0.523497
+  type: 'test'
+  ...
+# Subtest: web session crosses actual mTLS boundary with verified token and current memberships only
+ok 347 - web session crosses actual mTLS boundary with verified token and current memberships only
+  ---
+  duration_ms: 588.94265
+  type: 'test'
+  ...
+# Subtest: wrong ref or approval fails before opening a database connection
+ok 348 - wrong ref or approval fails before opening a database connection
+  ---
+  duration_ms: 1.897411
+  type: 'test'
+  ...
+# Subtest: two independent connections and stable fingerprints pass
+ok 349 - two independent connections and stable fingerprints pass
+  ---
+  duration_ms: 0.714063
+  type: 'test'
+  ...
+# Subtest: same backend identity or changed protected state is no-go
+ok 350 - same backend identity or changed protected state is no-go
+  ---
+  duration_ms: 0.357638
+  type: 'test'
+  ...
+# Subtest: snapshot failure is no-go and closes the session
+ok 351 - snapshot failure is no-go and closes the session
+  ---
+  duration_ms: 0.355814
+  type: 'test'
+  ...
+# Subtest: database close failure cannot claim independent evidence success
+ok 352 - database close failure cannot claim independent evidence success
+  ---
+  duration_ms: 0.434643
+  type: 'test'
+  ...
+# Subtest: reject reused client object even with different mock fingerprints
+ok 353 - reject reused client object even with different mock fingerprints
+  ---
+  duration_ms: 0.313931
+  type: 'test'
+  ...
+# Subtest: safe errors expose categories only and never secrets
+ok 354 - safe errors expose categories only and never secrets
+  ---
+  duration_ms: 0.517267
+  type: 'test'
+  ...
+# Subtest: pinned CA is mandatory and strict TLS remains enabled
+ok 355 - pinned CA is mandatory and strict TLS remains enabled
+  ---
+  duration_ms: 29.129243
+  type: 'test'
+  ...
+# Subtest: altered or missing CA fails closed before client creation
+ok 356 - altered or missing CA fails closed before client creation
+  ---
+  duration_ms: 0.430587
+  type: 'test'
+  ...
+# Subtest: database identity categories remain fixed and redact details
+ok 357 - database identity categories remain fixed and redact details
+  ---
+  duration_ms: 0.488003
+  type: 'test'
+  ...
+# Subtest: client TLS requires encryption, verification and nonempty peer certificate
+ok 358 - client TLS requires encryption, verification and nonempty peer certificate
+  ---
+  duration_ms: 0.321202
+  type: 'test'
+  ...
+# Subtest: exact approved B02 SQL preserves transaction and DO blocks
+ok 359 - exact approved B02 SQL preserves transaction and DO blocks
+  ---
+  duration_ms: 11.353707
+  type: 'test'
+  ...
+# Subtest: reject trailing SQL and unsupported psql meta commands
+ok 360 - reject trailing SQL and unsupported psql meta commands
+  ---
+  duration_ms: 2.432405
+  type: 'test'
+  ...
+# Subtest: single quoted semicolons and dollar quoted bodies stay intact
+ok 361 - single quoted semicolons and dollar quoted bodies stay intact
+  ---
+  duration_ms: 1.124931
+  type: 'test'
+  ...
+# Subtest: rollback probe succeeds only after rollback and zero scratch readback
+ok 362 - rollback probe succeeds only after rollback and zero scratch readback
+  ---
+  duration_ms: 1.134775
+  type: 'test'
+  ...
+# Subtest: execution failure triggers same-client rollback and never claims success
+ok 363 - execution failure triggers same-client rollback and never claims success
+  ---
+  duration_ms: 0.35256
+  type: 'test'
+  ...
+# Subtest: rollback failure is an explicit unknown outcome
+ok 364 - rollback failure is an explicit unknown outcome
+  ---
+  duration_ms: 0.255414
+  type: 'test'
+  ...
+# Subtest: nonzero final scratch state is failure even after rollback
+ok 365 - nonzero final scratch state is failure even after rollback
+  ---
+  duration_ms: 0.185088
+  type: 'test'
+  ...
+# Subtest: exact staging session pooler identity and strict TLS
+ok 366 - exact staging session pooler identity and strict TLS
+  ---
+  duration_ms: 0.357147
+  type: 'test'
+  ...
+# Subtest: reject wrong project, direct URL, transactional port and credential-free targets
+ok 367 - reject wrong project, direct URL, transactional port and credential-free targets
+  ---
+  duration_ms: 1.492202
+  type: 'test'
+  ...
+# Subtest: password is decoded only after strict endpoint verification
+ok 368 - password is decoded only after strict endpoint verification
+  ---
+  duration_ms: 0.43238
+  type: 'test'
+  ...
+# Subtest: only pinned source context is admitted, never execution
+ok 369 - only pinned source context is admitted, never execution
+  ---
+  duration_ms: 2.284173
+  type: 'test'
+  ...
+# Subtest: deny unsafe ref, project, runner, SQL, environment, credentials and execution
+ok 370 - deny unsafe ref, project, runner, SQL, environment, credentials and execution
+  ---
+  duration_ms: 0.821775
+  type: 'test'
+  ...
+# Subtest: independent protected evidence requires fresh matching state
+ok 371 - independent protected evidence requires fresh matching state
+  ---
+  duration_ms: 0.223266
+  type: 'test'
+  ...
+# Subtest: fail closed on missing, altered, nonzero or reused evidence
+ok 372 - fail closed on missing, altered, nonzero or reused evidence
+  ---
+  duration_ms: 0.215444
+  type: 'test'
+  ...
+# Subtest: only reviewed staging finance and custody tables are fingerprinted
+ok 373 - only reviewed staging finance and custody tables are fingerprinted
+  ---
+  duration_ms: 1.287986
+  type: 'test'
+  ...
+# Subtest: read-only repeatable-read snapshot uses no write SQL and no raw data output
+ok 374 - read-only repeatable-read snapshot uses no write SQL and no raw data output
+  ---
+  duration_ms: 1.669288
+  type: 'test'
+  ...
+# Subtest: fail closed on failed identity and rollback
+ok 375 - fail closed on failed identity and rollback
+  ---
+  duration_ms: 0.554273
+  type: 'test'
+  ...
+# Subtest: reject unavailable TLS or database backend session evidence
+ok 376 - reject unavailable TLS or database backend session evidence
+  ---
+  duration_ms: 0.413191
+  type: 'test'
+  ...
+# Subtest: reject non-readonly request
+ok 377 - reject non-readonly request
+  ---
+  duration_ms: 0.269224
+  type: 'test'
+  ...
+# Subtest: identity diagnostics are fixed categories, never row values
+ok 378 - identity diagnostics are fixed categories, never row values
+  ---
+  duration_ms: 0.329495
+  type: 'test'
+  ...
+# Subtest: revoked coalesced waiter cannot evict the authorised initiator token
+ok 379 - revoked coalesced waiter cannot evict the authorised initiator token
+  ---
+  duration_ms: 9.129068
+  type: 'test'
+  ...
+# Subtest: unknown session cannot evict another owner current token or force a refresh
+ok 380 - unknown session cannot evict another owner current token or force a refresh
+  ---
+  duration_ms: 8.509728
+  type: 'test'
+  ...
+# Subtest: uses existing server session membership; no caller/platform role authority
+ok 381 - uses existing server session membership; no caller/platform role authority
+  ---
+  duration_ms: 7.488203
+  type: 'test'
+  ...
+# Subtest: permitted owner refreshes once; cache expires conservatively and is version scoped
+ok 382 - permitted owner refreshes once; cache expires conservatively and is version scoped
+  ---
+  duration_ms: 4.95762
+  type: 'test'
+  ...
+# Subtest: cache hits revalidate owner membership and current connection
+ok 383 - cache hits revalidate owner membership and current connection
+  ---
+  duration_ms: 7.244917
+  type: 'test'
+  ...
+# Subtest: ciphertext substitution rejected for business_id
+ok 384 - ciphertext substitution rejected for business_id
+  ---
+  duration_ms: 0.744068
+  type: 'test'
+  ...
+# Subtest: ciphertext substitution rejected for environment
+ok 385 - ciphertext substitution rejected for environment
+  ---
+  duration_ms: 0.418348
+  type: 'test'
+  ...
+# Subtest: ciphertext substitution rejected for connection_id
+ok 386 - ciphertext substitution rejected for connection_id
+  ---
+  duration_ms: 0.495785
+  type: 'test'
+  ...
+# Subtest: ciphertext substitution rejected for generation
+ok 387 - ciphertext substitution rejected for generation
+  ---
+  duration_ms: 0.370857
+  type: 'test'
+  ...
+# Subtest: ciphertext substitution rejected for organization_id
+ok 388 - ciphertext substitution rejected for organization_id
+  ---
+  duration_ms: 0.291207
+  type: 'test'
+  ...
+# Subtest: ciphertext substitution rejected for credential_version
+ok 389 - ciphertext substitution rejected for credential_version
+  ---
+  duration_ms: 0.370006
+  type: 'test'
+  ...
+# Subtest: ciphertext substitution rejected for provider
+ok 390 - ciphertext substitution rejected for provider
+  ---
+  duration_ms: 0.354963
+  type: 'test'
+  ...
+# Subtest: substituted credential reference fails before refresh and errors disclose no ciphertext
+ok 391 - substituted credential reference fails before refresh and errors disclose no ciphertext
+  ---
+  duration_ms: 0.901114
+  type: 'test'
+  ...
+# Subtest: simultaneous local requests share one refresh; another service cannot dispatch concurrently
+ok 392 - simultaneous local requests share one refresh; another service cannot dispatch concurrently
+  ---
+  duration_ms: 7.205467
+  type: 'test'
+  ...
+# Subtest: business and environment caches never share tokens
+ok 393 - business and environment caches never share tokens
+  ---
+  duration_ms: 2.066235
+  type: 'test'
+  ...
+# Subtest: invalid grant is visible and terminal; no retries or alias fallback
+ok 394 - invalid grant is visible and terminal; no retries or alias fallback
+  ---
+  duration_ms: 0.667734
+  type: 'test'
+  ...
+# Subtest: uncertain rotated-token outcome survives coordinator snapshot restart without replay
+ok 395 - uncertain rotated-token outcome survives coordinator snapshot restart without replay
+  ---
+  duration_ms: 0.888526
+  type: 'test'
+  ...
+# Subtest: restart after dispatch cannot reclaim expired lease; late old result cannot commit
+ok 396 - restart after dispatch cannot reclaim expired lease; late old result cannot commit
+  ---
+  duration_ms: 0.623928
+  type: 'test'
+  ...
+# Subtest: restart before dispatch may reclaim expired lease; old claimant is fenced
+ok 397 - restart before dispatch may reclaim expired lease; old claimant is fenced
+  ---
+  duration_ms: 0.423466
+  type: 'test'
+  ...
+# Subtest: successful restart retains ciphertext binding and refresh material, not process cache
+ok 398 - successful restart retains ciphertext binding and refresh material, not process cache
+  ---
+  duration_ms: 1.647927
+  type: 'test'
+  ...
+# Subtest: late refresh is rejected after disconnect
+ok 399 - late refresh is rejected after disconnect
+  ---
+  duration_ms: 1.495968
+  type: 'test'
+  ...
+# Subtest: late refresh is rejected after reauthorisation
+ok 400 - late refresh is rejected after reauthorisation
+  ---
+  duration_ms: 1.792613
+  type: 'test'
+  ...
+# Subtest: disconnect during custody read stops dispatch
+ok 401 - disconnect during custody read stops dispatch
+  ---
+  duration_ms: 4.031147
+  type: 'test'
+  ...
+# Subtest: disconnect during sealing prevents publication
+ok 402 - disconnect during sealing prevents publication
+  ---
+  duration_ms: 0.869477
+  type: 'test'
+  ...
+# Subtest: token lifetime includes refresh latency and expired result enters recovery hold
+ok 403 - token lifetime includes refresh latency and expired result enters recovery hold
+  ---
+  duration_ms: 0.733873
+  type: 'test'
+  ...
+# Subtest: lease expiry while awaiting custody prevents refresh
+ok 404 - lease expiry while awaiting custody prevents refresh
+  ---
+  duration_ms: 0.6324
+  type: 'test'
+  ...
+# Subtest: lease expiry during refresh cannot accept result
+ok 405 - lease expiry during refresh cannot accept result
+  ---
+  duration_ms: 0.994554
+  type: 'test'
+  ...
+# Subtest: binding canonicalisation rejects malformed dimensions
+ok 406 - binding canonicalisation rejects malformed dimensions
+  ---
+  duration_ms: 0.27237
+  type: 'test'
+  ...
+# Subtest: ciphertext tampering and loss of custody key fail closed
+ok 407 - ciphertext tampering and loss of custody key fail closed
+  ---
+  duration_ms: 0.415475
+  type: 'test'
+  ...
+# Subtest: late invalid grant cannot disable a new connection generation
+ok 408 - late invalid grant cannot disable a new connection generation
+  ---
+  duration_ms: 0.687303
+  type: 'test'
+  ...
+# Subtest: disconnect after commit but before cache publication rejects token
+ok 409 - disconnect after commit but before cache publication rejects token
+  ---
+  duration_ms: 1.11735
+  type: 'test'
+  ...
+# Subtest: malformed lifetime and refresh material are held for recovery, never cached
+ok 410 - malformed lifetime and refresh material are held for recovery, never cached
+  ---
+  duration_ms: 3.495383
+  type: 'test'
+  ...
+# Subtest: expired dispatch callback and stale credential version cannot produce effects
+ok 411 - expired dispatch callback and stale credential version cannot produce effects
+  ---
+  duration_ms: 2.045734
+  type: 'test'
+  ...
+# Subtest: invalid grant arriving after lease expiry is uncertain rather than accepted
+ok 412 - invalid grant arriving after lease expiry is uncertain rather than accepted
+  ---
+  duration_ms: 0.657107
+  type: 'test'
+  ...
+# Subtest: native acceptance rejects skips, incomplete discovery, failures and ambiguous summaries
+ok 413 - native acceptance rejects skips, incomplete discovery, failures and ambiguous summaries
+  ---
+  duration_ms: 6.323142
+  type: 'test'
+  ...
+# Subtest: native success is emitted only after stop, absent PID and removed fixture
+ok 414 - native success is emitted only after stop, absent PID and removed fixture
+  ---
+  duration_ms: 2.688139
+  type: 'test'
+  ...
+# Subtest: native missing failure cannot report success
+ok 415 - native missing failure cannot report success
+  ---
+  duration_ms: 0.577908
+  type: 'test'
+  ...
+# Subtest: native partial-start failure cannot report success
+ok 416 - native partial-start failure cannot report success
+  ---
+  duration_ms: 0.318729
+  type: 'test'
+  ...
+# Subtest: native version failure cannot report success
+ok 417 - native version failure cannot report success
+  ---
+  duration_ms: 0.3127
+  type: 'test'
+  ...
+# Subtest: native suite failure cannot report success
+ok 418 - native suite failure cannot report success
+  ---
+  duration_ms: 0.29932
+  type: 'test'
+  ...
+# Subtest: native skip failure cannot report success
+ok 419 - native skip failure cannot report success
+  ---
+  duration_ms: 9.648929
+  type: 'test'
+  ...
+# Subtest: native stop failure cannot report success
+ok 420 - native stop failure cannot report success
+  ---
+  duration_ms: 0.531498
+  type: 'test'
+  ...
+# Subtest: native pid failure cannot report success
+ok 421 - native pid failure cannot report success
+  ---
+  duration_ms: 2.543832
+  type: 'test'
+  ...
+# Subtest: native remove failure cannot report success
+ok 422 - native remove failure cannot report success
+  ---
+  duration_ms: 4.958892
+  type: 'test'
+  ...
+# Subtest: native directory failure cannot report success
+ok 423 - native directory failure cannot report success
+  ---
+  duration_ms: 0.335594
+  type: 'test'
+  ...
+# Subtest: unsafe cleanup targets are refused before any command or deletion
+ok 424 - unsafe cleanup targets are refused before any command or deletion
+  ---
+  duration_ms: 0.393221
+  type: 'test'
+  ...
+# Subtest: actual missing PostgreSQL executable exits nonzero, cleans only owned directory
+ok 425 - actual missing PostgreSQL executable exits nonzero, cleans only owned directory
+  ---
+  duration_ms: 295.425124
+  type: 'test'
+  ...
+# Subtest: review manifest matches registered callback but remains unapproved; former callback fails execution validation
+ok 426 - review manifest matches registered callback but remains unapproved; former callback fails execution validation
+  ---
+  duration_ms: 3.350495
+  type: 'test'
+  ...
+# Subtest: synthetic consent, exactly two provider reads, then local disable with distinct revocation state
+ok 427 - synthetic consent, exactly two provider reads, then local disable with distinct revocation state
+  ---
+  duration_ms: 28.597052
+  type: 'test'
+  ...
+# Subtest: owner-only business isolation rejects before vault and provider access
+ok 428 - owner-only business isolation rejects before vault and provider access
+  ---
+  duration_ms: 1.264991
+  type: 'test'
+  ...
+# Subtest: execution gate blocks authorisation and verification without provider or storage access
+ok 429 - execution gate blocks authorisation and verification without provider or storage access
+  ---
+  duration_ms: 0.467593
+  type: 'test'
+  ...
+# Subtest: manifest approval, time-window and fixture requirements fail closed
+ok 430 - manifest approval, time-window and fixture requirements fail closed
+  ---
+  duration_ms: 0.228403
+  type: 'test'
+  ...
+# Subtest: OAuth state is session-bound, single-use and invalid callbacks never exchange
+ok 431 - OAuth state is session-bound, single-use and invalid callbacks never exchange
+  ---
+  duration_ms: 1.023047
+  type: 'test'
+  ...
+# Subtest: successful callback cannot be replayed and same window cannot authorise twice
+ok 432 - successful callback cannot be replayed and same window cannot authorise twice
+  ---
+  duration_ms: 1.396208
+  type: 'test'
+  ...
+# Subtest: owner revoked before callback prevents token exchange
+ok 433 - owner revoked before callback prevents token exchange
+  ---
+  duration_ms: 0.394593
+  type: 'test'
+  ...
+# Subtest: approval expiry blocks callback and reads without exchange or refresh
+ok 434 - approval expiry blocks callback and reads without exchange or refresh
+  ---
+  duration_ms: 0.741985
+  type: 'test'
+  ...
+# Subtest: credential expiry and stale credential context reject without provider calls
+ok 435 - credential expiry and stale credential context reject without provider calls
+  ---
+  duration_ms: 24.942231
+  type: 'test'
+  ...
+# Subtest: immutable binding rejects after restart with changed organisation
+ok 436 - immutable binding rejects after restart with changed organisation
+  ---
+  duration_ms: 2.238494
+  type: 'test'
+  ...
+# Subtest: verification is single attempt and error bodies never leak provider credentials
+ok 437 - verification is single attempt and error bodies never leak provider credentials
+  ---
+  duration_ms: 3.266658
+  type: 'test'
+  ...
+# Subtest: disable during in-flight profile prevents invoice and late verification evidence
+ok 438 - disable during in-flight profile prevents invoice and late verification evidence
+  ---
+  duration_ms: 1.84327
+  type: 'test'
+  ...
+# Subtest: HTTP host/origin/CSRF/method/body and foreign route restrictions
+ok 439 - HTTP host/origin/CSRF/method/body and foreign route restrictions
+  ---
+  duration_ms: 43.659678
+  type: 'test'
+  ...
+# Subtest: registered callback matches consent and exchange, rejects old route and duplicate state
+ok 440 - registered callback matches consent and exchange, rejects old route and duplicate state
+  ---
+  duration_ms: 8.664679
+  type: 'test'
+  ...
+# Subtest: OAuth state expires independently of the longer approved window
+ok 441 - OAuth state expires independently of the longer approved window
+  ---
+  duration_ms: 0.648635
+  type: 'test'
+  ...
+# Subtest: late grant after disable is retained only for cleanup and never authenticates
+ok 442 - late grant after disable is retained only for cleanup and never authenticates
+  ---
+  duration_ms: 1.160544
+  type: 'test'
+  ...
+# Subtest: HTTP write/sync/list/refresh routes are unavailable
+ok 443 - HTTP write/sync/list/refresh routes are unavailable
+  ---
+  duration_ms: 8.544169
+  type: 'test'
+  ...
+# Subtest: disable while invoice is in flight discards late success
+ok 444 - disable while invoice is in flight discards late success
+  ---
+  duration_ms: 2.636702
+  type: 'test'
+  ...
+# Subtest: real auth-session adapter uses verified Auth identity and current membership rows
+ok 445 - real auth-session adapter uses verified Auth identity and current membership rows
+  ---
+  duration_ms: 3.159277
+  type: 'test'
+  ...
+# Subtest: stored client metadata cannot cross business or organisation boundary
+ok 446 - stored client metadata cannot cross business or organisation boundary
+  ---
+  duration_ms: 1.993515
+  type: 'test'
+  ...
+# Subtest: restart cannot relabel a stored grant under changed client, window or fixture approval
+ok 447 - restart cannot relabel a stored grant under changed client, window or fixture approval
+  ---
+  duration_ms: 3.381461
+  type: 'test'
+  ...
+# Subtest: unverified secret source or client registration blocks before vault and provider access
+ok 448 - unverified secret source or client registration blocks before vault and provider access
+  ---
+  duration_ms: 0.700192
+  type: 'test'
+  ...
+# Subtest: consent rejects changed or missing imported manifest digest before connection creation
+ok 449 - consent rejects changed or missing imported manifest digest before connection creation
+  ---
+  duration_ms: 0.523917
+  type: 'test'
+  ...
+# Subtest: disabled connection rejects a previously issued callback without token exchange
+ok 450 - disabled connection rejects a previously issued callback without token exchange
+  ---
+  duration_ms: 0.384578
+  type: 'test'
+  ...
+# Subtest: repeated owner disconnect is idempotent and does not overwrite cleanup or generation
+ok 451 - repeated owner disconnect is idempotent and does not overwrite cleanup or generation
+  ---
+  duration_ms: 9.701238
+  type: 'test'
+  ...
+# Subtest: concurrent synthetic disconnects serialize to one generation increment
+ok 452 - concurrent synthetic disconnects serialize to one generation increment
+  ---
+  duration_ms: 1.037329
+  type: 'test'
+  ...
+# Subtest: C1 synthetic integration refreshes only exact owner binding
+ok 453 - C1 synthetic integration refreshes only exact owner binding
+  ---
+  duration_ms: 4.225516
+  type: 'test'
+  ...
+# Subtest: C1 denies cross-business requests before credential read or refresh
+ok 454 - C1 denies cross-business requests before credential read or refresh
+  ---
+  duration_ms: 0.746531
+  type: 'test'
+  ...
+# Subtest: C1 denies owner whose membership is revoked before access
+ok 455 - C1 denies owner whose membership is revoked before access
+  ---
+  duration_ms: 0.384618
+  type: 'test'
+  ...
+# Subtest: C1 same-binding concurrent access dispatches one refresh, not two
+ok 456 - C1 same-binding concurrent access dispatches one refresh, not two
+  ---
+  duration_ms: 8.650952
+  type: 'test'
+  ...
+# Subtest: C1 disconnect during in-flight refresh never publishes token
+ok 457 - C1 disconnect during in-flight refresh never publishes token
+  ---
+  duration_ms: 1.481365
+  type: 'test'
+  ...
+# Subtest: C1 cannot access stale credential generation/version after refresh
+ok 458 - C1 cannot access stale credential generation/version after refresh
+  ---
+  duration_ms: 1.192892
+  type: 'test'
+  ...
+# Subtest: C1 uncertain dispatched failure causes persistent in-memory recovery hold
+ok 459 - C1 uncertain dispatched failure causes persistent in-memory recovery hold
+  ---
+  duration_ms: 0.590016
+  type: 'test'
+  ...
+# Subtest: C1 denied waiter cannot receive shared token after membership revocation
+ok 460 - C1 denied waiter cannot receive shared token after membership revocation
+  ---
+  duration_ms: 3.335269
+  type: 'test'
+  ...
+# Subtest: C1 confirmed invalid_grant holds for reauthorisation, not uncertain recovery
+ok 461 - C1 confirmed invalid_grant holds for reauthorisation, not uncertain recovery
+  ---
+  duration_ms: 0.779731
+  type: 'test'
+  ...
+# Subtest: VAT evidence: legacy invoices cannot enqueue or claim and retain their saved totals
+ok 462 - VAT evidence: legacy invoices cannot enqueue or claim and retain their saved totals
+  ---
+  duration_ms: 3039.904365
+  type: 'test'
+  ...
+# Subtest: VAT evidence: SQL publication binds receipt tax snapshot and observed net/tax cents
+ok 463 - VAT evidence: SQL publication binds receipt tax snapshot and observed net/tax cents
+  ---
+  duration_ms: 2150.746704
+  type: 'test'
+  ...
+# Subtest: T19-02A ownership transfer restores explicit schema grants and membership SET option
+ok 464 - T19-02A ownership transfer restores explicit schema grants and membership SET option
+  ---
+  duration_ms: 2205.019451
+  type: 'test'
+  ...
+# Subtest: T19-02A Vault fixture retains exact four-argument identity
+ok 465 - T19-02A Vault fixture retains exact four-argument identity
+  ---
+  duration_ms: 1934.251631
+  type: 'test'
+  ...
+# Subtest: runtime SQL and concrete adapter preserve scoped durable refresh publication and denial
+ok 466 - runtime SQL and concrete adapter preserve scoped durable refresh publication and denial
+  ---
+  duration_ms: 1611.051202
+  type: 'test'
+  ...
+# Subtest: durable owner OAuth consumes state once and keeps independent organisation/identity bindings
+ok 467 - durable owner OAuth consumes state once and keeps independent organisation/identity bindings
+  ---
+  duration_ms: 1613.242429
+  type: 'test'
+  ...
+# Subtest: disconnect fences dispatch, keeps uncertain recovery and denies a stale duplicate
+ok 468 - disconnect fences dispatch, keeps uncertain recovery and denies a stale duplicate
+  ---
+  duration_ms: 1556.576246
+  type: 'test'
+  ...
+# Subtest: two business invoices run through durable SQL, scoped refresh and internal provider execution
+ok 469 - two business invoices run through durable SQL, scoped refresh and internal provider execution
+  ---
+  duration_ms: 1638.145381
+  type: 'test'
+  ...
+# Subtest: authenticated HTTP rejects foreign business, forged fields, non-owner disconnect and cross-origin writes
+ok 470 - authenticated HTTP rejects foreign business, forged fields, non-owner disconnect and cross-origin writes
+  ---
+  duration_ms: 1511.521689
+  type: 'test'
+  ...
+# Subtest: background pass backs off before dispatch and stops bounded retries with visible failure
+ok 471 - background pass backs off before dispatch and stops bounded retries with visible failure
+  ---
+  duration_ms: 1669.759081
+  type: 'test'
+  ...
+# Subtest: review regressions: revoked jobs cannot starve other businesses and resolution races are isolated
+ok 472 - review regressions: revoked jobs cannot starve other businesses and resolution races are isolated
+  ---
+  duration_ms: 1656.877547
+  type: 'test'
+  ...
+# Subtest: review regressions: refresh crash reclaim fences old lease and never replays dispatched refresh
+ok 473 - review regressions: refresh crash reclaim fences old lease and never replays dispatched refresh
+  ---
+  duration_ms: 1554.223756
+  type: 'test'
+  ...
+# Subtest: review regressions: definitive invalid grant permits new owner consent without uncertainty waiver
+ok 474 - review regressions: definitive invalid grant permits new owner consent without uncertainty waiver
+  ---
+  duration_ms: 1556.982076
+  type: 'test'
+  ...
+# Subtest: authority recovery: revoked refresh is replaced before dispatch resolveFirst=false
+ok 475 - authority recovery: revoked refresh is replaced before dispatch resolveFirst=false
+  ---
+  duration_ms: 1512.853946
+  type: 'test'
+  ...
+# Subtest: authority recovery: revoked refresh stays quarantined resolveFirst=false
+ok 476 - authority recovery: revoked refresh stays quarantined resolveFirst=false
+  ---
+  duration_ms: 1639.588838
+  type: 'test'
+  ...
+# Subtest: authority recovery: revoked refresh is replaced before dispatch resolveFirst=true
+ok 477 - authority recovery: revoked refresh is replaced before dispatch resolveFirst=true
+  ---
+  duration_ms: 1679.624092
+  type: 'test'
+  ...
+# Subtest: authority recovery: revoked refresh stays quarantined resolveFirst=true
+ok 478 - authority recovery: revoked refresh stays quarantined resolveFirst=true
+  ---
+  duration_ms: 1713.824683
+  type: 'test'
+  ...
+# Subtest: authority recovery: current manager can reconcile a held invoice without clearing dispatch or generation
+ok 479 - authority recovery: current manager can reconcile a held invoice without clearing dispatch or generation
+  ---
+  duration_ms: 1513.81689
+  type: 'test'
+  ...
+# Subtest: machine identity uses actual verified TLS peer and current server record
+ok 480 - machine identity uses actual verified TLS peer and current server record
+  ---
+  duration_ms: 595.722574
+  type: 'test'
+  ...
+# Subtest: server operation binds actual provider adapter and seals next-version material for subsequent refresh
+ok 481 - server operation binds actual provider adapter and seals next-version material for subsequent refresh
+  ---
+  duration_ms: 18.563319
+  type: 'test'
+  ...
+# Subtest: rejects caller business, role, binding and provider-outcome claims before secret access
+ok 482 - rejects caller business, role, binding and provider-outcome claims before secret access
+  ---
+  duration_ms: 2.276899
+  type: 'test'
+  ...
+# Subtest: unverified, inactive and wrong-machine jobs deny before vault access
+ok 483 - unverified, inactive and wrong-machine jobs deny before vault access
+  ---
+  duration_ms: 1.982728
+  type: 'test'
+  ...
+# Subtest: machine revoked while vault read is pending prevents provider dispatch
+ok 484 - machine revoked while vault read is pending prevents provider dispatch
+  ---
+  duration_ms: 0.951759
+  type: 'test'
+  ...
+# Subtest: server operation changes tenant during vault read: no dispatch
+ok 485 - server operation changes tenant during vault read: no dispatch
+  ---
+  duration_ms: 0.673482
+  type: 'test'
+  ...
+# Subtest: revoked authority after provider response holds operation without publication
+ok 486 - revoked authority after provider response holds operation without publication
+  ---
+  duration_ms: 1.164168
+  type: 'test'
+  ...
+# Subtest: resolver errors never leave service with secret text or cause
+ok 487 - resolver errors never leave service with secret text or cause
+  ---
+  duration_ms: 0.468994
+  type: 'test'
+  ...
+# Subtest: deployment config refuses unknown fields, repository secrets and disabled execution
+ok 488 - deployment config refuses unknown fields, repository secrets and disabled execution
+  ---
+  duration_ms: 35.575468
+  type: 'test'
+  ...
+# Subtest: hosted RPC opt-in permits only authenticated accounting status/enqueue transport
+ok 489 - hosted RPC opt-in permits only authenticated accounting status/enqueue transport
+  ---
+  duration_ms: 9.850043
+  type: 'test'
+  ...
+# Subtest: custody launcher binds loopback and closes database exactly once on shutdown/start failure
+ok 490 - custody launcher binds loopback and closes database exactly once on shutdown/start failure
+  ---
+  duration_ms: 1.512992
+  type: 'test'
+  ...
+# Subtest: only exact-ID inspection and inventory are admitted
+ok 491 - only exact-ID inspection and inventory are admitted
+  ---
+  duration_ms: 1.894245
+  type: 'test'
+  ...
+# Subtest: mutation methods always deny without calling adapter
+ok 492 - mutation methods always deny without calling adapter
+  ---
+  duration_ms: 1.024959
+  type: 'test'
+  ...
+# Subtest: interrupted run never auto-removes: receipt loss, unknown state, collision or matching
+ok 493 - interrupted run never auto-removes: receipt loss, unknown state, collision or matching
+  ---
+  duration_ms: 0.198057
+  type: 'test'
+  ...
+# Subtest: receipt survives readback and never overwrites existing receipt
+ok 494 - receipt survives readback and never overwrites existing receipt
+  ---
+  duration_ms: 35.850927
+  type: 'test'
+  ...
+# Subtest: Docker readback denial for missing restrictions
+ok 495 - Docker readback denial for missing restrictions
+  ---
+  duration_ms: 0.435424
+  type: 'test'
+  ...
+# Subtest: recovery stays manual even with matching stopped container
+ok 496 - recovery stays manual even with matching stopped container
+  ---
+  duration_ms: 0.197827
+  type: 'test'
+  ...
+# Subtest: valid signature still cannot authorize execution without anti-replay custody
+ok 497 - valid signature still cannot authorize execution without anti-replay custody
+  ---
+  duration_ms: 3.210611
+  type: 'test'
+  ...
+# Subtest: tampering and changed script deny
+ok 498 - tampering and changed script deny
+  ---
+  duration_ms: 0.937528
+  type: 'test'
+  ...
+# Subtest: read-only docker adapter allows exact inspect and rejects mutations
+ok 499 - read-only docker adapter allows exact inspect and rejects mutations
+  ---
+  duration_ms: 2.12389
+  type: 'test'
+  ...
+# Subtest: nonzero and invalid limits fail closed
+ok 500 - nonzero and invalid limits fail closed
+  ---
+  duration_ms: 0.372089
+  type: 'test'
+  ...
+# Subtest: hung child is terminated and quarantined
+ok 501 - hung child is terminated and quarantined
+  ---
+  duration_ms: 6.011278
+  type: 'test'
+  ...
+# Subtest: corrected candidate removes unverified forced UID and includes both required writable paths
+ok 502 - corrected candidate removes unverified forced UID and includes both required writable paths
+  ---
+  duration_ms: 0.898409
+  type: 'test'
+  ...
+# Subtest: unsafe or assumed candidate conditions remain denied
+ok 503 - unsafe or assumed candidate conditions remain denied
+  ---
+  duration_ms: 1.041564
+  type: 'test'
+  ...
+# Subtest: run is opt-in and never touches hosted systems
+ok 504 - run is opt-in and never touches hosted systems
+  ---
+  duration_ms: 0.85291
+  type: 'test'
+  ...
+# Subtest: resource guard and ownership cleanup by immutable ID
+ok 505 - resource guard and ownership cleanup by immutable ID
+  ---
+  duration_ms: 0.127742
+  type: 'test'
+  ...
+# Subtest: DockerRead calls pass the entire array through a named parameter
+ok 506 - DockerRead calls pass the entire array through a named parameter
+  ---
+  duration_ms: 0.143506
+  type: 'test'
+  ...
+# Subtest: pre-create intent precedes Docker create and ambiguous results require manual recovery
+ok 507 - pre-create intent precedes Docker create and ambiguous results require manual recovery
+  ---
+  duration_ms: 0.148814
+  type: 'test'
+  ...
+# Subtest: missing trusted key custody cannot access runner or nonce store
+ok 508 - missing trusted key custody cannot access runner or nonce store
+  ---
+  duration_ms: 2.054616
+  type: 'test'
+  ...
+# Subtest: valid independent signature still fails closed before replay consumption and mutation
+ok 509 - valid independent signature still fails closed before replay consumption and mutation
+  ---
+  duration_ms: 2.807907
+  type: 'test'
+  ...
+# Subtest: script tampering and unsigned inputs deny before mutations
+ok 510 - script tampering and unsigned inputs deny before mutations
+  ---
+  duration_ms: 0.96567
+  type: 'test'
+  ...
+# Subtest: nonce recovery only identifies, never grants removal
+ok 511 - nonce recovery only identifies, never grants removal
+  ---
+  duration_ms: 0.904829
+  type: 'test'
+  ...
+# Subtest: timeouts must use cancellable adapter contract
+ok 512 - timeouts must use cancellable adapter contract
+  ---
+  duration_ms: 0.516395
+  type: 'test'
+  ...
+# Subtest: each simulated interruption quarantines without mutation
+ok 513 - each simulated interruption quarantines without mutation
+  ---
+  duration_ms: 0.249735
+  type: 'test'
+  ...
+# Subtest: signed v2 lifecycle uses durable real files, fixed stdin, exact IDs and complete reconciliation
+ok 514 - signed v2 lifecycle uses durable real files, fixed stdin, exact IDs and complete reconciliation
+  ---
+  duration_ms: 77.044996
+  type: 'test'
+  ...
+# Subtest: independent owner/reviewer signatures and every exact binding are required
+ok 515 - independent owner/reviewer signatures and every exact binding are required
+  ---
+  duration_ms: 5.905279
+  type: 'test'
+  ...
+# Subtest: untrusted approval booleans cannot reach Docker or persistent state
+ok 516 - untrusted approval booleans cannot reach Docker or persistent state
+  ---
+  duration_ms: 4.784415
+  type: 'test'
+  ...
+# Subtest: concurrent one-use claims and partial nonce files fail closed across restart
+ok 517 - concurrent one-use claims and partial nonce files fail closed across restart
+  ---
+  duration_ms: 13.119854
+  type: 'test'
+  ...
+# Subtest: lost create result recovers nonce to exact identity and quarantines without cleanup
+ok 518 - lost create result recovers nonce to exact identity and quarantines without cleanup
+  ---
+  duration_ms: 14.834749
+  type: 'test'
+  ...
+# Subtest: timeouts at all mutating boundaries quarantine, never continue or auto-delete
+ok 519 - timeouts at all mutating boundaries quarantine, never continue or auto-delete
+  ---
+  duration_ms: 113.043169
+  type: 'test'
+  ...
+# Subtest: receipt failure after create preserves resource and recoverable intent
+ok 520 - receipt failure after create preserves resource and recoverable intent
+  ---
+  duration_ms: 21.82003
+  type: 'test'
+  ...
+# Subtest: foreign nonce, added capabilities, mounts, environment and wrong image forbid startup
+ok 521 - foreign nonce, added capabilities, mounts, environment and wrong image forbid startup
+  ---
+  duration_ms: 155.655934
+  type: 'test'
+  ...
+# Subtest: missing SQL evidence and final inventory drift cannot produce PASS
+ok 522 - missing SQL evidence and final inventory drift cannot produce PASS
+  ---
+  duration_ms: 35.78369
+  type: 'test'
+  ...
+# Subtest: changed baseline or wrong number of existing containers blocks create
+ok 523 - changed baseline or wrong number of existing containers blocks create
+  ---
+  duration_ms: 5.053009
+  type: 'test'
+  ...
+# Subtest: bounded adapter terminates an actual harmless child on deadline without invoking Docker
+ok 524 - bounded adapter terminates an actual harmless child on deadline without invoking Docker
+  ---
+  duration_ms: 47.460156
+  type: 'test'
+  ...
+# Subtest: real entrypoint denies without externally installed trust; executable digest is deterministic
+ok 525 - real entrypoint denies without externally installed trust; executable digest is deterministic
+  ---
+  duration_ms: 306.861412
+  type: 'test'
+  ...
+# Subtest: consume once is exclusive across store instances and concurrent requests
+ok 526 - consume once is exclusive across store instances and concurrent requests
+  ---
+  duration_ms: 28.703377
+  type: 'test'
+  ...
+# Subtest: invalid nonce never creates grant
+ok 527 - invalid nonce never creates grant
+  ---
+  duration_ms: 1.570068
+  type: 'test'
+  ...
+# Subtest: complete injected lifecycle executes and verifies cleanup in order
+ok 528 - complete injected lifecycle executes and verifies cleanup in order
+  ---
+  duration_ms: 1.784149
+  type: 'test'
+  ...
+# Subtest: unknown create and crash stages quarantine; no automatic deletion
+ok 529 - unknown create and crash stages quarantine; no automatic deletion
+  ---
+  duration_ms: 0.935225
+  type: 'test'
+  ...
+# Subtest: missing consumed grant prevents all effects
+ok 530 - missing consumed grant prevents all effects
+  ---
+  duration_ms: 0.598469
+  type: 'test'
+  ...
+# Subtest: identity matching is review-eligible but never permits actual cleanup
+ok 531 - identity matching is review-eligible but never permits actual cleanup
+  ---
+  duration_ms: 1.209716
+  type: 'test'
+  ...
+# Subtest: cleanup fencing denies tampered IDs, labels, stopped state, inventory
+ok 532 - cleanup fencing denies tampered IDs, labels, stopped state, inventory
+  ---
+  duration_ms: 0.294773
+  type: 'test'
+  ...
+# Subtest: startup remains denied even when fields are self asserted
+ok 533 - startup remains denied even when fields are self asserted
+  ---
+  duration_ms: 0.192179
+  type: 'test'
+  ...
+# Subtest: integration is read-only with bounded process calls
+ok 534 - integration is read-only with bounded process calls
+  ---
+  duration_ms: 1.165411
+  type: 'test'
+  ...
+# Subtest: legacy adapter cannot accept a caller-forged consumed grant
+ok 535 - legacy adapter cannot accept a caller-forged consumed grant
+  ---
+  duration_ms: 1.384149
+  type: 'test'
+  ...
+# Subtest: self-asserted independent PASS cannot unlock execution
+ok 536 - self-asserted independent PASS cannot unlock execution
+  ---
+  duration_ms: 3.086966
+  type: 'test'
+  ...
+# Subtest: missing or contradictory security review denies without touching key custody
+ok 537 - missing or contradictory security review denies without touching key custody
+  ---
+  duration_ms: 0.389495
+  type: 'test'
+  ...
+# Subtest: pinned independent key fingerprint resolves for verification only
+ok 538 - pinned independent key fingerprint resolves for verification only
+  ---
+  duration_ms: 1.150758
+  type: 'test'
+  ...
+# Subtest: wrong fingerprint and missing custody deny
+ok 539 - wrong fingerprint and missing custody deny
+  ---
+  duration_ms: 0.663276
+  type: 'test'
+  ...
+# Subtest: signed approval can trigger bounded read-only checks but never startup
+ok 540 - signed approval can trigger bounded read-only checks but never startup
+  ---
+  duration_ms: 3.087396
+  type: 'test'
+  ...
+# Subtest: invalid approval cannot query Docker
+ok 541 - invalid approval cannot query Docker
+  ---
+  duration_ms: 0.460392
+  type: 'test'
+  ...
+# Subtest: interrupt reconciliation never authorizes cleanup
+ok 542 - interrupt reconciliation never authorizes cleanup
+  ---
+  duration_ms: 0.278008
+  type: 'test'
+  ...
+# Subtest: dry-run checks only image identity and container inventory
+ok 543 - dry-run checks only image identity and container inventory
+  ---
+  duration_ms: 2.488197
+  type: 'test'
+  ...
+# Subtest: runtime readback demands enforceable limits
+ok 544 - runtime readback demands enforceable limits
+  ---
+  duration_ms: 0.592019
+  type: 'test'
+  ...
+# Subtest: even forged approval never mutates Docker
+ok 545 - even forged approval never mutates Docker
+  ---
+  duration_ms: 1.898812
+  type: 'test'
+  ...
+# Subtest: lost create result recovers exact nonce for manual review only
+ok 546 - lost create result recovers exact nonce for manual review only
+  ---
+  duration_ms: 1.141534
+  type: 'test'
+  ...
+# Subtest: stopped matching container and receipt cannot auto-delete
+ok 547 - stopped matching container and receipt cannot auto-delete
+  ---
+  duration_ms: 0.581644
+  type: 'test'
+  ...
+# Subtest: real DPAPI custody integrates with guarded service, read-only provider and durable disable
+ok 548 - real DPAPI custody integrates with guarded service, read-only provider and durable disable # SKIP
+  ---
+  duration_ms: 0.866933
+  type: 'test'
+  ...
+# Subtest: local T19 fixture is pinned to disposable identity and explicit rollback
+ok 549 - local T19 fixture is pinned to disposable identity and explicit rollback
+  ---
+  duration_ms: 1.230808
+  type: 'test'
+  ...
+# Subtest: managed harness refuses unsafe execution and requires pinned images
+ok 550 - managed harness refuses unsafe execution and requires pinned images
+  ---
+  duration_ms: 1.110218
+  type: 'test'
+  ...
+# Subtest: T19 inventory reads images only and fails on identity or platform mismatch
+ok 551 - T19 inventory reads images only and fails on identity or platform mismatch
+  ---
+  duration_ms: 1.089527
+  type: 'test'
+  ...
+# Subtest: managed preflight remains fail-closed and read-only
+ok 552 - managed preflight remains fail-closed and read-only
+  ---
+  duration_ms: 1.85645
+  type: 'test'
+  ...
+# Subtest: masked prompt serialises dummy quote/unicode secret through stdin only and forces import mode
+ok 553 - masked prompt serialises dummy quote/unicode secret through stdin only and forces import mode # SKIP
+  ---
+  duration_ms: 1.073734
+  type: 'test'
+  ...
+# Subtest: wrong host/account, wrong manifest hash and rejected gate fail before masked prompt
+ok 554 - wrong host/account, wrong manifest hash and rejected gate fail before masked prompt # SKIP
+  ---
+  duration_ms: 0.150406
+  type: 'test'
+  ...
+# Subtest: empty, newline or oversized dummy input never reaches import child
+ok 555 - empty, newline or oversized dummy input never reaches import child # SKIP
+  ---
+  duration_ms: 0.104757
+  type: 'test'
+  ...
+# Subtest: child stderr, unexpected stdout and timeout are generic failures without secret reflection
+ok 556 - child stderr, unexpected stdout and timeout are generic failures without secret reflection # SKIP
+  ---
+  duration_ms: 0.150827
+  type: 'test'
+  ...
+# Subtest: production entrypoint rejects redirected input rather than accepting unmasked piped data
+ok 557 - production entrypoint rejects redirected input rather than accepting unmasked piped data # SKIP
+  ---
+  duration_ms: 0.123515
+  type: 'test'
+  ...
+# Subtest: masked helper hands dummy secret to real gated importer and DPAPI; duplicate import fails closed
+ok 558 - masked helper hands dummy secret to real gated importer and DPAPI; duplicate import fails closed # SKIP
+  ---
+  duration_ms: 0.109164
+  type: 'test'
+  ...
+# Subtest: separate owner business identities remain scoped
+ok 559 - separate owner business identities remain scoped
+  ---
+  duration_ms: 1.305923
+  type: 'test'
+  ...
+# Subtest: cross-business credential substitution denied
+ok 560 - cross-business credential substitution denied
+  ---
+  duration_ms: 0.195103
+  type: 'test'
+  ...
+# Subtest: missing verified owner is denied
+ok 561 - missing verified owner is denied
+  ---
+  duration_ms: 0.197327
+  type: 'test'
+  ...
+# Subtest: manager-equivalent nonowner cannot authorise
+ok 562 - manager-equivalent nonowner cannot authorise
+  ---
+  duration_ms: 0.530237
+  type: 'test'
+  ...
+# Subtest: untrusted actor metadata cannot override ownerVerified
+ok 563 - untrusted actor metadata cannot override ownerVerified
+  ---
+  duration_ms: 0.280151
+  type: 'test'
+  ...
+# Subtest: production environment denied
+ok 564 - production environment denied
+  ---
+  duration_ms: 0.107201
+  type: 'test'
+  ...
+# Subtest: enabled connection still held by gate
+ok 565 - enabled connection still held by gate
+  ---
+  duration_ms: 0.120761
+  type: 'test'
+  ...
+# Subtest: rendered action inert without secrets or provider URL
+ok 566 - rendered action inert without secrets or provider URL
+  ---
+  duration_ms: 0.471038
+  type: 'test'
+  ...
+# Subtest: settings projection refuses persisted foreign business binding
+ok 567 - settings projection refuses persisted foreign business binding
+  ---
+  duration_ms: 1.327645
+  type: 'test'
+  ...
+# Subtest: settings projection refuses missing or incorrect stored environment
+ok 568 - settings projection refuses missing or incorrect stored environment
+  ---
+  duration_ms: 0.349295
+  type: 'test'
+  ...
+# Subtest: inactive status labels distinguish missing, saved-disabled, and held configuration
+ok 569 - inactive status labels distinguish missing, saved-disabled, and held configuration
+  ---
+  duration_ms: 0.279069
+  type: 'test'
+  ...
+# Subtest: technical settings are collapsed and stored configuration remains non-authorising
+ok 570 - technical settings are collapsed and stored configuration remains non-authorising
+  ---
+  duration_ms: 0.333872
+  type: 'test'
+  ...
+# Subtest: connection card has one provider heading and advanced settings start collapsed
+ok 571 - connection card has one provider heading and advanced settings start collapsed
+  ---
+  duration_ms: 0.440061
+  type: 'test'
+  ...
+# Subtest: OP-02: non-superuser transfer authority is temporary and cannot be inherited
+ok 572 - OP-02: non-superuser transfer authority is temporary and cannot be inherited # SKIP requires a disposable native PostgreSQL 17 test database
+  ---
+  duration_ms: 0.657649
+  type: 'test'
+  ...
+# Subtest: OP-04 actual SQLSTATE 55000 collision denial and aborted transaction integrity
+ok 573 - OP-04 actual SQLSTATE 55000 collision denial and aborted transaction integrity # SKIP disposable native cluster required
+  ---
+  duration_ms: 0.823207
+  type: 'test'
+  ...
+# Subtest: T19 OP-04 stage guards fail closed inside their own transactions
+ok 574 - T19 OP-04 stage guards fail closed inside their own transactions
+  ---
+  duration_ms: 10.340449
+  type: 'test'
+  ...
+# Subtest: only pinned profile then known invoice GET, four generation checks and minimal evidence
+ok 575 - only pinned profile then known invoice GET, four generation checks and minimal evidence
+  ---
+  duration_ms: 6.44123
+  type: 'test'
+  ...
+# Subtest: invalid binding, fixture and missing guard fail before fetch
+ok 576 - invalid binding, fixture and missing guard fail before fetch
+  ---
+  duration_ms: 0.714684
+  type: 'test'
+  ...
+# Subtest: fixture cannot override binding or mutate later request expectations
+ok 577 - fixture cannot override binding or mutate later request expectations
+  ---
+  duration_ms: 1.443429
+  type: 'test'
+  ...
+# Subtest: profile mismatch stops before invoice {"organization_id":"222"}
+ok 578 - profile mismatch stops before invoice {"organization_id":"222"}
+  ---
+  duration_ms: 3.240505
+  type: 'test'
+  ...
+# Subtest: profile mismatch stops before invoice {"is_org_active":false}
+ok 579 - profile mismatch stops before invoice {"is_org_active":false}
+  ---
+  duration_ms: 1.957702
+  type: 'test'
+  ...
+# Subtest: profile mismatch stops before invoice {}
+ok 580 - profile mismatch stops before invoice {}
+  ---
+  duration_ms: 0.911851
+  type: 'test'
+  ...
+# Subtest: profile mismatch stops before invoice {"currency_code":"USD"}
+ok 581 - profile mismatch stops before invoice {"currency_code":"USD"}
+  ---
+  duration_ms: 1.313484
+  type: 'test'
+  ...
+# Subtest: invoice tuple mismatch {"invoice_id":"9002"}
+ok 582 - invoice tuple mismatch {"invoice_id":"9002"}
+  ---
+  duration_ms: 0.77884
+  type: 'test'
+  ...
+# Subtest: invoice tuple mismatch {"invoice_number":"wrong"}
+ok 583 - invoice tuple mismatch {"invoice_number":"wrong"}
+  ---
+  duration_ms: 0.862426
+  type: 'test'
+  ...
+# Subtest: invoice tuple mismatch {"reference_number":"wrong"}
+ok 584 - invoice tuple mismatch {"reference_number":"wrong"}
+  ---
+  duration_ms: 0.445109
+  type: 'test'
+  ...
+# Subtest: invoice tuple mismatch {"customer_id":"333"}
+ok 585 - invoice tuple mismatch {"customer_id":"333"}
+  ---
+  duration_ms: 0.384107
+  type: 'test'
+  ...
+# Subtest: invoice tuple mismatch {"currency_code":"USD"}
+ok 586 - invoice tuple mismatch {"currency_code":"USD"}
+  ---
+  duration_ms: 0.498449
+  type: 'test'
+  ...
+# Subtest: invoice tuple mismatch {"status":"sent"}
+ok 587 - invoice tuple mismatch {"status":"sent"}
+  ---
+  duration_ms: 2.606327
+  type: 'test'
+  ...
+# Subtest: invoice tuple mismatch {"total":"1.001"}
+ok 588 - invoice tuple mismatch {"total":"1.001"}
+  ---
+  duration_ms: 0.3526
+  type: 'test'
+  ...
+# Subtest: invoice tuple mismatch {"organization_id":"222"}
+ok 589 - invoice tuple mismatch {"organization_id":"222"}
+  ---
+  duration_ms: 0.643858
+  type: 'test'
+  ...
+# Subtest: missing or nonnumeric Books success code rejected
+ok 590 - missing or nonnumeric Books success code rejected
+  ---
+  duration_ms: 0.674634
+  type: 'test'
+  ...
+# Subtest: HTTP 401 has no retry or refresh
+ok 591 - HTTP 401 has no retry or refresh
+  ---
+  duration_ms: 2.04305
+  type: 'test'
+  ...
+# Subtest: HTTP 403 has no retry or refresh
+ok 592 - HTTP 403 has no retry or refresh
+  ---
+  duration_ms: 0.183496
+  type: 'test'
+  ...
+# Subtest: HTTP 429 has no retry or refresh
+ok 593 - HTTP 429 has no retry or refresh
+  ---
+  duration_ms: 0.138809
+  type: 'test'
+  ...
+# Subtest: HTTP 500 has no retry or refresh
+ok 594 - HTTP 500 has no retry or refresh
+  ---
+  duration_ms: 0.131568
+  type: 'test'
+  ...
+# Subtest: streaming cap cancels oversized body without accumulating all data
+ok 595 - streaming cap cancels oversized body without accumulating all data
+  ---
+  duration_ms: 1.192202
+  type: 'test'
+  ...
+# Subtest: malformed content, redirects and transport details remain sanitised
+ok 596 - malformed content, redirects and transport details remain sanitised
+  ---
+  duration_ms: 1.587776
+  type: 'test'
+  ...
+# Subtest: guard denies before dispatch, between reads and during in-flight results
+ok 597 - guard denies before dispatch, between reads and during in-flight results
+  ---
+  duration_ms: 0.904189
+  type: 'test'
+  ...
+# Subtest: one code exchange, fixed endpoint, private body and bounded expiry
+ok 598 - one code exchange, fixed endpoint, private body and bounded expiry
+  ---
+  duration_ms: 0.467883
+  type: 'test'
+  ...
+# Subtest: token exchange rejects wrong host, missing tokens or invalid expiration
+ok 599 - token exchange rejects wrong host, missing tokens or invalid expiration
+  ---
+  duration_ms: 0.940283
+  type: 'test'
+  ...
+# Subtest: 12-second deadline fails closed even when injected transport ignores abort
+ok 600 - 12-second deadline fails closed even when injected transport ignores abort
+  ---
+  duration_ms: 0.669196
+  type: 'test'
+  ...
+# Subtest: rejected-before-exchange gap: separately approved cleanup removes client but retains disabled audited tombstone
+ok 601 - rejected-before-exchange gap: separately approved cleanup removes client but retains disabled audited tombstone
+  ---
+  duration_ms: 30.379847
+  type: 'test'
+  ...
+# Subtest: cleanup refuses exchange, unknown outcomes, verified state, altered bindings/history and shared client references without mutation
+ok 602 - cleanup refuses exchange, unknown outcomes, verified state, altered bindings/history and shared client references without mutation
+  ---
+  duration_ms: 32.635803
+  type: 'test'
+  ...
+# Subtest: separate recovery approval pins old bytes and current code; invalid/mixed CLI modes reject before opening storage
+ok 603 - separate recovery approval pins old bytes and current code; invalid/mixed CLI modes reject before opening storage
+  ---
+  duration_ms: 1088.448085
+  type: 'test'
+  ...
+# Subtest: Windows real dummy DPAPI restart and CLI recovery use old manifest with new code without provider or secret output
+ok 604 - Windows real dummy DPAPI restart and CLI recovery use old manifest with new code without provider or secret output # SKIP
+  ---
+  duration_ms: 0.373412
+  type: 'test'
+  ...
+# Subtest: rejects worker before reading secrets or calling provider
+ok 605 - rejects worker before reading secrets or calling provider
+  ---
+  duration_ms: 2.904995
+  type: 'test'
+  ...
+# Subtest: success returns status and C1 binding only, never secrets
+ok 606 - success returns status and C1 binding only, never secrets
+  ---
+  duration_ms: 0.910198
+  type: 'test'
+  ...
+# Subtest: provider timeout goes to reconciliation, never auto-retries
+ok 607 - provider timeout goes to reconciliation, never auto-retries
+  ---
+  duration_ms: 0.445009
+  type: 'test'
+  ...
+# Subtest: failed publication cannot return completed status
+ok 608 - failed publication cannot return completed status
+  ---
+  duration_ms: 5.22387
+  type: 'test'
+  ...
+# Subtest: invalid grant is terminal but no token leaks
+ok 609 - invalid grant is terminal but no token leaks
+  ---
+  duration_ms: 0.423827
+  type: 'test'
+  ...
+# Subtest: successful nonrotating refresh seals existing token under next C1 version
+ok 610 - successful nonrotating refresh seals existing token under next C1 version
+  ---
+  duration_ms: 2.254398
+  type: 'test'
+  ...
+# Subtest: rotated refresh token replaces old token only inside custody
+ok 611 - rotated refresh token replaces old token only inside custody
+  ---
+  duration_ms: 0.294733
+  type: 'test'
+  ...
+# Subtest: missing stored refresh material denies before provider dispatch
+ok 612 - missing stored refresh material denies before provider dispatch
+  ---
+  duration_ms: 0.517929
+  type: 'test'
+  ...
+# Subtest: malformed replacement token is held without publication ""
+ok 613 - malformed replacement token is held without publication ""
+  ---
+  duration_ms: 0.261713
+  type: 'test'
+  ...
+# Subtest: malformed replacement token is held without publication null
+ok 614 - malformed replacement token is held without publication null
+  ---
+  duration_ms: 0.367783
+  type: 'test'
+  ...
+# Subtest: malformed replacement token is held without publication 17
+ok 615 - malformed replacement token is held without publication 17
+  ---
+  duration_ms: 0.18614
+  type: 'test'
+  ...
+# Subtest: malformed replacement token is held without publication {}
+ok 616 - malformed replacement token is held without publication {}
+  ---
+  duration_ms: 0.169995
+  type: 'test'
+  ...
+# Subtest: sanitizes authorize rejection (stale) without exposing adapter details
+ok 617 - sanitizes authorize rejection (stale) without exposing adapter details
+  ---
+  duration_ms: 0.857819
+  type: 'test'
+  ...
+# Subtest: sanitizes authorize rejection (custody_denied) without exposing adapter details
+ok 618 - sanitizes authorize rejection (custody_denied) without exposing adapter details
+  ---
+  duration_ms: 0.205569
+  type: 'test'
+  ...
+# Subtest: sanitizes authorize rejection (unexpected) without exposing adapter details
+ok 619 - sanitizes authorize rejection (unexpected) without exposing adapter details
+  ---
+  duration_ms: 0.238248
+  type: 'test'
+  ...
+# Subtest: sanitizes current rejection (stale) without exposing adapter details
+ok 620 - sanitizes current rejection (stale) without exposing adapter details
+  ---
+  duration_ms: 0.237016
+  type: 'test'
+  ...
+# Subtest: sanitizes current rejection (custody_denied) without exposing adapter details
+ok 621 - sanitizes current rejection (custody_denied) without exposing adapter details
+  ---
+  duration_ms: 0.313331
+  type: 'test'
+  ...
+# Subtest: sanitizes current rejection (unexpected) without exposing adapter details
+ok 622 - sanitizes current rejection (unexpected) without exposing adapter details
+  ---
+  duration_ms: 3.76616
+  type: 'test'
+  ...
+# Subtest: sanitizes claim rejection (stale) without exposing adapter details
+ok 623 - sanitizes claim rejection (stale) without exposing adapter details
+  ---
+  duration_ms: 0.297497
+  type: 'test'
+  ...
+# Subtest: sanitizes claim rejection (custody_denied) without exposing adapter details
+ok 624 - sanitizes claim rejection (custody_denied) without exposing adapter details
+  ---
+  duration_ms: 0.298658
+  type: 'test'
+  ...
+# Subtest: sanitizes claim rejection (unexpected) without exposing adapter details
+ok 625 - sanitizes claim rejection (unexpected) without exposing adapter details
+  ---
+  duration_ms: 0.287202
+  type: 'test'
+  ...
+# Subtest: sanitizes read rejection (stale) without exposing adapter details
+ok 626 - sanitizes read rejection (stale) without exposing adapter details
+  ---
+  duration_ms: 0.292399
+  type: 'test'
+  ...
+# Subtest: sanitizes read rejection (custody_denied) without exposing adapter details
+ok 627 - sanitizes read rejection (custody_denied) without exposing adapter details
+  ---
+  duration_ms: 0.288594
+  type: 'test'
+  ...
+# Subtest: sanitizes read rejection (unexpected) without exposing adapter details
+ok 628 - sanitizes read rejection (unexpected) without exposing adapter details
+  ---
+  duration_ms: 2.870003
+  type: 'test'
+  ...
+# Subtest: sanitizes dispatch rejection (stale) without exposing adapter details
+ok 629 - sanitizes dispatch rejection (stale) without exposing adapter details
+  ---
+  duration_ms: 3.85997
+  type: 'test'
+  ...
+# Subtest: sanitizes dispatch rejection (custody_denied) without exposing adapter details
+ok 630 - sanitizes dispatch rejection (custody_denied) without exposing adapter details
+  ---
+  duration_ms: 0.154382
+  type: 'test'
+  ...
+# Subtest: sanitizes dispatch rejection (unexpected) without exposing adapter details
+ok 631 - sanitizes dispatch rejection (unexpected) without exposing adapter details
+  ---
+  duration_ms: 0.15954
+  type: 'test'
+  ...
+# Subtest: sanitizes provider rejection (stale) without exposing adapter details
+ok 632 - sanitizes provider rejection (stale) without exposing adapter details
+  ---
+  duration_ms: 0.256866
+  type: 'test'
+  ...
+# Subtest: sanitizes provider rejection (custody_denied) without exposing adapter details
+ok 633 - sanitizes provider rejection (custody_denied) without exposing adapter details
+  ---
+  duration_ms: 0.286511
+  type: 'test'
+  ...
+# Subtest: sanitizes provider rejection (unexpected) without exposing adapter details
+ok 634 - sanitizes provider rejection (unexpected) without exposing adapter details
+  ---
+  duration_ms: 0.215213
+  type: 'test'
+  ...
+# Subtest: sanitizes seal rejection (stale) without exposing adapter details
+ok 635 - sanitizes seal rejection (stale) without exposing adapter details
+  ---
+  duration_ms: 5.961478
+  type: 'test'
+  ...
+# Subtest: sanitizes seal rejection (custody_denied) without exposing adapter details
+ok 636 - sanitizes seal rejection (custody_denied) without exposing adapter details
+  ---
+  duration_ms: 0.197818
+  type: 'test'
+  ...
+# Subtest: sanitizes seal rejection (unexpected) without exposing adapter details
+ok 637 - sanitizes seal rejection (unexpected) without exposing adapter details
+  ---
+  duration_ms: 0.181523
+  type: 'test'
+  ...
+# Subtest: sanitizes complete rejection (stale) without exposing adapter details
+ok 638 - sanitizes complete rejection (stale) without exposing adapter details
+  ---
+  duration_ms: 0.248914
+  type: 'test'
+  ...
+# Subtest: sanitizes complete rejection (custody_denied) without exposing adapter details
+ok 639 - sanitizes complete rejection (custody_denied) without exposing adapter details
+  ---
+  duration_ms: 1.459634
+  type: 'test'
+  ...
+# Subtest: sanitizes complete rejection (unexpected) without exposing adapter details
+ok 640 - sanitizes complete rejection (unexpected) without exposing adapter details
+  ---
+  duration_ms: 0.223116
+  type: 'test'
+  ...
+# Subtest: isolated encrypted vault with coordinator succeeds without returning tokens
+ok 641 - isolated encrypted vault with coordinator succeeds without returning tokens
+  ---
+  duration_ms: 3.908513
+  type: 'test'
+  ...
+# Subtest: cross-business binding, stale generation and disabled connection deny refresh
+ok 642 - cross-business binding, stale generation and disabled connection deny refresh
+  ---
+  duration_ms: 1.413784
+  type: 'test'
+  ...
+# Subtest: refresh timeout remains recovery-required across synthetic coordinator reopen
+ok 643 - refresh timeout remains recovery-required across synthetic coordinator reopen
+  ---
+  duration_ms: 1.499434
+  type: 'test'
+  ...
+# Subtest: client import pins business/org and rejects replacing another business client
+ok 644 - client import pins business/org and rejects replacing another business client
+  ---
+  duration_ms: 2.086321
+  type: 'test'
+  ...
+# Subtest: cleanup is exact connection/generation/client/identity attestation, never implicit revocation
+ok 645 - cleanup is exact connection/generation/client/identity attestation, never implicit revocation
+  ---
+  duration_ms: 0.534894
+  type: 'test'
+  ...
+# Subtest: cleanup does not delete a client still referenced by another connection
+ok 646 - cleanup does not delete a client still referenced by another connection
+  ---
+  duration_ms: 0.228924
+  type: 'test'
+  ...
+# Subtest: invalid execution hash rejects before any vault or provider setup
+ok 647 - invalid execution hash rejects before any vault or provider setup
+  ---
+  duration_ms: 115.683235
+  type: 'test'
+  ...
+# Subtest: check-import validates approved manifest without storage and rejects mixed modes, wrong client and expired approval
+ok 648 - check-import validates approved manifest without storage and rejects mixed modes, wrong client and expired approval
+  ---
+  duration_ms: 1132.250032
+  type: 'test'
+  ...
+# Subtest: pre-consent cleanup removes only exact imported client and retains non-secret audit
+ok 649 - pre-consent cleanup removes only exact imported client and retains non-secret audit
+  ---
+  duration_ms: 1.575919
+  type: 'test'
+  ...
+# Subtest: forged evidence never reaches injected DB caller
+ok 650 - forged evidence never reaches injected DB caller
+  ---
+  duration_ms: 3.810406
+  type: 'test'
+  ...
+# Subtest: authenticated evidence invokes restricted parameterized SQL and rejects replay
+ok 651 - authenticated evidence invokes restricted parameterized SQL and rejects replay
+  ---
+  duration_ms: 1.954256
+  type: 'test'
+  ...
+# Subtest: database exception fails closed
+ok 652 - database exception fails closed
+  ---
+  duration_ms: 1.531812
+  type: 'test'
+  ...
+# Subtest: signed, bound sealing evidence requires distinct pinned signer and atomic nonce acceptance
+ok 653 - signed, bound sealing evidence requires distinct pinned signer and atomic nonce acceptance
+  ---
+  duration_ms: 5.149278
+  type: 'test'
+  ...
+# Subtest: provider-result identity and outcome are cryptographically bound
+ok 654 - provider-result identity and outcome are cryptographically bound
+  ---
+  duration_ms: 3.475153
+  type: 'test'
+  ...
+# Subtest: unknown signer and malformed signature fail closed
+ok 655 - unknown signer and malformed signature fail closed
+  ---
+  duration_ms: 0.451829
+  type: 'test'
+  ...
+# Subtest: restricted identities and seven-field binding
+ok 656 - restricted identities and seven-field binding
+  ---
+  duration_ms: 2.178834
+  type: 'test'
+  ...
+# Subtest: uncertain provider response cannot be replayed or published
+ok 657 - uncertain provider response cannot be replayed or published
+  ---
+  duration_ms: 0.343817
+  type: 'test'
+  ...
+# Subtest: invalid grant is fenced and never auto-refreshes
+ok 658 - invalid grant is fenced and never auto-refreshes
+  ---
+  duration_ms: 0.248283
+  type: 'test'
+  ...
+# Subtest: separately approved successor archives exact recovered record atomically; restart consumes pending authority once
+ok 659 - separately approved successor archives exact recovered record atomically; restart consumes pending authority once
+  ---
+  duration_ms: 43.299086
+  type: 'test'
+  ...
+# Subtest: preparation refuses mutated predecessor, prior history, client material, shared references or reused authority without mutation
+ok 660 - preparation refuses mutated predecessor, prior history, client material, shared references or reused authority without mutation
+  ---
+  duration_ms: 33.173841
+  type: 'test'
+  ...
+# Subtest: independent byte gates pin original, old recovery, new manifest, approval and current runtime before store access
+ok 661 - independent byte gates pin original, old recovery, new manifest, approval and current runtime before store access
+  ---
+  duration_ms: 18.581714
+  type: 'test'
+  ...
+# Subtest: successor-bound import/status reject missing, changed, consumed or archived context; ordinary existing-record hold remains
+ok 662 - successor-bound import/status reject missing, changed, consumed or archived context; ordinary existing-record hold remains
+  ---
+  duration_ms: 9.706597
+  type: 'test'
+  ...
+# Subtest: cancelled pending or rejected consent cleans locally under separate approval after expiry; no provider claim or replay
+ok 663 - cancelled pending or rejected consent cleans locally under separate approval after expiry; no provider claim or replay
+  ---
+  duration_ms: 27.794427
+  type: 'test'
+  ...
+# Subtest: successor two-read verification reuses pinned verifier then requires targeted revocation attestation before local cleanup
+ok 664 - successor two-read verification reuses pinned verifier then requires targeted revocation attestation before local cleanup
+  ---
+  duration_ms: 21.796143
+  type: 'test'
+  ...
+# Subtest: unknown exchange and disabled in-flight grant can never use no-grant cleanup
+ok 665 - unknown exchange and disabled in-flight grant can never use no-grant cleanup
+  ---
+  duration_ms: 10.575608
+  type: 'test'
+  ...
+# Subtest: cleanup refuses false/shared/foreign/altered state and gates exact approval bytes without mutation
+ok 666 - cleanup refuses false/shared/foreign/altered state and gates exact approval bytes without mutation
+  ---
+  duration_ms: 12.180235
+  type: 'test'
+  ...
+# Subtest: preparation interrupted before commit leaves predecessor; lost receipt/restart cannot prepare or consume twice
+ok 667 - preparation interrupted before commit leaves predecessor; lost receipt/restart cannot prepare or consume twice
+  ---
+  duration_ms: 11.521804
+  type: 'test'
+  ...
+# Subtest: CLI mixed/invalid preparation and cleanup approvals fail before opening any custody store
+ok 668 - CLI mixed/invalid preparation and cleanup approvals fail before opening any custody store
+  ---
+  duration_ms: 1486.624329
+  type: 'test'
+  ...
+# Subtest: Windows real dummy DPAPI successor CLI archive, exclusive writer, restart and cleanup preserve unrelated data
+ok 669 - Windows real dummy DPAPI successor CLI archive, exclusive writer, restart and cleanup preserve unrelated data # SKIP
+  ---
+  duration_ms: 0.262936
+  type: 'test'
+  ...
+# Subtest: portable actual CLI dispatch reaches only the injected dummy vault for valid preparation and cleanup
+ok 670 - portable actual CLI dispatch reaches only the injected dummy vault for valid preparation and cleanup
+  ---
+  duration_ms: 19.911532
+  type: 'test'
+  ...
+# Subtest: legacy cleanup/import cannot bypass successor approval by stripping the manifest successor field
+ok 671 - legacy cleanup/import cannot bypass successor approval by stripping the manifest successor field
+  ---
+  duration_ms: 4.632722
+  type: 'test'
+  ...
+# Subtest: successor repeated and concurrent disable is idempotent and leaves no-grant cleanup reachable
+ok 672 - successor repeated and concurrent disable is idempotent and leaves no-grant cleanup reachable
+  ---
+  duration_ms: 18.497832
+  type: 'test'
+  ...
+# Subtest: accepted consent with lost/expired callback has explicit targeted-revocation-before-exchange cleanup, never inferred no grant
+ok 673 - accepted consent with lost/expired callback has explicit targeted-revocation-before-exchange cleanup, never inferred no grant
+  ---
+  duration_ms: 14.376048
+  type: 'test'
+  ...
+# Subtest: expiry or membership revocation during exchange disables late successor grant and retains targeted cleanup
+ok 674 - expiry or membership revocation during exchange disables late successor grant and retains targeted cleanup
+  ---
+  duration_ms: 11.160622
+  type: 'test'
+  ...
+# Subtest: disable while either synthetic verification GET is in flight discards late success and preserves cleanup/history
+ok 675 - disable while either synthetic verification GET is in flight discards late success and preserves cleanup/history
+  ---
+  duration_ms: 17.278595
+  type: 'test'
+  ...
+# Subtest: identical semantic manifest with changed raw bytes cannot relabel a prepared successor import or service
+ok 676 - identical semantic manifest with changed raw bytes cannot relabel a prepared successor import or service
+  ---
+  duration_ms: 17.347829
+  type: 'test'
+  ...
+# Subtest: synthetic permission or profile mismatch failure disables successor before invoice read and remains cleanup-safe
+ok 677 - synthetic permission or profile mismatch failure disables successor before invoice read and remains cleanup-safe
+  ---
+  duration_ms: 23.872163
+  type: 'test'
+  ...
+# Subtest: separate business secrets use exact opaque references
+ok 678 - separate business secrets use exact opaque references
+  ---
+  duration_ms: 3.743546
+  type: 'test'
+  ...
+# Subtest: cross-environment, generation, and credential-version substitution denied
+ok 679 - cross-environment, generation, and credential-version substitution denied
+  ---
+  duration_ms: 0.423696
+  type: 'test'
+  ...
+# Subtest: non synthetic material denied
+ok 680 - non synthetic material denied
+  ---
+  duration_ms: 0.301143
+  type: 'test'
+  ...
+# Subtest: ciphertext authentication tampering fails closed
+ok 681 - ciphertext authentication tampering fails closed
+  ---
+  duration_ms: 0.451909
+  type: 'test'
+  ...
+# Subtest: concurrent claims allow only one lease
+ok 682 - concurrent claims allow only one lease
+  ---
+  duration_ms: 0.634333
+  type: 'test'
+  ...
+# Subtest: dispatch result rotates atomically with version fence
+ok 683 - dispatch result rotates atomically with version fence
+  ---
+  duration_ms: 0.842846
+  type: 'test'
+  ...
+# Subtest: uncertain dispatched effect requires recovery, no retry
+ok 684 - uncertain dispatched effect requires recovery, no retry
+  ---
+  duration_ms: 0.365539
+  type: 'test'
+  ...
+# Subtest: disconnect fences outstanding lease
+ok 685 - disconnect fences outstanding lease
+  ---
+  duration_ms: 0.361103
+  type: 'test'
+  ...
+# Subtest: invalid references and duplicate versions denied
+ok 686 - invalid references and duplicate versions denied
+  ---
+  duration_ms: 0.409836
+  type: 'test'
+  ...
+# Subtest: references are random opaque handles, not binding metadata
+ok 687 - references are random opaque handles, not binding metadata
+  ---
+  duration_ms: 2.26231
+  type: 'test'
+  ...
+# Subtest: synthetic material rejects unknown fields and credential-shaped values
+ok 688 - synthetic material rejects unknown fields and credential-shaped values
+  ---
+  duration_ms: 0.414904
+  type: 'test'
+  ...
+# Subtest: confirmed invalid grant enters terminal reauthorisation while uncertainty remains held
+ok 689 - confirmed invalid grant enters terminal reauthorisation while uncertainty remains held
+  ---
+  duration_ms: 0.540673
+  type: 'test'
+  ...
+# Subtest: F3: disconnect during delayed custody read cannot publish stale synthetic credential
+ok 690 - F3: disconnect during delayed custody read cannot publish stale synthetic credential
+  ---
+  duration_ms: 0.778179
+  type: 'test'
+  ...
+# Subtest: T19 Vault source preserves managed grants and uses installed function identity
+ok 691 - T19 Vault source preserves managed grants and uses installed function identity
+  ---
+  duration_ms: 8.573253
+  type: 'test'
+  ...
+# Subtest: real CurrentUser DPAPI stores only ciphertext, survives restart and returns isolated snapshots
+ok 692 - real CurrentUser DPAPI stores only ciphertext, survives restart and returns isolated snapshots # SKIP
+  ---
+  duration_ms: 0.859963
+  type: 'test'
+  ...
+# Subtest: exclusive writer blocks another process instance and serialized writes persist last generation
+ok 693 - exclusive writer blocks another process instance and serialized writes persist last generation # SKIP
+  ---
+  duration_ms: 0.100811
+  type: 'test'
+  ...
+# Subtest: corrupted ciphertext fails closed and does not reset registry or leak content
+ok 694 - corrupted ciphertext fails closed and does not reset registry or leak content # SKIP
+  ---
+  duration_ms: 0.767723
+  type: 'test'
+  ...
+# Subtest: repository paths, non-local paths and junctions are rejected
+ok 695 - repository paths, non-local paths and junctions are rejected # SKIP
+  ---
+  duration_ms: 0.090406
+  type: 'test'
+  ...
+# Subtest: protection failure leaves no plaintext and poisons writes
+ok 696 - protection failure leaves no plaintext and poisons writes # SKIP
+  ---
+  duration_ms: 0.075083
+  type: 'test'
+  ...
+# Subtest: pre-consent cleanup persists only exact local removal through real DPAPI restart
+ok 697 - pre-consent cleanup persists only exact local removal through real DPAPI restart # SKIP
+  ---
+  duration_ms: 0.055954
+  type: 'test'
+  ...
+# Subtest: T19 connect call to action is inert while custody/provider approval is blocked
+ok 698 - T19 connect call to action is inert while custody/provider approval is blocked
+  ---
+  duration_ms: 2.368049
+  type: 'test'
+  ...
+# Subtest: nonowner sees readiness message but no configure form
+ok 699 - nonowner sees readiness message but no configure form
+  ---
+  duration_ms: 0.235033
+  type: 'test'
+  ...
+# Subtest: one pinned refresh POST, secrets only in body, no implicit rotation
+ok 700 - one pinned refresh POST, secrets only in body, no implicit rotation
+  ---
+  duration_ms: 7.488302
+  type: 'test'
+  ...
+# Subtest: rotated successor is internal result only
+ok 701 - rotated successor is internal result only
+  ---
+  duration_ms: 0.494243
+  type: 'test'
+  ...
+# Subtest: rejects protected material business_id substitution before egress
+ok 702 - rejects protected material business_id substitution before egress
+  ---
+  duration_ms: 0.688555
+  type: 'test'
+  ...
+# Subtest: rejects protected material environment substitution before egress
+ok 703 - rejects protected material environment substitution before egress
+  ---
+  duration_ms: 0.266451
+  type: 'test'
+  ...
+# Subtest: rejects protected material provider substitution before egress
+ok 704 - rejects protected material provider substitution before egress
+  ---
+  duration_ms: 0.384478
+  type: 'test'
+  ...
+# Subtest: rejects protected material connection_id substitution before egress
+ok 705 - rejects protected material connection_id substitution before egress
+  ---
+  duration_ms: 1.402908
+  type: 'test'
+  ...
+# Subtest: rejects protected material generation substitution before egress
+ok 706 - rejects protected material generation substitution before egress
+  ---
+  duration_ms: 0.250627
+  type: 'test'
+  ...
+# Subtest: rejects protected material organization_id substitution before egress
+ok 707 - rejects protected material organization_id substitution before egress
+  ---
+  duration_ms: 0.169184
+  type: 'test'
+  ...
+# Subtest: rejects protected material credential_version substitution before egress
+ok 708 - rejects protected material credential_version substitution before egress
+  ---
+  duration_ms: 0.185138
+  type: 'test'
+  ...
+# Subtest: rejects unapproved domain or malformed credentials before egress
+ok 709 - rejects unapproved domain or malformed credentials before egress
+  ---
+  duration_ms: 0.627293
+  type: 'test'
+  ...
+# Subtest: independent business material selects independent credentials
+ok 710 - independent business material selects independent credentials
+  ---
+  duration_ms: 0.957759
+  type: 'test'
+  ...
+# Subtest: only explicit token-endpoint rejection can classify invalid grant
+ok 711 - only explicit token-endpoint rejection can classify invalid grant
+  ---
+  duration_ms: 7.936907
+  type: 'test'
+  ...
+# Subtest: malformed, contradictory, wrong-region and expired responses fail closed
+ok 712 - malformed, contradictory, wrong-region and expired responses fail closed
+  ---
+  duration_ms: 2.321479
+  type: 'test'
+  ...
+# Subtest: oversized stream, malformed JSON, redirect and transport errors are bounded and redacted
+ok 713 - oversized stream, malformed JSON, redirect and transport errors are bounded and redacted
+  ---
+  duration_ms: 2.656963
+  type: 'test'
+  ...
+# Subtest: deadline completes even when transport ignores abort
+ok 714 - deadline completes even when transport ignores abort
+  ---
+  duration_ms: 1.118521
+  type: 'test'
+  ...
+# Subtest: VAT forms require explicit registration confirmation, isolate server scope and escape content
+ok 715 - VAT forms require explicit registration confirmation, isolate server scope and escape content
+  ---
+  duration_ms: 3.528822
+  type: 'test'
+  ...
+# Subtest: Postgres VAT is owner-only, tenant scoped, versioned and audited; defaults and old data are preserved
+ok 716 - Postgres VAT is owner-only, tenant scoped, versioned and audited; defaults and old data are preserved
+  ---
+  duration_ms: 2545.648113
+  type: 'test'
+  ...
+# Subtest: VAT snapshots survive quote conversion, recurring generation and invoice handoff after changes; stale issue is blocked
+ok 717 - VAT snapshots survive quote conversion, recurring generation and invoice handoff after changes; stale issue is blocked
+  ---
+  duration_ms: 2389.592952
+  type: 'test'
+  ...
+# Subtest: combined workspace includes only authorised businesses and escapes names
+ok 718 - combined workspace includes only authorised businesses and escapes names
+  ---
+  duration_ms: 1.861187
+  type: 'test'
+  ...
+# Subtest: selected staff workspace excludes owner and business finance controls
+ok 719 - selected staff workspace excludes owner and business finance controls
+  ---
+  duration_ms: 0.349135
+  type: 'test'
+  ...
+# Subtest: manager can see finance module without owner controls
+ok 720 - manager can see finance module without owner controls
+  ---
+  duration_ms: 0.23945
+  type: 'test'
+  ...
+# Subtest: unauthorised selection fails closed and revoked memberships give empty state
+ok 721 - unauthorised selection fails closed and revoked memberships give empty state
+  ---
+  duration_ms: 0.426621
+  type: 'test'
+  ...
+# Subtest: unverified saved tax evidence stops before credentials or provider traffic
+ok 722 - unverified saved tax evidence stops before credentials or provider traffic
+  ---
+  duration_ms: 3.778929
+  type: 'test'
+  ...
+# Subtest: non-VAT receipt requires explicit tax/net evidence and rejects tax classifications
+ok 723 - non-VAT receipt requires explicit tax/net evidence and rejects tax classifications
+  ---
+  duration_ms: 1.472783
+  type: 'test'
+  ...
+# Subtest: Zoho adapter creates once, reads back exact draft and reuses the same identity
+ok 724 - Zoho adapter creates once, reads back exact draft and reuses the same identity
+  ---
+  duration_ms: 3.325296
+  type: 'test'
+  ...
+# Subtest: uncertain creation stops, reconciliation never POSTs when the record is absent
+ok 725 - uncertain creation stops, reconciliation never POSTs when the record is absent
+  ---
+  duration_ms: 4.524269
+  type: 'test'
+  ...
+# Subtest: provider mismatch and incomplete collections cannot claim matched totals or create a replacement
+ok 726 - provider mismatch and incomplete collections cannot claim matched totals or create a replacement
+  ---
+  duration_ms: 5.128016
+  type: 'test'
+  ...
+# Subtest: credential pins and regional hosts fail closed without network or secret exposure
+ok 727 - credential pins and regional hosts fail closed without network or secret exposure
+  ---
+  duration_ms: 0.550807
+  type: 'test'
+  ...
+# Subtest: money comparison rejects fractional cents and imprecise provider values
+ok 728 - money comparison rejects fractional cents and imprecise provider values
+  ---
+  duration_ms: 0.270707
+  type: 'test'
+  ...
+# Subtest: zero-quantity exclusions remain in the internal agreement and cannot become provider charges
+ok 729 - zero-quantity exclusions remain in the internal agreement and cannot become provider charges
+  ---
+  duration_ms: 0.24614
+  type: 'test'
+  ...
+# Subtest: organisation substitution fails independent credential pins before any provider request
+ok 730 - organisation substitution fails independent credential pins before any provider request
+  ---
+  duration_ms: 0.294983
+  type: 'test'
+  ...
+# Subtest: provider permission denial stops before financial writes and never falls back to another organisation
+ok 731 - provider permission denial stops before financial writes and never falls back to another organisation
+  ---
+  duration_ms: 1.900967
+  type: 'test'
+  ...
+# Subtest: private setup uses only the four required scopes and fixed loopback callback
+ok 732 - private setup uses only the four required scopes and fixed loopback callback
+  ---
+  duration_ms: 2.898135
+  type: 'test'
+  ...
+# Subtest: setup rejects untrusted endpoints, malformed bindings and unsafe aliases
+ok 733 - setup rejects untrusted endpoints, malformed bindings and unsafe aliases
+  ---
+  duration_ms: 2.982772
+  type: 'test'
+  ...
+# Subtest: OAuth exchange sends secrets only in POST body and verifies the sole exact ZAR test org
+ok 734 - OAuth exchange sends secrets only in POST body and verifies the sole exact ZAR test org
+  ---
+  duration_ms: 0.998441
+  type: 'test'
+  ...
+# Subtest: a grant seeing another organisation or a mismatched test profile is rejected
+ok 735 - a grant seeing another organisation or a mismatched test profile is rejected
+  ---
+  duration_ms: 9.967559
+  type: 'test'
+  ...
+# Subtest: token errors, region mismatch, malformed data and transport errors remain redacted
+ok 736 - token errors, region mismatch, malformed data and transport errors remain redacted
+  ---
+  duration_ms: 1.396719
+  type: 'test'
+  ...
+# Subtest: fixed diagnostics distinguish token and organisation failures without revealing provider data
+ok 737 - fixed diagnostics distinguish token and organisation failures without revealing provider data
+  ---
+  duration_ms: 49.206554
+  type: 'test'
+  ...
+# Subtest: organisation HTTP diagnostics retain only literal status/code metadata and preserve the primary failure
+ok 738 - organisation HTTP diagnostics retain only literal status/code metadata and preserve the primary failure
+  ---
+  duration_ms: 6.83071
+  type: 'test'
+  ...
+# Subtest: a diagnostic single-org match never passes isolation or triggers more than one pinned probe
+ok 739 - a diagnostic single-org match never passes isolation or triggers more than one pinned probe
+  ---
+  duration_ms: 1.29727
+  type: 'test'
+  ...
+# Subtest: unsaved token cleanup is pinned, client-authenticated, bounded and limited to known current tokens
+ok 740 - unsaved token cleanup is pinned, client-authenticated, bounded and limited to known current tokens
+  ---
+  duration_ms: 6.147437
+  type: 'test'
+  ...
+# Subtest: verification failure cleanup uses only current exchange tokens; missing refresh stays a partial cleanup
+ok 741 - verification failure cleanup uses only current exchange tokens; missing refresh stays a partial cleanup
+  ---
+  duration_ms: 0.808314
+  type: 'test'
+  ...
+# Subtest: callback validates state, host, method, region and parameter uniqueness without echoing codes
+ok 742 - callback validates state, host, method, region and parameter uniqueness without echoing codes
+  ---
+  duration_ms: 0.979442
+  type: 'test'
+  ...
+# Subtest: private store preserves other aliases, uses restrictive POSIX mode and never overwrites a binding
+ok 743 - private store preserves other aliases, uses restrictive POSIX mode and never overwrites a binding
+  ---
+  duration_ms: 29.561578
+  type: 'test'
+  ...
+# Subtest: private store rejects repository paths, misleading .. prefixes and symlinks into Git
+ok 744 - private store rejects repository paths, misleading .. prefixes and symlinks into Git
+  ---
+  duration_ms: 4.234714
+  type: 'test'
+  ...
+# Subtest: private store rejects concurrent setup and detects changed files without replacing them
+ok 745 - private store rejects concurrent setup and detects changed files without replacing them
+  ---
+  duration_ms: 6.810744
+  type: 'test'
+  ...
+# Subtest: private store rejects loose POSIX permissions and existing symlink files
+ok 746 - private store rejects loose POSIX permissions and existing symlink files
+  ---
+  duration_ms: 15.800493
+  type: 'test'
+  ...
+# Subtest: moving the private parent and replacing it with a repo symlink cannot write secrets or delete a different lock
+ok 747 - moving the private parent and replacing it with a repo symlink cannot write secrets or delete a different lock
+  ---
+  duration_ms: 27.60921
+  type: 'test'
+  ...
+# Subtest: operator CLI prints complete prompt lines, hides secret input and cancels without saving
+ok 748 - operator CLI prints complete prompt lines, hides secret input and cancels without saving
+  ---
+  duration_ms: 228.992448
+  type: 'test'
+  ...
+# Subtest: real CLI closes unused local connections, cleans only unsaved tokens and preserves committed credentials
+ok 749 - real CLI closes unused local connections, cleans only unsaved tokens and preserves committed credentials
+  ---
+  duration_ms: 5165.99714
+  type: 'test'
+  ...
+# Subtest: real CLI rejects an existing private binding before credentials or consent and leaves the file unchanged
+ok 750 - real CLI rejects an existing private binding before credentials or consent and leaves the file unchanged
+  ---
+  duration_ms: 157.430173
+  type: 'test'
+  ...
+# Subtest: standard diagnostic uses regular OAuth with invoice READ only and validates both pins before network access
+ok 751 - standard diagnostic uses regular OAuth with invoice READ only and validates both pins before network access
+  ---
+  duration_ms: 0.942967
+  type: 'test'
+  ...
+# Subtest: standard diagnostic refreshes only its new grant, reads pinned lists with the refreshed access token and revokes the original refresh token
+ok 752 - standard diagnostic refreshes only its new grant, reads pinned lists with the refreshed access token and revokes the original refresh token
+  ---
+  duration_ms: 1.115957
+  type: 'test'
+  ...
+# Subtest: standard invoice observations keep broad access adverse and failures inconclusive; failed target skips other TEST
+ok 753 - standard invoice observations keep broad access adverse and failures inconclusive; failed target skips other TEST
+  ---
+  duration_ms: 4.467894
+  type: 'test'
+  ...
+# Subtest: standard invoice reads accept documented pagination shapes and refuse ambiguous or malformed contexts
+ok 754 - standard invoice reads accept documented pagination shapes and refuse ambiguous or malformed contexts
+  ---
+  duration_ms: 1.560295
+  type: 'test'
+  ...
+# Subtest: standard refresh failures, partial grants and cancellation preserve current-token cleanup and prevent subsequent reads
+ok 755 - standard refresh failures, partial grants and cancellation preserve current-token cleanup and prevent subsequent reads
+  ---
+  duration_ms: 2.211874
+  type: 'test'
+  ...
+# Subtest: standard CLI refuses an unconfirmed TEST-only account before credentials or consent
+ok 756 - standard CLI refuses an unconfirmed TEST-only account before credentials or consent
+  ---
+  duration_ms: 322.708037
+  type: 'test'
+  ...
+# Subtest: real standard OAuth CLI keeps invoice data private, never opens a store and always cleans the fresh grant
+ok 757 - real standard OAuth CLI keeps invoice data private, never opens a store and always cleans the fresh grant
+  ---
+  duration_ms: 7134.687777
+  type: 'test'
+  ...
+# Subtest: diagnostic consent is settings-read-only and rejects invalid or duplicate test pins before any request
+ok 758 - diagnostic consent is settings-read-only and rejects invalid or duplicate test pins before any request
+  ---
+  duration_ms: 0.642886
+  type: 'test'
+  ...
+# Subtest: diagnostic reads only two pinned test profiles and revokes its current token without returning secrets
+ok 759 - diagnostic reads only two pinned test profiles and revokes its current token without returning secrets
+  ---
+  duration_ms: 0.624629
+  type: 'test'
+  ...
+# Subtest: diagnostic never mistakes token, missing-resource, transport or server errors for cross-test rejection
+ok 760 - diagnostic never mistakes token, missing-resource, transport or server errors for cross-test rejection
+  ---
+  duration_ms: 1.467515
+  type: 'test'
+  ...
+# Subtest: diagnostic skips the other test after a failed target profile and preserves cleanup-failure evidence
+ok 761 - diagnostic skips the other test after a failed target profile and preserves cleanup-failure evidence
+  ---
+  duration_ms: 0.407553
+  type: 'test'
+  ...
+# Subtest: diagnostic cancellation and malformed token responses still clean only newly received usable tokens
+ok 762 - diagnostic cancellation and malformed token responses still clean only newly received usable tokens
+  ---
+  duration_ms: 0.617468
+  type: 'test'
+  ...
+# Subtest: real diagnostic CLI is read-only, prints short labels, cleans each exchange and never opens a credential store
+ok 763 - real diagnostic CLI is read-only, prints short labels, cleans each exchange and never opens a credential store
+  ---
+  duration_ms: 7069.196972
+  type: 'test'
+  ...
+1..763
+# tests 774
+# suites 0
+# pass 753
+# fail 2
+# cancelled 0
+# skipped 19
+# todo 0
+# duration_ms 54159.962375

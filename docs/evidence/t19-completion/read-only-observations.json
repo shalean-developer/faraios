@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-28",
+  "scope": "read-only FaraiOS staging inspection; not operational acceptance",
+  "implementation_commit": "10b37d803c93afecc91fdfd6400c7dc79f68ef7b",
+  "tree": "4f8f9f2a9cb17bb4e97024a45829f905a3e11f07",
+  "staging_branch": "6413058b75593addc2e028eca04db622205a0c1e",
+  "project": "xdmfyrsauvqznkloroxg",
+  "project_status": "ACTIVE_HEALTHY",
+  "postgres_release": "17.11.0.003",
+  "vault_version": "0.3.1",
+  "custody_role_login": false,
+  "custody_rows": {
+    "connections": 0,
+    "operations": 0,
+    "prepared_references": 0
+  },
+  "vault_secrets": 0,
+  "connections_enabled": false,
+  "running_hosted_fingerprint": "9963727474a36a16984195dcd371f6122de93b503d5327b1bcb8b7adcb4c9804",
+  "locally_recomputed_hosted_fingerprint": "9963727474a36a16984195dcd371f6122de93b503d5327b1bcb8b7adcb4c9804",
+  "fingerprint_limit": "selected files only, not whole deployed Git/process identity",
+  "accounting_worker": "disabled",
+  "payment_dispatch": "disabled",
+  "notification_dispatch": "disabled",
+  "business_totals": [
+    {
+      "test_organization": "943440851",
+      "business": "Shalean",
+      "internal_invoice_count": 1,
+      "total_cents": 87500,
+      "not_synced": 1,
+      "external_mappings": 0,
+      "active_attempts": 0,
+      "booking_link_mismatches": 0
+    },
+    {
+      "test_organization": "943440162",
+      "business": "Bokkie",
+      "internal_invoice_count": 1,
+      "total_cents": 41000,
+      "not_synced": 1,
+      "external_mappings": 0,
+      "active_attempts": 0,
+      "booking_link_mismatches": 0
+    }
+  ],
+  "provider_model_source": {
+    "gmail_message": "1a168b4bc8644c1a",
+    "ticket": "169559907",
+    "reply_date": "2026-10-23",
+    "finding": "Accounts-level tokens; organization access depends on account memberships and permissions"
+  },
+  "protected_operations_performed": [],
+  "decision": "NO-GO"
+}
