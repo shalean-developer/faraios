@@ -66,9 +66,10 @@ test('new capture SQL runs against a real embedded PostgreSQL catalogue and rema
  const pg=new PGlite();try{await pg.exec('CREATE SCHEMA auth;CREATE SCHEMA storage;CREATE TABLE auth.schema_migrations(version text);CREATE TABLE storage.migrations(id int,name text,hash text);');const sql=await readFile(new URL('../scripts/t19-bootstrap-catalog.sql',import.meta.url),'utf8');const result=await pg.exec(sql);const captured=result.flatMap(x=>x.rows??[]).find(x=>x.jsonb_build_object)?.jsonb_build_object;assert.equal(captured.schemaVersion,1);assert.equal(captured.sourceProject,'xdmfyrsauvqznkloroxg');assert.equal(compareCatalog(captured,captured).match,true);assert.equal(Object.keys(captured.catalog.managed).length,17);assert.equal((await pg.query('SELECT count(*)::int AS n FROM storage.migrations')).rows[0].n,0);}finally{await pg.close();}
 });
 test('real cleanup adapter removes only inspected bound resources and quarantines changed ownership',async()=>{
- for(const mode of ['owned','foreign','unknown']){
+ for(const mode of ['owned','foreign','unknown','created']){
   const privateDir=await mkdtemp(join(tmpdir(),'t19-cleanup-'));
   const {s,x}=specFixture();x.Config.Env=[];x.Config.Entrypoint=['docker-entrypoint.sh'];x.Config.Cmd=['postgres'];x.State={Running:true};
+  if(mode==='created'){x.State={Status:'created',Running:false,Pid:0};x.NetworkSettings.Networks[network].NetworkID='';}
   let present=true;const mutations=[];const run=async a=>{
    let output='';if(a[0]==='container'&&a[1]==='inspect')output=JSON.stringify([x]);
    else if(a[0]==='container'&&a[1]==='stop'){mutations.push('stop');x.State.Running=false;}
@@ -81,7 +82,7 @@ test('real cleanup adapter removes only inspected bound resources and quarantine
   const baseline={containers:[],networks:[],volumes:[]};const h=new Host({run,dir:privateDir,receipt:{nonce},expected:cat(),files,baseline});h.record=async()=>{};h.nets.set(network,'network-id');
   h.bound.set('postgres',{id:x.Id,s,expectedEnv:[],expectedEntrypoint:x.Config.Entrypoint,expectedCmd:x.Config.Cmd});
   if(mode==='foreign')x.Config.Labels={};if(mode==='unknown')h.unknown=true;
-  const clean=await h.cleanup();assert.equal(clean,mode==='owned');assert.deepEqual(mutations,mode==='owned'?['stop','rm','network-rm']:[]);await rm(privateDir,{recursive:true});
+  const clean=await h.cleanup();assert.equal(clean,['owned','created'].includes(mode));assert.deepEqual(mutations,mode==='owned'?['stop','rm','network-rm']:mode==='created'?['rm','network-rm']:[]);await rm(privateDir,{recursive:true});
  }
 });
 test('Docker log inspection includes stderr readiness messages',async()=>{const h=new Host({run:async()=>({code:0,stdout:Buffer.from('init complete\n'),stderr:Buffer.from('server ready')}),dir:'/unused',receipt:{nonce},expected:cat(),files,baseline:{}});assert.equal((await h.command(['container','logs','id'])).toString(),'init complete\nserver ready');});
@@ -101,4 +102,17 @@ test('Host.create gives the Docker client a private environment path and removes
   };
   const h=new Host({run,dir,receipt:{nonce},expected:cat(),files,baseline:{}});h.record=async()=>{};h.nets.set(network,'network-id');const b=await h.create('postgres',{OPAQUE_VALUE:'synthetic-only'});assert.equal(b.id,x.Id);assert.ok(envPath);assert.deepEqual(await import('node:fs/promises').then(fs=>fs.readdir(dir)),[]);
  }finally{await rm(dir,{recursive:true,force:true});}
+});
+test('an empty network ID is accepted only for a declared, unstarted created container',()=>{
+ const {s,x}=specFixture('sentinel');x.State={Status:'created',Running:false,Pid:0};const e=x.NetworkSettings.Networks[network];Object.assign(e,{NetworkID:'',EndpointID:'',IPAddress:'',GlobalIPv6Address:'',MacAddress:''});
+ assert.equal(isolated(x,s,'network-id'),true);
+ for(const change of [x=>x.State.Status='running',x=>x.State.Status='exited',x=>x.State.Running=true,x=>x.State.Pid=1,x=>x.NetworkSettings.Networks[network].NetworkID='foreign',x=>delete x.NetworkSettings.Networks[network].NetworkID,x=>x.NetworkSettings.Networks[network].EndpointID='active',x=>x.NetworkSettings.Networks[network].IPAddress='172.1.2.3',x=>x.NetworkSettings.Networks.extra={},x=>x.HostConfig.ReadonlyRootfs=false,x=>x.Config.Labels={}]){const y=structuredClone(x);change(y);assert.equal(isolated(y,s,'network-id'),false);}
+ assert.equal(isolated(x,s,undefined),false);assert.equal(isolated(x,s,''),false);
+});
+test('start validates the real network attachment after Docker acknowledges startup',async()=>{
+ for(const attached of [true,false]){const {s,x}=specFixture('sentinel');x.State={Status:'created',Running:false,Pid:0};x.NetworkSettings.Networks[network].NetworkID='';x.Config.Env=[];x.Config.Entrypoint=['node'];x.Config.Cmd=['sentinel'];let starts=0;
+  const run=async a=>{if(a[1]==='start'){starts++;x.State={Status:'running',Running:true,Pid:123};x.NetworkSettings.Networks[network].NetworkID=attached?'network-id':'';return {code:0,stdout:Buffer.from(x.Id),stderr:Buffer.alloc(0)};}return {code:0,stdout:Buffer.from(JSON.stringify([x])),stderr:Buffer.alloc(0)};};
+  const h=new Host({run,dir:'/unused',receipt:{nonce},files,expected:cat(),baseline:{}});h.nets.set(network,'network-id');const b={id:x.Id,s,expectedEnv:[],expectedEntrypoint:x.Config.Entrypoint,expectedCmd:x.Config.Cmd};
+  if(attached)await h.start(b);else await assert.rejects(h.start(b),/CONTAINER_ISOLATION/);assert.equal(starts,1);
+ }
 });
