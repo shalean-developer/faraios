@@ -32,3 +32,11 @@ test('script tampering and unsigned inputs deny before mutations',async()=>{
  processRunner:async()=>{calls++}});
  assert.equal(result.status,'NO_GO');assert.equal(calls,0);
 });
+test('v3 real entrypoint cannot use caller-injected approval dependencies',async()=>{
+ let calls=0;
+ const result=await gate2Execute({approval:{receipt:{version:3},approved:true},
+  trust:{resolveApprovedPublicKey:async()=>{calls++;return publicKey;}},
+  processRunner:async()=>{calls++;},nonceStore:{consumeOnce:async()=>{calls++;return true;}},
+  journal:{createIntent:async()=>{calls++;}},sqlIntegrity:async()=>{calls++;}});
+ assert.equal(result.status,'NO_GO');assert.equal(result.mutationAttempted,false);assert.equal(calls,0);
+});

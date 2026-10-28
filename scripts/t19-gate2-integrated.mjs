@@ -8,7 +8,7 @@ import {spawn} from 'node:child_process';
 
 export const IMAGE='sha256:d6844e71062a3c8e2f8021d644802850760ef970a45ac163ec8c9f0171075bda';
 export const NAME='faraios-t19-managed-qa';
-export const SCOPE='t19-local-disposable-start-readiness-synthetic-sql-stop-remove-v2';
+export const SCOPE='t19-local-disposable-start-readiness-synthetic-sql-stop-remove-v3';
 const ID=/^[a-f0-9]{64}$/, NONCE=/^[a-f0-9]{32}$/;
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const TRUST='/etc/faraios/t19-gate2-trust.json';
@@ -38,21 +38,23 @@ export function createArgs(nonce){
   '-e',ENV[0],IMAGE];
 }
 export const policyDigest=()=>digest({scope:SCOPE,create:createArgs('0'.repeat(32)),
- commands:['context-inspect','image-inspect','inventory','inspect-owned-id','start-owned-id',
+ commands:['context-inspect','daemon-info','image-inspect','inventory','inspect-owned-id','start-owned-id',
  'pg_isready-owned-id','psql-fixed-stdin-owned-id','logs-owned-id','stop-owned-id','remove-stopped-owned-id'],
- maxMs:30000,maxBytes:1048576,platform:'linux',baselineContainers:13});
+ maxMs:30000,maxBytes:1048576,platform:'linux',allowedBaselineCounts:[0,13]});
 export async function bundleDigest(){
  const files=['scripts/t19-gate2-integrated.mjs','database/t19-gate2-disposable-integrity.sql'];
  return digest({runtimeSha256:digest(await readFile(process.execPath)),
   files:await Promise.all(files.map(async p=>[p,digest(await readFile(join(root,p)))]))});
 }
 function fingerprint(pem){const key=createPublicKey(pem);if(key.asymmetricKeyType!=='ed25519')fail('KEY_TYPE');return digest(key.export({type:'spki',format:'der'}));}
-export function checkApproval({approval,trust,bundleSha256,binarySha256,now=Date.now()}){
+export function checkApproval({approval,trust,bundleSha256,binarySha256,hostBootSha256,now=Date.now()}){
  const r=approval?.receipt;
- const fields=['version','scope','bundleSha256','binarySha256','policySha256','inventorySha256','context','nonce','issuedAt','expiresAt'];
- if(!r||!equal(Object.keys(r).sort(),fields.sort())||r.version!==2||r.scope!==SCOPE||
+ const fields=['version','scope','bundleSha256','binarySha256','policySha256','inventorySha256','baselineCount','hostBootSha256','daemonIdSha256','context','nonce','issuedAt','expiresAt'];
+ if(!r||!equal(Object.keys(r).sort(),fields.sort())||r.version!==3||r.scope!==SCOPE||
   r.bundleSha256!==bundleSha256||r.binarySha256!==binarySha256||r.policySha256!==policyDigest()||
-  !ID.test(r.inventorySha256??'')||r.context!==trust.context||!NONCE.test(r.nonce??'')||
+  !ID.test(r.inventorySha256??'')||![0,13].includes(r.baselineCount)||
+  !ID.test(hostBootSha256??'')||r.hostBootSha256!==hostBootSha256||!ID.test(r.daemonIdSha256??'')||
+  r.context!==trust.context||!NONCE.test(r.nonce??'')||
   !Number.isSafeInteger(r.issuedAt)||!Number.isSafeInteger(r.expiresAt)||r.issuedAt>now||
   r.expiresAt<=now||r.expiresAt-r.issuedAt>900000||now-r.issuedAt>900000)fail('EXACT_APPROVAL_INVALID');
  if(fingerprint(trust.ownerKey)===fingerprint(trust.reviewerKey))fail('INDEPENDENT_KEYS_REQUIRED');
@@ -97,8 +99,10 @@ export function localJournal(dir){
 export function boundedProcess(binary,context,{spawnProcess=spawn}={}){
  return (args,{stdin='',timeoutMs=10000}={})=>new Promise((resolveResult,reject)=>{
   if(timeoutMs<1||timeoutMs>30000||!Number.isInteger(timeoutMs))return reject(Error('DEADLINE_INVALID'));
-  let child,timer,killTimer,termination,settled=false,bytes=0,out='',err='';
-  const done=(e)=>{if(settled)return;settled=true;clearTimeout(timer);clearTimeout(killTimer);e?reject(e):resolveResult({stdout:out,stderr:err});};
+  let child,timer,killTimer,termination,settled=false,bytes=0,out='',err='',exitCode=null,exitSignal=null;
+  const done=(e)=>{if(settled)return;settled=true;clearTimeout(timer);clearTimeout(killTimer);
+   if(e){e.commandEvidence={stdout:out,stderr:err,exitCode,signal:exitSignal,termination:termination??null};reject(e);}
+   else resolveResult({stdout:out,stderr:err,exitCode,signal:exitSignal});};
   const terminate=code=>{
    if(termination||settled)return;termination=code;
    try{child.kill('SIGKILL');}catch{}
@@ -115,7 +119,7 @@ export function boundedProcess(binary,context,{spawnProcess=spawn}={}){
   });
   child.stdin.on('error',()=>terminate('PROCESS_INPUT_UNKNOWN'));
   child.on('error',()=>done(Error('PROCESS_ERROR_UNKNOWN')));
-  child.on('close',(code,signal)=>done(termination?Error(termination):code===0&&!signal?null:Error('PROCESS_EXIT_UNKNOWN')));
+  child.on('close',(code,signal)=>{exitCode=code;exitSignal=signal;done(termination?Error(termination):code===0&&!signal?null:Error('PROCESS_EXIT_UNKNOWN'));});
   child.stdin.end(stdin);
  });
 }
@@ -149,6 +153,9 @@ export async function recoverInterrupted({nonce,journal,run}){
  const result={status:'QUARANTINE',mutationAllowed:false,candidates:[]};
  const raw=await run(['container','ls','--all','--no-trunc','--filter','label=faraios.t19.run-nonce='+nonce,'--format','{{json .}}']);
  for(const candidate of inventory(raw.stdout)){
+  if(intent.baseline.some(old=>old.ID===candidate.ID)){
+   result.candidates.push({id:candidate.ID,identityMatches:false,durableBinding:false,preExisting:true});continue;
+  }
   const x=JSON.parse((await run(['container','inspect',candidate.ID,'--format','{{json .}}'])).stdout);
   result.candidates.push({id:candidate.ID,identityMatches:x.Id===candidate.ID&&isolation(x,nonce),
    durableBinding:await journal.binding(r,candidate.ID).catch(()=>false),running:x.State?.Running});
@@ -161,15 +168,36 @@ export async function recoverInterrupted({nonce,journal,run}){
 
 // Dependency seam for behavioural tests. No native process is selected here.
 // Real execution uses executeGate2 below with fixed host trust and paths.
-export async function integratedRun({approval,trust,bundleSha256,binarySha256,run,journal,sql,now=Date.now,sleep=ms=>new Promise(r=>setTimeout(r,ms))}){
+export async function integratedRun({approval,trust,bundleSha256,binarySha256,hostBootSha256,run,journal,sql,now=Date.now,sleep=ms=>new Promise(r=>setTimeout(r,ms))}){
  const report={status:'NO_GO',mutationAttempted:false,cleanupVerified:false,stages:[],runtimeEvidence:false};
- let r,id,baseline,created=false;
+ let r,id,baseline,created=false,recordCommands=false,sequence=0;
+ const preflight=[];
  const event=async(name,value)=>journal.event(r,name,value);
  const window=()=>{if(now()>=r.expiresAt)fail('APPROVAL_EXPIRED');};
- const call=async(args,opts)=>{
-  if(args[0]==='container'&&['create','start','exec','stop','rm'].includes(args[1]))window();
-  const x=await run(args,opts);return x.stdout;
+ const invoke=async(args,opts={})=>{
+  const n=String(++sequence).padStart(4,'0');
+  const intent={args,timeoutMs:opts.timeoutMs??10000,...(opts.stdin?{stdinSha256:digest(opts.stdin)}:{})};
+  if(recordCommands)await event('command-'+n+'-intent',intent);
+  try{
+   const x=await run(args,opts);
+   const result={...intent,stdout:x.stdout,stderr:x.stderr,exitCode:x.exitCode??0,signal:x.signal??null};
+   if(recordCommands)await event('command-'+n+'-result',result);else preflight.push(result);
+   return x;
+  }catch(e){
+   const result={...intent,error:/^[A-Z0-9_]+$/.test(e.message)?e.message:'PROCESS_FAILURE',...(e.commandEvidence??{})};
+   if(recordCommands)await event('command-'+n+'-error',result);else preflight.push(result);
+   throw e;
+  }
  };
+ const daemon=async()=>{
+  const d=JSON.parse((await invoke(['info','--format','{"ID":{{json .ID}},"OSType":{{json .OSType}},"ServerVersion":{{json .ServerVersion}}}'])).stdout);
+  if(typeof d.ID!=='string'||!d.ID||d.ID.length>256||d.OSType!=='linux'||digest(d.ID)!==r.daemonIdSha256)fail('DOCKER_DAEMON_CHANGED');
+ };
+ const dispatch=async(args,opts)=>{
+  if(args[0]==='container'&&['create','start','exec','stop','rm'].includes(args[1])){window();await daemon();window();}
+  return invoke(args,opts);
+ };
+ const call=async(args,opts)=>(await dispatch(args,opts)).stdout;
  const list=async()=>inventory(await call(['container','ls','--all','--no-trunc','--format','{{json .}}']));
  const inspect=async id=>{
   if(!ID.test(id??''))fail('INVALID_ID');
@@ -181,7 +209,7 @@ export async function integratedRun({approval,trust,bundleSha256,binarySha256,ru
   return x;
  };
  try{
-  r=checkApproval({approval,trust,bundleSha256,binarySha256,now:now()});
+  r=checkApproval({approval,trust,bundleSha256,binarySha256,hostBootSha256,now:now()});
   if(typeof sql!=='string'||!sql.length)fail('SQL_MISSING');
   if(!Array.isArray(trust.imageEnv)||trust.imageEnv.some(v=>typeof v!=='string'||
    /TOKEN|SECRET|PASSWORD|PRIVATE_KEY/i.test(v.split('=')[0])))fail('CREDENTIAL_ENVIRONMENT_DENIED');
@@ -189,20 +217,23 @@ export async function integratedRun({approval,trust,bundleSha256,binarySha256,ru
   const context=JSON.parse(await call(['context','inspect',r.context]));
   if(r.context!=='default'||context.length!==1||context[0].Name!==r.context||context[0].Endpoints?.docker?.Host!==trust.dockerHost||
    trust.dockerHost!=='unix:///var/run/docker.sock')fail('DOCKER_CONTEXT_CHANGED');
+  await daemon();
   const image=JSON.parse(await call(['image','inspect',IMAGE]));
   if(image.length!==1||image[0].Id!==IMAGE||image[0].Os!=='linux'||image[0].Architecture!=='amd64'||
    !equal(image[0].Config.Entrypoint,trust.imageEntrypoint)||!equal(image[0].Config.Cmd,trust.imageCmd)||
    !equal(image[0].Config.Env,trust.imageEnv))fail('IMAGE_IDENTITY_CHANGED');
   baseline=await list();
-  if(baseline.length!==13||baseline.some(c=>c.Names.split(',').includes(NAME))||digest(baseline)!==r.inventorySha256)fail('BASELINE_CHANGED');
+  if(baseline.length!==r.baselineCount||baseline.some(c=>c.Names.split(',').includes(NAME))||digest(baseline)!==r.inventorySha256)fail('BASELINE_CHANGED');
   // Recheck expiry immediately before single-use consumption. Any failure burns the grant.
-  checkApproval({approval,trust,bundleSha256,binarySha256,now:now()});
+  checkApproval({approval,trust,bundleSha256,binarySha256,hostBootSha256,now:now()});
   try{await journal.consume(r);}catch{fail('NONCE_ALREADY_USED_OR_UNCERTAIN');}report.stages.push('NONCE_DURABLE');
   await journal.intent(r,baseline);report.stages.push('INTENT_DURABLE');
+  recordCommands=true;await event('preflight',preflight);
   if(now()>=r.expiresAt)fail('APPROVAL_EXPIRED');
   created=true;report.mutationAttempted=true;
   id=(await call(createArgs(r.nonce),{timeoutMs:15000})).trim();
   if(!ID.test(id))fail('CREATE_UNKNOWN');
+  if(baseline.some(old=>old.ID===id))fail('PREEXISTING_CONTAINER_ID');
   await journal.bind(r,id);report.containerId=id;
   if((await inspect(id)).State?.Running!==false)fail('PRE_START_STATE');
   await call(['container','start',id],{timeoutMs:15000});
@@ -215,10 +246,11 @@ export async function integratedRun({approval,trust,bundleSha256,binarySha256,ru
   }
   if(!ready)fail('READINESS_TIMEOUT');report.stages.push('READY');
   await inspect(id);window();
-  const sqlResult=await run(['container','exec','--interactive',id,'psql','-X','-v','ON_ERROR_STOP=1','-U','supabase_admin','-h','/var/run/postgresql','-d','postgres'],{stdin:sql,timeoutMs:30000});
+  const sqlResult=await dispatch(['container','exec','--interactive',id,'psql','-X','-v','ON_ERROR_STOP=1','-U','supabase_admin','-h','/var/run/postgresql','-d','postgres'],{stdin:sql,timeoutMs:30000});
   const combined=sqlResult.stdout+'\n'+sqlResult.stderr;
-  for(const marker of ['T19_SQLSTATE_42501_PASS','T19_DUPLICATE_23505_PASS','T19_COLLISION_42P06_PASS','T19_COLLISION_55000_PASS','T19_ROLLBACK_PASS']){
-   if(!combined.includes(marker))fail('SQL_EVIDENCE_MISSING');
+  const lines=combined.split(/\r?\n/).map(line=>line.replace(/^NOTICE:\s+/,'').trim());
+  for(const marker of ['T19_ALLOWED_WRITE_PASS','T19_SQLSTATE_42501_PASS','T19_DUPLICATE_23505_PASS','T19_COLLISION_42P06_PASS','T19_COLLISION_55000_PASS','T19_ROLLBACK_PASS']){
+   if(lines.filter(line=>line===marker).length!==1)fail('SQL_EVIDENCE_MISSING');
   }
   await event('sql',{stdout:sqlResult.stdout,stderr:sqlResult.stderr});report.stages.push('SQL_EVIDENCE');
   await inspect(id);await event('logs',{stdout:await call(['container','logs',id])});
@@ -241,7 +273,11 @@ export async function integratedRun({approval,trust,bundleSha256,binarySha256,ru
     const after=await list();
     const found=await call(['container','ls','--all','--no-trunc','--filter','label=faraios.t19.run-nonce='+r.nonce,'--format','{{json .}}']);
     const candidates=inventory(found),bound=[];
-    for(const candidate of candidates){try{const x=await inspect(candidate.ID);bound.push({id:x.Id,owned:!id||id===x.Id,running:x.State?.Running});}catch{bound.push({id:candidate.ID,owned:false});}}
+    for(const candidate of candidates){if(baseline.some(old=>old.ID===candidate.ID)){bound.push({id:candidate.ID,owned:false,preExisting:true});continue;}
+     try{const x=await inspect(candidate.ID);bound.push({id:x.Id,owned:!id||id===x.Id,running:x.State?.Running});}catch{bound.push({id:candidate.ID,owned:false});}}
+    if(ID.test(id??'')&&!baseline.some(old=>old.ID===id)){
+     try{await inspect(id);await event('failure-logs',await dispatch(['container','logs',id]));}catch{}
+    }
     await event('quarantine',{reason:report.reason,recordedId:id??null,candidates:bound,inventory:after});
     report.recovery=bound;
    }catch{report.recovery='UNVERIFIED';}
@@ -265,6 +301,7 @@ export async function executeGate2(approval){
   await protectedPath(trust.dockerBinary);
   if(!ID.test(trust.binarySha256??'')||digest(await readFile(trust.dockerBinary))!==trust.binarySha256)fail('DOCKER_BINARY_CHANGED');
   return await integratedRun({approval,trust,bundleSha256:await bundleDigest(),binarySha256:trust.binarySha256,
+   hostBootSha256:digest((await readFile('/proc/sys/kernel/random/boot_id','utf8')).trim()),
    run:boundedProcess(trust.dockerBinary,trust.context),journal:localJournal(STATE),
    sql:await readFile(join(root,'database/t19-gate2-disposable-integrity.sql'),'utf8')});
  }catch{return {status:'NO_GO',reason:'HOST_TRUST_UNAVAILABLE',mutationAttempted:false};}

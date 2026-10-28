@@ -11,13 +11,14 @@ const keys=()=>generateKeyPairSync('ed25519');
 const owner=keys(),reviewer=keys();
 const pem=k=>k.export({type:'spki',format:'pem'});
 const id='e'.repeat(64),nonce='f'.repeat(32),time=100000;
-function fixture(){
+function fixture(count=13){
  const calls=[],state={created:false,running:false};
- const baseline=Array.from({length:13},(_,i)=>({ID:digest('baseline'+i),Names:'existing-'+i,State:'running'})).sort((a,b)=>a.ID.localeCompare(b.ID));
+ const baseline=Array.from({length:count},(_,i)=>({ID:digest('baseline'+i),Names:'existing-'+i,State:'running'})).sort((a,b)=>a.ID.localeCompare(b.ID));
  const trust={context:'default',dockerHost:'unix:///var/run/docker.sock',ownerKey:pem(owner.publicKey),reviewerKey:pem(reviewer.publicKey),
   imageEntrypoint:['docker-entrypoint.sh'],imageCmd:['postgres'],imageEnv:['PATH=/usr/bin:/bin']};
- const receipt={version:2,scope:SCOPE,bundleSha256:digest('bundle'),binarySha256:digest('binary'),policySha256:policyDigest(),
-  inventorySha256:digest(baseline),context:trust.context,nonce,issuedAt:time-1,expiresAt:time+60000};
+ const hostBootSha256=digest('fixture-host-boot');
+ const receipt={version:3,scope:SCOPE,bundleSha256:digest('bundle'),binarySha256:digest('binary'),policySha256:policyDigest(),
+  inventorySha256:digest(baseline),baselineCount:count,hostBootSha256,daemonIdSha256:digest('fixture-daemon'),context:trust.context,nonce,issuedAt:time-1,expiresAt:time+60000};
  const signed=receipt=>({receipt,ownerSignature:sign(null,Buffer.from(canonical(receipt)),owner.privateKey).toString('base64'),
   reviewerSignature:sign(null,Buffer.from(canonical(receipt)),reviewer.privateKey).toString('base64')});
  const args=createArgs(nonce),tmpfs={};for(let i=0;i<args.length;i++)if(args[i]==='--tmpfs'){const s=args[i+1],p=s.indexOf(':');tmpfs[s.slice(0,p)]=s.slice(p+1);}
@@ -31,7 +32,8 @@ function fixture(){
   calls.push({a,opts});const command=a.slice(0,2).join(' ');
   if(state.fail===command){if(command==='container create')state.created=true;throw Error('PROCESS_TIMEOUT_UNKNOWN');}
   let stdout='';
-  if(command==='context inspect')stdout=JSON.stringify([{Name:trust.context,Endpoints:{docker:{Host:trust.dockerHost}}}]);
+  if(a[0]==='info')stdout=JSON.stringify({ID:state.daemonId??'fixture-daemon',OSType:'linux',ServerVersion:'fixture'});
+  else if(command==='context inspect')stdout=JSON.stringify([{Name:trust.context,Endpoints:{docker:{Host:trust.dockerHost}}}]);
   else if(command==='image inspect')stdout=JSON.stringify([{Id:IMAGE,Os:'linux',Architecture:'amd64',Config:{Entrypoint:trust.imageEntrypoint,Cmd:trust.imageCmd,Env:trust.imageEnv}}]);
   else if(command==='container ls')stdout=(a.includes('--filter')?list().filter(x=>x.ID===id):list()).map(canonical).join('\n');
   else if(command==='container create'){state.created=true;stdout=id;}
@@ -39,15 +41,15 @@ function fixture(){
   else if(command==='container start')state.running=true;
   else if(command==='container stop')state.running=false;
   else if(command==='container rm')state.created=false;
-  else if(command==='container exec'&&a.includes('psql'))stdout=state.sqlOutput??'T19_SQLSTATE_42501_PASS T19_DUPLICATE_23505_PASS T19_COLLISION_42P06_PASS T19_COLLISION_55000_PASS T19_ROLLBACK_PASS';
+  else if(command==='container exec'&&a.includes('psql'))stdout=state.sqlOutput??'NOTICE: T19_SQLSTATE_42501_PASS\nNOTICE: T19_DUPLICATE_23505_PASS\nNOTICE: T19_COLLISION_42P06_PASS\nNOTICE: T19_COLLISION_55000_PASS\nNOTICE: T19_ALLOWED_WRITE_PASS\nT19_ROLLBACK_PASS';
   else if(command==='container logs')stdout='synthetic startup log';
   return {stdout,stderr:''};
  };
- return {approval:signed(receipt),signed,receipt,trust,bundleSha256:receipt.bundleSha256,binarySha256:receipt.binarySha256,
+ return {approval:signed(receipt),signed,receipt,trust,bundleSha256:receipt.bundleSha256,binarySha256:receipt.binarySha256,hostBootSha256,
   now:()=>time,sleep:async()=>{},sql:'fixed synthetic fixture',run,calls,state,baseline};
 }
 async function withJournal(fn){const dir=await mkdtemp(join(tmpdir(),'t19-g2-'));try{return await fn(localJournal(dir),dir);}finally{await rm(dir,{recursive:true,force:true});}}
-test('signed v2 lifecycle uses durable real files, fixed stdin, exact IDs and complete reconciliation',()=>withJournal(async(journal,dir)=>{
+test('signed v3 lifecycle uses durable real files, fixed stdin, exact IDs and complete reconciliation',()=>withJournal(async(journal,dir)=>{
  const f=fixture();const r=await integratedRun({...f,journal});assert.equal(r.status,'PASS');assert.equal(r.cleanupVerified,true);
  const intent=JSON.parse(await readFile(join(dir,nonce+'.intent'),'utf8'));assert.deepEqual(intent.baseline,f.baseline);
  assert.equal(JSON.parse(await readFile(join(dir,nonce+'.binding'),'utf8')).id,id);
@@ -140,4 +142,63 @@ test('bounded adapter terminates an actual harmless child on deadline without in
 test('real entrypoint denies without externally installed trust; executable digest is deterministic',async()=>{
  const result=await executeGate2({approved:true,consumed:true});assert.equal(result.status,'NO_GO');assert.equal(result.mutationAttempted,false);
  assert.match(await bundleDigest(),/^[a-f0-9]{64}$/);
+});
+test('a separately signed empty baseline supports a clean disposable host without changing isolation',()=>withJournal(async journal=>{
+ const f=fixture(0);const r=await integratedRun({...f,journal});assert.equal(r.status,'PASS');
+ const create=f.calls.find(c=>c.a[1]==='create').a;
+ assert.deepEqual(create,createArgs(nonce));assert.equal(f.receipt.baselineCount,0);
+}));
+test('unsigned, mismatched and unsupported baseline counts fail before mutation',async()=>{
+ for(const count of [undefined,1,12,14])await withJournal(async journal=>{
+  const f=fixture();const r=await integratedRun({...f,journal,approval:f.signed({...f.receipt,baselineCount:count})});
+  assert.equal(r.status,'NO_GO');assert.equal(r.mutationAttempted,false);assert.equal(f.calls.length,0);
+ });
+ await withJournal(async journal=>{
+  const f=fixture(0);const r=await integratedRun({...f,journal,approval:f.signed({...f.receipt,baselineCount:13})});
+  assert.equal(r.reason,'BASELINE_CHANGED');assert.equal(r.mutationAttempted,false);
+ });
+});
+test('a different host boot or Docker daemon cannot use a signed receipt',async()=>{
+ await withJournal(async journal=>{const f=fixture();const r=await integratedRun({...f,journal,hostBootSha256:digest('other-boot')});
+  assert.equal(r.reason,'EXACT_APPROVAL_INVALID');assert.equal(f.calls.length,0);});
+ await withJournal(async journal=>{const f=fixture();f.state.daemonId='other-daemon';const r=await integratedRun({...f,journal});
+  assert.equal(r.reason,'DOCKER_DAEMON_CHANGED');assert.equal(r.mutationAttempted,false);});
+ await withJournal(async journal=>{const f=fixture(),original=f.run;f.run=async(a,o)=>{const r=await original(a,o);if(a[1]==='create')f.state.daemonId='changed-after-create';return r;};
+  const r=await integratedRun({...f,journal});assert.equal(r.reason,'DOCKER_DAEMON_CHANGED');assert.equal(r.status,'QUARANTINE');
+  assert.equal(f.calls.some(c=>['start','stop','rm','exec'].includes(c.a[1])),false);});
+});
+test('pre-existing container ID returned by create cannot be bound, inspected or mutated',()=>withJournal(async journal=>{
+ const f=fixture(),original=f.run;const old=f.baseline[0].ID;
+ f.run=async(a,o)=>{const r=await original(a,o);return a[1]==='create'?{stdout:old,stderr:''}:r;};
+ const r=await integratedRun({...f,journal});assert.equal(r.reason,'PREEXISTING_CONTAINER_ID');
+ assert.equal(f.calls.some(c=>c.a.includes(old)),false);
+ assert.equal(f.calls.some(c=>['start','stop','rm','exec'].includes(c.a[1])),false);
+}));
+test('complete bounded command transcripts are durable before the next action',()=>withJournal(async(journal,dir)=>{
+ const f=fixture();await integratedRun({...f,journal});
+ const {readdir}=await import('node:fs/promises');const files=await readdir(dir);
+ const intents=files.filter(n=>/command-\d+-intent$/.test(n));assert.ok(intents.length>10);
+ for(const name of intents){const result=name.replace(/-intent$/,'-result');assert.ok(files.includes(result),name);
+  const x=JSON.parse(await readFile(join(dir,result),'utf8'));assert.ok(Array.isArray(x.args));assert.equal(typeof x.stdout,'string');assert.equal(typeof x.stderr,'string');}
+ const preflight=JSON.parse(await readFile(join(dir,nonce+'.preflight'),'utf8'));assert.equal(preflight.length,4);
+}));
+test('result-journal failure after create quarantines its unknown acknowledgement',()=>withJournal(async journal=>{
+ const f=fixture();let createSeen=false;
+ const r=await integratedRun({...f,journal:{...journal,event:async(r,name,value)=>{
+  if(name.endsWith('-intent')&&value.args?.[1]==='create')createSeen=true;
+  if(createSeen&&name.endsWith('-result')){createSeen=false;throw Error('DISK_FULL');}
+  return journal.event(r,name,value);
+ }}});
+ assert.equal(r.status,'QUARANTINE');assert.equal(f.state.created,true);
+ assert.equal(f.calls.some(c=>['start','stop','rm'].includes(c.a[1])),false);
+}));
+test('nonzero subprocess results retain stdout, stderr, exit code and signal without Docker',async()=>{
+ const run=boundedProcess('/unused','default',{spawnProcess:()=>spawn(process.execPath,['-e',"process.stdout.write('observed out');process.stderr.write('observed err');process.exitCode=3;"])});
+ await assert.rejects(run(['unused']),e=>{assert.equal(e.commandEvidence.stdout,'observed out');assert.equal(e.commandEvidence.stderr,'observed err');assert.equal(e.commandEvidence.exitCode,3);return true;});
+});
+test('SQL marker substrings and duplicate marker lines cannot masquerade as evidence',async()=>{
+ for(const variant of ['prefix','duplicate'])await withJournal(async journal=>{
+  const f=fixture(),original=f.run;f.run=async(a,o)=>{const r=await original(a,o);if(a.includes('psql'))r.stdout=variant==='prefix'?r.stdout.replace('T19_ROLLBACK_PASS','WRONG_T19_ROLLBACK_PASS'):r.stdout+'\nT19_ROLLBACK_PASS';return r;};
+  const r=await integratedRun({...f,journal});assert.equal(r.reason,'SQL_EVIDENCE_MISSING');assert.equal(r.status,'QUARANTINE');
+ });
 });

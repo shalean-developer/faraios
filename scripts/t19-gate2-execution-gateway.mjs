@@ -7,9 +7,9 @@ import {runDisposable} from './t19-gate2-operational-engine.mjs';
 import {makeRestrictedDocker} from './t19-gate2-restricted-docker.mjs';
 import {executeGate2} from './t19-gate2-integrated.mjs';
 export async function gate2Execute({approval,scriptBytes,nonceStore,trust,processRunner,journal,sqlIntegrity}={}){
- // V2 ignores every caller-supplied trust/runner/SQL dependency. Host-installed
+ // V3 ignores every caller-supplied trust/runner/SQL dependency. Host-installed
  // independent public keys and signed exact bundle/operation scope are required.
- if(approval?.receipt?.version===2)return executeGate2(approval);
+ if(approval?.receipt?.version===3)return executeGate2(approval);
  const reject=(reason)=>({status:'NO_GO',reason,mutationAttempted:false});
  if(!approval||!scriptBytes)return reject('MISSING_EXACT_RUN_RECEIPT');
  if(typeof trust?.resolveApprovedPublicKey!=='function')return reject('INDEPENDENT_KEY_CUSTODY_MISSING');

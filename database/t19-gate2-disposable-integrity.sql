@@ -17,8 +17,11 @@ REVOKE ALL ON ALL TABLES IN SCHEMA t19_gate2_synthetic FROM PUBLIC;
 DO $$
 DECLARE code text;
 BEGIN
+ -- SET ROLE is outside the denial handler: inability to assume the test role
+ -- must fail, rather than masquerade as denial of the protected SELECT.
+ EXECUTE 'SET LOCAL ROLE t19_gate2_denied';
+ IF current_user <> 't19_gate2_denied' THEN RAISE EXCEPTION 'DENIED_ROLE_NOT_ACTIVE';END IF;
  BEGIN
-  EXECUTE 'SET LOCAL ROLE t19_gate2_denied';
   PERFORM value FROM t19_gate2_synthetic.protected WHERE id=1;
   RAISE EXCEPTION 'DENIAL_NOT_ENFORCED';
  EXCEPTION WHEN insufficient_privilege THEN
@@ -26,6 +29,7 @@ BEGIN
   IF code <> '42501' THEN RAISE EXCEPTION 'INCORRECT_SQLSTATE %',code; END IF;
   RAISE NOTICE 'T19_SQLSTATE_42501_PASS';
  END;
+ RESET ROLE;
 END $$;
 DO $$
 BEGIN
@@ -55,6 +59,7 @@ BEGIN
     OR (SELECT count(*) FROM t19_gate2_synthetic.protected) <> 1 THEN
   RAISE EXCEPTION 'SYNTHETIC_STATE_CHANGED';
  END IF;
+ RAISE NOTICE 'T19_ALLOWED_WRITE_PASS';
 END $$;
 ROLLBACK;
 SELECT md5(coalesce(string_agg(v, E'\n' ORDER BY v),'')) = :'before_catalog'
