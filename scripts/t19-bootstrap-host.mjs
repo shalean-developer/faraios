@@ -76,7 +76,7 @@ export class Host {
  }
  async assertBound(b,expected){const x=await this.inspect(b.id);requireTrue(isolated(x,b.s,this.nets.get(b.s.network)),'CONTAINER_ISOLATION');requireTrue(environment(x.Config.Env,expected??b.expectedEnv),'CONTAINER_ENVIRONMENT');requireTrue(canonical(x.Config.Entrypoint)===canonical(b.expectedEntrypoint),'CONTAINER_ENTRYPOINT');requireTrue(canonical(x.Config.Cmd)===canonical(b.expectedCmd),'CONTAINER_COMMAND');return x;}
  async absent(b,path){const r=await this.run(['container','cp',b.id+':'+path,'-'],{maxBytes:1048576});requireTrue(r.code===1&&/Could not find|not found|No such file/i.test(r.stderr.toString()),'UNREVIEWED_IMAGE_CONFIG');}
- async start(b){await this.assertBound(b);await this.command(['container','start',b.id]);}
+ async start(b){await this.assertBound(b);await this.command(['container','start',b.id]);const x=await this.assertBound(b);requireTrue(['running','exited'].includes(x.State.Status),'CONTAINER_NOT_STARTED');}
  async exec(b,args,stdin='',timeoutMs=60000){await this.assertBound(b);return (await this.command(['container','exec','-i',b.id,...args],{stdin,timeoutMs})).toString();}
  async cp(b,path,maxBytes=8388608){const bytes=await this.command(['container','cp',b.id+':'+path,'-'],{maxBytes,timeoutMs:30000});return tarFiles(bytes);}
  async file(b,path,maxBytes){const a=await this.cp(b,path,maxBytes);requireTrue(a.size===1,'COPY_SINGLE_FILE');return [...a.values()][0];}

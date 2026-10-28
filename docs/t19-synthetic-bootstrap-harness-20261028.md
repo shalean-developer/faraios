@@ -37,3 +37,5 @@ After source review and current-head CI, install the exact reviewed source under
 `SYNTHETIC_COMPATIBILITY_PASS` requires every phase and verified cleanup. Even that result reports checkpointUseAuthorized=false and restoreAttempted=false: checkpoint restoration needs its own exact destination/run approval and recovery/data reconciliation. Until a real host result exists, T19's same24-criterion evidence score remains27/72 = **3.8/10**. Source tests and staging delivery alone do not add operational acceptance.
 
 The first owner-host attempt stopped before completing isolation because Docker could not reopen /dev/stdin as an env-file. See [the preserved failure and correction record](t19-bootstrap-envfile-fix-20261028.md). Compatibility remains unverified.
+
+The next owner attempt reached sentinel creation but quarantined on Docker's empty pre-start network ID. The [created-state correction](t19-bootstrap-created-network-fix-20261028.md) separates declared-network verification from mandatory post-start attachment verification. The retained resources and journal require explicit recovery reconciliation; cleanup is not yet verified for that attempt.

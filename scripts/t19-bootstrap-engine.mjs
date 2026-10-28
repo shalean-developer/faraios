@@ -24,13 +24,16 @@ export function createArgs(s,command,environmentPath){
  a.push(s.image,...(command?.args??[]));return a;
 }
 export function isolated(x,s,networkId){
- const h=x?.HostConfig,c=x?.Config,n=x?.NetworkSettings;
+ const h=x?.HostConfig,c=x?.Config,n=x?.NetworkSettings,e=n?.Networks?.[s.network];
+ // Docker records the declared network before allocating its runtime endpoint.
+ // This exception is limited to a provably unstarted created container.
+ const declaredOnly=typeof networkId==='string'&&networkId.length>0&&x?.State?.Status==='created'&&x.State.Running===false&&x.State.Pid===0&&e?.NetworkID===''&&!e.EndpointID&&!e.IPAddress&&!e.GlobalIPv6Address&&!e.MacAddress;
  return x?.Name==='/'+s.name&&x.Image===s.image&&c?.Image===s.image&&c.User===s.user&&c.Labels?.[LABEL]===s.nonce&&
  h?.NetworkMode===s.network&&h.ReadonlyRootfs===true&&h.Memory===536870912&&h.MemorySwap===536870912&&h.NanoCpus===1e9&&h.PidsLimit===64&&h.Privileged===false&&h.PublishAllPorts===false&&h.AutoRemove===false&&h.RestartPolicy?.Name==='no'&&
  canonical(h.Tmpfs)===canonical(s.tmpfs)&&canonical(h.CapDrop)===canonical(['ALL'])&&canonical(h.SecurityOpt)===canonical(['no-new-privileges:true'])&&
  ![h.PidMode,h.IpcMode,h.UTSMode].includes('host')&&!['Binds','CapAdd','Devices','DeviceRequests','VolumesFrom','Links','ExtraHosts'].some(k=>(h[k]??[]).length)&&
  !Object.keys(h.PortBindings??{}).length&&!(x.Mounts??[]).some(m=>m.Type!=='tmpfs')&&!Object.values(n?.Ports??{}).some(v=>v?.length)&&
- Object.keys(n?.Networks??{}).length===1&&n.Networks[s.network]?.NetworkID===networkId;
+ Object.keys(n?.Networks??{}).length===1&&typeof networkId==='string'&&networkId.length>0&&(e?.NetworkID===networkId||declaredOnly);
 }
 export function environment(actual,expected){
  if(!Array.isArray(actual)||!Array.isArray(expected))return false;
