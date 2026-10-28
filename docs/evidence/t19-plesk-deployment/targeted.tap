@@ -1,0 +1,18 @@
+✔ web session crosses actual mTLS boundary with verified token and current memberships only (325.439823ms)
+✔ machine identity uses actual verified TLS peer and current server record (136.123176ms)
+✔ deployment config refuses unknown fields, repository secrets and disabled execution (27.964686ms)
+✔ hosted RPC opt-in permits only authenticated accounting status/enqueue transport (5.111321ms)
+✔ custody launcher binds loopback and closes database exactly once on shutdown/start failure (0.939843ms)
+✔ non-root private config locations retain symlink, hardlink, mode and ancestor denial (26.081666ms)
+✔ web configuration location accepts only an explicit versioned source setting (0.365238ms)
+✔ isolated encrypted vault with coordinator succeeds without returning tokens (5.12382ms)
+✔ cross-business binding, stale generation and disabled connection deny refresh (1.720536ms)
+✔ refresh timeout remains recovery-required across synthetic coordinator reopen (1.282067ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 518.661458

@@ -5,6 +5,6 @@ const runtime=detectHostedRuntime();
 if(process.platform!=='linux')throw new Error('Accounting host requires Linux');
 if(runtime==='passenger')PhusionPassenger.configure({autoInstall:false});
 Promise.all([import('./src/t19-deployment.js'),import('./hosted-staging.mjs')]).then(async([deployment,host])=>{
- const config=await deployment.loadAccountingDeployment('/etc/faraios/web.json');
+ const config=await deployment.loadAccountingWebDeployment();
  await host.startHostedStaging({accountingProxy:deployment.deploymentProxy(config)});
 }).catch(()=>{console.error('FaraiOS accounting web startup refused');process.exitCode=1;});

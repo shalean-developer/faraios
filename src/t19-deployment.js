@@ -1,6 +1,7 @@
 // Explicit staging composition only. Importing this module performs no I/O.
-import {readFile,lstat,realpath} from 'node:fs/promises';
-import {isAbsolute,relative,dirname,join} from 'node:path';
+import {readFile,lstat,realpath,open} from 'node:fs/promises';
+import {constants} from 'node:fs';
+import {isAbsolute,relative,dirname,join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {once} from 'node:events';
 import {request} from 'node:https';
@@ -13,17 +14,57 @@ const root=fileURLToPath(new URL('../',import.meta.url));
 const denied=()=>new Error('accounting_deployment_rejected');
 function exact(v,keys){if(!v||Array.isArray(v)||typeof v!=='object'||Object.keys(v).sort().join()!==[...keys].sort().join())throw denied();}
 function endpoint(value){const u=new URL(value);if(u.protocol!=='https:'||u.username||u.password||u.pathname!=='/'||u.search||u.hash)throw denied();return u.href;}
+const sameIdentity=(a,b)=>a.dev===b.dev&&a.ino===b.ino&&a.uid===b.uid&&a.gid===b.gid&&a.mode===b.mode;
+const sameFile=(a,b)=>sameIdentity(a,b)&&a.nlink===b.nlink&&a.size===b.size&&a.mtimeMs===b.mtimeMs&&a.ctimeMs===b.ctimeMs;
+async function protectedAncestors(path){
+ const result=[];
+ for(let dir=dirname(path);;dir=dirname(dir)){
+  const s=await lstat(dir);
+  if(s.isSymbolicLink()||!s.isDirectory())throw denied();
+  if(process.platform!=='win32'){
+   const stickyRoot=s.uid===0&&(s.mode&0o1000)!==0;
+   if(![0,process.getuid()].includes(s.uid)||(s.mode&0o022)!==0&&!stickyRoot)throw denied();
+  }
+  if(await lstat(join(dir,'.git')).then(()=>true,e=>{if(e.code==='ENOENT')return false;throw e;}))throw denied();
+  result.push([dir,s]);if(dirname(dir)===dir)break;
+ }
+ return result;
+}
 async function protectedFile(path){
  if(typeof path!=='string'||!isAbsolute(path))throw denied();
- const canonical=await realpath(path),rel=relative(root,canonical),s=await lstat(path);
- if(!rel||!rel.startsWith('..')&&!isAbsolute(rel)||s.isSymbolicLink()||!s.isFile()||s.size>65536
-  ||process.platform!=='win32'&&(s.mode&0o077)!==0)throw denied();
- // Managed worktrees may live inside another checkout. Exclude every Git ancestor.
- for(let dir=dirname(canonical);;dir=dirname(dir)){
-  if(await lstat(join(dir,'.git')).then(()=>true,e=>{if(e.code==='ENOENT')return false;throw e;}))throw denied();
-  if(dirname(dir)===dir)break;
- }
- return readFile(canonical,'utf8');
+ const normalized=resolve(path),canonical=await realpath(path),rel=relative(root,canonical);
+ if(canonical!==normalized||!rel||!rel.startsWith('..')&&!isAbsolute(rel))throw denied();
+ const ancestors=await protectedAncestors(normalized);
+ const before=await lstat(normalized);
+ if(before.isSymbolicLink()||!before.isFile())throw denied();
+ const handle=await open(normalized,constants.O_RDONLY|(constants.O_NOFOLLOW??0)|(constants.O_NONBLOCK??0));
+ try{
+  const s=await handle.stat();
+  if(!sameFile(before,s)||!s.isFile()||s.nlink!==1||s.size>65536
+   ||process.platform!=='win32'&&((s.mode&0o077)!==0||![0,process.getuid()].includes(s.uid)))throw denied();
+  // Read a bounded descriptor, not a second pathname lookup. Appends cannot
+  // turn the size precheck into an unbounded credential read.
+  const bytes=Buffer.alloc(65537);let length=0;
+  while(length<bytes.length){const r=await handle.read(bytes,length,bytes.length-length,null);if(!r.bytesRead)break;length+=r.bytesRead;}
+  if(length>65536||!sameFile(s,await handle.stat())||!sameFile(s,await lstat(normalized))
+    ||await realpath(normalized)!==normalized)throw denied();
+  for(const [dir,identity] of ancestors)if(!sameIdentity(identity,await lstat(dir)))throw denied();
+  return bytes.subarray(0,length).toString('utf8');
+ }finally{await handle.close();}
+}
+// This is deployment source, not a URL, request field, environment variable or
+// credential. A changed path requires an ordinary reviewed source deployment.
+export function accountingWebConfigPath(settings){
+ exact(settings,['version','webConfigFile']);
+ if(settings.version!==1||typeof settings.webConfigFile!=='string'||!isAbsolute(settings.webConfigFile))throw denied();
+ return settings.webConfigFile;
+}
+export async function loadAccountingWebDeployment(){
+ try{
+  const settings=JSON.parse(await readFile(new URL('../config/t19-hosting.json',import.meta.url),'utf8'));
+  const c=await loadAccountingDeployment(accountingWebConfigPath(settings));
+  if(c.mode!=='web')throw denied();return c;
+ }catch{throw denied();}
 }
 export async function loadAccountingDeployment(path){
  try{
