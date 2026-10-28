@@ -48,6 +48,7 @@ echo CI_WRONG_PASSWORD_REJECTED
 export PGPASSWORD="$password"
 test "$(psql -X -w -qAt -d postgres -c 'select 1')" = 1
 echo CI_CORRECT_PASSWORD_ACCEPTED
+T19_SYNTHETIC_CATALOG_ONLY=yes node scripts/t19-custody-recovery-native17.mjs
 createdb faraios_t16_test
 export T16_TEST_DATABASE_URL="postgresql://postgres:${password}@127.0.0.1:5432/faraios_t16_test"
 unset password

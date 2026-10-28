@@ -55,3 +55,13 @@ Restore the checkpoint into that approved candidate, independently reconcile arc
 Embedded PostgreSQL tests cover recovery intent/collision/runtime-owner refusal without partial tables, role flags/membership options, RLS and all four app identities denied across all three tables, staging-only check constraints, open-operation uniqueness, and unrelated public/Vault data and grants preserved. Embedded tests are not native managed-bootstrap or restore evidence. Current-head CI and automated review must pass before staging merge.
 
 T19 remains in progress. Accounting activation and operational custody remain NO-GO pending recovery and subsequent approved stages. T20 payment-account/event implementation remains excluded.
+
+## PostgreSQL major-version fixture correction
+
+The first hosted offline comparison matched 16 of 17 components and stopped at constraints before the role readback. Investigation established that the embedded generator was PostgreSQL 18.6 (PGlite 0.5.10), while the source is PostgreSQL 17.11. PG18 records table NOT NULL constraints as pg_constraint entries; PG17 stores their nullability in pg_attribute, already covered by the unchanged columns component. The reported 13 PK/UNIQUE/FK/CHECK constraints match the corresponding source-derived definitions. No live DDL defect or missing NOT NULL was established by this mismatch.
+
+Only the synthetic expected constraint fingerprint is corrected for the PG17 projection. The embedded PG18 test adapter excludes its extra contype=n table records during fixture reconstruction. The production offline comparator, historical restore projection, source SQL and captured evidence stay unchanged. NULL-ability and other constraint drift remain strict failures; tests cover both.
+
+An explicit native PostgreSQL 17 CI regression runs the original unfiltered projection against this recovery definition, checks all 17 expected components and 13 constraints, rejects deliberate nullability/constraint drift and verifies transaction-wide removal of its synthetic roles and schema. It runs only inside the existing network-isolated CI policy container's fresh loopback cluster, before other suites. Candidate BEGIN/COMMIT is wrapped in a fixture transaction and always rolled back. A native CI PASS verifies this version-specific fixture; it does not qualify a managed Supabase bootstrap or authenticate/restore a protected archive.
+
+Official catalog references: https://www.postgresql.org/docs/17/catalog-pg-constraint.html and https://www.postgresql.org/docs/18/catalog-pg-constraint.html . Owner-host evidence is retained unchanged; rerun the corrected offline comparator and separately collect role/empty-state readback before declaring definition reconciliation complete.
