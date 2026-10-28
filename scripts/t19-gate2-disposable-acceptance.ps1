@@ -20,7 +20,7 @@ function DockerRead([string[]]$arguments) {
   return ($out | Out-String).Trim()
 }
 function Inspect([string]$id) {
-  $json = DockerRead @('container','inspect',$id)
+  $json = DockerRead -arguments @('container','inspect',$id)
   $value = @(ConvertFrom-Json -InputObject $json)
   if ($value.Count -ne 1) { throw 'INSPECT_COUNT_MISMATCH' }
   return $value[0]
@@ -42,9 +42,9 @@ function Readback([object]$obj) {
   return ($limits -and $mounts.Count -eq 0 -and $obj.Config.User -eq '100:101')
 }
 try {
-  $existing = DockerRead @('container','ls','--all','--no-trunc','--filter',"name=^/$name$",'--format','{{.ID}}')
+  $existing = DockerRead -arguments @('container','ls','--all','--no-trunc','--filter',"name=^/$name$",'--format','{{.ID}}')
   if ($existing) { throw 'NAME_COLLISION: existing container is untouched' }
-  $localImage = DockerRead @('image','inspect',$image,'--format','{{.Id}}')
+  $localImage = DockerRead -arguments @('image','inspect',$image,'--format','{{.Id}}')
   if ($localImage -ne $image) { throw 'PINNED_IMAGE_MISMATCH' }
   $folder=[IO.Path]::GetFullPath($EvidenceDirectory)
   [IO.Directory]::CreateDirectory($folder) | Out-Null
@@ -67,7 +67,7 @@ try {
   $before=Inspect $containerId
   if (-not (Owned $before $containerId $nonce)) { throw 'OWNERSHIP_MISMATCH_PRE_START' }
   if (-not (Readback $before)) { throw 'RESOURCE_READBACK_MISMATCH' }
-  [void](DockerRead @('container','start',$containerId))
+  [void](DockerRead -arguments @('container','start',$containerId))
   $ready=$false
   for ($i=0; $i -lt 20; $i++) {
     Start-Sleep -Seconds 1
@@ -78,7 +78,7 @@ try {
     if ($LASTEXITCODE -eq 0) { $ready=$true; break }
   }
   $logfile=[IO.Path]::Combine($folder,"$nonce.log")
-  (DockerRead @('container','logs',$containerId)) | Set-Content -Path $logfile
+  (DockerRead -arguments @('container','logs',$containerId)) | Set-Content -Path $logfile
   if (-not $ready) { throw 'STARTUP_NOT_READY_WITHIN_20_SECONDS: retain logs' }
   $verify=Inspect $containerId
   if (-not (Owned $verify $containerId $nonce) -or -not (Readback $verify)) { throw 'POST_START_READBACK_MISMATCH' }
@@ -90,15 +90,15 @@ finally {
       $c=Inspect $containerId
       if (-not (Owned $c $containerId $nonce)) { throw 'QUARANTINE: ownership mismatch; no deletion' }
       if ($c.State.Running) {
-        [void](DockerRead @('container','stop','--time','10',$containerId))
+        [void](DockerRead -arguments @('container','stop','--time','10',$containerId))
         $c=Inspect $containerId
       }
       if ($c.State.Running -or -not (Owned $c $containerId $nonce)) { throw 'QUARANTINE: unsafe stopped state' }
       if (-not $receiptPath -or -not [IO.File]::Exists($receiptPath)) { throw 'QUARANTINE: missing durable receipt' }
       $receipt=Get-Content -Raw $receiptPath | ConvertFrom-Json
       if ($receipt.id -cne $containerId -or $receipt.nonce -cne $nonce) { throw 'QUARANTINE: receipt mismatch' }
-      [void](DockerRead @('container','rm',$containerId))
-      $stillThere = DockerRead @('container','ls','--all','--no-trunc','--filter',"id=$containerId",'--format','{{.ID}}')
+      [void](DockerRead -arguments @('container','rm',$containerId))
+      $stillThere = DockerRead -arguments @('container','ls','--all','--no-trunc','--filter',"id=$containerId",'--format','{{.ID}}')
       if ($stillThere) { throw 'CONTAINER_REMAINS_AFTER_CLEANUP' }
       $cleaned=$true
     } catch { $errors.Add($_.Exception.Message) }
