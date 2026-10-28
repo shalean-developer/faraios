@@ -2,6 +2,14 @@
 
 28 October 2026. Existing hosting only. Approved hosted attempt completed; lifecycle remains NOT VERIFIED.
 
+## Approved diagnostic result and correction
+
+The owner approved the R0 five-minute diagnostic run of source1e1c1ab. Preflight/hash and empty private directory passed. Strict HTTPS again returned503, but four protected journals now identified startup_refused at managed_context: UID, source directory, startup and loader match; raw LSNODE_ROOT does not. The installed public loader sets appRoot from LSNODE_ROOT and concatenates appRoot + relative startupFile, requiring the separator that the probe's raw equality omitted. This is a probe compatibility defect; it does not establish a defect in the existing staging application, whose guard already resolves the root.
+
+Correction accepts only the exact expected root and that root with a single trailing slash. It continues to deny other roots, traversal spellings, relative paths, wrong identities/loaders and non-managed listeners. Nine local tests pass, including equivalent-root acceptance and foreign/traversal denial. Fixed executable hash:08bfc6e8d1408f8a690343cea66c74f565d781a939c4792d333e98ab02d322b7. This corrected executable has not run on the host.
+
+The probe was disabled, subscription suspended and every original setting restored by92386ms. Reconciliation found no additional owned Node processes; the four owner-only refusal journals are retained as evidence. Structured evidence: `evidence/t19-plesk-lifecycle/diagnostic-attempt-20261028.json`. Runtime startup remains NO-GO on the tested revision; no heartbeat/restart, accounting, provider or financial acceptance is inferred.
+
 ## HTTPS retry and startup diagnostics
 
 The owner installed the free certificate. Strict certificate verification passed for both the canonical hostname and its www alias using TLS1.3, with expiry26January2027. The bounded retry then returned503 and no private probe journal. Plesk's log browser exposed access records and an empty (0-byte) Apache error log, without a startup diagnostic. The protected managed configuration returnedEACCES; no bypass was attempted. Root cause remains undetermined; neither a startup-guard defect nor a host-supervision defect is established.

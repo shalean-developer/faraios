@@ -1,0 +1,88 @@
+{
+  "date": "2026-10-28",
+  "approved_scope": "R0 five-minute credential-free diagnostic probe only",
+  "source": "1e1c1abbd4e1318e6ea509798ddb100543420dd8",
+  "probe_sha256": "611b28fed36ed0db12d848330a36db363b91cabb24fe420c20a5c53a784bcf8d",
+  "activation_started_at": "2026-10-28T12:51:35.223Z",
+  "request": {
+    "strict_tls": true,
+    "status": 503,
+    "fixed_denial": false
+  },
+  "private_journals": [
+    {
+      "file": "lifecycle-1ba4d251-19a1-47d1-9f25-90dd35c205a7.jsonl",
+      "at": 1793191920099,
+      "event": "startup_refused",
+      "stage": "managed_context",
+      "context": {
+        "expectedUid": true,
+        "expectedRoot": true,
+        "expectedManagedRoot": false,
+        "expectedStartup": true,
+        "expectedLoader": true
+      }
+    },
+    {
+      "file": "lifecycle-5fefa927-0818-414a-829f-558e6f131ef5.jsonl",
+      "at": 1793191919406,
+      "event": "startup_refused",
+      "stage": "managed_context",
+      "context": {
+        "expectedUid": true,
+        "expectedRoot": true,
+        "expectedManagedRoot": false,
+        "expectedStartup": true,
+        "expectedLoader": true
+      }
+    },
+    {
+      "file": "lifecycle-c18a930b-3816-4330-ade4-0710483562c2.jsonl",
+      "at": 1793191916577,
+      "event": "startup_refused",
+      "stage": "managed_context",
+      "context": {
+        "expectedUid": true,
+        "expectedRoot": true,
+        "expectedManagedRoot": false,
+        "expectedStartup": true,
+        "expectedLoader": true
+      }
+    },
+    {
+      "file": "lifecycle-f987b601-643c-453e-b4dc-68a4bdd42012.jsonl",
+      "at": 1793191920055,
+      "event": "startup_refused",
+      "stage": "managed_context",
+      "context": {
+        "expectedUid": true,
+        "expectedRoot": true,
+        "expectedManagedRoot": false,
+        "expectedStartup": true,
+        "expectedLoader": true
+      }
+    }
+  ],
+  "root_cause": "Probe requires exact LSNODE_ROOT without trailing slash; installed LiteSpeed concatenates appRoot + relative startupFile. Loaded source dirname, startup and loader all match while the raw managed root does not. Accept only expected root and its single trailing-slash spelling; do not broaden foreign/traversal roots.",
+  "rollback": {
+    "subscription": 846,
+    "status": "Suspended",
+    "node_enabled": false,
+    "node_version": "25.9.0",
+    "app_root": "/httpdocs",
+    "document_root": "/httpdocs",
+    "startup": "app.js",
+    "restored_by_elapsed_ms": 92386,
+    "additional_owned_node_pids": [],
+    "journals_retained": 4
+  },
+  "acceptance": {
+    "tls": "PASS",
+    "startup": "NO_GO on tested revision",
+    "root_cause": "IDENTIFIED",
+    "heartbeat": "NOT_RUN",
+    "restart": "NOT_RUN",
+    "full_t19": "NO_GO",
+    "t20": "Not started"
+  }
+}

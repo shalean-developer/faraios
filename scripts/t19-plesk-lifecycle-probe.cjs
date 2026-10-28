@@ -10,8 +10,10 @@ const ROOT=HOME+'/t19-lifecycle-probe';
 const PRIVATE=HOME+'/.faraios-t19-custody';
 const UID=10521;
 function denied(){throw Error('T19_LIFECYCLE_PROBE_REFUSED');}
+// LiteSpeed concatenates appRoot + startupFile and supplies a trailing slash.
+// Accept that one equivalent spelling; keep all foreign/traversal paths denied.
 function assertManaged({platform=process.platform,uid=process.getuid?.(),argv=process.argv,env=process.env,lsNode=global.LsNode,root=__dirname}={}){
- if(platform!=='linux'||uid!==UID||root!==ROOT||env.LSNODE_ROOT!==ROOT||env.LSNODE_STARTUP_FILE!=='probe.cjs'
+ if(platform!=='linux'||uid!==UID||root!==ROOT||![ROOT,ROOT+'/'].includes(env.LSNODE_ROOT)||env.LSNODE_STARTUP_FILE!=='probe.cjs'
   ||argv[1]!=='/usr/local/lsws/fcgi-bin/lsnode.js'||!(lsNode instanceof EventEmitter)
   ||typeof http.Server.prototype.realListen!=='function'||typeof env.LSNODE_SOCKET!=='string'
   ||!path.isAbsolute(env.LSNODE_SOCKET)||/[\0\r\n]/.test(env.LSNODE_SOCKET))denied();

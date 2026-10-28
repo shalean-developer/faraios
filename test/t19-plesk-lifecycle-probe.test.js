@@ -86,3 +86,18 @@ test('startup diagnostic persists only fixed booleans and refuses a foreign iden
  assert.equal(event.event,'startup_refused');assert.equal(event.stage,'managed_context');
  assert.deepEqual(event.context,{expectedUid:true,expectedRoot:false,expectedManagedRoot:false,expectedStartup:false,expectedLoader:false});
 });
+
+test('managed guard accepts LiteSpeed trailing separator while denying foreign and traversal roots',()=>{
+ const http=require('node:http'),prototype=http.Server.prototype,previous=Object.getOwnPropertyDescriptor(prototype,'realListen');
+ const root='/var/www/vhosts/custody-staging.faraios.com/t19-lifecycle-probe';
+ Object.defineProperty(prototype,'realListen',{configurable:true,value:prototype.listen});
+ const settings={platform:'linux',uid:10521,root,argv:['node','/usr/local/lsws/fcgi-bin/lsnode.js'],lsNode:new EventEmitter(),
+  env:{LSNODE_ROOT:root,LSNODE_STARTUP_FILE:'probe.cjs',LSNODE_SOCKET:'/tmp/t19-synthetic.sock'}};
+ try{
+  for(const managedRoot of [root,root+'/'])assert.doesNotThrow(()=>assertManaged({...settings,env:{...settings.env,LSNODE_ROOT:managedRoot}}));
+  for(const managedRoot of [root+'//',root+'-other/',root+'/../t19-lifecycle-probe/',root+'/public/',null,undefined,'t19-lifecycle-probe/']){
+   assert.throws(()=>assertManaged({...settings,env:{...settings.env,LSNODE_ROOT:managedRoot}}),/REFUSED/);
+  }
+  for(const changed of [{uid:10463},{argv:['node','probe.cjs']},{lsNode:{}},{root:root+'/other'}])assert.throws(()=>assertManaged({...settings,...changed}),/REFUSED/);
+ }finally{if(previous)Object.defineProperty(prototype,'realListen',previous);else delete prototype.realListen;}
+});
