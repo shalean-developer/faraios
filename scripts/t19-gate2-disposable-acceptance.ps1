@@ -14,9 +14,9 @@ $created = $false
 $cleaned = $false
 $passed = $false
 $errors = [System.Collections.Generic.List[string]]::new()
-function DockerRead([string[]]$args) {
-  $out = & docker @args 2>&1
-  if ($LASTEXITCODE -ne 0) { throw "Docker command failed: $($args -join ' ') :: $out" }
+function DockerRead([string[]]$arguments) {
+  $out = & docker @arguments 2>&1
+  if ($LASTEXITCODE -ne 0) { throw "Docker command failed: $($arguments -join ' ') :: $out" }
   return ($out | Out-String).Trim()
 }
 function Inspect([string]$id) {
