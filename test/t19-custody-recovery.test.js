@@ -8,6 +8,9 @@ const sql=await readFile(new URL('../docs/proposals/t19-inactive-custody-recover
 const expected=JSON.parse(await readFile(new URL('../test-support/t19-custody-recovery-expected.json',import.meta.url),'utf8'));
 const projection=(await readFile(new URL('../scripts/restore-catalog.sql',import.meta.url),'utf8'))
  .replace("('managed',array['auth','storage']::text[])","('custody',array['private_t19_custody']::text[])")
+ // Embedded PG18 adds table NOT NULL pg_constraint rows. PG17 checks these
+ // through the unchanged columns component; native CI verifies the raw PG17 projection.
+ .replace("where n.nspname=any(s.names)),\n 'functions'","where n.nspname=any(s.names) and k.contype<>'n'),\n 'functions'")
  .replace("select jsonb_object_agg(scope,encode(extensions.digest(value::text,'sha256'),'hex')) as catalog from catalogs;","select value from catalogs where scope='custody';");
 async function fixture(t){
  const db=new PGlite();t.after(()=>db.close());
@@ -23,7 +26,11 @@ test('recovery recreates inactive constraints, index, RLS and denial boundaries'
  await db.exec(sql);
  await db.exec("SET search_path=''; SET timezone='UTC';");
  const captured=(await db.query(projection)).rows[0].value;
+ assert.equal(captured.constraints.length,13);
  assert.equal(compareStructure(captured,expected).status,'CUSTODY_STRUCTURE_MATCH');
+ const nullable=structuredClone(captured);
+ nullable.columns.find(c=>c.table_name==='connections'&&c.column_name==='business_id').is_nullable='YES';
+ assert.deepEqual(compareStructure(nullable,expected).differingComponents,['columns']);
  const readback=await readFile(new URL('../docs/proposals/t19-inactive-custody-recovery-readback.sql',import.meta.url),'utf8');
  const evidence=(await db.exec(readback)).flatMap(r=>r.rows||[]).find(r=>r.custody_recovery_readback).custody_recovery_readback;
  assert.equal(evidence.roleConforms,true);assert.equal(evidence.membershipConforms,true);

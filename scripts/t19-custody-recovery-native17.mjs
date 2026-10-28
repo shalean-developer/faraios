@@ -1,0 +1,48 @@
+// Explicit synthetic CI fixture only. No hosted destination or archive access.
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {Client} from 'pg';
+import {compareStructure} from './t19-custody-recovery-compare.mjs';
+
+if(process.env.T19_SYNTHETIC_CATALOG_ONLY!=='yes'||process.env.PGHOST!=='127.0.0.1'||process.env.PGPORT!=='5432'||process.env.PGUSER!=='postgres'||!process.env.PGPASSWORD)
+ throw Error('SYNTHETIC_NATIVE17_GATE_REFUSED');
+const sql=await readFile(new URL('../docs/proposals/t19-inactive-custody-recovery.sql',import.meta.url),'utf8');
+assert.equal((sql.match(/^BEGIN;$/gm)||[]).length,1);
+assert.equal((sql.match(/^COMMIT;$/gm)||[]).length,1);
+const body=sql.slice(sql.indexOf('\nBEGIN;')+'\nBEGIN;'.length,sql.lastIndexOf('COMMIT;'));
+const expected=JSON.parse(await readFile(new URL('../test-support/t19-custody-recovery-expected.json',import.meta.url),'utf8'));
+// Native PG17 uses the historical projection without filtering constraints.
+const projection=(await readFile(new URL('./restore-catalog.sql',import.meta.url),'utf8'))
+ .replace("('managed',array['auth','storage']::text[])","('custody',array['private_t19_custody']::text[])")
+ .replace("select jsonb_object_agg(scope,encode(extensions.digest(value::text,'sha256'),'hex')) as catalog from catalogs;","select value from catalogs where scope='custody';");
+const client=new Client({host:'127.0.0.1',port:5432,user:'postgres',database:'postgres',password:process.env.PGPASSWORD,connectionTimeoutMillis:5000});
+let begun=false;
+try{
+ await client.connect();
+ const who=(await client.query("SELECT current_user AS u,current_database() AS d,current_setting('server_version_num')::int AS v")).rows[0];
+ assert.equal(who.u,'postgres');assert.equal(who.d,'postgres');assert.ok(who.v>=170000&&who.v<180000);
+ await client.query('BEGIN');begun=true;
+ await client.query("CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS; SET LOCAL faraios.t19_restore_candidate='isolated-disposable-reviewed';");
+ await client.query(body);
+ await client.query("SET LOCAL search_path=''; SET LOCAL timezone='UTC';");
+ const actual=(await client.query(projection)).rows[0].value;
+ assert.equal(actual.constraints.length,13);
+ assert.equal(compareStructure(actual,expected).status,'CUSTODY_STRUCTURE_MATCH');
+ const nullable=structuredClone(actual);
+ const column=nullable.columns.find(c=>c.table_name==='connections'&&c.column_name==='business_id');
+ assert.equal(column.is_nullable,'NO');column.is_nullable='YES';
+ assert.deepEqual(compareStructure(nullable,expected).differingComponents,['columns']);
+ const changed=structuredClone(actual);changed.constraints[0][4]=false;
+ assert.deepEqual(compareStructure(changed,expected).differingComponents,['constraints']);
+ await client.query('ROLLBACK');begun=false;
+ const clean=(await client.query("SELECT to_regnamespace('private_t19_custody') IS NULL AS absent, NOT EXISTS(SELECT FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role','t19_hosted_custody')) AS roles_absent")).rows[0];
+ assert.deepEqual(clean,{absent:true,roles_absent:true});
+ console.log('T19_NATIVE_PG17_RECOVERY_CATALOG_PASS');
+ console.log('T19_NATIVE_PG17_NULLABILITY_AND_CONSTRAINT_DRIFT_REJECTED');
+ console.log('T19_NATIVE_PG17_RECOVERY_FIXTURE_ROLLBACK_PASS');
+}catch{
+ console.error('T19_NATIVE_PG17_RECOVERY_CATALOG_FAIL');process.exitCode=1;
+}finally{
+ if(begun){try{await client.query('ROLLBACK');}catch{console.error('T19_NATIVE_PG17_ROLLBACK_UNKNOWN');process.exitCode=1;}}
+ await client.end();
+}
