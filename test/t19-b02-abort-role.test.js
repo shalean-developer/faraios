@@ -1,0 +1,31 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {PGlite} from '@electric-sql/pglite';
+
+test('abort probe reproduces non-owner denial and rolls back under scratch owner',async t=>{
+ const old=await readFile(new URL('../docs/proposals/t19-b02-managed-role-rollback.sql',import.meta.url),'utf8');
+ const fixed=await readFile(new URL('../docs/proposals/t19-b02-managed-role-rollback-v2.sql',import.meta.url),'utf8');
+ const body=source=>source.match(/DO \$abort_probe\$[\s\S]*?END \$abort_probe\$;/)[0];
+ const notices=[];
+ const db=new PGlite();
+ t.after(()=>db.close());
+ await db.exec(`CREATE ROLE fixture_managed NOLOGIN NOSUPERUSER NOINHERIT;
+ CREATE ROLE t19_b02_qa_executor NOLOGIN NOSUPERUSER NOINHERIT;
+ GRANT t19_b02_qa_executor TO fixture_managed WITH SET TRUE, INHERIT FALSE;
+ CREATE SCHEMA t19_b02_qa_schema AUTHORIZATION t19_b02_qa_executor;
+ REVOKE ALL ON SCHEMA t19_b02_qa_schema FROM PUBLIC;
+ SET SESSION AUTHORIZATION fixture_managed;`);
+ await assert.rejects(db.exec(body(old)),{code:'42501'});
+ assert.match(fixed,/SET LOCAL ROLE t19_b02_qa_executor;\s*-- Synthetic SQLSTATE 55000/);
+ assert.match(fixed,/END \$abort_probe\$;\s*RESET ROLE;\s*-- Final transaction-wide rollback/);
+ await db.exec('BEGIN; SET LOCAL ROLE t19_b02_qa_executor;');
+ await db.exec(body(fixed),{onNotice:n=>notices.push(n.message)});
+ const result=await db.query("SELECT to_regclass('t19_b02_qa_schema.abort_probe') IS NULL AS absent");
+ assert.equal(result.rows[0].absent,true);
+ assert.deepEqual(notices,['T19_B02_ABORT_SQLSTATE_55000']);
+ await db.exec('RESET ROLE; ROLLBACK;');
+ const identity=await db.query('SELECT current_user AS name');
+ assert.equal(identity.rows[0].name,'fixture_managed');
+ assert.match(fixed,/RAISE NOTICE 'T19_B02_DENIAL_SQLSTATE_%', observed/);
+});
