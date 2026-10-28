@@ -9,3 +9,11 @@ test('DockerRead calls pass the entire array through a named parameter',()=>{
  assert.match(s,/DockerRead -arguments \$createArgs/);
  assert.doesNotMatch(s,/\$containerId = DockerRead \$args/);
 });
+
+test('pre-create intent precedes Docker create and ambiguous results require manual recovery',()=>{
+ const intent=s.indexOf('$intentPath=[IO.Path]::Combine');
+ const create=s.indexOf('$containerId = DockerRead -arguments $createArgs');
+ assert.ok(intent>=0 && create>intent);
+ assert.match(s,/MANUAL_RECOVERY_REQUIRED/);
+ assert.match(s,/QUARANTINE: missing pre-create intent/);
+});
