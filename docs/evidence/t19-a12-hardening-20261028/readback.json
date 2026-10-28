@@ -1,0 +1,22 @@
+{
+  "before": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"counts\":{\"operations\":0,\"connections\":0,\"vault_secrets\":0,\"prepared_references\":0},\"schema\":{\"acl\":\"{postgres=UC/postgres}\",\"owner\":\"postgres\"},\"tables\":[{\"acl\":\"{postgres=arwdDxtm/postgres}\",\"rls\":false,\"name\":\"connections\",\"owner\":\"postgres\"},{\"acl\":\"{postgres=arwdDxtm/postgres}\",\"rls\":false,\"name\":\"operations\",\"owner\":\"postgres\"},{\"acl\":\"{postgres=arwdDxtm/postgres}\",\"rls\":false,\"name\":\"prepared_references\",\"owner\":\"postgres\"}]}"
+      }
+    ],
+    "structuredContent": null,
+    "isError": false
+  },
+  "after": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"counts\":{\"operations\":0,\"connections\":0,\"vault_secrets\":0,\"prepared_references\":0},\"tables\":[{\"acl\":\"{postgres=arwdDxtm/postgres}\",\"rls\":true,\"name\":\"connections\",\"owner\":\"postgres\"},{\"acl\":\"{postgres=arwdDxtm/postgres}\",\"rls\":true,\"name\":\"operations\",\"owner\":\"postgres\"},{\"acl\":\"{postgres=arwdDxtm/postgres}\",\"rls\":true,\"name\":\"prepared_references\",\"owner\":\"postgres\"}],\"executor\":\"postgres\",\"policy_count\":0,\"private_function_count\":0,\"unexpected_table_grants\":0,\"unexpected_schema_grants\":0,\"vault_service_role_select\":true,\"vault_service_role_write_functions\":true}"
+      }
+    ],
+    "structuredContent": null,
+    "isError": false
+  }
+}

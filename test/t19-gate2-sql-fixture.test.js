@@ -6,6 +6,20 @@ import {PGlite} from '@electric-sql/pglite';
 const source=await readFile(new URL('../database/t19-gate2-disposable-integrity.sql',import.meta.url),'utf8');
 const transaction=source.slice(source.indexOf('BEGIN;'),source.indexOf('ROLLBACK;')+'ROLLBACK;'.length);
 const denial=source.slice(source.indexOf('DO $$'),source.indexOf('END $$;')+'END $$;'.length);
+test('complete catalog fingerprint queries execute and verify rollback',async t=>{
+ const db=new PGlite();t.after(()=>db.close());
+ const beforeSql=source.slice(source.indexOf('SELECT md5'),source.indexOf('BEGIN;')).replace(/\\gset\s*$/,'');
+ const finalSql=source.slice(source.indexOf('SELECT md5',source.indexOf('ROLLBACK;')),source.indexOf('\\if'))
+  .replace(/\\gset\s*$/,'').replace(":'before_catalog'",'$1');
+ const before=(await db.query(beforeSql)).rows[0].before_catalog;
+ assert.match(before,/^[a-f0-9]{32}$/);
+ await db.exec(transaction);
+ assert.equal((await db.query(finalSql,[before])).rows[0].final_ok,true);
+ await db.exec('create role t19_unexpected_catalog_role nologin');
+ assert.equal((await db.query(finalSql,[before])).rows[0].final_ok,false);
+ await db.exec('drop role t19_unexpected_catalog_role');
+ assert.equal((await db.query(finalSql,[before])).rows[0].final_ok,true);
+});
 test('embedded engine executes permitted/denied/duplicate/collision SQL and rolls back synthetic objects',async t=>{
  const db=new PGlite();t.after(()=>db.close());const notices=[];
  const before=(await db.query('select oid,rolname from pg_roles order by oid')).rows;

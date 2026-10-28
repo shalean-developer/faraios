@@ -3,9 +3,9 @@
 \set ON_ERROR_STOP on
 SELECT md5(coalesce(string_agg(v, E'\n' ORDER BY v),'')) AS before_catalog
 FROM (
- SELECT 'role:'||rolname||':'||rolsuper||':'||rolcanlogin AS v FROM pg_roles
- UNION ALL SELECT 'schema:'||oid||':'||nspname FROM pg_namespace
- UNION ALL SELECT 'relation:'||oid||':'||relname||':'||relkind FROM pg_class
+ SELECT 'role:'||rolname::text||':'||rolsuper::text||':'||rolcanlogin::text AS v FROM pg_roles
+ UNION ALL SELECT 'schema:'||oid::text||':'||nspname::text FROM pg_namespace
+ UNION ALL SELECT 'relation:'||oid::text||':'||relname::text||':'||relkind::text FROM pg_class
 ) baseline \gset
 BEGIN;
 CREATE SCHEMA t19_gate2_synthetic;
@@ -66,9 +66,9 @@ SELECT md5(coalesce(string_agg(v, E'\n' ORDER BY v),'')) = :'before_catalog'
  AND to_regclass('t19_gate2_synthetic.protected') IS NULL
  AND NOT EXISTS (SELECT FROM pg_roles WHERE rolname='t19_gate2_denied') AS final_ok
 FROM (
- SELECT 'role:'||rolname||':'||rolsuper||':'||rolcanlogin AS v FROM pg_roles
- UNION ALL SELECT 'schema:'||oid||':'||nspname FROM pg_namespace
- UNION ALL SELECT 'relation:'||oid||':'||relname||':'||relkind FROM pg_class
+ SELECT 'role:'||rolname::text||':'||rolsuper::text||':'||rolcanlogin::text AS v FROM pg_roles
+ UNION ALL SELECT 'schema:'||oid::text||':'||nspname::text FROM pg_namespace
+ UNION ALL SELECT 'relation:'||oid::text||':'||relname::text||':'||relkind::text FROM pg_class
 ) final_catalog \gset
 \if :final_ok
  \echo T19_ROLLBACK_PASS
