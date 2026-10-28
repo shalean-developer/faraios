@@ -1,0 +1,77 @@
+{
+  "date": "2026-10-28",
+  "scope": "Owner-approved five-minute credential-free hosting probe; no accounting activation",
+  "source": "8cbf3d39a358dc8ebad9d88d9b625c9e1e25a161",
+  "probe_sha256": "c788b56986c024f7c3cc630f3298a0319f9a18c3d6984b1c367548e174edb60e",
+  "activation_started_at": "2026-10-28T12:04:56.858Z",
+  "subscription_suspended_by_elapsed_ms": 157658,
+  "all_original_settings_restored_by_elapsed_ms": 217397,
+  "requests": [
+    {
+      "origin": "execution workspace",
+      "target": "assigned host IP port80 with custody Host",
+      "result": "CONNECT_FAILED",
+      "application_conclusion": "none"
+    },
+    {
+      "origin": "custody CLI",
+      "target": "127.0.0.1:80",
+      "host": "custody-staging.faraios.com",
+      "status": 200,
+      "result": "Plesk internal service page",
+      "probe_journals": 0
+    },
+    {
+      "origin": "custody CLI",
+      "target": "104.238.222.122:80",
+      "host": "custody-staging.faraios.com",
+      "status": 301,
+      "location": "https://www.custody-staging.faraios.com/",
+      "fixed_probe_denial": false,
+      "probe_journals": 0
+    }
+  ],
+  "read_only_followup": {
+    "dns_canonical": [
+      "104.238.222.122"
+    ],
+    "dns_www": [
+      "104.238.222.122"
+    ],
+    "strict_tls_www": {
+      "verified": false,
+      "error": "ERR_TLS_CERT_ALTNAME_INVALID"
+    },
+    "hosting": {
+      "preferred_domain": "www.custody-staging.faraios.com",
+      "ssl_enabled": true,
+      "force_https": true,
+      "certificate": "Not selected",
+      "certificate_repository_items": 0
+    }
+  },
+  "reconciliation": {
+    "subscription": 846,
+    "status": "Suspended",
+    "node_enabled": false,
+    "node_version": "25.9.0",
+    "application_root": "/httpdocs",
+    "document_root": "/httpdocs",
+    "startup": "app.js",
+    "private_probe_journals": 0,
+    "additional_owned_node_pids_outside_cli_chain": [],
+    "probe_source_retained_inactive": true,
+    "main_staging_fingerprint": "a1f95ba97a7ddb1cc6fcb2e86318da29f2ee527ad73012b56391b6625ce36686",
+    "main_staging_accounting_worker": "disabled"
+  },
+  "decisions": {
+    "hosted_route": "NO_GO",
+    "managed_startup": "NOT_VERIFIED",
+    "heartbeat": "NOT_RUN",
+    "restart": "NOT_RUN",
+    "old_instance": "NO_READY_INSTANCE_IDENTIFIED",
+    "rollback": "PASS for observed settings/process scope",
+    "full_t19": "NO_GO",
+    "t20": "Not started"
+  }
+}

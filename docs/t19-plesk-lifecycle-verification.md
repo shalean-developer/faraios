@@ -1,6 +1,20 @@
 # T19 Plesk lifecycle verification
 
-28 October 2026. Existing hosting only. Source preparation, not runtime PASS.
+28 October 2026. Existing hosting only. Approved hosted attempt completed; lifecycle remains NOT VERIFIED.
+
+## Actual approved attempt and correction
+
+The owner approved the exact five-minute test in this conversation. The probe source/hash and empty private directory passed preflight. Only subscription846 was activated and its Node application enabled with the documented temporary settings. No accounting service, database, provider or Docker operation was performed.
+
+The workspace could not connect to the assigned HTTP address. A same-host127.0.0.1 request returned Plesk's internal service page, not this virtual host. A request to the assigned104.238.222.122 address with the exact custody Host returned301 to `https://www.custody-staging.faraios.com/`; no probe journals appeared. Thus cold-start/readiness was not established and no restart/heartbeat acceptance was attempted. The earlier assumption below that plain loopback HTTP would reach the managed application was wrong; this record supersedes it. No certificate warning or TLS verification was bypassed.
+
+The new subscription was suspended by157658milliseconds and all original startup/root/version settings restored by217397milliseconds from the activation-operation start, within the approved five minutes. Readback: Suspended, Node disabled,25.9.0,/httpdocs roots,app.js. Private journals0; read-only process reconciliation found no additional Node processes underuid10521 outside the diagnostic command chain. The staged, hash-verified source and empty public directory remain inactive for a later separately authorized test. Plesk generated its nodejs_error_docs directory during enablement; it was retained as a platform-managed resource, not deleted. The main staging source fingerprint and disabled accounting state remain unchanged.
+
+Further read-only checks: both custody hostnames resolve to104.238.222.122; strict TLS verification for the redirected www hostname failed withERR_TLS_CERT_ALTNAME_INVALID. Plesk Hosting Settings confirms preferred domainwww, SSL and forced HTTPS checked, certificateNot selected; the domain certificate repository has0items. This establishes a concrete DNS/HTTP/TLS route prerequisite failure, not an accounting-code defect or proof that the process manager cannot work. It does not establish whether any separate startup guard would pass after routing is repaired.
+
+Structured evidence: `evidence/t19-plesk-lifecycle/hosted-attempt-20261028.json`. Runtime route NO-GO; process lifecycle NOT VERIFIED; observed rollback PASS. FullT19 remains NO-GO; T20 Not started. Source CI796total/778PASS/0FAIL/18explicit skips and dedicated native/Windows/backup/security checks passed on source8cbf3d3; those results do not replace this failed hosted route attempt.
+
+Before another activation, prepare and separately authorize valid HTTPS for the exact custody hostname and its selected www alias (or a reviewed canonical-host correction), retain forced HTTPS and certificate verification, then repeat the same bounded lifecycle procedure. Do not relax TLS, issue/upload keys, alter preferred-domain settings or reactivate the test under the exhausted probe approval. No paid certificate/server purchase is authorized.
 
 ## Finding
 
