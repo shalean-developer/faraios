@@ -1,0 +1,9 @@
+# T19 local logging compatibility correction — 29 October 2026
+
+The exact network-state-corrected owner run returned FAIL before any completed phase, DOCKER_COMMAND_FAILED, cleanupVerified=true. Its journal records container start exit1: the local logging driver rejected compression with max-file=1. The sentinel did not successfully start, and no checkpoint, restore or operational custody installation ran. Preserve the source, receipt and journal as failed historical evidence.
+
+Retain the existing per-container local logging driver, max-size=1m and max-file=1. Add the explicit compress=false option rather than increasing file count, changing the daemon defaults or removing log limits. Inspect the resulting HostConfig.LogConfig before startup and on later ownership/isolation checks: require exact string-valued local/max-size/max-file/compress settings. Docker documents that compression is enabled by default and supports the per-container compress=false option: https://docs.docker.com/engine/logging/drivers/local/ . The owner's error establishes this host's single-file/compression incompatibility; the documentation alone does not establish a successful native run.
+
+Regression tests cover the exact option set for all six container kinds and reject omitted/enabled compression, enlarged limits or another logging driver in inspect. Existing resource, network, mount, privilege and cleanup tests remain required. Current-head CI must pass before staging merge. Native compatibility still requires a fresh private directory, nonce and owner signature binding the changed source bundle; the consumed approval cannot be reused. No global Docker configuration or original container is changed.
+
+Cleanup for this attempt is verified; runtime compatibility and current-scope restore remain unverified. T19 remains In progress at3.8/10 under the same criterion rubric. Checkpoint use remains blocked; the protected restore project and T20 remain untouched.
