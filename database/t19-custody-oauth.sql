@@ -110,10 +110,11 @@ do $op02$ begin
     or not has_schema_privilege('t19_runtime_owner','private_t19_custody','CREATE')
  then raise exception 'OP-02 temporary ownership authority missing' using errcode='42501'; end if;
 end $op02$;
-alter function private_t19_custody.oauth(text,jsonb) owner to t19_runtime_owner;
-revoke all on private_t19_custody.oauth_clients,private_t19_custody.oauth_states from public,anon,authenticated,service_role,t19_hosted_custody;
+-- OP-06: ACL changes require the current function owner.
 revoke all on function private_t19_custody.oauth(text,jsonb) from public,anon,authenticated,service_role;
 grant execute on function private_t19_custody.oauth(text,jsonb) to t19_hosted_custody;
+alter function private_t19_custody.oauth(text,jsonb) owner to t19_runtime_owner;
+revoke all on private_t19_custody.oauth_clients,private_t19_custody.oauth_states from public,anon,authenticated,service_role,t19_hosted_custody;
 create function private_t19_custody.revoke_grant(action text,p jsonb) returns jsonb
 language plpgsql security definer set search_path=pg_catalog as $$
 declare c private_t19_custody.connections;r private_t19_custody.revocations;material jsonb;b jsonb;
@@ -137,6 +138,9 @@ begin
   return 'true';
  end if;raise exception 'custody_denied';
 end $$;
+-- OP-06: ACL changes require the current function owner.
+revoke all on function private_t19_custody.revoke_grant(text,jsonb) from public,anon,authenticated,service_role;
+grant execute on function private_t19_custody.revoke_grant(text,jsonb) to t19_hosted_custody;
 alter function private_t19_custody.revoke_grant(text,jsonb) owner to t19_runtime_owner;
 -- Restore the creator's existing ADMIN/NOINHERIT/NOSET membership and remove
 -- schema CREATE; rollback of this transaction also rolls back both grants.
@@ -148,6 +152,4 @@ do $op02$ begin
          or has_schema_privilege('t19_runtime_owner','private_t19_custody','CREATE'))
  then raise exception 'OP-02 temporary ownership authority leaked' using errcode='42501'; end if;
 end $op02$;
-revoke all on function private_t19_custody.revoke_grant(text,jsonb) from public,anon,authenticated,service_role;
-grant execute on function private_t19_custody.revoke_grant(text,jsonb) to t19_hosted_custody;
 commit;

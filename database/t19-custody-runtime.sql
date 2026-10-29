@@ -20,6 +20,12 @@ do $t19_preflight$ begin
  then raise exception 'T19 runtime prerequisite/collision: stop and audit' using errcode='55000'; end if;
 end $t19_preflight$;
 create role t19_runtime_owner nologin noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
+-- Do not try to grant a provider-owned function without grant authority.
+-- The parsed invoker helper still requires effective EXECUTE on auth.uid().
+do $op05$ begin
+ if not has_function_privilege('t19_runtime_owner','auth.uid()','EXECUTE')
+ then raise exception 'OP-05 Auth identity execution unavailable' using errcode='42501'; end if;
+end $op05$;
 create table private_t19_custody.machines(
  id uuid primary key, fingerprint256 text not null unique check(fingerprint256 ~ '^[0-9a-f]{64}$'),
  active boolean not null default false
@@ -57,6 +63,18 @@ create table private_t19_custody.revocations(
  check(phase in ('pending','dispatched','revoked','uncertain')),primary key(connection_id,generation)
 );
 -- No provider response, auth code, token or raw exception belongs in events.
+-- OP-05: bind the existing Auth identity at definition time. Managed postgres
+-- can use auth but cannot delegate its schema USAGE. The parsed SQL body keeps
+-- the auth.uid() dependency without granting Auth schema access or escalating
+-- this helper: it is SECURITY INVOKER and accepts no identity argument.
+create function private_t19_custody.actor() returns uuid
+language sql stable security invoker set search_path=pg_catalog
+begin atomic
+ -- An explicit check also fences already cached/inlined identity plans after
+ -- EXECUTE revocation. Missing authority returns no identity to authorization.
+ select case when has_function_privilege(current_user,'auth.uid()'::regprocedure,'EXECUTE')
+  then auth.uid() else null::uuid end;
+end;
 create function private_t19_custody.binding(c private_t19_custody.connections) returns jsonb
 language sql immutable set search_path=pg_catalog as $$
  select jsonb_build_object('business_id',c.business_id,'environment',c.environment,'provider',c.provider,
@@ -281,12 +299,12 @@ begin
  raise exception 'custody_denied';
 end $$;
 
--- Authenticated owner/manager requests derive the actor from auth.uid(), never JSON.
+-- Authenticated owner/manager requests derive the actor from private_t19_custody.actor(), never JSON.
 create function private_t19_custody.enqueue(business uuid,connection uuid,invoice uuid,customer text) returns uuid
 language plpgsql security definer set search_path=pg_catalog as $$
 declare c private_t19_custody.connections; m uuid; result uuid;
 begin
- if not private_t19_custody.allowed(business,auth.uid(),invoice is null) then raise exception 'custody_denied' using errcode='42501';end if;
+ if not private_t19_custody.allowed(business,private_t19_custody.actor(),invoice is null) then raise exception 'custody_denied' using errcode='42501';end if;
  select * into c from private_t19_custody.connections where connection_id=connection and business_id=business and enabled and status='connected' for update;
  if not found then raise exception 'custody_denied';end if;
  select mb.machine_id into m from private_t19_custody.machine_businesses mb join private_t19_custody.machines x on x.id=mb.machine_id
@@ -303,7 +321,7 @@ begin
   end if;
  end if;
  insert into private_t19_custody.jobs(connection_id,business_id,generation,machine_id,actor,kind,invoice_id,customer_id,dispatched)
- values(connection,business,c.generation,m,auth.uid(),case when invoice is null then 'refresh' else 'invoice' end,invoice,customer,
+ values(connection,business,c.generation,m,private_t19_custody.actor(),case when invoice is null then 'refresh' else 'invoice' end,invoice,customer,
  exists(select 1 from public.business_invoices i where i.id=invoice and (i.external_invoice_id is not null or i.sync_status in ('syncing','matched','review_required')))) returning id into result;
  return result;
 end $$;
@@ -311,7 +329,7 @@ create function private_t19_custody.disconnect(business uuid,connection uuid,exp
 language plpgsql security definer set search_path=pg_catalog as $$
 declare c private_t19_custody.connections;
 begin
- if not private_t19_custody.allowed(business,auth.uid(),true) then raise exception 'custody_denied' using errcode='42501';end if;
+ if not private_t19_custody.allowed(business,private_t19_custody.actor(),true) then raise exception 'custody_denied' using errcode='42501';end if;
  select * into c from private_t19_custody.connections where connection_id=connection and business_id=business for update;
  if not found or c.generation is distinct from expected_generation or c.status='disconnected' then raise exception 'stale';end if;
  update private_t19_custody.operations set phase=case when phase in ('dispatched','prepared') then 'recovery_required' else 'fenced' end
@@ -323,14 +341,14 @@ begin
   values(c.connection_id,c.generation,c.credential_version,c.sealed_reference);
  end if;
  update private_t19_custody.connections set enabled=false,status='disconnected',generation=generation+1 where connection_id=connection;
- update public.business_accounting_connections set enabled=false,version=version+1,last_actor=auth.uid(),updated_at=clock_timestamp() where business_id=business;
+ update public.business_accounting_connections set enabled=false,version=version+1,last_actor=private_t19_custody.actor(),updated_at=clock_timestamp() where business_id=business;
  insert into private_t19_custody.events(business_id,connection_id,kind) values(business,connection,'owner_disconnected');
  return true;
 end $$;
 
 -- Minimal function owner. No role membership is granted to callers. Provisioning
 -- must prove SET ROLE/owner bypass containment separately on the actual host.
-grant usage on schema private_t19_custody,public,audit,auth,vault to t19_runtime_owner;
+grant usage on schema private_t19_custody,public,audit,vault to t19_runtime_owner;
 grant select on public.businesses,public.business_memberships,public.business_invoices to t19_runtime_owner;
 grant update(attempt_mode) on public.business_invoices to t19_runtime_owner;
 create policy t19_runtime_invoice_attempt on public.business_invoices for update to t19_runtime_owner using(true) with check(true);
@@ -361,7 +379,11 @@ grant select on vault.decrypted_secrets to t19_runtime_owner;
 -- The installed signature includes a defaulted fourth argument; GRANT requires
 -- the full identity even when callers pass only one or three arguments.
 grant execute on function vault.create_secret(text,text,text,uuid) to t19_runtime_owner;
-grant execute on function auth.uid(),audit.claim_invoice_sync(uuid,uuid,uuid,text),audit.finish_invoice_sync(uuid,uuid,uuid,uuid,text,text,jsonb) to t19_runtime_owner;
+grant execute on function audit.claim_invoice_sync(uuid,uuid,uuid,text),audit.finish_invoice_sync(uuid,uuid,uuid,uuid,text,text,jsonb) to t19_runtime_owner;
+-- OP-06: harden function ACLs while the executor still owns the functions.
+revoke all on all functions in schema private_t19_custody from public,anon,authenticated,service_role,t19_hosted_custody;
+grant execute on function private_t19_custody.runtime(text,jsonb) to t19_hosted_custody;
+grant execute on function private_t19_custody.enqueue(uuid,uuid,uuid,text),private_t19_custody.disconnect(uuid,uuid,bigint) to authenticated;
 -- OP-02: temporary transfer authority, confined to this transaction.
 -- The creator's automatic membership is NOINHERIT/NOSET; ALTER FUNCTION OWNER
 -- requires SET privilege on the target role and CREATE for the new owner.
@@ -372,6 +394,7 @@ do $op02$ begin
     or not has_schema_privilege('t19_runtime_owner','private_t19_custody','CREATE')
  then raise exception 'OP-02 temporary ownership authority missing' using errcode='42501'; end if;
 end $op02$;
+alter function private_t19_custody.actor() owner to t19_runtime_owner;
 alter function private_t19_custody.binding(private_t19_custody.connections) owner to t19_runtime_owner;
 alter function private_t19_custody.non_vat_snapshot(jsonb,integer) owner to t19_runtime_owner;
 alter function private_t19_custody.allowed(uuid,uuid,boolean) owner to t19_runtime_owner;
@@ -389,10 +412,7 @@ do $op02$ begin
  then raise exception 'OP-02 temporary ownership authority leaked' using errcode='42501'; end if;
 end $op02$;
 revoke all on all tables in schema private_t19_custody from public,anon,authenticated,service_role,t19_hosted_custody;
-revoke all on all functions in schema private_t19_custody from public,anon,authenticated,service_role,t19_hosted_custody;
 grant usage on schema private_t19_custody to authenticated,t19_hosted_custody;
-grant execute on function private_t19_custody.runtime(text,jsonb) to t19_hosted_custody;
-grant execute on function private_t19_custody.enqueue(uuid,uuid,uuid,text),private_t19_custody.disconnect(uuid,uuid,bigint) to authenticated;
 -- Remove the legacy unrestricted publisher path when this separately reviewed SQL is applied.
 revoke execute on function public.claim_invoice_sync(uuid,uuid,uuid,text),audit.claim_invoice_sync(uuid,uuid,uuid,text),
  public.finish_invoice_sync(uuid,uuid,uuid,uuid,text,text,jsonb),audit.finish_invoice_sync(uuid,uuid,uuid,uuid,text,text,jsonb) from service_role;
