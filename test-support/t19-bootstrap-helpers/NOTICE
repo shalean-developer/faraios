@@ -1,0 +1,10 @@
+Derived from Supabase PostgreSQL migrations/schema-17.sql.
+Upstream: https://github.com/supabase/postgres
+upstream-before-cron-cascade.sql: be0013981bc2208db2389ad5bdae5fed021ccdcc
+upstream-current.sql: 802e6a10d46963f690ef0766a7d55c29150678c2
+The PostgreSQL License is included verbatim.
+The upstream snapshots are evidence only and must not be executed.
+overlay.sql selects six function bodies, preserves five bodies verbatim,
+adds an empty search_path to the nested GraphQL placeholder, sets empty
+search_path on the six helpers, and corrects only supabase_admin's literal
+$user search-path token. It applies only to the disposable candidate.

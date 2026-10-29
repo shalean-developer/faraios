@@ -12,7 +12,7 @@ const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const NODE_SHA='e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb';
 const DOCKER_SHA='cb92457611ccecae73e395a97673de28e397eaf020f807d91153960bbfe41b01';
 const TRUST='/etc/faraios/t19-gate2-trust.json';
-const SOURCES=['test-support/t19-realtime-bootstrap/tenant_db_dump_17.sql','scripts/t19-bootstrap-env.mjs','scripts/t19-bootstrap-engine.mjs','scripts/t19-bootstrap-host.mjs','scripts/t19-bootstrap-catalog.sql','config/t19-bootstrap-files.json','scripts/restore-catalog.sql','scripts/t19-custody-recovery-compare.mjs','test-support/t19-custody-recovery-expected.json','docs/proposals/t19-inactive-custody-recovery.sql','docs/proposals/t19-inactive-custody-recovery-readback.sql'];
+const SOURCES=['test-support/t19-bootstrap-helpers/overlay.sql','test-support/t19-realtime-bootstrap/tenant_db_dump_17.sql','scripts/t19-bootstrap-env.mjs','scripts/t19-bootstrap-engine.mjs','scripts/t19-bootstrap-host.mjs','scripts/t19-bootstrap-catalog.sql','config/t19-bootstrap-files.json','scripts/restore-catalog.sql','scripts/t19-custody-recovery-compare.mjs','test-support/t19-custody-recovery-expected.json','docs/proposals/t19-inactive-custody-recovery.sql','docs/proposals/t19-inactive-custody-recovery-readback.sql'];
 export async function bundleDigest(){return digest(await Promise.all(SOURCES.map(async p=>[p,digest(await readFile(join(ROOT,p)))])));}
 export async function protectedPath(path,directory=false){
  const p=resolve(path);requireTrue(await realpath(p)===p,'PROTECTED_PATH_SYMLINK');
@@ -121,6 +121,14 @@ export class Host {
   const r=await this.sqlJSON("SELECT jsonb_build_object('version',current_setting('server_version_num')::int,'bootstrap',EXISTS(SELECT FROM pg_roles WHERE oid=10 AND rolname='supabase_admin' AND rolsuper),'managed',EXISTS(SELECT FROM pg_roles WHERE rolname='postgres' AND NOT rolsuper AND rolcreaterole),'owners',(SELECT count(*) FROM pg_roles WHERE rolname IN ('supabase_auth_admin','supabase_storage_admin')));",'supabase_admin');requireTrue(r.version>=170000&&r.version<180000&&r.bootstrap===true&&r.managed===true&&r.owners===2,'MANAGED_BOOTSTRAP_ROLE_MISMATCH');
   // Password changes are restricted to the two fresh candidate-local vendor roles.
   await this.sql("ALTER ROLE supabase_auth_admin PASSWORD '"+password+"'; ALTER ROLE supabase_storage_admin PASSWORD '"+password+"';",'supabase_admin');
+ }
+ async bootstrapHelpers(){
+  const sql=await readFile(join(ROOT,'test-support/t19-bootstrap-helpers/overlay.sql'));
+  requireTrue(digest(sql)==='f31ed2fb751d7b060569fefb2c448a21ef550d08eb8758d10f645c24def6d9d5','HELPER_OVERLAY_BYTES_CHANGED');
+  const pre=await this.sqlJSON("SELECT jsonb_build_object('bootstrap',current_user='supabase_admin','count',(SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='extensions' AND p.proname IN ('grant_pg_cron_access','grant_pg_graphql_access','grant_pg_net_access','pgrst_ddl_watch','pgrst_drop_watch','set_graphql_placeholder') AND p.pronargs=0 AND pg_get_userbyid(p.proowner)='supabase_admin' AND NOT p.prosecdef));",'supabase_admin');
+  requireTrue(pre.bootstrap&&pre.count===6,'HELPER_INITIAL_STATE_MISMATCH');
+  await this.sql('BEGIN;\n'+sql.toString()+'\nCOMMIT;','supabase_admin');
+  await this.record('helper-overlay',{sha256:digest(sql),functions:6,roleSettingsCorrected:['supabase_admin.search_path']});
  }
  async realtime(){
   const sql=await readFile(join(ROOT,'test-support/t19-realtime-bootstrap/tenant_db_dump_17.sql'));
