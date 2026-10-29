@@ -156,3 +156,8 @@ test('fixed restore guard SQLSTATEs identify failure without exposing error text
  const body="CREATE FUNCTION public.fixture() RETURNS void LANGUAGE plpgsql AS $body$ BEGIN RAISE EXCEPTION 'RESTORE_DATA_MISMATCH'; END $body$;";
  assert.ok(schemaMember(body,'schema').includes("RAISE EXCEPTION 'RESTORE_DATA_MISMATCH';"));
 });
+
+test('publication owner qualification stops before namespace or checkpoint replay work',async()=>{
+ const host={restoreSQL:async sql=>{assert.ok(sql.includes("ERRCODE='P1903'"));assert.ok(sql.startsWith('BEGIN READ ONLY;'));throw Error('RESTORE_PUBLICATION_OWNER_MISMATCH');},sqlJSON:async()=>{throw Error('UNEXPECTED_LATER_WORK');}};
+ await assert.rejects(RestoreHost.prototype.destinationEmpty.call(host),/RESTORE_PUBLICATION_OWNER_MISMATCH/);
+});
