@@ -10,7 +10,8 @@ printf '%s  %s\n' \
 cd "$(dirname "$0")/.."
 export T19_RUN="$(mktemp -d /root/t19-operational-run-XXXXXXXX)"
 "$T19_NODE" --input-type=module <<'NODE'
-import {protectedPath,operationalCaptureSQL} from './scripts/t19-operational-rehearsal-host.mjs';
+import {protectedPath} from './scripts/t19-bootstrap-host.mjs';
+import {operationalCaptureSQL} from './scripts/t19-operational-rehearsal-host.mjs';
 import {writeFile} from 'node:fs/promises';
 await protectedPath('/root/t19-b02-djBr95UI/root.crt');
 await writeFile(process.env.T19_RUN+'/capture.sql',await operationalCaptureSQL(),{flag:'wx',mode:0o600});
