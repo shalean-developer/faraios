@@ -5,17 +5,23 @@ import {SOURCE,CLIENT_IMAGE,validateManifest,assertDataCoverage} from './backup-
 import {validateSchemaReplay} from './restore-diagnostic.mjs';
 import {preserveManagedParameterGrant,sequenceAssignments,sequenceVerificationSQL,verificationSQL,RESTORE_CREATION_DEFAULTS_SQL} from './restore-staging.mjs';
 import {RECONSTRUCT_WORKING_DAYS_SQL} from './restore-constraint.mjs';
+// Fixed guard identifiers only; never rewrite archive SQL or COPY rows.
+export const RESTORE_GUARD_CODES=Object.freeze({"P1901": "RESTORE_ACTOR_CHANGED", "P1902": "RESTORE_UNEXPECTED_NAMESPACE", "P1903": "RESTORE_PUBLICATION_OWNER_MISMATCH", "P1904": "RESTORE_CATALOG_MISMATCH", "P1905": "RESTORE_FULL_MANAGED_MISMATCH", "P1906": "RESTORE_PUBLICATION_STATE_MISMATCH", "P1907": "RESTORE_CHECK_RECONSTRUCTION_REFUSED", "P1908": "RESTORE_DATA_MISMATCH", "P1909": "RESTORE_EXTENSION_MISMATCH", "P1910": "RESTORE_ACCOUNTING_ENABLED", "P1911": "RESTORE_EXTERNAL_ASSET_SCOPE", "P1912": "RESTORE_EXTERNAL_WORK_PRESENT", "P1913": "RESTORE_SEQUENCE_STATE_PENDING"});
+function tagHelperGuards(sql){
+ for(const [code,name] of Object.entries(RESTORE_GUARD_CODES))sql=sql.replaceAll("RAISE EXCEPTION '"+name+"';","RAISE EXCEPTION '"+name+"' USING ERRCODE='"+code+"';");
+ return sql;
+}
 export const RESTORE_SCOPE='t19-current-scope-isolated-restore-v1';
 export const PRE_BOOTSTRAP=['isolation','postgres','bootstrapHelpers','bootstrapDependencies','realtime','authMigrations','authIndexes','storage','managedCatalog'];
 export const RESTORE_PHASES=[...PRE_BOOTSTRAP,'apiControls','stopServices','destinationEmpty','replay','verifyCommitted','sequences','verifyFresh','custody','boundaries','finalVerification'];
 export const LIMITS="SET LOCAL statement_timeout='120s';SET LOCAL lock_timeout='10s';SET LOCAL search_path='';SET LOCAL timezone='UTC';SET LOCAL standard_conforming_strings=on;\n";
 export const INERT_SQL=`DO $inert$ DECLARE target text; n bigint; BEGIN
  IF EXISTS(SELECT FROM pg_largeobject_metadata) OR EXISTS(SELECT FROM pg_foreign_server)
- OR EXISTS(SELECT FROM vault.secrets) OR EXISTS(SELECT FROM storage.objects) OR EXISTS(SELECT FROM storage.buckets) THEN RAISE EXCEPTION 'RESTORE_EXTERNAL_ASSET_SCOPE'; END IF;
+ OR EXISTS(SELECT FROM vault.secrets) OR EXISTS(SELECT FROM storage.objects) OR EXISTS(SELECT FROM storage.buckets) THEN RAISE EXCEPTION 'RESTORE_EXTERNAL_ASSET_SCOPE' USING ERRCODE='P1911'; END IF;
  FOREACH target IN ARRAY ARRAY['cron.job','net.http_request_queue'] LOOP
   IF to_regclass(target) IS NOT NULL THEN
    EXECUTE 'SELECT count(*) FROM '||target INTO n;
-   IF n<>0 THEN RAISE EXCEPTION 'RESTORE_EXTERNAL_WORK_PRESENT'; END IF;
+   IF n<>0 THEN RAISE EXCEPTION 'RESTORE_EXTERNAL_WORK_PRESENT' USING ERRCODE='P1912'; END IF;
   END IF;
  END LOOP;
 END $inert$;\n`;
@@ -31,7 +37,7 @@ export function catalogSQL(portable,{omitCustody=true}={}){
 }
 export function catalogGate(portable,scope){
  return `DO $t19_catalog$ DECLARE actual jsonb; BEGIN SELECT catalog INTO actual FROM (${trim(portable)}) q;
- IF actual->>'application'<>${lit(scope.application)} OR actual->>'managed'<>${lit(scope.managed)} THEN RAISE EXCEPTION 'RESTORE_CATALOG_MISMATCH'; END IF; END $t19_catalog$;\n`;
+ IF actual->>'application'<>${lit(scope.application)} OR actual->>'managed'<>${lit(scope.managed)} THEN RAISE EXCEPTION 'RESTORE_CATALOG_MISMATCH' USING ERRCODE='P1904'; END IF; END $t19_catalog$;\n`;
 }
 // Reuse the accepted twelve-component projection before any checkpoint rows.
 export function fullManagedGate(expected,sql){
@@ -40,12 +46,12 @@ export function fullManagedGate(expected,sql){
  check(start>=0&&end>start,'RESTORE_FULL_MANAGED_PROJECTION');
  const query=trim(sql.slice(start,end));
  return `DO $t19_full$ DECLARE actual jsonb; BEGIN SELECT q.jsonb_build_object->'catalog' INTO actual FROM (${query}) q;
- IF actual IS DISTINCT FROM ${lit(canonical(expected))}::jsonb THEN RAISE EXCEPTION 'RESTORE_FULL_MANAGED_MISMATCH'; END IF; END $t19_full$;\n`;
+ IF actual IS DISTINCT FROM ${lit(canonical(expected))}::jsonb THEN RAISE EXCEPTION 'RESTORE_FULL_MANAGED_MISMATCH' USING ERRCODE='P1905'; END IF; END $t19_full$;\n`;
 }
 export function namespaceGate(names,{custody=false}={}){
  check(Array.isArray(names)&&names.every(n=>typeof n==='string'),'RESTORE_NAMESPACE_SHAPE');
  const allowed=[...new Set([...names,'audit','supabase_migrations',...(custody?['private_t19_custody']:[])])].sort();
- return `DO $t19_names$ BEGIN IF EXISTS(SELECT FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname<>'information_schema' AND NOT(nspname=ANY(ARRAY[${allowed.map(lit).join(',')}]::text[]))) THEN RAISE EXCEPTION 'RESTORE_UNEXPECTED_NAMESPACE'; END IF; END $t19_names$;\n`;
+ return `DO $t19_names$ BEGIN IF EXISTS(SELECT FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname<>'information_schema' AND NOT(nspname=ANY(ARRAY[${allowed.map(lit).join(',')}]::text[]))) THEN RAISE EXCEPTION 'RESTORE_UNEXPECTED_NAMESPACE' USING ERRCODE='P1902'; END IF; END $t19_names$;\n`;
 }
 // Explicit publication metadata, including PG17 column lists and row filters.
 // No subscription, slot, replication connection or recovered row is read.
@@ -59,11 +65,11 @@ export const PUBLICATIONS_SQL=`SELECT coalesce(jsonb_agg(jsonb_build_object(
  'filter',pg_get_expr(pr.prqual,pr.prrelid)) ORDER BY n.nspname,c.relname)
  FROM pg_publication_rel pr JOIN pg_class c ON c.oid=pr.prrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE pr.prpubid=p.oid),'[]'::jsonb)
  ) ORDER BY p.pubname),'[]'::jsonb) AS value FROM pg_publication p`;
-export const REALTIME_OWNER_GUARD="DO $t19_publication_owner$ BEGIN IF NOT EXISTS(SELECT FROM pg_publication WHERE pubname='supabase_realtime' AND pg_get_userbyid(pubowner)='postgres') THEN RAISE EXCEPTION 'RESTORE_PUBLICATION_OWNER_MISMATCH'; END IF; END $t19_publication_owner$;\n";
+export const REALTIME_OWNER_GUARD="DO $t19_publication_owner$ BEGIN IF NOT EXISTS(SELECT FROM pg_publication WHERE pubname='supabase_realtime' AND pg_get_userbyid(pubowner)='postgres') THEN RAISE EXCEPTION 'RESTORE_PUBLICATION_OWNER_MISMATCH' USING ERRCODE='P1903'; END IF; END $t19_publication_owner$;\n";
 export function publicationGate(expected){
  check(Array.isArray(expected)&&expected.some(p=>p.name==='supabase_realtime'&&p.owner==='postgres'),'RESTORE_PUBLICATION_CAPTURE_REQUIRED');
  return `DO $t19_publications$ DECLARE actual jsonb; BEGIN SELECT value INTO actual FROM (${PUBLICATIONS_SQL}) q;
- IF actual IS DISTINCT FROM ${lit(canonical(expected))}::jsonb THEN RAISE EXCEPTION 'RESTORE_PUBLICATION_STATE_MISMATCH'; END IF; END $t19_publications$;\n`;
+ IF actual IS DISTINCT FROM ${lit(canonical(expected))}::jsonb THEN RAISE EXCEPTION 'RESTORE_PUBLICATION_STATE_MISMATCH' USING ERRCODE='P1906'; END IF; END $t19_publications$;\n`;
 }
 // The dump's COPY rows are opaque: SQL-like text inside a row is never parsed.
 export function dataMember(sql,manifest,name){
@@ -150,16 +156,16 @@ export function planRestore(backup,scope,portable,managed=null){
  for(const state of states){const m=sequenceState.find(s=>s.schema===state.schema&&s.sequence===state.sequence);check(m.last_value===null?!state.isCalled:m.last_value===state.value,'RESTORE_SEQUENCE_MANIFEST_MISMATCH');}
  const cat=catalogSQL(portable),gate=catalogGate(cat,scope);
  const fullGate=managed?fullManagedGate(managed.catalog,managed.sql)+publicationGate(managed.publications):'';
- const verify=verificationSQL(manifest,cat,scope)+fullGate+INERT_SQL;
+ const verify=tagHelperGuards(verificationSQL(manifest,cat,scope))+fullGate+INERT_SQL;
  const data=['data.sql','migration-data.sql'].map(name=>dataMember(rewritten[name],manifest.before,name));
- const actor="DO $actor$ BEGIN IF current_user<>'postgres' OR session_user<>'supabase_admin' OR current_database()<>'postgres' THEN RAISE EXCEPTION 'RESTORE_ACTOR_CHANGED'; END IF; END $actor$;\n";
+ const actor="DO $actor$ BEGIN IF current_user<>'postgres' OR session_user<>'supabase_admin' OR current_database()<>'postgres' THEN RAISE EXCEPTION 'RESTORE_ACTOR_CHANGED' USING ERRCODE='P1901'; END IF; END $actor$;\n";
  // Only the fresh recovery connection is bootstrap-admin. Schema is created
  // as managed postgres; data COPY needs replica mode, so runs as bootstrap
  // admin after schema/ACL equality passes. No service gets this connection.
- const replay='BEGIN;SET LOCAL ROLE postgres;\n'+LIMITS+actor+"SET LOCAL check_function_bodies=false;\n"+RESTORE_CREATION_DEFAULTS_SQL+role+'\n'+schema+'\n'+migration+'\n'+LIMITS+actor+RECONSTRUCT_WORKING_DAYS_SQL+gate+fullGate+"SET LOCAL check_function_bodies=true;\n"+
+ const replay='BEGIN;SET LOCAL ROLE postgres;\n'+LIMITS+actor+"SET LOCAL check_function_bodies=false;\n"+RESTORE_CREATION_DEFAULTS_SQL+role+'\n'+schema+'\n'+migration+'\n'+LIMITS+actor+tagHelperGuards(RECONSTRUCT_WORKING_DAYS_SQL)+gate+fullGate+"SET LOCAL check_function_bodies=true;\n"+
   'RESET ROLE;SET LOCAL session_replication_role=replica;\n'+data.join('\n')+'\nSET LOCAL session_replication_role=origin;SET LOCAL ROLE postgres;\n'+LIMITS+actor+verify+"COMMIT;\nSELECT 'T19_RESTORE_TRANSACTION_COMMITTED';\n";
  const setSequences=states.map(s=>`SELECT pg_catalog.setval(${lit(id(s.schema)+'.'+id(s.sequence))},${s.value},${s.isCalled});`).join('\n');
- return {manifest,scope,states,catalog:cat,replay,verify,sequenceSQL:verify+setSequences+'\n'+sequenceVerificationSQL(states),sequenceVerify:sequenceVerificationSQL(states),planSha256:digest({replay,verify,setSequences,states,scope}),summary:{applicationTables:30,coveredTables:manifest.before.tables.length,sequenceCount:states.length,managedSchemaReplay:false,operationalCustodyInstalled:false}};
+ return {manifest,scope,states,catalog:cat,replay,verify,sequenceSQL:verify+setSequences+'\n'+tagHelperGuards(sequenceVerificationSQL(states)),sequenceVerify:tagHelperGuards(sequenceVerificationSQL(states)),planSha256:digest({replay,verify,setSequences,states,scope}),summary:{applicationTables:30,coveredTables:manifest.before.tables.length,sequenceCount:states.length,managedSchemaReplay:false,operationalCustodyInstalled:false}};
 }
 export async function runRestore(platform,{now=Date.now}={}){
  const stages=[],started=now();let reason=null,cleanupVerified=false,checkpointUsed=platform.archiveAuthenticated===true,restoreAttempted=false;

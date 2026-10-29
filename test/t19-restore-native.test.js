@@ -83,7 +83,7 @@ test('native PG17 platform publication owner is checked, not changed, and all me
   const baseline=await take(),gate=publicationGate(baseline);
   const transformed=schemaMember('ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";','schema');
   assert.ok(!transformed.includes('ALTER PUBLICATION'));await psql('BEGIN;'+transformed+gate+'ROLLBACK;');assert.deepEqual(await take(),baseline);
-  await db.query('ALTER PUBLICATION supabase_realtime OWNER TO fixture_publication_owner');await assert.rejects(psql(transformed),/RESTORE_PUBLICATION_OWNER_MISMATCH/);await assert.rejects(psql(gate),/RESTORE_PUBLICATION_STATE_MISMATCH/);
+  await db.query('ALTER PUBLICATION supabase_realtime OWNER TO fixture_publication_owner');await assert.rejects(db.query(transformed),e=>e.code==='P1903'&&e.message==='RESTORE_PUBLICATION_OWNER_MISMATCH');await assert.rejects(db.query(gate),e=>e.code==='P1906'&&e.message==='RESTORE_PUBLICATION_STATE_MISMATCH');await assert.rejects(psql(transformed),/RESTORE_PUBLICATION_OWNER_MISMATCH/);await assert.rejects(psql(gate),/RESTORE_PUBLICATION_STATE_MISMATCH/);
   await db.query('ALTER PUBLICATION supabase_realtime OWNER TO postgres;ALTER PUBLICATION supabase_realtime SET (publish=\'insert\')');await assert.rejects(psql(gate),/RESTORE_PUBLICATION_STATE_MISMATCH/);
   await db.query('ALTER PUBLICATION supabase_realtime SET (publish=\'insert,update,delete,truncate\');ALTER PUBLICATION supabase_realtime ADD TABLE public.publication_fixture(id,value) WHERE (id>0)');await assert.rejects(psql(gate),/RESTORE_PUBLICATION_STATE_MISMATCH/);
   const filtered=await take();assert.deepEqual(filtered[0].tables[0].columns,['id','value']);assert.ok(filtered[0].tables[0].filter.includes('id > 0'));
