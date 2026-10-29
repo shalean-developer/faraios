@@ -47,6 +47,24 @@ export function namespaceGate(names,{custody=false}={}){
  const allowed=[...new Set([...names,'audit','supabase_migrations',...(custody?['private_t19_custody']:[])])].sort();
  return `DO $t19_names$ BEGIN IF EXISTS(SELECT FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname<>'information_schema' AND NOT(nspname=ANY(ARRAY[${allowed.map(lit).join(',')}]::text[]))) THEN RAISE EXCEPTION 'RESTORE_UNEXPECTED_NAMESPACE'; END IF; END $t19_names$;\n`;
 }
+// Explicit publication metadata, including PG17 column lists and row filters.
+// No subscription, slot, replication connection or recovered row is read.
+export const PUBLICATIONS_SQL=`SELECT coalesce(jsonb_agg(jsonb_build_object(
+ 'name',p.pubname,'owner',pg_get_userbyid(p.pubowner),
+ 'allTables',p.puballtables,'insert',p.pubinsert,'update',p.pubupdate,
+ 'delete',p.pubdelete,'truncate',p.pubtruncate,'viaRoot',p.pubviaroot,
+ 'schemas',coalesce((SELECT jsonb_agg(n.nspname ORDER BY n.nspname) FROM pg_publication_namespace pn JOIN pg_namespace n ON n.oid=pn.pnnspid WHERE pn.pnpubid=p.oid),'[]'::jsonb),
+ 'tables',coalesce((SELECT jsonb_agg(jsonb_build_object('schema',n.nspname,'table',c.relname,
+ 'columns',(SELECT jsonb_agg(a.attname ORDER BY u.ordinality) FROM unnest(pr.prattrs::smallint[]) WITH ORDINALITY u(attnum,ordinality) JOIN pg_attribute a ON a.attrelid=pr.prrelid AND a.attnum=u.attnum),
+ 'filter',pg_get_expr(pr.prqual,pr.prrelid)) ORDER BY n.nspname,c.relname)
+ FROM pg_publication_rel pr JOIN pg_class c ON c.oid=pr.prrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE pr.prpubid=p.oid),'[]'::jsonb)
+ ) ORDER BY p.pubname),'[]'::jsonb) AS value FROM pg_publication p`;
+export const REALTIME_OWNER_GUARD="DO $t19_publication_owner$ BEGIN IF NOT EXISTS(SELECT FROM pg_publication WHERE pubname='supabase_realtime' AND pg_get_userbyid(pubowner)='postgres') THEN RAISE EXCEPTION 'RESTORE_PUBLICATION_OWNER_MISMATCH'; END IF; END $t19_publication_owner$;\n";
+export function publicationGate(expected){
+ check(Array.isArray(expected)&&expected.some(p=>p.name==='supabase_realtime'&&p.owner==='postgres'),'RESTORE_PUBLICATION_CAPTURE_REQUIRED');
+ return `DO $t19_publications$ DECLARE actual jsonb; BEGIN SELECT value INTO actual FROM (${PUBLICATIONS_SQL}) q;
+ IF actual IS DISTINCT FROM ${lit(canonical(expected))}::jsonb THEN RAISE EXCEPTION 'RESTORE_PUBLICATION_STATE_MISMATCH'; END IF; END $t19_publications$;\n`;
+}
 // The dump's COPY rows are opaque: SQL-like text inside a row is never parsed.
 export function dataMember(sql,manifest,name){
  const allowed=new Map(manifest.tables.map(t=>[t.schema+'.'+t.table,t]));let active=null,rows=0;
@@ -90,6 +108,9 @@ export function schemaMember(sql,kind){
   if(kind==='roles'){
    check(/^ALTER ROLE [A-Z_][A-Z0-9_]* SET (?:PGAUDIT\.[A-Z_]+|PGRST\.[A-Z_]+|SESSION_REPLICATION_ROLE|STATEMENT_TIMEOUT|TRACK_IO_TIMING) (?:TO|=) /.test(c),'RESTORE_ROLE_STATEMENT_REFUSED');
   }else{
+   // Supabase CLI suppresses CREATE for this platform publication but leaves
+   // this exact owner statement. Require the existing owner; never replay it.
+   if(kind==='schema'&&c==='ALTER PUBLICATION SUPABASE_REALTIME OWNER TO POSTGRES'){out.push(REALTIME_OWNER_GUARD);continue;}
    check(/^(?:CREATE (?:OR REPLACE )?(?:SCHEMA|TABLE|SEQUENCE|FUNCTION|PROCEDURE|TYPE|DOMAIN|(?:UNIQUE )?INDEX|POLICY|TRIGGER|(?:MATERIALIZED )?VIEW|EXTENSION)\b|ALTER (?:SCHEMA|TABLE|SEQUENCE|FUNCTION|PROCEDURE|TYPE|DOMAIN|INDEX|VIEW|MATERIALIZED VIEW|DEFAULT PRIVILEGES)\b|COMMENT ON\b|GRANT\b|REVOKE\b)/.test(c),'RESTORE_SCHEMA_OBJECT_REFUSED');
    if(/^(?:GRANT|REVOKE)\b/.test(c))check(/\bON (?:ALL (?:TABLES|SEQUENCES|FUNCTIONS) IN SCHEMA|SCHEMA|TABLE|SEQUENCE|FUNCTION|PROCEDURE|TYPE|[A-Z_][A-Z0-9_]*\s*\.)/.test(c)&&! /\bON (?:DATABASE|TABLESPACE|PARAMETER|FOREIGN|SERVER)\b/.test(c),'RESTORE_PERMISSION_TARGET_REFUSED');
    check(!/^(?:CREATE|ALTER) (?:DATABASE|TABLESPACE|FOREIGN|SERVER|EVENT TRIGGER|SUBSCRIPTION|PUBLICATION|ROLE|USER|SYSTEM)\b/.test(c)&&!/\b(?:PG_AUTHID|PG_READ_FILE|PROGRAM)\b/.test(c),'RESTORE_SCHEMA_PRIVILEGED_STATEMENT');
@@ -128,7 +149,7 @@ export function planRestore(backup,scope,portable,managed=null){
  check(canonical(states.map(s=>s.schema+'.'+s.sequence))===canonical(sequenceState.map(s=>s.schema+'.'+s.sequence).sort()),'RESTORE_SEQUENCE_SCOPE');
  for(const state of states){const m=sequenceState.find(s=>s.schema===state.schema&&s.sequence===state.sequence);check(m.last_value===null?!state.isCalled:m.last_value===state.value,'RESTORE_SEQUENCE_MANIFEST_MISMATCH');}
  const cat=catalogSQL(portable),gate=catalogGate(cat,scope);
- const fullGate=managed?fullManagedGate(managed.catalog,managed.sql):'';
+ const fullGate=managed?fullManagedGate(managed.catalog,managed.sql)+publicationGate(managed.publications):'';
  const verify=verificationSQL(manifest,cat,scope)+fullGate+INERT_SQL;
  const data=['data.sql','migration-data.sql'].map(name=>dataMember(rewritten[name],manifest.before,name));
  const actor="DO $actor$ BEGIN IF current_user<>'postgres' OR session_user<>'supabase_admin' OR current_database()<>'postgres' THEN RAISE EXCEPTION 'RESTORE_ACTOR_CHANGED'; END IF; END $actor$;\n";

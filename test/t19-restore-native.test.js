@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {Client} from 'pg';
 import {spawn} from 'node:child_process';
 import {readFile} from 'node:fs/promises';
-import {dataMember,LIMITS,catalogSQL} from '../scripts/t19-restore-plan.mjs';
+import {dataMember,LIMITS,catalogSQL,schemaMember,PUBLICATIONS_SQL,publicationGate} from '../scripts/t19-restore-plan.mjs';
 import {verificationSQL,sequenceVerificationSQL} from '../scripts/restore-staging.mjs';
 const enabled=!!process.env.T19_RESTORE_NATIVE_URL;
 async function fixture(name,fn){
@@ -73,5 +73,21 @@ test('native PG17 recovered RLS both directions, staff/write denials, audit and 
   assert.ok((await psql(probe)).includes('T19_RESTORE_BOUNDARIES_ROLLED_BACK'));assert.deepEqual(await fingerprint(),baseline);
   await db.query('ALTER TABLE public.business_accounting_connections DISABLE ROW LEVEL SECURITY');
   await assert.rejects(psql(probe));await db.query('ALTER TABLE public.business_accounting_connections ENABLE ROW LEVEL SECURITY');assert.deepEqual(await fingerprint(),baseline);
+ });
+});
+
+test('native PG17 platform publication owner is checked, not changed, and all metadata drift is refused',{skip:!enabled},async()=>{
+ await fixture('t19_restore_publication_fixture',async(db,psql)=>{
+  await db.query('CREATE ROLE fixture_publication_owner;CREATE TABLE public.publication_fixture(id integer PRIMARY KEY,value text);CREATE PUBLICATION supabase_realtime;');
+  const take=async()=>(await db.query(PUBLICATIONS_SQL)).rows[0].value;
+  const baseline=await take(),gate=publicationGate(baseline);
+  const transformed=schemaMember('ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";','schema');
+  assert.ok(!transformed.includes('ALTER PUBLICATION'));await psql('BEGIN;'+transformed+gate+'ROLLBACK;');assert.deepEqual(await take(),baseline);
+  await db.query('ALTER PUBLICATION supabase_realtime OWNER TO fixture_publication_owner');await assert.rejects(psql(transformed),/RESTORE_PUBLICATION_OWNER_MISMATCH/);await assert.rejects(psql(gate),/RESTORE_PUBLICATION_STATE_MISMATCH/);
+  await db.query('ALTER PUBLICATION supabase_realtime OWNER TO postgres;ALTER PUBLICATION supabase_realtime SET (publish=\'insert\')');await assert.rejects(psql(gate),/RESTORE_PUBLICATION_STATE_MISMATCH/);
+  await db.query('ALTER PUBLICATION supabase_realtime SET (publish=\'insert,update,delete,truncate\');ALTER PUBLICATION supabase_realtime ADD TABLE public.publication_fixture(id,value) WHERE (id>0)');await assert.rejects(psql(gate),/RESTORE_PUBLICATION_STATE_MISMATCH/);
+  const filtered=await take();assert.deepEqual(filtered[0].tables[0].columns,['id','value']);assert.ok(filtered[0].tables[0].filter.includes('id > 0'));
+  await psql(publicationGate(filtered));await db.query('ALTER PUBLICATION supabase_realtime DROP TABLE public.publication_fixture');assert.deepEqual(await take(),baseline);
+  await db.query('DROP PUBLICATION supabase_realtime');await assert.rejects(psql(transformed),/RESTORE_PUBLICATION_OWNER_MISMATCH/);await assert.rejects(psql(gate),/RESTORE_PUBLICATION_STATE_MISMATCH/);
  });
 });
