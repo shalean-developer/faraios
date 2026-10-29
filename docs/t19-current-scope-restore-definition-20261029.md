@@ -1,5 +1,7 @@
 # T19 current-scope isolated restore rehearsal definition
 
+Current execution status: the [29 October recovery evidence](t19-current-scope-restore-pass-20261029.md) records the subsequent signed local rehearsal and evidence-check PASS. The future-tense definition and execution holds below preserve the original preparation history; no approval can be reused for another run.
+
 29 October 2026. **CONDITIONAL PASS for source preparation; restore execution NO-GO until the exact executor and private admission packet are verified and separately signed.** This defines the next bounded implementation, not a runnable restore instruction or authorization to decrypt/replay the checkpoint. It follows the accepted synthetic compatibility run in t19-synthetic-compatibility-pass-20261029.md. Historical specifications remain preserved; this document supersedes their compatibility hold only to that bounded extent.
 
 ## Fixed boundaries and destination

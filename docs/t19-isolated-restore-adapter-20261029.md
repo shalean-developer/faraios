@@ -1,5 +1,7 @@
 # T19 isolated restore adapter — source delivery
 
+Current execution status: the [29 October owner-host recovery evidence](t19-current-scope-restore-pass-20261029.md) records the subsequent 19-phase restore and evidence-check PASS. The preparation holds and failures below are historical; operational custody remains uninstalled.
+
 **Source implementation; protected checkpoint execution NOT RUN.** T19 remains In progress / accounting NO-GO; T20 and the held restore project remain untouched. This implements the distinct adapter required by the current-scope restore definition. It does not turn the previous synthetic approval into restore authority.
 
 ## Components and binding
