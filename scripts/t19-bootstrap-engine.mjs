@@ -4,7 +4,7 @@ export const canonical=x=>Array.isArray(x)?'['+x.map(canonical).join(',')+']':x!
 export const digest=x=>createHash('sha256').update(Buffer.isBuffer(x)||typeof x==='string'?x:canonical(x)).digest('hex');
 export const SCOPE='t19-synthetic-managed-bootstrap-v1';
 export const LABEL='faraios.t19.bootstrap-nonce';
-export const IMAGES=Object.freeze({postgres:'sha256:d1b45b411b9513a3eb3a4d0e78a9d0f404d6f1f5fe89d79239ee3af3e1ee6e3f',auth:'sha256:839f529492d116b4e8b7777c953a27c381d34c15a744b1bcefde5eefaa1f9f9f',storage:'sha256:d1ad18d4afde8f08ae8b18f0aede17737d83fb3f189664a741f626329e5e6b97'});
+export const IMAGES=Object.freeze({postgres:'sha256:ab85056c03f387f1b544420d88198872035093af9df6455402284b2deabe6eec',auth:'sha256:839f529492d116b4e8b7777c953a27c381d34c15a744b1bcefde5eefaa1f9f9f',storage:'sha256:d1ad18d4afde8f08ae8b18f0aede17737d83fb3f189664a741f626329e5e6b97'});
 export const FREEZE='revoke-grants-to-unused-operations';
 export const INDEXES=['idx_users_email','idx_users_created_at_desc','idx_users_last_sign_in_at_desc','idx_users_name'];
 export const PHASES=['isolation','postgres','bootstrapHelpers','bootstrapDependencies','realtime','authMigrations','authIndexes','storage','managedCatalog','custody','security','stableCatalog'];

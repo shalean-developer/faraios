@@ -13,7 +13,7 @@ test('built derivative pins bind both parent chains and only the three reviewed 
  assert.equal(lineage.images.storage.layers,16);assert.deepEqual(lineage.images.storage.ancestors.map(x=>x.layers),[14]);
  const manifest=JSON.parse(readFileSync(new URL('config/t19-bootstrap-files.json',root)));
  for(const [component,path,source] of [
-  ['postgres','/docker-entrypoint-initdb.d/migrate.sh','test-support/t19-postgres-init-owners/migrate.sh'],
+  ['postgres','/docker-entrypoint-initdb.d/migrate.sh','test-support/t19-postgres-stat-owner/migrate.sh'],
   ['storage','/app/migrations/tenant/0002-storage-schema.sql','test-support/t19-storage-history/0002-storage-schema.sql'],
   ['storage','/app/migrations/tenant/0062-object-versioning-core.sql','test-support/t19-storage-history/0062-object-versioning-core.sql']
  ])assert.equal(manifest.files.find(x=>x.component===component&&x.path===path).sha256,createHash('sha256').update(readFileSync(new URL(source,root))).digest('hex'));

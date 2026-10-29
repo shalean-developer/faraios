@@ -34,7 +34,7 @@
     {
       "component": "postgres",
       "path": "/docker-entrypoint-initdb.d/migrate.sh",
-      "sha256": "e1134b5b6d0f054f0368605975977a04bd8cf81ed84498e0baaddc0fc0589924"
+      "sha256": "d408c9712be722ec27b6f9ea951be7a2e0859c1a4aeff295d927137494231afc"
     },
     {
       "component": "postgres",
