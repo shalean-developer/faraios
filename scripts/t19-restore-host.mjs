@@ -73,7 +73,7 @@ export class RestoreHost extends Host {
   check(['postgres','supabase_admin'].includes(user),'RESTORE_SQL_PRINCIPAL');
   // A fresh candidate-only admin connection disables statement/error/audit
   // logging BEFORE any recovered SQL, then drops to the reviewed actor.
-  const logging="SET log_min_messages=panic;SET log_min_error_statement=panic;SET log_statement=none;SET log_error_verbosity=terse;SET pgaudit.log='none';\n";
+  const logging="SET log_min_messages=panic;SET log_min_error_statement=panic;SET log_statement=none;SET log_error_verbosity=terse;SET log_min_duration_statement=-1;SET log_min_duration_sample=-1;SET log_transaction_sample_rate=0;SET log_duration=off;SET log_parameter_max_length=0;SET log_parameter_max_length_on_error=0;SET auto_explain.log_min_duration=-1;SET pgaudit.log='none';SET pgaudit.role='';\n";
   const actor=user==='postgres'?'SET SESSION AUTHORIZATION postgres;\n':'';
   return this.exec(b,['psql','-X','-qAt','--no-password','--set=ON_ERROR_STOP=1','--set=VERBOSITY=sqlstate','--username=supabase_admin','--dbname=postgres'],logging+actor+sql,180000);
  }

@@ -50,13 +50,13 @@ try{
  // Compile/execute the full admission projection on native PG17. This fixture
  // deliberately removes only its TLS/runtime guard and transaction wrapper;
  // the production generated SQL keeps both. No hosted TLS claim is made.
- await client.query('CREATE TABLE public.business_accounting_connections(enabled boolean);CREATE SCHEMA vault;CREATE TABLE vault.secrets(id integer);CREATE TABLE storage.buckets(id text);CREATE TABLE storage.objects(id text);');
+ await client.query('CREATE SCHEMA extensions;CREATE EXTENSION pgcrypto WITH SCHEMA extensions;CREATE TABLE public.business_accounting_connections(enabled boolean);CREATE SCHEMA vault;CREATE TABLE vault.secrets(id integer);CREATE TABLE storage.buckets(id text);CREATE TABLE storage.objects(id text);');
  const sourceCapture=(await sourceAdmissionSQL()).replace('BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;','').replace(/DO \$guard\$[\s\S]*?\$guard\$;/,'').replace(/COMMIT;\s*$/,'');
  const admission=(await client.query(sourceCapture)).find(r=>r.rows?.[0]?.jsonb_build_object)?.rows[0].jsonb_build_object;
  assert.equal(admission.sourceProject,'xdmfyrsauvqznkloroxg');assert.equal(admission.custodyReadback.roleConforms,true);assert.equal(admission.custodyReadback.membershipConforms,true);
  assert.equal(compareStructure(admission.custodyDefinition,expected).status,'CUSTODY_STRUCTURE_MATCH');
  assert.equal(admission.sourceState.enabledConnections,0);assert.equal(typeof admission.checkpointCatalog.application,'string');
- await client.query('DROP TABLE public.business_accounting_connections;DROP TABLE storage.buckets,storage.objects;DROP SCHEMA vault CASCADE;');
+ await client.query('DROP TABLE public.business_accounting_connections;DROP TABLE storage.buckets,storage.objects;DROP SCHEMA vault CASCADE;DROP EXTENSION pgcrypto;DROP SCHEMA extensions;');
  console.log('T19_NATIVE_PG17_RESTORE_ADMISSION_SQL_PASS');
 
  // Execute the two exact historical vendor files in a minimal prerequisite
@@ -163,8 +163,8 @@ try{
  console.log('T19_NATIVE_PG17_AUTOMATIC_BOOTSTRAP_GRANTOR_PASS');
  console.log('T19_NATIVE_PG17_NULLABILITY_AND_CONSTRAINT_DRIFT_REJECTED');
  console.log('T19_NATIVE_PG17_RECOVERY_FIXTURE_ROLLBACK_PASS');
-}catch{
- console.error('T19_NATIVE_PG17_RECOVERY_CATALOG_FAIL');process.exitCode=1;
+}catch(e){
+ console.error('T19_NATIVE_PG17_RECOVERY_CATALOG_FAIL');console.error('SYNTHETIC_FIXTURE_DIAGNOSTIC '+String(e.code??'ASSERT')+' '+String(e.message).split('\n')[0].slice(0,240));process.exitCode=1;
 }finally{
  if(begun){try{await client.query('ROLLBACK');await client.query('RESET SESSION AUTHORIZATION');}catch{console.error('T19_NATIVE_PG17_ROLLBACK_UNKNOWN');process.exitCode=1;}}
  await client.end();
