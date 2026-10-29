@@ -6,6 +6,8 @@ The accepted bootstrap and restore source bundles, receipts and journals remain 
 
 ## Authority and execution order
 
+`scripts/t19-operational-owner-prepare.sh` creates a fresh private journal, captures catalogue metadata through verified TLS with an explicit read-only transaction and connection guard, and invokes preparation only. It never signs or runs the candidate. Enter the project database password locally when prompted.
+
 `--prepare EXPECTED JOURNAL` verifies root-only private paths, pinned Node/Docker, the cached image lineage, default local Unix daemon, host resources and the original 13 exited containers plus network/volume inventory. It writes an unsigned, 15-minute receipt binding those inputs, the host boot/daemon, source bundle and exact journal. It creates no Docker resources.
 
 `--run EXPECTED JOURNAL APPROVAL` requires a fresh Ed25519 owner signature for `t19-owner-synthetic-operational-sql-v1`. Bootstrap/restore approvals cannot authorize it. The receipt file must still match, and the exact nonce is consumed durably before the intent and first mutation. Existing records use exclusive writes; do not retry a consumed receipt or delete records. A changed bundle, baseline, daemon, metadata or journal requires a newly prepared and signed receipt.
