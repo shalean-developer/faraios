@@ -6,10 +6,16 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {canonical,digest,requireTrue} from './t19-bootstrap-engine.mjs';
 import {protectedPath,snapshot} from './t19-bootstrap-host.mjs';
 const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const PLAN='config/t19-bootstrap-image-build.json';
-export async function recipeInputs(){
- const plan=JSON.parse(await readFile(join(ROOT,PLAN),'utf8'));
- requireTrue(plan.version===1&&plan.runtimeActivationAllowed===false&&plan.recipes.length===2,'BUILD_PLAN');
+const BUILD_PLANS=Object.freeze({
+ '--build':{path:'config/t19-bootstrap-image-build.json',count:2},
+ '--build-postgres-stat-owner':{path:'config/t19-postgres-stat-owner-build.json',count:1}
+});
+export async function recipeInputs(mode='--build'){
+ requireTrue(Object.hasOwn(BUILD_PLANS,mode),'BUILD_MODE');
+ const descriptor=BUILD_PLANS[mode];
+ const plan=JSON.parse(await readFile(join(ROOT,descriptor.path),'utf8'));
+ requireTrue(plan.version===1&&plan.runtimeActivationAllowed===false&&plan.recipes.length===descriptor.count,'BUILD_PLAN');
+ if(mode==='--build-postgres-stat-owner')requireTrue(plan.recipes[0].component==='postgres','BUILD_COMPONENT');
  const recipes=[];
  for(const r of plan.recipes){
   requireTrue(['postgres','storage'].includes(r.component)&&/^test-support\/t19-[a-z-]+$/.test(r.context)&&/^sha256:[a-f0-9]{64}$/.test(r.baseId),'RECIPE_SHAPE');
@@ -23,9 +29,9 @@ export async function recipeInputs(){
  }
  return recipes;
 }
-export async function buildBundleDigest(){
- const recipes=await recipeInputs();
- const paths=[PLAN,'scripts/t19-bootstrap-image-build.mjs','scripts/t19-bootstrap-host.mjs','scripts/t19-bootstrap-engine.mjs','scripts/t19-bootstrap-env.mjs','scripts/t19-storage-tenant-migrate.mjs','scripts/t19-custody-recovery-compare.mjs',...recipes.flatMap(r=>r.files.map(f=>r.context+'/'+f.name))];
+export async function buildBundleDigest(mode='--build'){
+ const recipes=await recipeInputs(mode);
+ const paths=[BUILD_PLANS[mode].path,'scripts/t19-bootstrap-image-build.mjs','scripts/t19-bootstrap-host.mjs','scripts/t19-bootstrap-engine.mjs','scripts/t19-bootstrap-env.mjs','scripts/t19-storage-tenant-migrate.mjs','scripts/t19-custody-recovery-compare.mjs',...recipes.flatMap(r=>r.files.map(f=>r.context+'/'+f.name))];
  return digest(await Promise.all(paths.map(async p=>[p,digest(await readFile(join(ROOT,p)))])));
 }
 export function verifyDerivedImage(base,image,recipe){
@@ -34,7 +40,9 @@ export function verifyDerivedImage(base,image,recipe){
  requireTrue(base.RootFS?.Layers?.length===recipe.baseLayers&&image.RootFS?.Layers?.length===recipe.baseLayers+recipe.addedLayers&&canonical(image.RootFS.Layers.slice(0,recipe.baseLayers))===canonical(base.RootFS.Layers),'BUILT_LAYERS_CHANGED');
 }
 async function main(){
- requireTrue(process.argv.length===3&&process.argv[2]==='--build','USAGE_BUILD');
+ requireTrue(process.argv.length===3&&Object.hasOwn(BUILD_PLANS,process.argv[2]),'USAGE_BUILD');
+ const mode=process.argv[2];
+ requireTrue(mode==='--build-postgres-stat-owner','LEGACY_BUILD_REQUIRES_HISTORICAL_SOURCE');
  requireTrue(process.platform==='linux'&&process.getuid()===0&&process.version==='v24.22.1'&&digest(await readFile(process.execPath))==='e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb','WRONG_RUNTIME');
  await protectedPath(ROOT,true);await protectedPath('/etc/faraios/t19-gate2-trust.json');
  const trust=JSON.parse(await readFile('/etc/faraios/t19-gate2-trust.json','utf8'));
@@ -47,7 +55,7 @@ async function main(){
  };
  const must=async args=>{const r=await run(args);requireTrue(r.code===0,'BUILD_DOCKER_COMMAND_FAILED');return r.stdout;};
  const inspect=async ref=>JSON.parse((await must(['image','inspect',ref])).toString())[0];
- const recipes=await recipeInputs(),bundleBefore=await buildBundleDigest();
+ const recipes=await recipeInputs(mode),bundleBefore=await buildBundleDigest(mode);
  for(const r of recipes)for(const f of r.files)await protectedPath(join(ROOT,r.context,f.name));
  const context=JSON.parse((await must(['context','inspect','default'])).toString());
  requireTrue(context.length===1&&context[0].Endpoints?.docker?.Host==='unix:///var/run/docker.sock','WRONG_CONTEXT');
@@ -75,8 +83,8 @@ async function main(){
   results.push({component:r.component,imageId:image.Id,baseImageId:r.baseId,inheritedConfigurationUnchanged:true,addedLayers:r.addedLayers});
  }
  const after=await snapshot(run);requireTrue(canonical(after)===canonical(before),'BUILD_BASELINE_CHANGED');
- requireTrue(await buildBundleDigest()===bundleBefore,'BUILD_SOURCE_CHANGED');
- const result={status:'BOOTSTRAP_DERIVATIVES_BUILT_NOT_ACTIVATED',buildBundleSha256:bundleBefore,images:results,originalContainerCount:after.containers.length,originalBaselineUnchanged:true,checkpointUsed:false,restoreAttempted:false,runtimeCompatibilityVerified:false};
+ requireTrue(await buildBundleDigest(mode)===bundleBefore,'BUILD_SOURCE_CHANGED');
+ const result={status:'BOOTSTRAP_DERIVATIVES_BUILT_NOT_ACTIVATED',mode,buildBundleSha256:bundleBefore,images:results,originalContainerCount:after.containers.length,originalBaselineUnchanged:true,checkpointUsed:false,restoreAttempted:false,runtimeCompatibilityVerified:false};
  await writeFile(join(dir,'result.json'),canonical(result),{flag:'wx',mode:0o600});
  console.log(JSON.stringify({...result,evidenceDirectory:dir},null,2));
 }
