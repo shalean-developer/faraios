@@ -67,6 +67,10 @@ export function verifyCoreExtensionBootstrap(actual){
  const extensions=Array.isArray(actual?.extensions)?[...actual.extensions].sort(byName):null;
  requireTrue(canonical(extensions)===canonical(expected.sort(byName))&&expected.every(e=>configured.includes(e.name)),'POSTGRES_EXTENSION_OWNER_OR_CONFIG');
 }
+export function storageDenied(evidence){
+ return evidence?.deniedBucketCount===0&&evidence?.allowedBucketCount===1&&evidence?.totalBucketCount===1&&
+  ([401,403].includes(evidence.status)||evidence.status===400&&evidence.serviceStatusCode==='403'&&evidence.errorCode==='AccessDenied');
+}
 export class Host {
  constructor({run,dir,receipt,expected,files,baseline}){Object.assign(this,{run,dir,receipt,expected,files,baseline});this.nonce=validNonce(receipt.nonce);this.net=`t19-bootstrap-${this.nonce}`;this.outnet=`t19-bootstrap-sentinel-${this.nonce}`;this.bound=new Map();this.nets=new Map();this.sequence=0;this.unknown=false;this.started=Date.now();this.secrets=[];}
  async record(kind,value){await durable(this.dir,String(++this.sequence).padStart(4,'0')+'-'+kind+'.json',value);}
@@ -208,11 +212,15 @@ export class Host {
   const actual=await this.sqlJSON("BEGIN READ ONLY;SET LOCAL search_path='';SET LOCAL timezone='UTC';"+projection+'COMMIT;');const result=compareStructure(actual,JSON.parse(await readFile(join(ROOT,'test-support/t19-custody-recovery-expected.json'),'utf8')));await this.record('custody-structure',result);requireTrue(result.status==='CUSTODY_STRUCTURE_MATCH','CUSTODY_STRUCTURE_MISMATCH');
   const check=await this.sqlJSON(await readFile(join(ROOT,'docs/proposals/t19-inactive-custody-recovery-readback.sql'),'utf8'));await this.record('custody-roles',check);requireTrue(check.roleConforms&&check.membershipConforms&&check.runtimeOwnerAbsent&&check.indexesValidReady&&Object.values(check.tableCounts).every(x=>x===0),'CUSTODY_ROLE_MISMATCH');
  }
- async http(b,url,method='GET',token='',body){return this.node(b,"let s='';process.stdin.on('data',b=>s+=b);process.stdin.on('end',async()=>{const x=JSON.parse(s);try{const r=await fetch(x.url,{method:x.method,headers:{'content-type':'application/json',...(x.token?{authorization:'Bearer '+x.token}:{})},body:x.body===undefined?undefined:JSON.stringify(x.body),signal:AbortSignal.timeout(3000)});await r.arrayBuffer();console.log(JSON.stringify({status:r.status}));}catch{console.log(JSON.stringify({status:0}));}});",{url,method,token,body});}
+ async http(b,url,method='GET',token='',body){return this.node(b,"let s='';process.stdin.on('data',b=>s+=b);process.stdin.on('end',async()=>{const x=JSON.parse(s);try{const r=await fetch(x.url,{method:x.method,headers:{'content-type':'application/json',...(x.token?{authorization:'Bearer '+x.token}:{})},body:x.body===undefined?undefined:JSON.stringify(x.body),signal:AbortSignal.timeout(3000)});let v={};if(!r.ok){const reader=r.body?.getReader();let bytes=0,chunks=[];if(reader){while(true){const p=await reader.read();if(p.done)break;bytes+=p.value.length;if(bytes>4096){await reader.cancel();chunks=[];break;}chunks.push(p.value);}if(chunks.length){try{v=JSON.parse(Buffer.concat(chunks).toString());}catch{}}}}else{await r.body?.cancel();}console.log(JSON.stringify({status:r.status,...(String(v?.statusCode)==='403'?{serviceStatusCode:'403'}:{}),...(v?.code==='AccessDenied'?{errorCode:'AccessDenied'}:{})}));}catch{console.log(JSON.stringify({status:0}));}});",{url,method,token,body});}
  async security(){const b=this.bound.get('storage'),auth='http://'+this.bound.get('auth').s.name+':9999/admin/users';
   requireTrue((await this.http(b,auth,'GET',this.serviceToken)).status===200,'AUTH_ALLOWED_REQUEST_FAILED');requireTrue([401,403].includes((await this.http(b,auth,'GET',this.anonToken)).status),'AUTH_DENIED_REQUEST_FAILED');
   const bucket='t19-'+this.nonce,url='http://127.0.0.1:5000/bucket';requireTrue([200,201].includes((await this.http(b,url,'POST',this.serviceToken,{id:bucket,name:bucket,public:false})).status),'STORAGE_ALLOWED_REQUEST_FAILED');
-  requireTrue([401,403].includes((await this.http(b,url,'POST',this.anonToken,{id:bucket+'-denied',name:bucket+'-denied',public:false})).status),'STORAGE_DENIED_REQUEST_FAILED');
+  const denied=await this.http(b,url,'POST',this.anonToken,{id:bucket+'-denied',name:bucket+'-denied',public:false});
+  // Fixed hex nonce and fixed identifiers only; never a hosted/user input query.
+  const state=await this.sqlJSON("SELECT jsonb_build_object('deniedBucketCount',(SELECT count(*) FROM storage.buckets WHERE id='"+bucket+"-denied'),'allowedBucketCount',(SELECT count(*) FROM storage.buckets WHERE id='"+bucket+"'),'totalBucketCount',(SELECT count(*) FROM storage.buckets));");
+  const evidence={...denied,...state};await this.record('storage-denied-request',evidence);
+  requireTrue(storageDenied(evidence),'STORAGE_DENIED_REQUEST_FAILED');
   requireTrue((await this.http(b,url+'/'+bucket,'DELETE',this.serviceToken)).status===200,'STORAGE_FIXTURE_CLEANUP_FAILED');
   for(const role of ['anon','authenticated','service_role']){const db=await this.sqlJSON("BEGIN;SET LOCAL ROLE "+role+";DO $$ BEGIN BEGIN PERFORM 1 FROM private_t19_custody.connections; RAISE EXCEPTION 'DENIAL_NOT_ENFORCED'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;END $$;RESET ROLE; SELECT jsonb_build_object('denied',true);ROLLBACK;");requireTrue(db.denied,'DATABASE_DENIAL_FAILED');}
   const permitted=await this.sqlJSON("SELECT jsonb_build_object('count',count(*)) FROM private_t19_custody.connections;");requireTrue(permitted.count===0,'DATABASE_ALLOWED_REQUEST_FAILED');await this.record('security',{authPermitted:true,authDenied:true,storagePermitted:true,storageDenied:true,databasePermitted:true,databaseDeniedRoles:['anon','authenticated','service_role']});
