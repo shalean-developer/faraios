@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {Client} from 'pg';
 import {compareStructure} from './t19-custody-recovery-compare.mjs';
+import {fullManagedGate,namespaceGate} from './t19-restore-plan.mjs';
+import {sourceAdmissionSQL} from './t19-restore-host.mjs';
 
 if(process.env.T19_SYNTHETIC_CATALOG_ONLY!=='yes'||process.env.PGHOST!=='127.0.0.1'||process.env.PGPORT!=='5432'||process.env.PGUSER!=='postgres'||!process.env.PGPASSWORD)
  throw Error('SYNTHETIC_NATIVE17_GATE_REFUSED');
@@ -46,6 +48,27 @@ try{
  const captured=(await client.query(captureBody)).find(r=>r.rows?.[0]?.jsonb_build_object)?.rows[0].jsonb_build_object;
  assert.equal(captured.schemaVersion,1);assert.equal(Object.keys(captured.catalog).length,12);assert.equal(Object.keys(captured.catalog.managed).length,17);
  console.log('T19_NATIVE_PG17_BOOTSTRAP_CAPTURE_SQL_PASS');
+ // Compile/execute the full admission projection on native PG17. This fixture
+ // deliberately removes only its TLS/runtime guard and transaction wrapper;
+ // the production generated SQL keeps both. No hosted TLS claim is made.
+ await client.query('CREATE SCHEMA extensions;CREATE EXTENSION pgcrypto WITH SCHEMA extensions;CREATE TABLE public.business_accounting_connections(enabled boolean);CREATE SCHEMA vault;CREATE TABLE vault.secrets(id integer);CREATE TABLE storage.buckets(id text);CREATE TABLE storage.objects(id text);');
+ const sourceCapture=(await sourceAdmissionSQL()).replace('BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;','').replace(/DO \$guard\$[\s\S]*?\$guard\$;/,'').replace(/COMMIT;\s*$/,'');
+ const admission=(await client.query(sourceCapture)).find(r=>r.rows?.[0]?.jsonb_build_object)?.rows[0].jsonb_build_object;
+ assert.equal(admission.sourceProject,'xdmfyrsauvqznkloroxg');assert.equal(admission.custodyReadback.roleConforms,true);assert.equal(admission.custodyReadback.membershipConforms,true);
+ assert.equal(compareStructure(admission.custodyDefinition,expected).status,'CUSTODY_STRUCTURE_MATCH');
+ assert.equal(admission.sourceState.enabledConnections,0);assert.equal(typeof admission.checkpointCatalog.application,'string');
+ await client.query(fullManagedGate(admission.catalog,bootstrapProjection));
+ await client.query('SAVEPOINT full_managed_negative');
+ await assert.rejects(client.query(fullManagedGate({...admission.catalog,events:['unexpected']},bootstrapProjection)),/RESTORE_FULL_MANAGED_MISMATCH/);
+ await client.query('ROLLBACK TO SAVEPOINT full_managed_negative');
+ const namespaces=(await client.query("SELECT nspname FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname<>'information_schema'")).rows.map(r=>r.nspname);
+ await client.query(namespaceGate(namespaces));
+ await client.query('SAVEPOINT namespace_negative;CREATE SCHEMA unexpected_fixture;');
+ await assert.rejects(client.query(namespaceGate(namespaces)),/RESTORE_UNEXPECTED_NAMESPACE/);
+ await client.query('ROLLBACK TO SAVEPOINT namespace_negative');
+ await client.query('DROP TABLE public.business_accounting_connections;DROP TABLE storage.buckets,storage.objects;DROP SCHEMA vault CASCADE;DROP EXTENSION pgcrypto;DROP SCHEMA extensions;');
+ console.log('T19_NATIVE_PG17_RESTORE_ADMISSION_SQL_PASS');
+
  // Execute the two exact historical vendor files in a minimal prerequisite
  // fixture, then prove the disabled-versioning constraint on native PG17.
  await client.query("SET LOCAL storage.install_roles='false';");
@@ -150,8 +173,8 @@ try{
  console.log('T19_NATIVE_PG17_AUTOMATIC_BOOTSTRAP_GRANTOR_PASS');
  console.log('T19_NATIVE_PG17_NULLABILITY_AND_CONSTRAINT_DRIFT_REJECTED');
  console.log('T19_NATIVE_PG17_RECOVERY_FIXTURE_ROLLBACK_PASS');
-}catch{
- console.error('T19_NATIVE_PG17_RECOVERY_CATALOG_FAIL');process.exitCode=1;
+}catch(e){
+ console.error('T19_NATIVE_PG17_RECOVERY_CATALOG_FAIL');console.error('SYNTHETIC_FIXTURE_DIAGNOSTIC '+String(e.code??'ASSERT')+' '+String(e.message).split('\n')[0].slice(0,240));process.exitCode=1;
 }finally{
  if(begun){try{await client.query('ROLLBACK');await client.query('RESET SESSION AUTHORIZATION');}catch{console.error('T19_NATIVE_PG17_ROLLBACK_UNKNOWN');process.exitCode=1;}}
  await client.end();

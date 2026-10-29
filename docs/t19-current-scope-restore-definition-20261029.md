@@ -46,3 +46,7 @@ Missing/tampered input, stale live scope, unsupported role/SQL transform, resour
 Before signing: implement the distinct adapter and offline validators; test scope/signature/expiry/replay/destination refusal, adversarial SQL/member handling, wrong/missing data and sequence drift, phase ordering, interruption before/after commit, journal failures, owned cleanup/quarantine and negative comparison cases. Use synthetic archives and native PG17 fixtures, never the protected checkpoint in CI. Pass current-head CI/review and merge into staging. Then collect the private admission packet and present the exact one-run receipt for owner signature.
 
 T19 remains In progress, accounting activation NO-GO. The protected restore project and T20 remain untouched.
+
+## Source adapter implementation — 29 October 2026
+
+The separate [adapter implementation record](t19-isolated-restore-adapter-20261029.md) now defines the executable input/binding model, strict planner, local-only host adapter, candidate-admin data/managed-postgres schema actor transition, logging suppression and native component tests. That record makes the recovery-only actor transition explicit; no hosted service receives bootstrap authority. Source delivery does not change the execution hold. Actual archive shape, Windows-to-Linux custody, current capture and exact unsigned receipt still require private admission/review. No checkpoint restore has run.
