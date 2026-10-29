@@ -41,3 +41,7 @@ The first owner-host attempt stopped before completing isolation because Docker 
 The next owner attempt reached sentinel creation but quarantined on Docker's empty pre-start network ID. The [created-state correction](t19-bootstrap-created-network-fix-20261028.md) separates declared-network verification from mandatory post-start attachment verification. The retained resources and journal require explicit recovery reconciliation; cleanup is not yet verified for that attempt.
 
 The following attempt cleaned up successfully but failed Docker startup because local-log compression was enabled with max-file=1. The [logging correction](t19-bootstrap-local-logging-fix-20261029.md) explicitly disables compression while retaining the single-file1 MiB configuration and verifies the effective logging options through inspect. Native compatibility remains unverified.
+
+## Current bounded acceptance — 29 October 2026
+
+The owner has now reported a complete twelve-stage SYNTHETIC_COMPATIBILITY_PASS on staging dbe5cf80ad4958a80fda5604798bbefaa33a6961, including managed parity, inactive custody, security, empty stable state and reconciled cleanup. See [the current acceptance record](t19-synthetic-compatibility-pass-20261029.md). Earlier unexecuted/failed conclusions above remain historical. This does not authorize checkpoint use, preserve a running destination, install operational custody or close full T19. The next package is the separately reviewed current-scope restore adapter and private admission packet.
