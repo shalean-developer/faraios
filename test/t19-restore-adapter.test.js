@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync,sign} from 'node:crypto';
 import {canonical} from '../scripts/t19-bootstrap-engine.mjs';
-import {RESTORE_SCOPE,RESTORE_PHASES,dataMember,schemaMember,runRestore,catalogSQL,fullManagedGate,namespaceGate} from '../scripts/t19-restore-plan.mjs';
+import {RESTORE_SCOPE,RESTORE_PHASES,dataMember,schemaMember,runRestore,catalogSQL,fullManagedGate,namespaceGate,publicationGate,REALTIME_OWNER_GUARD} from '../scripts/t19-restore-plan.mjs';
 import {validateRestoreApproval,sourceAdmissionSQL,RestoreHost} from '../scripts/t19-restore-host.mjs';
 import {readFile} from 'node:fs/promises';
 test('data replay is COPY-only with opaque escaped rows, bounded table and member scope',()=>{
@@ -114,4 +114,12 @@ test('full managed equality precedes data and namespace drift is fenced',async()
  assert.ok(!gate.includes('BEGIN TRANSACTION'));
  assert.ok(namespaceGate(['public']).includes('RESTORE_UNEXPECTED_NAMESPACE'));
  for(const statement of ['CREATE AGGREGATE public.bad(int) (sfunc=int4pl,stype=int);','GRANT postgres TO authenticated;','GRANT CONNECT ON DATABASE postgres TO authenticated;'])assert.throws(()=>schemaMember(statement,'schema'));
+});
+
+test('only exact platform ownership becomes an owner assertion; publication changes remain refused',async()=>{
+ assert.equal(schemaMember('ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";','schema'),REALTIME_OWNER_GUARD);
+ for(const sql of ['CREATE PUBLICATION supabase_realtime;','ALTER PUBLICATION another OWNER TO postgres;','ALTER PUBLICATION supabase_realtime OWNER TO authenticated;','ALTER PUBLICATION supabase_realtime ADD TABLE public.businesses;'])assert.throws(()=>schemaMember(sql,'schema'));
+ assert.throws(()=>publicationGate(undefined),/CAPTURE_REQUIRED/);assert.throws(()=>publicationGate([]),/CAPTURE_REQUIRED/);
+ assert.ok(publicationGate([{name:'supabase_realtime',owner:'postgres'}]).includes('IS DISTINCT FROM'));
+ assert.ok((await sourceAdmissionSQL()).includes("'restorePublications'"));
 });
