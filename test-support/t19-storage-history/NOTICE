@@ -1,0 +1,13 @@
+FaraiOS T19 Storage history compatibility proposal
+
+Includes unmodified SQL and LICENSE from supabase/storage:
+https://github.com/supabase/storage/tree/db42280506a07a165376219b2d6ac7bc92ccdfcc
+Copyright 2019 Supabase. Apache License 2.0; see LICENSE.
+
+Relative to the pinned v1.84.23 base image, this proposal replaces only:
+/app/migrations/tenant/0002-storage-schema.sql
+/app/migrations/tenant/0062-object-versioning-core.sql
+with the exact upstream pre-2026-10-09 revisions. Their bytes are unchanged
+from that upstream commit. No migration ledger UPDATE or hash refresh is used.
+The image also receives this attribution directory. This is a proposed mixed
+revision derivative, not an unchanged official release or qualified runtime.
