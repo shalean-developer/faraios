@@ -3,7 +3,7 @@
   "scope": "owner-signed-synthetic-only",
   "images": {
     "postgres": {
-      "imageId": "sha256:d1b45b411b9513a3eb3a4d0e78a9d0f404d6f1f5fe89d79239ee3af3e1ee6e3f",
+      "imageId": "sha256:ab85056c03f387f1b544420d88198872035093af9df6455402284b2deabe6eec",
       "layers": 32,
       "ancestors": [
         {"imageId": "sha256:2b3159aaa54f5bfb06dffce70ee7b2481a3489fdfb607562e12b4940e26331f8", "layers": 30},
