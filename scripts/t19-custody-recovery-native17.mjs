@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {Client} from 'pg';
 import {compareStructure} from './t19-custody-recovery-compare.mjs';
+import {sourceAdmissionSQL} from './t19-restore-host.mjs';
 
 if(process.env.T19_SYNTHETIC_CATALOG_ONLY!=='yes'||process.env.PGHOST!=='127.0.0.1'||process.env.PGPORT!=='5432'||process.env.PGUSER!=='postgres'||!process.env.PGPASSWORD)
  throw Error('SYNTHETIC_NATIVE17_GATE_REFUSED');
@@ -46,6 +47,18 @@ try{
  const captured=(await client.query(captureBody)).find(r=>r.rows?.[0]?.jsonb_build_object)?.rows[0].jsonb_build_object;
  assert.equal(captured.schemaVersion,1);assert.equal(Object.keys(captured.catalog).length,12);assert.equal(Object.keys(captured.catalog.managed).length,17);
  console.log('T19_NATIVE_PG17_BOOTSTRAP_CAPTURE_SQL_PASS');
+ // Compile/execute the full admission projection on native PG17. This fixture
+ // deliberately removes only its TLS/runtime guard and transaction wrapper;
+ // the production generated SQL keeps both. No hosted TLS claim is made.
+ await client.query('CREATE TABLE public.business_accounting_connections(enabled boolean);CREATE SCHEMA vault;CREATE TABLE vault.secrets(id integer);CREATE TABLE storage.buckets(id text);CREATE TABLE storage.objects(id text);');
+ const sourceCapture=(await sourceAdmissionSQL()).replace('BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;','').replace(/DO \$guard\$[\s\S]*?\$guard\$;/,'').replace(/COMMIT;\s*$/,'');
+ const admission=(await client.query(sourceCapture)).find(r=>r.rows?.[0]?.jsonb_build_object)?.rows[0].jsonb_build_object;
+ assert.equal(admission.sourceProject,'xdmfyrsauvqznkloroxg');assert.equal(admission.custodyReadback.roleConforms,true);assert.equal(admission.custodyReadback.membershipConforms,true);
+ assert.equal(compareStructure(admission.custodyDefinition,expected).status,'CUSTODY_STRUCTURE_MATCH');
+ assert.equal(admission.sourceState.enabledConnections,0);assert.equal(typeof admission.checkpointCatalog.application,'string');
+ await client.query('DROP TABLE public.business_accounting_connections;DROP TABLE storage.buckets,storage.objects;DROP SCHEMA vault CASCADE;');
+ console.log('T19_NATIVE_PG17_RESTORE_ADMISSION_SQL_PASS');
+
  // Execute the two exact historical vendor files in a minimal prerequisite
  // fixture, then prove the disabled-versioning constraint on native PG17.
  await client.query("SET LOCAL storage.install_roles='false';");
