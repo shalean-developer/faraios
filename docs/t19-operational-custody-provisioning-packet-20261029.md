@@ -49,3 +49,5 @@ Create distinct custody/server, web-client and scheduler-client certificates/key
 Open items: complete Vault/legacy-consumer closure and current API exposure readback; compatible-candidate whole-stage SQL/rollback evidence; private-host filesystem/logging/lifecycle and TLS identity qualification; actual restricted-role transport; nonempty custody recovery/fencing; final exact execution wrapper/postcondition digests and fresh protected baseline. The full packet must be concrete and reviewable before any execution approval request. No new user secret is needed for this source preparation.
 
 T19 remains In progress; step 3 is not accepted. Accounting activation remains NO-GO and T20 remains Not started.
+
+The next owner-host source package is the [separate synthetic operational SQL rehearsal](t19-owner-operational-rehearsal-20261029.md). Its new owner signature authorizes only the disposable pinned-image rehearsal. It cannot install hosted custody or reuse accepted restore authority.
