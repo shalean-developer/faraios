@@ -63,7 +63,9 @@ export function verifyImageLineage(image,ancestors,policy){
 export function verifyCoreExtensionBootstrap(actual){
  const expected=[['pg_stat_statements','1.11'],['pgcrypto','1.3'],['uuid-ossp','1.1']].map(([name,version])=>({name,version,schema:'extensions',owner:'postgres'}));
  const configured=typeof actual?.privilegedExtensions==='string'?actual.privilegedExtensions.split(',').map(x=>x.trim().replace(/^"|"$/g,'')):[];
- requireTrue(canonical(actual?.extensions)===canonical(expected)&&expected.every(e=>configured.includes(e.name)),'POSTGRES_EXTENSION_OWNER_OR_CONFIG');
+ const byName=(a,b)=>String(a?.name).localeCompare(String(b?.name),'en');
+ const extensions=Array.isArray(actual?.extensions)?[...actual.extensions].sort(byName):null;
+ requireTrue(canonical(extensions)===canonical(expected.sort(byName))&&expected.every(e=>configured.includes(e.name)),'POSTGRES_EXTENSION_OWNER_OR_CONFIG');
 }
 export class Host {
  constructor({run,dir,receipt,expected,files,baseline}){Object.assign(this,{run,dir,receipt,expected,files,baseline});this.nonce=validNonce(receipt.nonce);this.net=`t19-bootstrap-${this.nonce}`;this.outnet=`t19-bootstrap-sentinel-${this.nonce}`;this.bound=new Map();this.nets=new Map();this.sequence=0;this.unknown=false;this.started=Date.now();this.secrets=[];}
@@ -136,9 +138,16 @@ export class Host {
   await this.poll(async()=>{const x=await this.assertBound(b);if(!x.State.Running)throw Error('POSTGRES_STARTUP_STOPPED');const logs=(await this.command(['container','logs','--tail','200',b.id])).toString();if(!logs.includes('PostgreSQL init process complete')||!logs.includes('database system is ready to accept connections'))return false;let ready;try{ready=await this.run(['container','exec',b.id,'pg_isready','--host=/var/run/postgresql','--username=supabase_admin','--dbname=postgres']);}catch(e){if(e.unknown)this.unknown=true;throw e;}requireTrue([0,1,2].includes(ready.code),'READINESS_PROBE_FAILED');return ready.code===0;},'POSTGRES_NOT_READY');
   const r=await this.sqlJSON("SELECT jsonb_build_object('version',current_setting('server_version_num')::int,'bootstrap',EXISTS(SELECT FROM pg_roles WHERE oid=10 AND rolname='supabase_admin' AND rolsuper),'managed',EXISTS(SELECT FROM pg_roles WHERE rolname='postgres' AND NOT rolsuper AND rolcreaterole),'owners',(SELECT count(*) FROM pg_roles WHERE rolname IN ('supabase_auth_admin','supabase_storage_admin')));",'supabase_admin');requireTrue(r.version>=170000&&r.version<180000&&r.bootstrap===true&&r.managed===true&&r.owners===2,'MANAGED_BOOTSTRAP_ROLE_MISMATCH');
   const core=await this.sqlJSON("SELECT jsonb_build_object('privilegedExtensions',current_setting('supautils.privileged_extensions',true),'extensions',(SELECT jsonb_agg(jsonb_build_object('name',e.extname,'version',e.extversion,'schema',n.nspname,'owner',pg_get_userbyid(e.extowner)) ORDER BY e.extname) FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname IN ('pg_stat_statements','pgcrypto','uuid-ossp')));",'supabase_admin');
-  verifyCoreExtensionBootstrap(core);await this.record('postgres-extension-owners',{extensions:core.extensions,privilegedExtensionsRestored:true});
+  await this.coreExtensionGate(core);
   // Password changes are restricted to the two fresh candidate-local vendor roles.
   await this.sql("ALTER ROLE supabase_auth_admin PASSWORD '"+password+"'; ALTER ROLE supabase_storage_admin PASSWORD '"+password+"';",'supabase_admin');
+ }
+ async coreExtensionGate(core){
+  // Record only this non-secret extension metadata before assertion/cleanup.
+  // A failed gate must retain the actual values, not just its reason string.
+  await this.record('postgres-extension-readback',core);
+  verifyCoreExtensionBootstrap(core);
+  await this.record('postgres-extension-owners',{extensions:core.extensions,privilegedExtensionsRestored:true});
  }
  async bootstrapHelpers(){
   const sql=await readFile(join(ROOT,'test-support/t19-bootstrap-helpers/overlay.sql'));

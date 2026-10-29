@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {IMAGES} from '../scripts/t19-bootstrap-engine.mjs';
-import {verifyImageLineage,verifyCoreExtensionBootstrap} from '../scripts/t19-bootstrap-host.mjs';
+import {verifyImageLineage,verifyCoreExtensionBootstrap,Host} from '../scripts/t19-bootstrap-host.mjs';
 const root=new URL('../',import.meta.url);
 const lineage=JSON.parse(readFileSync(new URL('config/t19-bootstrap-images.json',root)));
 test('built derivative pins bind both parent chains and only the three reviewed changed files',()=>{
@@ -33,7 +33,15 @@ test('lineage verification rejects wrong ancestors, layer prefixes, configuratio
 test('core-extension startup gate requires source owners and restored redirection configuration',()=>{
  const extensions=[['pg_stat_statements','1.11'],['pgcrypto','1.3'],['uuid-ossp','1.1']].map(([name,version])=>({name,version,schema:'extensions',owner:'postgres'}));
  const actual={extensions,privilegedExtensions:'btree_gist, pg_stat_statements, pgcrypto, uuid-ossp'};verifyCoreExtensionBootstrap(actual);
- for(const change of [x=>x.extensions[0].owner='supabase_admin',x=>x.extensions[1].version='other',x=>x.extensions.pop(),x=>x.privilegedExtensions='',x=>x.privilegedExtensions=null,x=>x.extensions[2].schema='public']){
+ verifyCoreExtensionBootstrap({...actual,extensions:[...extensions].reverse()});
+ for(const change of [x=>x.extensions[0].owner='supabase_admin',x=>x.extensions[1].version='other',x=>x.extensions.pop(),x=>x.extensions[2]=x.extensions[0],x=>x.privilegedExtensions='',x=>x.privilegedExtensions=null,x=>x.extensions[2].schema='public']){
   const x=structuredClone(actual);change(x);assert.throws(()=>verifyCoreExtensionBootstrap(x),/POSTGRES_EXTENSION_OWNER_OR_CONFIG/);
  }
+});
+test('failed extension gate retains the actual readback before cleanup without a success record',async()=>{
+ const h=Object.create(Host.prototype),records=[];
+ h.record=async(kind,value)=>records.push({kind,value:structuredClone(value)});
+ const actual={extensions:[{name:'pgcrypto',version:'1.3',schema:'extensions',owner:'supabase_admin'}],privilegedExtensions:'pgcrypto'};
+ await assert.rejects(h.coreExtensionGate(actual),/POSTGRES_EXTENSION_OWNER_OR_CONFIG/);
+ assert.deepEqual(records,[{kind:'postgres-extension-readback',value:actual}]);
 });
