@@ -1,0 +1,9 @@
+Derived from Supabase PostgreSQL at 802e6a10d46963f690ef0766a7d55c29150678c2.
+migrate.sh: migrations/db/migrate.sh
+The PostgreSQL License is included verbatim.
+The runner temporarily clears the SIGHUP-only privileged_extensions setting
+through ALTER SYSTEM and reload, waits for fresh connections to observe it,
+runs the unmodified init-script loop as the still-superuser postgres, then
+resets the override and verifies the original setting before demotion/migrations.
+These operations affect only the fresh disposable PGDATA tmpfs.
+No extension is dropped, reassigned or altered in a hosted database.
