@@ -28,6 +28,8 @@ Ordinary test discovery uses an isolated embedded database model. Only the dedic
 
 CI explicitly invokes this runner and requires T19_OPERATIONAL_FULL_STAGE_NATIVE_PASS, CI_POLICY_OPERATIONAL_FULL_STAGE_NATIVE_PASS and T19_OPERATIONAL_DISPOSABLE_CLUSTER_CLEANED. A skipped native test or embedded-only result cannot satisfy that native gate. Local targeted evidence before publication: 21/21 tests passed; updated whole-stage local checks are rerun before commit. Native CI results must be verified on the final PR and merged staging heads.
 
+The first native attempt refused admission before role changes because the guard used obj_description for a shared database comment. Cleanup passed. The corrected guard uses shobj_description and is also exercised by the embedded test; the nonce/fresh-state gate remains mandatory. The failed CI result remains historical, not accepted SQL evidence.
+
 ## Limits and next gate
 
 This is a complete reviewed-SQL regression under managed-style permissions. It is not the exact pinned Supabase Docker image, live provider/Vault encryption, current hosted Data API exposure, real restricted database/mTLS authentication, nonempty operational-custody recovery or accounting E2E evidence. The successful earlier bootstrap/restore does not automatically certify this new SQL on that image. A bounded, freshly authorized compatible owner-candidate rehearsal and private-host qualification remain required before exact hosted provisioning approval. No existing owner receipt is reusable.

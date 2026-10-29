@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createHash} from 'node:crypto';
+import {createHash,randomBytes} from 'node:crypto';
 import {PGlite} from '@electric-sql/pglite';
 import {btree_gist} from '@electric-sql/pglite/contrib/btree_gist';
 import {Client} from 'pg';
@@ -28,11 +28,10 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
   const version=(await scalar("SELECT current_setting('server_version_num')::int AS n")).n;
   if(target)assert.ok(version>=170000&&version<180000);
   else assert.ok(version>=170000); // embedded model; native CI alone proves PG17
-  if(target){
-   const nonce=process.env.T19_OPERATIONAL_NATIVE_NONCE;
-   assert.match(nonce??'',/^[a-f0-9]{32}$/);
-   assert.equal((await scalar("SELECT obj_description(oid,'pg_database') AS marker FROM pg_database WHERE datname=current_database()")).marker,'t19-operational-synthetic-'+nonce);
-  }
+  const nonce=target?process.env.T19_OPERATIONAL_NATIVE_NONCE:randomBytes(16).toString('hex');
+  assert.match(nonce??'',/^[a-f0-9]{32}$/);
+  if(!target)await exec("COMMENT ON DATABASE postgres IS 't19-operational-synthetic-"+nonce+"'");
+  assert.equal((await scalar("SELECT shobj_description(oid,'pg_database') AS marker FROM pg_database WHERE datname=current_database()")).marker,'t19-operational-synthetic-'+nonce);
   assert.equal((await scalar("SELECT count(*)::int AS n FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public'")).n,0);
   assert.equal((await scalar("SELECT count(*)::int AS n FROM pg_namespace WHERE nspname NOT LIKE 'pg_%' AND nspname NOT IN ('public','information_schema')")).n,0);
   assert.equal((await scalar("SELECT count(*)::int AS n FROM pg_roles WHERE rolname NOT LIKE 'pg_%' AND rolname<>'postgres'")).n,0);
