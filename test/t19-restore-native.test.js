@@ -5,6 +5,7 @@ import {Client} from 'pg';
 import {spawn} from 'node:child_process';
 import {readFile} from 'node:fs/promises';
 import {dataMember,LIMITS,catalogSQL,schemaMember,PUBLICATIONS_SQL,publicationGate} from '../scripts/t19-restore-plan.mjs';
+import {restoreManagedComponents,restoreSQLStates} from '../scripts/t19-restore-host.mjs';
 import {verificationSQL,sequenceVerificationSQL} from '../scripts/restore-staging.mjs';
 const enabled=!!process.env.T19_RESTORE_NATIVE_URL;
 async function fixture(name,fn){
@@ -15,9 +16,9 @@ async function fixture(name,fn){
   assert.ok(Number((await admin.query("SHOW server_version_num")).rows[0].server_version_num)>=170000&&Number((await admin.query("SHOW server_version_num")).rows[0].server_version_num)<180000);
   await admin.query('CREATE DATABASE '+name);created=true;url.pathname='/'+name;
   db=new Client({connectionString:url.href});await db.connect();
-  const psql=sql=>new Promise((resolve,reject)=>{
+  const psql=(sql,{verbosity='terse'}={})=>new Promise((resolve,reject)=>{
    const env={...process.env};for(const k of Object.keys(env))if(k.startsWith('PG')||k.includes('DATABASE_URL'))delete env[k];
-   const p=spawn(process.env.T19_PSQL,['-X','-qAt','--no-password','--set=ON_ERROR_STOP=1','--set=VERBOSITY=terse','-h','127.0.0.1','-p',url.port,'-U','postgres','-d',name],{env,stdio:['pipe','pipe','pipe']});let out='',err='';p.stdout.on('data',b=>out+=b);p.stderr.on('data',b=>err+=b);p.on('error',reject);p.on('close',code=>code===0?resolve(out):reject(Error('NATIVE_SQL_REFUSED '+err.slice(0,400))));p.stdin.end(sql);
+   const p=spawn(process.env.T19_PSQL,['-X','-qAt','--no-password','--set=ON_ERROR_STOP=1','--set=VERBOSITY='+verbosity,'-h','127.0.0.1','-p',url.port,'-U','postgres','-d',name],{env,stdio:['pipe','pipe','pipe']});let out='',err='';p.stdout.on('data',b=>out+=b);p.stderr.on('data',b=>err+=b);p.on('error',reject);p.on('close',code=>code===0?resolve(out):reject(Object.assign(Error('NATIVE_SQL_REFUSED '+err.slice(0,400)),{stderr:err})));p.stdin.end(sql);
   });
   await fn(db,psql,url.href);
  }finally{if(db)await db.end();if(created)await admin.query('DROP DATABASE '+name);await admin.end();}
@@ -89,5 +90,13 @@ test('native PG17 platform publication owner is checked, not changed, and all me
   const filtered=await take();assert.deepEqual(filtered[0].tables[0].columns,['id','value']);assert.ok(filtered[0].tables[0].filter.includes('id > 0'));
   await psql(publicationGate(filtered));await db.query('ALTER PUBLICATION supabase_realtime DROP TABLE public.publication_fixture');assert.deepEqual(await take(),baseline);
   await db.query('DROP PUBLICATION supabase_realtime');await assert.rejects(psql(transformed),/RESTORE_PUBLICATION_OWNER_MISMATCH/);await assert.rejects(psql(gate),/RESTORE_PUBLICATION_STATE_MISMATCH/);
+ });
+});
+
+test('native PG17 psql SQLSTATE verbosity carries component codes without message text',{skip:!enabled},async()=>{
+ await fixture('t19_restore_component_fixture',async(db,psql)=>{
+  await assert.rejects(psql("DO $$ BEGIN RAISE WARNING USING ERRCODE='P2002',MESSAGE='PRIVATE_COMPONENT_DETAIL';RAISE WARNING USING ERRCODE='P2006',MESSAGE='PRIVATE_COMPONENT_DETAIL';RAISE WARNING USING ERRCODE='P2101',MESSAGE='PRIVATE_COMPONENT_DETAIL';RAISE EXCEPTION USING ERRCODE='P1905',MESSAGE='PRIVATE_GUARD_DETAIL';END $$;",{verbosity:'sqlstate'}),e=>{
+   assert.deepEqual(restoreManagedComponents(e.stderr),['events','managed.columns','roles']);assert.deepEqual(restoreSQLStates(e.stderr),['P1905']);assert.ok(!e.stderr.includes('PRIVATE_'));return true;
+  });
  });
 });
