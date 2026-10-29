@@ -1,6 +1,6 @@
 # T19 operational custody provisioning packet — review preparation
 
-The [complete managed-style SQL regression](t19-operational-full-stage-rehearsal-20261029.md) now covers full-file commit, forced rollback, collision refusal and SQL access boundaries. Its synthetic provider substitutes and native CI scope do not replace the remaining compatible owner-candidate/private-host checks below.
+The [complete managed-style SQL regression](t19-operational-full-stage-rehearsal-20261029.md) now covers full-file commit, forced rollback, collision refusal and SQL access boundaries. Its synthetic provider substitutes and native CI scope are now supplemented by the [signed pinned-image owner rehearsal and evidence check](t19-synthetic-operational-pass-20261029.md). Compatible-candidate whole-stage SQL is demonstrated for the exact source and empty synthetic state; private-host qualification and hosted execution remain pending.
 
 29 October 2026. Target xdmfyrsauvqznkloroxg only. **NOT READY FOR HOSTED EXECUTION.** The owner authorized preparation and staging delivery of corrections. This packet does not authorize credentials, hosted SQL, service startup, Zoho consent, accounting activation, production or T20. The held restore project is excluded.
 
@@ -23,7 +23,7 @@ The accepted current-scope restore and immutable receipt/journal hashes are reco
 1. Verify source hashes, approved project/endpoint, authenticated postgres executor, PostgreSQL version, verify-full transport and fresh backend TLS. Confirm owner quiet window and approval for that one exact stage.
 2. Save a protected before-state: native full managed/application catalogs and grants, function owners/ACLs/default privileges, role flags/memberships, all protected row/count/digest and sequence state, migration state and inactive custody state. Keep original evidence unchanged. Scope or baseline drift stops execution.
 3. Require zero custody/Vault material and disabled accounting for initial provisioning, no running consumers, no runtime LOGIN and no existing operational objects outside the expected prior stages. Assess all Vault consumers and legacy invoice-publication callers before their grant changes. Preserve provider-managed Vault grants unless a separate reviewed change is authorized.
-4. Prove exact staged SQL on an eligible compatible disposable candidate, including managed non-superuser installation, forced rollback, collision refusal and effective postconditions. OP-05/OP-06 native regressions establish their specific defects, not the entire managed installation.
+4. Prove exact staged SQL on an eligible compatible disposable candidate, including managed non-superuser installation, forced rollback, collision refusal and effective postconditions. The accepted signed synthetic operational rehearsal establishes this candidate prerequisite for the recorded source. It does not waive a fresh hosted baseline, exact-stage approval or current host checks.
 5. Recheck private schema exclusion from the actual Data API configuration. No role-setting row alone proves this. Install no generic exposed credential RPC, decrypt endpoint or caller-defined provider executor.
 
 ## Stage-specific postconditions
@@ -46,8 +46,8 @@ Create distinct custody/server, web-client and scheduler-client certificates/key
 
 ## Remaining admission and decision
 
-Open items: complete Vault/legacy-consumer closure and current API exposure readback; compatible-candidate whole-stage SQL/rollback evidence; private-host filesystem/logging/lifecycle and TLS identity qualification; actual restricted-role transport; nonempty custody recovery/fencing; final exact execution wrapper/postcondition digests and fresh protected baseline. The full packet must be concrete and reviewable before any execution approval request. No new user secret is needed for this source preparation.
+Open items: complete Vault/legacy-consumer closure and current API exposure readback; private-host filesystem/logging/lifecycle and TLS identity qualification; actual restricted-role transport; nonempty custody recovery/fencing; final exact execution wrapper/postcondition digests and fresh protected baseline. The full packet must be concrete and reviewable before any execution approval request. No new user secret is needed for this source preparation.
 
 T19 remains In progress; step 3 is not accepted. Accounting activation remains NO-GO and T20 remains Not started.
 
-The next owner-host source package is the [separate synthetic operational SQL rehearsal](t19-owner-operational-rehearsal-20261029.md). Its new owner signature authorizes only the disposable pinned-image rehearsal. It cannot install hosted custody or reuse accepted restore authority.
+The [separate synthetic operational SQL rehearsal](t19-owner-operational-rehearsal-20261029.md) has completed with its [owner evidence check](t19-synthetic-operational-pass-20261029.md). Its consumed signature authorized only that disposable run; it cannot install hosted custody or authorize another execution.
