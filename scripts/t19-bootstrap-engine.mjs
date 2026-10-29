@@ -19,7 +19,7 @@ export function containerSpec(nonce,kind,network,env={}){
 }
 export function createArgs(s,command,environmentPath){
  requireTrue(typeof environmentPath==='string'&&environmentPath.startsWith('/')&&!/[\r\n\0]/.test(environmentPath)&&!['/dev/','/proc/','/sys/'].some(p=>environmentPath.startsWith(p)),'ENV_FILE_PATH_INVALID');
- const a=['container','create','--name',s.name,'--pull','never','--network',s.network,'--read-only','--cpus','1','--memory','512m','--memory-swap','512m','--pids-limit','64','--cap-drop','ALL','--security-opt','no-new-privileges:true','--user',s.user,'--restart','no','--log-driver','local','--log-opt','max-size=1m','--log-opt','max-file=1','--label',LABEL+'='+s.nonce,'--env-file',environmentPath,...Object.entries(s.tmpfs).flatMap(([p,v])=>['--tmpfs',p+':'+v])];
+ const a=['container','create','--name',s.name,'--pull','never','--network',s.network,'--read-only','--cpus','1','--memory','512m','--memory-swap','512m','--pids-limit','64','--cap-drop','ALL','--security-opt','no-new-privileges:true','--user',s.user,'--restart','no','--log-driver','local','--log-opt','max-size=1m','--log-opt','max-file=1','--log-opt','compress=false','--label',LABEL+'='+s.nonce,'--env-file',environmentPath,...Object.entries(s.tmpfs).flatMap(([p,v])=>['--tmpfs',p+':'+v])];
  if(command?.entrypoint)a.push('--entrypoint',command.entrypoint);
  a.push(s.image,...(command?.args??[]));return a;
 }
@@ -29,7 +29,7 @@ export function isolated(x,s,networkId){
  // This exception is limited to a provably unstarted created container.
  const declaredOnly=typeof networkId==='string'&&networkId.length>0&&x?.State?.Status==='created'&&x.State.Running===false&&x.State.Pid===0&&e?.NetworkID===''&&!e.EndpointID&&!e.IPAddress&&!e.GlobalIPv6Address&&!e.MacAddress;
  return x?.Name==='/'+s.name&&x.Image===s.image&&c?.Image===s.image&&c.User===s.user&&c.Labels?.[LABEL]===s.nonce&&
- h?.NetworkMode===s.network&&h.ReadonlyRootfs===true&&h.Memory===536870912&&h.MemorySwap===536870912&&h.NanoCpus===1e9&&h.PidsLimit===64&&h.Privileged===false&&h.PublishAllPorts===false&&h.AutoRemove===false&&h.RestartPolicy?.Name==='no'&&
+ h?.NetworkMode===s.network&&h.ReadonlyRootfs===true&&h.Memory===536870912&&h.MemorySwap===536870912&&h.NanoCpus===1e9&&h.PidsLimit===64&&h.Privileged===false&&h.PublishAllPorts===false&&h.AutoRemove===false&&h.RestartPolicy?.Name==='no'&&canonical(h.LogConfig)===canonical({Type:'local',Config:{'max-size':'1m','max-file':'1',compress:'false'}})&&
  canonical(h.Tmpfs)===canonical(s.tmpfs)&&canonical(h.CapDrop)===canonical(['ALL'])&&canonical(h.SecurityOpt)===canonical(['no-new-privileges:true'])&&
  ![h.PidMode,h.IpcMode,h.UTSMode].includes('host')&&!['Binds','CapAdd','Devices','DeviceRequests','VolumesFrom','Links','ExtraHosts'].some(k=>(h[k]??[]).length)&&
  !Object.keys(h.PortBindings??{}).length&&!(x.Mounts??[]).some(m=>m.Type!=='tmpfs')&&!Object.values(n?.Ports??{}).some(v=>v?.length)&&

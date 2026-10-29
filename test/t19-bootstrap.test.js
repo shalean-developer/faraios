@@ -12,7 +12,7 @@ import {dockerProcess,validateApproval,compareCatalog,Host,CATALOG_KEYS} from '.
 const nonce='1'.repeat(32),network='t19-bootstrap-'+nonce;
 const files=JSON.parse(await readFile(new URL('../config/t19-bootstrap-files.json',import.meta.url))).files;
 function specFixture(kind='postgres'){
- const s=containerSpec(nonce,kind,network),x={Id:'a'.repeat(64),Name:'/'+s.name,Image:s.image,Config:{Image:s.image,User:s.user,Labels:{'faraios.t19.bootstrap-nonce':nonce}},HostConfig:{NetworkMode:s.network,ReadonlyRootfs:true,Memory:536870912,MemorySwap:536870912,NanoCpus:1e9,PidsLimit:64,Privileged:false,PublishAllPorts:false,AutoRemove:false,RestartPolicy:{Name:'no'},Tmpfs:s.tmpfs,CapDrop:['ALL'],SecurityOpt:['no-new-privileges:true']},NetworkSettings:{Networks:{[network]:{NetworkID:'network-id'}},Ports:{}},Mounts:[]};return {s,x};
+ const s=containerSpec(nonce,kind,network),x={Id:'a'.repeat(64),Name:'/'+s.name,Image:s.image,Config:{Image:s.image,User:s.user,Labels:{'faraios.t19.bootstrap-nonce':nonce}},HostConfig:{NetworkMode:s.network,ReadonlyRootfs:true,Memory:536870912,MemorySwap:536870912,NanoCpus:1e9,PidsLimit:64,Privileged:false,PublishAllPorts:false,AutoRemove:false,RestartPolicy:{Name:'no'},LogConfig:{Type:'local',Config:{'max-size':'1m','max-file':'1',compress:'false'}},Tmpfs:s.tmpfs,CapDrop:['ALL'],SecurityOpt:['no-new-privileges:true']},NetworkSettings:{Networks:{[network]:{NetworkID:'network-id'}},Ports:{}},Mounts:[]};return {s,x};
 }
 test('fixed creation bounds contain no restore, bind, published-port or pull capability',()=>{
  const {s}=specFixture();const a=createArgs(s,undefined,'/private/env-test/values.env');assert.equal(a[a.length-1],s.image);assert.ok(a.includes('/private/env-test/values.env'));assert.throws(()=>createArgs(s,undefined,'/dev/stdin'));assert.equal(a[a.indexOf('--pull')+1],'never');assert.equal(a[a.indexOf('--network')+1],network);
@@ -115,4 +115,13 @@ test('start validates the real network attachment after Docker acknowledges star
   const h=new Host({run,dir:'/unused',receipt:{nonce},files,expected:cat(),baseline:{}});h.nets.set(network,'network-id');const b={id:x.Id,s,expectedEnv:[],expectedEntrypoint:x.Config.Entrypoint,expectedCmd:x.Config.Cmd};
   if(attached)await h.start(b);else await assert.rejects(h.start(b),/CONTAINER_ISOLATION/);assert.equal(starts,1);
  }
+});
+test('every container has an explicit valid single-file uncompressed local logging policy',()=>{
+ for(const kind of ['postgres','auth-migrate','auth','storage','sentinel','probe']){
+  const s=containerSpec(nonce,kind,network),args=createArgs(s,undefined,'/private/env-test/values.env');
+  assert.equal(args[args.indexOf('--log-driver')+1],'local');
+  assert.deepEqual(args.filter((v,i)=>args[i-1]==='--log-opt').sort(),['compress=false','max-file=1','max-size=1m']);
+ }
+ const {s,x}=specFixture();assert.ok(isolated(x,s,'network-id'));
+ for(const change of [x=>x.HostConfig.LogConfig.Config.compress='true',x=>delete x.HostConfig.LogConfig.Config.compress,x=>x.HostConfig.LogConfig.Config['max-file']='2',x=>x.HostConfig.LogConfig.Config['max-size']='20m',x=>x.HostConfig.LogConfig.Type='json-file',x=>delete x.HostConfig.LogConfig]){const y=structuredClone(x);change(y);assert.equal(isolated(y,s,'network-id'),false);}
 });

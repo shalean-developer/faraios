@@ -39,3 +39,5 @@ After source review and current-head CI, install the exact reviewed source under
 The first owner-host attempt stopped before completing isolation because Docker could not reopen /dev/stdin as an env-file. See [the preserved failure and correction record](t19-bootstrap-envfile-fix-20261028.md). Compatibility remains unverified.
 
 The next owner attempt reached sentinel creation but quarantined on Docker's empty pre-start network ID. The [created-state correction](t19-bootstrap-created-network-fix-20261028.md) separates declared-network verification from mandatory post-start attachment verification. The retained resources and journal require explicit recovery reconciliation; cleanup is not yet verified for that attempt.
+
+The following attempt cleaned up successfully but failed Docker startup because local-log compression was enabled with max-file=1. The [logging correction](t19-bootstrap-local-logging-fix-20261029.md) explicitly disables compression while retaining the single-file1 MiB configuration and verifies the effective logging options through inspect. Native compatibility remains unverified.
