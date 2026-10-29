@@ -95,8 +95,8 @@ test('native PG17 platform publication owner is checked, not changed, and all me
 
 test('native PG17 psql SQLSTATE verbosity carries component codes without message text',{skip:!enabled},async()=>{
  await fixture('t19_restore_component_fixture',async(db,psql)=>{
-  await assert.rejects(psql("DO $$ BEGIN RAISE WARNING USING ERRCODE='P2002',MESSAGE='PRIVATE_COMPONENT_DETAIL';RAISE WARNING USING ERRCODE='P2006',MESSAGE='PRIVATE_COMPONENT_DETAIL';RAISE EXCEPTION USING ERRCODE='P1905',MESSAGE='PRIVATE_GUARD_DETAIL';END $$;",{verbosity:'sqlstate'}),e=>{
-   assert.deepEqual(restoreManagedComponents(e.stderr),['events','roles']);assert.deepEqual(restoreSQLStates(e.stderr),['P1905']);assert.ok(!e.stderr.includes('PRIVATE_'));return true;
+  await assert.rejects(psql("DO $$ BEGIN RAISE WARNING USING ERRCODE='P2002',MESSAGE='PRIVATE_COMPONENT_DETAIL';RAISE WARNING USING ERRCODE='P2006',MESSAGE='PRIVATE_COMPONENT_DETAIL';RAISE WARNING USING ERRCODE='P2101',MESSAGE='PRIVATE_COMPONENT_DETAIL';RAISE EXCEPTION USING ERRCODE='P1905',MESSAGE='PRIVATE_GUARD_DETAIL';END $$;",{verbosity:'sqlstate'}),e=>{
+   assert.deepEqual(restoreManagedComponents(e.stderr),['events','managed.columns','roles']);assert.deepEqual(restoreSQLStates(e.stderr),['P1905']);assert.ok(!e.stderr.includes('PRIVATE_'));return true;
   });
  });
 });

@@ -63,6 +63,11 @@ try{
  await assert.rejects(client.query(fullManagedGate({...admission.catalog,events:'different',roles:'different'},bootstrapProjection)),e=>e.code==='P1905'&&e.message==='RESTORE_FULL_MANAGED_MISMATCH');
  client.removeListener('notice',onComponentNotice);assert.deepEqual(componentWarnings,[{code:'P2002',message:'T19_MANAGED_COMPONENT_MISMATCH'},{code:'P2006',message:'T19_MANAGED_COMPONENT_MISMATCH'}]);
  await client.query('ROLLBACK TO SAVEPOINT full_managed_negative');
+ const detailWarnings=[];const onDetailNotice=n=>detailWarnings.push(n.code);client.on('notice',onDetailNotice);
+ await client.query('SAVEPOINT managed_detail_negative');
+ await assert.rejects(client.query(fullManagedGate({...admission.catalog,managed:{...admission.catalog.managed,columns:'different'}},bootstrapProjection)),e=>e.code==='P1905');
+ client.removeListener('notice',onDetailNotice);assert.deepEqual(detailWarnings,['P2001','P2101']);
+ await client.query('ROLLBACK TO SAVEPOINT managed_detail_negative');
  const namespaces=(await client.query("SELECT nspname FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname<>'information_schema'")).rows.map(r=>r.nspname);
  await client.query(namespaceGate(namespaces));
  await client.query('SAVEPOINT namespace_negative;CREATE SCHEMA unexpected_fixture;');

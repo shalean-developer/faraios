@@ -9,7 +9,7 @@ import {canonical,digest,requireTrue,PHASES,IMAGES} from './t19-bootstrap-engine
 import {openBackup,SOURCE} from './backup-staging.mjs';
 import {validateScope} from './backup-scope.mjs';
 import {compareStructure} from './t19-custody-recovery-compare.mjs';
-import {RESTORE_SCOPE,PRE_BOOTSTRAP,RESTORE_PHASES,LIMITS,INERT_SQL,planRestore,runRestore,catalogSQL,namespaceGate,PUBLICATIONS_SQL,publicationGate,RESTORE_GUARD_CODES,REALTIME_OWNER_GUARD,MANAGED_COMPONENT_CODES} from './t19-restore-plan.mjs';
+import {RESTORE_SCOPE,PRE_BOOTSTRAP,RESTORE_PHASES,LIMITS,INERT_SQL,planRestore,runRestore,catalogSQL,namespaceGate,PUBLICATIONS_SQL,publicationGate,RESTORE_GUARD_CODES,REALTIME_OWNER_GUARD,MANAGED_DIAGNOSTIC_CODES} from './t19-restore-plan.mjs';
 const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const ACCEPTED_BUNDLE='231e08e545544fb9483e97e2811a22f7ad85635441ba4a8aedd58915d063556a';
 const OWNER='9509ac682d7aa3bf5a6683aec53dbfc407834ba9302f3e58fbafe1c3ad3a1958';
@@ -90,7 +90,7 @@ export function restoreSQLStates(stderr){
  return [...new Set([...String(stderr??'').matchAll(/^(?:ERROR|FATAL):[ \t]+([0-9A-Z]{5})[ \t]*\r?$/gm)].map(m=>m[1]))];
 }
 export function restoreManagedComponents(stderr){
- return [...new Set([...String(stderr??'').matchAll(/^WARNING:[ \t]+(P20(?:0[1-9]|1[0-2]))[ \t]*\r?$/gm)].map(m=>MANAGED_COMPONENT_CODES[m[1]]))].sort();
+ return [...new Set([...String(stderr??'').matchAll(/^WARNING:[ \t]+(P2[01][0-9]{2})[ \t]*\r?$/gm)].map(m=>MANAGED_DIAGNOSTIC_CODES[m[1]]).filter(Boolean))].sort();
 }
 export class RestoreHost extends Host {
  constructor(options){super(options);this.plan=options.plan;this.restoreActive=false;this.restoreRun=options.restoreRun??options.run;this.archiveAuthenticated=options.archiveAuthenticated===true;}

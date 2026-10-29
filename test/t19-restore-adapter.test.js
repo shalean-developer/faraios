@@ -174,3 +174,5 @@ test('managed mismatch diagnostics accept only fixed component warning codes and
  const result=await runRestore(p);assert.equal(result.status,'FAIL');assert.equal(result.cleanupVerified,true);assert.deepEqual(result.differingComponents,['events','roles']);
  assert.equal(Object.keys(MANAGED_COMPONENT_CODES).length,12);assert.deepEqual(restoreManagedComponents('WARNING:  P2099\nWARNING: P2002 with private text'),[]);
 });
+
+test('managed detail diagnostic labels remain fixed, including ACLs and function metadata',()=>{assert.deepEqual(restoreManagedComponents('WARNING: P2101\nWARNING: P2109\nWARNING: P2199\n'),['managed.columns','managed.functions']);});
