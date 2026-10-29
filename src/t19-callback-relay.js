@@ -10,7 +10,8 @@ export function createCallbackRelay({publicKey,returnUrl,now=Date.now}){
    const u=new URL(request.url);
    if(request.method!=='GET'||u.pathname!=='/accounting/zoho/callback'||u.search.length>8192)throw Error();
    const entries=[...u.searchParams];
-   if(entries.length!==2||u.searchParams.getAll('state').length!==1||u.searchParams.getAll('code').length!==1)throw Error();
+   if(entries.length<2||entries.length>4||entries.some(([k])=>!['state','code','location','accounts-server'].includes(k)||u.searchParams.getAll(k).length!==1)||u.searchParams.getAll('state').length!==1||u.searchParams.getAll('code').length!==1)throw Error();
+   // Provider hints are never trusted for token routing; custody uses its pin.
    const envelope=await sealCallback(publicKey,{state:u.searchParams.get('state'),code:u.searchParams.get('code')},now());
    // Fragment is ciphertext and never sent in the return HTTP request. No
    // caller-supplied destination, code/state query or incoming Referer forwarded.

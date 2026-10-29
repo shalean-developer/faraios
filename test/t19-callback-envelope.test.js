@@ -40,6 +40,7 @@ test('relay returns only encrypted fragment to a fixed origin and refuses ambigu
  assert.equal(result.code,'synthetic-only');assert.equal(result.state,state);
  for(const suffix of ['&state='+state,'&redirect=https://evil.example','&code=second'])assert.equal((await relay(new Request(request.url+suffix))).status,403);
  assert.equal((await relay(new Request(request.url,{method:'POST'}))).status,403);
+ assert.equal((await relay(new Request(request.url+'&location=eu&accounts-server=https://untrusted.example'))).status,303);
 });
 test('same-origin receiver completes the synthetic HTTP handoff and denies cross-origin requests',async()=>{
  const {createCallbackRelay,createCallbackReturn}=await import('../src/t19-callback-relay.js');
