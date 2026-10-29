@@ -91,3 +91,16 @@ test('recovered SQL uses candidate-local logging suppression before actor drop a
  assert.ok(observed.stdin.indexOf("SET pgaudit.log='none'")<observed.stdin.indexOf('SELECT synthetic_private_value'));
  await assert.rejects(RestoreHost.prototype.restoreSQL.call(host,'SELECT 1;','service_role'),/PRINCIPAL/);
 });
+test('recovered RLS query aliases remain intact while managed DDL targets are refused',()=>{
+ const policy="CREATE POLICY scoped_read ON public.connections FOR SELECT TO authenticated USING(EXISTS(SELECT 1 FROM public.business_memberships m WHERE m.business_id=connections.business_id AND m.user_id=auth.uid()));";
+ assert.equal(schemaMember(policy,'schema').trim(),policy);
+ for(const sql of ['ALTER TABLE auth.users DISABLE ROW LEVEL SECURITY;','CREATE TABLE storage.new_table(id int);','GRANT SELECT ON TABLE auth.users TO authenticated;','CREATE SCHEMA net;'])assert.throws(()=>schemaMember(sql,'schema'),/NAMESPACE/);
+});
+test('existing application foundation DDL and policy joins fit the bounded schema classifier',async()=>{
+ for(const file of ['identity-draft.sql','audit-draft.sql','business-settings-draft.sql','catalogue-draft.sql','customers-draft.sql','bookings-draft.sql','invoices-draft.sql']){
+  // These repository development drafts have wrappers; native pg_dump members
+  // do not. Strip only those wrappers in this source-compatibility fixture.
+  const sql=(await readFile(new URL('../database/'+file,import.meta.url),'utf8')).replace(/^begin;\s*$/gmi,'').replace(/^commit;\s*$/gmi,'');
+  assert.doesNotThrow(()=>schemaMember(sql,'schema'),file);
+ }
+});

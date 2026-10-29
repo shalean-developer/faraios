@@ -142,7 +142,7 @@ async function inputs(requestPath,dir,authorized=null){
  if(authorized)check(authorized.planSha256===plan.planSha256,'RESTORE_PLAN_CHANGED');
  return {run,baseline,expected,plan,boundarySQL,bindings,trust,archiveAuthenticated:true,files:json(await fs.readFile(join(ROOT,'config/t19-bootstrap-files.json'))).files};
 }
-const REVIEWED_BOUNDARY_SHA='0309162fb219a69e993a508d1b4fd927a46a96354a9d162dd4b178565a5e0b9f';
+const REVIEWED_BOUNDARY_SHA='6c4efb80a6a55011fef42ed755e912f3390a44e6002561f753b4117747a1ba5a';
 async function main(){
  const [mode,requestPath,dir,approvalPath,...extra]=process.argv.slice(2);
  if(mode==='--capture-sql'&&!requestPath){process.stdout.write(await sourceAdmissionSQL());return;}

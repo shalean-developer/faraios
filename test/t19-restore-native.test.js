@@ -17,7 +17,7 @@ async function fixture(name,fn){
   db=new Client({connectionString:url.href});await db.connect();
   const psql=sql=>new Promise((resolve,reject)=>{
    const env={...process.env};for(const k of Object.keys(env))if(k.startsWith('PG')||k.includes('DATABASE_URL'))delete env[k];
-   const p=spawn(process.env.T19_PSQL,['-X','-qAt','--no-password','--set=ON_ERROR_STOP=1','--set=VERBOSITY=sqlstate','-h','127.0.0.1','-p',url.port,'-U','postgres','-d',name],{env,stdio:['pipe','pipe','pipe']});let out='';p.stdout.on('data',b=>out+=b);p.stderr.resume();p.on('error',reject);p.on('close',code=>code===0?resolve(out):reject(Error('NATIVE_SQL_REFUSED')));p.stdin.end(sql);
+   const p=spawn(process.env.T19_PSQL,['-X','-qAt','--no-password','--set=ON_ERROR_STOP=1','--set=VERBOSITY=terse','-h','127.0.0.1','-p',url.port,'-U','postgres','-d',name],{env,stdio:['pipe','pipe','pipe']});let out='',err='';p.stdout.on('data',b=>out+=b);p.stderr.on('data',b=>err+=b);p.on('error',reject);p.on('close',code=>code===0?resolve(out):reject(Error('NATIVE_SQL_REFUSED '+err.slice(0,400))));p.stdin.end(sql);
   });
   await fn(db,psql,url.href);
  }finally{if(db)await db.end();if(created)await admin.query('DROP DATABASE '+name);await admin.end();}

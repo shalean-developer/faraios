@@ -80,8 +80,16 @@ export function schemaMember(sql,kind){
    if(/^ALTER DEFAULT PRIVILEGES/.test(c))check(/^ALTER DEFAULT PRIVILEGES FOR ROLE POSTGRES IN SCHEMA (?:PUBLIC|AUDIT|SUPABASE_MIGRATIONS) /.test(c),'RESTORE_DEFAULT_ROLE');
    check(!/\bLANGUAGE (?!PLPGSQL\b|SQL\b)[A-Z_]+/.test(c),'RESTORE_SCHEMA_LANGUAGE');
    if(/^CREATE EXTENSION\b/.test(c))check(/^CREATE EXTENSION IF NOT EXISTS (?:BTREE_GIST|PG_STAT_STATEMENTS|PGCRYPTO|PLPGSQL|SUPABASE_VAULT|UUID-OSSP)(?: WITH SCHEMA (?:EXTENSIONS|PG_CATALOG|VAULT))?$/.test(c),'RESTORE_EXTENSION_REFUSED');
-   // Every qualified target outside literals/bodies belongs to recovered scope.
-   for(const match of c.matchAll(/\b([A-Z_][A-Z0-9_]*)\s*\.\s*[A-Z_]/g))check(['PUBLIC','AUDIT','AUTH','STORAGE','SUPABASE_MIGRATIONS','PG_CATALOG','EXTENSIONS'].includes(match[1]),'RESTORE_SCHEMA_NAMESPACE');
+   // Classify DDL targets, not query aliases (m.business_id in RLS is not a
+   // schema). Managed references in policies/FKs are allowed; managed DDL is not.
+   if(!/^CREATE EXTENSION\b/.test(c)){
+    if(/^(?:CREATE(?: UNIQUE)? (?:POLICY|INDEX|TRIGGER)|GRANT|REVOKE|COMMENT)\b/.test(c)){
+     const target=/\bON\s+([A-Z_][A-Z0-9_]*)\s*\.\s*[A-Z_]/.exec(c);
+     if(target)check(['PUBLIC','AUDIT','SUPABASE_MIGRATIONS'].includes(target[1]),'RESTORE_SCHEMA_NAMESPACE');
+    }
+    for(const match of c.matchAll(/\b(?:TABLE(?: ONLY)?|SEQUENCE|FUNCTION|PROCEDURE|VIEW|TYPE|DOMAIN|INDEX|COLUMN)\s+(?:IF NOT EXISTS )?([A-Z_][A-Z0-9_]*)\s*\.\s*[A-Z_]/g))check(['PUBLIC','AUDIT','SUPABASE_MIGRATIONS'].includes(match[1]),'RESTORE_SCHEMA_NAMESPACE');
+    for(const match of c.matchAll(/(?:^CREATE |^ALTER | ON | IN )SCHEMA\s+(?:IF NOT EXISTS )?([A-Z_][A-Z0-9_]*)/g))check(['PUBLIC','AUDIT','SUPABASE_MIGRATIONS'].includes(match[1]),'RESTORE_SCHEMA_NAMESPACE');
+   }
   }
   out.push(statement.text+'\n');
  }
