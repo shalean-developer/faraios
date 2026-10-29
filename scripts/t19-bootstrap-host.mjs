@@ -12,7 +12,7 @@ const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const NODE_SHA='e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb';
 const DOCKER_SHA='cb92457611ccecae73e395a97673de28e397eaf020f807d91153960bbfe41b01';
 const TRUST='/etc/faraios/t19-gate2-trust.json';
-const SOURCES=['scripts/t19-bootstrap-env.mjs','scripts/t19-bootstrap-engine.mjs','scripts/t19-bootstrap-host.mjs','scripts/t19-bootstrap-catalog.sql','config/t19-bootstrap-files.json','scripts/restore-catalog.sql','scripts/t19-custody-recovery-compare.mjs','test-support/t19-custody-recovery-expected.json','docs/proposals/t19-inactive-custody-recovery.sql','docs/proposals/t19-inactive-custody-recovery-readback.sql'];
+const SOURCES=['test-support/t19-realtime-bootstrap/tenant_db_dump_17.sql','scripts/t19-bootstrap-env.mjs','scripts/t19-bootstrap-engine.mjs','scripts/t19-bootstrap-host.mjs','scripts/t19-bootstrap-catalog.sql','config/t19-bootstrap-files.json','scripts/restore-catalog.sql','scripts/t19-custody-recovery-compare.mjs','test-support/t19-custody-recovery-expected.json','docs/proposals/t19-inactive-custody-recovery.sql','docs/proposals/t19-inactive-custody-recovery-readback.sql'];
 export async function bundleDigest(){return digest(await Promise.all(SOURCES.map(async p=>[p,digest(await readFile(join(ROOT,p)))])));}
 export async function protectedPath(path,directory=false){
  const p=resolve(path);requireTrue(await realpath(p)===p,'PROTECTED_PATH_SYMLINK');
@@ -121,6 +121,18 @@ export class Host {
   const r=await this.sqlJSON("SELECT jsonb_build_object('version',current_setting('server_version_num')::int,'bootstrap',EXISTS(SELECT FROM pg_roles WHERE oid=10 AND rolname='supabase_admin' AND rolsuper),'managed',EXISTS(SELECT FROM pg_roles WHERE rolname='postgres' AND NOT rolsuper AND rolcreaterole),'owners',(SELECT count(*) FROM pg_roles WHERE rolname IN ('supabase_auth_admin','supabase_storage_admin')));",'supabase_admin');requireTrue(r.version>=170000&&r.version<180000&&r.bootstrap===true&&r.managed===true&&r.owners===2,'MANAGED_BOOTSTRAP_ROLE_MISMATCH');
   // Password changes are restricted to the two fresh candidate-local vendor roles.
   await this.sql("ALTER ROLE supabase_auth_admin PASSWORD '"+password+"'; ALTER ROLE supabase_storage_admin PASSWORD '"+password+"';",'supabase_admin');
+ }
+ async realtime(){
+  const sql=await readFile(join(ROOT,'test-support/t19-realtime-bootstrap/tenant_db_dump_17.sql'));
+  requireTrue(digest(sql)==='f98beb234131e3295d2d7651607db5b79a754b7c745b1a853ba0e1b76f757c47','REALTIME_VENDOR_BYTES_CHANGED');
+  const empty=await this.sqlJSON("SELECT jsonb_build_object('bootstrap',current_user='supabase_admin','objects',(SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='realtime'),'roleAbsent',NOT EXISTS(SELECT FROM pg_roles WHERE rolname='supabase_realtime_admin'));",'supabase_admin');
+  requireTrue(empty.bootstrap&&empty.objects===0&&empty.roleAbsent,'REALTIME_NOT_FRESH');
+  // Vendor-supported tenant dump, inside the fresh candidate only. No Realtime
+  // daemon/control database, hosted connection or archived SQL is involved.
+  await this.sql('BEGIN;\n'+sql.toString()+'\nCOMMIT;','supabase_admin');
+  const result=await this.sqlJSON("SELECT jsonb_build_object('count',(SELECT count(*) FROM realtime.schema_migrations),'last',(SELECT max(version)::text FROM realtime.schema_migrations),'messages',(SELECT count(*) FROM realtime.messages),'subscriptions',(SELECT count(*) FROM realtime.subscription));",'supabase_admin');
+  requireTrue(result.count===91&&result.last==='20261009120000'&&result.messages===0&&result.subscriptions===0,'REALTIME_BOUNDARY_MISMATCH');
+  await this.record('realtime-bootstrap',{vendorSha256:digest(sql),...result});
  }
  authEnv(){return {GOMAXPROCS:'1',GOTRUE_DB_DRIVER:'postgres',GOTRUE_DB_DATABASE_URL:`postgres://supabase_auth_admin:${this.password}@${this.bound.get('postgres').s.name}:5432/postgres`,GOTRUE_DB_NAMESPACE:'auth',GOTRUE_API_HOST:'0.0.0.0',GOTRUE_API_PORT:'9999',API_EXTERNAL_URL:'http://t19.invalid',GOTRUE_SITE_URL:'http://t19.invalid',GOTRUE_JWT_SECRET:this.jwtSecret,GOTRUE_JWT_ADMIN_ROLES:'service_role',GOTRUE_DISABLE_SIGNUP:'true',GOTRUE_EXTERNAL_EMAIL_ENABLED:'false',GOTRUE_EXTERNAL_PHONE_ENABLED:'false',GOTRUE_INDEX_WORKER_ENSURE_USER_SEARCH_INDEXES_EXIST:'true',GOTRUE_INDEX_WORKER_MAX_USERS_THRESHOLD:'0',GOTRUE_TRACING_ENABLED:'false'};}
  async authMigrations(){this.jwtSecret=randomBytes(32).toString('hex');this.secrets.push(this.jwtSecret);const b=await this.create('auth-migrate',this.authEnv(),{entrypoint:'/usr/local/bin/auth',args:['migrate']});await this.audit(b,'auth');await this.absent(b,'/.env');await this.start(b);await this.poll(async()=>{const x=await this.assertBound(b);if(x.State.Running)return false;requireTrue(x.State.ExitCode===0&&!x.State.OOMKilled,'AUTH_MIGRATION_FAILED');return true;},'AUTH_MIGRATION_TIMEOUT');await this.remove('auth-migrate');const before=await this.sqlJSON("SELECT jsonb_build_object('count',count(*)::int) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='auth' AND c.relname IN ('idx_users_email','idx_users_created_at_desc','idx_users_last_sign_in_at_desc','idx_users_name');");requireTrue(before.count===0,'AUTH_INDEXES_PREEXIST_WORKER');await this.record('auth-index-config',{ensureUserSearchIndexesExist:true,maxUsersThreshold:0,indexesAbsentBeforeWorker:true});}

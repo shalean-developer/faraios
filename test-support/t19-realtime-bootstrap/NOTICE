@@ -1,0 +1,6 @@
+Unmodified Supabase Realtime PostgreSQL 17 tenant bootstrap snapshot.
+Upstream: https://github.com/supabase/realtime
+Revision: cdb70addbe82e5f0347c544c112ec36c9855d965
+Path: priv/repo/tenant_db_dump_17.sql
+Apache 2.0 LICENSE included verbatim. No upstream SQL changes.
+This is a synthetic fixture, not permission to execute against a hosted database.
