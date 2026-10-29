@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "runtimeActivationAllowed": false,
+  "recipes": [
+    {
+      "component": "postgres",
+      "baseId": "sha256:2b3159aaa54f5bfb06dffce70ee7b2481a3489fdfb607562e12b4940e26331f8",
+      "baseTag": "faraios-t19-keypath:20261028",
+      "outputTag": "faraios-t19-init-owners:20261029",
+      "context": "test-support/t19-postgres-init-owners",
+      "baseLayers": 30,
+      "addedLayers": 2,
+      "files": {
+        "Dockerfile": "04dc07dea4d6258baddee4db2d45a2d3a1dad5475fca4f7f3ff7bfc1f16130db",
+        "migrate.sh": "e1134b5b6d0f054f0368605975977a04bd8cf81ed84498e0baaddc0fc0589924",
+        "LICENSE": "fd313c784c2e3c964fe043fdb7bcffa8f84627d53d2cf3a61c61586ff6c3f4c1",
+        "NOTICE": "f2dfcf6a170dd948e74a84870c8026e36eac4d73574cd22287ca0beb7b653540"
+      }
+    },
+    {
+      "component": "storage",
+      "baseId": "sha256:b8f956b64ea3aee1dfc2cd9f0c9ce8d74335405992a90281bb5a979d1d552c22",
+      "baseTag": "faraios-t19-storage-history-base:20261029",
+      "outputTag": "faraios-t19-storage-history:20261029",
+      "context": "test-support/t19-storage-history",
+      "baseLayers": 14,
+      "addedLayers": 2,
+      "files": {
+        "Dockerfile": "2aae22fa1f4208af96c96275183b5f29fe63ee0d9ee33d011d5c0a41e487f805",
+        "0002-storage-schema.sql": "19562682ff1b77cda9ba096671b873e7e226b10f0b0564bd4823e6c1754393b6",
+        "0062-object-versioning-core.sql": "45969060b55102f56af317b0d7981434be58927de1ff76e1e1789139a3f2defc",
+        "LICENSE": "87420ad3debbb44af3e5aac29f5bafd4427eef7a28c6e5eae199bdde1ad7c2e2",
+        "NOTICE": "b01b4947704d634bc7234bb8d8a48cf2d66f7c21faf2a2e341b8625333623d56"
+      }
+    }
+  ]
+}

@@ -130,6 +130,14 @@ export class Host {
   await this.sql('BEGIN;\n'+sql.toString()+'\nCOMMIT;','supabase_admin');
   await this.record('helper-overlay',{sha256:digest(sql),functions:6,roleSettingsCorrected:['supabase_admin.search_path']});
  }
+ async bootstrapDependencies(){
+  const pre=await this.sqlJSON("SELECT jsonb_build_object('available',EXISTS(SELECT FROM pg_available_extensions WHERE name='btree_gist' AND default_version='1.7'),'absent',NOT EXISTS(SELECT FROM pg_extension WHERE extname='btree_gist'));",'supabase_admin');
+  requireTrue(pre.available&&pre.absent,'BTREE_GIST_INITIAL_STATE');
+  await this.sql("CREATE EXTENSION btree_gist WITH SCHEMA extensions VERSION '1.7';",'supabase_admin');
+  const actual=await this.sqlJSON("SELECT jsonb_build_object('version',e.extversion,'schema',n.nspname,'owner',pg_get_userbyid(e.extowner)) FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname='btree_gist';",'supabase_admin');
+  requireTrue(actual.version==='1.7'&&actual.schema==='extensions'&&actual.owner==='supabase_admin','BTREE_GIST_INSTALLATION');
+  await this.record('bootstrap-dependencies',{btree_gist:actual});
+ }
  async realtime(){
   const sql=await readFile(join(ROOT,'test-support/t19-realtime-bootstrap/tenant_db_dump_17.sql'));
   requireTrue(digest(sql)==='f98beb234131e3295d2d7651607db5b79a754b7c745b1a853ba0e1b76f757c47','REALTIME_VENDOR_BYTES_CHANGED');

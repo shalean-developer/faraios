@@ -90,6 +90,15 @@ try{
  assert.equal(stub.errors[0].message,'pg_graphql extension is not enabled.');
  console.log('T19_NATIVE_PG17_BOOTSTRAP_HELPER_HARDENING_PASS');
 
+ await client.query("CREATE EXTENSION btree_gist WITH SCHEMA extensions VERSION '1.7';");
+ const gist=(await client.query("SELECT e.extversion,n.nspname,pg_get_userbyid(e.extowner) AS owner FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname='btree_gist'")).rows[0];
+ assert.deepEqual(gist,{extversion:'1.7',nspname:'extensions',owner:'supabase_admin'});
+ await client.query("SET LOCAL search_path=extensions,pg_catalog; CREATE TABLE extensions.fixture_gist(id integer,span int4range,EXCLUDE USING gist(id WITH =,span WITH &&)); INSERT INTO extensions.fixture_gist VALUES(1,int4range(1,4)); SAVEPOINT fixture_gist_denial;");
+ let gistDenied=false;
+ try{await client.query('INSERT INTO extensions.fixture_gist VALUES(1,int4range(2,5));');}catch(e){gistDenied=e.code==='23P01';}
+ await client.query('ROLLBACK TO SAVEPOINT fixture_gist_denial');assert.equal(gistDenied,true);
+ console.log('T19_NATIVE_PG17_BTREE_GIST_DEPENDENCY_PASS');
+
  await client.query('ROLLBACK');begun=false;
  await client.query('RESET SESSION AUTHORIZATION');
  const clean=(await client.query("SELECT to_regnamespace('private_t19_custody') IS NULL AND to_regnamespace('realtime') IS NULL AS absent, NOT EXISTS(SELECT FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role','t19_hosted_custody','fixture_admin','supabase_admin','supabase_realtime_admin','dashboard_user')) AS roles_absent")).rows[0];
