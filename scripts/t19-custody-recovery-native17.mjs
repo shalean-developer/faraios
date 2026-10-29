@@ -117,6 +117,31 @@ try{
  assert.deepEqual(statsFunctions,['pg_stat_statements','pg_stat_statements_info','pg_stat_statements_reset'].map(proname=>({proname,owner:'postgres',dashboard:true,anon:proname!=='pg_stat_statements_reset',dashboard_grantor:true,owner_grant_option:true})));
  console.log('T19_NATIVE_PG17_STATS_OWNER_REPLAY_AND_PRIVILEGES_PASS');
 
+ // Reproduce the two remaining captured managed metadata differences, then
+ // execute the exact candidate overlay and verify its bounded effects.
+ await client.query("DROP SCHEMA private_t19_custody CASCADE; CREATE ROLE supabase_storage_admin; CREATE ROLE pgbouncer; CREATE SCHEMA pgbouncer;");
+ await client.query(await readFile(new URL('../test-support/t19-managed-final/get-auth-before.sql',import.meta.url),'utf8'));
+ await client.query("REVOKE ALL ON FUNCTION pgbouncer.get_auth(text) FROM PUBLIC; GRANT EXECUTE ON FUNCTION pgbouncer.get_auth(text) TO pgbouncer; DELETE FROM storage.objects; DELETE FROM storage.buckets; ALTER TABLE storage.buckets OWNER TO supabase_storage_admin; ALTER TABLE storage.objects OWNER TO supabase_storage_admin; ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY; ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY; GRANT ALL ON storage.buckets,storage.objects TO supabase_storage_admin; GRANT SELECT,INSERT,UPDATE,DELETE ON storage.buckets,storage.objects TO anon; GRANT ALL ON storage.buckets,storage.objects TO service_role;");
+ const aclSQL="SELECT c.relname,a.grantor::regrole::text AS grantor,a.grantee::regrole::text AS grantee,a.privilege_type,a.is_grantable FROM pg_class c CROSS JOIN LATERAL aclexplode(c.relacl) a WHERE c.oid IN ('storage.buckets'::regclass,'storage.objects'::regclass) ORDER BY 1,2,3,4";
+ const aclBefore=(await client.query(aclSQL)).rows;
+ const finalOverlay=await readFile(new URL('../test-support/t19-managed-final/overlay.sql',import.meta.url),'utf8');
+ await client.query("SAVEPOINT final_overlay_context;");
+ let finalDenied=false;
+ try{await client.query(finalOverlay);}catch(e){finalDenied=e.message.includes('T19_MANAGED_OVERLAY_CONTEXT');}
+ await client.query('ROLLBACK TO SAVEPOINT final_overlay_context');assert.equal(finalDenied,true);
+ await client.query("SET LOCAL faraios.t19_bootstrap='synthetic-only'; SAVEPOINT final_overlay_drift; ALTER FUNCTION pgbouncer.get_auth(text) RESET search_path;");
+ let driftDenied=false;
+ try{await client.query(finalOverlay);}catch(e){driftDenied=e.message.includes('T19_PGBOUNCER_INITIAL_STATE');}
+ await client.query('ROLLBACK TO SAVEPOINT final_overlay_drift');assert.equal(driftDenied,true);
+ assert.deepEqual((await client.query(aclSQL)).rows,aclBefore);
+ await client.query(finalOverlay);
+ assert.deepEqual((await client.query(aclSQL)).rows,aclBefore.map(x=>({...x,is_grantable:x.grantee==='supabase_storage_admin'?true:x.is_grantable})));
+ const finalDef=(await client.query("SELECT pg_get_functiondef('pgbouncer.get_auth(text)'::regprocedure) AS value")).rows[0].value;
+ assert.equal(finalDef,(await readFile(new URL('../test-support/t19-managed-final/get-auth-expected.sql',import.meta.url),'utf8')).slice(0,-2));
+ assert.equal((await client.query("SELECT count(*)::int AS n FROM pgbouncer.get_auth('t19_missing_synthetic_login')")).rows[0].n,0);
+ console.log('T19_NATIVE_PG17_FINAL_MANAGED_OVERLAY_PASS');
+
+
  await client.query('ROLLBACK');begun=false;
  await client.query('RESET SESSION AUTHORIZATION');
  const clean=(await client.query("SELECT to_regnamespace('private_t19_custody') IS NULL AND to_regnamespace('realtime') IS NULL AS absent, NOT EXISTS(SELECT FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role','t19_hosted_custody','fixture_admin','supabase_admin','supabase_realtime_admin','dashboard_user')) AS roles_absent")).rows[0];
