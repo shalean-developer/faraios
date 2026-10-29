@@ -2,3 +2,4 @@
 test-support/t19-storage-history/* -text
 # Preserve upstream whitespace; source SHA256 and ledger SHA1 tests remain exact.
 test-support/t19-storage-history/0002-storage-schema.sql whitespace=-blank-at-eol
+test-support/t19-realtime-bootstrap/* -text

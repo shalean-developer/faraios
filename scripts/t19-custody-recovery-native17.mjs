@@ -60,9 +60,26 @@ try{
  assert.equal((await client.query("SELECT versioning_status FROM storage.buckets WHERE id='synthetic-history'")).rows[0].versioning_status,'DISABLED');
  console.log('T19_NATIVE_PG17_STORAGE_HISTORY_DARK_GUARD_PASS');
 
+ // Run the unmodified vendor PG17 tenant dump as its bootstrap owner, never
+ // against a hosted connection. The enclosing transaction removes every role,
+ // grant and object, including the parameter ACL, at the end of this fixture.
+ await client.query('SET SESSION AUTHORIZATION supabase_admin; CREATE ROLE dashboard_user; CREATE SCHEMA extensions;');
+ await client.query(await readFile(new URL('../test-support/t19-realtime-bootstrap/tenant_db_dump_17.sql',import.meta.url),'utf8'));
+ const realtime=(await client.query("SELECT (SELECT count(*)::int FROM realtime.schema_migrations) AS migrations,(SELECT max(version)::text FROM realtime.schema_migrations) AS last,(SELECT count(*)::int FROM realtime.messages) AS messages,(SELECT count(*)::int FROM realtime.subscription) AS subscriptions")).rows[0];
+ assert.deepEqual(realtime,{migrations:91,last:'20261009120000',messages:0,subscriptions:0});
+ const realtimeRole=(await client.query("SELECT rolsuper,rolinherit,rolcreaterole,rolcreatedb,rolcanlogin,rolreplication,rolbypassrls,rolconfig FROM pg_roles WHERE rolname='supabase_realtime_admin'")).rows[0];
+ assert.deepEqual(realtimeRole,{rolsuper:false,rolinherit:false,rolcreaterole:false,rolcreatedb:false,rolcanlogin:false,rolreplication:false,rolbypassrls:false,rolconfig:['search_path=public, extensions, realtime']});
+ const realtimeMemberships=(await client.query("SELECT pg_get_userbyid(roleid) AS role,pg_get_userbyid(grantor) AS grantor,admin_option,inherit_option,set_option FROM pg_auth_members WHERE member='supabase_realtime_admin'::regrole ORDER BY 1")).rows;
+ assert.deepEqual(realtimeMemberships,['anon','authenticated','service_role'].map(role=>({role,grantor:'supabase_admin',admin_option:false,inherit_option:false,set_option:true})));
+ const realtimeIndexes=(await client.query("SELECT c.relname,i.indisvalid,i.indisready FROM pg_index i JOIN pg_class c ON c.oid=i.indexrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='realtime' ORDER BY c.relname")).rows;
+ assert.deepEqual(realtimeIndexes.map(r=>r.relname),['ix_realtime_subscription_entity','messages_inserted_at_topic_index','messages_pkey','pk_subscription','schema_migrations_pkey','subscription_subscription_id_entity_filters_action_filter_selec']);
+ assert.ok(realtimeIndexes.every(r=>r.indisvalid&&r.indisready));
+ assert.equal((await client.query("SELECT has_parameter_privilege('supabase_realtime_admin','log_min_messages','SET') AS allowed")).rows[0].allowed,true);
+ console.log('T19_NATIVE_PG17_REALTIME_TENANT_BOOTSTRAP_PASS');
+
  await client.query('ROLLBACK');begun=false;
  await client.query('RESET SESSION AUTHORIZATION');
- const clean=(await client.query("SELECT to_regnamespace('private_t19_custody') IS NULL AS absent, NOT EXISTS(SELECT FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role','t19_hosted_custody','fixture_admin','supabase_admin')) AS roles_absent")).rows[0];
+ const clean=(await client.query("SELECT to_regnamespace('private_t19_custody') IS NULL AND to_regnamespace('realtime') IS NULL AS absent, NOT EXISTS(SELECT FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role','t19_hosted_custody','fixture_admin','supabase_admin','supabase_realtime_admin','dashboard_user')) AS roles_absent")).rows[0];
  assert.deepEqual(clean,{absent:true,roles_absent:true});
  console.log('T19_NATIVE_PG17_RECOVERY_CATALOG_PASS');
  console.log('T19_NATIVE_PG17_AUTOMATIC_BOOTSTRAP_GRANTOR_PASS');
