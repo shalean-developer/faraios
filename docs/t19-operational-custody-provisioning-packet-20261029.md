@@ -1,5 +1,7 @@
 # T19 operational custody provisioning packet — review preparation
 
+The [complete managed-style SQL regression](t19-operational-full-stage-rehearsal-20261029.md) now covers full-file commit, forced rollback, collision refusal and SQL access boundaries. Its synthetic provider substitutes and native CI scope do not replace the remaining compatible owner-candidate/private-host checks below.
+
 29 October 2026. Target xdmfyrsauvqznkloroxg only. **NOT READY FOR HOSTED EXECUTION.** The owner authorized preparation and staging delivery of corrections. This packet does not authorize credentials, hosted SQL, service startup, Zoho consent, accounting activation, production or T20. The held restore project is excluded.
 
 ## Bound source and recovery
