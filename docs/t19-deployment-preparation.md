@@ -51,7 +51,7 @@ All modes require exactly version1, mode, boolean enabled and tls with absolute 
 Custody example (replace placeholders privately, never commit populated config):
 
 ```json
-{"version":1,"mode":"custody","enabled":false,"port":9443,"tls":{"caFile":"/etc/faraios/custody-ca.pem","certFile":"/etc/faraios/custody-cert.pem","keyFile":"/etc/faraios/custody-key.pem"},"database":{"host":"APPROVED_STAGING_DB_HOST","port":5432,"passwordFile":"/etc/faraios/custody-db-password","caFile":"/etc/faraios/db-ca.pem"},"publishableKey":"APPROVED_STAGING_PUBLISHABLE_KEY"}
+{"version":1,"mode":"custody","enabled":false,"port":9443,"tls":{"caFile":"/etc/faraios/custody-ca.pem","certFile":"/etc/faraios/custody-cert.pem","keyFile":"/etc/faraios/custody-key.pem"},"database":{"host":"aws-0-eu-west-1.pooler.supabase.com","port":5432,"passwordFile":"/etc/faraios/custody-db-password","caFile":"/etc/faraios/db-ca.pem"},"publishableKey":"APPROVED_STAGING_PUBLISHABLE_KEY"}
 ```
 
 Web/scheduler each use their own cert/key and separate active machine record/business grants. They receive no DB/password/client-secret/refresh-token config:
@@ -61,6 +61,8 @@ Web/scheduler each use their own cert/key and separate active machine record/bus
 ```
 
 Scheduler uses mode scheduler and scheduler-cert/key. Certificate SAN must match the configured endpoint. Custody pins existing staging origin, database URL and actual hosted session cookie. Database user is t19_hosted_custody; no environment/service-role fallback. Plaintext password exists only in the approved protected runtime file/memory; provider grants remain in Vault. No config is added to the web root. Logging must redact callback query strings and request bodies/Authorization at the actual proxy/process layers; application static errors alone do not prove that.
+
+The connector derives the wire username t19_hosted_custody.xdmfyrsauvqznkloroxg for this exact session-pooler hostname on 5432. The only alternative is the reviewed direct endpoint db.xdmfyrsauvqznkloroxg.supabase.co:5432 with the bare role; no automatic route fallback. Transaction mode 6543, arbitrary poolers/projects, role overrides and connection URLs are refused. This hostname comes from the previously authenticated staging pooler, not a region-generated guess. Both routes retain CA/hostname verification and TLS >=1.2. Startup additionally requires the backend identity to be the bare restricted LOGIN/NOINHERIT role, without administrative flags, on postgres with observed backend TLS >=1.2. The pooler suffix is routing, not a different PostgreSQL role. Actual restricted login and private-host TLS must still be verified after exact provisioning approval; source tests are not live transport proof.
 
 ## Verified VAT adapter/receipt requirements
 

@@ -7,7 +7,7 @@ import {isAbsolute,relative,dirname,join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {once} from 'node:events';
 import {request} from 'node:https';
-import {connectCustodyPostgres} from './t19-custody-postgres.js';
+import {connectCustodyPostgres,custodyPostgresTarget} from './t19-custody-postgres.js';
 import {createRestrictedAccountingService} from './t19-accounting-service.js';
 import {createAccountingUserClientFactory} from './t19-accounting-sessions.js';
 import {createAccountingProxy} from './t19-accounting-proxy.js';
@@ -85,6 +85,7 @@ export async function loadAccountingDeployment(path){
   exact(c.database,['host','port','passwordFile','caFile']);
   if(!Number.isInteger(c.port)||c.port<1024||c.port>65535||typeof c.database.host!=='string'||!c.database.host
    ||!Number.isInteger(c.database.port)||c.database.port<1||c.database.port>65535)throw denied();
+  custodyPostgresTarget(c.database); // reject wrong routes before reading DB credentials
   // The user-client factory validates the publishable/anon key, never service_role.
   const createUserClient=createAccountingUserClientFactory({url:stagingDatabase,publishableKey:c.publishableKey});
   const password=(await protectedFile(c.database.passwordFile)).trim();if(!password)throw denied();
