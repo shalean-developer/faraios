@@ -99,6 +99,24 @@ try{
  await client.query('ROLLBACK TO SAVEPOINT fixture_gist_denial');assert.equal(gistDenied,true);
  console.log('T19_NATIVE_PG17_BTREE_GIST_DEPENDENCY_PASS');
 
+ // Stats initialization must precede the existing dashboard grants and normal
+ // supabase_admin migration replay. No extension owner/catalogue repair.
+ const statsSQL=await readFile(new URL('../test-support/t19-postgres-stat-owner/00-extension.sql',import.meta.url),'utf8');
+ await client.query('ALTER ROLE postgres SUPERUSER; SET SESSION AUTHORIZATION postgres;');
+ await client.query(statsSQL);
+ const statsBefore=(await client.query("SELECT oid,extversion,pg_get_userbyid(extowner) AS owner FROM pg_extension WHERE extname='pg_stat_statements'")).rows[0];
+ assert.equal(statsBefore.extversion,'1.11');assert.equal(statsBefore.owner,'postgres');
+ // Exact grant forms from vendor post-setup and its extensions-perms migration.
+ await client.query('GRANT ALL ON ALL ROUTINES IN SCHEMA extensions TO dashboard_user;');
+ await client.query('SET SESSION AUTHORIZATION supabase_admin; ALTER ROLE postgres NOSUPERUSER;');
+ await client.query(statsSQL);
+ await client.query('GRANT ALL PRIVILEGES ON ALL ROUTINES IN SCHEMA extensions TO postgres WITH GRANT OPTION;');
+ const statsAfter=(await client.query("SELECT oid,extversion,pg_get_userbyid(extowner) AS owner FROM pg_extension WHERE extname='pg_stat_statements'")).rows[0];
+ assert.deepEqual(statsAfter,statsBefore);
+ const statsFunctions=(await client.query("SELECT p.proname,pg_get_userbyid(p.proowner) AS owner,has_function_privilege('dashboard_user',p.oid,'EXECUTE') AS dashboard,has_function_privilege('anon',p.oid,'EXECUTE') AS anon,EXISTS(SELECT FROM aclexplode(p.proacl) a WHERE a.grantee='dashboard_user'::regrole AND a.grantor='postgres'::regrole AND a.privilege_type='EXECUTE' AND NOT a.is_grantable) AS dashboard_grantor,EXISTS(SELECT FROM aclexplode(p.proacl) a WHERE a.grantee='postgres'::regrole AND a.grantor='postgres'::regrole AND a.privilege_type='EXECUTE' AND a.is_grantable) AS owner_grant_option FROM pg_extension e JOIN pg_depend d ON d.refobjid=e.oid AND d.refclassid='pg_extension'::regclass AND d.classid='pg_proc'::regclass AND d.deptype='e' JOIN pg_proc p ON p.oid=d.objid WHERE e.extname='pg_stat_statements' ORDER BY p.proname")).rows;
+ assert.deepEqual(statsFunctions,['pg_stat_statements','pg_stat_statements_info','pg_stat_statements_reset'].map(proname=>({proname,owner:'postgres',dashboard:true,anon:proname!=='pg_stat_statements_reset',dashboard_grantor:true,owner_grant_option:true})));
+ console.log('T19_NATIVE_PG17_STATS_OWNER_REPLAY_AND_PRIVILEGES_PASS');
+
  await client.query('ROLLBACK');begun=false;
  await client.query('RESET SESSION AUTHORIZATION');
  const clean=(await client.query("SELECT to_regnamespace('private_t19_custody') IS NULL AND to_regnamespace('realtime') IS NULL AS absent, NOT EXISTS(SELECT FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role','t19_hosted_custody','fixture_admin','supabase_admin','supabase_realtime_admin','dashboard_user')) AS roles_absent")).rows[0];

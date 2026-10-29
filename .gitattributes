@@ -7,3 +7,4 @@ test-support/t19-bootstrap-helpers/* -text
 # Preserve byte-bound upstream schema dump endings.
 test-support/t19-bootstrap-helpers/upstream-*.sql whitespace=-blank-at-eof
 test-support/t19-postgres-init-owners/* -text
+test-support/t19-postgres-stat-owner/* -text

@@ -33,18 +33,19 @@ test('patched runner retains immutable upstream source provenance',()=>{
  assert.ok(current.includes('ALTER SYSTEM RESET supautils.privileged_extensions'));
  assert.ok(!current.includes('SET supautils.privileged_extensions ='));
 });
-async function shellFixture(failReload){
+async function shellFixture(failReload,stats=false){
  const root=await mkdtemp(join(tmpdir(),'t19-init-owner-'));
  try{
   await mkdir(join(root,'init-scripts'));await mkdir(join(root,'migrations'));
-  await writeFile(join(root,'migrate.sh'),readFileSync(new URL('migrate.sh',dir)));
+  await writeFile(join(root,'migrate.sh'),readFileSync(stats?new URL('../t19-postgres-stat-owner/migrate.sh',dir):new URL('migrate.sh',dir)));
   await writeFile(join(root,'init-scripts','fixture.sql'),'SELECT 1;');
   await writeFile(join(root,'migrations','fixture.sql'),'SELECT 1;');
+  if(stats)await writeFile(join(root,'migrations','00-extension.sql'),readFileSync(new URL('../t19-postgres-stat-owner/00-extension.sql',dir)));
   await writeFile(join(root,'sleep'),'#!/bin/sh\nexit 0\n',{mode:0o700});
   const fake=`#!/usr/bin/env node
 const fs=require('node:fs');const p=process.env.T19_FAKE_STATE;let s=fs.existsSync(p)?JSON.parse(fs.readFileSync(p)):{value:'original',events:[]};
 const a=process.argv.slice(2),c=a[a.indexOf('-c')+1];let out='';
-if(a.includes('-f'))s.events.push(a[a.indexOf('-f')+1].includes('/init-scripts/')?'init':'migration');
+if(a.includes('-f')){const file=a[a.indexOf('-f')+1],user=a[a.indexOf('-U')+1];const phase=file.endsWith('/00-extension.sql')?(user==='postgres'?'stats-prime':'stats-replay'):(file.includes('/init-scripts/')?'init':'migration');s.events.push(phase);if(phase.startsWith('stats-'))(s.stats??=[]).push({phase,user,redirection:s.value});}
 else if(a.includes('-c')&&c.startsWith('SHOW ')){out=s.value;s.events.push('show');}
 else if(a.includes('-c')&&c.startsWith('ALTER SYSTEM SET ')){s.pending='';s.events.push('override');}
 else if(a.includes('-c')&&c.startsWith('ALTER SYSTEM RESET ')){s.pending='original';s.events.push('reset');}
@@ -67,4 +68,22 @@ test('failed SIGHUP observation stops the shell before any initialization SQL fi
  const r=await shellFixture(true);assert.notEqual(r.status,0);
  assert.ok(r.stderr.includes('T19_INIT_EXTENSION_CONFIG_RELOAD_FAILED'));
  assert.ok(!r.state.events.includes('init')&&!r.state.events.includes('migration'));
+});
+test('stats file runs as postgres with redirection cleared before init grants, then replays normally',async()=>{
+ const r=await shellFixture(false,true);assert.equal(r.status,0);assert.equal(r.state.value,'original');
+ assert.deepEqual(r.state.stats,[{phase:'stats-prime',user:'postgres',redirection:''},{phase:'stats-replay',user:'supabase_admin',redirection:'original'}]);
+ assert.ok(r.state.events.indexOf('stats-prime')<r.state.events.indexOf('init'));
+ assert.ok(r.state.events.indexOf('init')<r.state.events.indexOf('reset'));
+ assert.ok(r.state.events.indexOf('reset')<r.state.events.indexOf('stats-replay'));
+ const failed=await shellFixture(true,true);assert.notEqual(failed.status,0);assert.equal(failed.state.stats,undefined);
+});
+test('stats-only builder has one new PostgreSQL tag and unchanged vendor stats bytes',async()=>{
+ const recipes=await recipeInputs('--build-postgres-stat-owner');assert.equal(recipes.length,1);
+ assert.equal(recipes[0].component,'postgres');assert.equal(recipes[0].outputTag,'faraios-t19-stat-owner:20261029');assert.equal(recipes[0].baseLayers,30);
+ const bytes=readFileSync(new URL('../t19-postgres-stat-owner/00-extension.sql',dir));
+ assert.equal(createHash('sha256').update(bytes).digest('hex'),'a12e0eb4192d188e0dc5058e888ec981c1fd619d5542235d5b692ea0a1d751b2');
+ const active=JSON.parse(readFileSync(new URL('../config/t19-bootstrap-files.json',import.meta.url)));
+ assert.equal(active.files.find(x=>x.path==='/docker-entrypoint-initdb.d/migrations/00-extension.sql').sha256,createHash('sha256').update(bytes).digest('hex'));
+ await assert.rejects(recipeInputs('/arbitrary/plan'),/BUILD_MODE/);
+ assert.match(await buildBundleDigest('--build-postgres-stat-owner'),/^[a-f0-9]{64}$/);
 });

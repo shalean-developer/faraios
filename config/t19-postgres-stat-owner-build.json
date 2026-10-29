@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "runtimeActivationAllowed": false,
+  "recipes": [
+    {
+      "component": "postgres",
+      "baseId": "sha256:2b3159aaa54f5bfb06dffce70ee7b2481a3489fdfb607562e12b4940e26331f8",
+      "baseTag": "faraios-t19-keypath:20261028",
+      "outputTag": "faraios-t19-stat-owner:20261029",
+      "context": "test-support/t19-postgres-stat-owner",
+      "baseLayers": 30,
+      "addedLayers": 2,
+      "files": {
+        "Dockerfile": "818d87502ff6b21f2d28e0efe2105d83f577737af003a03dda70f012729e6e8b",
+        "migrate.sh": "d408c9712be722ec27b6f9ea951be7a2e0859c1a4aeff295d927137494231afc",
+        "LICENSE": "fd313c784c2e3c964fe043fdb7bcffa8f84627d53d2cf3a61c61586ff6c3f4c1",
+        "NOTICE": "93e725d4e95cd592dc1ef05867e691ba5219a59e0a39425ae9e7e1dba35418b4"
+      }
+    }
+  ]
+}

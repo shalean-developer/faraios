@@ -1,0 +1,9 @@
+Derived from Supabase PostgreSQL at 802e6a10d46963f690ef0766a7d55c29150678c2.
+Original runner: migrations/db/migrate.sh (upstream snapshot in prior fixture).
+Vendor stats SQL: ansible/files/stat_extension.sql, installed at
+/docker-entrypoint-initdb.d/migrations/00-extension.sql (unchanged bytes).
+The PostgreSQL License is included verbatim.
+The runner adds one call of that vendor file as the still-superuser postgres,
+after redirection is cleared and before the original init-script loop.
+The original migration loop remains, including its IF NOT EXISTS replay.
+No owner reassignment, DROP, ledger rewrite or extra runtime GRANT is added.
