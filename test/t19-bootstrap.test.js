@@ -107,8 +107,8 @@ test('Docker log inspection includes stderr readiness messages',async()=>{const 
 test('PostgreSQL logs cannot advance to SQL until the final socket answers readiness',async()=>{
  let probes=0,queries=0;const h=new Host({run:async a=>{assert.ok(a.includes('pg_isready'));probes++;return {code:probes===1?2:probes===2?1:0,stdout:Buffer.alloc(0),stderr:Buffer.alloc(0)};},dir:'/unused',receipt:{nonce},expected:cat(),files,baseline:{}});
  h.create=async()=>{const b={id:'a'.repeat(64)};h.bound.set('postgres',b);return b;};h.audit=h.absent=h.start=h.record=async()=>{};h.assertBound=async()=>({State:{Running:true}});h.command=async()=>Buffer.from('temporary server ready\nPostgreSQL init process complete\ndatabase system is ready to accept connections');
- h.poll=async fn=>{for(let i=0;i<3;i++)if(await fn())return;assert.fail('readiness never completed');};h.sqlJSON=async()=>{queries++;assert.equal(probes,3);return {version:170011,bootstrap:true,managed:true,owners:2};};h.sql=async()=>{};
- await h.postgres();assert.equal(queries,1);assert.equal(probes,3);
+ h.poll=async fn=>{for(let i=0;i<3;i++)if(await fn())return;assert.fail('readiness never completed');};h.sqlJSON=async()=>{queries++;assert.equal(probes,3);return queries===1?{version:170011,bootstrap:true,managed:true,owners:2}:{privilegedExtensions:'pg_stat_statements,pgcrypto,uuid-ossp',extensions:[['pg_stat_statements','1.11'],['pgcrypto','1.3'],['uuid-ossp','1.1']].map(([name,version])=>({name,version,schema:'extensions',owner:'postgres'}))};};h.sql=async()=>{};
+ await h.postgres();assert.equal(queries,2);assert.equal(probes,3);
 });
 test('Host.create gives the Docker client a private environment path and removes it after binding',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'t19-create-env-'));try{

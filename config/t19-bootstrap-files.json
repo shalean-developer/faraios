@@ -34,7 +34,7 @@
     {
       "component": "postgres",
       "path": "/docker-entrypoint-initdb.d/migrate.sh",
-      "sha256": "eb6a57848a73dfbc3b8e40edbadcc7a933f1099ac62cef8c138a18115655b745"
+      "sha256": "e1134b5b6d0f054f0368605975977a04bd8cf81ed84498e0baaddc0fc0589924"
     },
     {
       "component": "postgres",
@@ -729,7 +729,7 @@
     {
       "component": "storage",
       "path": "/app/migrations/tenant/0002-storage-schema.sql",
-      "sha256": "c638dbaccf8829122fc2e05148bcb82596baf288cd497bed7a2cdaa5a4d99e09"
+      "sha256": "19562682ff1b77cda9ba096671b873e7e226b10f0b0564bd4823e6c1754393b6"
     },
     {
       "component": "storage",
@@ -1024,7 +1024,7 @@
     {
       "component": "storage",
       "path": "/app/migrations/tenant/0062-object-versioning-core.sql",
-      "sha256": "65525a911066368e0375190045de813964b4c8052985a877a5521ccdb9944e07"
+      "sha256": "45969060b55102f56af317b0d7981434be58927de1ff76e1e1789139a3f2defc"
     },
     {
       "component": "storage",

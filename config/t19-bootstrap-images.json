@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "scope": "owner-signed-synthetic-only",
+  "images": {
+    "postgres": {
+      "imageId": "sha256:d1b45b411b9513a3eb3a4d0e78a9d0f404d6f1f5fe89d79239ee3af3e1ee6e3f",
+      "layers": 32,
+      "ancestors": [
+        {"imageId": "sha256:2b3159aaa54f5bfb06dffce70ee7b2481a3489fdfb607562e12b4940e26331f8", "layers": 30},
+        {"imageId": "sha256:d6844e71062a3c8e2f8021d644802850760ef970a45ac163ec8c9f0171075bda", "layers": 29}
+      ]
+    },
+    "auth": {
+      "imageId": "sha256:839f529492d116b4e8b7777c953a27c381d34c15a744b1bcefde5eefaa1f9f9f",
+      "layers": 6,
+      "ancestors": []
+    },
+    "storage": {
+      "imageId": "sha256:d1ad18d4afde8f08ae8b18f0aede17737d83fb3f189664a741f626329e5e6b97",
+      "layers": 16,
+      "ancestors": [
+        {"imageId": "sha256:b8f956b64ea3aee1dfc2cd9f0c9ce8d74335405992a90281bb5a979d1d552c22", "layers": 14}
+      ]
+    }
+  }
+}

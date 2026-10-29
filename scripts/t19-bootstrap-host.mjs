@@ -13,7 +13,7 @@ const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const NODE_SHA='e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb';
 const DOCKER_SHA='cb92457611ccecae73e395a97673de28e397eaf020f807d91153960bbfe41b01';
 const TRUST='/etc/faraios/t19-gate2-trust.json';
-const SOURCES=['scripts/t19-storage-tenant-migrate.mjs','test-support/t19-bootstrap-helpers/overlay.sql','test-support/t19-realtime-bootstrap/tenant_db_dump_17.sql','scripts/t19-bootstrap-env.mjs','scripts/t19-bootstrap-engine.mjs','scripts/t19-bootstrap-host.mjs','scripts/t19-bootstrap-catalog.sql','config/t19-bootstrap-files.json','scripts/restore-catalog.sql','scripts/t19-custody-recovery-compare.mjs','test-support/t19-custody-recovery-expected.json','docs/proposals/t19-inactive-custody-recovery.sql','docs/proposals/t19-inactive-custody-recovery-readback.sql'];
+const SOURCES=['config/t19-bootstrap-images.json','scripts/t19-storage-tenant-migrate.mjs','test-support/t19-bootstrap-helpers/overlay.sql','test-support/t19-realtime-bootstrap/tenant_db_dump_17.sql','scripts/t19-bootstrap-env.mjs','scripts/t19-bootstrap-engine.mjs','scripts/t19-bootstrap-host.mjs','scripts/t19-bootstrap-catalog.sql','config/t19-bootstrap-files.json','scripts/restore-catalog.sql','scripts/t19-custody-recovery-compare.mjs','test-support/t19-custody-recovery-expected.json','docs/proposals/t19-inactive-custody-recovery.sql','docs/proposals/t19-inactive-custody-recovery-readback.sql'];
 export async function bundleDigest(){return digest(await Promise.all(SOURCES.map(async p=>[p,digest(await readFile(join(ROOT,p)))])));}
 export async function protectedPath(path,directory=false){
  const p=resolve(path);requireTrue(await realpath(p)===p,'PROTECTED_PATH_SYMLINK');
@@ -49,6 +49,21 @@ export function compareCatalog(actual,expected){
  const a=actual?.catalog,b=expected?.catalog;requireTrue(a&&b&&canonical(Object.keys(b).sort())===canonical([...CATALOG_KEYS].sort()),'CATALOG_SHAPE');
  const differingComponents=[...new Set([...Object.keys(a),...Object.keys(b)])].sort().filter(k=>canonical(a[k])!==canonical(b[k]));
  return {match:differingComponents.length===0,differingComponents};
+}
+export function verifyImageLineage(image,ancestors,policy){
+ requireTrue(image?.Id===policy?.imageId&&image.Os==='linux'&&image.Architecture==='amd64'&&image.RootFS?.Layers?.length===policy.layers,'IMAGE_LINEAGE_IDENTITY');
+ requireTrue(Array.isArray(policy.ancestors)&&ancestors.length===policy.ancestors.length,'IMAGE_LINEAGE_ANCESTORS');
+ let previous=policy.layers;
+ for(let i=0;i<ancestors.length;i++){
+  const a=ancestors[i],p=policy.ancestors[i];
+  requireTrue(a?.Id===p.imageId&&a.Os==='linux'&&a.Architecture==='amd64'&&Number.isSafeInteger(p.layers)&&p.layers>0&&p.layers<previous&&a.RootFS?.Layers?.length===p.layers,'IMAGE_LINEAGE_ANCESTOR');
+  requireTrue(canonical(image.RootFS.Layers.slice(0,p.layers))===canonical(a.RootFS.Layers)&&canonical(image.Config)===canonical(a.Config),'DERIVATIVE_INHERITANCE');previous=p.layers;
+ }
+}
+export function verifyCoreExtensionBootstrap(actual){
+ const expected=[['pg_stat_statements','1.11'],['pgcrypto','1.3'],['uuid-ossp','1.1']].map(([name,version])=>({name,version,schema:'extensions',owner:'postgres'}));
+ const configured=typeof actual?.privilegedExtensions==='string'?actual.privilegedExtensions.split(',').map(x=>x.trim().replace(/^"|"$/g,'')):[];
+ requireTrue(canonical(actual?.extensions)===canonical(expected)&&expected.every(e=>configured.includes(e.name)),'POSTGRES_EXTENSION_OWNER_OR_CONFIG');
 }
 export class Host {
  constructor({run,dir,receipt,expected,files,baseline}){Object.assign(this,{run,dir,receipt,expected,files,baseline});this.nonce=validNonce(receipt.nonce);this.net=`t19-bootstrap-${this.nonce}`;this.outnet=`t19-bootstrap-sentinel-${this.nonce}`;this.bound=new Map();this.nets=new Map();this.sequence=0;this.unknown=false;this.started=Date.now();this.secrets=[];}
@@ -120,6 +135,8 @@ export class Host {
   await this.start(b);
   await this.poll(async()=>{const x=await this.assertBound(b);if(!x.State.Running)throw Error('POSTGRES_STARTUP_STOPPED');const logs=(await this.command(['container','logs','--tail','200',b.id])).toString();if(!logs.includes('PostgreSQL init process complete')||!logs.includes('database system is ready to accept connections'))return false;let ready;try{ready=await this.run(['container','exec',b.id,'pg_isready','--host=/var/run/postgresql','--username=supabase_admin','--dbname=postgres']);}catch(e){if(e.unknown)this.unknown=true;throw e;}requireTrue([0,1,2].includes(ready.code),'READINESS_PROBE_FAILED');return ready.code===0;},'POSTGRES_NOT_READY');
   const r=await this.sqlJSON("SELECT jsonb_build_object('version',current_setting('server_version_num')::int,'bootstrap',EXISTS(SELECT FROM pg_roles WHERE oid=10 AND rolname='supabase_admin' AND rolsuper),'managed',EXISTS(SELECT FROM pg_roles WHERE rolname='postgres' AND NOT rolsuper AND rolcreaterole),'owners',(SELECT count(*) FROM pg_roles WHERE rolname IN ('supabase_auth_admin','supabase_storage_admin')));",'supabase_admin');requireTrue(r.version>=170000&&r.version<180000&&r.bootstrap===true&&r.managed===true&&r.owners===2,'MANAGED_BOOTSTRAP_ROLE_MISMATCH');
+  const core=await this.sqlJSON("SELECT jsonb_build_object('privilegedExtensions',current_setting('supautils.privileged_extensions',true),'extensions',(SELECT jsonb_agg(jsonb_build_object('name',e.extname,'version',e.extversion,'schema',n.nspname,'owner',pg_get_userbyid(e.extowner)) ORDER BY e.extname) FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname IN ('pg_stat_statements','pgcrypto','uuid-ossp')));",'supabase_admin');
+  verifyCoreExtensionBootstrap(core);await this.record('postgres-extension-owners',{extensions:core.extensions,privilegedExtensionsRestored:true});
   // Password changes are restricted to the two fresh candidate-local vendor roles.
   await this.sql("ALTER ROLE supabase_auth_admin PASSWORD '"+password+"'; ALTER ROLE supabase_storage_admin PASSWORD '"+password+"';",'supabase_admin');
  }
@@ -207,7 +224,15 @@ async function inputs(expectedPath,dir){
  const info=JSON.parse((await run(['info','--format','{{json .}}'])).stdout);requireTrue(info.OSType==='linux'&&['x86_64','amd64'].includes(info.Architecture)&&info.MemTotal>=4294967296,'DAEMON_RESOURCES');const context=JSON.parse((await run(['context','inspect','default'])).stdout);requireTrue(context.length===1&&context[0].Endpoints?.docker?.Host==='unix:///var/run/docker.sock','CONTEXT_REFUSED');
  const mem=(await readFile('/proc/meminfo','utf8')).match(/^MemAvailable:\s+(\d+) kB/m);const disk=await statfs(dir);requireTrue(Number(mem?.[1])*1024>=3221225472&&Number(disk.bavail)*Number(disk.bsize)>=2147483648,'HOST_RESOURCES');
  const baseline=await snapshot(run);requireTrue(baseline.containers.length===13&&baseline.containers.every(c=>c.State==='exited')&&!baseline.containers.some(c=>c.Names.startsWith('t19-bootstrap-'))&&!baseline.networks.some(n=>n.Name.startsWith('t19-bootstrap-')),'BASELINE_REFUSED');
- for(const [kind,id] of Object.entries(IMAGES)){const r=await run(['image','inspect',id]);requireTrue(r.code===0,'IMAGE_MISSING');const a=JSON.parse(r.stdout);requireTrue(a.length===1&&a[0].Id===id&&a[0].Os==='linux'&&a[0].Architecture==='amd64'&&!Object.keys(a[0].Config.Volumes??{}).length,'IMAGE_IDENTITY');if(kind==='postgres'){const baseResult=await run(['image','inspect','sha256:d6844e71062a3c8e2f8021d644802850760ef970a45ac163ec8c9f0171075bda']);requireTrue(baseResult.code===0,'BASE_IMAGE_MISSING');const base=JSON.parse(baseResult.stdout)[0];requireTrue(a[0].RootFS?.Layers?.length===30&&canonical(a[0].RootFS.Layers.slice(0,-1))===canonical(base.RootFS?.Layers)&&canonical(a[0].Config)===canonical(base.Config),'DERIVATIVE_INHERITANCE');}}
+ const lineage=JSON.parse(await readFile(join(ROOT,'config/t19-bootstrap-images.json'),'utf8'));
+ requireTrue(lineage.version===1&&lineage.scope==='owner-signed-synthetic-only'&&canonical(Object.keys(lineage.images).sort())===canonical(Object.keys(IMAGES).sort()),'IMAGE_LINEAGE_POLICY');
+ for(const [kind,id] of Object.entries(IMAGES)){
+  const r=await run(['image','inspect',id]);requireTrue(r.code===0,'IMAGE_MISSING');const a=JSON.parse(r.stdout);
+  requireTrue(a.length===1&&a[0].Id===id&&a[0].Os==='linux'&&a[0].Architecture==='amd64'&&!Object.keys(a[0].Config.Volumes??{}).length,'IMAGE_IDENTITY');
+  const policy=lineage.images[kind],ancestors=[];requireTrue(policy.imageId===id,'IMAGE_POLICY_PIN');
+  for(const parent of policy.ancestors){const p=await run(['image','inspect',parent.imageId]);requireTrue(p.code===0,'BASE_IMAGE_MISSING');const xs=JSON.parse(p.stdout);requireTrue(xs.length===1,'BASE_IMAGE_IDENTITY');ancestors.push(xs[0]);}
+  verifyImageLineage(a[0],ancestors,policy);
+ }
  return {expected,trust,run,baseline,files:JSON.parse(await readFile(join(ROOT,'config/t19-bootstrap-files.json'),'utf8')).files,bindings:{bundleSha256:await bundleDigest(),binarySha256:DOCKER_SHA,expectedSha256:digest(expected),baselineSha256:digest(baseline),hostBootSha256:digest((await readFile('/proc/sys/kernel/random/boot_id','utf8')).trim()),daemonIdSha256:digest(info.ID),context:'default',journalPath:resolve(dir)}};
 }
 async function main(){

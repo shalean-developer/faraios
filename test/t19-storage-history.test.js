@@ -21,7 +21,7 @@ test('recipe adds two exact vendor files and attribution without running SQL or 
   'COPY --chown=0:0 --chmod=0644 LICENSE NOTICE /usr/share/doc/faraios-t19-storage-history/'
  ]);
  const active=JSON.parse(await readFile(new URL('config/t19-bootstrap-files.json',root),'utf8'));
- for(const f of proposal.files){const p=active.files.find(x=>x.component==='storage'&&x.path==='/app/migrations/tenant/'+f.fileName);assert.ok(p);assert.notEqual(p.sha256,f.sourceSha256);}
+ for(const f of proposal.files){const p=active.files.find(x=>x.component==='storage'&&x.path==='/app/migrations/tenant/'+f.fileName);assert.ok(p);assert.equal(p.sha256,f.sourceSha256);}
 });
 test('historical migration 62 enforces disabled versioning and rejects a real enabling write',async()=>{
  const db=new PGlite();try{
