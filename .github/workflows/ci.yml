@@ -52,3 +52,31 @@ jobs:
         with:
           node-version: '24.22.1'
       - run: node scripts/check-backup-transport.mjs
+
+  private-custody-package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24.22.1'
+      - name: Warm exact registry-integrity-checked dependency cache
+        run: npm ci --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/
+      - name: Package and inactive-install regression tests
+        run: node --test test/t19-private-package.test.js
+      - name: Build offline inactive production package and verify import-only behavior
+        run: node scripts/build-t19-private-package.mjs "$RUNNER_TEMP/t19-private-package"
+      - name: Preserve public-source-only package for owner review
+        id: custody-package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: t19-inactive-private-package
+          path: ${{ runner.temp }}/t19-private-package/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+      - name: Record package transport digest
+        env:
+          T19_ARTIFACT_DIGEST: ${{ steps.custody-package.outputs.artifact-digest }}
+        run: printf 'T19_PACKAGE_ARTIFACT_SHA256=%s\n' "$T19_ARTIFACT_DIGEST"

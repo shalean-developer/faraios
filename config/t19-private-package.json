@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "purpose": "inactive-private-custody-source",
+  "target": {
+    "uid": 10521,
+    "root": "/var/www/vhosts/custody-staging.faraios.com/app",
+    "privateConfig": "/var/www/vhosts/custody-staging.faraios.com/.faraios-t19-custody/custody.json"
+  },
+  "sourceFiles": [
+    "_custody.cjs",
+    "config/t19-hosting.json",
+    "scripts/t19-private-install.mjs",
+    "scripts/t19-private-package-verify.mjs",
+    "src/access.js",
+    "src/hosted-staging.js",
+    "src/identity.js",
+    "src/t19-accounting-api.js",
+    "src/t19-accounting-proxy.js",
+    "src/t19-accounting-service.js",
+    "src/t19-accounting-sessions.js",
+    "src/t19-accounting-worker.js",
+    "src/t19-c1.js",
+    "src/t19-custody-database.js",
+    "src/t19-custody-invoices.js",
+    "src/t19-custody-machine.js",
+    "src/t19-custody-postgres.js",
+    "src/t19-deployment.js",
+    "src/t19-managed-custody.cjs",
+    "src/t19-managed-wakeup.js",
+    "src/t19-owner-oauth.js",
+    "src/t19-provider-transport.js",
+    "src/t19-restricted-custody-core.js",
+    "src/t19-zoho-custody-provider.js",
+    "src/workspace-header.js",
+    "src/workspace-layout.js",
+    "src/zoho-books.js"
+  ],
+  "dependencies": {
+    "@supabase/supabase-js": "2.118.0",
+    "pg": "8.23.1"
+  },
+  "activationAuthorized": false
+}
