@@ -1,3 +1,4 @@
+import {createPrivateKey} from 'node:crypto';
 import {Server} from 'node:net';
 import {validateManagedTransport,wakeManagedCustody} from './t19-managed-wakeup.js';
 // Explicit staging composition only. Importing this module performs no I/O.
@@ -72,7 +73,7 @@ export async function loadAccountingDeployment(path){
  try{
   const c=JSON.parse(await protectedFile(path));
   const common=['version','mode','enabled','tls'];
-  if(c.mode==='custody')exact(c,[...common,'port','database','publishableKey']);
+  if(c.mode==='custody')exact(c,[...common,'port','database','publishableKey',...(Object.hasOwn(c,'callback')?['callback']:[])]);
   else if(['web','scheduler'].includes(c.mode))exact(c,[...common,'endpoint',...(Object.hasOwn(c,'transport')?['transport']:[])]);else throw denied();
   if(c.version!==1||typeof c.enabled!=='boolean')throw denied();
   exact(c.tls,['caFile','certFile','keyFile']);
@@ -88,8 +89,16 @@ export async function loadAccountingDeployment(path){
   custodyPostgresTarget(c.database); // reject wrong routes before reading DB credentials
   // The user-client factory validates the publishable/anon key, never service_role.
   const createUserClient=createAccountingUserClientFactory({url:stagingDatabase,publishableKey:c.publishableKey});
+  let callbackPrivateKey;
+  if(Object.hasOwn(c,'callback')){
+   exact(c.callback,['privateKeyFile']);
+   const key=createPrivateKey(await protectedFile(c.callback.privateKeyFile));
+   if(key.asymmetricKeyType!=='rsa'||key.asymmetricKeyDetails.modulusLength<3072)throw denied();
+   const bytes=key.export({type:'pkcs8',format:'der'});
+   try{callbackPrivateKey=await crypto.subtle.importKey('pkcs8',bytes,{name:'RSA-OAEP',hash:'SHA-256'},false,['decrypt']);}finally{bytes.fill(0);}
+  }
   const password=(await protectedFile(c.database.passwordFile)).trim();if(!password)throw denied();
-  return Object.freeze({mode:c.mode,enabled:c.enabled,port:c.port,tls,createUserClient,
+  return Object.freeze({mode:c.mode,enabled:c.enabled,port:c.port,tls,createUserClient,...(callbackPrivateKey?{callbackPrivateKey}:{}),
    database:{host:c.database.host,port:c.database.port,database:'postgres',password,ca:await protectedFile(c.database.caFile)}});
  }catch{throw denied();}
 }
@@ -100,7 +109,7 @@ export async function startAccountingCustody(c,{connect=connectCustodyPostgres,c
  try{
   db=await connect(c.database);
   server=createService({database:db.database,query:db.query,createUserClient:c.createUserClient,fetchImpl:globalThis.fetch,
-   origin:stagingOrigin,sessionCookie:'__Host-faraios_staging',tls:c.tls});
+   origin:stagingOrigin,sessionCookie:'__Host-faraios_staging',tls:c.tls,callbackPrivateKey:c.callbackPrivateKey});
   server.headersTimeout=15000;server.requestTimeout=30000;server.keepAliveTimeout=5000;
   server.listen(c.port,'127.0.0.1');await once(server,'listening');
   const address=inspectListener(server);

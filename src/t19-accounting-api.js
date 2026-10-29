@@ -1,22 +1,30 @@
 // Mount only in an approved authenticated runtime. No listener/startup side effects.
+import {accountingCallbackReturn} from './t19-callback-node.js';
 import {escapeHtml} from './workspace-layout.js';
 const uuid=s=>typeof s==='string'&&/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(s);
 const routes={enqueue:['connection','invoice','customer'],disconnect:['connection','generation'],revoke:['connection','generation'],reconcile:['operation'],connect:['connection']};
-export function createAccountingHandler({sessions,oauth,origin,sessionCookie}){
+export function createAccountingHandler({sessions,oauth,origin,sessionCookie,callbackPrivateKey}){
  const base=new URL(origin);if(base.origin!==origin||base.username||base.password||!/^[-_A-Za-z0-9]+$/.test(sessionCookie??'')
   ||base.protocol!=='https:'&&!(base.protocol==='http:'&&base.hostname==='127.0.0.1'))throw new Error('configuration_rejected');
  const callbackCookie=base.protocol==='https:'?'__Secure-faraios_accounting_callback':'faraios_accounting_callback';
- const cookieFlags='; HttpOnly; SameSite=Lax; Path=/accounting/zoho/callback'+(base.protocol==='https:'?'; Secure':'');
+ const cookieFlags='; HttpOnly; SameSite=Lax; Path='+ (callbackPrivateKey?'/accounting/zoho/':'/accounting/zoho/callback')+(base.protocol==='https:'?'; Secure':'');
  return async(req,res)=>{
   const send=(status,body,type='application/json')=>{res.writeHead(status,{'Content-Type':type,'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; form-action 'self'; frame-ancestors 'none'"});res.end(type==='application/json'?JSON.stringify(body):body);};
   try{
    if(req.headers.host!==base.host)return send(403,{error:'accounting_denied'});
    const url=new URL(req.url,origin),isCallback=url.pathname==='/accounting/zoho/callback'&&req.method==='GET';
-   const cookie=isCallback?callbackCookie:sessionCookie;
+   const encryptedReturn=url.pathname==='/accounting/zoho/return';
+   if(encryptedReturn&&(!callbackPrivateKey||url.search||!['GET','POST'].includes(req.method)))return send(403,{error:'accounting_denied'});
+   if(isCallback&&callbackPrivateKey)return send(403,{error:'accounting_denied'});
+   const cookie=isCallback||encryptedReturn?callbackCookie:sessionCookie;
    const sid=(req.headers.cookie??'').split(';').map(x=>x.trim()).find(x=>x.startsWith(cookie+'='))?.slice(cookie.length+1);
    if(isCallback)res.setHeader('Set-Cookie',callbackCookie+'=; Max-Age=0'+cookieFlags);
    if(!/^[A-Za-z0-9_-]{1,128}$/.test(sid??''))return send(401,{error:'sign_in_required'});
    if(!sid||!await sessions.read(sid))return send(401,{error:'sign_in_required'});
+   if(encryptedReturn){
+    if(req.method==='POST')res.setHeader('Set-Cookie',callbackCookie+'=; Max-Age=0'+cookieFlags);
+    return await accountingCallbackReturn({req,res,origin,privateKey:callbackPrivateKey,sid,oauth});
+   }
    if(isCallback){
     if([...url.searchParams.keys()].some(k=>!['state','code','location','accounts-server'].includes(k))||url.searchParams.getAll('state').length!==1||url.searchParams.getAll('code').length!==1)return send(400,{error:'connection_verification_failed'});
     await oauth.callback(sid,{state:url.searchParams.get('state'),code:url.searchParams.get('code')});
