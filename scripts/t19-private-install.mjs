@@ -26,8 +26,12 @@ export async function copyExclusive(source,target,manifest,{deadline=Date.now()+
   const path=join(target,f.path);await fs.mkdir(dirname(path),{recursive:true,mode:0o700});const h=await fs.open(path,'wx',0o600);
   try{await h.writeFile(bytes);await h.sync();}finally{await h.close();}
  }
+ const directories=new Set([target,dirname(target)]);
+ for(const f of manifest.files)for(let p=dirname(join(target,f.path));p.startsWith(target);p=dirname(p)){directories.add(p);if(p===target)break;}
+ for(const path of [...directories].sort((a,b)=>b.length-a.length)){
+  check(Date.now()<deadline,'INSTALL_DEADLINE');const d=await fs.open(path,'r');try{await d.sync();}finally{await d.close();}
+ }
  const expected=hash(await regular(join(source,'custody-production-manifest.json')));await verifyPackage(target,expected);
- const d=await fs.open(target,'r');try{await d.sync();}finally{await d.close();}
 }
 export async function inspectInstallation(source,expected){
  installContext({platform:process.platform,uid:process.getuid?.(),version:process.version,source,expected});
