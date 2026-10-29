@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "executionAllowed": false,
+  "runtimeActivationAllowed": false,
+  "baseImage": "supabase/storage-api@sha256:b8f956b64ea3aee1dfc2cd9f0c9ce8d74335405992a90281bb5a979d1d552c22",
+  "localBaseTag": "faraios-t19-storage-history-base:20261029",
+  "upstreamRepository": "supabase/storage",
+  "upstreamGitCommit": "db42280506a07a165376219b2d6ac7bc92ccdfcc",
+  "context": "test-support/t19-storage-history",
+  "files": [
+    {
+      "id": 2,
+      "fileName": "0002-storage-schema.sql",
+      "upstreamPath": "migrations/tenant/0002-storage-schema.sql",
+      "sourceSha256": "19562682ff1b77cda9ba096671b873e7e226b10f0b0564bd4823e6c1754393b6",
+      "publicLedgerSha1": "f6a1fa2c93cbcd16d4e487b362e45fca157a8dbd"
+    },
+    {
+      "id": 62,
+      "fileName": "0062-object-versioning-core.sql",
+      "upstreamPath": "migrations/tenant/0062-object-versioning-core.sql",
+      "sourceSha256": "45969060b55102f56af317b0d7981434be58927de1ff76e1e1789139a3f2defc",
+      "publicLedgerSha1": "0b855f00ff3be0bfca91efee02a9858912491a9a"
+    }
+  ],
+  "licenseSha256": "87420ad3debbb44af3e5aac29f5bafd4427eef7a28c6e5eae199bdde1ad7c2e2",
+  "ledgerAlgorithmSource": "https://github.com/ThomWright/postgres-migrations/blob/dbfc5ccd7c71d77c24200d403cd72722017eca67/src/migration-file.ts",
+  "expectedChange": "Replace two migration files with exact historical upstream bytes; preserve source history and the versioning-disabled constraint",
+  "remainingPrerequisites": [
+    "Hosted tenant migration context versus standalone runtime configuration",
+    "Owner-host derivative build and immutable image/config/layer verification",
+    "All other tenant migration and binary files unchanged",
+    "Reviewed PostgreSQL extension initialization actors and settings",
+    "Realtime bootstrap provenance and exact role/membership/parameter grants",
+    "Complete managed catalogue and synthetic security/cleanup evidence"
+  ]
+}

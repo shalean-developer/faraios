@@ -46,6 +46,20 @@ try{
  const captured=(await client.query(captureBody)).find(r=>r.rows?.[0]?.jsonb_build_object)?.rows[0].jsonb_build_object;
  assert.equal(captured.schemaVersion,1);assert.equal(Object.keys(captured.catalog).length,12);assert.equal(Object.keys(captured.catalog.managed).length,17);
  console.log('T19_NATIVE_PG17_BOOTSTRAP_CAPTURE_SQL_PASS');
+ // Execute the two exact historical vendor files in a minimal prerequisite
+ // fixture, then prove the disabled-versioning constraint on native PG17.
+ await client.query("SET LOCAL storage.install_roles='false';");
+ await client.query(await readFile(new URL('../test-support/t19-storage-history/0002-storage-schema.sql',import.meta.url),'utf8'));
+ await client.query("ALTER TABLE storage.buckets ADD COLUMN type text NOT NULL DEFAULT 'STANDARD';");
+ await client.query(await readFile(new URL('../test-support/t19-storage-history/0062-object-versioning-core.sql',import.meta.url),'utf8'));
+ await client.query("INSERT INTO storage.buckets(id,name) VALUES ('synthetic-history','synthetic-history'); SAVEPOINT t19_storage_history_denial;");
+ let denied=false;
+ try{await client.query("UPDATE storage.buckets SET versioning_status='ENABLED' WHERE id='synthetic-history';");}
+ catch(e){denied=e.code==='23514';}
+ await client.query('ROLLBACK TO SAVEPOINT t19_storage_history_denial');assert.equal(denied,true);
+ assert.equal((await client.query("SELECT versioning_status FROM storage.buckets WHERE id='synthetic-history'")).rows[0].versioning_status,'DISABLED');
+ console.log('T19_NATIVE_PG17_STORAGE_HISTORY_DARK_GUARD_PASS');
+
  await client.query('ROLLBACK');begun=false;
  await client.query('RESET SESSION AUTHORIZATION');
  const clean=(await client.query("SELECT to_regnamespace('private_t19_custody') IS NULL AS absent, NOT EXISTS(SELECT FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role','t19_hosted_custody','fixture_admin','supabase_admin')) AS roles_absent")).rows[0];
