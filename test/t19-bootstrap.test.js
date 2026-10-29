@@ -26,6 +26,24 @@ test('environment equality rejects duplicates and unknown entries, ignoring orde
  assert.ok(environment(['A=1','B=2'],['B=2','A=1']));for(const values of [['A=1','A=1'],['A=2','B=2'],['A=1','B=2','EVIL=1'],['A']])assert.equal(environment(values,['A=1','B=2']),false);
 });
 function goodLedgers(){return {auth:[...['20171026211738','20171026211808','20171026211834','20180103212743','20180108183307','20180119214651','20180125194653'],...files.filter(f=>f.component==='auth'&&f.path.endsWith('.up.sql')).map(f=>f.path.split('/').at(-1).split('_')[0])],storage:[{id:0,name:'create-migrations-table'},...files.filter(f=>f.component==='storage'&&/\/migrations\/tenant\/\d+-/.test(f.path)).map(f=>({id:Number(f.path.split('/').at(-1).match(/^\d+/)[0]),name:f.path.split('/').at(-1).replace(/^\d+-|\.sql$/g,'')})).filter(f=>f.id<=73).sort((a,b)=>a.id-b.id)],indexes:['idx_users_email','idx_users_created_at_desc','idx_users_last_sign_in_at_desc','idx_users_name'].map(name=>({name,ready:true,valid:true}))};}
+test('Storage host runs and removes the tenant migrator before starting the standalone API',async()=>{
+ for(const fail of [false,true]){
+  const calls=[],host=Object.create(Host.prototype);host.files=files;host.password='synthetic-only';host.jwtSecret='synthetic-only';host.bound=new Map([['postgres',{s:{name:'t19-fixture-postgres'}}]]);
+  host.token=()=> 'synthetic-only';
+  host.create=async(kind,env,command)=>{calls.push({kind,env,command});return {id:kind,kind};};
+  host.audit=async()=>{};host.start=async()=>{};host.poll=async f=>assert.equal(await f(),true);
+  host.assertBound=async b=>({State:b.kind==='storage-migrate'?{Running:false,ExitCode:fail?1:0,OOMKilled:false}:{Running:true}});
+  host.command=async()=>Buffer.from('T19_STORAGE_TENANT_MIGRATIONS_PASS');
+  host.ledgers=async()=>goodLedgers();host.remove=async kind=>calls.push({removed:kind});
+  host.http=async()=>({status:200});host.sqlJSON=async()=>({standaloneTablesAbsent:true});host.record=async()=>{};
+  if(fail){await assert.rejects(host.storage(),/STORAGE_TENANT_MIGRATION_FAILED/);assert.equal(calls.length,1);}
+  else{
+   await host.storage();assert.equal(calls[0].kind,'storage-migrate');assert.equal(calls[0].env.MULTI_TENANT,'true');assert.equal(calls[0].env.DATABASE_MULTITENANT_URL,calls[0].env.DATABASE_URL);
+   assert.deepEqual(calls[1],{removed:'storage-migrate'});assert.equal(calls[2].kind,'storage');assert.equal(calls[2].env.MULTI_TENANT,'false');
+   assert.deepEqual(calls[2].command,{entrypoint:'node',args:['dist/start/server.js']});
+  }
+ }
+});
 test('Storage 0074, a skipped 0073, missing Auth seed and invalid worker index all block compatibility',()=>{
  ledgerChecks(goodLedgers(),files);assert.equal(goodLedgers().storage.at(-1).name,FREEZE);
  for(const change of [x=>x.storage.push({id:74,name:'unlock-object-versioning'}),x=>x.storage.pop(),x=>x.storage[30].id=31,x=>x.auth.pop(),x=>x.auth.push(x.auth[0]),x=>x.indexes[0].ready=false]){const a=goodLedgers();change(a);assert.throws(()=>ledgerChecks(a,files));}
@@ -117,7 +135,7 @@ test('start validates the real network attachment after Docker acknowledges star
  }
 });
 test('every container has an explicit valid single-file uncompressed local logging policy',()=>{
- for(const kind of ['postgres','auth-migrate','auth','storage','sentinel','probe']){
+ for(const kind of ['postgres','auth-migrate','auth','storage-migrate','storage','sentinel','probe']){
   const s=containerSpec(nonce,kind,network),args=createArgs(s,undefined,'/private/env-test/values.env');
   assert.equal(args[args.indexOf('--log-driver')+1],'local');
   assert.deepEqual(args.filter((v,i)=>args[i-1]==='--log-opt').sort(),['compress=false','max-file=1','max-size=1m']);

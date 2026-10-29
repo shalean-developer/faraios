@@ -11,7 +11,7 @@ export const PHASES=['isolation','postgres','bootstrapHelpers','bootstrapDepende
 export function requireTrue(x,code){if(x!==true)throw Error(code);}
 export function validNonce(n){requireTrue(typeof n==='string'&&/^[a-f0-9]{32}$/.test(n),'NONCE_INVALID');return n;}
 export function containerSpec(nonce,kind,network,env={}){
- validNonce(nonce);requireTrue(['postgres','auth-migrate','auth','storage','sentinel','probe'].includes(kind),'KIND_INVALID');
+ validNonce(nonce);requireTrue(['postgres','auth-migrate','auth','storage-migrate','storage','sentinel','probe'].includes(kind),'KIND_INVALID');
  requireTrue(network===`t19-bootstrap-${nonce}`||network===`t19-bootstrap-sentinel-${nonce}`,'NETWORK_INVALID');
  const pg=kind==='postgres',auth=kind.startsWith('auth');
  const tmpfs=pg?{'/var/lib/postgresql/data':'rw,noexec,nosuid,nodev,uid=100,gid=101,mode=0700,size=384m','/var/run/postgresql':'rw,noexec,nosuid,nodev,uid=100,gid=101,mode=0775,size=32m','/tmp':'rw,noexec,nosuid,nodev,uid=100,gid=101,mode=1777,size=32m'}:{'/tmp':'rw,noexec,nosuid,nodev,uid=1000,gid=1000,mode=1777,size=32m',...(!auth?{'/var/lib/storage':'rw,noexec,nosuid,nodev,uid=1000,gid=1000,mode=0700,size=128m'}:{})};

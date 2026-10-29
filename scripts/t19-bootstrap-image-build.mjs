@@ -25,7 +25,7 @@ export async function recipeInputs(){
 }
 export async function buildBundleDigest(){
  const recipes=await recipeInputs();
- const paths=[PLAN,'scripts/t19-bootstrap-image-build.mjs','scripts/t19-bootstrap-host.mjs','scripts/t19-bootstrap-engine.mjs','scripts/t19-bootstrap-env.mjs','scripts/t19-custody-recovery-compare.mjs',...recipes.flatMap(r=>r.files.map(f=>r.context+'/'+f.name))];
+ const paths=[PLAN,'scripts/t19-bootstrap-image-build.mjs','scripts/t19-bootstrap-host.mjs','scripts/t19-bootstrap-engine.mjs','scripts/t19-bootstrap-env.mjs','scripts/t19-storage-tenant-migrate.mjs','scripts/t19-custody-recovery-compare.mjs',...recipes.flatMap(r=>r.files.map(f=>r.context+'/'+f.name))];
  return digest(await Promise.all(paths.map(async p=>[p,digest(await readFile(join(ROOT,p)))])));
 }
 export function verifyDerivedImage(base,image,recipe){
