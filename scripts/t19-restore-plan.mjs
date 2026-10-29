@@ -42,25 +42,43 @@ export function catalogGate(portable,scope){
 export const MANAGED_COMPONENT_CODES=Object.freeze({"P2001": "managed", "P2002": "roles", "P2003": "memberships", "P2004": "extensions", "P2005": "extensionFunctions", "P2006": "events", "P2007": "authLedger", "P2008": "storageLedger", "P2009": "indexStates", "P2010": "views", "P2011": "parameterACL", "P2012": "databaseACL"});
 export const MANAGED_DETAIL_CODES=Object.freeze({"P2101": "managed.columns", "P2102": "managed.column_acl", "P2103": "managed.role_capabilities", "P2104": "managed.role_memberships", "P2105": "managed.parameter_acl", "P2106": "managed.custom_types", "P2107": "managed.relations", "P2108": "managed.constraints", "P2109": "managed.functions", "P2110": "managed.triggers", "P2111": "managed.policies", "P2112": "managed.schemas", "P2113": "managed.default_acl", "P2114": "managed.views", "P2115": "managed.indexes", "P2116": "managed.sequences", "P2117": "managed.enums"});
 export const MANAGED_DIAGNOSTIC_CODES=Object.freeze({...MANAGED_COMPONENT_CODES,...MANAGED_DETAIL_CODES});
-// Reuse the accepted twelve-component projection before any checkpoint rows.
-export function fullManagedGate(expected,sql){
- check(expected&&canonical(Object.keys(expected).sort())===canonical(Object.values(MANAGED_COMPONENT_CODES).sort()),'RESTORE_FULL_MANAGED_SHAPE');
+// Native JSONB fingerprints preserve int64 metadata before JSON.parse can round it.
+export function validateNativeFingerprints(value){
+ const labels=Object.values(MANAGED_DIAGNOSTIC_CODES).sort();
+ check(value&&canonical(Object.keys(value).sort())===canonical(['components','full'])&&
+ /^[a-f0-9]{64}$/.test(value.full)&&value.components&&
+ canonical(Object.keys(value.components).sort())===canonical(labels)&&
+ Object.values(value.components).every(hash=>/^[a-f0-9]{64}$/.test(hash)),
+ 'RESTORE_NATIVE_CATALOG_FINGERPRINTS_REQUIRED');
+ return value;
+}
+function managedProjection(sql){
  const start=sql.indexOf('with scopes('),end=sql.lastIndexOf('COMMIT;');
- check(start>=0&&end>start,'RESTORE_FULL_MANAGED_PROJECTION');
- const query=trim(sql.slice(start,end));
+ check(start>=0&&end>start,'RESTORE_FULL_MANAGED_PROJECTION');return trim(sql.slice(start,end));
+}
+export function managedFingerprintSQL(sql){
+ const labels=Object.values(MANAGED_DIAGNOSTIC_CODES).map(lit).join(',');
+ return `SELECT jsonb_build_object(
+ 'full',encode(extensions.digest((native.value->'catalog')::text,'sha256'),'hex'),
+ 'components',(SELECT jsonb_object_agg(label,encode(extensions.digest(coalesce(((native.value->'catalog') #> string_to_array(label,'.'))::text,'<missing>'),'sha256'),'hex')) FROM unnest(ARRAY[${labels}]::text[]) AS labels(label))
+ ) AS value FROM (${managedProjection(sql)}) AS native(value)`;
+}
+// Reuse the accepted twelve-component projection, comparing native exact hashes.
+export function fullManagedGate(expected,sql,fingerprints){
+ check(expected&&canonical(Object.keys(expected).sort())===canonical(Object.values(MANAGED_COMPONENT_CODES).sort()),'RESTORE_FULL_MANAGED_SHAPE');
+ validateNativeFingerprints(fingerprints);
  const labels=Object.entries(MANAGED_DIAGNOSTIC_CODES).map(([code,name])=>`(${lit(name)},${lit(code)})`).join(',');
- return `DO $t19_full$ DECLARE actual jsonb; wanted jsonb:=${lit(canonical(expected))}::jsonb; component text; state_code text;
- BEGIN SELECT q.jsonb_build_object->'catalog' INTO actual FROM (${query}) q;
- IF actual IS DISTINCT FROM wanted THEN
+ return `DO $t19_full$ DECLARE actual jsonb; wanted jsonb:=${lit(canonical(fingerprints))}::jsonb; component text; state_code text;
+ BEGIN SELECT q.jsonb_build_object->'catalog' INTO actual FROM (${managedProjection(sql)}) q;
+ IF encode(extensions.digest(actual::text,'sha256'),'hex') IS DISTINCT FROM wanted->>'full' THEN
   PERFORM set_config('client_min_messages','warning',true);
   FOR component,state_code IN SELECT * FROM (VALUES ${labels}) AS fixed_labels(component,state_code) LOOP
-   IF actual #> string_to_array(component,'.') IS DISTINCT FROM wanted #> string_to_array(component,'.') THEN
+   IF encode(extensions.digest(coalesce((actual #> string_to_array(component,'.'))::text,'<missing>'),'sha256'),'hex') IS DISTINCT FROM wanted->'components'->>component THEN
     RAISE WARNING USING ERRCODE=state_code,MESSAGE='T19_MANAGED_COMPONENT_MISMATCH';
    END IF;
   END LOOP;
   RAISE EXCEPTION 'RESTORE_FULL_MANAGED_MISMATCH' USING ERRCODE='P1905';
  END IF; END $t19_full$;\n`;
-
 }
 export function namespaceGate(names,{custody=false}={}){
  check(Array.isArray(names)&&names.every(n=>typeof n==='string'),'RESTORE_NAMESPACE_SHAPE');
@@ -169,7 +187,7 @@ export function planRestore(backup,scope,portable,managed=null){
  check(canonical(states.map(s=>s.schema+'.'+s.sequence))===canonical(sequenceState.map(s=>s.schema+'.'+s.sequence).sort()),'RESTORE_SEQUENCE_SCOPE');
  for(const state of states){const m=sequenceState.find(s=>s.schema===state.schema&&s.sequence===state.sequence);check(m.last_value===null?!state.isCalled:m.last_value===state.value,'RESTORE_SEQUENCE_MANIFEST_MISMATCH');}
  const cat=catalogSQL(portable),gate=catalogGate(cat,scope);
- const fullGate=managed?fullManagedGate(managed.catalog,managed.sql)+publicationGate(managed.publications):'';
+ const fullGate=managed?fullManagedGate(managed.catalog,managed.sql,managed.nativeFingerprints)+publicationGate(managed.publications):'';
  const verify=tagHelperGuards(verificationSQL(manifest,cat,scope))+fullGate+INERT_SQL;
  const data=['data.sql','migration-data.sql'].map(name=>dataMember(rewritten[name],manifest.before,name));
  const actor="DO $actor$ BEGIN IF current_user<>'postgres' OR session_user<>'supabase_admin' OR current_database()<>'postgres' THEN RAISE EXCEPTION 'RESTORE_ACTOR_CHANGED' USING ERRCODE='P1901'; END IF; END $actor$;\n";

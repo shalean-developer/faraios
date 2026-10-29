@@ -9,7 +9,7 @@ import {canonical,digest,requireTrue,PHASES,IMAGES} from './t19-bootstrap-engine
 import {openBackup,SOURCE} from './backup-staging.mjs';
 import {validateScope} from './backup-scope.mjs';
 import {compareStructure} from './t19-custody-recovery-compare.mjs';
-import {RESTORE_SCOPE,PRE_BOOTSTRAP,RESTORE_PHASES,LIMITS,INERT_SQL,planRestore,runRestore,catalogSQL,namespaceGate,PUBLICATIONS_SQL,publicationGate,RESTORE_GUARD_CODES,REALTIME_OWNER_GUARD,MANAGED_DIAGNOSTIC_CODES} from './t19-restore-plan.mjs';
+import {RESTORE_SCOPE,PRE_BOOTSTRAP,RESTORE_PHASES,LIMITS,INERT_SQL,planRestore,runRestore,catalogSQL,namespaceGate,PUBLICATIONS_SQL,publicationGate,RESTORE_GUARD_CODES,REALTIME_OWNER_GUARD,MANAGED_DIAGNOSTIC_CODES,managedFingerprintSQL,validateNativeFingerprints} from './t19-restore-plan.mjs';
 const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const ACCEPTED_BUNDLE='231e08e545544fb9483e97e2811a22f7ad85635441ba4a8aedd58915d063556a';
 const OWNER='9509ac682d7aa3bf5a6683aec53dbfc407834ba9302f3e58fbafe1c3ad3a1958';
@@ -38,7 +38,7 @@ export async function sourceAdmissionSQL(){
  const custody=portable.replace("('managed',array['auth','storage']::text[])","('custody',array['private_t19_custody']::text[])").replace("select jsonb_object_agg(scope,encode(extensions.digest(value::text,'sha256'),'hex')) as catalog from catalogs;","select value from catalogs where scope='custody';");
  const role=await fs.readFile(join(ROOT,'docs/proposals/t19-inactive-custody-recovery-readback.sql'),'utf8');
  const roleSelect=role.slice(role.indexOf('SELECT jsonb_build_object('),role.lastIndexOf('COMMIT;')).trim().replace(/ AS custody_recovery_readback;$/,'');
- const extra=" 'restorePublications',("+PUBLICATIONS_SQL+"),'checkpointCatalog',("+catalogSQL(portable).trim().replace(/;$/,'')+"),'custodyDefinition',("+custody.trim().replace(/;$/,'')+"),'custodyReadback',("+roleSelect+"),'sourceState',jsonb_build_object('enabledConnections',(SELECT count(*) FROM public.business_accounting_connections WHERE enabled),'vaultSecrets',(SELECT count(*) FROM vault.secrets),'storageObjects',(SELECT count(*) FROM storage.objects),'storageBuckets',(SELECT count(*) FROM storage.buckets),'custodyFunctions',(SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='private_t19_custody'),'custodyPolicies',(SELECT count(*) FROM pg_policies WHERE schemaname='private_t19_custody')),";
+ const extra=" 'restoreManagedFingerprints',("+managedFingerprintSQL(base)+"),'restorePublications',("+PUBLICATIONS_SQL+"),'checkpointCatalog',("+catalogSQL(portable).trim().replace(/;$/,'')+"),'custodyDefinition',("+custody.trim().replace(/;$/,'')+"),'custodyReadback',("+roleSelect+"),'sourceState',jsonb_build_object('enabledConnections',(SELECT count(*) FROM public.business_accounting_connections WHERE enabled),'vaultSecrets',(SELECT count(*) FROM vault.secrets),'storageObjects',(SELECT count(*) FROM storage.objects),'storageBuckets',(SELECT count(*) FROM storage.buckets),'custodyFunctions',(SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='private_t19_custody'),'custodyPolicies',(SELECT count(*) FROM pg_policies WHERE schemaname='private_t19_custody')),";
  const begin='BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;';
  const guard="DO $guard$ BEGIN IF current_user<>'postgres' OR session_user<>'postgres' OR current_database()<>'postgres' OR current_setting('server_version')<>'17.11' OR current_setting('transaction_read_only')<>'on' OR NOT COALESCE((SELECT ssl FROM pg_stat_ssl WHERE pid=pg_backend_pid()),false) THEN RAISE EXCEPTION 'RESTORE_SOURCE_IDENTITY'; END IF; END $guard$;";
  check(base.split(" 'catalog',jsonb_build_object(").length===2,'RESTORE_CAPTURE_SHAPE');
@@ -155,7 +155,7 @@ async function inputs(requestPath,dir,authorized=null){
  const expectedBytes=await privateFile(request.expectedPath),expected=json(expectedBytes);
  check(expected.sourceProject===SOURCE&&expected.schemaVersion===1&&Date.now()-expected.capturedAt>=0&&Date.now()-expected.capturedAt<3600000,'RESTORE_SOURCE_CAPTURE_STALE');
  check(canonical(Object.keys(expected.sourceState??{}).sort())===canonical(['enabledConnections','vaultSecrets','storageObjects','storageBuckets','custodyFunctions','custodyPolicies'].sort())&&Object.values(expected.sourceState).every(v=>v===0)&&expected.custodyReadback?.roleConforms===true&&expected.custodyReadback.membershipConforms===true&&expected.custodyReadback.runtimeOwnerAbsent===true&&expected.custodyReadback.indexesValidReady===true&&canonical(expected.custodyReadback.tableCounts)===canonical({connections:0,operations:0,prepared_references:0}),'RESTORE_SOURCE_STATE');
- publicationGate(expected.restorePublications);
+ publicationGate(expected.restorePublications);validateNativeFingerprints(expected.restoreManagedFingerprints);
  const expectedCustody=json(await fs.readFile(join(ROOT,'test-support/t19-custody-recovery-expected.json')));
  check(compareStructure(expected.custodyDefinition,expectedCustody).status==='CUSTODY_STRUCTURE_MATCH','RESTORE_SOURCE_CUSTODY_DRIFT');
  check(expected.checkpointCatalog?.application===scope.application&&expected.checkpointCatalog?.managed===scope.managed,'RESTORE_CURRENT_SCOPE_DRIFT');
@@ -175,7 +175,7 @@ async function inputs(requestPath,dir,authorized=null){
  if(authorized)check(Object.entries(bindings).every(([k,v])=>authorized[k]===v),'RESTORE_INPUT_BINDING_CHANGED');
  const key=await privateFile(request.keyPath,32);let backup;
  try{check(key.length===32,'RESTORE_KEY_LENGTH');backup=openBackup(archive,key,scope);}finally{key.fill(0);}
- const plan=planRestore(backup,scope,await fs.readFile(join(ROOT,'scripts/restore-catalog.sql'),'utf8'),{catalog:expected.catalog,publications:expected.restorePublications,sql:await fs.readFile(join(ROOT,'scripts/t19-bootstrap-catalog.sql'),'utf8')});
+ const plan=planRestore(backup,scope,await fs.readFile(join(ROOT,'scripts/restore-catalog.sql'),'utf8'),{catalog:expected.catalog,nativeFingerprints:expected.restoreManagedFingerprints,publications:expected.restorePublications,sql:await fs.readFile(join(ROOT,'scripts/t19-bootstrap-catalog.sql'),'utf8')});
  bindings.planSha256=plan.planSha256;
  if(authorized)check(authorized.planSha256===plan.planSha256,'RESTORE_PLAN_CHANGED');
  return {run,restoreRun:restoreProcess(trust.dockerBinary),baseline,expected,plan,boundarySQL,bindings,trust,archiveAuthenticated:true,files:json(await fs.readFile(join(ROOT,'config/t19-bootstrap-files.json'))).files};

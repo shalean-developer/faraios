@@ -51,21 +51,27 @@ try{
  // Compile/execute the full admission projection on native PG17. This fixture
  // deliberately removes only its TLS/runtime guard and transaction wrapper;
  // the production generated SQL keeps both. No hosted TLS claim is made.
- await client.query('CREATE SCHEMA extensions;CREATE EXTENSION pgcrypto WITH SCHEMA extensions;CREATE TABLE public.business_accounting_connections(enabled boolean);CREATE SCHEMA vault;CREATE TABLE vault.secrets(id integer);CREATE TABLE storage.buckets(id text);CREATE TABLE storage.objects(id text);');
+ await client.query('CREATE SCHEMA extensions;CREATE EXTENSION pgcrypto WITH SCHEMA extensions;CREATE SEQUENCE auth.synthetic_precision_probe;CREATE TABLE public.business_accounting_connections(enabled boolean);CREATE SCHEMA vault;CREATE TABLE vault.secrets(id integer);CREATE TABLE storage.buckets(id text);CREATE TABLE storage.objects(id text);');
  const sourceCapture=(await sourceAdmissionSQL()).replace('BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;','').replace(/DO \$guard\$[\s\S]*?\$guard\$;/,'').replace(/COMMIT;\s*$/,'');
  const admission=(await client.query(sourceCapture)).find(r=>r.rows?.[0]?.jsonb_build_object)?.rows[0].jsonb_build_object;
  assert.equal(admission.sourceProject,'xdmfyrsauvqznkloroxg');assert.equal(admission.custodyReadback.roleConforms,true);assert.equal(admission.custodyReadback.membershipConforms,true);
  assert.equal(compareStructure(admission.custodyDefinition,expected).status,'CUSTODY_STRUCTURE_MATCH');
  assert.equal(admission.sourceState.enabledConnections,0);assert.equal(typeof admission.checkpointCatalog.application,'string');
- await client.query(fullManagedGate(admission.catalog,bootstrapProjection));
+ assert.equal(Number.isSafeInteger(admission.catalog.managed.sequences[0].max_value),false);
+ const precision=(await client.query("SELECT max_value::text AS exact,(to_jsonb(q)->'max_value')=$1::jsonb AS round_trip_matches FROM pg_sequences q WHERE schemaname='auth' AND sequencename='synthetic_precision_probe'",[JSON.stringify(admission.catalog.managed.sequences[0].max_value)])).rows[0];
+ assert.equal(precision.exact,'9223372036854775807');assert.equal(precision.round_trip_matches,false);
+ const fingerprints=admission.restoreManagedFingerprints;
+ const changedFingerprints=(...labels)=>{const value=structuredClone(fingerprints);value.full='0'.repeat(64);for(const label of labels)value.components[label]='0'.repeat(64);return value;};
+ await client.query(fullManagedGate(admission.catalog,bootstrapProjection,fingerprints));
+ console.log('T19_NATIVE_PG17_INT64_CATALOG_FINGERPRINT_PASS');
  await client.query('SAVEPOINT full_managed_negative');
  const componentWarnings=[];const onComponentNotice=n=>componentWarnings.push({code:n.code,message:n.message});client.on('notice',onComponentNotice);
- await assert.rejects(client.query(fullManagedGate({...admission.catalog,events:'different',roles:'different'},bootstrapProjection)),e=>e.code==='P1905'&&e.message==='RESTORE_FULL_MANAGED_MISMATCH');
+ await assert.rejects(client.query(fullManagedGate(admission.catalog,bootstrapProjection,changedFingerprints('events','roles'))),e=>e.code==='P1905'&&e.message==='RESTORE_FULL_MANAGED_MISMATCH');
  client.removeListener('notice',onComponentNotice);assert.deepEqual(componentWarnings,[{code:'P2002',message:'T19_MANAGED_COMPONENT_MISMATCH'},{code:'P2006',message:'T19_MANAGED_COMPONENT_MISMATCH'}]);
  await client.query('ROLLBACK TO SAVEPOINT full_managed_negative');
  const detailWarnings=[];const onDetailNotice=n=>detailWarnings.push(n.code);client.on('notice',onDetailNotice);
  await client.query('SAVEPOINT managed_detail_negative');
- await assert.rejects(client.query(fullManagedGate({...admission.catalog,managed:{...admission.catalog.managed,columns:'different'}},bootstrapProjection)),e=>e.code==='P1905');
+ await assert.rejects(client.query(fullManagedGate(admission.catalog,bootstrapProjection,changedFingerprints('managed','managed.columns'))),e=>e.code==='P1905');
  client.removeListener('notice',onDetailNotice);assert.deepEqual(detailWarnings,['P2001','P2101']);
  await client.query('ROLLBACK TO SAVEPOINT managed_detail_negative');
  const namespaces=(await client.query("SELECT nspname FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname<>'information_schema'")).rows.map(r=>r.nspname);
@@ -73,7 +79,7 @@ try{
  await client.query('SAVEPOINT namespace_negative;CREATE SCHEMA unexpected_fixture;');
  await assert.rejects(client.query(namespaceGate(namespaces)),/RESTORE_UNEXPECTED_NAMESPACE/);
  await client.query('ROLLBACK TO SAVEPOINT namespace_negative');
- await client.query('DROP TABLE public.business_accounting_connections;DROP TABLE storage.buckets,storage.objects;DROP SCHEMA vault CASCADE;DROP EXTENSION pgcrypto;DROP SCHEMA extensions;');
+ await client.query('DROP SEQUENCE auth.synthetic_precision_probe;DROP TABLE public.business_accounting_connections;DROP TABLE storage.buckets,storage.objects;DROP SCHEMA vault CASCADE;DROP EXTENSION pgcrypto;DROP SCHEMA extensions;');
  console.log('T19_NATIVE_PG17_RESTORE_ADMISSION_SQL_PASS');
 
  // Execute the two exact historical vendor files in a minimal prerequisite

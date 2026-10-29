@@ -3,7 +3,7 @@ import {spawn} from 'node:child_process';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync,sign} from 'node:crypto';
 import {canonical} from '../scripts/t19-bootstrap-engine.mjs';
-import {RESTORE_SCOPE,RESTORE_PHASES,dataMember,schemaMember,runRestore,catalogSQL,fullManagedGate,namespaceGate,publicationGate,REALTIME_OWNER_GUARD,RESTORE_GUARD_CODES,MANAGED_COMPONENT_CODES} from '../scripts/t19-restore-plan.mjs';
+import {RESTORE_SCOPE,RESTORE_PHASES,dataMember,schemaMember,runRestore,catalogSQL,fullManagedGate,namespaceGate,publicationGate,REALTIME_OWNER_GUARD,RESTORE_GUARD_CODES,MANAGED_COMPONENT_CODES,MANAGED_DIAGNOSTIC_CODES,validateNativeFingerprints,managedFingerprintSQL} from '../scripts/t19-restore-plan.mjs';
 import {validateRestoreApproval,sourceAdmissionSQL,RestoreHost,restoreProcess,restoreSQLStates,restoreManagedComponents} from '../scripts/t19-restore-host.mjs';
 import {readFile} from 'node:fs/promises';
 test('data replay is COPY-only with opaque escaped rows, bounded table and member scope',()=>{
@@ -109,7 +109,9 @@ test('existing application foundation DDL and policy joins fit the bounded schem
 test('full managed equality precedes data and namespace drift is fenced',async()=>{
  const sql=await readFile(new URL('../scripts/t19-bootstrap-catalog.sql',import.meta.url),'utf8');
  const expected=Object.fromEntries(Object.values(MANAGED_COMPONENT_CODES).map(name=>[name,null]));
- const gate=fullManagedGate(expected,sql);
+ const fingerprints={full:'a'.repeat(64),components:Object.fromEntries(Object.values(MANAGED_DIAGNOSTIC_CODES).map(label=>[label,'b'.repeat(64)]))};
+ const gate=fullManagedGate(expected,sql,fingerprints);
+ assert.throws(()=>fullManagedGate(expected,sql),/NATIVE_CATALOG_FINGERPRINTS_REQUIRED/);
  assert.ok(gate.includes("q.jsonb_build_object->'catalog'"));
  assert.ok(gate.includes('IS DISTINCT FROM'));
  assert.ok(!gate.includes('BEGIN TRANSACTION'));
@@ -176,3 +178,11 @@ test('managed mismatch diagnostics accept only fixed component warning codes and
 });
 
 test('managed detail diagnostic labels remain fixed, including ACLs and function metadata',()=>{assert.deepEqual(restoreManagedComponents('WARNING: P2101\nWARNING: P2109\nWARNING: P2199\n'),['managed.columns','managed.functions']);});
+
+test('native fingerprint capture keeps unsafe int64 metadata out of JavaScript equality',async()=>{
+ const raw='{"max_value":9223372036854775807}';assert.equal(JSON.stringify(JSON.parse(raw)),'{"max_value":9223372036854776000}');
+ const sql=await readFile(new URL('../scripts/t19-bootstrap-catalog.sql',import.meta.url),'utf8');
+ const capture=managedFingerprintSQL(sql);assert.ok(capture.includes("(native.value->'catalog')::text"));assert.ok(capture.includes("'sha256'"));
+ assert.ok((await sourceAdmissionSQL()).includes("'restoreManagedFingerprints'"));
+ assert.throws(()=>validateNativeFingerprints({full:'a'.repeat(64),components:{}}),/NATIVE_CATALOG_FINGERPRINTS_REQUIRED/);
+});
