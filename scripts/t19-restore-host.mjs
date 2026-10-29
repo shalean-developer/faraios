@@ -116,6 +116,8 @@ export class RestoreHost extends Host {
  }
  async stopServices(){await this.remove('storage');await this.remove('auth');check(this.bound.size===1&&this.bound.has('postgres'),'RESTORE_SERVICES_NOT_REMOVED');await this.record('restore-services-stopped',{auth:true,storage:true,postgresOnly:true});}
  async destinationEmpty(){
+  const publication=await this.sqlJSON("SELECT jsonb_build_object('present',EXISTS(SELECT FROM pg_publication WHERE pubname='supabase_realtime'),'ownerMatches',EXISTS(SELECT FROM pg_publication WHERE pubname='supabase_realtime' AND pg_get_userbyid(pubowner)='postgres'));");
+  await this.record('restore-publication-qualification',publication);
   await this.restoreSQL('BEGIN READ ONLY;'+REALTIME_OWNER_GUARD+'COMMIT;');
   this.initialNamespaces=await this.sqlJSON("SELECT coalesce(jsonb_agg(nspname ORDER BY nspname),'[]') FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname<>'information_schema';");
   this.namespaceSQL=namespaceGate(this.initialNamespaces);

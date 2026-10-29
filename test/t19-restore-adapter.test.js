@@ -158,6 +158,7 @@ test('fixed restore guard SQLSTATEs identify failure without exposing error text
 });
 
 test('publication owner qualification stops before namespace or checkpoint replay work',async()=>{
- const host={restoreSQL:async sql=>{assert.ok(sql.includes("ERRCODE='P1903'"));assert.ok(sql.startsWith('BEGIN READ ONLY;'));throw Error('RESTORE_PUBLICATION_OWNER_MISMATCH');},sqlJSON:async()=>{throw Error('UNEXPECTED_LATER_WORK');}};
- await assert.rejects(RestoreHost.prototype.destinationEmpty.call(host),/RESTORE_PUBLICATION_OWNER_MISMATCH/);
+ let queries=0;const records=[];
+ const host={record:async(kind,value)=>records.push({kind,value}),restoreSQL:async sql=>{assert.ok(sql.includes("ERRCODE='P1903'"));assert.ok(sql.startsWith('BEGIN READ ONLY;'));throw Error('RESTORE_PUBLICATION_OWNER_MISMATCH');},sqlJSON:async sql=>{queries++;assert.ok(sql.includes('pg_publication'));return {present:false,ownerMatches:false};}};
+ await assert.rejects(RestoreHost.prototype.destinationEmpty.call(host),/RESTORE_PUBLICATION_OWNER_MISMATCH/);assert.equal(queries,1);assert.deepEqual(records,[{kind:'restore-publication-qualification',value:{present:false,ownerMatches:false}}]);
 });
