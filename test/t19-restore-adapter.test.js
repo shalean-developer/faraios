@@ -1,9 +1,10 @@
 import test from 'node:test';
+import {spawn} from 'node:child_process';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync,sign} from 'node:crypto';
 import {canonical} from '../scripts/t19-bootstrap-engine.mjs';
 import {RESTORE_SCOPE,RESTORE_PHASES,dataMember,schemaMember,runRestore,catalogSQL,fullManagedGate,namespaceGate,publicationGate,REALTIME_OWNER_GUARD} from '../scripts/t19-restore-plan.mjs';
-import {validateRestoreApproval,sourceAdmissionSQL,RestoreHost} from '../scripts/t19-restore-host.mjs';
+import {validateRestoreApproval,sourceAdmissionSQL,RestoreHost,restoreProcess,restoreSQLStates} from '../scripts/t19-restore-host.mjs';
 import {readFile} from 'node:fs/promises';
 test('data replay is COPY-only with opaque escaped rows, bounded table and member scope',()=>{
  const m={tables:[{schema:'public',table:'sample',rows:2},{schema:'supabase_migrations',table:'schema_migrations',rows:0}]};
@@ -52,8 +53,8 @@ test('every failing phase stops progression without retry and cannot be rescued 
  const p=fake();let t=0;const r=await runRestore(p,{now:()=>t++?900001:0});assert.equal(r.reason,'RESTORE_DEADLINE');assert.ok(!p.calls.includes('isolation'));
 });
 test('recovery command failures never journal SQL errors or recovered row data',async()=>{
- const records=[];const host={restoreActive:true,unknown:false,started:Date.now(),run:async()=>({code:1,stdout:Buffer.alloc(0),stderr:Buffer.from('private-recovered-row password credential')}),record:async(kind,value)=>records.push({kind,value})};
- await assert.rejects(RestoreHost.prototype.command.call(host,['container','exec','candidate','psql']),/RESTORE_SQL_FAILED/);assert.ok(!JSON.stringify(records).includes('private'));assert.deepEqual(records,[{kind:'restore-command-failure',value:{code:1}}]);
+ const records=[];const host={restoreActive:true,unknown:false,started:Date.now(),restoreRun:async()=>({code:1,stdout:Buffer.alloc(0),stderr:Buffer.from('private-recovered-row password credential')}),record:async(kind,value)=>records.push({kind,value})};
+ await assert.rejects(RestoreHost.prototype.command.call(host,['container','exec','candidate','psql']),/RESTORE_SQL_FAILED/);assert.ok(!JSON.stringify(records).includes('private'));assert.deepEqual(records,[{kind:'restore-command-failure',value:{code:1,sqlstates:[],inputClosed:false}}]);
 });
 test('distinct signed restore receipt binds every input and rejects replay-context changes',()=>{
  const {publicKey,privateKey}=generateKeyPairSync('ed25519');
@@ -122,4 +123,24 @@ test('only exact platform ownership becomes an owner assertion; publication chan
  assert.throws(()=>publicationGate(undefined),/CAPTURE_REQUIRED/);assert.throws(()=>publicationGate([]),/CAPTURE_REQUIRED/);
  assert.ok(publicationGate([{name:'supabase_realtime',owner:'postgres'}]).includes('IS DISTINCT FROM'));
  assert.ok((await sourceAdmissionSQL()).includes("'restorePublications'"));
+});
+
+test('restore-only transport drains a nonzero early exit after EPIPE, never accepts truncated success',async()=>{
+ const early=code=>(binary,args,options)=>spawn(process.execPath,['-e',"process.stderr.write('ERROR:  42501\\nPRIVATE_CONTENT\\n');process.exit("+code+")"],options);
+ const input='-- synthetic padding\n'.repeat(500000);
+ const r=await restoreProcess('/unused',{spawnProcess:early(3)})(['container','exec'],{stdin:input,timeoutMs:5000});
+ assert.equal(r.code,3);assert.equal(r.inputClosed,true);assert.deepEqual(restoreSQLStates(r.stderr),['42501']);
+ await assert.rejects(restoreProcess('/unused',{spawnProcess:early(0)})(['container','exec'],{stdin:input,timeoutMs:5000}),e=>e.unknown===true);
+ const wait=(binary,args,options)=>spawn(process.execPath,['-e','setInterval(()=>{},1000)'],options);
+ await assert.rejects(restoreProcess('/unused',{spawnProcess:wait})(['container','exec'],{timeoutMs:50}),e=>e.unknown===true);
+ const overflow=(binary,args,options)=>spawn(process.execPath,['-e',"process.stdout.write('x'.repeat(10000));setInterval(()=>{},1000)"],options);
+ await assert.rejects(restoreProcess('/unused',{spawnProcess:overflow})(['container','exec'],{maxBytes:128,timeoutMs:5000}),e=>e.unknown===true);
+ assert.deepEqual(restoreSQLStates('ERROR:  private details\nCONTEXT: 42501\nERROR:  22012\n'),['22012']);
+});
+test('restore SQL failures journal only exit status, input state and SQLSTATE',async()=>{
+ const records=[];
+ const host=new RestoreHost({run:async()=>({code:3,stderr:Buffer.from('ERROR:  42501\nPRIVATE_CONTENT\n'),inputClosed:true}),receipt:{nonce:'a'.repeat(32)},dir:'/unused'});
+ host.restoreActive=true;host.record=async(kind,value)=>records.push({kind,value});
+ await assert.rejects(host.command(['container','exec']),/RESTORE_SQL_FAILED/);
+ assert.equal(host.unknown,false);assert.deepEqual(records,[{kind:'restore-command-failure',value:{code:3,sqlstates:['42501'],inputClosed:true}}]);assert.ok(!JSON.stringify(records).includes('PRIVATE_CONTENT'));
 });

@@ -1,5 +1,6 @@
 // Separate local-only recovery adapter. Never invokes the legacy hosted CLI.
 import fs from 'node:fs/promises';
+import {spawn} from 'node:child_process';
 import {dirname,join,resolve} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {randomBytes,createPublicKey,verify} from 'node:crypto';
@@ -60,13 +61,41 @@ async function compatibility(dir,indexPath,ownerKey){
  check(one('managed-catalog').match&&one('managed-catalog').differingComponents.length===0&&storageDenied(one('storage-denied-request'))&&stable.match&&canonical(stable.emptyCounts)===canonical([0,0,0,0,0,0,0])&&['authPermitted','authDenied','storagePermitted','storageDenied','databasePermitted'].every(k=>sec[k]===true)&&canonical(sec.databaseDeniedRoles)===canonical(['anon','authenticated','service_role']),'RESTORE_PRIOR_SECURITY');
  return digest(index);
 }
+// Restore-only transport: retain the child's bounded exit/SQLSTATE after EPIPE.
+// A broken input pipe can never turn a zero exit into success. Timeout, signals,
+// other pipe errors and output overflow remain unknown and fence the candidate.
+export function restoreProcess(binary,{spawnProcess=spawn}={}){
+ return (args,{stdin='',timeoutMs=10000,maxBytes=8388608}={})=>new Promise((resolve,reject)=>{
+  let child,timer,killTimer,unknown=false,done=false,inputClosed=false,count=0;
+  const out=[],err=[];
+  const finish=(error,code=null,signal=null)=>{
+   if(done)return;done=true;clearTimeout(timer);clearTimeout(killTimer);
+   const value={stdout:Buffer.concat(out),stderr:Buffer.concat(err),code,signal,inputClosed};
+   if(error){error.unknown=unknown;error.evidence=value;reject(error);}else resolve(value);
+  };
+  const stop=()=>{if(unknown||done)return;unknown=true;try{child.kill('SIGKILL');}catch{}killTimer=setTimeout(()=>finish(Error('RESTORE_TRANSPORT_KILL_UNKNOWN')),1000);};
+  try{child=spawnProcess(binary,['--context','default',...args],{shell:false,env:{PATH:'/usr/bin:/bin',HOME:'/nonexistent',LANG:'C'},stdio:['pipe','pipe','pipe']});}catch{return finish(Error('RESTORE_TRANSPORT_SPAWN_FAILED'));}
+  timer=setTimeout(stop,timeoutMs);
+  for(const [stream,list] of [[child.stdout,out],[child.stderr,err]])stream.on('data',bytes=>{if(done||unknown)return;count+=bytes.length;if(count>maxBytes)stop();else list.push(bytes);});
+  child.stdin.on('error',error=>{if(error.code==='EPIPE'){inputClosed=true;}else stop();});
+  child.on('error',()=>finish(Error('RESTORE_TRANSPORT_SPAWN_FAILED')));
+  child.on('close',(code,signal)=>{
+   if(signal||inputClosed&&code===0||!Number.isInteger(code))unknown=true;
+   finish(unknown?Error('RESTORE_TRANSPORT_OUTCOME_UNKNOWN'):null,code,signal);
+  });
+  child.stdin.end(stdin);
+ });
+}
+export function restoreSQLStates(stderr){
+ return [...new Set([...String(stderr??'').matchAll(/^(?:ERROR|FATAL):[ \t]+([0-9A-Z]{5})[ \t]*\r?$/gm)].map(m=>m[1]))];
+}
 export class RestoreHost extends Host {
- constructor(options){super(options);this.plan=options.plan;this.restoreActive=false;this.archiveAuthenticated=options.archiveAuthenticated===true;}
+ constructor(options){super(options);this.plan=options.plan;this.restoreActive=false;this.restoreRun=options.restoreRun??options.run;this.archiveAuthenticated=options.archiveAuthenticated===true;}
  async command(args,options={}){
   if(!this.restoreActive||args[0]!=='container'||args[1]!=='exec')return super.command(args,options);
   check(!this.unknown&&Date.now()-this.started<900000,'RESTORE_COMMANDS_FENCED');
-  let r;try{r=await this.run(args,options);}catch(e){if(e.unknown)this.unknown=true;await this.record('restore-command-error',{unknown:e.unknown===true});throw Error('RESTORE_COMMAND_OUTCOME_UNKNOWN');}
-  if(r.code!==0){await this.record('restore-command-failure',{code:r.code});throw Error('RESTORE_SQL_FAILED');}return r.stdout;
+  let r;try{r=await this.restoreRun(args,options);}catch(e){if(e.unknown)this.unknown=true;await this.record('restore-command-error',{unknown:e.unknown===true,sqlstates:restoreSQLStates(e.evidence?.stderr),inputClosed:e.evidence?.inputClosed===true});throw Error('RESTORE_COMMAND_OUTCOME_UNKNOWN');}
+  if(r.code!==0){await this.record('restore-command-failure',{code:r.code,sqlstates:restoreSQLStates(r.stderr),inputClosed:r.inputClosed===true});throw Error('RESTORE_SQL_FAILED');}return r.stdout;
  }
  async restoreSQL(sql,user='postgres'){
   this.restoreActive=true;const b=this.bound.get('postgres');
@@ -143,7 +172,7 @@ async function inputs(requestPath,dir,authorized=null){
  const plan=planRestore(backup,scope,await fs.readFile(join(ROOT,'scripts/restore-catalog.sql'),'utf8'),{catalog:expected.catalog,publications:expected.restorePublications,sql:await fs.readFile(join(ROOT,'scripts/t19-bootstrap-catalog.sql'),'utf8')});
  bindings.planSha256=plan.planSha256;
  if(authorized)check(authorized.planSha256===plan.planSha256,'RESTORE_PLAN_CHANGED');
- return {run,baseline,expected,plan,boundarySQL,bindings,trust,archiveAuthenticated:true,files:json(await fs.readFile(join(ROOT,'config/t19-bootstrap-files.json'))).files};
+ return {run,restoreRun:restoreProcess(trust.dockerBinary),baseline,expected,plan,boundarySQL,bindings,trust,archiveAuthenticated:true,files:json(await fs.readFile(join(ROOT,'config/t19-bootstrap-files.json'))).files};
 }
 const REVIEWED_BOUNDARY_SHA='6c4efb80a6a55011fef42ed755e912f3390a44e6002561f753b4117747a1ba5a';
 async function main(){
