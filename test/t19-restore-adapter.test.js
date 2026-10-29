@@ -3,7 +3,7 @@ import {spawn} from 'node:child_process';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync,sign} from 'node:crypto';
 import {canonical} from '../scripts/t19-bootstrap-engine.mjs';
-import {RESTORE_SCOPE,RESTORE_PHASES,dataMember,schemaMember,runRestore,catalogSQL,fullManagedGate,namespaceGate,publicationGate,REALTIME_OWNER_GUARD} from '../scripts/t19-restore-plan.mjs';
+import {RESTORE_SCOPE,RESTORE_PHASES,dataMember,schemaMember,runRestore,catalogSQL,fullManagedGate,namespaceGate,publicationGate,REALTIME_OWNER_GUARD,RESTORE_GUARD_CODES} from '../scripts/t19-restore-plan.mjs';
 import {validateRestoreApproval,sourceAdmissionSQL,RestoreHost,restoreProcess,restoreSQLStates} from '../scripts/t19-restore-host.mjs';
 import {readFile} from 'node:fs/promises';
 test('data replay is COPY-only with opaque escaped rows, bounded table and member scope',()=>{
@@ -143,4 +143,22 @@ test('restore SQL failures journal only exit status, input state and SQLSTATE',a
  host.restoreActive=true;host.record=async(kind,value)=>records.push({kind,value});
  await assert.rejects(host.command(['container','exec']),/RESTORE_SQL_FAILED/);
  assert.equal(host.unknown,false);assert.deepEqual(records,[{kind:'restore-command-failure',value:{code:3,sqlstates:['42501'],inputClosed:true}}]);assert.ok(!JSON.stringify(records).includes('PRIVATE_CONTENT'));
+});
+
+test('fixed restore guard SQLSTATEs identify failure without exposing error text or changing archive bodies',async()=>{
+ assert.equal(new Set(Object.keys(RESTORE_GUARD_CODES)).size,13);
+ assert.ok(Object.keys(RESTORE_GUARD_CODES).every(code=>/^P19[0-9]{2}$/.test(code)));
+ assert.ok(REALTIME_OWNER_GUARD.includes("ERRCODE='P1903'"));
+ const records=[];const host=new RestoreHost({run:async()=>({code:3,stderr:Buffer.from('ERROR:  P1903\nPRIVATE_MESSAGE\n')}),receipt:{nonce:'b'.repeat(32)},dir:'/unused'});
+ host.restoreActive=true;host.record=async(kind,value)=>records.push({kind,value});
+ await assert.rejects(host.command(['container','exec']),/RESTORE_PUBLICATION_OWNER_MISMATCH/);
+ assert.equal(records[0].value.guard,'RESTORE_PUBLICATION_OWNER_MISMATCH');assert.ok(!JSON.stringify(records).includes('PRIVATE_MESSAGE'));
+ const body="CREATE FUNCTION public.fixture() RETURNS void LANGUAGE plpgsql AS $body$ BEGIN RAISE EXCEPTION 'RESTORE_DATA_MISMATCH'; END $body$;";
+ assert.ok(schemaMember(body,'schema').includes("RAISE EXCEPTION 'RESTORE_DATA_MISMATCH';"));
+});
+
+test('publication owner qualification stops before namespace or checkpoint replay work',async()=>{
+ let queries=0;const records=[];
+ const host={record:async(kind,value)=>records.push({kind,value}),restoreSQL:async sql=>{assert.ok(sql.includes("ERRCODE='P1903'"));assert.ok(sql.startsWith('BEGIN READ ONLY;'));throw Error('RESTORE_PUBLICATION_OWNER_MISMATCH');},sqlJSON:async sql=>{queries++;assert.ok(sql.includes('pg_publication'));return {present:false,ownerMatches:false};}};
+ await assert.rejects(RestoreHost.prototype.destinationEmpty.call(host),/RESTORE_PUBLICATION_OWNER_MISMATCH/);assert.equal(queries,1);assert.deepEqual(records,[{kind:'restore-publication-qualification',value:{present:false,ownerMatches:false}}]);
 });

@@ -9,7 +9,7 @@ import {canonical,digest,requireTrue,PHASES,IMAGES} from './t19-bootstrap-engine
 import {openBackup,SOURCE} from './backup-staging.mjs';
 import {validateScope} from './backup-scope.mjs';
 import {compareStructure} from './t19-custody-recovery-compare.mjs';
-import {RESTORE_SCOPE,PRE_BOOTSTRAP,RESTORE_PHASES,LIMITS,INERT_SQL,planRestore,runRestore,catalogSQL,namespaceGate,PUBLICATIONS_SQL,publicationGate} from './t19-restore-plan.mjs';
+import {RESTORE_SCOPE,PRE_BOOTSTRAP,RESTORE_PHASES,LIMITS,INERT_SQL,planRestore,runRestore,catalogSQL,namespaceGate,PUBLICATIONS_SQL,publicationGate,RESTORE_GUARD_CODES,REALTIME_OWNER_GUARD} from './t19-restore-plan.mjs';
 const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const ACCEPTED_BUNDLE='231e08e545544fb9483e97e2811a22f7ad85635441ba4a8aedd58915d063556a';
 const OWNER='9509ac682d7aa3bf5a6683aec53dbfc407834ba9302f3e58fbafe1c3ad3a1958';
@@ -95,7 +95,7 @@ export class RestoreHost extends Host {
   if(!this.restoreActive||args[0]!=='container'||args[1]!=='exec')return super.command(args,options);
   check(!this.unknown&&Date.now()-this.started<900000,'RESTORE_COMMANDS_FENCED');
   let r;try{r=await this.restoreRun(args,options);}catch(e){if(e.unknown)this.unknown=true;await this.record('restore-command-error',{unknown:e.unknown===true,sqlstates:restoreSQLStates(e.evidence?.stderr),inputClosed:e.evidence?.inputClosed===true});throw Error('RESTORE_COMMAND_OUTCOME_UNKNOWN');}
-  if(r.code!==0){await this.record('restore-command-failure',{code:r.code,sqlstates:restoreSQLStates(r.stderr),inputClosed:r.inputClosed===true});throw Error('RESTORE_SQL_FAILED');}return r.stdout;
+  if(r.code!==0){const sqlstates=restoreSQLStates(r.stderr),guard=sqlstates.map(code=>RESTORE_GUARD_CODES[code]).find(Boolean);await this.record('restore-command-failure',{code:r.code,sqlstates,inputClosed:r.inputClosed===true,...(guard?{guard}:{})});throw Error(guard??'RESTORE_SQL_FAILED');}return r.stdout;
  }
  async restoreSQL(sql,user='postgres'){
   this.restoreActive=true;const b=this.bound.get('postgres');
@@ -116,6 +116,9 @@ export class RestoreHost extends Host {
  }
  async stopServices(){await this.remove('storage');await this.remove('auth');check(this.bound.size===1&&this.bound.has('postgres'),'RESTORE_SERVICES_NOT_REMOVED');await this.record('restore-services-stopped',{auth:true,storage:true,postgresOnly:true});}
  async destinationEmpty(){
+  const publication=await this.sqlJSON("SELECT jsonb_build_object('present',EXISTS(SELECT FROM pg_publication WHERE pubname='supabase_realtime'),'ownerMatches',EXISTS(SELECT FROM pg_publication WHERE pubname='supabase_realtime' AND pg_get_userbyid(pubowner)='postgres'));");
+  await this.record('restore-publication-qualification',publication);
+  await this.restoreSQL('BEGIN READ ONLY;'+REALTIME_OWNER_GUARD+'COMMIT;');
   this.initialNamespaces=await this.sqlJSON("SELECT coalesce(jsonb_agg(nspname ORDER BY nspname),'[]') FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname<>'information_schema';");
   this.namespaceSQL=namespaceGate(this.initialNamespaces);
   await this.sql('BEGIN READ ONLY;'+INERT_SQL+'COMMIT;');
