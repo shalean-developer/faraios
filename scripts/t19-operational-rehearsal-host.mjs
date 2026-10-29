@@ -55,7 +55,7 @@ export class OperationalHost extends Host {
   return r.stdout.toString();
  }
  async syntheticFoundation(){
-  requireTrue(await this.sqlJSON("SELECT count(*)=0 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p');"),'SYNTHETIC_FOUNDATION_NONEMPTY');
+  requireTrue((await this.sqlJSON("SELECT jsonb_build_object('empty',count(*)=0) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p');")).empty,'SYNTHETIC_FOUNDATION_NONEMPTY');
   await this.checkedSQL(identityGuard+'CREATE EXTENSION IF NOT EXISTS btree_gist;');
   for(const path of FOUNDATIONS)await this.checkedSQL(identityGuard+await readFile(join(ROOT,path),'utf8'));
   // Actual provider Auth schema; three fixed synthetic records, never checkpoint users.

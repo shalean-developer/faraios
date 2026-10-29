@@ -4,7 +4,6 @@ import {PGlite} from '@electric-sql/pglite';
 import {btree_gist} from '@electric-sql/pglite/contrib/btree_gist';
 import {Client} from 'pg';
 import {readFile} from 'node:fs/promises';
-import {invoiceFixture} from '../test-support/t19-runtime-fixture.mjs';
 import {OperationalHost} from '../scripts/t19-operational-rehearsal-host.mjs';
 test('owner rehearsal SQL adapter checks whole-stage state and boundaries against an embedded managed-role model',async()=>{
  const target=process.env.T19_OPERATIONAL_NATIVE_URL;let db;
@@ -45,8 +44,6 @@ test('owner rehearsal SQL adapter checks whole-stage state and boundaries agains
    GRANT SELECT ON vault.fixture_material TO postgres WITH GRANT OPTION;
    GRANT EXECUTE ON FUNCTION vault.create_secret(text,text,text,uuid) TO postgres WITH GRANT OPTION;
    SET SESSION AUTHORIZATION postgres;`);
-  const adapter={query,exec,close:async()=>{}};
-  await invoiceFixture({database:adapter,authPrepared:true});
   await exec("SET faraios.t19_02_approved_project_ref='xdmfyrsauvqznkloroxg';"+await readFile(new URL('../docs/proposals/t19-02-staging-inactive-schema.sql',import.meta.url),'utf8'));
   await exec("SET faraios.t19_runtime_review='approved-source-test'");
   assert.deepEqual(await scalar(`SELECT current_user,session_user,rolsuper,rolcreaterole,rolbypassrls,
@@ -66,7 +63,7 @@ test('owner rehearsal SQL adapter checks whole-stage state and boundaries agains
    }catch(e){await exec('ROLLBACK;SET SESSION AUTHORIZATION t19_fixture_admin;SET SESSION AUTHORIZATION postgres');return {code:3,signal:null,stdout:Buffer.alloc(0),stderr:Buffer.from('ERROR:  '+e.code+': '+e.message)};}
   }});
   host.assertBound=async()=>{};host.bound.set('postgres',{id:'b'.repeat(64)});const records=[];host.record=async(k,v)=>records.push([k,v]);
-  host.protectedBefore=await host.fingerprint(true);
+  await host.syntheticFoundation();
   await host.operationalSQL();await host.operationalBoundaries();
   assert.deepEqual(records.filter(([k])=>k==='operational-stage').map(([,v])=>v.stage),['runtime','oauth','api']);
   assert.equal(records.find(([k])=>k==='operational-boundaries')[1].authenticatedCustodyLoginVerified,false);
