@@ -5,16 +5,16 @@ import {Client} from 'pg';
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 const owner=id(1),manager=id(2),staff=id(3),a=id(10),b=id(20);
 const files=['identity-draft.sql','audit-draft.sql','business-settings-draft.sql','catalogue-draft.sql','customers-draft.sql','bookings-draft.sql','bookings-context-hardening-draft.sql','cleaning-profiles-draft.sql','cleaning-assessments-draft.sql','cleaning-assessment-review-hardening-draft.sql','staff-teams-draft.sql','availability-draft.sql','recurring-draft.sql','quotes-draft.sql','quote-acceptance-actor-draft.sql','invoices-draft.sql'];
-export async function invoiceFixture({legacyVat=false}={}){
- let db;
- if(process.env.T19_CUSTODY_NATIVE_URL){
+export async function invoiceFixture({legacyVat=false,database:provided,authPrepared=false}={}){
+ let db=provided;
+ if(!db&&process.env.T19_CUSTODY_NATIVE_URL){
   const target=new URL(process.env.T19_CUSTODY_NATIVE_URL);
   if(target.hostname!=='127.0.0.1'||target.pathname!=='/postgres'||target.username!=='postgres'||target.password||target.search)throw Error('disposable_only');
   const client=new Client({connectionString:target.href,ssl:false});await client.connect();
   if(Number((await client.query("select count(*) from pg_tables where schemaname='public'")).rows[0].count)!==0)throw Error('nonempty_database');
   db={query:(...args)=>client.query(...args),exec:sql=>client.query(sql),close:()=>client.end()};
- }else db=new PGlite({extensions:{btree_gist}});
- await db.exec("create role anon;create role authenticated;create role service_role;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant usage on schema public to service_role;grant execute on function auth.uid() to authenticated;");
+ }else if(!db)db=new PGlite({extensions:{btree_gist}});
+ if(!authPrepared)await db.exec("create role anon;create role authenticated;create role service_role;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to authenticated,anon;grant usage on schema public to service_role;grant execute on function auth.uid() to authenticated;");
  for(const file of files)await db.exec(await readFile(new URL('../database/'+file,import.meta.url),'utf8'));
  if(!legacyVat){
   await db.exec(await readFile(new URL('../database/earnings-rules-draft.sql',import.meta.url),'utf8'));

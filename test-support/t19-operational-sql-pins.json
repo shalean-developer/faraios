@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "purpose": "reviewed-operational-sql-sha256",
+  "files": [
+    {"path": "database/t19-custody-runtime.sql", "sha256": "5797da30b84c2a09de30c0b024cb62fe123d6eed610a6ca24867badb7f295f65"},
+    {"path": "database/t19-custody-oauth.sql", "sha256": "45a4f0a3bfa8010bcf02ff0a5a28f49d40779fc82855c860ff826a29b981a05a"},
+    {"path": "database/t19-custody-api.sql", "sha256": "5939789b9da7d37531394f403a5ca45d1db25609c0fa202b39c5bdd3b2419ba2"}
+  ]
+}

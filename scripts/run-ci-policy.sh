@@ -67,5 +67,8 @@ echo CI_POLICY_C2_NATIVE_PASS
 T19_PG_BIN="$(pg_config --bindir)" node scripts/run-t19-custody-postgres.mjs
 echo CI_POLICY_CUSTODY_NATIVE_PASS
 
+T19_PG_BIN="$(pg_config --bindir)" node scripts/run-t19-operational-postgres.mjs
+echo CI_POLICY_OPERATIONAL_FULL_STAGE_NATIVE_PASS
+
 T19_PG_BIN="$(pg_config --bindir)" node scripts/run-t19-restore-postgres.mjs
 echo CI_POLICY_RESTORE_NATIVE_PASS
