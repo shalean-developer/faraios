@@ -39,14 +39,26 @@ export function catalogGate(portable,scope){
  return `DO $t19_catalog$ DECLARE actual jsonb; BEGIN SELECT catalog INTO actual FROM (${trim(portable)}) q;
  IF actual->>'application'<>${lit(scope.application)} OR actual->>'managed'<>${lit(scope.managed)} THEN RAISE EXCEPTION 'RESTORE_CATALOG_MISMATCH' USING ERRCODE='P1904'; END IF; END $t19_catalog$;\n`;
 }
+export const MANAGED_COMPONENT_CODES=Object.freeze({"P2001": "managed", "P2002": "roles", "P2003": "memberships", "P2004": "extensions", "P2005": "extensionFunctions", "P2006": "events", "P2007": "authLedger", "P2008": "storageLedger", "P2009": "indexStates", "P2010": "views", "P2011": "parameterACL", "P2012": "databaseACL"});
 // Reuse the accepted twelve-component projection before any checkpoint rows.
 export function fullManagedGate(expected,sql){
- check(expected&&Object.keys(expected).length===12,'RESTORE_FULL_MANAGED_SHAPE');
+ check(expected&&canonical(Object.keys(expected).sort())===canonical(Object.values(MANAGED_COMPONENT_CODES).sort()),'RESTORE_FULL_MANAGED_SHAPE');
  const start=sql.indexOf('with scopes('),end=sql.lastIndexOf('COMMIT;');
  check(start>=0&&end>start,'RESTORE_FULL_MANAGED_PROJECTION');
  const query=trim(sql.slice(start,end));
- return `DO $t19_full$ DECLARE actual jsonb; BEGIN SELECT q.jsonb_build_object->'catalog' INTO actual FROM (${query}) q;
- IF actual IS DISTINCT FROM ${lit(canonical(expected))}::jsonb THEN RAISE EXCEPTION 'RESTORE_FULL_MANAGED_MISMATCH' USING ERRCODE='P1905'; END IF; END $t19_full$;\n`;
+ const labels=Object.entries(MANAGED_COMPONENT_CODES).map(([code,name])=>`(${lit(name)},${lit(code)})`).join(',');
+ return `DO $t19_full$ DECLARE actual jsonb; wanted jsonb:=${lit(canonical(expected))}::jsonb; component text; state_code text;
+ BEGIN SELECT q.jsonb_build_object->'catalog' INTO actual FROM (${query}) q;
+ IF actual IS DISTINCT FROM wanted THEN
+  PERFORM set_config('client_min_messages','warning',true);
+  FOR component,state_code IN SELECT * FROM (VALUES ${labels}) AS fixed_labels(component,state_code) LOOP
+   IF actual->component IS DISTINCT FROM wanted->component THEN
+    RAISE WARNING USING ERRCODE=state_code,MESSAGE='T19_MANAGED_COMPONENT_MISMATCH';
+   END IF;
+  END LOOP;
+  RAISE EXCEPTION 'RESTORE_FULL_MANAGED_MISMATCH' USING ERRCODE='P1905';
+ END IF; END $t19_full$;\n`;
+
 }
 export function namespaceGate(names,{custody=false}={}){
  check(Array.isArray(names)&&names.every(n=>typeof n==='string'),'RESTORE_NAMESPACE_SHAPE');
@@ -175,6 +187,7 @@ export async function runRestore(platform,{now=Date.now}={}){
  }catch(e){reason=/^[A-Z0-9_]+$/.test(e.message)?e.message:'RESTORE_STAGE_FAILED';}
  finally{try{cleanupVerified=await platform.cleanup()===true;}catch{cleanupVerified=false;}}
  const result={status:!cleanupVerified?'QUARANTINE':reason?'FAIL':'CURRENT_SCOPE_RESTORE_PASS',stages,reason,cleanupVerified,checkpointUsed,restoreAttempted,operationalCustodyInstalled:false};
+ if(reason==='RESTORE_FULL_MANAGED_MISMATCH'&&Array.isArray(platform.managedMismatchComponents)&&platform.managedMismatchComponents.every(name=>Object.values(MANAGED_COMPONENT_CODES).includes(name)))result.differingComponents=[...new Set(platform.managedMismatchComponents)].sort();
  try{await platform.record('restore-result',result);}catch{result.status='QUARANTINE';result.reason='RESTORE_JOURNAL_FAILURE';}
  return result;
 }

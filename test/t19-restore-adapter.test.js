@@ -3,8 +3,8 @@ import {spawn} from 'node:child_process';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync,sign} from 'node:crypto';
 import {canonical} from '../scripts/t19-bootstrap-engine.mjs';
-import {RESTORE_SCOPE,RESTORE_PHASES,dataMember,schemaMember,runRestore,catalogSQL,fullManagedGate,namespaceGate,publicationGate,REALTIME_OWNER_GUARD,RESTORE_GUARD_CODES} from '../scripts/t19-restore-plan.mjs';
-import {validateRestoreApproval,sourceAdmissionSQL,RestoreHost,restoreProcess,restoreSQLStates} from '../scripts/t19-restore-host.mjs';
+import {RESTORE_SCOPE,RESTORE_PHASES,dataMember,schemaMember,runRestore,catalogSQL,fullManagedGate,namespaceGate,publicationGate,REALTIME_OWNER_GUARD,RESTORE_GUARD_CODES,MANAGED_COMPONENT_CODES} from '../scripts/t19-restore-plan.mjs';
+import {validateRestoreApproval,sourceAdmissionSQL,RestoreHost,restoreProcess,restoreSQLStates,restoreManagedComponents} from '../scripts/t19-restore-host.mjs';
 import {readFile} from 'node:fs/promises';
 test('data replay is COPY-only with opaque escaped rows, bounded table and member scope',()=>{
  const m={tables:[{schema:'public',table:'sample',rows:2},{schema:'supabase_migrations',table:'schema_migrations',rows:0}]};
@@ -108,7 +108,7 @@ test('existing application foundation DDL and policy joins fit the bounded schem
 
 test('full managed equality precedes data and namespace drift is fenced',async()=>{
  const sql=await readFile(new URL('../scripts/t19-bootstrap-catalog.sql',import.meta.url),'utf8');
- const expected=Object.fromEntries(Array.from({length:12},(_,i)=>['key'+i,null]));
+ const expected=Object.fromEntries(Object.values(MANAGED_COMPONENT_CODES).map(name=>[name,null]));
  const gate=fullManagedGate(expected,sql);
  assert.ok(gate.includes("q.jsonb_build_object->'catalog'"));
  assert.ok(gate.includes('IS DISTINCT FROM'));
@@ -161,4 +161,16 @@ test('publication owner qualification stops before namespace or checkpoint repla
  let queries=0;const records=[];
  const host={record:async(kind,value)=>records.push({kind,value}),restoreSQL:async sql=>{assert.ok(sql.includes("ERRCODE='P1903'"));assert.ok(sql.startsWith('BEGIN READ ONLY;'));throw Error('RESTORE_PUBLICATION_OWNER_MISMATCH');},sqlJSON:async sql=>{queries++;assert.ok(sql.includes('pg_publication'));return {present:false,ownerMatches:false};}};
  await assert.rejects(RestoreHost.prototype.destinationEmpty.call(host),/RESTORE_PUBLICATION_OWNER_MISMATCH/);assert.equal(queries,1);assert.deepEqual(records,[{kind:'restore-publication-qualification',value:{present:false,ownerMatches:false}}]);
+});
+
+test('managed mismatch diagnostics accept only fixed component warning codes and never accept recovery',async()=>{
+ const stderr='WARNING:  P2002\nWARNING:  P2006\nWARNING:  PRIVATE\nERROR:  P1905\nPRIVATE_DEFINITION\n';
+ assert.deepEqual(restoreManagedComponents(stderr),['events','roles']);
+ const records=[];const host=new RestoreHost({run:async()=>({code:3,stderr:Buffer.from(stderr)}),receipt:{nonce:'c'.repeat(32)},dir:'/unused'});
+ host.restoreActive=true;host.record=async(kind,value)=>records.push({kind,value});
+ await assert.rejects(host.command(['container','exec']),/RESTORE_FULL_MANAGED_MISMATCH/);
+ assert.deepEqual(records[0].value.differingComponents,['events','roles']);assert.ok(!JSON.stringify(records).includes('PRIVATE'));
+ const p=fake();p.replay=async()=>{p.managedMismatchComponents=['roles','events'];throw Error('RESTORE_FULL_MANAGED_MISMATCH');};
+ const result=await runRestore(p);assert.equal(result.status,'FAIL');assert.equal(result.cleanupVerified,true);assert.deepEqual(result.differingComponents,['events','roles']);
+ assert.equal(Object.keys(MANAGED_COMPONENT_CODES).length,12);assert.deepEqual(restoreManagedComponents('WARNING:  P2099\nWARNING: P2002 with private text'),[]);
 });

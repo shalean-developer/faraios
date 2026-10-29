@@ -59,7 +59,9 @@ try{
  assert.equal(admission.sourceState.enabledConnections,0);assert.equal(typeof admission.checkpointCatalog.application,'string');
  await client.query(fullManagedGate(admission.catalog,bootstrapProjection));
  await client.query('SAVEPOINT full_managed_negative');
- await assert.rejects(client.query(fullManagedGate({...admission.catalog,events:['unexpected']},bootstrapProjection)),/RESTORE_FULL_MANAGED_MISMATCH/);
+ const componentWarnings=[];const onComponentNotice=n=>componentWarnings.push({code:n.code,message:n.message});client.on('notice',onComponentNotice);
+ await assert.rejects(client.query(fullManagedGate({...admission.catalog,events:'different',roles:'different'},bootstrapProjection)),e=>e.code==='P1905'&&e.message==='RESTORE_FULL_MANAGED_MISMATCH');
+ client.removeListener('notice',onComponentNotice);assert.deepEqual(componentWarnings,[{code:'P2002',message:'T19_MANAGED_COMPONENT_MISMATCH'},{code:'P2006',message:'T19_MANAGED_COMPONENT_MISMATCH'}]);
  await client.query('ROLLBACK TO SAVEPOINT full_managed_negative');
  const namespaces=(await client.query("SELECT nspname FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname<>'information_schema'")).rows.map(r=>r.nspname);
  await client.query(namespaceGate(namespaces));

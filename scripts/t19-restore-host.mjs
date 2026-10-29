@@ -9,7 +9,7 @@ import {canonical,digest,requireTrue,PHASES,IMAGES} from './t19-bootstrap-engine
 import {openBackup,SOURCE} from './backup-staging.mjs';
 import {validateScope} from './backup-scope.mjs';
 import {compareStructure} from './t19-custody-recovery-compare.mjs';
-import {RESTORE_SCOPE,PRE_BOOTSTRAP,RESTORE_PHASES,LIMITS,INERT_SQL,planRestore,runRestore,catalogSQL,namespaceGate,PUBLICATIONS_SQL,publicationGate,RESTORE_GUARD_CODES,REALTIME_OWNER_GUARD} from './t19-restore-plan.mjs';
+import {RESTORE_SCOPE,PRE_BOOTSTRAP,RESTORE_PHASES,LIMITS,INERT_SQL,planRestore,runRestore,catalogSQL,namespaceGate,PUBLICATIONS_SQL,publicationGate,RESTORE_GUARD_CODES,REALTIME_OWNER_GUARD,MANAGED_COMPONENT_CODES} from './t19-restore-plan.mjs';
 const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const ACCEPTED_BUNDLE='231e08e545544fb9483e97e2811a22f7ad85635441ba4a8aedd58915d063556a';
 const OWNER='9509ac682d7aa3bf5a6683aec53dbfc407834ba9302f3e58fbafe1c3ad3a1958';
@@ -89,13 +89,16 @@ export function restoreProcess(binary,{spawnProcess=spawn}={}){
 export function restoreSQLStates(stderr){
  return [...new Set([...String(stderr??'').matchAll(/^(?:ERROR|FATAL):[ \t]+([0-9A-Z]{5})[ \t]*\r?$/gm)].map(m=>m[1]))];
 }
+export function restoreManagedComponents(stderr){
+ return [...new Set([...String(stderr??'').matchAll(/^WARNING:[ \t]+(P20(?:0[1-9]|1[0-2]))[ \t]*\r?$/gm)].map(m=>MANAGED_COMPONENT_CODES[m[1]]))].sort();
+}
 export class RestoreHost extends Host {
  constructor(options){super(options);this.plan=options.plan;this.restoreActive=false;this.restoreRun=options.restoreRun??options.run;this.archiveAuthenticated=options.archiveAuthenticated===true;}
  async command(args,options={}){
   if(!this.restoreActive||args[0]!=='container'||args[1]!=='exec')return super.command(args,options);
   check(!this.unknown&&Date.now()-this.started<900000,'RESTORE_COMMANDS_FENCED');
   let r;try{r=await this.restoreRun(args,options);}catch(e){if(e.unknown)this.unknown=true;await this.record('restore-command-error',{unknown:e.unknown===true,sqlstates:restoreSQLStates(e.evidence?.stderr),inputClosed:e.evidence?.inputClosed===true});throw Error('RESTORE_COMMAND_OUTCOME_UNKNOWN');}
-  if(r.code!==0){const sqlstates=restoreSQLStates(r.stderr),guard=sqlstates.map(code=>RESTORE_GUARD_CODES[code]).find(Boolean);await this.record('restore-command-failure',{code:r.code,sqlstates,inputClosed:r.inputClosed===true,...(guard?{guard}:{})});throw Error(guard??'RESTORE_SQL_FAILED');}return r.stdout;
+  if(r.code!==0){const sqlstates=restoreSQLStates(r.stderr),guard=sqlstates.map(code=>RESTORE_GUARD_CODES[code]).find(Boolean);if(guard==='RESTORE_FULL_MANAGED_MISMATCH')this.managedMismatchComponents=restoreManagedComponents(r.stderr);await this.record('restore-command-failure',{code:r.code,sqlstates,inputClosed:r.inputClosed===true,...(guard?{guard}:{}),...(guard==='RESTORE_FULL_MANAGED_MISMATCH'?{differingComponents:this.managedMismatchComponents}:{})});throw Error(guard??'RESTORE_SQL_FAILED');}return r.stdout;
  }
  async restoreSQL(sql,user='postgres'){
   this.restoreActive=true;const b=this.bound.get('postgres');
