@@ -28,3 +28,7 @@ The same24-criterion T19 rubric remains27/72 (3.8/10): this is additional prereq
 ## Next bounded package
 
 Prepare the separately reviewed [current-scope restore rehearsal definition](t19-current-scope-restore-definition-20261029.md). Source preparation and metadata-only admission may proceed; protected checkpoint execution still requires a distinct exact-run owner signature. Do not reuse the bootstrap scope/approval, change the legacy restore destination, or execute the historical T11 restore helper against any held project. The source staging project and protected prior restore project remain untouched; operational custody and T20 remain excluded.
+
+## Fresh hosted read-only admission observation
+
+On29October the FaraiOS staging connector was used with an explicit repeatable-read READ ONLY transaction (readOnly on, database postgres, server17.11). All three custody tables were empty; custody functions/policies0; enabled accounting connections0; Vault secrets0; Storage buckets/objects0. A separate READ ONLY role check confirmed the actual reviewed runtime role t19_runtime_owner absent. This is a point-in-time prerequisite observation only, not full catalog revalidation, checkpoint authentication, restore authorization or persistent readiness. No data, grants or settings were changed. Repeat the exact current-scope/role checks at eventual execution admission.
