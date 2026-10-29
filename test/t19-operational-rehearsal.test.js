@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {generateKeyPairSync,sign} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {EventEmitter} from 'node:events';
 import {canonical,PHASES} from '../scripts/t19-bootstrap-engine.mjs';
 import {OPERATIONAL_SCOPE,validateOperationalApproval,operationalStages,runOperationalRehearsal} from '../scripts/t19-operational-rehearsal.mjs';
@@ -58,4 +60,12 @@ test('SQL adapter accepts only the expected SQLSTATE and fences uncertain outcom
  await assert.rejects(host.checkedSQL('fixed'),/OPERATIONAL_COMMAND_OUTCOME_UNKNOWN/);assert.equal(host.unknown,true);
  await assert.rejects(host.checkedSQL('fixed'),/COMMANDS_FENCED/);
  assert.ok(records.every(([,r])=>!Object.hasOwn(r,'stderr')));
+});
+
+test('preparation entry point resolves its actual heredoc imports without host actions',async()=>{
+ const shell=await readFile(new URL('../scripts/t19-operational-owner-prepare.sh',import.meta.url),'utf8');
+ const block=shell.match(/<<'NODE'\n([\s\S]*?)\nNODE\n/);assert.ok(block,'preparation heredoc must exist');
+ const imports=block[1].match(/^import .+;$/gm);assert.ok(imports&&imports.length>=2,'preparation imports must be exercised');
+ const child=spawnSync(process.execPath,['--input-type=module','-e',imports.join('\n')+"\nconsole.log('PREPARATION_IMPORTS_RESOLVED');"],{cwd:fileURLToPath(new URL('..',import.meta.url)),encoding:'utf8',timeout:10000,maxBuffer:1048576});
+ assert.equal(child.error,undefined);assert.equal(child.status,0,child.stderr);assert.equal(child.stdout.trim(),'PREPARATION_IMPORTS_RESOLVED');
 });
