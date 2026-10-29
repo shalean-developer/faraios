@@ -4,6 +4,7 @@ import {mkdtemp,writeFile,rm,mkdir,chmod,symlink,link} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,relative,isAbsolute} from 'node:path';
 import {EventEmitter} from 'node:events';
+import {randomBytes} from 'node:crypto';
 import {loadAccountingDeployment,startAccountingCustody,deploymentProxy,accountingWebConfigPath} from '../src/t19-deployment.js';
 import {createStagingFetch,stagingDatabase} from '../src/hosted-staging.js';
 test('deployment config refuses unknown fields, repository secrets and disabled execution',async t=>{
@@ -66,5 +67,27 @@ test('web configuration location accepts only an explicit versioned source setti
  for(const value of [{version:1,webConfigFile:'relative.json'},{version:2,webConfigFile:'/private/web.json'},
   {version:1,webConfigFile:'/private/web.json',approved:true},{version:1,webConfigFile:null},null]){
   assert.throws(()=>accountingWebConfigPath(value),{message:'accounting_deployment_rejected'});
+ }
+});
+
+test('private custody config admits only the reviewed staging session/direct routes',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'faraios-custody-config-'));
+ t.after(()=>rm(dir,{recursive:true,force:true}));
+ const secret=join(dir,'synthetic.pem'),path=join(dir,'custody.json');
+ await writeFile(secret,'synthetic fixture',{mode:0o600});
+ const passwordFile=join(dir,'ephemeral-password');
+ await writeFile(passwordFile,randomBytes(32).toString('hex'),{mode:0o600});
+ const c={version:1,mode:'custody',enabled:false,port:9443,
+  tls:{caFile:secret,certFile:secret,keyFile:secret},publishableKey:'sb_publishable_synthetic',
+  database:{host:'aws-0-eu-west-1.pooler.supabase.com',port:5432,passwordFile,caFile:secret}};
+ const save=v=>writeFile(path,JSON.stringify(v),{mode:0o600});
+ for(const host of ['aws-0-eu-west-1.pooler.supabase.com','db.xdmfyrsauvqznkloroxg.supabase.co']){
+  await save({...c,database:{...c.database,host}});
+  const loaded=await loadAccountingDeployment(path);
+  assert.equal(loaded.enabled,false);assert.equal(loaded.database.host,host);
+ }
+ for(const patch of [{host:'db.other.supabase.co'},{port:6543},{user:'postgres'},{sslmode:'disable'}]){
+  await save({...c,database:{...c.database,...patch}});
+  await assert.rejects(loadAccountingDeployment(path),{message:'accounting_deployment_rejected'});
  }
 });
