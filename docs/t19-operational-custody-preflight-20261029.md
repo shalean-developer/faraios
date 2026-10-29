@@ -18,9 +18,9 @@ Read-only Supabase connector observations on project xdmfyrsauvqznkloroxg, authe
 
 The old runtime source attempted to delegate Auth schema USAGE and auth.uid() EXECUTE. On this managed principal those grants cannot establish the intended runtime privileges. A non-superuser synthetic reproduction confirmed a definer function's late auth.uid() lookup fails with SQLSTATE 42501 when its owner lacks Auth schema USAGE.
 
-The corrected source adds private_t19_custody.actor(), a no-argument STABLE SQL SECURITY INVOKER helper with fixed pg_catalog search_path and a BEGIN ATOMIC body containing only SELECT auth.uid(). PostgreSQL resolves this body and records its function dependency at definition time, when the reviewed executor already has Auth access. This preserves the existing identity function; it does not parse a new identity claim, accept a caller UUID, add a definer escalation, change Auth ownership/grants or expose a new public RPC. Existing business authorization continues to use trusted memberships.
+The corrected source adds private_t19_custody.actor(), a no-argument STABLE SQL SECURITY INVOKER helper with fixed pg_catalog search_path and a BEGIN ATOMIC body that checks effective EXECUTE before selecting auth.uid(), returning no identity when authority is absent. PostgreSQL resolves this body and records its function dependency at definition time, when the reviewed executor already has Auth access. This preserves the existing identity function; it does not parse a new identity claim, accept a caller UUID, add a definer escalation, change Auth ownership/grants or expose a new public RPC. Existing business authorization continues to use trusted memberships.
 
-The runtime owner receives no Auth schema grant. A new preflight checks effective auth.uid() EXECUTE and fails with 42501 when unavailable; the invocation also remains subject to the underlying function's EXECUTE ACL. Browser roles cannot invoke the private helper directly. The helper is owned by the same restricted runtime owner and hardened with the other private functions before transfer.
+The runtime owner receives no Auth schema grant. A new preflight checks effective auth.uid() EXECUTE and fails with 42501 when unavailable; the helper explicitly rechecks EXECUTE on each invocation as well. The first native CI run demonstrated that cached/inlined SQL can otherwise keep returning the identity after revocation; that failed result is retained. A revoked underlying grant must now produce NULL or 42501, never the prior identity, and protected authorization must deny. Browser roles cannot invoke the private helper directly. The helper is owned by the same restricted runtime owner and hardened with the other private functions before transfer.
 
 ## OP-06: function ACL order
 
@@ -40,7 +40,7 @@ Local targeted custody/OAuth/machine/operation and OP-05/OP-06 regressions: 41/4
 
 | Review source | SHA256 |
 | --- | --- |
-| database/t19-custody-runtime.sql | 73df4ffea9ba28a463377cc5bf04dc9b5ecd6bac5e2be59b2fbb6699aebad885 |
+| database/t19-custody-runtime.sql | 5797da30b84c2a09de30c0b024cb62fe123d6eed610a6ca24867badb7f295f65 |
 | database/t19-custody-oauth.sql | 45a4f0a3bfa8010bcf02ff0a5a28f49d40779fc82855c860ff826a29b981a05a |
 | database/t19-custody-api.sql | 5939789b9da7d37531394f403a5ca45d1db25609c0fa202b39c5bdd3b2419ba2 |
 

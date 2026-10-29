@@ -54,6 +54,11 @@ test('OP-05: existing Auth identity works without delegated Auth schema access',
    SET ROLE t19_runtime_owner;
    CREATE OR REPLACE FUNCTION private_t19_custody.probe() RETURNS uuid LANGUAGE plpgsql
     SECURITY DEFINER SET search_path=pg_catalog AS $$BEGIN RETURN private_t19_custody.actor(); END$$;
+   CREATE FUNCTION private_t19_custody.protected_probe() RETURNS uuid LANGUAGE plpgsql
+    SECURITY DEFINER SET search_path=pg_catalog AS $$DECLARE actor uuid; BEGIN
+     actor:=private_t19_custody.actor();
+     IF actor IS NULL THEN RAISE EXCEPTION 'denied' USING ERRCODE='42501'; END IF;
+     RETURN actor; END$$;
    RESET ROLE; REVOKE CREATE ON SCHEMA private_t19_custody FROM t19_runtime_owner;
    GRANT t19_runtime_owner TO op05_admin WITH SET FALSE, INHERIT FALSE;`);
   await q('SET SESSION AUTHORIZATION postgres; RESET ROLE');
@@ -71,12 +76,21 @@ test('OP-05: existing Auth identity works without delegated Auth schema access',
    await q("SELECT set_config('request.jwt.claim.sub',$1,true)",[actor]);
    assert.equal((await q('SELECT private_t19_custody.probe() AS actor')).rows[0].actor,actor||null);
   }
+  await q("SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',true)");
+  assert.equal((await q('SELECT private_t19_custody.protected_probe() AS actor')).rows[0].actor,'00000000-0000-4000-8000-000000000001');
   await q('SET SESSION AUTHORIZATION postgres; RESET ROLE');
   await q('REVOKE EXECUTE ON FUNCTION auth.uid() FROM PUBLIC');
   await q('SET SESSION AUTHORIZATION op05_admin');
   await deny(guard); // prerequisite absence fails closed
   await q('SET SESSION AUTHORIZATION postgres; SET SESSION AUTHORIZATION op05_caller');
-  await deny('SELECT private_t19_custody.probe()'); // no definer bypass of Auth EXECUTE
+  await q('SAVEPOINT revoked_identity');
+  try{
+   // Engines may reject the underlying EXECUTE before evaluating the CASE;
+   // cached native plans must instead yield no identity. Neither may return it.
+   assert.equal((await q('SELECT private_t19_custody.probe() AS actor')).rows[0].actor,null);
+  }catch(e){assert.equal(e.code,'42501');}
+  finally{await q('ROLLBACK TO SAVEPOINT revoked_identity');}
+  await deny('SELECT private_t19_custody.protected_probe()'); // cached identity fails closed
   console.log('T19_OP05_MANAGED_AUTH_IDENTITY_PASS');
  }finally{
   await q('ROLLBACK');await q('SET SESSION AUTHORIZATION postgres');

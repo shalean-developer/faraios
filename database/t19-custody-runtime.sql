@@ -70,7 +70,10 @@ create table private_t19_custody.revocations(
 create function private_t19_custody.actor() returns uuid
 language sql stable security invoker set search_path=pg_catalog
 begin atomic
- select auth.uid();
+ -- An explicit check also fences already cached/inlined identity plans after
+ -- EXECUTE revocation. Missing authority returns no identity to authorization.
+ select case when has_function_privilege(current_user,'auth.uid()'::regprocedure,'EXECUTE')
+  then auth.uid() else null::uuid end;
 end;
 create function private_t19_custody.binding(c private_t19_custody.connections) returns jsonb
 language sql immutable set search_path=pg_catalog as $$
