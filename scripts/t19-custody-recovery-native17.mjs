@@ -77,6 +77,19 @@ try{
  assert.equal((await client.query("SELECT has_parameter_privilege('supabase_realtime_admin','log_min_messages','SET') AS allowed")).rows[0].allowed,true);
  console.log('T19_NATIVE_PG17_REALTIME_TENANT_BOOTSTRAP_PASS');
 
+ await client.query(await readFile(new URL('../test-support/t19-bootstrap-helpers/overlay.sql',import.meta.url),'utf8'));
+ const helpers=(await client.query("SELECT p.proname,pg_get_userbyid(p.proowner) AS owner,p.prosecdef,p.proconfig FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='extensions' ORDER BY p.proname")).rows;
+ assert.equal(helpers.length,6);
+ assert.ok(helpers.every(p=>p.owner==='supabase_admin'&&!p.prosecdef&&JSON.stringify(p.proconfig)===JSON.stringify(['search_path=""'])));
+ assert.deepEqual((await client.query("SELECT rolconfig FROM pg_roles WHERE rolname='supabase_admin'")).rows[0].rolconfig,['search_path="$user", public, auth, extensions']);
+ // Actually invoke the event helper, then inspect the generated nested function.
+ await client.query("CREATE SCHEMA graphql_public; CREATE FUNCTION graphql_public.fixture_placeholder() RETURNS int LANGUAGE sql AS 'SELECT 1'; CREATE EVENT TRIGGER fixture_placeholder_hardening ON sql_drop WHEN TAG IN ('DROP FUNCTION') EXECUTE FUNCTION extensions.set_graphql_placeholder(); DROP FUNCTION graphql_public.fixture_placeholder();");
+ const nested=(await client.query("SELECT p.prosecdef,p.proconfig FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='graphql_public' AND p.proname='graphql'")).rows;
+ assert.deepEqual(nested,[{prosecdef:false,proconfig:['search_path=""']}]);
+ const stub=(await client.query('SELECT graphql_public.graphql() AS value')).rows[0].value;
+ assert.equal(stub.errors[0].message,'pg_graphql extension is not enabled.');
+ console.log('T19_NATIVE_PG17_BOOTSTRAP_HELPER_HARDENING_PASS');
+
  await client.query('ROLLBACK');begun=false;
  await client.query('RESET SESSION AUTHORIZATION');
  const clean=(await client.query("SELECT to_regnamespace('private_t19_custody') IS NULL AND to_regnamespace('realtime') IS NULL AS absent, NOT EXISTS(SELECT FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role','t19_hosted_custody','fixture_admin','supabase_admin','supabase_realtime_admin','dashboard_user')) AS roles_absent")).rows[0];

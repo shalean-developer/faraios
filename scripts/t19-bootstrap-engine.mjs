@@ -7,7 +7,7 @@ export const LABEL='faraios.t19.bootstrap-nonce';
 export const IMAGES=Object.freeze({postgres:'sha256:2b3159aaa54f5bfb06dffce70ee7b2481a3489fdfb607562e12b4940e26331f8',auth:'sha256:839f529492d116b4e8b7777c953a27c381d34c15a744b1bcefde5eefaa1f9f9f',storage:'sha256:b8f956b64ea3aee1dfc2cd9f0c9ce8d74335405992a90281bb5a979d1d552c22'});
 export const FREEZE='revoke-grants-to-unused-operations';
 export const INDEXES=['idx_users_email','idx_users_created_at_desc','idx_users_last_sign_in_at_desc','idx_users_name'];
-export const PHASES=['isolation','postgres','realtime','authMigrations','authIndexes','storage','managedCatalog','custody','security','stableCatalog'];
+export const PHASES=['isolation','postgres','bootstrapHelpers','realtime','authMigrations','authIndexes','storage','managedCatalog','custody','security','stableCatalog'];
 export function requireTrue(x,code){if(x!==true)throw Error(code);}
 export function validNonce(n){requireTrue(typeof n==='string'&&/^[a-f0-9]{32}$/.test(n),'NONCE_INVALID');return n;}
 export function containerSpec(nonce,kind,network,env={}){
