@@ -8,7 +8,7 @@ import {canonical,digest,requireTrue,PHASES,IMAGES} from './t19-bootstrap-engine
 import {openBackup,SOURCE} from './backup-staging.mjs';
 import {validateScope} from './backup-scope.mjs';
 import {compareStructure} from './t19-custody-recovery-compare.mjs';
-import {RESTORE_SCOPE,PRE_BOOTSTRAP,RESTORE_PHASES,LIMITS,INERT_SQL,planRestore,runRestore,catalogSQL} from './t19-restore-plan.mjs';
+import {RESTORE_SCOPE,PRE_BOOTSTRAP,RESTORE_PHASES,LIMITS,INERT_SQL,planRestore,runRestore,catalogSQL,namespaceGate} from './t19-restore-plan.mjs';
 const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const ACCEPTED_BUNDLE='231e08e545544fb9483e97e2811a22f7ad85635441ba4a8aedd58915d063556a';
 const OWNER='9509ac682d7aa3bf5a6683aec53dbfc407834ba9302f3e58fbafe1c3ad3a1958';
@@ -87,14 +87,16 @@ export class RestoreHost extends Host {
  }
  async stopServices(){await this.remove('storage');await this.remove('auth');check(this.bound.size===1&&this.bound.has('postgres'),'RESTORE_SERVICES_NOT_REMOVED');await this.record('restore-services-stopped',{auth:true,storage:true,postgresOnly:true});}
  async destinationEmpty(){
+  this.initialNamespaces=await this.sqlJSON("SELECT coalesce(jsonb_agg(nspname ORDER BY nspname),'[]') FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname<>'information_schema';");
+  this.namespaceSQL=namespaceGate(this.initialNamespaces);
   await this.sql('BEGIN READ ONLY;'+INERT_SQL+'COMMIT;');
   const pre=await this.sqlJSON("SELECT jsonb_build_object('applicationObjects',(SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('public','audit','supabase_migrations'))+(SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('public','audit','supabase_migrations')),'custodyAbsent',to_regnamespace('private_t19_custody') IS NULL AND NOT EXISTS(SELECT FROM pg_roles WHERE rolname IN ('t19_hosted_custody','t19_runtime_owner')),'managedRows',(SELECT COALESCE(sum(((xpath('//n/text()',query_to_xml(format('SELECT count(*) AS n FROM %I.%I',n.nspname,c.relname),false,false,'')))[1]::text)::bigint),0) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind='r' AND n.nspname IN ('auth','storage') AND NOT(n.nspname='auth' AND c.relname='schema_migrations') AND NOT(n.nspname='storage' AND c.relname='migrations')),'vaultSecrets',(SELECT count(*) FROM vault.secrets));");
   check(pre.applicationObjects===0&&pre.custodyAbsent&&pre.managedRows===0&&pre.vaultSecrets===0,'RESTORE_DESTINATION_NOT_EMPTY');check(compareCatalog(await this.catalog(),this.expected).match,'RESTORE_MANAGED_DRIFT');await this.record('restore-empty-destination',pre);
  }
- async replay(){const result=await this.restoreSQL(this.plan.replay,'supabase_admin');check(result.split(/\r?\n/).filter(s=>s==='T19_RESTORE_TRANSACTION_COMMITTED').length===1,'RESTORE_COMMIT_ACK_MISSING');await this.record('restore-committed',{verifiedInTransaction:true,rowsNotLogged:true});}
+ async replay(){const result=await this.restoreSQL(this.namespaceSQL+this.plan.replay.replace('SET LOCAL check_function_bodies=true;',this.namespaceSQL+'SET LOCAL check_function_bodies=true;'),'supabase_admin');check(result.split(/\r?\n/).filter(s=>s==='T19_RESTORE_TRANSACTION_COMMITTED').length===1,'RESTORE_COMMIT_ACK_MISSING');await this.record('restore-committed',{verifiedInTransaction:true,rowsNotLogged:true});}
  async verifyCommitted(){await this.restoreSQL('BEGIN READ ONLY;'+LIMITS+this.plan.verify+'COMMIT;');await this.record('restore-independent-rows',{freshConnection:true,match:true});}
  async sequences(){await this.restoreSQL('BEGIN;'+LIMITS+this.plan.sequenceSQL+'COMMIT;');await this.record('restore-sequences',{count:this.plan.states.length,verified:true,nontransactional:true});}
- async verifyFresh(){await this.restoreSQL('BEGIN READ ONLY;'+LIMITS+this.plan.verify+this.plan.sequenceVerify+'COMMIT;');await this.record('restore-independent-sequences',{match:true});}
+ async verifyFresh(){await this.restoreSQL('BEGIN READ ONLY;'+LIMITS+namespaceGate(this.initialNamespaces,{custody:true})+this.plan.verify+this.plan.sequenceVerify+'COMMIT;');await this.record('restore-independent-sequences',{match:true});}
  async boundaries(){
   for(const role of ['anon','authenticated','service_role'])await this.restoreSQL("BEGIN;SET LOCAL ROLE "+role+";DO $$ BEGIN BEGIN PERFORM 1 FROM private_t19_custody.connections; RAISE EXCEPTION 'DENIAL_NOT_ENFORCED'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;END $$;ROLLBACK;");
   // Recovered business-boundary probes are separately reviewed SQL, bound to
@@ -137,7 +139,7 @@ async function inputs(requestPath,dir,authorized=null){
  if(authorized)check(Object.entries(bindings).every(([k,v])=>authorized[k]===v),'RESTORE_INPUT_BINDING_CHANGED');
  const key=await privateFile(request.keyPath,32);let backup;
  try{check(key.length===32,'RESTORE_KEY_LENGTH');backup=openBackup(archive,key,scope);}finally{key.fill(0);}
- const plan=planRestore(backup,scope,await fs.readFile(join(ROOT,'scripts/restore-catalog.sql'),'utf8'));
+ const plan=planRestore(backup,scope,await fs.readFile(join(ROOT,'scripts/restore-catalog.sql'),'utf8'),{catalog:expected.catalog,sql:await fs.readFile(join(ROOT,'scripts/t19-bootstrap-catalog.sql'),'utf8')});
  bindings.planSha256=plan.planSha256;
  if(authorized)check(authorized.planSha256===plan.planSha256,'RESTORE_PLAN_CHANGED');
  return {run,baseline,expected,plan,boundarySQL,bindings,trust,archiveAuthenticated:true,files:json(await fs.readFile(join(ROOT,'config/t19-bootstrap-files.json'))).files};

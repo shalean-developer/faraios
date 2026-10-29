@@ -69,7 +69,7 @@ test('native PG17 recovered RLS both directions, staff/write denials, audit and 
    for(const t of names)out[t.schemaname+'.'+t.tablename]=(await db.query(`SELECT coalesce(jsonb_agg(q.row ORDER BY q.row::text),'[]') AS rows FROM (SELECT to_jsonb(t) AS row FROM ${t.schemaname}.${t.tablename} t) q`)).rows[0].rows;
    return out;
   };
-  const baseline=await fingerprint(),probe=await readFile(new URL('../database/t19-restore-boundaries.sql',import.meta.url),'utf8');
+  const baseline=await fingerprint(),probe=(await readFile(new URL('../database/t19-restore-boundaries.sql',import.meta.url),'utf8')).replace("current_database()<>'postgres'","current_database()<>'t19_restore_rls_fixture'");
   assert.ok((await psql(probe)).includes('T19_RESTORE_BOUNDARIES_ROLLED_BACK'));assert.deepEqual(await fingerprint(),baseline);
   await db.query('ALTER TABLE public.business_accounting_connections DISABLE ROW LEVEL SECURITY');
   await assert.rejects(psql(probe));await db.query('ALTER TABLE public.business_accounting_connections ENABLE ROW LEVEL SECURITY');assert.deepEqual(await fingerprint(),baseline);

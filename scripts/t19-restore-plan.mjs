@@ -33,6 +33,20 @@ export function catalogGate(portable,scope){
  return `DO $t19_catalog$ DECLARE actual jsonb; BEGIN SELECT catalog INTO actual FROM (${trim(portable)}) q;
  IF actual->>'application'<>${lit(scope.application)} OR actual->>'managed'<>${lit(scope.managed)} THEN RAISE EXCEPTION 'RESTORE_CATALOG_MISMATCH'; END IF; END $t19_catalog$;\n`;
 }
+// Reuse the accepted twelve-component projection before any checkpoint rows.
+export function fullManagedGate(expected,sql){
+ check(expected&&Object.keys(expected).length===12,'RESTORE_FULL_MANAGED_SHAPE');
+ const start=sql.indexOf('with scopes('),end=sql.lastIndexOf('COMMIT;');
+ check(start>=0&&end>start,'RESTORE_FULL_MANAGED_PROJECTION');
+ const query=trim(sql.slice(start,end));
+ return `DO $t19_full$ DECLARE actual jsonb; BEGIN SELECT q.jsonb_build_object->'catalog' INTO actual FROM (${query}) q;
+ IF actual IS DISTINCT FROM ${lit(canonical(expected))}::jsonb THEN RAISE EXCEPTION 'RESTORE_FULL_MANAGED_MISMATCH'; END IF; END $t19_full$;\n`;
+}
+export function namespaceGate(names,{custody=false}={}){
+ check(Array.isArray(names)&&names.every(n=>typeof n==='string'),'RESTORE_NAMESPACE_SHAPE');
+ const allowed=[...new Set([...names,'audit','supabase_migrations',...(custody?['private_t19_custody']:[])])].sort();
+ return `DO $t19_names$ BEGIN IF EXISTS(SELECT FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname<>'information_schema' AND NOT(nspname=ANY(ARRAY[${allowed.map(lit).join(',')}]::text[]))) THEN RAISE EXCEPTION 'RESTORE_UNEXPECTED_NAMESPACE'; END IF; END $t19_names$;\n`;
+}
 // The dump's COPY rows are opaque: SQL-like text inside a row is never parsed.
 export function dataMember(sql,manifest,name){
  const allowed=new Map(manifest.tables.map(t=>[t.schema+'.'+t.table,t]));let active=null,rows=0;
@@ -76,6 +90,8 @@ export function schemaMember(sql,kind){
   if(kind==='roles'){
    check(/^ALTER ROLE [A-Z_][A-Z0-9_]* SET (?:PGAUDIT\.[A-Z_]+|PGRST\.[A-Z_]+|SESSION_REPLICATION_ROLE|STATEMENT_TIMEOUT|TRACK_IO_TIMING) (?:TO|=) /.test(c),'RESTORE_ROLE_STATEMENT_REFUSED');
   }else{
+   check(/^(?:CREATE (?:OR REPLACE )?(?:SCHEMA|TABLE|SEQUENCE|FUNCTION|PROCEDURE|TYPE|DOMAIN|(?:UNIQUE )?INDEX|POLICY|TRIGGER|(?:MATERIALIZED )?VIEW|EXTENSION)\b|ALTER (?:SCHEMA|TABLE|SEQUENCE|FUNCTION|PROCEDURE|TYPE|DOMAIN|INDEX|VIEW|MATERIALIZED VIEW|DEFAULT PRIVILEGES)\b|COMMENT ON\b|GRANT\b|REVOKE\b)/.test(c),'RESTORE_SCHEMA_OBJECT_REFUSED');
+   if(/^(?:GRANT|REVOKE)\b/.test(c))check(/\bON (?:ALL (?:TABLES|SEQUENCES|FUNCTIONS) IN SCHEMA|SCHEMA|TABLE|SEQUENCE|FUNCTION|PROCEDURE|TYPE|[A-Z_][A-Z0-9_]*\s*\.)/.test(c)&&! /\bON (?:DATABASE|TABLESPACE|PARAMETER|FOREIGN|SERVER)\b/.test(c),'RESTORE_PERMISSION_TARGET_REFUSED');
    check(!/^(?:CREATE|ALTER) (?:DATABASE|TABLESPACE|FOREIGN|SERVER|EVENT TRIGGER|SUBSCRIPTION|PUBLICATION|ROLE|USER|SYSTEM)\b/.test(c)&&!/\b(?:PG_AUTHID|PG_READ_FILE|PROGRAM)\b/.test(c),'RESTORE_SCHEMA_PRIVILEGED_STATEMENT');
    if(/^ALTER DEFAULT PRIVILEGES/.test(c))check(/^ALTER DEFAULT PRIVILEGES FOR ROLE POSTGRES IN SCHEMA (?:PUBLIC|AUDIT|SUPABASE_MIGRATIONS) /.test(c),'RESTORE_DEFAULT_ROLE');
    check(!/\bLANGUAGE (?!PLPGSQL\b|SQL\b)[A-Z_]+/.test(c),'RESTORE_SCHEMA_LANGUAGE');
@@ -95,7 +111,7 @@ export function schemaMember(sql,kind){
  }
  return out.join('\n');
 }
-export function planRestore(backup,scope,portable){
+export function planRestore(backup,scope,portable,managed=null){
  scope=validateScope(scope,SOURCE);check(scope.tables.length===30,'RESTORE_APPLICATION_TABLE_SCOPE');
  check(backup.payload.source===SOURCE&&canonical(backup.payload.files.map(f=>f.name))===canonical(['roles.sql','schema.sql','data.sql','migration-schema.sql','migration-data.sql','managed-schema-reference.sql','manifest.json'])&&backup.payload.files.every(f=>typeof f.content==='string'&&digest(f.content)===f.sha256),'RESTORE_MEMBER_BINDING');
  const files=Object.fromEntries(backup.payload.files.map(f=>[f.name,f.content]));
@@ -112,13 +128,14 @@ export function planRestore(backup,scope,portable){
  check(canonical(states.map(s=>s.schema+'.'+s.sequence))===canonical(sequenceState.map(s=>s.schema+'.'+s.sequence).sort()),'RESTORE_SEQUENCE_SCOPE');
  for(const state of states){const m=sequenceState.find(s=>s.schema===state.schema&&s.sequence===state.sequence);check(m.last_value===null?!state.isCalled:m.last_value===state.value,'RESTORE_SEQUENCE_MANIFEST_MISMATCH');}
  const cat=catalogSQL(portable),gate=catalogGate(cat,scope);
- const verify=verificationSQL(manifest,cat,scope)+INERT_SQL;
+ const fullGate=managed?fullManagedGate(managed.catalog,managed.sql):'';
+ const verify=verificationSQL(manifest,cat,scope)+fullGate+INERT_SQL;
  const data=['data.sql','migration-data.sql'].map(name=>dataMember(rewritten[name],manifest.before,name));
  const actor="DO $actor$ BEGIN IF current_user<>'postgres' OR session_user<>'supabase_admin' OR current_database()<>'postgres' THEN RAISE EXCEPTION 'RESTORE_ACTOR_CHANGED'; END IF; END $actor$;\n";
  // Only the fresh recovery connection is bootstrap-admin. Schema is created
  // as managed postgres; data COPY needs replica mode, so runs as bootstrap
  // admin after schema/ACL equality passes. No service gets this connection.
- const replay='BEGIN;SET LOCAL ROLE postgres;\n'+LIMITS+actor+RESTORE_CREATION_DEFAULTS_SQL+role+'\n'+schema+'\n'+migration+'\n'+LIMITS+actor+RECONSTRUCT_WORKING_DAYS_SQL+gate+
+ const replay='BEGIN;SET LOCAL ROLE postgres;\n'+LIMITS+actor+"SET LOCAL check_function_bodies=false;\n"+RESTORE_CREATION_DEFAULTS_SQL+role+'\n'+schema+'\n'+migration+'\n'+LIMITS+actor+RECONSTRUCT_WORKING_DAYS_SQL+gate+fullGate+"SET LOCAL check_function_bodies=true;\n"+
   'RESET ROLE;SET LOCAL session_replication_role=replica;\n'+data.join('\n')+'\nSET LOCAL session_replication_role=origin;SET LOCAL ROLE postgres;\n'+LIMITS+actor+verify+"COMMIT;\nSELECT 'T19_RESTORE_TRANSACTION_COMMITTED';\n";
  const setSequences=states.map(s=>`SELECT pg_catalog.setval(${lit(id(s.schema)+'.'+id(s.sequence))},${s.value},${s.isCalled});`).join('\n');
  return {manifest,scope,states,catalog:cat,replay,verify,sequenceSQL:verify+setSequences+'\n'+sequenceVerificationSQL(states),sequenceVerify:sequenceVerificationSQL(states),planSha256:digest({replay,verify,setSequences,states,scope}),summary:{applicationTables:30,coveredTables:manifest.before.tables.length,sequenceCount:states.length,managedSchemaReplay:false,operationalCustodyInstalled:false}};

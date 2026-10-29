@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync,sign} from 'node:crypto';
 import {canonical} from '../scripts/t19-bootstrap-engine.mjs';
-import {RESTORE_SCOPE,RESTORE_PHASES,dataMember,schemaMember,runRestore,catalogSQL} from '../scripts/t19-restore-plan.mjs';
+import {RESTORE_SCOPE,RESTORE_PHASES,dataMember,schemaMember,runRestore,catalogSQL,fullManagedGate,namespaceGate} from '../scripts/t19-restore-plan.mjs';
 import {validateRestoreApproval,sourceAdmissionSQL,RestoreHost} from '../scripts/t19-restore-host.mjs';
 import {readFile} from 'node:fs/promises';
 test('data replay is COPY-only with opaque escaped rows, bounded table and member scope',()=>{
@@ -103,4 +103,15 @@ test('existing application foundation DDL and policy joins fit the bounded schem
   const sql=(await readFile(new URL('../database/'+file,import.meta.url),'utf8')).replace(/^begin;\s*$/gmi,'').replace(/^commit;\s*$/gmi,'');
   assert.doesNotThrow(()=>schemaMember(sql,'schema'),file);
  }
+});
+
+test('full managed equality precedes data and namespace drift is fenced',async()=>{
+ const sql=await readFile(new URL('../scripts/t19-bootstrap-catalog.sql',import.meta.url),'utf8');
+ const expected=Object.fromEntries(Array.from({length:12},(_,i)=>['key'+i,null]));
+ const gate=fullManagedGate(expected,sql);
+ assert.ok(gate.includes("q.jsonb_build_object->'catalog'"));
+ assert.ok(gate.includes('IS DISTINCT FROM'));
+ assert.ok(!gate.includes('BEGIN TRANSACTION'));
+ assert.ok(namespaceGate(['public']).includes('RESTORE_UNEXPECTED_NAMESPACE'));
+ for(const statement of ['CREATE AGGREGATE public.bad(int) (sfunc=int4pl,stype=int);','GRANT postgres TO authenticated;','GRANT CONNECT ON DATABASE postgres TO authenticated;'])assert.throws(()=>schemaMember(statement,'schema'));
 });

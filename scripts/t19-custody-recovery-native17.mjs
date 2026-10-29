@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {Client} from 'pg';
 import {compareStructure} from './t19-custody-recovery-compare.mjs';
+import {fullManagedGate,namespaceGate} from './t19-restore-plan.mjs';
 import {sourceAdmissionSQL} from './t19-restore-host.mjs';
 
 if(process.env.T19_SYNTHETIC_CATALOG_ONLY!=='yes'||process.env.PGHOST!=='127.0.0.1'||process.env.PGPORT!=='5432'||process.env.PGUSER!=='postgres'||!process.env.PGPASSWORD)
@@ -56,6 +57,15 @@ try{
  assert.equal(admission.sourceProject,'xdmfyrsauvqznkloroxg');assert.equal(admission.custodyReadback.roleConforms,true);assert.equal(admission.custodyReadback.membershipConforms,true);
  assert.equal(compareStructure(admission.custodyDefinition,expected).status,'CUSTODY_STRUCTURE_MATCH');
  assert.equal(admission.sourceState.enabledConnections,0);assert.equal(typeof admission.checkpointCatalog.application,'string');
+ await client.query(fullManagedGate(admission.catalog,bootstrapProjection));
+ await client.query('SAVEPOINT full_managed_negative');
+ await assert.rejects(client.query(fullManagedGate({...admission.catalog,events:['unexpected']},bootstrapProjection)),/RESTORE_FULL_MANAGED_MISMATCH/);
+ await client.query('ROLLBACK TO SAVEPOINT full_managed_negative');
+ const namespaces=(await client.query("SELECT nspname FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname<>'information_schema'")).rows.map(r=>r.nspname);
+ await client.query(namespaceGate(namespaces));
+ await client.query('SAVEPOINT namespace_negative;CREATE SCHEMA unexpected_fixture;');
+ await assert.rejects(client.query(namespaceGate(namespaces)),/RESTORE_UNEXPECTED_NAMESPACE/);
+ await client.query('ROLLBACK TO SAVEPOINT namespace_negative');
  await client.query('DROP TABLE public.business_accounting_connections;DROP TABLE storage.buckets,storage.objects;DROP SCHEMA vault CASCADE;DROP EXTENSION pgcrypto;DROP SCHEMA extensions;');
  console.log('T19_NATIVE_PG17_RESTORE_ADMISSION_SQL_PASS');
 
