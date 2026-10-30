@@ -64,7 +64,7 @@ jobs:
       - name: Warm exact registry-integrity-checked dependency cache
         run: npm ci --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/
       - name: Package and inactive-install regression tests
-        run: node --test test/t19-private-package.test.js
+        run: node --test test/t19-private-package.test.js test/t19-private-upgrade.test.js
       - name: Build offline inactive production package and verify import-only behavior
         run: node scripts/build-t19-private-package.mjs "$RUNNER_TEMP/t19-private-package"
       - name: Preserve public-source-only package for owner review
