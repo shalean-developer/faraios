@@ -189,11 +189,11 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
     const verified=await reconcile(expectedHash);
     assert.equal(verified.status,'EXPECTED_COMMITTED_STATE_VERIFIED');
     assert.equal(verified.retryAuthorized,false);assert.equal(verified.activationAuthorized,false);
-    const originalNames=(await query('SELECT id,name FROM public.businesses ORDER BY id')).rows;
-    await exec("UPDATE public.businesses SET name='synthetic reconciliation drift'");
+    const originalEmails=(await query('SELECT id,email FROM auth.users ORDER BY id')).rows;
+    await exec("UPDATE auth.users SET email='synthetic-reconciliation-drift@example.invalid'");
     assert.equal((await reconcile(expectedHash)).status,'QUARANTINE_REQUIRES_REVIEW');
     // Restore the exact protected fixture value, never a hosted record.
-    for(const row of originalNames)await query('UPDATE public.businesses SET name=$1 WHERE id=$2',[row.name,row.id]);
+    for(const row of originalEmails)await query('UPDATE auth.users SET email=$1 WHERE id=$2',[row.email,row.id]);
     const reader=new Client({connectionString:target,ssl});await reader.connect();
     try{const after=await reader.query(commit.postCommitSQL);assert.equal(after.find(r=>r.rows?.[0]?.fresh_committed_baseline)?.rows[0].fresh_committed_baseline,expectedHash);}finally{await reader.end();}
     await assert.rejects(exec(commit.sql),/T19_STAGE_SEQUENCE_REFUSED|T19_BASELINE_CHANGED/);await exec('ROLLBACK');
