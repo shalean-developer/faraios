@@ -5,6 +5,8 @@ import {createHash,randomBytes} from 'node:crypto';
 import {PGlite} from '@electric-sql/pglite';
 import {btree_gist} from '@electric-sql/pglite/contrib/btree_gist';
 import {Client} from 'pg';
+import {runtimeCommitPackage} from '../scripts/t19-runtime-commit-package.mjs';
+import {runtimeContractSQL} from '../scripts/t19-runtime-contract.mjs';
 import {captureSQL,rehearsalPackage} from '../scripts/t19-provisioning-package.mjs';
 import {invoiceFixture} from '../test-support/t19-runtime-fixture.mjs';
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
@@ -153,7 +155,29 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
    const failed=sql.replace(/^commit;\s*$/im,()=>"DO $$BEGIN RAISE EXCEPTION 'synthetic abort' USING ERRCODE='55000';END$$;\nCOMMIT;");
    await assert.rejects(exec(failed),e=>e.code==='55000'&&e.message==='synthetic abort');await exec('ROLLBACK');
    assert.equal(await fresh(),before,stage+' forced abort leaked state');
-   await exec(sql);
+   if(guardCA&&stage==='runtime'){
+    let baseline;const capture=n=>{const m=n.message.match(/^T19_NATIVE_BASELINE_SHA256 ([a-f0-9]{64})$/);if(m)baseline=m[1];};
+    engine.on('notice',capture);await exec(captureSQL());engine.removeListener('notice',capture);
+    const now=Date.now(),contractText=await readFile(new URL('../test-support/t19-runtime-contract-expected.json',import.meta.url),'utf8');
+    const commit=runtimeCommitPackage({projectRef:'xdmfyrsauvqznkloroxg',stage:'runtime',sql,baselineSha256:baseline,issuedAt:now,expiresAt:now+900000,nonce:'a'.repeat(32),rehearsalEvidenceSha256:'b'.repeat(64)},contractText,now);
+    for(const tamper of [
+     "GRANT SELECT ON private_t19_custody.connections TO authenticated;",
+     "GRANT t19_runtime_owner TO postgres WITH SET TRUE;",
+     "ALTER TABLE private_t19_custody.machines ALTER COLUMN active SET DEFAULT true;",
+     "UPDATE public.businesses SET name='synthetic forbidden drift';"
+    ]){
+     const damaged=commit.sql.replace('DO $t19_contract$',tamper+'\nDO $t19_contract$');
+     await assert.rejects(exec(damaged),/T19_RUNTIME_EXACT_CONTRACT_MISMATCH|T19_PROTECTED_DATA_CHANGED/);await exec('ROLLBACK');assert.equal(await fresh(),before);
+    }
+    const committed=await exec(commit.sql);
+    const expectedHash=committed.find(r=>r.rows?.[0]?.candidate_committed_baseline)?.rows[0].candidate_committed_baseline;
+    assert.match(expectedHash??'',/^[a-f0-9]{64}$/);
+    const reader=new Client({connectionString:target,ssl});await reader.connect();
+    try{const after=await reader.query(commit.postCommitSQL);assert.equal(after.find(r=>r.rows?.[0]?.fresh_committed_baseline)?.rows[0].fresh_committed_baseline,expectedHash);}finally{await reader.end();}
+    await assert.rejects(exec(commit.sql),/T19_STAGE_SEQUENCE_REFUSED|T19_BASELINE_CHANGED/);await exec('ROLLBACK');
+    console.log('T19_RUNTIME_EXACT_COMMIT_TAMPER_AND_FRESH_TLS_PASS');
+   }else await exec(sql);
+   if(stage==='runtime')assert.deepEqual((await scalar(runtimeContractSQL)).contract,JSON.parse(await readFile(new URL('../test-support/t19-runtime-contract-expected.json',import.meta.url),'utf8')));
    assert.equal(await fresh({protectedOnly:true}),protectedBefore,stage+' changed protected rows/sequences');
    const committed=await fresh();
    await assert.rejects(exec(sql),{code:'55000'});await exec('ROLLBACK');
