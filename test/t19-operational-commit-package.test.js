@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
+import {PGlite} from '@electric-sql/pglite';
 import {operationalCommitPackage,operationalContractGuard,CONTRACT_PINS} from '../scripts/t19-operational-commit-package.mjs';
 import {rehearsalPackage,captureSQL,sha,PROJECT} from '../scripts/t19-provisioning-package.mjs';
 const source=stage=>fs.readFileSync(new URL('../database/t19-custody-'+stage+'.sql',import.meta.url),'utf8');
@@ -32,6 +33,14 @@ for(const stage of ['oauth','api']){
   assert.equal(projected.relations.filter(r=>r[1]==='r').length,10);assert.equal(projected.functions.length,stage==='oauth'?9:11);
   assert.equal(projected.publicWrappers.length,stage==='oauth'?0:4);
   if(stage==='api')assert.ok(projected.publicWrappers.every(w=>w[3]===false));
+ });
+ test(stage+' emitted SQL preserves dollar-bearing function definitions and parses before refusing an ineligible database',async()=>{
+  const db=new PGlite();
+  try{
+   const p=operationalCommitPackage(input(stage),contracts,now);
+   await assert.rejects(db.exec(p.sql),/T19_PROVISIONING_IDENTITY_TLS_REFUSED/);await db.exec('ROLLBACK');
+   await assert.rejects(db.exec(p.postCommitSQL),/T19_PROVISIONING_IDENTITY_TLS_REFUSED/);await db.exec('ROLLBACK');
+  }finally{await db.close();}
  });
  test(stage+' owner preparation binds accepted rollback evidence and refuses tamper without changing history',()=>{
   const dir=fs.mkdtempSync(join(os.tmpdir(),'t19-stage-commit-'));fs.chmodSync(dir,0o700);

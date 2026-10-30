@@ -36,7 +36,7 @@ COMMIT;
 `;
  const sql=`-- ${input.stage} commit candidate ${nonce}; rehearsal evidence ${rehearsalEvidenceSha256}.\n`+
  rehearsal.sql.replace('SET LOCAL search_path=pg_catalog;',"SET LOCAL search_path=pg_catalog;\nSET LOCAL standard_conforming_strings=on;")
- .replace('END $t19_before$;',`PERFORM set_config('faraios.t19_commit_before_data',${dataHash},true); END $t19_before$;\n${before}`)
+ .replace('END $t19_before$;',()=>`PERFORM set_config('faraios.t19_commit_before_data',${dataHash},true); END $t19_before$;\n${before}`)
  .slice(0,-'ROLLBACK;'.length)+ending;
  const postCommitSQL=`BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;
 SET LOCAL lock_timeout='5s';
