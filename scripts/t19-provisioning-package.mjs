@@ -26,6 +26,7 @@ BEGIN
   records:=records||jsonb_build_array(jsonb_build_array(t.nspname,t.relname,t.relkind,item));
  END LOOP;
  digest:=${hashSQL("jsonb_build_object('catalog',catalog,'data',records,'triggers',(SELECT coalesce(jsonb_agg(jsonb_build_array(n.nspname,c.relname,tr.tgname,tr.tgenabled,tr.tgisinternal,pg_get_triggerdef(tr.oid,true)) ORDER BY n.nspname,c.relname,tr.tgname),'[]'::jsonb) FROM pg_trigger tr JOIN pg_class c ON c.oid=tr.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('public','audit','auth','storage','supabase_migrations','private_t19_custody','vault')))")};`;
+export const nativeSnapshotSQL=snapshot;
 export function captureSQL(){return `BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;\nSET LOCAL statement_timeout='60s';\nSET LOCAL search_path=pg_catalog;\nDO $t19_capture$ ${snapshot}\nPERFORM pg_catalog.set_config('faraios.t19_native_baseline',digest,true); RAISE NOTICE 'T19_NATIVE_BASELINE_SHA256 %',digest; END $t19_capture$;\nSELECT pg_catalog.current_setting('faraios.t19_native_baseline') AS baseline_sha256;\nCOMMIT;\n`;}
 export function rehearsalPackage(input,now=Date.now()){
  check(input&&Object.keys(input).sort().join(',')==='baselineSha256,expiresAt,issuedAt,projectRef,sql,stage');
