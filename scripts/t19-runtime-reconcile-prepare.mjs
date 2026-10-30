@@ -21,7 +21,7 @@ try{
   if(dirname(p)===p)break;
  }
  async function read(name){
-  const f=await fs.open(join(dir,name),constants.O_RDONLY|constants.O_NOFOLLOW);
+  const f=await fs.open(join(dir,name),constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);
   try{
    const s=await f.stat();
    if(!s.isFile()||s.uid!==process.getuid()||s.nlink!==1||(s.mode&0o077)||s.size>1048576)refuse();

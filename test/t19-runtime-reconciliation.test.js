@@ -36,6 +36,10 @@ test('owner CLI verifies protected packet bytes and only emits read-only inspect
   fs.writeFileSync(join(dir,'runtime-commit.sql'),sql);fs.chmodSync(join(dir,'packet.json'),0o644);assert.equal(run().status,1);
   fs.chmodSync(join(dir,'packet.json'),0o600);fs.renameSync(join(dir,'packet.json'),join(dir,'saved.json'));
   fs.symlinkSync(join(dir,'saved.json'),join(dir,'packet.json'));assert.equal(run().status,1);
+  fs.unlinkSync(join(dir,'packet.json'));
+  assert.equal(spawnSync('mkfifo',[join(dir,'packet.json')]).status,0);
+  const fifo=spawnSync(process.execPath,args,{encoding:'utf8',timeout:5000});
+  assert.equal(fifo.error,undefined);assert.equal(fifo.status,1);
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
 test('reconciliation SQL parses and refuses an ineligible database without mutations',async()=>{
