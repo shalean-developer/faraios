@@ -11,7 +11,7 @@ export async function sourcePlan(){
  check(policy.version===1&&policy.activationAuthorized===false&&policy.purpose==='inactive-private-custody-source','SOURCE_POLICY');
  check(canonical(pkg.dependencies)===canonical(policy.dependencies)&&lock.lockfileVersion===3&&canonical(lock.packages[''].dependencies)===canonical(policy.dependencies),'DEPENDENCY_ROOT_MISMATCH');
  const payload=new Map();
- for(const p of policy.sourceFiles){check(safePath(p)&&(p==='_custody.cjs'||p==='config/t19-hosting.json'||['scripts/t19-private-package-verify.mjs','scripts/t19-private-install.mjs'].includes(p)||/^src\/[a-z0-9-]+\.(?:js|cjs)$/.test(p)),'SOURCE_PATH_REFUSED');check(!payload.has(p),'DUPLICATE_SOURCE');payload.set(p,await regular(join(ROOT,p)));}
+ for(const p of policy.sourceFiles){check(safePath(p)&&(p==='_custody.cjs'||p==='config/t19-hosting.json'||['scripts/t19-private-package-verify.mjs','scripts/t19-private-install.mjs','scripts/t19-private-upgrade.mjs'].includes(p)||/^src\/[a-z0-9-]+\.(?:js|cjs)$/.test(p)),'SOURCE_PATH_REFUSED');check(!payload.has(p),'DUPLICATE_SOURCE');payload.set(p,await regular(join(ROOT,p)));}
  // Literal module graph is checked as a source contract; the installed dependency
  // smoke test additionally performs actual Node resolution without starting services.
  for(const [p,bytes] of payload){if(!/\.(js|cjs|mjs)$/.test(p))continue;

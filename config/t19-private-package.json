@@ -36,7 +36,8 @@
     "src/t19-zoho-custody-provider.js",
     "src/workspace-header.js",
     "src/workspace-layout.js",
-    "src/zoho-books.js"
+    "src/zoho-books.js",
+    "scripts/t19-private-upgrade.mjs"
   ],
   "dependencies": {
     "@supabase/supabase-js": "2.118.0",
