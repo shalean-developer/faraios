@@ -13,6 +13,10 @@ test('curated source closure and production lock exclude credentials, SQL, dev d
  assert.equal(Object.keys(lock.packages).length,24);assert.ok(Object.values(lock.packages).every(v=>!v.dev&&!v.hasInstallScript));
  assert.ok(![...p.payload.keys()].some(p=>/\.sql$|\.pem$|\.key$|custody\.json$|^test\/|^docs\/|\.env/.test(p)));
  assert.ok(p.payload.has('_custody.cjs'));assert.ok(p.payload.has('config/t19-hosting.json'));
+ assert.deepEqual([...p.payload.keys()].filter(p=>p.startsWith('public/')),['public/index.html']);
+ const landing=p.payload.get('public/index.html').toString();
+ assert.match(landing,/default-src 'none'/);assert.match(landing,/no-referrer/);
+ assert.doesNotMatch(landing,/<script|<iframe|<form|https?:\/\/|custody\.json|node_modules/i);
 });
 test('preparation is exclusive and verifier requires an external digest and exact unchanged content',async()=>{
  const root=await temporary();try{

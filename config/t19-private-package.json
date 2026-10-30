@@ -9,6 +9,7 @@
   "sourceFiles": [
     "_custody.cjs",
     "config/t19-hosting.json",
+    "deploy/t19/custody-public/index.html",
     "scripts/t19-private-install.mjs",
     "scripts/t19-private-package-verify.mjs",
     "src/access.js",

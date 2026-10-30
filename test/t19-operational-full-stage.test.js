@@ -7,6 +7,7 @@ import {btree_gist} from '@electric-sql/pglite/contrib/btree_gist';
 import {Client} from 'pg';
 import {runtimeCommitPackage} from '../scripts/t19-runtime-commit-package.mjs';
 import {runtimeContractSQL} from '../scripts/t19-runtime-contract.mjs';
+import {runtimeReconciliationSQL} from '../scripts/t19-runtime-reconciliation.mjs';
 import {captureSQL,rehearsalPackage} from '../scripts/t19-provisioning-package.mjs';
 import {invoiceFixture} from '../test-support/t19-runtime-fixture.mjs';
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
@@ -130,6 +131,8 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
    }finally{await c.end();}
   }
   if(target&&!guardCA){await assert.rejects(exec(captureSQL()),/T19_PROVISIONING_IDENTITY_TLS_REFUSED/);await exec('ROLLBACK');}
+  // Dedicated protected fixture: no audit/time trigger and no provider-owned grants.
+  await exec("CREATE TABLE public.t19_reconciliation_probe(id integer PRIMARY KEY,value text NOT NULL);INSERT INTO public.t19_reconciliation_probe VALUES(1,'original')");
   const protectedBefore=await fresh({protectedOnly:true});
   const manifest=JSON.parse(await readFile(new URL('../test-support/t19-operational-sql-pins.json',import.meta.url),'utf8'));
   assert.equal(manifest.version,1);assert.equal(manifest.purpose,'reviewed-operational-sql-sha256');
@@ -161,6 +164,15 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
     engine.on('notice',capture);await exec(captureSQL());engine.removeListener('notice',capture);
     const now=Date.now(),contractText=await readFile(new URL('../test-support/t19-runtime-contract-expected.json',import.meta.url),'utf8');
     const commit=runtimeCommitPackage({projectRef:'xdmfyrsauvqznkloroxg',stage:'runtime',sql,baselineSha256:baseline,issuedAt:now,expiresAt:now+900000,nonce:'a'.repeat(32),rehearsalEvidenceSha256:'b'.repeat(64)},contractText,now);
+    const {sql:unusedSQL,postCommitSQL:unusedPostSQL,...binding}=commit;
+    const reconcile=async(candidate=null)=>{
+     const reader=new Client({connectionString:target,ssl});await reader.connect();
+     try{
+      const result=await reader.query(runtimeReconciliationSQL(binding,sql,contractText,candidate));
+      return result.find(r=>r.rows?.[0]?.reconciliation)?.rows[0].reconciliation;
+     }finally{await reader.end();}
+    };
+    assert.equal((await reconcile()).status,'ORIGINAL_BASELINE_VERIFIED_NO_INSTALLATION');
     for(const tamper of [
      "REVOKE USAGE ON SCHEMA public FROM t19_runtime_owner;",
      "GRANT SELECT ON private_t19_custody.connections TO authenticated;",
@@ -174,6 +186,15 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
     const committed=await exec(commit.sql);
     const expectedHash=committed.find(r=>r.rows?.[0]?.candidate_committed_baseline)?.rows[0].candidate_committed_baseline;
     assert.match(expectedHash??'',/^[a-f0-9]{64}$/);
+    assert.equal((await reconcile()).status,'QUARANTINE_REQUIRES_REVIEW');
+    assert.equal((await reconcile('0'.repeat(64))).status,'QUARANTINE_REQUIRES_REVIEW');
+    const verified=await reconcile(expectedHash);
+    assert.equal(verified.status,'EXPECTED_COMMITTED_STATE_VERIFIED');
+    assert.equal(verified.retryAuthorized,false);assert.equal(verified.activationAuthorized,false);
+    await exec("UPDATE public.t19_reconciliation_probe SET value='synthetic drift' WHERE id=1");
+    assert.equal((await reconcile(expectedHash)).status,'QUARANTINE_REQUIRES_REVIEW');
+    // Restore the exact protected fixture value, never a hosted record.
+    await exec("UPDATE public.t19_reconciliation_probe SET value='original' WHERE id=1");
     const reader=new Client({connectionString:target,ssl});await reader.connect();
     try{const after=await reader.query(commit.postCommitSQL);assert.equal(after.find(r=>r.rows?.[0]?.fresh_committed_baseline)?.rows[0].fresh_committed_baseline,expectedHash);}finally{await reader.end();}
     await assert.rejects(exec(commit.sql),/T19_STAGE_SEQUENCE_REFUSED|T19_BASELINE_CHANGED/);await exec('ROLLBACK');
