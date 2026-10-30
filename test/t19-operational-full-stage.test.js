@@ -45,7 +45,7 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
    ALTER ROLE postgres RENAME TO supabase_admin;
    CREATE ROLE postgres LOGIN CREATEROLE BYPASSRLS;
    GRANT CREATE ON DATABASE postgres TO postgres;
-   GRANT USAGE,CREATE ON SCHEMA public TO postgres;
+   GRANT USAGE,CREATE ON SCHEMA public TO postgres WITH GRANT OPTION;
    CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
    GRANT anon,authenticated,service_role TO postgres WITH SET TRUE, INHERIT FALSE;
    CREATE EXTENSION btree_gist;
@@ -83,6 +83,7 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
    has_function_privilege(current_user,'auth.uid()','EXECUTE WITH GRANT OPTION') AS uid_grantable
    FROM pg_roles WHERE rolname=current_user`),{current_user:'postgres',session_user:'postgres',rolsuper:false,rolcreaterole:true,rolbypassrls:true,auth_grantable:false,uid_grantable:false});
 
+  assert.equal((await scalar("SELECT has_schema_privilege('postgres','public','USAGE WITH GRANT OPTION') AS allowed")).allowed,true);
   if(guardCA){
    // The setup backend began under the original role OID before role rename.
    // Reconnect as the actual managed actor, as hosted execution must do.
@@ -161,6 +162,7 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
     const now=Date.now(),contractText=await readFile(new URL('../test-support/t19-runtime-contract-expected.json',import.meta.url),'utf8');
     const commit=runtimeCommitPackage({projectRef:'xdmfyrsauvqznkloroxg',stage:'runtime',sql,baselineSha256:baseline,issuedAt:now,expiresAt:now+900000,nonce:'a'.repeat(32),rehearsalEvidenceSha256:'b'.repeat(64)},contractText,now);
     for(const tamper of [
+     "REVOKE USAGE ON SCHEMA public FROM t19_runtime_owner;",
      "GRANT SELECT ON private_t19_custody.connections TO authenticated;",
      "GRANT t19_runtime_owner TO postgres WITH SET TRUE;",
      "ALTER TABLE private_t19_custody.machines ALTER COLUMN active SET DEFAULT true;",

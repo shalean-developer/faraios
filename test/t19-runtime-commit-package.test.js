@@ -12,6 +12,8 @@ const now=Date.now(),baseline='a'.repeat(64);
 const input={projectRef:PROJECT,stage:'runtime',sql,baselineSha256:baseline,issuedAt:now,expiresAt:now+900000,nonce:'b'.repeat(32),rehearsalEvidenceSha256:'c'.repeat(64)};
 test('commit candidate binds exact runtime SQL, contract, lifetime and prior evidence without executing',()=>{
  assert.equal(sha(contract),CONTRACT_SHA256);
+ assert.deepEqual(JSON.parse(contract).runtimeSchemaGrants.find(g=>g[0]==='public'),['public','USAGE',false]);
+ assert.equal(JSON.parse(contract).runtimeSchemaGrants.some(g=>g[1]==='CREATE'),false);
  const p=runtimeCommitPackage(input,contract,now);
  assert.equal(p.executionAuthorized,false);assert.equal(p.activationAuthorized,false);
  assert.match(p.sql,/T19_PROTECTED_DATA_CHANGED/);assert.match(p.sql,/T19_RUNTIME_EXACT_CONTRACT_MISMATCH/);assert.ok(p.sql.endsWith('COMMIT;\n'));
