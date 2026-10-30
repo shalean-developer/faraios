@@ -91,3 +91,21 @@ test('private custody config admits only the reviewed staging session/direct rou
   await assert.rejects(loadAccountingDeployment(path),{message:'accounting_deployment_rejected'});
  }
 });
+
+test('callback key is opt-in, custody-only, protected and non-exportable with a minimum RSA size',async t=>{
+ const {generateKeyPairSync}=await import('node:crypto');
+ const dir=await mkdtemp(join(tmpdir(),'faraios-callback-key-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const secret=join(dir,'synthetic.pem'),path=join(dir,'custody.json'),keyFile=join(dir,'callback.pem');
+ await writeFile(secret,'synthetic fixture',{mode:0o600});
+ const c={version:1,mode:'custody',enabled:false,port:9443,tls:{caFile:secret,certFile:secret,keyFile:secret},publishableKey:'sb_publishable_synthetic',database:{host:'aws-0-eu-west-1.pooler.supabase.com',port:5432,passwordFile:secret,caFile:secret},callback:{privateKeyFile:keyFile}};
+ const save=v=>writeFile(path,JSON.stringify(v),{mode:0o600});
+ const key=bits=>generateKeyPairSync('rsa',{modulusLength:bits}).privateKey.export({type:'pkcs8',format:'pem'});
+ await save(c);await writeFile(keyFile,key(3072),{mode:0o600});
+ const loaded=await loadAccountingDeployment(path);assert.equal(loaded.callbackPrivateKey.extractable,false);assert.deepEqual(loaded.callbackPrivateKey.usages,['decrypt']);assert.equal(loaded.enabled,false);
+ await chmod(keyFile,0o644);await assert.rejects(loadAccountingDeployment(path));await chmod(keyFile,0o600);
+ const hard=join(dir,'alias');await link(keyFile,hard);await assert.rejects(loadAccountingDeployment(path));await rm(hard);
+ await symlink(keyFile,hard);await save({...c,callback:{privateKeyFile:hard}});await assert.rejects(loadAccountingDeployment(path));await rm(hard);await save(c);
+ await writeFile(keyFile,key(2048));await assert.rejects(loadAccountingDeployment(path));
+ await save({...c,callback:{privateKeyFile:keyFile,approved:true}});await assert.rejects(loadAccountingDeployment(path));
+ await save({version:1,mode:'web',enabled:false,endpoint:'https://127.0.0.1:9443/',tls:c.tls,callback:c.callback});await assert.rejects(loadAccountingDeployment(path));
+});

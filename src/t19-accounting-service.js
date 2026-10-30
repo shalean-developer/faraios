@@ -8,7 +8,7 @@ import {createOwnerOAuth} from './t19-owner-oauth.js';
 import {createAccountingHandler} from './t19-accounting-api.js';
 import {createVerifiedAccountingSessions} from './t19-accounting-sessions.js';
 import {createAccountingWorker} from './t19-accounting-worker.js';
-export function createRestrictedAccountingService({database,query,createUserClient,fetchImpl,origin,tls,sessionCookie}){
+export function createRestrictedAccountingService({database,query,createUserClient,fetchImpl,origin,tls,sessionCookie,callbackPrivateKey}){
  if(!tls?.ca||!tls.cert||!tls.key||typeof createUserClient!=='function')throw Error('configuration_rejected');
  const authenticateMachine=createCustodyMachineAuthenticator({findMachineByFingerprint:database.findMachineByFingerprint});
  const runner=createCustodyInvoiceRunner({database,authenticateMachine,refreshProvider:createZohoCustodyProvider({fetchImpl}),fetchImpl});
@@ -30,7 +30,7 @@ export function createRestrictedAccountingService({database,query,createUserClie
    const sessions=createVerifiedAccountingSessions({createUserClient,accessToken:token,sessionId:req.headers['x-faraios-session']});
    const verifiedSessions={...sessions,read:async sid=>{await authenticateMachine(req.socket);return sessions.read(sid);}};
    const oauth=createOwnerOAuth({sessions:verifiedSessions,query,fetchImpl});
-   await createAccountingHandler({sessions:verifiedSessions,oauth,origin,sessionCookie})(req,res);
+   await createAccountingHandler({sessions:verifiedSessions,oauth,origin,sessionCookie,callbackPrivateKey})(req,res);
   }catch{if(!res.headersSent){res.writeHead(403,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end('{"error":"accounting_denied"}');}else res.end();}
  });
 }
