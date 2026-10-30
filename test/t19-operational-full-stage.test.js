@@ -131,6 +131,8 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
    }finally{await c.end();}
   }
   if(target&&!guardCA){await assert.rejects(exec(captureSQL()),/T19_PROVISIONING_IDENTITY_TLS_REFUSED/);await exec('ROLLBACK');}
+  // Dedicated protected fixture: no audit/time trigger and no provider-owned grants.
+  await exec("CREATE TABLE public.t19_reconciliation_probe(id integer PRIMARY KEY,value text NOT NULL);INSERT INTO public.t19_reconciliation_probe VALUES(1,'original')");
   const protectedBefore=await fresh({protectedOnly:true});
   const manifest=JSON.parse(await readFile(new URL('../test-support/t19-operational-sql-pins.json',import.meta.url),'utf8'));
   assert.equal(manifest.version,1);assert.equal(manifest.purpose,'reviewed-operational-sql-sha256');
@@ -189,11 +191,10 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
     const verified=await reconcile(expectedHash);
     assert.equal(verified.status,'EXPECTED_COMMITTED_STATE_VERIFIED');
     assert.equal(verified.retryAuthorized,false);assert.equal(verified.activationAuthorized,false);
-    const originalEmails=(await query('SELECT id,email FROM auth.users ORDER BY id')).rows;
-    await exec("UPDATE auth.users SET email='synthetic-reconciliation-drift@example.invalid'");
+    await exec("UPDATE public.t19_reconciliation_probe SET value='synthetic drift' WHERE id=1");
     assert.equal((await reconcile(expectedHash)).status,'QUARANTINE_REQUIRES_REVIEW');
     // Restore the exact protected fixture value, never a hosted record.
-    for(const row of originalEmails)await query('UPDATE auth.users SET email=$1 WHERE id=$2',[row.email,row.id]);
+    await exec("UPDATE public.t19_reconciliation_probe SET value='original' WHERE id=1");
     const reader=new Client({connectionString:target,ssl});await reader.connect();
     try{const after=await reader.query(commit.postCommitSQL);assert.equal(after.find(r=>r.rows?.[0]?.fresh_committed_baseline)?.rows[0].fresh_committed_baseline,expectedHash);}finally{await reader.end();}
     await assert.rejects(exec(commit.sql),/T19_STAGE_SEQUENCE_REFUSED|T19_BASELINE_CHANGED/);await exec('ROLLBACK');
