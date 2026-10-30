@@ -8,8 +8,8 @@ import {Client} from 'pg';
 import {runtimeCommitPackage} from '../scripts/t19-runtime-commit-package.mjs';
 import {runtimeContractSQL} from '../scripts/t19-runtime-contract.mjs';
 import {runtimeReconciliationSQL} from '../scripts/t19-runtime-reconciliation.mjs';
-import {operationalCommitPackage} from '../scripts/t19-operational-commit-package.mjs';
 import {operationalContractSQL} from '../scripts/t19-operational-contract.mjs';
+import {sqlEditorCommitPackage,assessEditorReadback} from '../scripts/t19-sql-editor-commit-package.mjs';
 import {captureSQL,rehearsalPackage} from '../scripts/t19-provisioning-package.mjs';
 import {invoiceFixture} from '../test-support/t19-runtime-fixture.mjs';
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
@@ -207,7 +207,7 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
     const now=Date.now(),previous=stage==='oauth'?'runtime':'oauth';
     const contracts={before:await readFile(new URL('../test-support/t19-'+previous+'-contract-expected.json',import.meta.url),'utf8'),
      after:await readFile(new URL('../test-support/t19-'+stage+'-contract-expected.json',import.meta.url),'utf8')};
-    const commit=operationalCommitPackage({projectRef:'xdmfyrsauvqznkloroxg',stage,sql,baselineSha256:baseline,
+    const commit=sqlEditorCommitPackage({projectRef:'xdmfyrsauvqznkloroxg',stage,sql,baselineSha256:baseline,
      issuedAt:now,expiresAt:now+900000,nonce:'c'.repeat(32),rehearsalEvidenceSha256:'d'.repeat(64)},contracts,now);
     const injection=stage==='oauth'?
      'GRANT SELECT ON private_t19_custody.oauth_clients TO authenticated;':
@@ -226,15 +226,20 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
      await exec('ROLLBACK');assert.equal(await fresh(),before);
     }
     const results=await exec(commit.sql);
-    const candidate=results.find(r=>r.rows?.[0]?.candidate_committed_baseline)?.rows[0].candidate_committed_baseline;
+    const candidateRow=results.find(r=>r.rows?.[0]?.candidate_committed_baseline)?.rows[0];
+    const candidate=candidateRow?.candidate_committed_baseline;
     assert.match(candidate??'',/^[a-f0-9]{64}$/);
     const reader=new Client({connectionString:target,ssl});await reader.connect();
     try{
      const after=await reader.query(commit.postCommitSQL);
-     assert.equal(after.find(r=>r.rows?.[0]?.fresh_committed_baseline)?.rows[0].fresh_committed_baseline,candidate);
+     const freshRow=after.find(r=>r.rows?.[0]?.fresh_committed_baseline)?.rows[0];
+     assert.equal(freshRow?.fresh_committed_baseline,candidate);
+     assert.equal(assessEditorReadback(candidateRow,freshRow).status,'INDEPENDENT_BACKEND_FINGERPRINT_MATCH');
+     assert.equal(assessEditorReadback(candidateRow,{...freshRow,verification_backend_pid:candidateRow.execution_backend_pid}).status,'READBACK_REQUIRES_REVIEW');
     }finally{await reader.end();}
     await assert.rejects(exec(commit.sql),/T19_STAGE_SEQUENCE_REFUSED|T19_BASELINE_CHANGED/);await exec('ROLLBACK');
     console.log('T19_'+stage.toUpperCase()+'_EXACT_COMMIT_TAMPER_AND_FRESH_TLS_PASS');
+    console.log('T19_'+stage.toUpperCase()+'_SQL_EDITOR_INDEPENDENT_BACKEND_PASS');
    }else await exec(sql);
    if(stage!=='runtime'){
     await exec('BEGIN READ ONLY; SET LOCAL search_path=pg_catalog');
