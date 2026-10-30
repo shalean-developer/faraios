@@ -9,7 +9,7 @@ import {runtimeCommitPackage} from '../scripts/t19-runtime-commit-package.mjs';
 import {runtimeContractSQL} from '../scripts/t19-runtime-contract.mjs';
 import {runtimeReconciliationSQL} from '../scripts/t19-runtime-reconciliation.mjs';
 import {operationalContractSQL} from '../scripts/t19-operational-contract.mjs';
-import {sqlEditorCommitPackage,assessEditorReadback} from '../scripts/t19-sql-editor-commit-package.mjs';
+import {sqlEditorCommitPackage,assessEditorReadback,editorSourceEnvelope} from '../scripts/t19-sql-editor-commit-package.mjs';
 import {captureSQL,rehearsalPackage} from '../scripts/t19-provisioning-package.mjs';
 import {invoiceFixture} from '../test-support/t19-runtime-fixture.mjs';
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
@@ -225,7 +225,8 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
      await assert.rejects(exec(damaged),/T19_OPERATIONAL_EXACT_CONTRACT_MISMATCH|T19_PROTECTED_DATA_CHANGED/);
      await exec('ROLLBACK');assert.equal(await fresh(),before);
     }
-    const results=await exec(commit.sql);
+    // Match Windows editor transport while retaining LF bytes inside functions.
+    const results=await exec(commit.sql.replaceAll('\n','\r\n'));
     const candidateRow=results.find(r=>r.rows?.[0]?.candidate_committed_baseline)?.rows[0];
     const candidate=candidateRow?.candidate_committed_baseline;
     assert.match(candidate??'',/^[a-f0-9]{64}$/);
@@ -240,7 +241,8 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
     await assert.rejects(exec(commit.sql),/T19_STAGE_SEQUENCE_REFUSED|T19_BASELINE_CHANGED/);await exec('ROLLBACK');
     console.log('T19_'+stage.toUpperCase()+'_EXACT_COMMIT_TAMPER_AND_FRESH_TLS_PASS');
     console.log('T19_'+stage.toUpperCase()+'_SQL_EDITOR_INDEPENDENT_BACKEND_PASS');
-   }else await exec(sql);
+   }else if(stage==='runtime')await exec(sql);
+   else await exec(('BEGIN;\n'+editorSourceEnvelope(sql.match(/^begin;\r?\n([\s\S]*)^commit;\s*$/im)[1])+'\nCOMMIT;').replaceAll('\n','\r\n'));
    if(stage!=='runtime'){
     await exec('BEGIN READ ONLY; SET LOCAL search_path=pg_catalog');
     assert.deepEqual((await scalar(operationalContractSQL)).contract,JSON.parse(await readFile(new URL('../test-support/t19-'+stage+'-contract-expected.json',import.meta.url),'utf8')));

@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {PGlite} from '@electric-sql/pglite';
 import {operationalCommitPackage} from '../scripts/t19-operational-commit-package.mjs';
-import {sqlEditorCommitPackage,assessEditorReadback,editorPacketFromVerifiedHistory} from '../scripts/t19-sql-editor-commit-package.mjs';
+import {sqlEditorCommitPackage,assessEditorReadback,editorPacketFromVerifiedHistory,editorSourceEnvelope} from '../scripts/t19-sql-editor-commit-package.mjs';
 import {sha,PROJECT} from '../scripts/t19-provisioning-package.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
-for(const stage of ['oauth','api'])test(stage+' editor route changes only the two result SELECTs and preserves all execution guards',async()=>{
+for(const stage of ['oauth','api'])test(stage+' editor route preserves exact source bytes and all execution guards',async()=>{
  const now=Date.now(),input={projectRef:PROJECT,stage,sql:read('database/t19-custody-'+stage+'.sql'),
   baselineSha256:'a'.repeat(64),nonce:'b'.repeat(32),rehearsalEvidenceSha256:'c'.repeat(64),issuedAt:now,expiresAt:now+900000};
  const contracts={before:read('test-support/t19-'+(stage==='oauth'?'runtime':'oauth')+'-contract-expected.json'),
@@ -22,7 +22,9 @@ for(const stage of ['oauth','api'])test(stage+' editor route changes only the tw
  assert.throws(()=>editorPacketFromVerifiedHistory({...binding,sqlSha256:'a'.repeat(64)},base.sqlSha256,next,contracts,now+1));
  assert.throws(()=>editorPacketFromVerifiedHistory(binding,'a'.repeat(64),next,contracts,now+1));
  assert.equal(packet.baseSqlSha256,sha(base.sql));assert.equal(packet.basePostCommitSha256,sha(base.postCommitSQL));
- assert.equal(packet.sql.replace(', pg_backend_pid() AS execution_backend_pid',''),base.sql);
+ const body=input.sql.match(/^begin;\r?\n([\s\S]*)^commit;\s*$/im)[1];
+ assert.equal(packet.sourceTransport,'hex-utf8-exact-bytes');
+ assert.equal(packet.sql.replace(editorSourceEnvelope(body)+'\n',()=>body).replace(', pg_backend_pid() AS execution_backend_pid',''),base.sql);
  assert.equal(packet.postCommitSQL.replace(', pg_backend_pid() AS verification_backend_pid',''),base.postCommitSQL);
  assert.equal(packet.executionAuthorized,false);assert.equal(packet.activationAuthorized,false);assert.equal(packet.independentBackendRequired,true);
  assert.equal(packet.sqlSha256,sha(packet.sql));assert.equal(packet.postCommitSha256,sha(packet.postCommitSQL));
@@ -30,6 +32,23 @@ for(const stage of ['oauth','api'])test(stage+' editor route changes only the tw
  const db=new PGlite();try{
   await assert.rejects(db.exec(packet.sql),/T19_PROVISIONING_IDENTITY_TLS_REFUSED/);await db.exec('ROLLBACK');
   await assert.rejects(db.exec(packet.postCommitSQL),/T19_PROVISIONING_IDENTITY_TLS_REFUSED/);await db.exec('ROLLBACK');
+ }finally{await db.close();}
+});
+test('CRLF clipboard transport preserves exact multi-statement function source and atomic rollback',async()=>{
+ const db=new PGlite();
+ const body="CREATE TABLE public.editor_probe(id integer);\nCREATE FUNCTION public.editor_probe() RETURNS text LANGUAGE sql AS $$\nSELECT $value$source $& $` $' é$value$;\n$$;\nINSERT INTO public.editor_probe VALUES(1);\n";
+ try{
+  await db.exec('BEGIN;'+body);
+  const original=(await db.query("SELECT pg_get_functiondef('public.editor_probe()'::regprocedure) AS source")).rows[0].source;
+  await db.exec('ROLLBACK');
+  await db.exec(('BEGIN;'+body).replaceAll('\n','\r\n'));
+  assert.notEqual((await db.query("SELECT pg_get_functiondef('public.editor_probe()'::regprocedure) AS source")).rows[0].source,original);
+  await db.exec('ROLLBACK');
+  await db.exec(('BEGIN;\n'+editorSourceEnvelope(body)+'\n').replaceAll('\n','\r\n'));
+  assert.equal((await db.query("SELECT pg_get_functiondef('public.editor_probe()'::regprocedure) AS source")).rows[0].source,original);
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM public.editor_probe')).rows[0].n,1);
+  await db.exec('ROLLBACK');
+  assert.equal((await db.query("SELECT to_regclass('public.editor_probe') AS object")).rows[0].object,null);
  }finally{await db.close();}
 });
 test('readback requires exact fingerprints, valid independent backend IDs and never permits replay or activation',()=>{
