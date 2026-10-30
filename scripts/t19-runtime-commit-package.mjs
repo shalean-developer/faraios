@@ -1,7 +1,7 @@
 // Offline preparation only; neither this module nor its CLI executes SQL.
 import {rehearsalPackage,nativeSnapshotSQL,identitySQL,sha} from './t19-provisioning-package.mjs';
 import {runtimeContractSQL} from './t19-runtime-contract.mjs';
-export const CONTRACT_SHA256='511e11984809fdd067f73895578a47463cc57a9b9987e51ecb80d95b99e3057d'; // ggignore: public contract integrity hash.
+export const CONTRACT_SHA256='0bd62d1b75616733db3a4d98aae4fcceeb1341257c77164a0208f6330edbf068'; // ggignore: public contract integrity hash.
 const reject=()=>{throw Error('RUNTIME_COMMIT_PACKAGE_REFUSED');};
 const literal=s=>"'"+s.replaceAll("'","''")+"'";
 const dataHash="encode(sha256(convert_to((SELECT coalesce(jsonb_agg(e ORDER BY e->>0,e->>1),'[]'::jsonb) FROM jsonb_array_elements(records) e WHERE e->>0<>'private_t19_custody')::text,'UTF8')),'hex')";

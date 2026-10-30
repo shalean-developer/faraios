@@ -1785,40 +1785,8 @@
     ],
     [
       "connections",
-      "connections_business_id_not_null",
-      "NOT NULL business_id",
-      true,
-      false,
-      false
-    ],
-    [
-      "connections",
-      "connections_connection_id_not_null",
-      "NOT NULL connection_id",
-      true,
-      false,
-      false
-    ],
-    [
-      "connections",
       "connections_credential_version_check",
       "CHECK ((credential_version > 0))",
-      true,
-      false,
-      false
-    ],
-    [
-      "connections",
-      "connections_credential_version_not_null",
-      "NOT NULL credential_version",
-      true,
-      false,
-      false
-    ],
-    [
-      "connections",
-      "connections_enabled_not_null",
-      "NOT NULL enabled",
       true,
       false,
       false
@@ -1833,32 +1801,8 @@
     ],
     [
       "connections",
-      "connections_environment_not_null",
-      "NOT NULL environment",
-      true,
-      false,
-      false
-    ],
-    [
-      "connections",
       "connections_generation_check",
       "CHECK ((generation > 0))",
-      true,
-      false,
-      false
-    ],
-    [
-      "connections",
-      "connections_generation_not_null",
-      "NOT NULL generation",
-      true,
-      false,
-      false
-    ],
-    [
-      "connections",
-      "connections_organization_id_not_null",
-      "NOT NULL organization_id",
       true,
       false,
       false
@@ -1881,64 +1825,8 @@
     ],
     [
       "connections",
-      "connections_provider_not_null",
-      "NOT NULL provider",
-      true,
-      false,
-      false
-    ],
-    [
-      "connections",
       "connections_status_check",
       "CHECK ((status = ANY (ARRAY['connected'::text, 'disconnected'::text, 'reauthorisation_required'::text, 'recovery_required'::text])))",
-      true,
-      false,
-      false
-    ],
-    [
-      "connections",
-      "connections_status_not_null",
-      "NOT NULL status",
-      true,
-      false,
-      false
-    ],
-    [
-      "events",
-      "events_at_not_null",
-      "NOT NULL at",
-      true,
-      false,
-      false
-    ],
-    [
-      "events",
-      "events_business_id_not_null",
-      "NOT NULL business_id",
-      true,
-      false,
-      false
-    ],
-    [
-      "events",
-      "events_connection_id_not_null",
-      "NOT NULL connection_id",
-      true,
-      false,
-      false
-    ],
-    [
-      "events",
-      "events_id_not_null",
-      "NOT NULL id",
-      true,
-      false,
-      false
-    ],
-    [
-      "events",
-      "events_kind_not_null",
-      "NOT NULL kind",
       true,
       false,
       false
@@ -1953,40 +1841,8 @@
     ],
     [
       "jobs",
-      "jobs_actor_not_null",
-      "NOT NULL actor",
-      true,
-      false,
-      false
-    ],
-    [
-      "jobs",
-      "jobs_attempts_not_null",
-      "NOT NULL attempts",
-      true,
-      false,
-      false
-    ],
-    [
-      "jobs",
-      "jobs_available_at_not_null",
-      "NOT NULL available_at",
-      true,
-      false,
-      false
-    ],
-    [
-      "jobs",
       "jobs_business_id_fkey",
       "FOREIGN KEY (business_id) REFERENCES businesses(id)",
-      true,
-      false,
-      false
-    ],
-    [
-      "jobs",
-      "jobs_business_id_not_null",
-      "NOT NULL business_id",
       true,
       false,
       false
@@ -2009,54 +1865,6 @@
     ],
     [
       "jobs",
-      "jobs_connection_id_not_null",
-      "NOT NULL connection_id",
-      true,
-      false,
-      false
-    ],
-    [
-      "jobs",
-      "jobs_created_at_not_null",
-      "NOT NULL created_at",
-      true,
-      false,
-      false
-    ],
-    [
-      "jobs",
-      "jobs_dispatched_not_null",
-      "NOT NULL dispatched",
-      true,
-      false,
-      false
-    ],
-    [
-      "jobs",
-      "jobs_error_code_not_null",
-      "NOT NULL error_code",
-      true,
-      false,
-      false
-    ],
-    [
-      "jobs",
-      "jobs_generation_not_null",
-      "NOT NULL generation",
-      true,
-      false,
-      false
-    ],
-    [
-      "jobs",
-      "jobs_id_not_null",
-      "NOT NULL id",
-      true,
-      false,
-      false
-    ],
-    [
-      "jobs",
       "jobs_invoice_id_fkey",
       "FOREIGN KEY (invoice_id) REFERENCES business_invoices(id)",
       true,
@@ -2073,24 +1881,8 @@
     ],
     [
       "jobs",
-      "jobs_kind_not_null",
-      "NOT NULL kind",
-      true,
-      false,
-      false
-    ],
-    [
-      "jobs",
       "jobs_machine_id_fkey",
       "FOREIGN KEY (machine_id) REFERENCES private_t19_custody.machines(id)",
-      true,
-      false,
-      false
-    ],
-    [
-      "jobs",
-      "jobs_machine_id_not_null",
-      "NOT NULL machine_id",
       true,
       false,
       false
@@ -2112,33 +1904,9 @@
       false
     ],
     [
-      "jobs",
-      "jobs_state_not_null",
-      "NOT NULL state",
-      true,
-      false,
-      false
-    ],
-    [
-      "machine_businesses",
-      "machine_businesses_active_not_null",
-      "NOT NULL active",
-      true,
-      false,
-      false
-    ],
-    [
       "machine_businesses",
       "machine_businesses_business_id_fkey",
       "FOREIGN KEY (business_id) REFERENCES businesses(id)",
-      true,
-      false,
-      false
-    ],
-    [
-      "machine_businesses",
-      "machine_businesses_business_id_not_null",
-      "NOT NULL business_id",
       true,
       false,
       false
@@ -2153,24 +1921,8 @@
     ],
     [
       "machine_businesses",
-      "machine_businesses_machine_id_not_null",
-      "NOT NULL machine_id",
-      true,
-      false,
-      false
-    ],
-    [
-      "machine_businesses",
       "machine_businesses_pkey",
       "PRIMARY KEY (machine_id, business_id)",
-      true,
-      false,
-      false
-    ],
-    [
-      "machines",
-      "machines_active_not_null",
-      "NOT NULL active",
       true,
       false,
       false
@@ -2193,22 +1945,6 @@
     ],
     [
       "machines",
-      "machines_fingerprint256_not_null",
-      "NOT NULL fingerprint256",
-      true,
-      false,
-      false
-    ],
-    [
-      "machines",
-      "machines_id_not_null",
-      "NOT NULL id",
-      true,
-      false,
-      false
-    ],
-    [
-      "machines",
       "machines_pkey",
       "PRIMARY KEY (id)",
       true,
@@ -2225,64 +1961,8 @@
     ],
     [
       "operations",
-      "operations_connection_id_not_null",
-      "NOT NULL connection_id",
-      true,
-      false,
-      false
-    ],
-    [
-      "operations",
-      "operations_credential_version_not_null",
-      "NOT NULL credential_version",
-      true,
-      false,
-      false
-    ],
-    [
-      "operations",
-      "operations_generation_not_null",
-      "NOT NULL generation",
-      true,
-      false,
-      false
-    ],
-    [
-      "operations",
-      "operations_lease_expires_at_not_null",
-      "NOT NULL lease_expires_at",
-      true,
-      false,
-      false
-    ],
-    [
-      "operations",
-      "operations_lease_id_not_null",
-      "NOT NULL lease_id",
-      true,
-      false,
-      false
-    ],
-    [
-      "operations",
-      "operations_operation_id_not_null",
-      "NOT NULL operation_id",
-      true,
-      false,
-      false
-    ],
-    [
-      "operations",
       "operations_phase_check",
       "CHECK ((phase = ANY (ARRAY['claimed'::text, 'dispatched'::text, 'prepared'::text, 'published'::text, 'recovery_required'::text, 'fenced'::text])))",
-      true,
-      false,
-      false
-    ],
-    [
-      "operations",
-      "operations_phase_not_null",
-      "NOT NULL phase",
       true,
       false,
       false
@@ -2297,56 +1977,8 @@
     ],
     [
       "prepared_references",
-      "prepared_references_business_id_not_null",
-      "NOT NULL business_id",
-      true,
-      false,
-      false
-    ],
-    [
-      "prepared_references",
       "prepared_references_connection_id_fkey",
       "FOREIGN KEY (connection_id) REFERENCES private_t19_custody.connections(connection_id)",
-      true,
-      false,
-      false
-    ],
-    [
-      "prepared_references",
-      "prepared_references_connection_id_not_null",
-      "NOT NULL connection_id",
-      true,
-      false,
-      false
-    ],
-    [
-      "prepared_references",
-      "prepared_references_consumed_not_null",
-      "NOT NULL consumed",
-      true,
-      false,
-      false
-    ],
-    [
-      "prepared_references",
-      "prepared_references_credential_version_not_null",
-      "NOT NULL credential_version",
-      true,
-      false,
-      false
-    ],
-    [
-      "prepared_references",
-      "prepared_references_generation_not_null",
-      "NOT NULL generation",
-      true,
-      false,
-      false
-    ],
-    [
-      "prepared_references",
-      "prepared_references_lease_id_not_null",
-      "NOT NULL lease_id",
       true,
       false,
       false
@@ -2369,24 +2001,8 @@
     ],
     [
       "prepared_references",
-      "prepared_references_operation_id_not_null",
-      "NOT NULL operation_id",
-      true,
-      false,
-      false
-    ],
-    [
-      "prepared_references",
       "prepared_references_pkey",
       "PRIMARY KEY (reference)",
-      true,
-      false,
-      false
-    ],
-    [
-      "prepared_references",
-      "prepared_references_reference_not_null",
-      "NOT NULL reference",
       true,
       false,
       false
@@ -2401,30 +2017,6 @@
     ],
     [
       "revocations",
-      "revocations_connection_id_not_null",
-      "NOT NULL connection_id",
-      true,
-      false,
-      false
-    ],
-    [
-      "revocations",
-      "revocations_credential_version_not_null",
-      "NOT NULL credential_version",
-      true,
-      false,
-      false
-    ],
-    [
-      "revocations",
-      "revocations_generation_not_null",
-      "NOT NULL generation",
-      true,
-      false,
-      false
-    ],
-    [
-      "revocations",
       "revocations_phase_check",
       "CHECK ((phase = ANY (ARRAY['pending'::text, 'dispatched'::text, 'revoked'::text, 'uncertain'::text])))",
       true,
@@ -2433,24 +2025,8 @@
     ],
     [
       "revocations",
-      "revocations_phase_not_null",
-      "NOT NULL phase",
-      true,
-      false,
-      false
-    ],
-    [
-      "revocations",
       "revocations_pkey",
       "PRIMARY KEY (connection_id, generation)",
-      true,
-      false,
-      false
-    ],
-    [
-      "revocations",
-      "revocations_reference_not_null",
-      "NOT NULL reference",
       true,
       false,
       false
