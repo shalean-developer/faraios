@@ -1,17 +1,26 @@
-// Pure route preparation. Existing guarded SQL changes only in result telemetry.
+// Pure route preparation. Preserve source bytes across SQL Editor CRLF copying.
 import {operationalCommitPackage} from './t19-operational-commit-package.mjs';
 import {sha} from './t19-provisioning-package.mjs';
 const candidate="SELECT current_setting('faraios.t19_commit_baseline') AS candidate_committed_baseline;";
 const fresh="SELECT current_setting('faraios.t19_fresh_baseline') AS fresh_committed_baseline;";
+export function editorSourceEnvelope(body){
+ if(typeof body!=='string'||!body.length)throw Error('T19_SQL_EDITOR_SOURCE_REFUSED');
+ // Hex is immune to newline conversion. Decode only the already pinned source;
+ // never interpolate user input into executable SQL at execution time.
+ return `DO $t19_editor_source$ BEGIN EXECUTE pg_catalog.convert_from(pg_catalog.decode('${Buffer.from(body,'utf8').toString('hex')}','hex'),'UTF8'); END $t19_editor_source$;`;
+}
 export function sqlEditorCommitPackage(input,contracts,now=Date.now()){
  const base=operationalCommitPackage(input,contracts,now);
  if(base.sql.split(candidate).length!==2||base.postCommitSQL.split(fresh).length!==2)
   throw Error('T19_SQL_EDITOR_ROUTE_REFUSED');
- const sql=base.sql.replace(candidate,()=>candidate.slice(0,-1)+', pg_backend_pid() AS execution_backend_pid;');
+ const match=input.sql.match(/^begin;\r?\n([\s\S]*)^commit;\s*$/im);
+ if(!match||base.sql.split(match[1]).length!==2)throw Error('T19_SQL_EDITOR_ROUTE_REFUSED');
+ const sql=base.sql.replace(match[1],()=>editorSourceEnvelope(match[1])+'\n')
+  .replace(candidate,()=>candidate.slice(0,-1)+', pg_backend_pid() AS execution_backend_pid;');
  const postCommitSQL=base.postCommitSQL.replace(fresh,()=>fresh.slice(0,-1)+', pg_backend_pid() AS verification_backend_pid;');
  return Object.freeze({...base,purpose:'review-only-sql-editor-stage-commit-candidate',
   route:'supabase-sql-editor-with-independent-readback',baseSqlSha256:base.sqlSha256,
-  basePostCommitSha256:base.postCommitSha256,independentBackendRequired:true,
+  basePostCommitSha256:base.postCommitSha256,independentBackendRequired:true,sourceTransport:'hex-utf8-exact-bytes',
   sqlSha256:sha(sql),postCommitSha256:sha(postCommitSQL),sql,postCommitSQL});
 }
 export function editorPacketFromVerifiedHistory(original,approvedOriginalHash,input,contracts,now=Date.now()){
