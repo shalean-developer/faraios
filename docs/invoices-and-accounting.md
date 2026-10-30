@@ -1,3 +1,5 @@
+> T19 owner direction, 30 October 2026: replacement architecture and current preparation limits are recorded in [T19-AMEND-20261030-STANDARD](t19-standard-integration-amendment-20261030.md). Earlier custody implementation descriptions below remain historical evidence; they are not instructions to continue custody development. No hosted replacement is activated.
+
 # T19 — Invoices and accounting
 
 Latest review: [22 October research, implementation audit and proposed architecture](t19-research-architecture.md), with [staging acceptance plan and current review checks](t19-verification-plan.md). This documentation-only proposal records the later Zoho support correspondence and preserves the accounting hold. Architecture/safety approval is required before new integration implementation; no T04 change or accounting activation is authorised. Earlier entries below are historical evidence, including now-superseded statements that support mail was unsent.
