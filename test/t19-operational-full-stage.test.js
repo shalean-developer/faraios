@@ -7,6 +7,7 @@ import {btree_gist} from '@electric-sql/pglite/contrib/btree_gist';
 import {Client} from 'pg';
 import {runtimeCommitPackage} from '../scripts/t19-runtime-commit-package.mjs';
 import {runtimeContractSQL} from '../scripts/t19-runtime-contract.mjs';
+import {runtimeReconciliationSQL} from '../scripts/t19-runtime-reconciliation.mjs';
 import {captureSQL,rehearsalPackage} from '../scripts/t19-provisioning-package.mjs';
 import {invoiceFixture} from '../test-support/t19-runtime-fixture.mjs';
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
@@ -161,6 +162,15 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
     engine.on('notice',capture);await exec(captureSQL());engine.removeListener('notice',capture);
     const now=Date.now(),contractText=await readFile(new URL('../test-support/t19-runtime-contract-expected.json',import.meta.url),'utf8');
     const commit=runtimeCommitPackage({projectRef:'xdmfyrsauvqznkloroxg',stage:'runtime',sql,baselineSha256:baseline,issuedAt:now,expiresAt:now+900000,nonce:'a'.repeat(32),rehearsalEvidenceSha256:'b'.repeat(64)},contractText,now);
+    const {sql:unusedSQL,postCommitSQL:unusedPostSQL,...binding}=commit;
+    const reconcile=async(candidate=null)=>{
+     const reader=new Client({connectionString:target,ssl});await reader.connect();
+     try{
+      const result=await reader.query(runtimeReconciliationSQL(binding,sql,contractText,candidate));
+      return result.find(r=>r.rows?.[0]?.reconciliation)?.rows[0].reconciliation;
+     }finally{await reader.end();}
+    };
+    assert.equal((await reconcile()).status,'ORIGINAL_BASELINE_VERIFIED_NO_INSTALLATION');
     for(const tamper of [
      "REVOKE USAGE ON SCHEMA public FROM t19_runtime_owner;",
      "GRANT SELECT ON private_t19_custody.connections TO authenticated;",
@@ -174,6 +184,16 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
     const committed=await exec(commit.sql);
     const expectedHash=committed.find(r=>r.rows?.[0]?.candidate_committed_baseline)?.rows[0].candidate_committed_baseline;
     assert.match(expectedHash??'',/^[a-f0-9]{64}$/);
+    assert.equal((await reconcile()).status,'QUARANTINE_REQUIRES_REVIEW');
+    assert.equal((await reconcile('0'.repeat(64))).status,'QUARANTINE_REQUIRES_REVIEW');
+    const verified=await reconcile(expectedHash);
+    assert.equal(verified.status,'EXPECTED_COMMITTED_STATE_VERIFIED');
+    assert.equal(verified.retryAuthorized,false);assert.equal(verified.activationAuthorized,false);
+    const originalNames=(await query('SELECT id,name FROM public.businesses ORDER BY id')).rows;
+    await exec("UPDATE public.businesses SET name='synthetic reconciliation drift'");
+    assert.equal((await reconcile(expectedHash)).status,'QUARANTINE_REQUIRES_REVIEW');
+    // Restore the exact protected fixture value, never a hosted record.
+    for(const row of originalNames)await query('UPDATE public.businesses SET name=$1 WHERE id=$2',[row.name,row.id]);
     const reader=new Client({connectionString:target,ssl});await reader.connect();
     try{const after=await reader.query(commit.postCommitSQL);assert.equal(after.find(r=>r.rows?.[0]?.fresh_committed_baseline)?.rows[0].fresh_committed_baseline,expectedHash);}finally{await reader.end();}
     await assert.rejects(exec(commit.sql),/T19_STAGE_SEQUENCE_REFUSED|T19_BASELINE_CHANGED/);await exec('ROLLBACK');
