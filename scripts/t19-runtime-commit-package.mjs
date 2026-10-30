@@ -1,13 +1,13 @@
 // Offline preparation only; neither this module nor its CLI executes SQL.
 import {rehearsalPackage,nativeSnapshotSQL,identitySQL,sha} from './t19-provisioning-package.mjs';
 import {runtimeContractSQL} from './t19-runtime-contract.mjs';
-export const CONTRACT_SHA256='0bd62d1b75616733db3a4d98aae4fcceeb1341257c77164a0208f6330edbf068'; // ggignore: public contract integrity hash.
+export const CONTRACT_SHA256='324a4103b6bb66efb76d6a8d2e00f092087feeece3700c11ef2cb61d5396a276'; // ggignore: public contract integrity hash.
 const reject=()=>{throw Error('RUNTIME_COMMIT_PACKAGE_REFUSED');};
 const literal=s=>"'"+s.replaceAll("'","''")+"'";
 const dataHash="encode(sha256(convert_to((SELECT coalesce(jsonb_agg(e ORDER BY e->>0,e->>1),'[]'::jsonb) FROM jsonb_array_elements(records) e WHERE e->>0<>'private_t19_custody')::text,'UTF8')),'hex')";
 export function runtimeContractGuard(expectedText){
  if(typeof expectedText!=='string'||sha(expectedText)!==CONTRACT_SHA256)reject();
- return `DO $t19_contract$ DECLARE actual jsonb; BEGIN ${identitySQL}\n${runtimeContractSQL.replace(/ AS contract;$/, ' INTO actual;')}\nIF actual IS DISTINCT FROM ${literal(expectedText)}::jsonb THEN RAISE EXCEPTION 'T19_RUNTIME_EXACT_CONTRACT_MISMATCH'; END IF; END $t19_contract$;`;
+ return `DO $t19_contract$ DECLARE actual jsonb; expected jsonb:=${literal(expectedText)}::jsonb; BEGIN ${identitySQL}\n${runtimeContractSQL.replace(/ AS contract;$/, ' INTO actual;')}\nIF actual IS DISTINCT FROM expected THEN RAISE EXCEPTION 'T19_RUNTIME_EXACT_CONTRACT_MISMATCH' USING DETAIL=(SELECT string_agg(k,',' ORDER BY k) FROM jsonb_object_keys(expected) k WHERE actual->k IS DISTINCT FROM expected->k); END IF; END $t19_contract$;`;
 }
 export function runtimeCommitPackage(input,expectedText,now=Date.now()){
  if(!input||Object.keys(input).sort().join(',')!=='baselineSha256,expiresAt,issuedAt,nonce,projectRef,rehearsalEvidenceSha256,sql,stage'||input.stage!=='runtime'||typeof input.nonce!=='string'||!/^[a-f0-9]{32}$/.test(input.nonce)||typeof input.rehearsalEvidenceSha256!=='string'||!/^[a-f0-9]{64}$/.test(input.rehearsalEvidenceSha256))reject();

@@ -177,7 +177,7 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
     await assert.rejects(exec(commit.sql),/T19_STAGE_SEQUENCE_REFUSED|T19_BASELINE_CHANGED/);await exec('ROLLBACK');
     console.log('T19_RUNTIME_EXACT_COMMIT_TAMPER_AND_FRESH_TLS_PASS');
    }else await exec(sql);
-   if(stage==='runtime')assert.deepEqual((await scalar(runtimeContractSQL)).contract,JSON.parse(await readFile(new URL('../test-support/t19-runtime-contract-expected.json',import.meta.url),'utf8')));
+   if(stage==='runtime'){await exec('BEGIN READ ONLY; SET LOCAL search_path=pg_catalog');assert.deepEqual((await scalar(runtimeContractSQL)).contract,JSON.parse(await readFile(new URL('../test-support/t19-runtime-contract-expected.json',import.meta.url),'utf8')));await exec('COMMIT');}
    assert.equal(await fresh({protectedOnly:true}),protectedBefore,stage+' changed protected rows/sequences');
    const committed=await fresh();
    await assert.rejects(exec(sql),{code:'55000'});await exec('ROLLBACK');

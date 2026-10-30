@@ -1842,7 +1842,7 @@
     [
       "jobs",
       "jobs_business_id_fkey",
-      "FOREIGN KEY (business_id) REFERENCES businesses(id)",
+      "FOREIGN KEY (business_id) REFERENCES public.businesses(id)",
       true,
       false,
       false
@@ -1866,7 +1866,7 @@
     [
       "jobs",
       "jobs_invoice_id_fkey",
-      "FOREIGN KEY (invoice_id) REFERENCES business_invoices(id)",
+      "FOREIGN KEY (invoice_id) REFERENCES public.business_invoices(id)",
       true,
       false,
       false
@@ -1906,7 +1906,7 @@
     [
       "machine_businesses",
       "machine_businesses_business_id_fkey",
-      "FOREIGN KEY (business_id) REFERENCES businesses(id)",
+      "FOREIGN KEY (business_id) REFERENCES public.businesses(id)",
       true,
       false,
       false
