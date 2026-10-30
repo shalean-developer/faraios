@@ -2146,6 +2146,11 @@
       false
     ],
     [
+      "public",
+      "USAGE",
+      false
+    ],
+    [
       "vault",
       "USAGE",
       false
