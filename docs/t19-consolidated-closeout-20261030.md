@@ -10,6 +10,10 @@ Fresh read-only native capture through the connected staging database returned `
 
 A bounded function-body scan found no non-Vault routine referring textually to vault/decrypted_secrets/create_secret/update_secret. This does not close dynamic SQL, external/service-key consumers, Edge Functions or private-host configuration. No grants were revoked and no private credential was read.
 
+Fresh Supabase UI inspection confirms public/graphql_public selected and audit/private_t19_custody excluded from exposed schemas. No setting was changed. Plesk subscription846 readback confirms Node disabled, Node24.22.1, /app and _custody.cjs selected, document root /httpdocs outside the app. The CLI ran as10521; app and private directory are owner10521/mode0700, custody.json absent. Identity directory entries are regular non-symlink owner10521/mode0600 files (CA/server/callback material); only metadata was read, so this is not key/certificate validity, cryptographic pairing or machine-client acceptance.
+
+The installed sealed package lacks /app/public. Adding an unmanifested directory would break package verification. This work package instead includes exactly one inert public/index.html in the curated source/dependency manifest; no runtime source/configuration/credentials are mapped into that public root. The source correction creates a reviewable path to /app/public after a separately verified inactive upgrade, rather than pointing the document root at /app. No live directory/root/package setting was changed. Existing upgrade.lock, receipts, old package and rollback app are preserved; a subsequent upgrade still needs explicit lock/recovery disposition and exact previous/new verification.
+
 ## Combined blocker register and acceptance order
 
 | ID | Work | Current disposition | Closure evidence |
@@ -18,7 +22,7 @@ A bounded function-body scan found no non-Vault routine referring textually to v
 | C02 | Make outcome inspection consistent | Read-only reconciler added in this branch | Protected packet byte/binding tests, SQL refusal test, exact native TLS original/commit/drift cases in existing full-stage runner; native CI required |
 | C03 | Install runtime, OAuth and API | Hosted runtime absent; remaining stages uninstalled | Separately reviewed exact packets, current protected baseline/quiet window, per-stage transaction and fresh full catalog/permission/data verification; no automatic stage progression |
 | C04 | Close security admission | Partial source/catalog evidence; open | Current Data API exclusions and HTTP denials; default/indirect/Vault consumer closure; restricted credentialed login and machine/business/API allow/deny evidence |
-| C05 | Qualify private host and callback | Prior inactive package/lifecycle evidence retained; current credentialed acceptance open | Current private paths/UID/source, TLS identities/expiry, document-root/logging controls, encrypted dummy callback original-session and replay tests; no secret-bearing URLs |
+| C05 | Qualify private host and callback | Current disabled host/private modes verified; missing public root addressed in source package; credentialed acceptance open | Verify new inactive package, preserve prior upgrade/lock evidence, select only its public subdirectory; qualify TLS identities/expiry, logging and encrypted dummy callback original-session/replay tests |
 | C06 | Verify nonempty recovery | Accepted empty-custody restore and synthetic operational rehearsal retained | Encrypted nonempty custody/operation recovery, external generation/epoch fencing and uncertain-operation reconciliation before credential admission |
 | C07 | Connect separate TEST businesses | Not accepted | Independently verified consenting identities, intended organisations/permissions, separate grants/mappings, refresh/revocation/disconnect evidence |
 | C08 | Verify accounting and reconcile | Not accepted | Both TEST invoice journeys; concurrency/replay, uncertain writes and recovery; failure visibility; external/internal totals and applicable verified tax mappings |
@@ -42,5 +46,7 @@ The current database absence was independently established with the unchanged na
 ## Delivery boundary
 
 No hosted DDL, LOGIN, permissions, credentials, OAuth, provider invoices, service startup, scheduler, production or T20 changes are part of this source increment. Continue C03 only with the existing protected history and freshly prepared exact packet; continue security/host/recovery admission without repeating accepted synthetic rehearsals.
+
+Local verification: six focused reconciliation/packet/full-stage embedded tests, twenty recovery/managed-host/callback tests and nine package/upgrade tests passed; syntax/whitespace passed. Native CI initially caught an audited fixture timestamp side effect, then correctly denied a provider-owned Auth update in the replacement probe. Those failed results are retained. The final drift probe uses a dedicated postgres-owned protected fixture created before baseline capture; no Auth permission is broadened. Final-head native TLS and complete CI remain required. Successful model tests do not certify hosted login, credentials or provider operations.
 
 Overall: NO-GO for full T19 acceptance; C01 reconciled, C02 source correction prepared, C03–C09 remain explicit work.
