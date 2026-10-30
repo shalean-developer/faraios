@@ -8,6 +8,8 @@ import {Client} from 'pg';
 import {runtimeCommitPackage} from '../scripts/t19-runtime-commit-package.mjs';
 import {runtimeContractSQL} from '../scripts/t19-runtime-contract.mjs';
 import {runtimeReconciliationSQL} from '../scripts/t19-runtime-reconciliation.mjs';
+import {operationalCommitPackage} from '../scripts/t19-operational-commit-package.mjs';
+import {operationalContractSQL} from '../scripts/t19-operational-contract.mjs';
 import {captureSQL,rehearsalPackage} from '../scripts/t19-provisioning-package.mjs';
 import {invoiceFixture} from '../test-support/t19-runtime-fixture.mjs';
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
@@ -199,7 +201,46 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
     try{const after=await reader.query(commit.postCommitSQL);assert.equal(after.find(r=>r.rows?.[0]?.fresh_committed_baseline)?.rows[0].fresh_committed_baseline,expectedHash);}finally{await reader.end();}
     await assert.rejects(exec(commit.sql),/T19_STAGE_SEQUENCE_REFUSED|T19_BASELINE_CHANGED/);await exec('ROLLBACK');
     console.log('T19_RUNTIME_EXACT_COMMIT_TAMPER_AND_FRESH_TLS_PASS');
+   }else if(guardCA){
+    let baseline;const capture=n=>{const m=n.message.match(/^T19_NATIVE_BASELINE_SHA256 ([a-f0-9]{64})$/);if(m)baseline=m[1];};
+    engine.on('notice',capture);await exec(captureSQL());engine.removeListener('notice',capture);
+    const now=Date.now(),previous=stage==='oauth'?'runtime':'oauth';
+    const contracts={before:await readFile(new URL('../test-support/t19-'+previous+'-contract-expected.json',import.meta.url),'utf8'),
+     after:await readFile(new URL('../test-support/t19-'+stage+'-contract-expected.json',import.meta.url),'utf8')};
+    const commit=operationalCommitPackage({projectRef:'xdmfyrsauvqznkloroxg',stage,sql,baselineSha256:baseline,
+     issuedAt:now,expiresAt:now+900000,nonce:'c'.repeat(32),rehearsalEvidenceSha256:'d'.repeat(64)},contracts,now);
+    const injection=stage==='oauth'?
+     'GRANT SELECT ON private_t19_custody.oauth_clients TO authenticated;':
+     'ALTER FUNCTION public.t19_accounting_status(uuid) SECURITY DEFINER;';
+    const marker='DO $t19_operational_contract$';
+    const damagedPrior=commit.sql.replace(marker,
+     'ALTER TABLE private_t19_custody.machines ALTER COLUMN active SET DEFAULT true;\n'+marker);
+    await assert.rejects(exec(damagedPrior),/T19_OPERATIONAL_EXACT_CONTRACT_MISMATCH/);
+    await exec('ROLLBACK');assert.equal(await fresh(),before);
+    const second=commit.sql.indexOf(marker,commit.sql.indexOf(marker)+marker.length);
+    assert.ok(second>0);
+    for(const tamper of [injection,'GRANT t19_runtime_owner TO postgres WITH SET TRUE;',
+     "UPDATE public.t19_reconciliation_probe SET value='forbidden drift' WHERE id=1;"]){
+     const damaged=commit.sql.slice(0,second)+tamper+'\n'+commit.sql.slice(second);
+     await assert.rejects(exec(damaged),/T19_OPERATIONAL_EXACT_CONTRACT_MISMATCH|T19_PROTECTED_DATA_CHANGED/);
+     await exec('ROLLBACK');assert.equal(await fresh(),before);
+    }
+    const results=await exec(commit.sql);
+    const candidate=results.find(r=>r.rows?.[0]?.candidate_committed_baseline)?.rows[0].candidate_committed_baseline;
+    assert.match(candidate??'',/^[a-f0-9]{64}$/);
+    const reader=new Client({connectionString:target,ssl});await reader.connect();
+    try{
+     const after=await reader.query(commit.postCommitSQL);
+     assert.equal(after.find(r=>r.rows?.[0]?.fresh_committed_baseline)?.rows[0].fresh_committed_baseline,candidate);
+    }finally{await reader.end();}
+    await assert.rejects(exec(commit.sql),/T19_STAGE_SEQUENCE_REFUSED|T19_BASELINE_CHANGED/);await exec('ROLLBACK');
+    console.log('T19_'+stage.toUpperCase()+'_EXACT_COMMIT_TAMPER_AND_FRESH_TLS_PASS');
    }else await exec(sql);
+   if(stage!=='runtime'){
+    await exec('BEGIN READ ONLY; SET LOCAL search_path=pg_catalog');
+    assert.deepEqual((await scalar(operationalContractSQL)).contract,JSON.parse(await readFile(new URL('../test-support/t19-'+stage+'-contract-expected.json',import.meta.url),'utf8')));
+    await exec('COMMIT');
+   }
    if(stage==='runtime'){await exec('BEGIN READ ONLY; SET LOCAL search_path=pg_catalog');assert.deepEqual((await scalar(runtimeContractSQL)).contract,JSON.parse(await readFile(new URL('../test-support/t19-runtime-contract-expected.json',import.meta.url),'utf8')));await exec('COMMIT');}
    assert.equal(await fresh({protectedOnly:true}),protectedBefore,stage+' changed protected rows/sequences');
    const committed=await fresh();
