@@ -5,6 +5,7 @@ import {createHash,randomBytes} from 'node:crypto';
 import {PGlite} from '@electric-sql/pglite';
 import {btree_gist} from '@electric-sql/pglite/contrib/btree_gist';
 import {Client} from 'pg';
+import {captureSQL,rehearsalPackage} from '../scripts/t19-provisioning-package.mjs';
 import {invoiceFixture} from '../test-support/t19-runtime-fixture.mjs';
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 const sha=b=>createHash('sha256').update(b).digest('hex');
@@ -12,12 +13,14 @@ const quote=s=>'"'+s.replaceAll('"','""')+'"';
 
 test('whole operational SQL stages commit, deny collisions and fully roll back under managed-style postgres',async()=>{
  const target=process.env.T19_OPERATIONAL_NATIVE_URL;
+ const guardCA=process.env.T19_PROVISIONING_GUARD_CA;
+ const ssl=guardCA?{ca:await readFile(guardCA,'utf8'),rejectUnauthorized:true,servername:'localhost'}:false;
  let engine;
  if(target){
   const u=new URL(target);assert.equal(u.hostname,'127.0.0.1');assert.equal(u.pathname,'/postgres');
   assert.equal(u.protocol,'postgresql:');assert.equal(u.hash,'');
   assert.equal(u.username,'postgres');assert.equal(u.password,'');assert.equal(u.search,'');
-  engine=new Client({connectionString:target,ssl:false});await engine.connect();
+  engine=new Client({connectionString:target,ssl});await engine.connect();
  }else engine=new PGlite({extensions:{btree_gist}});
  const query=(s,p)=>engine.query(s,p);
  const exec=s=>target?engine.query(s):engine.exec(s);
@@ -54,6 +57,9 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
    CREATE SCHEMA vault AUTHORIZATION supabase_admin;
    CREATE TABLE vault.fixture_material(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),decrypted_secret text);
    CREATE VIEW vault.decrypted_secrets AS SELECT * FROM vault.fixture_material;
+   CREATE VIEW vault.secrets AS SELECT id FROM vault.fixture_material;
+   ALTER VIEW vault.secrets OWNER TO supabase_admin;
+   GRANT SELECT ON vault.secrets TO postgres WITH GRANT OPTION;
    CREATE FUNCTION vault.create_secret(secret text,name text DEFAULT NULL,description text DEFAULT NULL,key_id uuid DEFAULT NULL)
     RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$DECLARE r uuid;BEGIN
      INSERT INTO vault.fixture_material(decrypted_secret) VALUES(secret) RETURNING id INTO r;RETURN r;END$$;
@@ -74,6 +80,14 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
    has_schema_privilege(current_user,'auth','USAGE WITH GRANT OPTION') AS auth_grantable,
    has_function_privilege(current_user,'auth.uid()','EXECUTE WITH GRANT OPTION') AS uid_grantable
    FROM pg_roles WHERE rolname=current_user`),{current_user:'postgres',session_user:'postgres',rolsuper:false,rolcreaterole:true,rolbypassrls:true,auth_grantable:false,uid_grantable:false});
+
+  if(guardCA){
+   // The setup backend began under the original role OID before role rename.
+   // Reconnect as the actual managed actor, as hosted execution must do.
+   await engine.end();engine=new Client({connectionString:target,ssl});await engine.connect();
+   assert.equal((await scalar('SELECT ssl FROM pg_stat_ssl WHERE pid=pg_backend_pid()')).ssl,true);
+   await exec("SET faraios.t19_runtime_review='approved-source-test'");
+  }
 
   async function state(client=adapter,{protectedOnly=false}={}){
    const run=(s,p)=>client.query(s,p);
@@ -104,7 +118,7 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
   }
   async function fresh(options){
    if(!target)return state(adapter,options);
-   const c=new Client({connectionString:target,ssl:false});await c.connect();
+   const c=new Client({connectionString:target,ssl});await c.connect();
    try{
     const who=(await c.query('SELECT session_user,current_user,rolsuper FROM pg_roles WHERE rolname=current_user')).rows[0];
     assert.deepEqual(who,{session_user:'postgres',current_user:'postgres',rolsuper:false});
@@ -112,6 +126,7 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
     const value=await state(c,options);await c.query('COMMIT');return value;
    }finally{await c.end();}
   }
+  if(target&&!guardCA){await assert.rejects(exec(captureSQL()),/T19_PROVISIONING_IDENTITY_TLS_REFUSED/);await exec('ROLLBACK');}
   const protectedBefore=await fresh({protectedOnly:true});
   const manifest=JSON.parse(await readFile(new URL('../test-support/t19-operational-sql-pins.json',import.meta.url),'utf8'));
   assert.equal(manifest.version,1);assert.equal(manifest.purpose,'reviewed-operational-sql-sha256');
@@ -121,6 +136,20 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
    const sql=await readFile(new URL('../'+file.path,import.meta.url),'utf8');assert.equal(sha(sql),file.sha256);
    assert.equal((sql.match(/^begin;$/gim)||[]).length,1);assert.equal((sql.match(/^commit;$/gim)||[]).length,1);
    const before=await fresh();
+   if(guardCA){
+    let baseline;const listener=n=>{const m=n.message.match(/^T19_NATIVE_BASELINE_SHA256 ([a-f0-9]{64})$/);if(m)baseline=m[1];};
+    engine.on('notice',listener);await exec(captureSQL());engine.removeListener('notice',listener);assert.match(baseline??'',/^[a-f0-9]{64}$/);
+    const now=Date.now(),input={projectRef:'xdmfyrsauvqznkloroxg',stage,sql,baselineSha256:baseline,issuedAt:now,expiresAt:now+900000};
+    const packet=rehearsalPackage(input,now);assert.equal(packet.commitAuthorized,false);
+    await exec(packet.sql);assert.equal(await fresh(),before,stage+' guarded rehearsal changed baseline');
+    await exec('ALTER TABLE public.business_invoices DISABLE TRIGGER invoices_audit');
+    try{await assert.rejects(exec(packet.sql),/T19_BASELINE_CHANGED/);}finally{await exec('ROLLBACK');await exec('ALTER TABLE public.business_invoices ENABLE TRIGGER invoices_audit');}
+    assert.equal(await fresh(),before);
+    assert.equal((await scalar("SELECT tgenabled FROM pg_trigger WHERE tgrelid='public.business_invoices'::regclass AND tgname='invoices_audit'")).tgenabled,'O');
+    const changed=rehearsalPackage({...input,baselineSha256:'0'.repeat(64)},now);await assert.rejects(exec(changed.sql),/T19_BASELINE_CHANGED/);await exec('ROLLBACK');assert.equal(await fresh(),before);
+    const expired=rehearsalPackage({...input,issuedAt:now-10000,expiresAt:now-5000},now-6000);await assert.rejects(exec(expired.sql),/T19_PACKET_EXPIRED/);await exec('ROLLBACK');assert.equal(await fresh(),before);
+    console.log('T19_GUARDED_'+stage.toUpperCase()+'_TLS_ROLLBACK_DRIFT_EXPIRY_PASS');
+   }
    const failed=sql.replace(/^commit;\s*$/im,()=>"DO $$BEGIN RAISE EXCEPTION 'synthetic abort' USING ERRCODE='55000';END$$;\nCOMMIT;");
    await assert.rejects(exec(failed),e=>e.code==='55000'&&e.message==='synthetic abort');await exec('ROLLBACK');
    assert.equal(await fresh(),before,stage+' forced abort leaked state');
@@ -160,6 +189,9 @@ test('whole operational SQL stages commit, deny collisions and fully roll back u
   for(const name of ['connections','operations','prepared_references','machines','machine_businesses','jobs','events','revocations','oauth_clients','oauth_states']){
    assert.equal((await scalar('SELECT count(*)::int AS n FROM private_t19_custody.'+quote(name))).n,0);
   }
+  // The managed actor must never acquire fixture-admin authority. Use a
+  // separate disposable admin connection for the existing privileged fixture handoff.
+  if(guardCA){await engine.end();const admin=new URL(target);admin.username='t19_fixture_admin';engine=new Client({connectionString:admin.href,ssl});await engine.connect();}
   // Privileged fixture handoff only, not a claim of credentialed machine login.
   await exec('SET SESSION AUTHORIZATION t19_fixture_admin;SET SESSION AUTHORIZATION t19_hosted_custody');
   assert.equal((await query("SELECT private_t19_custody.runtime('machine',$1) AS value",[JSON.stringify({fingerprint:'a'.repeat(64)})])).rows[0].value,null);
