@@ -30,7 +30,7 @@ test('actual HTTP handler denies foreign ownership, forged origin and ambiguous 
 });
 test('private setup HTTP mode has no callback or token-import route and keeps status truthful',async()=>{
  const config={origin:'https://staging.example.test',environment:'staging'};
- const auth={async read(){return {userId:'owner',businessIds:[business],memberships:[{businessId:business,role:'owner'}]};}};
+ const auth={async read(){return {userId:'owner',businessIds:[business],businesses:[{id:business,name:'Synthetic business'}],memberships:[{userId:'owner',businessId:business,role:'owner',status:'active'}]};}};
  const handler=createStandardHandler({config,onboardingMode:'private',store:{async connection(){return null;}},cipher:{},provider:{}});
  const server=createServer((req,res)=>handler({req,res,auth,cookieName:'app_session'}));server.listen(0,'127.0.0.1');await once(server,'listening');
  const get=(path,method='GET')=>new Promise((resolve,reject)=>{const req=httpRequest({host:'127.0.0.1',port:server.address().port,path,method,headers:{Host:'staging.example.test',Cookie:'app_session=valid'}},res=>{let body='';res.on('data',c=>body+=c);res.on('end',()=>resolve({status:res.statusCode,body,location:res.headers.location}));});req.on('error',reject);req.end();});
@@ -38,7 +38,7 @@ test('private setup HTTP mode has no callback or token-import route and keeps st
   assert.equal((await get('/accounting/zoho/callback?code=synthetic&state=synthetic')).status,404);
   const connect=await get('/accounting/'+business+'/connect','POST');assert.equal(connect.status,409);assert.equal(connect.location,undefined);
   assert.equal((await get('/accounting/'+business+'/provision','POST')).status,404);
-  const page=await get('/accounting/'+business+'/connection');assert.equal(page.status,200);assert.match(page.body,/private setup is required/);assert.doesNotMatch(page.body,/Connect Zoho Books|name="organizationId"/);
+  const page=await get('/accounting/'+business+'/connection');assert.equal(page.status,200);assert.match(page.body,/private setup is required/);assert.match(page.body,/workspace-layout/);assert.match(page.body,/Not activated on staging/);assert.match(page.body,/href="\/style.css"/);assert.doesNotMatch(page.body,/Connect Zoho Books|name="organizationId"/);
   assert.equal((await get('/accounting/'+foreign+'/status')).status,403);
  }finally{server.closeAllConnections();await new Promise(r=>server.close(r));}
 });
