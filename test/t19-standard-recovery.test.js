@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {syntheticRecoveryFixture,runSyntheticRecoveryRehearsal} from '../scripts/t19-standard-recovery-rehearsal.mjs';
 import {createCredentialBackup,restoreCredentialBackup,credentialMaterialDigest,rekeyCredentialSnapshot,assertRecoveryMatchesCurrent} from '../src/t19-standard-recovery.js';
+import {createTokenCipher} from '../src/t19-standard-secrets.js';
 import {writeRecoveryPair,readRecoveryPair} from '../src/t19-standard-recovery-files.js';
 const pass='synthetic rehearsal passphrase 123456789';
 const denied={message:'accounting_recovery_rejected'},filesDenied={message:'accounting_recovery_files_rejected'};
@@ -21,7 +22,7 @@ test('wrong passphrase, swapped escrow, manifest and ciphertext mutations fail c
  const {config,records}=syntheticRecoveryFixture(),b=await createCredentialBackup(records,config,pass),other=await createCredentialBackup(records,config,pass);
  await assert.rejects(restoreCredentialBackup(b.data,b.escrow,pass+'wrong'),denied);
  await assert.rejects(restoreCredentialBackup(b.data,other.escrow,pass),denied);
- for(const mutate of [d=>d.records[0].businessId=records[1].businessId,d=>d.records[0].organizationId='999',d=>d.records[0].generation++,d=>d.records[0].clientId='OTHER',d=>d.records[0].environment='production',d=>d.records[0].status='revocation_pending',d=>d.createdAt='2026-01-01T00:00:00.000Z',d=>d.records[0].envelope.body='AAAA']){
+ for(const mutate of [d=>d.records[0].businessId=d.records[1].businessId,d=>d.records[0].organizationId='999',d=>d.records[0].generation++,d=>d.records[0].clientId='OTHER',d=>d.records[0].environment='production',d=>d.records[0].status='revocation_pending',d=>d.createdAt='2026-01-01T00:00:00.000Z',d=>d.records[0].envelope.body='AAAA']){
   const d=structuredClone(b.data);mutate(d);await assert.rejects(restoreCredentialBackup(d,b.escrow,pass),denied);
  }
  config.key.fill(0);
@@ -45,6 +46,8 @@ test('duplicate business/organisation, cross-binding ciphertext, malformed mater
  for(const mutate of [r=>r[1].businessId=r[0].businessId,r=>r[1].organizationId=r[0].organizationId,r=>r[1].envelope=r[0].envelope,r=>r[0].environment='production',r=>r[0].envelope.keyId='wrong']){
   const rows=structuredClone(records);mutate(rows);await assert.rejects(createCredentialBackup(rows,config,pass),denied);
  }
+ const malformed=structuredClone(records);malformed[0].envelope=createTokenCipher(config).seal(malformed[0],{refreshToken:'synthetic-only'});
+ await assert.rejects(createCredentialBackup(malformed,config,pass),denied);
  config.key.fill(0);
 });
 test('owner-only files reject overwrite, shared directories, symlinks, hardlinks and insecure modes',async()=>{
