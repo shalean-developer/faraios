@@ -146,3 +146,28 @@ test('unmapped standard items are held before dispatch and keep a durable visibl
  assert.deepEqual(j,{state:'review_required',dispatched:false,error_code:'item_mapping'});
  assert.equal((await f.db.query('select error_code from public.business_invoices where id=$1',[f.invoice])).rows[0].error_code,'mismatch');
 });
+
+test('explicit fictitious non-VAT correction retains original evidence and cannot change price or bypass owner guards',async t=>{
+ const f=await setup(t);
+ // Model a pre-VAT-migration document in this disposable fixture only.
+ await f.db.exec('alter table public.business_invoices disable trigger user');
+ await f.db.query("update public.business_invoices set snapshot=snapshot-'tax_snapshot' where id=$1",[f.invoice]);
+ await f.db.exec('alter table public.business_invoices enable trigger user');
+ const original=(await f.db.query('select snapshot,version,total_cents from public.business_invoices where id=$1',[f.invoice])).rows[0];
+ await f.db.exec(await readFile(new URL('../database/t19-standard-test-tax-correction.sql',import.meta.url),'utf8'));
+ await f.db.query("insert into public.business_vat_settings(business_id,enabled,version,change_reason) values($1,false,1,'Synthetic test non-VAT policy')",[a]);
+ const correct=async({business=a,version=original.version,total=original.total_cents,confirm=true}={})=>{await f.db.exec('set role authenticated');try{return await f.db.query("select public.t19_standard_correct_test_nonvat($1,$2,$3,$4,'Owner chooses non-VAT for fictitious test only',$5)",[business,f.invoice,version,total,confirm]);}finally{await f.db.exec('reset role');}};
+ await f.claims(manager,managerSession);await assert.rejects(()=>correct());
+ await f.claims(owner,ownerSession);
+ for(const args of [{business:b},{version:999},{total:1},{confirm:false}])await assert.rejects(()=>correct(args));
+ await f.db.query('update public.business_vat_settings set enabled=true,vat_number=$1,registration_date=$2 where business_id=$3',['4000000001','2026-01-01',a]);await assert.rejects(()=>correct());
+ await f.db.query('update public.business_vat_settings set enabled=false,vat_number=null,registration_date=null where business_id=$1',[a]);
+ await correct();
+ const after=(await f.db.query('select snapshot,version,total_cents from public.business_invoices where id=$1',[f.invoice])).rows[0];
+ assert.deepEqual(after.snapshot,{...original.snapshot,tax_snapshot:{enabled:false,policy_version:1,price_basis:'customer_total',rate_bps:0,vat_number:null,registration_date:null,net_cents:10000,vat_cents:0,total_cents:10000}});assert.equal(after.total_cents,original.total_cents);assert.equal(after.version,original.version+1);
+ const retained=(await f.db.query('select original_snapshot,corrected_snapshot from private_t19_standard.test_tax_corrections where invoice_id=$1',[f.invoice])).rows[0];assert.deepEqual(retained.original_snapshot,original.snapshot);assert.deepEqual(retained.corrected_snapshot,after.snapshot);
+ await assert.rejects(()=>correct());
+ await f.db.exec('set role authenticated');await assert.rejects(()=>f.db.query('select * from private_t19_standard.test_tax_corrections'),e=>e.code==='42501');await f.db.exec('reset role');
+ await assert.rejects(()=>f.db.query("update public.business_invoices set snapshot=jsonb_set(snapshot,'{total_cents}','1') where id=$1",[f.invoice]));
+ const jobId=await f.approve();await f.claims();assert.deepEqual(await f.worker.runOnce(a),{jobId,status:'matched'});assert.equal(f.posts(),1);
+});

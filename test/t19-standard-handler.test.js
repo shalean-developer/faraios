@@ -44,9 +44,9 @@ test('private setup HTTP mode has no callback or token-import route and keeps st
 });
 
 test('owner review HTTP denies foreign business, manager, forged origin and ambiguous consent before queuing',async()=>{
- let role='owner',writes=0,rechecks=0;
+ let role='owner',writes=0,rechecks=0,corrections=0;
  const config={origin:'https://staging.example.test',environment:'staging'};
- const client={async rpc(name,args){if(name==='t19_standard_invoice_review')return {data:{environment:'staging',connection:null,invoices:[],invoiceCount:0}};if(name==='t19_standard_reconcile_invoice'){rechecks++;return {data:foreign};}if(args.input.totalCents!==10000)return {error:{message:'stale'}};writes++;return {data:foreign};}};
+ const client={async rpc(name,args){if(name==='t19_standard_invoice_review')return {data:{environment:'staging',connection:null,invoices:[],invoiceCount:0}};if(name==='t19_standard_reconcile_invoice'){rechecks++;return {data:foreign};}if(name==='t19_standard_correct_test_nonvat'){assert.equal(args.confirmed_fictitious,true);assert.equal(args.expected_total,10000);corrections++;return {data:2};}if(args.input.totalCents!==10000)return {error:{message:'stale'}};writes++;return {data:foreign};}};
  const auth={async read(sid){return sid==='valid'?{userId:'owner',businessIds:[business],businesses:[{id:business,name:'Synthetic business'}],memberships:[{userId:'owner',businessId:business,role,status:'active'}]}:null;},async withOwner(sid,b,action){if(sid!=='valid'||role!=='owner'||b!==business)throw Error();return action(client);}};
  const handler=createStandardHandler({config,onboardingMode:'private',store:{},cipher:{},provider:{}});
  const server=createServer((req,res)=>handler({req,res,auth,cookieName:'app_session'}));server.listen(0,'127.0.0.1');await once(server,'listening');
@@ -59,6 +59,12 @@ test('owner review HTTP denies foreign business, manager, forged origin and ambi
   assert.equal((await invoke(path+'/approve',data+'&confirm=yes')).status,403);
   assert.equal((await invoke(path+'/approve',data.replace('confirm=yes','confirm=no'))).status,403);
   assert.equal((await invoke(path+'/approve',data.replace('totalCents=10000','totalCents=1'))).status,403);assert.equal(writes,0);
+  const correction=new URLSearchParams({invoiceId:foreign,invoiceVersion:'1',totalCents:'10000',reason:'Owner selects no VAT for fictitious test',confirm:'yes'}).toString();
+  assert.equal((await invoke(path+'/correct-test-tax',correction,'https://evil.invalid')).status,403);
+  assert.equal((await invoke(path+'/correct-test-tax',correction+'&confirm=yes')).status,403);
+  role='manager';assert.equal((await invoke(path+'/correct-test-tax',correction)).status,403);role='owner';
+  assert.equal((await invoke(path+'/correct-test-tax',correction.replace('confirm=yes','confirm=no'))).status,403);assert.equal(corrections,0);
+  assert.equal((await invoke(path+'/correct-test-tax',correction)).status,303);assert.equal(corrections,1);
   const result=await invoke(path+'/approve',data);assert.equal(result.status,303);assert.equal(result.location,path);assert.equal(writes,1);
   const recheck=new URLSearchParams({jobId:foreign,connectionId:foreign,generation:'2'}).toString();
   assert.equal((await invoke(path+'/reconcile',recheck,'https://evil.invalid')).status,403);
