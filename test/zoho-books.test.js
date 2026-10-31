@@ -12,7 +12,7 @@ function fixture({found=[],override={},failure=null,claimMode='create'}={}){
  const fetchImpl=async(url,options={})=>{
   calls.push({url:String(url),...options});const u=new URL(url);let data;
   if(u.pathname==='/oauth/v2/token'){assert.equal(options.method,'POST');assert.ok(options.body instanceof URLSearchParams);assert.doesNotMatch(String(url),/SENSITIVE/);data={access_token:'synthetic-access',api_domain:connection.api_domain,expires_in:3600};}
-  else if(u.pathname==='/books/v3/organizations/111')data={code:0,organization:{organization_id:'111',currency_code:'ZAR',is_org_active:true}};
+  else if(u.pathname==='/books/v3/organizations')data={code:0,organizations:[{organization_id:'111',currency_code:'ZAR',is_org_active:true}]};
   else if(u.pathname==='/books/v3/contacts/123')data={code:0,contact:{contact_id:'123',contact_name:'Synthetic',status:'active',currency_code:'ZAR'}};
   else if(u.pathname==='/books/v3/invoices'&&options.method==='POST'){posts++;assert.equal(u.searchParams.get('send'),'false');const p=JSON.parse(options.body);assert.equal(p.reference_number,'FaraiOS:'+id);assert.deepEqual(p.contact_persons,[]);assert.equal(p.line_items[0].rate,100.01);if(failure==='timeout')throw new Error('SENSITIVE_NETWORK_DETAIL');data={code:0,invoice:{invoice_id:'9001'}};}
   else if(u.pathname==='/books/v3/invoices')data={code:0,invoices:found,page_context:{has_more_page:false}};
@@ -89,5 +89,27 @@ test('provider permission denial stops before financial writes and never falls b
  }});
  const result=await adapter.sync({invoice:structuredClone(invoice),connection:structuredClone(connection),mode:'create'});
  assert.equal(result.outcome,'failed');assert.equal(result.error_code,'credentials');assert.equal(result.receipt,null);
- assert.deepEqual(calls,[{path:'/oauth/v2/token',method:'POST',org:null},{path:'/books/v3/organizations/111',method:'GET',org:'111'}]);
+ assert.deepEqual(calls,[{path:'/oauth/v2/token',method:'POST',org:null},{path:'/books/v3/organizations',method:'GET',org:'111'}]);
+});
+
+
+test('organisation list requires a unique active pinned match and complete results before writes',async()=>{
+ const pinned={organization_id:'111',currency_code:'ZAR',is_org_active:true};
+ for(const result of [
+  {organizations:[]},
+  {organizations:[{...pinned,organization_id:'222'}]},
+  {organizations:[pinned,pinned]},
+  {organizations:[{...pinned,is_org_active:false}]},
+  {organizations:[{...pinned,is_org_active:undefined}]},
+  {organizations:[{...pinned,currency_code:'USD'}]},
+  {organizations:[pinned],page_context:{has_more_page:true}},
+  {organizations:[pinned],page_context:{}},
+ ]){
+  const f=fixture({override:{'/books/v3/organizations':()=>({code:0,...result})}});
+  const response=await f.adapter.sync(f.claim);
+  assert.equal(response.error_code,'organization');assert.equal(f.posts(),0);
+  assert.equal(f.calls.length,2);
+ }
+ const f=fixture({override:{'/books/v3/organizations':()=>({code:0,organizations:[{...pinned,organization_id:'222'},pinned],page_context:{has_more_page:false}})}});
+ assert.equal((await f.adapter.sync(f.claim)).outcome,'matched');
 });

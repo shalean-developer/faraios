@@ -161,7 +161,7 @@ test('two business invoices run through durable SQL, scoped refresh and internal
   const u=new URL(url),org=u.searchParams.get('organization_id');assert.ok(['111','222'].includes(org));
   assert.equal(options.headers.Authorization,'Zoho-oauthtoken test-access-'+org);
   const reply=value=>new Response(JSON.stringify({code:0,...value}),{status:200});
-  if(u.pathname.endsWith('/organizations/'+org))return reply({organization:{organization_id:org,currency_code:'ZAR',is_org_active:true}});
+  if(u.pathname.endsWith('/organizations'))return reply({organizations:[{organization_id:org,currency_code:'ZAR',is_org_active:true}]});
   if(u.pathname.endsWith('/contacts/123'))return reply({contact:{contact_id:'123',status:'active',currency_code:'ZAR',contact_name:'Synthetic customer'}});
   if(options.method==='POST'){
    posts++;const body=JSON.parse(options.body),remote=org+'99';

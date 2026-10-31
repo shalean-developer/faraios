@@ -57,8 +57,12 @@ export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>
    const url=new URL(connection.api_domain+'/books/v3'+path);url.search=new URLSearchParams({organization_id:connection.organization_id,...query}).toString();
    try{return await request(url.href,{method,headers:{Authorization:'Zoho-oauthtoken '+token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})},method==='POST'&&path==='/invoices');}catch(error){if(error.code==='credentials')tokens.delete(key);throw error;}
   };
-  const org=(await call('/organizations/'+connection.organization_id)).organization;
-  if(!org||String(org.organization_id)!==connection.organization_id||org.currency_code!=='ZAR'||org.is_org_active===false)throw new AccountingError('organization');
+  const result=await call('/organizations');
+  // Select the independently pinned organisation, never the first/default entry.
+  if(!Array.isArray(result.organizations)||result.organizations.length>1000||(result.page_context&&result.page_context.has_more_page!==false))throw new AccountingError('organization');
+  const matches=result.organizations.filter(org=>String(org.organization_id)===connection.organization_id);
+  const org=matches.length===1?matches[0]:null;
+  if(!org||org.currency_code!=='ZAR'||org.is_org_active!==true)throw new AccountingError('organization');
   return call;
  }
  return {async sync(claim){
