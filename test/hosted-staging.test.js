@@ -226,9 +226,9 @@ test('T19 manual RLS count-only acceptance fails closed and requires positive ow
 test('standard owner review capability permits only the reviewed RPCs and never legacy enqueue or backend jobs',async()=>{
  const calls=[];const dispatch=async r=>{calls.push(r);return new Response('{}');};
  const approved=createStagingFetch(dispatch,{standardAccounting:true}),normal=createStagingFetch(dispatch);
- for(const name of ['t19_standard_invoice_review','t19_standard_approve_reviewed_invoice','t19_standard_reconcile_invoice']){
+ for(const name of ['t19_standard_invoice_review','t19_standard_approve_reviewed_invoice','t19_standard_reconcile_invoice','t19_standard_correct_test_nonvat']){
   const url=stagingDatabase+'/rest/v1/rpc/'+name;await approved(url,{method:'POST',body:'{}'});await assert.rejects(()=>normal(url,{method:'POST',body:'{}'}));
  }
  for(const name of ['t19_standard_approve_invoice','t19_standard_jobs','t19_enqueue_invoice'])await assert.rejects(()=>approved(stagingDatabase+'/rest/v1/rpc/'+name,{method:'POST',body:'{}'}));
- assert.equal(calls.length,3);
+ assert.equal(calls.length,4);
 });

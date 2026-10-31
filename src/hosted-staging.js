@@ -36,7 +36,7 @@ export function createStagingFetch(dispatch=globalThis.fetch,{accounting=false,s
       const table=url.pathname.match(/^\/rest\/v1\/([a-z_]+)$/)?.[1];
       if(table)allowed=tables.get(table)?.includes(method)??false;
       const rpc=url.pathname.match(/^\/rest\/v1\/rpc\/([a-z_][a-z0-9_]*?)$/)?.[1];
-      if(rpc)allowed=(rpcs.has(rpc)||standardAccounting&&['t19_standard_invoice_review','t19_standard_approve_reviewed_invoice','t19_standard_reconcile_invoice'].includes(rpc)||accounting&&['t19_accounting_status','t19_enqueue_invoice'].includes(rpc))&&method==='POST'&&!url.search;
+      if(rpc)allowed=(rpcs.has(rpc)||standardAccounting&&['t19_standard_invoice_review','t19_standard_approve_reviewed_invoice','t19_standard_reconcile_invoice','t19_standard_correct_test_nonvat'].includes(rpc)||accounting&&['t19_accounting_status','t19_enqueue_invoice'].includes(rpc))&&method==='POST'&&!url.search;
       // No profile/schema override through headers, including service-role schemas.
       if(['accept-profile','content-profile'].some(h=>request.headers.has(h)&&request.headers.get(h)!=='public'))allowed=false;
     }
