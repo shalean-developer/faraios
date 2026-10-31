@@ -9,15 +9,16 @@ async function safeStat(p){
  const s=await lstat(p).catch(e=>{if(e.code==='ENOENT')return null;throw e;});
  if(s&&(!s.isFile()||s.isSymbolicLink()||s.nlink!==1||s.uid!==process.getuid()||(s.mode&0o077)!==0))throw Error();return s;
 }
-let log;
+let log,logReady=false;
 try{
  if(process.argv.length!==2||Number(process.versions.node.split('.')[0])!==24)throw Error();
  // Reuse parent-directory, owner, no-follow and fixed-path verification before writes.
  const config=await loadStandardWorkerConfiguration();if(config?.environment!=='staging'||config.enabled!==true)throw Error();
  const old=await safeStat(path);await safeStat(path+'.previous');
  if(old?.size>65536)await rename(path,path+'.previous');
- log=await open(path,constants.O_WRONLY|constants.O_APPEND|constants.O_CREAT|constants.O_NOFOLLOW,0o600);
+ log=await open(path,constants.O_WRONLY|constants.O_APPEND|constants.O_CREAT|constants.O_NOFOLLOW|constants.O_NONBLOCK,0o600);
  const s=await log.stat();if(!s.isFile()||s.nlink!==1||s.uid!==process.getuid()||(s.mode&0o077)!==0)throw Error();
+ logReady=true;
  const start=new Date().toISOString();await log.write(JSON.stringify({event:'start',at:start,pid:process.pid})+'\n');
  const child=spawn(process.execPath,[fileURLToPath(new URL('t19-standard-invoice-worker.mjs',import.meta.url)),'--run-once'],{stdio:['ignore','pipe','pipe'],windowsHide:true,timeout:110000,killSignal:'SIGKILL'});
  let output='',oversized=false;
@@ -36,6 +37,6 @@ try{
  await log.write(JSON.stringify(record)+'\n');await log.sync();await log.close();log=null;
  console.log(JSON.stringify(record));process.exit(ok?0:1);
 }catch{
- if(log){await log.write(JSON.stringify({event:'failed',at:new Date().toISOString(),code:'worker_unavailable'})+'\n').catch(()=>{});await log.close().catch(()=>{});}
+ if(log){if(logReady)await log.write(JSON.stringify({event:'failed',at:new Date().toISOString(),code:'worker_unavailable'})+'\n').catch(()=>{});await log.close().catch(()=>{});}
  console.error('T19_SCHEDULED_WORKER_UNAVAILABLE');process.exit(1);
 }
