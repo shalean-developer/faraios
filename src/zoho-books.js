@@ -27,7 +27,7 @@ export function verifiedNonVatSnapshot(invoice){
  if(!t||t.enabled!==false||t.price_basis!=='customer_total'||!Number.isSafeInteger(t.policy_version)||t.policy_version<0||t.rate_bps!==0||t.vat_cents!==0||t.vat_number!==null||t.registration_date!==null||!Number.isSafeInteger(invoice.total_cents)||invoice.total_cents<0||t.total_cents!==invoice.total_cents||t.net_cents!==invoice.total_cents)throw new AccountingError('mismatch');
  return t;
 }
-export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>Date.now(),custodyAccess,guard,beforeCreate}={}){
+export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>Date.now(),custodyAccess,guard,beforeCreate,resolveItems}={}){
  if(custodyAccess&&[custodyAccess,guard,beforeCreate].some(fn=>typeof fn!=='function'))throw new AccountingError('credentials');
  const tokens=new Map();
  async function request(url,options={},postInvoice=false){
@@ -66,7 +66,7 @@ export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>
   return call;
  }
  return {async sync(claim){
-  const {invoice,connection,mode}=claim;let posted=false;
+  const {invoice,connection,mode}=claim;let posted=false,expectedItemIds=null;
   try{
    verifiedNonVatSnapshot(invoice);
    const call=await context(connection);
@@ -88,13 +88,17 @@ export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>
     else if(mode==='reconcile')throw new AccountingError('unknown_outcome',{uncertain:true});
     else{
      // No automatic replay after dispatch, even when HTTP rejects or the process dies.
+     const mappedLines=resolveItems?await resolveItems(claim,call):null;
+     if(resolveItems&&(!Array.isArray(mappedLines)||mappedLines.length!==invoice.snapshot.price_lines.filter(l=>l.quantity>0).length))throw new AccountingError('item_mapping');
+     expectedItemIds=mappedLines?.map(l=>l.item_id)??null;
      posted=true;
-     const created=await call('/invoices',{method:'POST',query:{send:'false'},body:{customer_id:invoice.external_customer_id,reference_number:'FaraiOS:'+invoice.id,date:invoice.snapshot.local_start.slice(0,10),contact_persons:[],line_items:invoice.snapshot.price_lines.filter(l=>l.quantity>0).map(l=>({name:l.name,quantity:l.quantity,rate:l.rate_cents/100,unit:l.unit_label})),notes:'FaraiOS staging draft — review in the office before issuing.'}});
+     const created=await call('/invoices',{method:'POST',query:{send:'false'},body:{customer_id:invoice.external_customer_id,reference_number:'FaraiOS:'+invoice.id,date:invoice.snapshot.local_start.slice(0,10),contact_persons:[],line_items:mappedLines??invoice.snapshot.price_lines.filter(l=>l.quantity>0).map(l=>({name:l.name,quantity:l.quantity,rate:l.rate_cents/100,unit:l.unit_label})),notes:'FaraiOS staging draft — review in the office before issuing.'}});
      if(!validId(created.invoice?.invoice_id))throw new AccountingError('unknown_outcome',{uncertain:true});
      external=(await call('/invoices/'+created.invoice.invoice_id)).invoice;
     }
    }
+   if(expectedItemIds&&(!Array.isArray(external?.line_items)||external.line_items.length!==expectedItemIds.length||external.line_items.some((l,n)=>String(l.item_id)!==expectedItemIds[n])))throw new AccountingError('mismatch');
    return {outcome:'matched',error_code:'',receipt:verifiedReceipt(invoice,connection,external)};
-  }catch(error){const e=error instanceof AccountingError?error:new AccountingError('provider_unavailable');return {outcome:posted||e.uncertain||mode==='reconcile'||e.code==='mismatch'||e.code==='duplicates'?'review_required':'failed',error_code:posted&&e.code==='provider_unavailable'?'unknown_outcome':e.code,receipt:null};}
+  }catch(error){const e=error instanceof AccountingError?error:new AccountingError('provider_unavailable');return {outcome:posted||e.uncertain||mode==='reconcile'||e.code==='mismatch'||e.code==='duplicates'||e.code==='item_mapping'?'review_required':'failed',error_code:posted&&e.code==='provider_unavailable'?'unknown_outcome':e.code,receipt:null};}
  }};
 }

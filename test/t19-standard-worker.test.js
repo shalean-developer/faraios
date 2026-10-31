@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {invoiceFixture} from '../test-support/t19-runtime-fixture.mjs';
 import {createStandardHttpsStore} from '../src/t19-standard-https-store.js';
 import {createStandardInvoiceWorker,createStandardInvoiceJobs} from '../src/t19-standard-worker.js';
+import {createStandardItemMappings} from '../src/t19-standard-items.js';
 import {createStandardConnection} from '../src/t19-standard-connection.js';
 import {standardConfig,createTokenCipher} from '../src/t19-standard-secrets.js';
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
@@ -15,7 +16,7 @@ async function setup(t){
  await db.exec(`create table auth.sessions(id uuid primary key,user_id uuid,not_after timestamptz);create function auth.jwt() returns jsonb language sql as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;
  create or replace function auth.uid() returns uuid language sql stable as $$select coalesce(nullif(auth.jwt()->>'sub',''),nullif(current_setting('request.jwt.claim.sub',true),''))::uuid$$;
  insert into auth.users values('${machine}','backend@test.invalid');insert into auth.sessions values('${session}','${machine}',null),('${ownerSession}','${owner}',null),('${managerSession}','${manager}',null);`);
- for(const name of ['t19-standard-store.sql','t19-standard-backend-role.sql','t19-standard-https.sql','t19-standard-https-org-pins.sql','t19-standard-request-principal.sql','t19-standard-jobs.sql','t19-standard-jobs-approval-facade.sql','t19-standard-invoice-review.sql'])await db.exec(await readFile(new URL('../database/'+name,import.meta.url),'utf8'));
+ for(const name of ['t19-standard-store.sql','t19-standard-backend-role.sql','t19-standard-https.sql','t19-standard-https-org-pins.sql','t19-standard-request-principal.sql','t19-standard-jobs.sql','t19-standard-jobs-approval-facade.sql','t19-standard-invoice-review.sql','t19-standard-item-errors.sql'])await db.exec(await readFile(new URL('../database/'+name,import.meta.url),'utf8'));
  const config=standardConfig({FARAIOS_ENVIRONMENT:'staging',FARAIOS_ORIGIN:'https://staging.example.test',ZOHO_API_DOMAIN:'https://www.zohoapis.com',ZOHO_CLIENT_ID:'synthetic-client',ZOHO_CLIENT_SECRET:'synthetic-secret',ZOHO_TOKEN_ENCRYPTION_KEY:'ab'.repeat(32),ZOHO_TOKEN_KEY_ID:'test'}),cipher=createTokenCipher(config);
  for(const [businessId,org,n] of [[a,'111',9100],[b,'222',9200]]){
   await db.query(`insert into private_t19_standard.backend_businesses values($1,$2,'staging',true,$3,'https://www.zohoapis.com')`,[machine,businessId,org]);
@@ -35,10 +36,11 @@ async function setup(t){
  const fetchImpl=async(url,options)=>{
   const u=new URL(url);assert.equal(u.searchParams.get('organization_id'),'111');assert.equal(options.headers.Authorization,'Zoho-oauthtoken synthetic-access');
   if(u.pathname.endsWith('/organizations'))return Response.json({code:0,organizations:[{organization_id:'111',currency_code:'ZAR',is_org_active:true}]});
+  if(u.pathname.endsWith('/items/555'))return Response.json({code:0,item:{item_id:'555',name:'Synthetic service',unit:'visit',status:'active',can_be_sold:true,rate:999,tax_id:'',tax_percentage:0,item_tax_preferences:[]}});
   if(u.pathname.endsWith('/contacts/123'))return Response.json({code:0,contact:{contact_id:'123',contact_name:'Synthetic customer',currency_code:'ZAR',status:'active'}});
   if(u.pathname.endsWith('/invoices')&&options.method==='POST'){
-   posts++;assert.equal(u.searchParams.get('send'),'false');const p=JSON.parse(options.body);
-   remote={invoice_id:'9001',invoice_number:'TEST-1',reference_number:p.reference_number,customer_id:'123',currency_code:'ZAR',status:'draft',is_emailed:false,total:'100.00',sub_total:'100.00',tax_total:0,shipping_charge:0,adjustment:0,payment_made:0,credits_applied:0,line_items:[{name:'Synthetic service',quantity:1,rate:'100.00',item_total:'100.00',unit:'visit',tax_id:'',discount_amount:0}]};
+   posts++;assert.equal(JSON.parse(options.body).line_items[0].item_id,'555');assert.equal(u.searchParams.get('send'),'false');const p=JSON.parse(options.body);
+   remote={invoice_id:'9001',invoice_number:'TEST-1',reference_number:p.reference_number,customer_id:'123',currency_code:'ZAR',status:'draft',is_emailed:false,total:'100.00',sub_total:'100.00',tax_total:0,shipping_charge:0,adjustment:0,payment_made:0,credits_applied:0,line_items:[{item_id:'555',name:'Synthetic service',quantity:1,rate:'100.00',item_total:'100.00',unit:'visit',tax_id:'',discount_amount:0}]};
    if(fault==='lost_response')throw Error('synthetic provider secret must not escape');return Response.json({code:0,invoice:{invoice_id:'9001'}});
   }
   if(u.pathname.endsWith('/invoices')){
@@ -48,9 +50,10 @@ async function setup(t){
   if(u.pathname.endsWith('/invoices/9001'))return Response.json({code:0,invoice:remote});
   throw Error('unexpected synthetic request');
  };
- const worker=createStandardInvoiceWorker({connection,jobs,fetchImpl});
+ const mappings={version:1,environment:'staging',connections:[{businessId:a,connectionId:id(9100),generation:1,organizationId:'111',apiDomain:config.apiDomain,items:[{catalogueId:id(112),itemId:'555'}]}]};
+ const worker=createStandardInvoiceWorker({connection,jobs,fetchImpl,resolveItems:createStandardItemMappings(mappings)});
  await claims();
- return {...f,invoice,invoiceB,claims,rpc,store,jobs,connection,approve,review,submit,approvalInput,reconcile,worker,posts:()=>posts,fault:v=>{fault=v;},remote:()=>remote};
+ return {...f,invoice,invoiceB,claims,rpc,store,jobs,connection,approve,review,submit,approvalInput,reconcile,worker,fetchImpl,mappings,posts:()=>posts,fault:v=>{fault=v;},remote:()=>remote};
 }
 test('owner approval and worker RPC deny foreign invoice, manager, browser token access and revoked sessions',async t=>{
  const f=await setup(t);
@@ -134,3 +137,12 @@ test('legacy tax evidence is held without rewriting historical invoices',async t
 });
 
 test('owner cannot use reconciliation to dispatch an unapproved or undispatched create',async t=>{const f=await setup(t),jobId=await f.approve();await assert.rejects(()=>f.reconcile(jobId));assert.equal(f.posts(),0);});
+
+test('unmapped standard items are held before dispatch and keep a durable visible mapping reason',async t=>{
+ const f=await setup(t);await f.approve();await f.claims();
+ const worker=createStandardInvoiceWorker({connection:f.connection,jobs:f.jobs,fetchImpl:f.fetchImpl});
+ assert.equal((await worker.runOnce(a)).status,'review_required');assert.equal(f.posts(),0);
+ const j=(await f.db.query('select state,dispatched,error_code from private_t19_standard.invoice_jobs')).rows[0];
+ assert.deepEqual(j,{state:'review_required',dispatched:false,error_code:'item_mapping'});
+ assert.equal((await f.db.query('select error_code from public.business_invoices where id=$1',[f.invoice])).rows[0].error_code,'mismatch');
+});
