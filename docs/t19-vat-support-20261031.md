@@ -41,3 +41,10 @@ Rollback: stop task257 while changing source/functions; retain all jobs, dispatc
 Estimate after source validation: 2–4 focused engineering hours for controlled TEST setup, provider-contract qualification and reconciliation, plus owner/provider waiting time. This is a range, not completion evidence.
 
 Decision: CONDITIONAL PASS for source preparation and isolated tests; NO-GO for hosted VAT activation or T19 closure until native CI, provider qualification and exact financial-write approval are satisfied.
+
+
+## Approved TEST setup and actual API qualification follow-up
+
+Owner explicitly approved TEST VAT setup and one new R115 inclusive draft. Zoho Shalean TEST accepted fictitious4000000000, labelTEST VAT Number, registration/first return2026-10-01, accrual/custom. No SARS lookup, real registration or existing invoice change. Zoho generated ordinary Standard Rate15% ID1589458000000110095. Exact-detail GET returned403/code104003 with the restricted grant; documented paginated list GET returned200, complete. Actual tax has type tax, status Active, no special type, and omits is_value_added. Pinned organisation list read confirms country_codeZA, active/ZAR.
+
+The candidate therefore uses the already-permitted paginated tax list, selecting only the exact pinnedID/name after complete bounded pagination; duplicate/malformed/incomplete lists are held. It requires current exact organisationZA/ZAR/active and the operator-verified saved policy. Missing is_value_added is accepted only under this SA qualification; explicit false, special/compound/inactive/wrong tax remains denied. No role or OAuth expansion is required. Tests now reproduce actual sparse metadata/status casing and cover page bounds, ambiguity and foreign/missing country denial. This supersedes the earlier exact-detail endpoint assumption; provider VAT invoice receipt is still unverified.

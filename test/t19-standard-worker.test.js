@@ -41,7 +41,7 @@ async function setup(t,{vat=false}={}){
  let posts=0,fault=null,remote=null;
  const fetchImpl=async(url,options)=>{
   const u=new URL(url);assert.equal(u.searchParams.get('organization_id'),'111');assert.equal(options.headers.Authorization,'Zoho-oauthtoken synthetic-access');
-  if(u.pathname.endsWith('/organizations'))return Response.json({code:0,organizations:[{organization_id:'111',currency_code:'ZAR',is_org_active:true}]});
+  if(u.pathname.endsWith('/organizations'))return Response.json({code:0,organizations:[{organization_id:'111',currency_code:'ZAR',is_org_active:true,country_code:'ZA'}]});
   if(u.pathname.endsWith('/items/555'))return Response.json({code:0,item:{item_id:'555',name:'Synthetic service',unit:'visit',status:'active',can_be_sold:true,rate:999,tax_id:'',tax_percentage:0,item_tax_preferences:[]}});
   if(u.pathname.endsWith('/contacts/123'))return Response.json({code:0,contact:{contact_id:'123',contact_name:'Synthetic customer',currency_code:'ZAR',status:'active'}});
   if(u.pathname.endsWith('/invoices')&&options.method==='POST'){
@@ -229,7 +229,7 @@ test('VAT standard worker enforces saved inclusive tax, SQL receipt amounts and 
  let posts=0,remote;
  const fetchImpl=async(url,options)=>{
   const u=new URL(url);assert.equal(u.searchParams.get('organization_id'),'111');
-  if(u.pathname.endsWith('/settings/taxes/555'))return Response.json({code:0,tax:{tax_id:'555',tax_name:'VAT15 TEST',tax_type:'tax',tax_percentage:15,is_value_added:true,status:'active'}});
+  if(u.pathname.endsWith('/settings/taxes'))return Response.json({code:0,taxes:[{tax_id:'555',tax_name:'VAT15 TEST',tax_type:'tax',tax_percentage:15,status:'Active',tax_specific_type:''}],page_context:{has_more_page:false}});
   if(u.pathname.endsWith('/invoices')&&options.method==='POST'){
    posts++;const p=JSON.parse(options.body);assert.equal(p.is_inclusive_tax,true);assert.equal(p.line_items[0].tax_id,'555');assert.equal(p.line_items[0].rate,115);assert.equal(p.line_items[0].item_id,'555');assert.deepEqual(p.contact_persons,[]);assert.equal(u.searchParams.get('send'),'false');
    remote={invoice_id:'9001',invoice_number:'VAT-TEST-1',reference_number:p.reference_number,customer_id:'123',currency_code:'ZAR',status:'draft',is_emailed:false,is_inclusive_tax:true,date:'2026-11-05',total:115,sub_total:100,tax_total:15,taxes:[{tax_name:'VAT15 TEST',tax_amount:15}],payment_made:0,line_items:[{item_id:'555',name:'Synthetic service',quantity:1,rate:115,item_total:100,unit:'visit',tax_id:'555',tax_name:'VAT15 TEST',tax_type:'tax',tax_percentage:15,discount_amount:0}]};

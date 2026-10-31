@@ -16,12 +16,19 @@ test('inclusive VAT uses saved document cents; malformed snapshots and line/docu
  const i=structuredClone(invoice);i.total_cents=8;Object.assign(i.snapshot.tax_snapshot,{total_cents:8,vat_cents:1,net_cents:7});i.snapshot.price_lines=[{name:'A',quantity:1,rate_cents:4,total_cents:4},{name:'B',quantity:1,rate_cents:4,total_cents:4}];assert.throws(()=>verifiedVatSnapshot(i),e=>e.code==='tax_rounding');
 });
 test('VAT tax IDs are pinned to business, environment, connection generation and saved VAT policy',async()=>{
- const resolve=createStandardTaxMappings(config);let reads=0;const call=async path=>{reads++;assert.equal(path,'/settings/taxes/555');return {tax:structuredClone(taxRecord)};};
- assert.deepEqual(await resolve({invoice,connection},call),{taxId:'555',taxName:'VAT15 TEST'});
- for(const patch of [{business_id:id(9)},{environment:'production'},{generation:2},{organization_id:'222'},{connection_id:id(9)}])await assert.rejects(()=>resolve({invoice,connection:{...connection,...patch}},call),e=>e.code==='tax_mapping');
- const i=structuredClone(invoice);i.snapshot.tax_snapshot.policy_version=2;await assert.rejects(()=>resolve({invoice:i,connection},call));assert.equal(reads,1);
- const withoutStatus={...taxRecord};delete withoutStatus.status;assert.deepEqual(await resolve({invoice,connection},async()=>({tax:withoutStatus})),{taxId:'555',taxName:'VAT15 TEST'});
- for(const patch of [{tax_id:'999'},{tax_percentage:14},{tax_type:'compound_tax'},{is_value_added:false},{status:'inactive'},{is_inactive:true},{tax_specific_type:'export_of_shg'}])await assert.rejects(()=>resolve({invoice,connection},async()=>({tax:{...taxRecord,...patch}})));
+ const resolve=createStandardTaxMappings(config);let reads=0;
+ const org={organization_id:'111',country_code:'ZA',currency_code:'ZAR',is_org_active:true};
+ const callFor=(record=taxRecord,organisation=org)=>async path=>{if(path==='/organizations')return {organizations:[organisation]};assert.equal(path,'/settings/taxes');reads++;return {taxes:[record],page_context:{has_more_page:false}};};
+ assert.deepEqual(await resolve({invoice,connection},callFor()),{taxId:'555',taxName:'VAT15 TEST'});
+ for(const patch of [{business_id:id(9)},{environment:'production'},{generation:2},{organization_id:'222'},{connection_id:id(9)}])await assert.rejects(()=>resolve({invoice,connection:{...connection,...patch}},callFor()),e=>e.code==='tax_mapping');
+ const i=structuredClone(invoice);i.snapshot.tax_snapshot.policy_version=2;await assert.rejects(()=>resolve({invoice:i,connection},callFor()));assert.equal(reads,1);
+ const sparse={...taxRecord,status:'Active'};delete sparse.is_value_added;
+ assert.deepEqual(await resolve({invoice,connection},callFor(sparse)),{taxId:'555',taxName:'VAT15 TEST'});
+ for(const patch of [{tax_id:'999'},{tax_percentage:14},{tax_type:'compound_tax'},{is_value_added:false},{status:'inactive'},{is_inactive:true},{tax_specific_type:'export_of_shg'}])await assert.rejects(()=>resolve({invoice,connection},callFor({...taxRecord,...patch})));
+ for(const patch of [{country_code:'GB'},{country_code:undefined},{organization_id:'222'},{is_org_active:false}])await assert.rejects(()=>resolve({invoice,connection},callFor(taxRecord,{...org,...patch})));
+ for(const result of [{taxes:[taxRecord,taxRecord],page_context:{has_more_page:false}},{taxes:[],page_context:{has_more_page:true}},{taxes:[taxRecord],page_context:{}},{taxes:[taxRecord],page_context:{has_more_page:true}}])await assert.rejects(()=>resolve({invoice,connection},async path=>path==='/organizations'?{organizations:[org]}:result));
+ let pages=0;assert.deepEqual(await resolve({invoice,connection},async(path,options)=>{if(path==='/organizations')return {organizations:[org]};pages++;assert.equal(options.query.page,String(pages));return {taxes:pages===1?[{...taxRecord,tax_id:'444'}]:[sparse],page_context:{has_more_page:pages===1}};}),{taxId:'555',taxName:'VAT15 TEST'});assert.equal(pages,2);
+
 });
 test('tax mapping configuration rejects duplicates, unverified records and shared cross-business organisations',()=>{
  for(const mutate of [x=>x.environment='production',x=>x.connections[0].policies[0].verifiedStagingVat=false,x=>x.connections[0].policies.push({...x.connections[0].policies[0]}),x=>x.connections.push({...x.connections[0],businessId:id(9)}),x=>x.connections[0].policies[0].registrationDate='2026-02-30']){const c=structuredClone(config);mutate(c);assert.throws(()=>createStandardTaxMappings(c));}
@@ -34,8 +41,8 @@ test('VAT receipt must preserve inclusive rates, exact tax identity, all net amo
 test('VAT creation sends inclusive prices and explicit tax ID; missing mapping and reconciliation cannot create replacements',async()=>{
  let posts=0,dispatches=0;const fetchImpl=async(url,options)=>{
   const u=new URL(url);assert.equal(u.searchParams.get('organization_id'),'111');
-  if(u.pathname.endsWith('/organizations'))return Response.json({code:0,organizations:[{organization_id:'111',currency_code:'ZAR',is_org_active:true}]});
-  if(u.pathname.endsWith('/settings/taxes/555'))return Response.json({code:0,tax:taxRecord});
+  if(u.pathname.endsWith('/organizations'))return Response.json({code:0,organizations:[{organization_id:'111',currency_code:'ZAR',is_org_active:true,country_code:'ZA'}]});
+  if(u.pathname.endsWith('/settings/taxes'))return Response.json({code:0,taxes:[taxRecord],page_context:{has_more_page:false}});
   if(u.pathname.endsWith('/contacts/123'))return Response.json({code:0,contact:{contact_id:'123',contact_name:'Synthetic VAT TEST',currency_code:'ZAR',status:'active'}});
   if(u.pathname.endsWith('/invoices/9001'))return Response.json({code:0,invoice:external});
   if(u.pathname.endsWith('/invoices')&&options.method==='POST'){posts++;const p=JSON.parse(options.body);assert.equal(p.is_inclusive_tax,true);assert.equal(p.line_items[0].rate,115);assert.equal(p.line_items[0].tax_id,'555');assert.equal(u.searchParams.get('send'),'false');assert.deepEqual(p.contact_persons,[]);return Response.json({code:0,invoice:{invoice_id:'9001'}});}
@@ -51,8 +58,8 @@ test('VAT creation sends inclusive prices and explicit tax ID; missing mapping a
 test('lost VAT creation response reconciles the same tax receipt without a second create',async()=>{
  let posts=0,exists=false,wrongItem=false;
  const fetchImpl=async(url,options)=>{const p=new URL(url).pathname;
-  if(p.endsWith('/organizations'))return Response.json({code:0,organizations:[{organization_id:'111',currency_code:'ZAR',is_org_active:true}]});
-  if(p.endsWith('/settings/taxes/555'))return Response.json({code:0,tax:taxRecord});
+  if(p.endsWith('/organizations'))return Response.json({code:0,organizations:[{organization_id:'111',currency_code:'ZAR',is_org_active:true,country_code:'ZA'}]});
+  if(p.endsWith('/settings/taxes'))return Response.json({code:0,taxes:[taxRecord],page_context:{has_more_page:false}});
   if(p.endsWith('/contacts/123'))return Response.json({code:0,contact:{contact_id:'123',contact_name:'Synthetic VAT TEST',currency_code:'ZAR',status:'active'}});
   if(p.endsWith('/invoices')&&options.method==='POST'){posts++;exists=true;throw Error('synthetic lost response');}
   if(p.endsWith('/invoices'))return Response.json({code:0,invoices:exists?[{invoice_id:'9001',reference_number:external.reference_number}]:[],page_context:{has_more_page:false}});
