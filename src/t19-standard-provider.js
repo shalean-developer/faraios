@@ -31,8 +31,13 @@ export function createStandardProvider({fetchImpl=globalThis.fetch,apiDomain,cli
   refresh:refresh_token=>token({grant_type:'refresh_token',refresh_token}),
   async organization(accessToken,organizationId){
    if(!/^\d{1,30}$/.test(organizationId))throw Error('zoho_organization_rejected');
-   const u=new URL(apiDomain+'/books/v3/organizations/'+organizationId);u.searchParams.set('organization_id',organizationId);
-   const v=await json(u.href,{headers:{Authorization:'Zoho-oauthtoken '+accessToken}}),o=v.organization;
+   // The documented list endpoint is available with settings.READ even where
+   // detailed organisation settings are permission-restricted. Select only the
+   // pinned identity; never substitute the first/default organisation.
+   const v=await json(apiDomain+'/books/v3/organizations',{headers:{Authorization:'Zoho-oauthtoken '+accessToken}});
+   if(!Array.isArray(v.organizations)||v.organizations.length>1000||v.page_context!==undefined&&v.page_context?.has_more_page!==false)throw Error('zoho_organization_rejected');
+   const matches=v.organizations.filter(o=>String(o?.organization_id)===organizationId);
+   if(matches.length!==1)throw Error('zoho_organization_rejected');const o=matches[0];
    if(String(o?.organization_id)!==organizationId||o.is_org_active!==true||o.currency_code!=='ZAR'||typeof o.name!=='string')throw Error('zoho_organization_rejected');
    return {id:organizationId,name:o.name,currency:o.currency_code};
   },

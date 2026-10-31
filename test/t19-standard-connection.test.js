@@ -112,3 +112,21 @@ test('Self Client token exchange puts code and credentials in POST body without 
  assert.equal(request.url,'https://accounts.zoho.com/oauth/v2/token');assert.equal(request.options.method,'POST');
  assert.equal(request.options.body.get('code'),'synthetic-code');assert.equal(request.options.body.has('redirect_uri'),false);assert.equal(request.options.redirect,'error');
 });
+test('organisation verification selects the exact active ZAR identity from the documented list',async()=>{
+ const good={organization_id:'123',name:'Synthetic TEST',is_org_active:true,currency_code:'ZAR'};
+ for(const [body,pass] of [[{organizations:[{...good,organization_id:'999'},good]},true],[{organizations:[{...good,organization_id:'999'}]},false],[{organizations:[good,good]},false],[{organizations:[{...good,is_org_active:false}]},false],[{organizations:[{...good,currency_code:'USD'}]},false],[{organizations:[good],page_context:{has_more_page:true}},false],[{organizations:[good],page_context:{has_more_page:'true'}},false],[{organizations:[good],page_context:{}},false]]){
+  const p=createStandardProvider({...config,fetchImpl:async(url,options)=>{assert.equal(url,config.apiDomain+'/books/v3/organizations');assert.equal(options.headers.Authorization,'Zoho-oauthtoken synthetic-access');return Response.json({code:0,...body});}});
+  if(pass)assert.deepEqual(await p.organization('synthetic-access','123'),{id:'123',name:'Synthetic TEST',currency:'ZAR'});else await assert.rejects(()=>p.organization('synthetic-access','123'));
+ }
+});
+test('owner can resume the same disabled grant without replaying its code or changing generation',async()=>{
+ const f=fixture(),verify=f.provider.organization;let exchanges=0;
+ f.provider.exchangePrivateCode=async()=>{exchanges++;return {refresh_token:'synthetic-issued'};};f.provider.organization=async()=>{throw Error('synthetic-permission');};
+ await assert.rejects(()=>f.api.provision('session',{businessId:'a',organizationId:'123',grantCode:'synthetic-code'}));
+ const c=f.connections.get('staging:a');assert.equal(c.status,'revocation_pending');
+ f.setRole('manager');await assert.rejects(()=>f.api.resumeProvisioning('session',{businessId:'a',organizationId:'123',stateDigest:'a'.repeat(64)}));
+ f.setRole('owner');f.provider.organization=verify;
+ const r=await f.api.resumeProvisioning('session',{businessId:'a',organizationId:'123',stateDigest:'a'.repeat(64)});
+ assert.equal(r.generation,1);assert.equal(r.connectionId,c.connectionId);assert.equal(exchanges,1);assert.equal(c.status,'connected');
+ await assert.rejects(()=>f.api.resumeProvisioning('session',{businessId:'a',organizationId:'123',stateDigest:'a'.repeat(64)}));
+});
