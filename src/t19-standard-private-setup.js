@@ -3,11 +3,12 @@ import {randomUUID} from 'node:crypto';
 import {createStandardConnection} from './t19-standard-connection.js';
 export async function provisionStandardStaging({input,components,authenticateOwner}){
  const denied=()=>Error('accounting_private_setup_rejected');
- const keys=['version','environment','businessId','organizationId','ownerEmail','ownerPassword','refreshToken'];
+ const field=input&&Object.hasOwn(input,'grantCode')?'grantCode':'refreshToken';
+ const keys=['version','environment','businessId','organizationId','ownerEmail','ownerPassword',field];
  if(!input||typeof input!=='object'||Object.keys(input).sort().join()!==keys.sort().join()||input.version!==1||input.environment!=='staging'||components.config.environment!=='staging'
   ||!/^\d{1,30}$/.test(input.organizationId)||!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(input.businessId)
   ||typeof input.ownerEmail!=='string'||!input.ownerEmail.includes('@')||typeof input.ownerPassword!=='string'||!input.ownerPassword
-  ||typeof input.refreshToken!=='string'||!input.refreshToken||input.refreshToken.length>4096)throw denied();
+  ||typeof input[field]!=='string'||!input[field]||input[field].length>4096||/[\r\n]/.test(input[field]))throw denied();
  const sessionId=randomUUID();let owner,published;
  try{
   owner=await authenticateOwner({email:input.ownerEmail,password:input.ownerPassword,sessionId});

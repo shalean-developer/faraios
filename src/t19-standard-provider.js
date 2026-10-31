@@ -26,6 +26,8 @@ export function createStandardProvider({fetchImpl=globalThis.fetch,apiDomain,cli
  return Object.freeze({
   consent(state){const u=new URL(accounts+'/oauth/v2/auth');u.search=new URLSearchParams({client_id:clientId,redirect_uri:redirectUri,response_type:'code',scope:standardScopes,access_type:'offline',prompt:'consent',state});return u.href;},
   exchange:code=>token({grant_type:'authorization_code',code,redirect_uri:redirectUri}),
+  // Zoho Self Client generates its grant in the console; no redirect is used.
+  exchangePrivateCode:code=>token({grant_type:'authorization_code',code}),
   refresh:refresh_token=>token({grant_type:'refresh_token',refresh_token}),
   async organization(accessToken,organizationId){
    if(!/^\d{1,30}$/.test(organizationId))throw Error('zoho_organization_rejected');

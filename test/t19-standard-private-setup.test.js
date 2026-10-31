@@ -35,3 +35,10 @@ test('failed post-publication refresh fences only the newly provisioned generati
  await assert.rejects(()=>provisionStandardStaging(f),e=>e.message==='accounting_private_setup_rejected');
  assert.equal(f.row().status,'revocation_pending');assert.equal(f.closed(),1);
 });
+test('private code input is exclusive and exchange remains internal',async()=>{
+ const f=fixture(),{refreshToken,...base}=f.input;let exchanges=0;
+ f.input={...base,grantCode:'synthetic-code'};
+ f.components.provider.exchangePrivateCode=async()=>{exchanges++;return {refresh_token:'synthetic-issued'};};
+ const result=await provisionStandardStaging(f);assert.equal(exchanges,1);assert.equal(result.automaticRefreshVerified,true);assert.ok(!JSON.stringify(result).includes('synthetic-code'));
+ const g=fixture();await assert.rejects(()=>provisionStandardStaging({...g,input:{...g.input,grantCode:'synthetic-code'}}));assert.equal(g.row(),null);
+});

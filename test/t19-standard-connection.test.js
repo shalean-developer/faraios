@@ -98,3 +98,17 @@ test('private provisioning denies non-owner and preserves revocable ciphertext o
  await assert.rejects(()=>f.api.access('a',()=>assert.fail()));
  await f.api.disconnect('session',{businessId:'a'});assert.equal(f.connections.get('staging:a').envelope,null);
 });
+test('Self Client exchange runs only after owner checks and never returns grant material',async()=>{
+ const f=fixture();let exchanges=0;
+ f.provider.exchangePrivateCode=async code=>{assert.equal(code,'synthetic-code');exchanges++;return {refresh_token:'synthetic-issued-refresh'};};
+ f.setRole('manager');await assert.rejects(()=>f.api.provision('session',{businessId:'a',organizationId:'123',grantCode:'synthetic-code'}));assert.equal(exchanges,0);
+ f.setRole('owner');const result=await f.api.provision('session',{businessId:'a',organizationId:'123',grantCode:'synthetic-code'});
+ assert.equal(exchanges,1);assert.ok(!JSON.stringify(result).includes('synthetic'));assert.equal(f.cipher.open(f.connections.get('staging:a'),f.connections.get('staging:a').envelope).refreshToken,'synthetic-issued-refresh');
+});
+test('Self Client token exchange puts code and credentials in POST body without redirect',async()=>{
+ let request;
+ const p=createStandardProvider({...config,fetchImpl:async(url,options)=>{request={url,options};return Response.json({access_token:'synthetic-access',refresh_token:'synthetic-refresh',expires_in:3600,api_domain:config.apiDomain});}});
+ await p.exchangePrivateCode('synthetic-code');
+ assert.equal(request.url,'https://accounts.zoho.com/oauth/v2/token');assert.equal(request.options.method,'POST');
+ assert.equal(request.options.body.get('code'),'synthetic-code');assert.equal(request.options.body.has('redirect_uri'),false);assert.equal(request.options.redirect,'error');
+});

@@ -15,9 +15,10 @@ export function createStandardConnection({config,cipher,provider,store,sessions,
  async function current(businessId){return binding(await store.connection(config.environment,businessId));}
  return Object.freeze({
   // Private server utility only; never expose a refresh-token import HTTP route.
-  async provision(sid,{businessId,organizationId,refreshToken}){
+  async provision(sid,{businessId,organizationId,refreshToken,grantCode}){
    const actor=await owner(sid,businessId);
-   if(!/^\d{1,30}$/.test(organizationId)||typeof refreshToken!=='string'||!refreshToken||refreshToken.length>4096||/[\r\n]/.test(refreshToken))throw fail();
+   const material=grantCode??refreshToken;
+   if((grantCode!==undefined)===(refreshToken!==undefined)||!/^\d{1,30}$/.test(organizationId)||typeof material!=='string'||!material||material.length>4096||/[\r\n]/.test(material))throw fail();
    const pending={digest:hash(randomBytes(32).toString('hex')),sessionDigest:hash(sid),actor,businessId,organizationId,environment:config.environment,expiresAt:now()+300000};
    await store.begin(pending);await store.consume(pending.digest,actor,pending.sessionDigest,now());
    return store.lock(config.environment,businessId,async(guard=async()=>{})=>{
@@ -25,8 +26,20 @@ export function createStandardConnection({config,cipher,provider,store,sessions,
     if(previous&&previous.status!=='disconnected')throw fail();
     if(await owner(sid,businessId)!==actor||pending.expiresAt<=now())throw fail();
     const c={environment:config.environment,businessId,connectionId:previous?.connectionId??randomUUID(),generation:(previous?.generation??0)+1,organizationId,apiDomain:config.apiDomain,clientId:config.clientId};
-    // Keep failed verification disabled but revocable, before any provider call.
-    await guard();await store.save({...c,status:'revocation_pending',envelope:cipher.seal(c,{refreshToken,accessToken:'',expiresAt:0})},previous?.generation??0);
+    if(grantCode!==undefined){
+     // Owner, organisation pin and durable reservation are verified before this
+     // one-shot exchange. No retry or code in URL/logs/return values.
+     await guard();const issued=await provider.exchangePrivateCode(grantCode);
+     if(typeof issued.refresh_token!=='string'||!issued.refresh_token)throw fail();
+     refreshToken=issued.refresh_token;
+    }
+    // Persist disabled revocation material before refresh/organisation requests.
+    try{await guard();await store.save({...c,status:'revocation_pending',envelope:cipher.seal(c,{refreshToken,accessToken:'',expiresAt:0})},previous?.generation??0);}
+    catch{
+     // Only revoke a grant newly issued by this attempt, never an imported grant.
+     if(grantCode!==undefined)try{await provider.revoke(refreshToken);}catch{}
+     throw fail();
+    }
     await guard();const tokens=await provider.refresh(refreshToken);
     // Refuse unexpected refresh-token rotation; do not publish ambiguous material.
     if(tokens.refresh_token&&tokens.refresh_token!==refreshToken)throw fail();
