@@ -25,6 +25,9 @@ try{
 
  console.log('T19 isolated PostgreSQL:',(await run(executable('psql'),['-h','127.0.0.1','-p',String(port),'-U','postgres','-d','postgres','-X','-Atc','show server_version'])).trim());
  await run(process.execPath,['--test','--test-name-pattern=approved standard worker creates','test/t19-standard-worker.test.js'],{stream:true,extraEnv:{T19_CUSTODY_NATIVE_URL:`postgresql://postgres@127.0.0.1:${port}/postgres`}});
+ await run(executable('psql'),['-h','127.0.0.1','-p',String(port),'-U','postgres','-d','postgres','-X','-v','ON_ERROR_STOP=1','-c','create database t19_correction']);
+ await run(process.execPath,['--test','--test-name-pattern=explicit fictitious non-VAT correction','test/t19-standard-worker.test.js'],{stream:true,extraEnv:{T19_CUSTODY_NATIVE_URL:`postgresql://postgres@127.0.0.1:${port}/t19_correction`}});
+ console.log('T19_TEST_CORRECTION_NATIVE_PASS');
  console.log('T19_STANDARD_WORKER_NATIVE_PASS');
 }finally{
  const hasPid=await stat(join(data,'postmaster.pid')).then(()=>true,e=>{if(e.code==='ENOENT')return false;throw e;});
