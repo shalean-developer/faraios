@@ -15,7 +15,7 @@ async function setup(t){
  await db.exec(`create table auth.sessions(id uuid primary key,user_id uuid,not_after timestamptz);create function auth.jwt() returns jsonb language sql as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;
  create or replace function auth.uid() returns uuid language sql stable as $$select coalesce(nullif(auth.jwt()->>'sub',''),nullif(current_setting('request.jwt.claim.sub',true),''))::uuid$$;
  insert into auth.users values('${machine}','backend@test.invalid');insert into auth.sessions values('${session}','${machine}',null),('${ownerSession}','${owner}',null),('${managerSession}','${manager}',null);`);
- for(const name of ['t19-standard-store.sql','t19-standard-backend-role.sql','t19-standard-https.sql','t19-standard-https-org-pins.sql','t19-standard-request-principal.sql','t19-standard-jobs.sql','t19-standard-jobs-approval-facade.sql'])await db.exec(await readFile(new URL('../database/'+name,import.meta.url),'utf8'));
+ for(const name of ['t19-standard-store.sql','t19-standard-backend-role.sql','t19-standard-https.sql','t19-standard-https-org-pins.sql','t19-standard-request-principal.sql','t19-standard-jobs.sql','t19-standard-jobs-approval-facade.sql','t19-standard-invoice-review.sql'])await db.exec(await readFile(new URL('../database/'+name,import.meta.url),'utf8'));
  const config=standardConfig({FARAIOS_ENVIRONMENT:'staging',FARAIOS_ORIGIN:'https://staging.example.test',ZOHO_API_DOMAIN:'https://www.zohoapis.com',ZOHO_CLIENT_ID:'synthetic-client',ZOHO_CLIENT_SECRET:'synthetic-secret',ZOHO_TOKEN_ENCRYPTION_KEY:'ab'.repeat(32),ZOHO_TOKEN_KEY_ID:'test'}),cipher=createTokenCipher(config);
  for(const [businessId,org,n] of [[a,'111',9100],[b,'222',9200]]){
   await db.query(`insert into private_t19_standard.backend_businesses values($1,$2,'staging',true,$3,'https://www.zohoapis.com')`,[machine,businessId,org]);
@@ -26,7 +26,11 @@ async function setup(t){
  const rpc=async(name,args)=>{await db.exec('set role authenticated');try{const r=await db.query(`select public.${name}($1,$2::jsonb) value`,[args.action,JSON.stringify(args.input)]);return {data:r.rows[0].value,error:null};}finally{await db.exec('reset role');}};
  const store=createStandardHttpsStore({rpc}),jobs=createStandardInvoiceJobs({rpc,scope:store.leaseScope});
  const connection=createStandardConnection({config,store,cipher,provider:{},sessions:{read:async()=>null}});
- const approve=async(business=a,inv=invoice,customer='123',actor=owner)=>{await claims(actor,actor===owner?ownerSession:managerSession);await db.exec('set role authenticated');try{return (await db.query('select public.t19_standard_approve_invoice($1,$2,$3) id',[business,inv,customer])).rows[0].id;}finally{await db.exec('reset role');}};
+ const review=async(business=a,actor=owner)=>{await claims(actor,actor===owner?ownerSession:managerSession);await db.exec('set role authenticated');try{return (await db.query('select public.t19_standard_invoice_review($1) value',[business])).rows[0].value;}finally{await db.exec('reset role');}};
+ const submit=async(business,input)=>{await db.exec('set role authenticated');try{return (await db.query('select public.t19_standard_approve_reviewed_invoice($1,$2::jsonb) id',[business,JSON.stringify(input)])).rows[0].id;}finally{await db.exec('reset role');}};
+ const approvalInput=(view,inv=invoice,customer='123')=>{const i=view.invoices.find(i=>i.id===inv);return {invoiceId:inv,customerId:customer,connectionId:view.connection.id,generation:view.connection.generation,organizationId:view.connection.organizationId,apiDomain:view.connection.apiDomain,invoiceVersion:i?.version??0,totalCents:i?.totalCents??0,confirm:true};};
+ const reconcile=async(jobId,business=a)=>{const view=await review(business);await db.exec('set role authenticated');try{return (await db.query('select public.t19_standard_reconcile_invoice($1,$2,$3,$4) id',[business,jobId,view.connection.id,view.connection.generation])).rows[0].id;}finally{await db.exec('reset role');}};
+ const approve=async(business=a,inv=invoice,customer='123',actor=owner)=>submit(business,approvalInput(await review(business,actor),inv,customer));
  let posts=0,fault=null,remote=null;
  const fetchImpl=async(url,options)=>{
   const u=new URL(url);assert.equal(u.searchParams.get('organization_id'),'111');assert.equal(options.headers.Authorization,'Zoho-oauthtoken synthetic-access');
@@ -46,7 +50,7 @@ async function setup(t){
  };
  const worker=createStandardInvoiceWorker({connection,jobs,fetchImpl});
  await claims();
- return {...f,invoice,invoiceB,claims,rpc,store,jobs,connection,approve,worker,posts:()=>posts,fault:v=>{fault=v;},remote:()=>remote};
+ return {...f,invoice,invoiceB,claims,rpc,store,jobs,connection,approve,review,submit,approvalInput,reconcile,worker,posts:()=>posts,fault:v=>{fault=v;},remote:()=>remote};
 }
 test('owner approval and worker RPC deny foreign invoice, manager, browser token access and revoked sessions',async t=>{
  const f=await setup(t);
@@ -69,8 +73,7 @@ test('approved standard worker creates one verified draft; pending queue then id
 test('lost create response reconciles existing identity without a second POST after recovery',async t=>{
  const f=await setup(t),jobId=await f.approve();await f.claims();f.fault('lost_response');
  assert.equal((await f.worker.runOnce(a)).status,'review_required');assert.equal(f.posts(),1);
- // Explicit isolated operator recovery: retain durable dispatch and reopen for read-only reconciliation.
- await f.db.query("update private_t19_standard.invoice_jobs set state='running',available_at=clock_timestamp() where id=$1",[jobId]);
+ await f.reconcile(jobId);await f.claims();
  f.fault(null);assert.equal((await f.worker.runOnce(a)).status,'matched');assert.equal(f.posts(),1);
 });
 test('interrupted dispatch remains reconciliation-only and absence never creates replacement',async t=>{
@@ -116,3 +119,18 @@ test('historical attempts enter the replacement queue as reconciliation-only',as
  const jobId=await f.approve();await f.claims();assert.equal((await f.worker.runOnce(a)).status,'review_required');assert.equal(f.posts(),0);
  const job=(await f.db.query('select dispatched,mode from private_t19_standard.invoice_jobs where id=$1',[jobId])).rows[0];assert.equal(job.dispatched,true);assert.equal(job.mode,'reconcile');
 });
+
+test('reviewed approval is version/amount/organisation bound, explicitly confirmed and cannot use the old API',async t=>{
+ const f=await setup(t),view=await f.review(),input=f.approvalInput(view);
+ for(const patch of [{confirm:false},{generation:2},{invoiceVersion:input.invoiceVersion+1},{totalCents:input.totalCents+1},{organizationId:'222'},{apiDomain:'https://attacker.invalid'},{invoiceId:f.invoiceB}])await assert.rejects(()=>f.submit(a,{...input,...patch}));
+ await f.db.exec('set role authenticated');await assert.rejects(()=>f.db.query('select public.t19_standard_approve_invoice($1,$2,$3)',[a,f.invoice,'123']),e=>e.code==='42501');await f.db.exec('reset role');
+ assert.equal((await f.db.query('select count(*)::integer n from private_t19_standard.invoice_jobs')).rows[0].n,0);
+ const jobId=await f.submit(a,input);assert.equal(await f.submit(a,input),jobId);
+});
+test('legacy tax evidence is held without rewriting historical invoices',async t=>{
+ const f=await setup(t);await f.db.exec('alter table public.business_invoices disable trigger user');await f.db.query("update public.business_invoices set snapshot=snapshot-'tax_snapshot' where id=$1",[f.invoice]);await f.db.exec('alter table public.business_invoices enable trigger user');
+ const view=await f.review();assert.equal(view.invoices[0].taxReady,false);await assert.rejects(()=>f.submit(a,f.approvalInput(view)));
+ assert.equal((await f.db.query('select count(*)::integer n from private_t19_standard.invoice_jobs')).rows[0].n,0);
+});
+
+test('owner cannot use reconciliation to dispatch an unapproved or undispatched create',async t=>{const f=await setup(t),jobId=await f.approve();await assert.rejects(()=>f.reconcile(jobId));assert.equal(f.posts(),0);});

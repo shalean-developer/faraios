@@ -1,6 +1,7 @@
 // Backend handler fits the existing accountingProxy injection point but makes no
 // upstream custody request. Mount only after deployment/secret/log review.
 import {createStandardConnection} from './t19-standard-connection.js';
+import {renderStandardInvoiceReview} from './t19-standard-invoice-page.js';
 import {renderStandardConnectionPage} from './t19-standard-page.js';
 export function createStandardHandler({config,store,cipher,provider,onboardingMode='callback'}){
  if(!['callback','private'].includes(onboardingMode))throw Error('accounting_configuration_rejected');
@@ -24,6 +25,33 @@ export function createStandardHandler({config,store,cipher,provider,onboardingMo
     if(req.method!=='GET'||u.searchParams.getAll('state').length!==1||u.searchParams.getAll('code').length!==1||[...u.searchParams.keys()].some(k=>!['state','code','location','accounts-server'].includes(k)))throw Error();
     const result=await api.callback(sid,{state:u.searchParams.get('state'),code:u.searchParams.get('code')});
     res.writeHead(303,{Location:'/accounting/'+result.businessId+'/connection','Cache-Control':'no-store','Referrer-Policy':'no-referrer'});res.end();return;
+   }
+   const invoiceRoute=u.pathname.match(/^\/accounting\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})\/invoices(\/(?:approve|reconcile))?$/i);
+   if(invoiceRoute){
+    if(u.search)return send(404,{error:'unavailable'});
+    const businessId=invoiceRoute[1],approve=Boolean(invoiceRoute[2]),reconcile=invoiceRoute[2]==='/reconcile';
+    if(req.method==='GET'&&!approve)return await auth.withOwner(sid,businessId,async client=>{
+     const {data,error}=await client.rpc('t19_standard_invoice_review',{business:businessId});if(error||!data)throw Error();
+     return send(200,renderStandardInvoiceReview({identity,businessId,review:data}),'text/html');
+    });
+    if(req.method!=='POST'||!approve)return send(405,{error:'unavailable'});
+    if(req.headers.origin!==origin||req.headers['content-type']!=='application/x-www-form-urlencoded')throw Error();
+    let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>4096)throw Error();}
+    const form=new URLSearchParams(body);
+    if(reconcile){
+     const keys=['jobId','connectionId','generation'];if([...form.keys()].length!==3||keys.some(k=>form.getAll(k).length!==1)||!/^\d+$/.test(form.get('generation')))throw Error();
+     const generation=Number(form.get('generation'));if(!Number.isSafeInteger(generation)||generation<1)throw Error();
+     return await auth.withOwner(sid,businessId,async client=>{const {data,error}=await client.rpc('t19_standard_reconcile_invoice',{business:businessId,job:form.get('jobId'),connection:form.get('connectionId'),generation});if(error||typeof data!=='string')throw Error();res.writeHead(303,{Location:'/accounting/'+businessId+'/invoices','Cache-Control':'no-store'});res.end();});
+    }
+    const keys=['invoiceId','customerId','connectionId','generation','organizationId','apiDomain','invoiceVersion','totalCents','confirm'];
+    if([...form.keys()].length!==keys.length||keys.some(k=>form.getAll(k).length!==1)||form.get('confirm')!=='yes')throw Error();
+    const input=Object.fromEntries(form);input.confirm=true;
+    for(const k of ['generation','invoiceVersion','totalCents']){if(!/^(0|[1-9][0-9]*)$/.test(input[k]))throw Error();input[k]=Number(input[k]);if(!Number.isSafeInteger(input[k])||input[k]>2147483647)throw Error();}
+    if(input.generation<1||!/^\d{1,30}$/.test(input.customerId)||!/^\d{1,30}$/.test(input.organizationId))throw Error();
+    return await auth.withOwner(sid,businessId,async client=>{
+     const {data,error}=await client.rpc('t19_standard_approve_reviewed_invoice',{business:businessId,input});if(error||typeof data!=='string'||!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(data))throw Error();
+     res.writeHead(303,{Location:'/accounting/'+businessId+'/invoices','Cache-Control':'no-store'});res.end();
+    });
    }
    const match=u.pathname.match(/^\/accounting\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})\/(status|connection|connect|disconnect)$/i);
    if(!match||u.search)return send(404,{error:'unavailable'});
