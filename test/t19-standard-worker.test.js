@@ -109,3 +109,9 @@ test('retry exhaustion is bounded and visible without dispatch',async t=>{
  const row=(await f.db.query('select state,attempts,dispatched,error_code from private_t19_standard.invoice_jobs where id=$1',[jobId])).rows[0];
  assert.deepEqual(row,{state:'review_required',attempts:5,dispatched:false,error_code:'rate_limited'});assert.equal(f.posts(),0);assert.equal((await f.worker.runOnce(a)).status,'idle');
 });
+
+test('historical attempts enter the replacement queue as reconciliation-only',async t=>{
+ const f=await setup(t);await f.db.query("update public.business_invoices set sync_status='failed',attempt_id=$1,attempt_mode='create' where id=$2",[id(9999),f.invoice]);
+ const jobId=await f.approve();await f.claims();assert.equal((await f.worker.runOnce(a)).status,'review_required');assert.equal(f.posts(),0);
+ const job=(await f.db.query('select dispatched,mode from private_t19_standard.invoice_jobs where id=$1',[jobId])).rows[0];assert.equal(job.dispatched,true);assert.equal(job.mode,'reconcile');
+});

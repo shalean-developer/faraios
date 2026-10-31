@@ -26,8 +26,8 @@ begin
  if not found or c.status<>'connected' or not exists(select 1 from private_t19_standard.backend_businesses m where m.business_id=business and m.environment='staging' and m.enabled and m.organization_id=c.organization_id and m.api_domain=c.api_domain) then raise exception 'accounting_approval_denied' using errcode='42501';end if;
  select i0.* into i from public.business_invoices i0 join public.one_off_bookings b on b.id=i0.booking_id and b.business_id=i0.business_id where i0.id=invoice and i0.business_id=business and b.status<>'cancelled' for share of i0;
  if not found then raise exception 'accounting_approval_denied' using errcode='42501';end if;
- insert into private_t19_standard.invoice_jobs(environment,business_id,invoice_id,connection_id,generation,organization_id,api_domain,actor,customer_id)
- values('staging',business,invoice,c.connection_id,c.generation,c.organization_id,c.api_domain,actor,customer) on conflict(invoice_id) do nothing;
+ insert into private_t19_standard.invoice_jobs(environment,business_id,invoice_id,connection_id,generation,organization_id,api_domain,actor,customer_id,dispatched)
+ values('staging',business,invoice,c.connection_id,c.generation,c.organization_id,c.api_domain,actor,customer,i.attempt_id is not null or i.external_invoice_id is not null) on conflict(invoice_id) do nothing;
  select * into j from private_t19_standard.invoice_jobs where invoice_id=invoice;
  if j.business_id<>business or j.actor<>actor or j.customer_id<>customer or j.connection_id<>c.connection_id or j.generation<>c.generation or j.organization_id<>c.organization_id or j.api_domain<>c.api_domain then raise exception 'accounting_approval_denied' using errcode='42501';end if;
  return j.id;

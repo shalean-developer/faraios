@@ -16,6 +16,10 @@ The standard staging connection lifecycle is already evidenced. This candidate a
 
 The new narrow job RPC and approval function are Postgres-owned SECURITY DEFINER functions with an empty search path. They can update approved invoice execution metadata through explicit scoped checks without granting the runtime direct invoice/token table access. This is a deliberate privilege boundary requiring complete diff/native-denial review before installation. Approval verifies an actual live Auth session and current owner membership; worker actions reuse the existing live backend/session/enrollment/lease boundary. Existing historical custody objects are preserved. Do not activate both workers.
 
+Initial staging queue approval is owner-only; existing manager invoice read/manage permissions are unchanged. This staging pilot does not claim manager enqueue acceptance.
+
+Any invoice carrying a historical attempt or external ID enters the replacement queue as reconciliation-only, even if its legacy status says failed. This conservatively preserves uncertainty without depending on the old custody tables at runtime.
+
 No legacy public accounting connection is enabled. Claim builds the provider context from the verified standard connection and checks any existing invoice provider/customer pin. The stored original invoice tax agreement is preserved; the existing adapter rejects unsupported VAT and unmatched receipts. This does not reopen T04 or change tax policy.
 
 ## Required evidence and activation sequence
