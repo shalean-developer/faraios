@@ -22,6 +22,7 @@ export function createStandardHttpsStore({rpc}){
    });
   },
   guard,
+  leaseScope:()=>{const held=context.getStore();return held?Object.freeze({...held}):null;},
   connection:(environment,businessId)=>call('connection',{environment,businessId}),
   begin:s=>call('begin',s),state:digest=>call('state',{digest}),
   consume:(digest,actor,sessionDigest)=>call('consume',{digest,actor,sessionDigest}),

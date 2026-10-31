@@ -7,7 +7,7 @@ export function standardBackendFetch(fetchImpl=globalThis.fetch){
   const r=new Request(input,init),u=new URL(r.url);
   const auth=u.pathname==='/auth/v1/token'&&r.method==='POST'&&['?grant_type=password','?grant_type=refresh_token'].includes(u.search)
    ||u.pathname==='/auth/v1/user'&&r.method==='GET'&&!u.search;
-  const rpc=u.pathname==='/rest/v1/rpc/t19_standard_store'&&r.method==='POST'&&!u.search;
+  const rpc=['/rest/v1/rpc/t19_standard_store','/rest/v1/rpc/t19_standard_jobs'].includes(u.pathname)&&r.method==='POST'&&!u.search;
   if(u.origin!==stagingDatabase||u.username||u.password||u.hash||!auth&&!rpc||['accept-profile','content-profile'].some(h=>r.headers.has(h)&&r.headers.get(h)!=='public'))throw Error('accounting_backend_request_denied');
   const signal=AbortSignal.any([r.signal,AbortSignal.timeout(12000)]);
   const response=await fetchImpl(new Request(r,{redirect:'error',signal}));
@@ -30,7 +30,7 @@ export async function createStandardBackendClient({email,password,principalId,fe
  try{await login();}catch{throw Error('accounting_backend_authentication_failed');}
  let refreshFlight;
  return Object.freeze({async rpc(name,args){
-  if(name!=='t19_standard_store')throw Error('accounting_backend_request_denied');
+  if(!['t19_standard_store','t19_standard_jobs'].includes(name))throw Error('accounting_backend_request_denied');
   const session=await client.auth.getSession();if(session.error||!session.data.session)throw Error('accounting_backend_authentication_failed');
   if(session.data.session.expires_at*1000<=Date.now()+60000){
    if(!refreshFlight)refreshFlight=(async()=>{const r=await client.auth.refreshSession();if(r.error||r.data.user?.id!==principalId)throw Error('accounting_backend_authentication_failed');})().finally(()=>{refreshFlight=undefined;});

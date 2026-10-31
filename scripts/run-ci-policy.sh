@@ -73,3 +73,7 @@ echo CI_POLICY_CUSTODY_NATIVE_PASS
 
 T19_PG_BIN="$(pg_config --bindir)" node scripts/run-t19-restore-postgres.mjs
 echo CI_POLICY_RESTORE_NATIVE_PASS
+
+# T19 standard worker: own disposable cluster; no hosted configuration.
+T19_PG_BIN="$(pg_config --bindir)" node scripts/run-t19-standard-worker-postgres.mjs
+echo CI_POLICY_STANDARD_WORKER_NATIVE_PASS
