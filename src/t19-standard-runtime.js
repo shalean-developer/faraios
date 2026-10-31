@@ -6,9 +6,12 @@ import {standardConfig,createTokenCipher} from './t19-standard-secrets.js';
 import {createStandardProvider} from './t19-standard-provider.js';
 import {createStandardBackendClient} from './t19-standard-backend-client.js';
 import {createStandardHttpsStore} from './t19-standard-https-store.js';
+import {createStandardConnection} from './t19-standard-connection.js';
+import {createStandardInvoiceWorker,createStandardInvoiceJobs} from './t19-standard-worker.js';
 import {createStandardHandler} from './t19-standard-handler.js';
 const privateRoot='/var/www/vhosts/faraios.com/.faraios-t19-standard/';
 export const loadStandardHttpsConfiguration=()=>loadPrivateJson(privateRoot+'staging.json');
+export const loadStandardWorkerConfiguration=()=>loadPrivateJson(privateRoot+'invoice-worker.json');
 export const loadStandardPrivateProvisioning=()=>loadPrivateJson(privateRoot+'provision-staging.json');
 async function loadPrivateJson(path){
  let handle;
@@ -35,10 +38,17 @@ async function components(settings,{fetchImpl=globalThis.fetch,provisioning=fals
  const enrollment=await backend.rpc('t19_standard_store',{action:'health',input:{}});
  if(enrollment.error||enrollment.data?.ready!==true)throw Error('accounting_backend_enrollment_required');
  const store=createStandardHttpsStore({rpc:backend.rpc}),cipher=createTokenCipher(config),provider=createStandardProvider({...config,fetchImpl});
- return {config,store,cipher,provider};
+ return {config,store,cipher,provider,rpc:backend.rpc};
 }
 // Private setup is permitted only while the app configuration is disabled.
 export const createStandardProvisioningComponents=(settings,options={})=>components(settings,{...options,provisioning:true});
 export async function createStandardHttpsRuntime(settings,options={}){
  return createStandardHandler({...await components(settings,options),onboardingMode:'private'});
+}
+
+export async function createStandardWorkerRuntime(settings,options={}){
+ const c=await components(settings,options);
+ const jobs=createStandardInvoiceJobs({rpc:c.rpc,scope:c.store.leaseScope});
+ const connection=createStandardConnection({...c,sessions:{read:async()=>null}});
+ return createStandardInvoiceWorker({connection,jobs,fetchImpl:options.fetchImpl});
 }
