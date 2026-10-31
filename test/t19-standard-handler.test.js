@@ -38,7 +38,7 @@ test('private setup HTTP mode has no callback or token-import route and keeps st
   assert.equal((await get('/accounting/zoho/callback?code=synthetic&state=synthetic')).status,404);
   const connect=await get('/accounting/'+business+'/connect','POST');assert.equal(connect.status,409);assert.equal(connect.location,undefined);
   assert.equal((await get('/accounting/'+business+'/provision','POST')).status,404);
-  const page=await get('/accounting/'+business+'/connection');assert.equal(page.status,200);assert.match(page.body,/private setup is required/);assert.match(page.body,/workspace-layout/);assert.match(page.body,/Not activated on staging/);assert.match(page.body,/href="\/style.css"/);assert.doesNotMatch(page.body,/Connect Zoho Books|name="organizationId"/);
+  const page=await get('/accounting/'+business+'/connection');assert.equal(page.status,200);assert.match(page.body,/private setup is required/);assert.match(page.body,/workspace-layout/);assert.match(page.body,/Approved staging drafts only/);assert.match(page.body,/connected status alone does not confirm a successful sync/);assert.match(page.body,/href="\/style.css"/);assert.doesNotMatch(page.body,/Connect Zoho Books|name="organizationId"/);
   assert.equal((await get('/accounting/'+foreign+'/status')).status,403);
  }finally{server.closeAllConnections();await new Promise(r=>server.close(r));}
 });
