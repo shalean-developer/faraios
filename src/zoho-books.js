@@ -7,12 +7,13 @@ export function providerCents(value){
  const s=String(value),m=s.match(/^(0|[1-9][0-9]*)(?:\.([0-9]{1,2}))?$/);if(!m)throw new AccountingError('mismatch');
  const n=Number(m[1])*100+Number((m[2]??'').padEnd(2,'0'));if(!Number.isSafeInteger(n)||n>2147483647)throw new AccountingError('mismatch');return n;
 }
-export function verifiedReceipt(invoice,binding,external){
- const tax=verifiedNonVatSnapshot(invoice);
+export function verifiedReceipt(invoice,binding,external,taxMapping=null){
+ const tax=taxMapping?verifiedVatSnapshot(invoice):verifiedNonVatSnapshot(invoice);
  const lines=invoice.snapshot.price_lines.filter(l=>l.quantity>0);
  if(invoice.snapshot.price_lines.some(l=>l.quantity===0&&l.total_cents!==0))throw new AccountingError('mismatch');
  if(!external||!validId(external.invoice_id)||typeof external.invoice_number!=='string'||!external.invoice_number.trim()||external.invoice_number.length>100||external.reference_number!=='FaraiOS:'+invoice.id||String(external.customer_id)!==invoice.external_customer_id||external.currency_code!==invoice.currency||external.status!=='draft'||external.is_emailed!==false||providerCents(external.total)!==invoice.total_cents||!Array.isArray(external.line_items)||external.line_items.length!==lines.length)throw new AccountingError('mismatch');
  if(invoice.external_invoice_id&&external.invoice_id!==invoice.external_invoice_id)throw new AccountingError('mismatch');
+ if(taxMapping)return verifiedVatReceipt(invoice,binding,external,taxMapping);
  if(providerCents(external.tax_total)!==0||providerCents(external.sub_total)!==tax.net_cents)throw new AccountingError('mismatch');
  if(external.taxes!==undefined&&(!Array.isArray(external.taxes)||external.taxes.length!==0))throw new AccountingError('mismatch');
  for(const line of external.line_items)if(line?.tax_percentage!==undefined&&providerCents(line.tax_percentage)!==0)throw new AccountingError('mismatch');
@@ -27,7 +28,39 @@ export function verifiedNonVatSnapshot(invoice){
  if(!t||t.enabled!==false||t.price_basis!=='customer_total'||!Number.isSafeInteger(t.policy_version)||t.policy_version<0||t.rate_bps!==0||t.vat_cents!==0||t.vat_number!==null||t.registration_date!==null||!Number.isSafeInteger(invoice.total_cents)||invoice.total_cents<0||t.total_cents!==invoice.total_cents||t.net_cents!==invoice.total_cents)throw new AccountingError('mismatch');
  return t;
 }
-export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>Date.now(),custodyAccess,guard,beforeCreate,resolveItems}={}){
+
+// Same saved inclusive-total policy as audit.business_tax_snapshot. Integer cents only.
+export function inclusiveVatCents(total){
+ if(!Number.isSafeInteger(total)||total<0||total>2147483647)throw new AccountingError('mismatch');
+ return Number((BigInt(total)*1500n+5750n)/11500n);
+}
+export function verifiedVatSnapshot(invoice){
+ const t=invoice?.snapshot?.tax_snapshot,date=invoice?.snapshot?.local_start?.slice(0,10);
+ const validDate=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v;
+ if(!t||t.enabled!==true||t.price_basis!=='customer_total'||!Number.isSafeInteger(t.policy_version)||t.policy_version<1||t.rate_bps!==1500||!/^4\d{9}$/.test(t.vat_number??'')||!validDate(t.registration_date)||!validDate(date)||t.registration_date>date||t.total_cents!==invoice.total_cents||t.vat_cents!==inclusiveVatCents(invoice.total_cents)||t.net_cents!==invoice.total_cents-t.vat_cents)throw new AccountingError('mismatch');
+ let total=0,lineVat=0;
+ if(!Array.isArray(invoice.snapshot.price_lines)||!invoice.snapshot.price_lines.length)throw new AccountingError('mismatch');
+ for(const l of invoice.snapshot.price_lines){
+  if(!Number.isSafeInteger(l.quantity)||l.quantity<0||!Number.isSafeInteger(l.rate_cents)||l.rate_cents<0||!Number.isSafeInteger(l.total_cents)||l.total_cents!==l.quantity*l.rate_cents)throw new AccountingError('mismatch');
+  total+=l.total_cents;lineVat+=inclusiveVatCents(l.total_cents);
+ }
+ if(total!==invoice.total_cents)throw new AccountingError('mismatch');
+ // Never alter prices or add adjustments to conceal provider/document rounding differences.
+ if(lineVat!==t.vat_cents)throw new AccountingError('tax_rounding');
+ return t;
+}
+function verifiedVatReceipt(invoice,binding,external,mapping){
+ const tax=verifiedVatSnapshot(invoice),lines=invoice.snapshot.price_lines.filter(l=>l.quantity>0);
+ if(!validId(mapping.taxId)||typeof mapping.taxName!=='string'||!mapping.taxName.trim()||external.is_inclusive_tax!==true||external.date!==invoice.snapshot.local_start.slice(0,10)||providerCents(external.tax_total)!==tax.vat_cents||providerCents(external.sub_total)!==tax.net_cents||!Array.isArray(external.taxes)||external.taxes.length!==1||external.taxes[0].tax_name!==mapping.taxName||providerCents(external.taxes[0].tax_amount)!==tax.vat_cents)throw new AccountingError('mismatch');
+ for(const field of ['discount_total','shipping_charge','adjustment','payment_made','credits_applied','write_off_amount','tax_amount_withheld'])if(external[field]!==undefined&&providerCents(external[field])!==0)throw new AccountingError('mismatch');
+ for(let n=0;n<lines.length;n++){
+  const a=lines[n],b=external.line_items[n],net=a.total_cents-inclusiveVatCents(a.total_cents);
+  if(!b||b.name!==a.name||Number(b.quantity)!==a.quantity||providerCents(b.rate)!==a.rate_cents||providerCents(b.item_total)!==net||String(b.unit??'')!==a.unit_label||String(b.tax_id)!==mapping.taxId||b.tax_name!==mapping.taxName||b.tax_type!=='tax'||providerCents(b.tax_percentage)!==1500||b.discount_amount!==undefined&&providerCents(b.discount_amount)!==0||b.item_total_inclusive_of_tax!==undefined&&providerCents(b.item_total_inclusive_of_tax)!==a.total_cents)throw new AccountingError('mismatch');
+ }
+ return {organization_id:binding.organization_id,api_domain:binding.api_domain,invoice_id:external.invoice_id,invoice_number:external.invoice_number,reference_number:external.reference_number,customer_id:invoice.external_customer_id,currency_code:external.currency_code,total_cents:invoice.total_cents,status:'draft',price_lines:invoice.snapshot.price_lines,tax_snapshot:tax,provider_tax_cents:tax.vat_cents,provider_net_cents:tax.net_cents,provider_tax_id:mapping.taxId};
+}
+
+export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>Date.now(),custodyAccess,guard,beforeCreate,resolveItems,resolveTax}={}){
  if(custodyAccess&&[custodyAccess,guard,beforeCreate].some(fn=>typeof fn!=='function'))throw new AccountingError('credentials');
  const tokens=new Map();
  async function request(url,options={},postInvoice=false){
@@ -66,10 +99,11 @@ export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>
   return call;
  }
  return {async sync(claim){
-  const {invoice,connection,mode}=claim;let posted=false,expectedItemIds=null;
+  const {invoice,connection,mode}=claim;let posted=false,expectedItemIds=null,taxMapping=null;
   try{
-   verifiedNonVatSnapshot(invoice);
+   if(invoice?.snapshot?.tax_snapshot?.enabled===true){if(!custodyAccess||!resolveItems||!resolveTax)throw new AccountingError('vat_not_supported');verifiedVatSnapshot(invoice);}else verifiedNonVatSnapshot(invoice);
    const call=await context(connection);
+   if(invoice.snapshot.tax_snapshot.enabled===true){taxMapping=await resolveTax(claim,call);if(!taxMapping||!validId(taxMapping.taxId)||typeof taxMapping.taxName!=='string'||!taxMapping.taxName.trim())throw new AccountingError('tax_mapping');}
    const contact=(await call('/contacts/'+invoice.external_customer_id)).contact;
    // This is an explicit customer binding, never an email/name-only auto-link.
    if(!contact||String(contact.contact_id)!==invoice.external_customer_id||contact.status!=='active'||contact.currency_code!=='ZAR'||contact.contact_name?.trim()!==invoice.snapshot.customer_snapshot.name.trim())throw new AccountingError('customer');
@@ -92,13 +126,13 @@ export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>
      if(resolveItems&&(!Array.isArray(mappedLines)||mappedLines.length!==invoice.snapshot.price_lines.filter(l=>l.quantity>0).length))throw new AccountingError('item_mapping');
      expectedItemIds=mappedLines?.map(l=>l.item_id)??null;
      posted=true;
-     const created=await call('/invoices',{method:'POST',query:{send:'false'},body:{customer_id:invoice.external_customer_id,reference_number:'FaraiOS:'+invoice.id,date:invoice.snapshot.local_start.slice(0,10),contact_persons:[],line_items:mappedLines??invoice.snapshot.price_lines.filter(l=>l.quantity>0).map(l=>({name:l.name,quantity:l.quantity,rate:l.rate_cents/100,unit:l.unit_label})),notes:'FaraiOS staging draft — review in the office before issuing.'}});
+     const created=await call('/invoices',{method:'POST',query:{send:'false'},body:{customer_id:invoice.external_customer_id,reference_number:'FaraiOS:'+invoice.id,date:invoice.snapshot.local_start.slice(0,10),contact_persons:[],...(taxMapping?{is_inclusive_tax:true}:{}),line_items:(mappedLines??invoice.snapshot.price_lines.filter(l=>l.quantity>0).map(l=>({name:l.name,quantity:l.quantity,rate:l.rate_cents/100,unit:l.unit_label}))).map(l=>taxMapping?{...l,tax_id:taxMapping.taxId}:l),notes:'FaraiOS staging draft — review in the office before issuing.'}});
      if(!validId(created.invoice?.invoice_id))throw new AccountingError('unknown_outcome',{uncertain:true});
      external=(await call('/invoices/'+created.invoice.invoice_id)).invoice;
     }
    }
    if(expectedItemIds&&(!Array.isArray(external?.line_items)||external.line_items.length!==expectedItemIds.length||external.line_items.some((l,n)=>String(l.item_id)!==expectedItemIds[n])))throw new AccountingError('mismatch');
-   return {outcome:'matched',error_code:'',receipt:verifiedReceipt(invoice,connection,external)};
-  }catch(error){const e=error instanceof AccountingError?error:new AccountingError('provider_unavailable');return {outcome:posted||e.uncertain||mode==='reconcile'||e.code==='mismatch'||e.code==='duplicates'||e.code==='item_mapping'?'review_required':'failed',error_code:posted&&e.code==='provider_unavailable'?'unknown_outcome':e.code,receipt:null};}
+   return {outcome:'matched',error_code:'',receipt:verifiedReceipt(invoice,connection,external,taxMapping)};
+  }catch(error){const e=error instanceof AccountingError?error:new AccountingError('provider_unavailable');return {outcome:posted||e.uncertain||mode==='reconcile'||e.code==='mismatch'||e.code==='duplicates'||['item_mapping','tax_mapping','tax_rounding'].includes(e.code)?'review_required':'failed',error_code:posted&&e.code==='provider_unavailable'?'unknown_outcome':e.code,receipt:null};}
  }};
 }

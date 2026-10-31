@@ -4,19 +4,25 @@ import {readFile} from 'node:fs/promises';
 import {invoiceFixture} from '../test-support/t19-runtime-fixture.mjs';
 import {createStandardHttpsStore} from '../src/t19-standard-https-store.js';
 import {createStandardInvoiceWorker,createStandardInvoiceJobs} from '../src/t19-standard-worker.js';
+import {createStandardTaxMappings} from '../src/t19-standard-taxes.js';
 import {createStandardItemMappings} from '../src/t19-standard-items.js';
 import {createStandardConnection} from '../src/t19-standard-connection.js';
 import {standardConfig,createTokenCipher} from '../src/t19-standard-secrets.js';
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 const a=id(10),b=id(20),owner=id(1),manager=id(2),machine=id(9000),session=id(9001),ownerSession=id(9002),managerSession=id(9003);
-async function setup(t){
+async function setup(t,{vat=false}={}){
  const f=await invoiceFixture(),db=f.db;t.after(()=>db.close());
- const invoice=(await f.as(owner,()=>f.prepare(a,10))).rows[0].id;
+ if(vat)await f.as(owner,async()=>{
+  await db.query('select public.configure_business_vat($1,0,true,$2,$3,$4,true)',[a,'4000000000','2026-01-01','Synthetic T19 VAT test only']);
+  await db.query('update public.business_catalogue set price_cents=11500 where id=$1',[id(112)]);
+  await db.query("insert into public.one_off_bookings(id,business_id,request_key,customer_id,address_id,local_start,duration_minutes,selection) values($1,$2,$3,$4,$5,'2026-11-05 09:00',120,$6)",[id(2100),a,id(2101),id(110),id(111),JSON.stringify([{catalogue_id:id(112),quantity:1}])]);
+ });
+ const invoice=(await f.as(owner,()=>f.prepare(a,vat?1900:10))).rows[0].id;
  const invoiceB=(await f.as(owner,()=>f.prepare(b,20))).rows[0].id;
  await db.exec(`create table auth.sessions(id uuid primary key,user_id uuid,not_after timestamptz);create function auth.jwt() returns jsonb language sql as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;
  create or replace function auth.uid() returns uuid language sql stable as $$select coalesce(nullif(auth.jwt()->>'sub',''),nullif(current_setting('request.jwt.claim.sub',true),''))::uuid$$;
  insert into auth.users values('${machine}','backend@test.invalid');insert into auth.sessions values('${session}','${machine}',null),('${ownerSession}','${owner}',null),('${managerSession}','${manager}',null);`);
- for(const name of ['t19-standard-store.sql','t19-standard-backend-role.sql','t19-standard-https.sql','t19-standard-https-org-pins.sql','t19-standard-request-principal.sql','t19-standard-lease-recovery.sql','t19-standard-jobs.sql','t19-standard-jobs-approval-facade.sql','t19-standard-invoice-review.sql','t19-standard-item-errors.sql'])await db.exec(await readFile(new URL('../database/'+name,import.meta.url),'utf8'));
+ for(const name of ['t19-standard-store.sql','t19-standard-backend-role.sql','t19-standard-https.sql','t19-standard-https-org-pins.sql','t19-standard-request-principal.sql','t19-standard-lease-recovery.sql','t19-standard-jobs.sql','t19-standard-jobs-approval-facade.sql','t19-standard-invoice-review.sql','t19-standard-item-errors.sql','t19-standard-vat.sql'])await db.exec(await readFile(new URL('../database/'+name,import.meta.url),'utf8'));
  const config=standardConfig({FARAIOS_ENVIRONMENT:'staging',FARAIOS_ORIGIN:'https://staging.example.test',ZOHO_API_DOMAIN:'https://www.zohoapis.com',ZOHO_CLIENT_ID:'synthetic-client',ZOHO_CLIENT_SECRET:'synthetic-secret',ZOHO_TOKEN_ENCRYPTION_KEY:'ab'.repeat(32),ZOHO_TOKEN_KEY_ID:'test'}),cipher=createTokenCipher(config);
  for(const [businessId,org,n] of [[a,'111',9100],[b,'222',9200]]){
   await db.query(`insert into private_t19_standard.backend_businesses values($1,$2,'staging',true,$3,'https://www.zohoapis.com')`,[machine,businessId,org]);
@@ -204,4 +210,39 @@ test('killed native worker recovers expired lease and reconciles one dispatched 
  assert.equal((await f.worker.runOnce(a)).status,'matched');assert.equal(f.posts(),1);
  assert.equal((await f.worker.runOnce(a)).status,'idle');assert.equal(f.posts(),1);
  const result=(await f.db.query('select state,dispatched from private_t19_standard.invoice_jobs where id=$1',[job])).rows[0];assert.equal(result.state,'completed');assert.equal(result.dispatched,true);
+});
+
+test('VAT standard worker enforces saved inclusive tax, SQL receipt amounts and original no-VAT barriers',async t=>{
+ const f=await setup(t,{vat:true});
+ await f.claims();
+ await assert.rejects(()=>f.db.query("update public.business_invoices set sync_status='syncing' where id=$1",[f.invoice]),/VAT accounting sync requires/);
+ const job=await f.approve();
+ // Today's setting changes neither the saved VAT agreement nor its approved total.
+ await f.as(owner,()=>f.db.query('select public.configure_business_vat($1,1,false,null,null,$2,true)',[a,'Synthetic VAT off after saved agreement']));await f.claims();
+ const binding=await f.store.connection('staging',a);
+ await f.store.lock('staging',a,async()=>{
+  const claim=await f.jobs.claim(binding,job);
+  for(const patch of [{provider_tax_cents:0,provider_net_cents:11500},{provider_tax_cents:1501,provider_net_cents:9999},{provider_tax_cents:'1500',provider_net_cents:10000}])await assert.rejects(()=>f.jobs.finish(binding,job,claim.invoice.attempt_id,{outcome:'matched',error_code:'',receipt:{tax_snapshot:claim.invoice.snapshot.tax_snapshot,...patch,provider_tax_id:'555'}}),/accounting_result_denied/);
+  await f.jobs.finish(binding,job,claim.invoice.attempt_id,{outcome:'failed',error_code:'rate_limited',receipt:null});
+ });
+ await f.db.query("update private_t19_standard.invoice_jobs set available_at=clock_timestamp()-interval '1 second' where id=$1",[job]);
+ let posts=0,remote;
+ const fetchImpl=async(url,options)=>{
+  const u=new URL(url);assert.equal(u.searchParams.get('organization_id'),'111');
+  if(u.pathname.endsWith('/settings/taxes/555'))return Response.json({code:0,tax:{tax_id:'555',tax_name:'VAT15 TEST',tax_type:'tax',tax_percentage:15,is_value_added:true,status:'active'}});
+  if(u.pathname.endsWith('/invoices')&&options.method==='POST'){
+   posts++;const p=JSON.parse(options.body);assert.equal(p.is_inclusive_tax,true);assert.equal(p.line_items[0].tax_id,'555');assert.equal(p.line_items[0].rate,115);assert.equal(p.line_items[0].item_id,'555');assert.deepEqual(p.contact_persons,[]);assert.equal(u.searchParams.get('send'),'false');
+   remote={invoice_id:'9001',invoice_number:'VAT-TEST-1',reference_number:p.reference_number,customer_id:'123',currency_code:'ZAR',status:'draft',is_emailed:false,is_inclusive_tax:true,date:'2026-11-05',total:115,sub_total:100,tax_total:15,taxes:[{tax_name:'VAT15 TEST',tax_amount:15}],payment_made:0,line_items:[{item_id:'555',name:'Synthetic service',quantity:1,rate:115,item_total:100,unit:'visit',tax_id:'555',tax_name:'VAT15 TEST',tax_type:'tax',tax_percentage:15,discount_amount:0}]};
+   return Response.json({code:0,invoice:{invoice_id:'9001'}});
+  }
+  if(u.pathname.endsWith('/invoices/9001'))return Response.json({code:0,invoice:remote});
+  if(u.pathname.endsWith('/invoices'))return Response.json({code:0,invoices:[],page_context:{has_more_page:false}});
+  return f.fetchImpl(url,options);
+ };
+ const mapping={version:1,environment:'staging',connections:[{businessId:a,connectionId:id(9100),generation:1,organizationId:'111',apiDomain:'https://www.zohoapis.com',policies:[{policyVersion:1,vatNumber:'4000000000',registrationDate:'2026-01-01',taxId:'555',taxName:'VAT15 TEST',verifiedStagingVat:true}]}]};
+ const worker=createStandardInvoiceWorker({connection:f.connection,jobs:f.jobs,fetchImpl,resolveItems:createStandardItemMappings(f.mappings),resolveTax:createStandardTaxMappings(mapping)});
+ assert.equal((await worker.runOnce(a)).status,'matched');assert.equal(posts,1);assert.equal((await worker.runOnce(a)).status,'idle');assert.equal(posts,1);
+ const i=(await f.db.query('select snapshot,total_cents,sync_status,external_invoice_id from public.business_invoices where id=$1',[f.invoice])).rows[0];assert.equal(i.total_cents,11500);assert.equal(i.snapshot.tax_snapshot.enabled,true);assert.equal(i.snapshot.tax_snapshot.vat_cents,1500);assert.equal(i.sync_status,'matched');
+ for(const bad of [{enabled:true},{...i.snapshot.tax_snapshot,vat_number:null},{...i.snapshot.tax_snapshot,registration_date:'2026-02-30'},{...i.snapshot.tax_snapshot,policy_version:null},{...i.snapshot.tax_snapshot,vat_cents:1501}])assert.equal((await f.db.query('select private_t19_standard.invoice_tax_ready($1::jsonb,11500) ready',[JSON.stringify(bad)])).rows[0].ready,false);
+ await f.db.exec('set role anon');await assert.rejects(()=>f.db.query('select private_t19_standard.vat_attempt_allowed(null::public.business_invoices)'),e=>e.code==='42501');await f.db.exec('reset role');
 });

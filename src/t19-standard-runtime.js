@@ -8,11 +8,17 @@ import {createStandardBackendClient} from './t19-standard-backend-client.js';
 import {createStandardHttpsStore} from './t19-standard-https-store.js';
 import {createStandardConnection} from './t19-standard-connection.js';
 import {createStandardInvoiceWorker,createStandardInvoiceJobs} from './t19-standard-worker.js';
+import {createStandardTaxMappings,noStandardTaxMappings} from './t19-standard-taxes.js';
 import {createStandardItemMappings,noStandardItemMappings} from './t19-standard-items.js';
 import {createStandardHandler} from './t19-standard-handler.js';
 const privateRoot='/var/www/vhosts/faraios.com/.faraios-t19-standard/';
 export const loadStandardHttpsConfiguration=()=>loadPrivateJson(privateRoot+'staging.json');
 export const loadStandardItemConfiguration=()=>loadPrivateJson(privateRoot+'invoice-items.json');
+export const loadStandardTaxConfiguration=async()=>{
+ const path=privateRoot+'invoice-taxes.json';
+ try{await lstat(path);}catch(e){if(e.code==='ENOENT')return {version:1,environment:'staging',connections:[]};throw Error('accounting_private_configuration_unavailable');}
+ return loadPrivateJson(path);
+};
 export const loadStandardWorkerConfiguration=()=>loadPrivateJson(privateRoot+'invoice-worker.json');
 export const loadStandardPrivateProvisioning=()=>loadPrivateJson(privateRoot+'provision-staging.json');
 async function loadPrivateJson(path){
@@ -52,5 +58,5 @@ export async function createStandardWorkerRuntime(settings,options={}){
  const c=await components(settings,options);
  const jobs=createStandardInvoiceJobs({rpc:c.rpc,scope:c.store.leaseScope});
  const connection=createStandardConnection({...c,sessions:{read:async()=>null}});
- return createStandardInvoiceWorker({connection,jobs,fetchImpl:options.fetchImpl,resolveItems:options.itemMappings===undefined?noStandardItemMappings:createStandardItemMappings(options.itemMappings)});
+ return createStandardInvoiceWorker({connection,jobs,fetchImpl:options.fetchImpl,resolveTax:options.taxMappings===undefined?noStandardTaxMappings:createStandardTaxMappings(options.taxMappings),resolveItems:options.itemMappings===undefined?noStandardItemMappings:createStandardItemMappings(options.itemMappings)});
 }
