@@ -51,7 +51,7 @@ export function verifiedVatSnapshot(invoice){
 }
 function verifiedVatReceipt(invoice,binding,external,mapping){
  const tax=verifiedVatSnapshot(invoice),lines=invoice.snapshot.price_lines.filter(l=>l.quantity>0);
- if(!validId(mapping.taxId)||typeof mapping.taxName!=='string'||!mapping.taxName.trim()||external.is_inclusive_tax!==true||external.date!==invoice.snapshot.local_start.slice(0,10)||providerCents(external.tax_total)!==tax.vat_cents||providerCents(external.sub_total)!==tax.net_cents||!Array.isArray(external.taxes)||external.taxes.length!==1||external.taxes[0].tax_name!==mapping.taxName||providerCents(external.taxes[0].tax_amount)!==tax.vat_cents)throw new AccountingError('mismatch');
+ if(!validId(mapping.taxId)||typeof mapping.taxName!=='string'||!mapping.taxName.trim()||external.is_inclusive_tax!==true||external.tax_treatment!=='vat_not_registered'||external.is_reverse_charge_applied===true||external.date!==invoice.snapshot.local_start.slice(0,10)||providerCents(external.tax_total)!==tax.vat_cents||providerCents(external.sub_total)!==tax.net_cents||!Array.isArray(external.taxes)||external.taxes.length!==1||external.taxes[0].tax_name!==mapping.taxName||providerCents(external.taxes[0].tax_amount)!==tax.vat_cents)throw new AccountingError('mismatch');
  for(const field of ['discount_total','shipping_charge','adjustment','payment_made','credits_applied','write_off_amount','tax_amount_withheld'])if(external[field]!==undefined&&providerCents(external[field])!==0)throw new AccountingError('mismatch');
  for(let n=0;n<lines.length;n++){
   const a=lines[n],b=external.line_items[n],net=a.total_cents-inclusiveVatCents(a.total_cents);
@@ -107,6 +107,9 @@ export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>
    const contact=(await call('/contacts/'+invoice.external_customer_id)).contact;
    // This is an explicit customer binding, never an email/name-only auto-link.
    if(!contact||String(contact.contact_id)!==invoice.external_customer_id||contact.status!=='active'||contact.currency_code!=='ZAR'||contact.contact_name?.trim()!==invoice.snapshot.customer_snapshot.name.trim())throw new AccountingError('customer');
+   // Initial SA VAT acceptance supports an explicitly unregistered domestic customer only.
+   // Blank/overseas/registered classifications require separate reviewed handling.
+   if(taxMapping&&contact.tax_treatment!=='vat_not_registered')throw new AccountingError('customer');
    let external;
    if(invoice.external_invoice_id)external=(await call('/invoices/'+invoice.external_invoice_id)).invoice;
    else{
@@ -126,7 +129,7 @@ export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>
      if(resolveItems&&(!Array.isArray(mappedLines)||mappedLines.length!==invoice.snapshot.price_lines.filter(l=>l.quantity>0).length))throw new AccountingError('item_mapping');
      expectedItemIds=mappedLines?.map(l=>l.item_id)??null;
      posted=true;
-     const created=await call('/invoices',{method:'POST',query:{send:'false'},body:{customer_id:invoice.external_customer_id,reference_number:'FaraiOS:'+invoice.id,date:invoice.snapshot.local_start.slice(0,10),contact_persons:[],...(taxMapping?{is_inclusive_tax:true}:{}),line_items:(mappedLines??invoice.snapshot.price_lines.filter(l=>l.quantity>0).map(l=>({name:l.name,quantity:l.quantity,rate:l.rate_cents/100,unit:l.unit_label}))).map(l=>taxMapping?{...l,tax_id:taxMapping.taxId}:l),notes:'FaraiOS staging draft — review in the office before issuing.'}});
+     const created=await call('/invoices',{method:'POST',query:{send:'false'},body:{customer_id:invoice.external_customer_id,reference_number:'FaraiOS:'+invoice.id,date:invoice.snapshot.local_start.slice(0,10),contact_persons:[],...(taxMapping?{is_inclusive_tax:true,tax_treatment:'vat_not_registered',is_reverse_charge_applied:false}:{}),line_items:(mappedLines??invoice.snapshot.price_lines.filter(l=>l.quantity>0).map(l=>({name:l.name,quantity:l.quantity,rate:l.rate_cents/100,unit:l.unit_label}))).map(l=>taxMapping?{...l,tax_id:taxMapping.taxId}:l),notes:'FaraiOS staging draft — review in the office before issuing.'}});
      if(!validId(created.invoice?.invoice_id))throw new AccountingError('unknown_outcome',{uncertain:true});
      external=(await call('/invoices/'+created.invoice.invoice_id)).invoice;
     }
