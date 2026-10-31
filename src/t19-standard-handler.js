@@ -9,7 +9,7 @@ export function createStandardHandler({config,store,cipher,provider,onboardingMo
  if(base.protocol!=='https:'||base.origin!==origin||base.username||base.password)throw Error('accounting_configuration_rejected');
  const flags='; HttpOnly; Secure; SameSite=Lax; Path=/accounting/zoho/callback';
  return async({req,res,auth,cookieName})=>{
-  const send=(code,body,type='application/json')=>{res.writeHead(code,{'Content-Type':type,'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; style-src 'self'; script-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"});res.end(type==='application/json'?JSON.stringify(body):body);};
+  const send=(code,body,type='application/json')=>{res.writeHead(code,{'Content-Type':type,'Cache-Control':'no-store','Referrer-Policy':type==='text/html'?'same-origin':'no-referrer','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; style-src 'self'; script-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"});res.end(type==='application/json'?JSON.stringify(body):body);};
   try{
    if(req.headers.host!==base.host)throw Error();
    const u=new URL(req.url,origin),callback=u.pathname==='/accounting/zoho/callback';
