@@ -33,3 +33,22 @@ test('configuration rejects duplicate identities, cross-business org reuse, prod
  x=structuredClone(config);x.connections[0].items[0].name='Do not auto-link by name';cases.push(x);
  for(const candidate of cases)assert.throws(()=>createStandardItemMappings(candidate),/configuration_rejected/);
 });
+
+test('invoice-specific mapping binds derived charges to exact invoice, position and complete saved line',async()=>{
+ const {standardInvoiceLineDigest}=await import('../src/t19-standard-items.js');
+ const derived={kind:'scope',name:'Synthetic service',quantity:2,rate_cents:10000,total_cents:20000,unit_label:'visit',pricing_model:'fixed'};
+ const inv={id:id(8),business_id:id(1),snapshot:{price_lines:[derived]}};
+ const cfg=structuredClone(config);cfg.version=2;cfg.connections[0].items=[];cfg.connections[0].invoiceLines=[{invoiceId:id(8),lineIndex:0,lineDigest:standardInvoiceLineDigest(derived),itemId:'555'}];
+ const resolve=createStandardItemMappings(cfg);cfg.connections[0].invoiceLines[0].itemId='999';
+ assert.equal((await resolve({invoice:inv,connection},call))[0].item_id,'555');
+ let reads=0;const read=async()=>{reads++;return {item};};
+ for(const other of [{...inv,id:id(9)},{...inv,snapshot:{price_lines:[{quantity:0},derived]}},{...inv,snapshot:{price_lines:[{...derived,rate_cents:9999}]}},{...inv,snapshot:{price_lines:[{...derived,kind:'assessment'}]}}])await assert.rejects(()=>resolve({invoice:other,connection},read),e=>e.code==='item_mapping');
+ assert.equal(reads,0);
+ const reordered=Object.fromEntries(Object.entries(derived).reverse());assert.equal(standardInvoiceLineDigest(derived),standardInvoiceLineDigest(reordered));
+});
+test('invoice-line configuration rejects duplicate positions, invalid digests and version-one extensions',()=>{
+ const cfg=structuredClone(config);cfg.version=2;cfg.connections[0].invoiceLines=[{invoiceId:id(8),lineIndex:0,lineDigest:'a'.repeat(64),itemId:'555'}];
+ for(const patch of [{lineIndex:-1},{lineIndex:1.5},{lineDigest:'bad'},{invoiceId:'bad'},{itemId:'../555'}]){const c=structuredClone(cfg);Object.assign(c.connections[0].invoiceLines[0],patch);assert.throws(()=>createStandardItemMappings(c));}
+ const duplicate=structuredClone(cfg);duplicate.connections[0].invoiceLines.push({...duplicate.connections[0].invoiceLines[0]});assert.throws(()=>createStandardItemMappings(duplicate));
+ const legacy=structuredClone(cfg);legacy.version=1;assert.throws(()=>createStandardItemMappings(legacy));
+});

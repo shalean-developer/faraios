@@ -5,6 +5,8 @@ import {join,resolve,relative,isAbsolute} from 'node:path';
 import {spawn} from 'node:child_process';
 import {createServer} from 'node:net';
 import {once} from 'node:events';
+import {fileURLToPath} from 'node:url';
+const correctionOnly=process.argv.includes('--test-correction');
 if(Number(process.versions.node.split('.')[0])!==24)throw new Error('Node 24 required');
 const bin=process.env.T19_PG_BIN??(process.platform==='win32'?'C:/Program Files/PostgreSQL/17/bin':'');
 const executable=name=>bin?join(bin,name+(process.platform==='win32'?'.exe':'')):name;
@@ -24,7 +26,8 @@ try{
  await run(executable('pg_ctl'),['-D',data,'-l',log,'-o',`-h 127.0.0.1 -p ${port} -k "${root.replaceAll('\\','/')}"`,'-w','start'],{background:true});started=true;
 
  console.log('T19 isolated PostgreSQL:',(await run(executable('psql'),['-h','127.0.0.1','-p',String(port),'-U','postgres','-d','postgres','-X','-Atc','show server_version'])).trim());
- await run(process.execPath,['--test','--test-name-pattern=approved standard worker creates','test/t19-standard-worker.test.js'],{stream:true,extraEnv:{T19_CUSTODY_NATIVE_URL:`postgresql://postgres@127.0.0.1:${port}/postgres`}});
+ await run(process.execPath,['--test','--test-name-pattern='+(correctionOnly?'explicit fictitious non-VAT correction':'approved standard worker creates'),'test/t19-standard-worker.test.js'],{stream:true,extraEnv:{T19_CUSTODY_NATIVE_URL:`postgresql://postgres@127.0.0.1:${port}/postgres`}});
+ if(correctionOnly)console.log('T19_TEST_CORRECTION_NATIVE_PASS');
  console.log('T19_STANDARD_WORKER_NATIVE_PASS');
 }finally{
  const hasPid=await stat(join(data,'postmaster.pid')).then(()=>true,e=>{if(e.code==='ENOENT')return false;throw e;});
@@ -35,3 +38,5 @@ try{
  // Confirm the directory is ours before deleting even after a partial init failure.
  await rm(root,{recursive:true,force:true});console.log('T19_DISPOSABLE_CLUSTER_CLEANED');
 }
+
+if(!correctionOnly)await run(process.execPath,[fileURLToPath(import.meta.url),'--test-correction'],{stream:true});

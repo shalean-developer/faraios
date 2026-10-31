@@ -26,7 +26,7 @@ export function createStandardHandler({config,store,cipher,provider,onboardingMo
     const result=await api.callback(sid,{state:u.searchParams.get('state'),code:u.searchParams.get('code')});
     res.writeHead(303,{Location:'/accounting/'+result.businessId+'/connection','Cache-Control':'no-store','Referrer-Policy':'no-referrer'});res.end();return;
    }
-   const invoiceRoute=u.pathname.match(/^\/accounting\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})\/invoices(\/(?:approve|reconcile))?$/i);
+   const invoiceRoute=u.pathname.match(/^\/accounting\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})\/invoices(\/(?:approve|reconcile|correct-test-tax))?$/i);
    if(invoiceRoute){
     if(u.search)return send(404,{error:'unavailable'});
     const businessId=invoiceRoute[1],approve=Boolean(invoiceRoute[2]),reconcile=invoiceRoute[2]==='/reconcile';
@@ -38,6 +38,13 @@ export function createStandardHandler({config,store,cipher,provider,onboardingMo
     if(req.headers.origin!==origin||req.headers['content-type']!=='application/x-www-form-urlencoded')throw Error();
     let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>4096)throw Error();}
     const form=new URLSearchParams(body);
+    if(invoiceRoute[2]==='/correct-test-tax'){
+     const keys=['invoiceId','invoiceVersion','totalCents','reason','confirm'];
+     if([...form.keys()].length!==keys.length||keys.some(k=>form.getAll(k).length!==1)||form.get('confirm')!=='yes'||! /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(form.get('invoiceId')))throw Error();
+     const version=Number(form.get('invoiceVersion')),total=Number(form.get('totalCents'));
+     if(!/^[1-9][0-9]*$/.test(form.get('invoiceVersion'))||!/^(0|[1-9][0-9]*)$/.test(form.get('totalCents'))||!Number.isSafeInteger(version)||!Number.isSafeInteger(total)||version>2147483647||total>2147483647||form.get('reason').trim().length<10||form.get('reason').length>500)throw Error();
+     return await auth.withOwner(sid,businessId,async client=>{const {data,error}=await client.rpc('t19_standard_correct_test_nonvat',{business:businessId,invoice:form.get('invoiceId'),expected_version:version,expected_total:total,reason:form.get('reason').trim(),confirmed_fictitious:true});if(error||data!==version+1)throw Error();res.writeHead(303,{Location:'/accounting/'+businessId+'/invoices','Cache-Control':'no-store'});res.end();});
+    }
     if(reconcile){
      const keys=['jobId','connectionId','generation'];if([...form.keys()].length!==3||keys.some(k=>form.getAll(k).length!==1)||!/^\d+$/.test(form.get('generation')))throw Error();
      const generation=Number(form.get('generation'));if(!Number.isSafeInteger(generation)||generation<1)throw Error();
