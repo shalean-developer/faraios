@@ -1,3 +1,5 @@
+> HTTPS update31Oct2026: [T19-AMEND-20261031-HTTPS](t19-https-amendment-20261031.md) replaces direct PostgreSQL/session-pooler access in the replacement runtime with restricted HTTPS RPCs and durable leases. Earlier port5432 requirements below remain historical. No backend principal is enrolled or Zoho connection activated.
+
 > Subsequent authorised staging setup: inactive private tables and a NOLOGIN backend role installed; native SQL permission checks PASS. Network prevents host DB access. Canonical amendment recorded. See [staging setup evidence](t19-standard-staging-setup-20261030.md); earlier preparation-only statements below describe the initial increment. No connection or invoice activation.
 
 # T19 amendment — standard server-side Zoho Books integration
