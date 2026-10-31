@@ -6,7 +6,7 @@ const identity={userId:'owner',businesses:[{id:businessId,name:'Synthetic <busin
 test('connection workspace escapes provider metadata and never implies sync activation',()=>{
  const html=renderStandardConnectionPage({identity,businessId,onboardingMode:'private',status:{status:'connected',organization:{name:'<script>bad</script>',id:'123'}}});
  assert.match(html,/&lt;script&gt;bad&lt;\/script&gt;/);assert.doesNotMatch(html,/<script>bad/);
- assert.match(html,/Synthetic &lt;business&gt;/);assert.match(html,/Not activated on staging/);
+ assert.match(html,/Synthetic &lt;business&gt;/);assert.match(html,/Approved staging drafts only/);
  assert.match(html,/aria-current="page"/);assert.match(html,/action="\/accounting\/[^\"]+\/disconnect"/);
  assert.match(html,/<details><summary>Disconnect Zoho Books/);assert.doesNotMatch(html,/name="(?:token|clientSecret)"/);
  assert.throws(()=>renderStandardConnectionPage({identity,businessId:'foreign',status:{status:'connected'}}));
