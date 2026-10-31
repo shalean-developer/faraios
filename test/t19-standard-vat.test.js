@@ -49,16 +49,17 @@ test('VAT creation sends inclusive prices and explicit tax ID; missing mapping a
 });
 
 test('lost VAT creation response reconciles the same tax receipt without a second create',async()=>{
- let posts=0,exists=false;
+ let posts=0,exists=false,wrongItem=false;
  const fetchImpl=async(url,options)=>{const p=new URL(url).pathname;
   if(p.endsWith('/organizations'))return Response.json({code:0,organizations:[{organization_id:'111',currency_code:'ZAR',is_org_active:true}]});
   if(p.endsWith('/settings/taxes/555'))return Response.json({code:0,tax:taxRecord});
   if(p.endsWith('/contacts/123'))return Response.json({code:0,contact:{contact_id:'123',contact_name:'Synthetic VAT TEST',currency_code:'ZAR',status:'active'}});
   if(p.endsWith('/invoices')&&options.method==='POST'){posts++;exists=true;throw Error('synthetic lost response');}
   if(p.endsWith('/invoices'))return Response.json({code:0,invoices:exists?[{invoice_id:'9001',reference_number:external.reference_number}]:[],page_context:{has_more_page:false}});
-  if(p.endsWith('/invoices/9001'))return Response.json({code:0,invoice:external});assert.fail(p);
+  if(p.endsWith('/invoices/9001'))return Response.json({code:0,invoice:wrongItem?{...external,line_items:[{...external.line_items[0],item_id:'999'}]}:external});assert.fail(p);
  };
  const adapter=createZohoBooks({fetchImpl,custodyAccess:async()=> 'synthetic',guard:async()=>{},beforeCreate:async()=>{},resolveItems:async()=>[{item_id:'777',name:'Synthetic VAT service',rate:115,quantity:1,unit:'visit'}],resolveTax:createStandardTaxMappings(config)});
  const first=await adapter.sync({invoice,connection,mode:'create'});assert.equal(first.outcome,'review_required');assert.equal(first.error_code,'unknown_outcome');assert.equal(posts,1);
  const recovered=await adapter.sync({invoice,connection,mode:'reconcile'});assert.equal(recovered.outcome,'matched');assert.equal(recovered.receipt.provider_tax_cents,1500);assert.equal(posts,1);
+ wrongItem=true;assert.equal((await adapter.sync({invoice,connection,mode:'reconcile'})).error_code,'mismatch');assert.equal(posts,1);
 });

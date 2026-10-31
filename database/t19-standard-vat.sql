@@ -22,6 +22,7 @@ language sql stable security definer set search_path='' as $$
  and (i.snapshot->'tax_snapshot'->>'registration_date') <= left(i.snapshot->>'local_start',10)
  and exists(select 1 from private_t19_standard.invoice_jobs j
  join private_t19_standard.connections c on c.business_id=j.business_id and c.environment=j.environment and c.connection_id=j.connection_id and c.generation=j.generation and c.organization_id=j.organization_id and c.api_domain=j.api_domain and c.status='connected'
+ join public.businesses biz on biz.id=c.business_id and biz.status='active'
  join private_t19_standard.backend_businesses m on m.business_id=c.business_id and m.environment=c.environment and m.organization_id=c.organization_id and m.api_domain=c.api_domain and m.enabled and m.user_id=(nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'sub')::uuid
  join private_t19_standard.operation_leases l on l.business_id=c.business_id and l.environment=c.environment and l.principal=m.user_id and not l.released and l.expires_at>clock_timestamp()
  join public.business_memberships o on o.business_id=j.business_id and o.user_id=j.actor and o.role='owner' and o.status='active'

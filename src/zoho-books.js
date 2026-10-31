@@ -99,11 +99,11 @@ export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>
   return call;
  }
  return {async sync(claim){
-  const {invoice,connection,mode}=claim;let posted=false,expectedItemIds=null,taxMapping=null;
+  const {invoice,connection,mode}=claim;let posted=false,expectedItemIds=null,taxMapping=null,vatMappedLines=null;
   try{
    if(invoice?.snapshot?.tax_snapshot?.enabled===true){if(!custodyAccess||!resolveItems||!resolveTax)throw new AccountingError('vat_not_supported');verifiedVatSnapshot(invoice);}else verifiedNonVatSnapshot(invoice);
    const call=await context(connection);
-   if(invoice.snapshot.tax_snapshot.enabled===true){taxMapping=await resolveTax(claim,call);if(!taxMapping||!validId(taxMapping.taxId)||typeof taxMapping.taxName!=='string'||!taxMapping.taxName.trim())throw new AccountingError('tax_mapping');}
+   if(invoice.snapshot.tax_snapshot.enabled===true){taxMapping=await resolveTax(claim,call);if(!taxMapping||!validId(taxMapping.taxId)||typeof taxMapping.taxName!=='string'||!taxMapping.taxName.trim())throw new AccountingError('tax_mapping');vatMappedLines=await resolveItems(claim,call);if(!Array.isArray(vatMappedLines)||vatMappedLines.length!==invoice.snapshot.price_lines.filter(l=>l.quantity>0).length||vatMappedLines.some(l=>!validId(l.item_id)))throw new AccountingError('item_mapping');expectedItemIds=vatMappedLines.map(l=>l.item_id);}
    const contact=(await call('/contacts/'+invoice.external_customer_id)).contact;
    // This is an explicit customer binding, never an email/name-only auto-link.
    if(!contact||String(contact.contact_id)!==invoice.external_customer_id||contact.status!=='active'||contact.currency_code!=='ZAR'||contact.contact_name?.trim()!==invoice.snapshot.customer_snapshot.name.trim())throw new AccountingError('customer');
@@ -122,7 +122,7 @@ export function createZohoBooks({credentials,fetchImpl=globalThis.fetch,now=()=>
     else if(mode==='reconcile')throw new AccountingError('unknown_outcome',{uncertain:true});
     else{
      // No automatic replay after dispatch, even when HTTP rejects or the process dies.
-     const mappedLines=resolveItems?await resolveItems(claim,call):null;
+     const mappedLines=vatMappedLines??(resolveItems?await resolveItems(claim,call):null);
      if(resolveItems&&(!Array.isArray(mappedLines)||mappedLines.length!==invoice.snapshot.price_lines.filter(l=>l.quantity>0).length))throw new AccountingError('item_mapping');
      expectedItemIds=mappedLines?.map(l=>l.item_id)??null;
      posted=true;
