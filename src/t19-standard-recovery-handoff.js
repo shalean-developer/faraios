@@ -2,16 +2,18 @@
 import {randomBytes} from 'node:crypto';
 import {mkdtemp,mkdir,lstat,realpath,open} from 'node:fs/promises';
 import {constants} from 'node:fs';
-import {join,basename,isAbsolute} from 'node:path';
+import {join,basename,isAbsolute,dirname} from 'node:path';
 import {standardConfig} from './t19-standard-secrets.js';
 import {createCredentialBackup,restoreCredentialBackup,assertRecoveryMatchesCurrent} from './t19-standard-recovery.js';
 import {writeRecoveryPair,readRecoveryPair} from './t19-standard-recovery-files.js';
 const reject=()=>new Error('accounting_recovery_handoff_rejected');
 const exact=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join()===keys.sort().join();
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(v);
+async function syncDirectory(path){const h=await open(path,constants.O_RDONLY|constants.O_DIRECTORY|constants.O_NOFOLLOW);try{await h.sync();}finally{await h.close();}}
 async function privateFile(path,body){
  const h=await open(path,constants.O_WRONLY|constants.O_CREAT|constants.O_EXCL|constants.O_NOFOLLOW,0o600);
  try{await h.chmod(0o600);await h.writeFile(body);await h.sync();const s=await h.stat();if(!s.isFile()||s.nlink!==1||s.uid!==process.getuid()||(s.mode&0o077)!==0)throw reject();}finally{await h.close();}
+ await syncDirectory(dirname(path));
 }
 export async function prepareCredentialHandoff({root,records,config,readCurrent}){
  let restored;
@@ -31,6 +33,7 @@ export async function prepareCredentialHandoff({root,records,config,readCurrent}
   const receipt={prepared:true,environment:'staging',connections:records.length,backupId:backup.data.backupId,folder:basename(folder),sameHostRestore:true,offHostVerified:false,activeWrites:0};
   // Receipt is written last; absent receipt means incomplete, never an accepted backup.
   await privateFile(join(folder,'receipt.json'),JSON.stringify(receipt)+'\n');
+  await syncDirectory(root);
   return receipt;
  }catch{throw reject();}finally{restored?.key.fill(0);}
 }
