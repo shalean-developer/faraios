@@ -14,6 +14,28 @@ export function createStandardConnection({config,cipher,provider,store,sessions,
  }
  async function current(businessId){return binding(await store.connection(config.environment,businessId));}
  return Object.freeze({
+  // Private server utility only; never expose a refresh-token import HTTP route.
+  async provision(sid,{businessId,organizationId,refreshToken}){
+   const actor=await owner(sid,businessId);
+   if(!/^\d{1,30}$/.test(organizationId)||typeof refreshToken!=='string'||!refreshToken||refreshToken.length>4096||/[\r\n]/.test(refreshToken))throw fail();
+   const pending={digest:hash(randomBytes(32).toString('hex')),sessionDigest:hash(sid),actor,businessId,organizationId,environment:config.environment,expiresAt:now()+300000};
+   await store.begin(pending);await store.consume(pending.digest,actor,pending.sessionDigest,now());
+   return store.lock(config.environment,businessId,async(guard=async()=>{})=>{
+    const previous=await store.connection(config.environment,businessId);
+    if(previous&&previous.status!=='disconnected')throw fail();
+    if(await owner(sid,businessId)!==actor||pending.expiresAt<=now())throw fail();
+    const c={environment:config.environment,businessId,connectionId:previous?.connectionId??randomUUID(),generation:(previous?.generation??0)+1,organizationId,apiDomain:config.apiDomain,clientId:config.clientId};
+    // Keep failed verification disabled but revocable, before any provider call.
+    await guard();await store.save({...c,status:'revocation_pending',envelope:cipher.seal(c,{refreshToken,accessToken:'',expiresAt:0})},previous?.generation??0);
+    await guard();const tokens=await provider.refresh(refreshToken);
+    // Refuse unexpected refresh-token rotation; do not publish ambiguous material.
+    if(tokens.refresh_token&&tokens.refresh_token!==refreshToken)throw fail();
+    await guard();const organization=await provider.organization(tokens.access_token,organizationId);
+    if(await owner(sid,businessId)!==actor||pending.expiresAt<=now())throw fail();
+    await guard();await store.publish(c,organization);await store.resolve(pending.digest);
+    return {status:'connected',businessId,organization,connectionId:c.connectionId,generation:c.generation};
+   });
+  },
   async begin(sid,{businessId,organizationId}){
    const actor=await owner(sid,businessId);
    if(!/^\d{1,30}$/.test(organizationId))throw fail();

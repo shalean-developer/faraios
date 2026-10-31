@@ -7,8 +7,10 @@ import {createStandardProvider} from './t19-standard-provider.js';
 import {createStandardBackendClient} from './t19-standard-backend-client.js';
 import {createStandardHttpsStore} from './t19-standard-https-store.js';
 import {createStandardHandler} from './t19-standard-handler.js';
-const path='/var/www/vhosts/faraios.com/.faraios-t19-standard/staging.json';
-export async function loadStandardHttpsConfiguration(){
+const privateRoot='/var/www/vhosts/faraios.com/.faraios-t19-standard/';
+export const loadStandardHttpsConfiguration=()=>loadPrivateJson(privateRoot+'staging.json');
+export const loadStandardPrivateProvisioning=()=>loadPrivateJson(privateRoot+'provision-staging.json');
+async function loadPrivateJson(path){
  let handle;
  try{
   if(process.platform!=='linux'||await realpath(path)!==path)throw Error();
@@ -24,14 +26,19 @@ export async function loadStandardHttpsConfiguration(){
   return JSON.parse(bytes.subarray(0,size).toString('utf8'));
  }catch{throw Error('accounting_private_configuration_unavailable');}finally{await handle?.close();}
 }
-export async function createStandardHttpsRuntime(settings,{fetchImpl=globalThis.fetch}={}){
+async function components(settings,{fetchImpl=globalThis.fetch,provisioning=false}={}){
  const exact=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join()===keys.sort().join();
- if(!exact(settings,['version','enabled','backend','zoho'])||settings.version!==1||settings.enabled!==true||!exact(settings.backend,['email','password','principalId'])||!exact(settings.zoho,['clientId','clientSecret','encryptionKey','keyId']))throw Error('accounting_runtime_configuration_rejected');
+ if(!exact(settings,['version','enabled','backend','zoho'])||settings.version!==1||settings.enabled!==!provisioning||!exact(settings.backend,['email','password','principalId'])||!exact(settings.zoho,['clientId','clientSecret','encryptionKey','keyId']))throw Error('accounting_runtime_configuration_rejected');
  const config=standardConfig({FARAIOS_ENVIRONMENT:'staging',FARAIOS_ORIGIN:'https://staging.faraios.com',ZOHO_API_DOMAIN:'https://www.zohoapis.com',ZOHO_CLIENT_ID:settings.zoho.clientId,ZOHO_CLIENT_SECRET:settings.zoho.clientSecret,ZOHO_TOKEN_ENCRYPTION_KEY:settings.zoho.encryptionKey,ZOHO_TOKEN_KEY_ID:settings.zoho.keyId});
  const backend=await createStandardBackendClient({...settings.backend,fetchImpl});
  // Startup must demonstrate enrollment before any browser OAuth route is admitted.
  const enrollment=await backend.rpc('t19_standard_store',{action:'health',input:{}});
  if(enrollment.error||enrollment.data?.ready!==true)throw Error('accounting_backend_enrollment_required');
  const store=createStandardHttpsStore({rpc:backend.rpc}),cipher=createTokenCipher(config),provider=createStandardProvider({...config,fetchImpl});
- return createStandardHandler({config,store,cipher,provider});
+ return {config,store,cipher,provider};
+}
+// Private setup is permitted only while the app configuration is disabled.
+export const createStandardProvisioningComponents=(settings,options={})=>components(settings,{...options,provisioning:true});
+export async function createStandardHttpsRuntime(settings,options={}){
+ return createStandardHandler({...await components(settings,options),onboardingMode:'private'});
 }

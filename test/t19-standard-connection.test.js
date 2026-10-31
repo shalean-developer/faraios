@@ -75,3 +75,26 @@ test('provider never puts credentials in URL; regional token mismatch is rejecte
  assert.ok(!calls[0].url.includes('dummy'));assert.equal(calls[0].options.redirect,'error');assert.equal(calls[0].options.body.get('client_secret'),'dummy-secret');
  const u=new URL(provider.consent('synthetic-state'));assert.equal(u.searchParams.get('access_type'),'offline');assert.equal(u.searchParams.get('prompt'),'consent');
 });
+test('private owner provisioning uses encrypted independent grants and ordinary refresh/disconnect',async()=>{
+ const f=fixture();
+ await f.api.provision('session',{businessId:'a',organizationId:'123',refreshToken:'synthetic-private-a'});
+ await f.api.provision('session',{businessId:'b',organizationId:'456',refreshToken:'synthetic-private-b'});
+ const a=f.connections.get('staging:a'),b=f.connections.get('staging:b');
+ assert.equal(f.cipher.open(a,a.envelope).refreshToken,'synthetic-private-a');
+ assert.equal(f.cipher.open(b,b.envelope).refreshToken,'synthetic-private-b');
+ assert.ok(!JSON.stringify([...f.connections.values()]).includes('synthetic-private'));
+ assert.equal(f.refreshes(),2);
+ await f.api.access('a',()=>{});assert.equal(f.refreshes(),3);
+ await assert.rejects(()=>f.api.provision('session',{businessId:'a',organizationId:'123',refreshToken:'replacement'}));
+ await f.api.disconnect('session',{businessId:'a'});
+ assert.equal(b.status,'connected');await assert.rejects(()=>f.api.access('a',()=>{}));
+});
+test('private provisioning denies non-owner and preserves revocable ciphertext on provider failure',async()=>{
+ const f=fixture();f.setRole('manager');
+ await assert.rejects(()=>f.api.provision('session',{businessId:'a',organizationId:'123',refreshToken:'synthetic-private'}));assert.equal(f.connections.size,0);
+ f.setRole('owner');f.provider.organization=async()=>{throw Error('synthetic-private must not escape');};
+ await assert.rejects(()=>f.api.provision('session',{businessId:'a',organizationId:'123',refreshToken:'synthetic-private'}));
+ assert.equal(f.connections.get('staging:a').status,'revocation_pending');
+ await assert.rejects(()=>f.api.access('a',()=>assert.fail()));
+ await f.api.disconnect('session',{businessId:'a'});assert.equal(f.connections.get('staging:a').envelope,null);
+});

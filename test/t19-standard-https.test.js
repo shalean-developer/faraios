@@ -4,6 +4,8 @@ import {PGlite} from '@electric-sql/pglite';
 import {readFile} from 'node:fs/promises';
 import {createStandardHttpsStore} from '../src/t19-standard-https-store.js';
 import {createStandardBackendClient,standardBackendFetch} from '../src/t19-standard-backend-client.js';
+import {createStandardConnection} from '../src/t19-standard-connection.js';
+import {createTokenCipher,standardConfig} from '../src/t19-standard-secrets.js';
 const biz='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222',machine='33333333-3333-4333-8333-333333333333',owner='44444444-4444-4444-8444-444444444444',session='55555555-5555-4555-8555-555555555555';
 async function setup(){
  const db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role;
@@ -41,6 +43,20 @@ test('durable leases serialize independent HTTPS clients, refuse stale holders a
   await f.db.exec(`update private_t19_standard.operation_leases set expires_at=clock_timestamp()-interval '1 second'`);
   await assert.rejects(()=>f.rpc('',{action:'guard',input:scope}));await assert.rejects(()=>f.rpc('',{action:'release',input:scope}));
   await assert.rejects(()=>independent.lock('staging',biz,async()=>assert.fail()));
+ }finally{await f.db.close();}
+});
+test('private provisioning uses real SQL owner and organisation pins before any provider request',async()=>{
+ const f=await setup();let calls=0;
+ const config=standardConfig({FARAIOS_ENVIRONMENT:'staging',FARAIOS_ORIGIN:'https://staging.example.test',ZOHO_CLIENT_ID:'synthetic',ZOHO_CLIENT_SECRET:'synthetic',ZOHO_TOKEN_ENCRYPTION_KEY:'ab'.repeat(32),ZOHO_TOKEN_KEY_ID:'test',ZOHO_API_DOMAIN:'https://www.zohoapis.com'});
+ const sessions={async read(){return {userId:owner,businessIds:[biz],memberships:[{businessId:biz,role:'owner'}]};}};
+ const provider={async refresh(){calls++;return {access_token:'synthetic-access',expires_in:3600};},async organization(_a,id){return {id,name:'Synthetic TEST',currency:'ZAR'};}};
+ const api=createStandardConnection({config,store:f.store,cipher:createTokenCipher(config),provider,sessions});
+ try{
+  await assert.rejects(()=>api.provision('private-session',{businessId:biz,organizationId:'999',refreshToken:'synthetic-private'}));assert.equal(calls,0);
+  const result=await api.provision('private-session',{businessId:biz,organizationId:'123',refreshToken:'synthetic-private'});assert.equal(result.status,'connected');
+  const c=await f.store.connection('staging',biz);assert.equal(c.status,'connected');assert.ok(!JSON.stringify(c).includes('synthetic-private'));
+  await api.access(biz,()=>{});assert.equal(calls,2);
+  await assert.rejects(()=>f.store.connection('staging',other));
  }finally{await f.db.close();}
 });
 test('HTTPS lifecycle commits single-use state, preserves encrypted binding and fences disconnect',async()=>{
