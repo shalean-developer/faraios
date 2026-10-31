@@ -31,3 +31,29 @@ Retain the uncertain job and dispatch marker permanently. Its only offered retry
 No production activation. Final T19 closure additionally needs actual VAT provider receipt, remaining recovery/rotation/disconnect/monitoring operating evidence, consolidated reconciliation and owner staging acceptance.
 
 Decision: source hardening CONDITIONAL PASS subject to final-head CI; VAT provider acceptance NO-GO. Existing five matched non-VAT invoices remain preserved.
+
+## Distinct 6 November TEST — actual provider acceptance PASS
+
+The owner separately approved one new R115 synthetic VAT test dated2026-11-06, leaving the5November uncertain dispatch fenced. The same synthetic customer was explicitly set to Non VAT Registered in Shalean TEST; ordinary-grant GET confirmed tax_treatment=vat_not_registered and no email/phone/mobile/portal. Five earlier non-VAT provider drafts were independently read back unchanged.
+
+Baseline staging90bf334ea6c2e8ee06b76c5236bb8b754d0dc03d and fingerprint5afb93de0535556f2ae8568528f5a81fbfe7ac3a99a714b81671307411b24317 reverified; post-merge Actions checks all passed. Scheduler257 paused before new approval. FaraiOS VAT On policy4 used fictitious4000000000/registration2026-10-01, then restoredOff/version5 after saving bookingaa247408-e39f-42f7-a304-2fb4a3efb38c and invoiced93964db-c096-40b3-a3e5-5bd1885a9c5b. Saved snapshot remains policy4/total11500/net10000/VAT1500 despite currentOff. Existing synthetic servicecd0a35dd-07a3-4d01-b9d6-59c1a2b38fda, onevisit,60minutes, fictitious address/customer only.
+
+T19_VAT_NOV6_MAPPING PASS independently qualified current connection/gen2/org943440851, exact tax1589458000000110095/Standard Rate15%, item1589458000000110159/name/unitvisit/rate115, customer1589458000000103003 and zero exact-reference matches. Protected item/tax files600 gained only this invoice-line digest and saved policy4; all older bindings retained with pre-vat-nov6 backups. No schema, grants, production or real customer changes.
+
+Owner UI approved job03481ea0-575a-473e-9590-0d921fcf1eb4 at21:31:44UTC. A bounded operator invocation of the existing standard background worker allowed at most one POST for the exact approved org/customer/reference/date/item/tax/rate, with send=false and no contact persons. The temporary diagnostic wrapper initially consumed the backend Request before forwarding; startup failed with attempts0/dispatchedfalse/financialPosts0. A synthetic local Request-transfer check reproduced it. The wrapper was corrected to forward its constructed Request; this did not change FaraiOS application code, approval or dispatch state. Protected runner and prior version retained; no unclaimed startup was counted as a financial retry.
+
+Actual worker result: HTTP201/code0, financialPosts1, matched. Provider invoice **INV-000005 / 1589458000000109009**. SQL job completed/attempts1/dispatchedtrue/error empty; public invoice matched/provider_total11500/provider_statusdraft. Safe numeric HTTP/result/ID diagnostics retained in protected600 vat-nov6-worker-result.json; no request headers, secrets or raw provider errors were logged.
+
+Independent ordinary-grant readback and exact adapter receipt verification T19_VAT_NOV6_RECEIPT PASS:
+- exact reference FaraiOS:d93964db-c096-40b3-a3e5-5bd1885a9c5b occurs once in Shalean and zero times in Bokkie;
+- date2026-11-06/customer1589458000000103003/currencyZAR/draft/inclusive true/tax_treatmentvat_not_registered/no reverse charge;
+- totalR115/netR100/VATR15, no adjustments/discounts/payment/credits/email;
+- item1589458000000110159, name/unitvisit/quantity1/inclusive rate115/net item_total100, exact pinned Standard Rate15% tax and tax summaryR15;
+- five previous matched provider drafts unchanged;
+- fresh worker invocations for both businesses returned idle with every financial POST blocked and count0.
+
+This qualifies the previously unverified SA inclusive receipt convention for this ordinary15%, one-line, integer-quantity, unregistered-domestic-customer case. It does not qualify registered/overseas/reverse-charge/mixed-rate or every rounding scenario. Native/source denial tests remain applicable. No second financial creation was made for the new agreement; the original uncertain job is still review_required/attempts2/dispatchedtrue and was never reset.
+
+Final reconciliation: Shalean4matched/R1190 plus separate5NovemberR115review; Bokkie2matched/R510. Six matched FaraiOS drafts totalR1700 across the independent businesses. Zero pending/running/retry jobs and held leases. Scheduler257 restored active*/5 with unchanged command/credentials/notify settings. FaraiOS VAT remainsOff(Shaleanversion5/Bokkieversion1); both saved VAT snapshots remain immutable. Protected600 vat-nov6-receipt-proof.json retains the concise independent proof.
+
+Decision: **PASS for the separately approved6November ordinary VAT test**. T19 remains In progress; the historical uncertain TEST attempt remains a visible operating exception. Final closure still requires remaining recovery/key-rotation/disconnect/monitoring operating evidence, consolidated acceptance reconciliation and owner staging acceptance. No production activation, T20 work or T04/T05 change.
