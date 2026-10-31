@@ -17,7 +17,7 @@ async function setup(){
  create table public.business_memberships(business_id uuid,user_id uuid,role text,status text);alter table public.business_memberships enable row level security;
  insert into public.businesses values('${biz}','active'),('${other}','active');insert into auth.users values('${machine}'),('${owner}');
  insert into public.business_memberships values('${biz}','${owner}','owner','active');insert into auth.sessions values('${session}','${machine}',null);`);
- for(const name of ['t19-standard-store.sql','t19-standard-backend-role.sql','t19-standard-https.sql','t19-standard-https-org-pins.sql','t19-standard-request-principal.sql'])await db.exec(await readFile(new URL('../database/'+name,import.meta.url),'utf8'));
+ for(const name of ['t19-standard-store.sql','t19-standard-backend-role.sql','t19-standard-https.sql','t19-standard-https-org-pins.sql','t19-standard-request-principal.sql','t19-standard-lease-recovery.sql'])await db.exec(await readFile(new URL('../database/'+name,import.meta.url),'utf8'));
  await db.exec(`insert into private_t19_standard.backend_businesses values('${machine}','${biz}','staging',true,'123','https://www.zohoapis.com');`);
  const claims=async(sub=machine,sid=session)=>db.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub,session_id:sid,role:'authenticated'})]);
  await claims();
@@ -34,7 +34,7 @@ test('HTTPS SQL permits allowlisted live backend only; denies human, revoked ses
   await f.db.exec('set role anon');await assert.rejects(()=>f.db.query("select public.t19_standard_store('connection','{}')"),e=>e.code==='42501');await f.db.exec('reset role');
  }finally{await f.db.close();}
 });
-test('durable leases serialize independent HTTPS clients, refuse stale holders and never reclaim expired work',async()=>{
+test('durable leases serialize clients, recover abandoned work after grace and fence old holders',async()=>{
  const f=await setup();try{
   const lease='66666666-6666-4666-8666-666666666666',scope={businessId:biz,environment:'staging',lease};
   await f.rpc('',{action:'acquire',input:scope});
@@ -43,6 +43,11 @@ test('durable leases serialize independent HTTPS clients, refuse stale holders a
   await f.db.exec(`update private_t19_standard.operation_leases set expires_at=clock_timestamp()-interval '1 second'`);
   await assert.rejects(()=>f.rpc('',{action:'guard',input:scope}));await assert.rejects(()=>f.rpc('',{action:'release',input:scope}));
   await assert.rejects(()=>independent.lock('staging',biz,async()=>assert.fail()));
+  await f.db.exec(`update private_t19_standard.operation_leases set expires_at=clock_timestamp()-interval '31 seconds'`);
+  await independent.lock('staging',biz,async guard=>{
+   await guard();
+   for(const action of ['guard','release','refresh','disable','revoked'])await assert.rejects(()=>f.rpc('',{action,input:scope}),e=>e.code==='42501');
+  });
  }finally{await f.db.close();}
 });
 test('private provisioning uses real SQL owner and organisation pins before any provider request',async()=>{
