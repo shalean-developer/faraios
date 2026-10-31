@@ -15,7 +15,7 @@ async function setup(t){
  await db.exec(`create table auth.sessions(id uuid primary key,user_id uuid,not_after timestamptz);create function auth.jwt() returns jsonb language sql as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;
  create or replace function auth.uid() returns uuid language sql stable as $$select coalesce(nullif(auth.jwt()->>'sub',''),nullif(current_setting('request.jwt.claim.sub',true),''))::uuid$$;
  insert into auth.users values('${machine}','backend@test.invalid');insert into auth.sessions values('${session}','${machine}',null),('${ownerSession}','${owner}',null),('${managerSession}','${manager}',null);`);
- for(const name of ['t19-standard-store.sql','t19-standard-backend-role.sql','t19-standard-https.sql','t19-standard-https-org-pins.sql','t19-standard-request-principal.sql','t19-standard-jobs.sql'])await db.exec(await readFile(new URL('../database/'+name,import.meta.url),'utf8'));
+ for(const name of ['t19-standard-store.sql','t19-standard-backend-role.sql','t19-standard-https.sql','t19-standard-https-org-pins.sql','t19-standard-request-principal.sql','t19-standard-jobs.sql','t19-standard-jobs-approval-facade.sql'])await db.exec(await readFile(new URL('../database/'+name,import.meta.url),'utf8'));
  const config=standardConfig({FARAIOS_ENVIRONMENT:'staging',FARAIOS_ORIGIN:'https://staging.example.test',ZOHO_API_DOMAIN:'https://www.zohoapis.com',ZOHO_CLIENT_ID:'synthetic-client',ZOHO_CLIENT_SECRET:'synthetic-secret',ZOHO_TOKEN_ENCRYPTION_KEY:'ab'.repeat(32),ZOHO_TOKEN_KEY_ID:'test'}),cipher=createTokenCipher(config);
  for(const [businessId,org,n] of [[a,'111',9100],[b,'222',9200]]){
   await db.query(`insert into private_t19_standard.backend_businesses values($1,$2,'staging',true,$3,'https://www.zohoapis.com')`,[machine,businessId,org]);
@@ -58,6 +58,7 @@ test('owner approval and worker RPC deny foreign invoice, manager, browser token
 });
 test('approved standard worker creates one verified draft; pending queue then idles',async t=>{
  const f=await setup(t);
+ const facade=(await f.db.query("select prosecdef from pg_proc where oid='public.t19_standard_approve_invoice(uuid,uuid,text)'::regprocedure")).rows[0];assert.equal(facade.prosecdef,false);
  for(const role of ['anon','service_role']){await f.db.exec('set role '+role);await assert.rejects(()=>f.db.query("select public.t19_standard_jobs('pending','{}')"),e=>e.code==='42501');await f.db.exec('reset role');}
  await f.db.exec('set role authenticated');await assert.rejects(()=>f.db.query('select * from private_t19_standard.invoice_jobs'),e=>e.code==='42501');await f.db.exec('reset role');
  const jobId=await f.approve();await f.claims();
