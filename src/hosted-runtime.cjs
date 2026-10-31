@@ -14,7 +14,7 @@ exports.detectHostedRuntime=function({passenger=global.PhusionPassenger,lsNode=g
      argv[1]==='/usr/local/lsws/fcgi-bin/lsnode.js'&&
      env.LSNODE_SOCKET===hosting.socketPath&&
      typeof env.LSNODE_ROOT==='string'&&path.resolve(env.LSNODE_ROOT)===root&&
-     ['_passenger.cjs','_accounting.cjs'].includes(env.LSNODE_STARTUP_FILE))return 'litespeed';
+     ['_passenger.cjs','_accounting.cjs','_standard_accounting.cjs'].includes(env.LSNODE_STARTUP_FILE))return 'litespeed';
   throw new Error('Hosted staging requires a verified Passenger or LiteSpeed runtime');
 };
 exports.assertInheritedUnixSocket=function(server,socketPath){

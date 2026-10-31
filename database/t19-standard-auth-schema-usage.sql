@@ -1,0 +1,3 @@
+-- Historical attempt: hosted managed postgres cannot delegate this grant.
+-- Native post-check showed no privilege change. Superseded by
+-- t19-standard-request-principal.sql. Do not replay this attempt.

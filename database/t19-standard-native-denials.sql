@@ -1,0 +1,16 @@
+begin;
+grant t19_standard_backend to current_user with set true, inherit false;
+set local role anon;
+do $$begin begin perform count(*) from private_t19_standard.connections; raise exception 'anonymous credential access unexpectedly allowed'; exception when insufficient_privilege then null; end; end$$;
+reset role;
+set local role authenticated;
+do $$begin begin perform count(*) from private_t19_standard.connections; raise exception 'authenticated credential access unexpectedly allowed'; exception when insufficient_privilege then null; end; end$$;
+reset role;
+set local role service_role;
+do $$begin begin perform count(*) from private_t19_standard.connections; raise exception 'service role credential access unexpectedly allowed'; exception when insufficient_privilege then null; end; end$$;
+reset role;
+set local role t19_standard_backend;
+do $$begin perform count(*) from private_t19_standard.connections; perform count(*) from private_t19_standard.oauth_states; begin perform count(*) from public.business_customers; raise exception 'customer access unexpectedly allowed'; exception when insufficient_privilege then null; end; begin delete from private_t19_standard.connections; raise exception 'credential deletion unexpectedly allowed'; exception when insufficient_privilege then null; end; begin insert into private_t19_standard.oauth_states(digest,session_digest,actor,business_id,environment,organization_id,expires_at) values('synthetic-native-denial','synthetic','00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','production','123',1); raise exception 'production write unexpectedly allowed'; exception when insufficient_privilege then null; end; end$$;
+reset role;
+rollback;
+select jsonb_build_object('native_role_denials','PASS','backend_can_login',(select rolcanlogin from pg_roles where rolname='t19_standard_backend'),'connections',(select count(*) from private_t19_standard.connections),'oauth_states',(select count(*) from private_t19_standard.oauth_states),'invoice_count',(select count(*) from public.business_invoices),'public_connection_count',(select count(*) from public.business_accounting_connections),'restored_membership',(select jsonb_build_object('inherit',m.inherit_option,'set',m.set_option) from pg_auth_members m join pg_roles r on r.oid=m.roleid join pg_roles u on u.oid=m.member where r.rolname='t19_standard_backend' and u.rolname='postgres')) as verification;
