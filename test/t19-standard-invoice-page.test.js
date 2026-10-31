@@ -19,3 +19,9 @@ test('queued/review states never display as provider success; error text is fixe
  data.connection.generation=3;assert.doesNotMatch(renderStandardInvoiceReview({identity,businessId,review:data}),/invoices\/reconcile/);
  assert.throws(()=>renderStandardInvoiceReview({identity,businessId:'foreign',review}));
 });
+
+test('saved VAT totals and fixed tax-mapping errors are visible without implying successful accounting',()=>{
+ const identity={userId:'owner',businesses:[{id:businessId,name:'Synthetic'}],memberships:[{userId:'owner',businessId,role:'owner',status:'active'}]};
+ const review={environment:'staging',connection:{id:businessId,generation:1,status:'connected',organizationId:'111'},invoiceCount:1,invoices:[{id:businessId,version:1,documentStatus:'draft',currency:'ZAR',customerName:'Synthetic VAT TEST',totalCents:11500,date:'2026-11-05',lines:[],taxReady:true,tax:{enabled:true,netCents:10000,vatCents:1500},job:{id:businessId,state:'review_required',generation:1,attempts:1,dispatched:false,error:'tax_mapping'}}]};
+ const html=renderStandardInvoiceReview({identity,businessId:businessId,review});assert.match(html,/VAT included at 15%/);assert.match(html,/15,00/);assert.match(html,/100,00/);assert.match(html,/verified VAT mapping/);assert.doesNotMatch(html,/Verified Zoho draft|Approve.*test draft/);
+});
