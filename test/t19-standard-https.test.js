@@ -7,7 +7,7 @@ import {createStandardBackendClient,standardBackendFetch} from '../src/t19-stand
 const biz='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222',machine='33333333-3333-4333-8333-333333333333',owner='44444444-4444-4444-8444-444444444444',session='55555555-5555-4555-8555-555555555555';
 async function setup(){
  const db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role;
- create schema auth;grant usage on schema auth to public;
+ create schema auth;grant usage on schema auth to authenticated;
  create table auth.users(id uuid primary key);create table auth.sessions(id uuid primary key,user_id uuid,not_after timestamptz);
  create function auth.jwt() returns jsonb language sql as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;
  create function auth.uid() returns uuid language sql as $$select (auth.jwt()->>'sub')::uuid$$;
@@ -15,8 +15,8 @@ async function setup(){
  create table public.business_memberships(business_id uuid,user_id uuid,role text,status text);alter table public.business_memberships enable row level security;
  insert into public.businesses values('${biz}','active'),('${other}','active');insert into auth.users values('${machine}'),('${owner}');
  insert into public.business_memberships values('${biz}','${owner}','owner','active');insert into auth.sessions values('${session}','${machine}',null);`);
- for(const name of ['t19-standard-store.sql','t19-standard-backend-role.sql','t19-standard-https.sql'])await db.exec(await readFile(new URL('../database/'+name,import.meta.url),'utf8'));
- await db.exec(`insert into private_t19_standard.backend_businesses values('${machine}','${biz}','staging',true);`);
+ for(const name of ['t19-standard-store.sql','t19-standard-backend-role.sql','t19-standard-https.sql','t19-standard-https-org-pins.sql','t19-standard-request-principal.sql'])await db.exec(await readFile(new URL('../database/'+name,import.meta.url),'utf8'));
+ await db.exec(`insert into private_t19_standard.backend_businesses values('${machine}','${biz}','staging',true,'123','https://www.zohoapis.com');`);
  const claims=async(sub=machine,sid=session)=>db.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub,session_id:sid,role:'authenticated'})]);
  await claims();
  const rpc=async(_name,{action,input})=>{await db.exec('set role authenticated');try{const r=await db.query('select public.t19_standard_store($1,$2::jsonb) as value',[action,JSON.stringify(input)]);return {data:r.rows[0].value,error:null};}finally{await db.exec('reset role');}};
@@ -46,11 +46,12 @@ test('durable leases serialize independent HTTPS clients, refuse stale holders a
 test('HTTPS lifecycle commits single-use state, preserves encrypted binding and fences disconnect',async()=>{
  const f=await setup();try{
   const digest='a'.repeat(64),sid='b'.repeat(64);
+  await assert.rejects(()=>f.store.begin({digest,sessionDigest:sid,actor:owner,businessId:biz,organizationId:'999',environment:'staging'}));
   await f.store.begin({digest,sessionDigest:sid,actor:owner,businessId:biz,organizationId:'123',environment:'staging'});
   assert.equal((await f.store.state(digest)).actor,owner);await f.store.consume(digest,owner,sid);await assert.rejects(()=>f.store.consume(digest,owner,sid));
   const c={environment:'staging',businessId:biz,connectionId:session,generation:1,organizationId:'123',apiDomain:'https://www.zohoapis.com',clientId:'synthetic',status:'revocation_pending',envelope:{body:'synthetic-ciphertext'}};
   await assert.rejects(()=>f.store.save(c,0));
-  await f.store.lock('staging',biz,async guard=>{await guard();await f.store.save(c,0);await f.store.publish(c,{id:'123',name:'Synthetic',currency:'ZAR'});await f.store.resolve(digest);});
+  await f.store.lock('staging',biz,async guard=>{await guard();await assert.rejects(()=>f.store.save({...c,organizationId:'999'},0));await f.store.save(c,0);await f.store.publish(c,{id:'123',name:'Synthetic',currency:'ZAR'});await f.store.resolve(digest);});
   assert.equal((await f.store.connection('staging',biz)).status,'connected');
   await f.store.lock('staging',biz,async()=>{await f.store.disable(c);await assert.rejects(()=>f.store.refresh(c,{}));await f.store.revoked(c);});
   assert.equal((await f.store.connection('staging',biz)).envelope,null);
