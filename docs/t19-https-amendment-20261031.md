@@ -82,3 +82,14 @@ Rollback: return to the previous inactive startup, stop any replacement job, dis
 
 
 Current setup checkpoint: steps1–3 and the private encryption-key/password portion of step5 are verified. Organisation pins and request-principal correction are applied to staging and included in PR260; new exact-head CI must pass before any source deployment. Steps4 and6 remain pending. Callback log protection, Zoho client configuration/consent, provider refresh/disconnect, reliable invoice worker and all financial acceptance remain unproved. No financial writes or production changes.
+
+
+## Hosted callback-log qualification —31Oct2026
+
+Synthetic HTTPS request from104.238.222.122 to the exact staging callback returned404 with verified TLS (new handler remains undeployed). Plesk Apache SSL/TLS access log at07:09:47SAST explicitly recorded `GET /accounting/zoho/callback?code=T19_SYNTHETIC_LOG_PROBE_20261031&state=T19_SYNTHETIC_STATE HTTP/1.1`. These are harmless synthetic markers; no real grant/code/token was used. Full callback query logging is therefore verified, not hypothetical.
+
+Plesk domain841 Apache & nginx page exposes only common MIME/handler/index/expiry/header/symlink settings; no additional virtual-host directives or log-format controls were present. No settings were saved. Do not infer that application redirection/header controls remove an edge access-log record.
+
+Required hosting change: Allanux must protect only staging.faraios.com OAuth callback logging across its active LiteSpeed/Apache/proxy, error and WAF/audit layers, excluding sensitive query strings, Authorization/Cookie headers and request bodies while retaining useful safe path/status/time logs and existing unrelated-site logging. Use the provider-supported configuration; no unverified Apache/nginx directive is prescribed for LiteSpeed. Preserve rollback/configuration evidence and repeat synthetic code/state and header/body checks before any real OAuth consent. Include HTTP-to-HTTPS handling and referrer/error capture in verification.
+
+Decision: NO-GO for real OAuth consent/activation until hosted logging acceptance. Dedicated Zoho Server-based staging client registration may be prepared separately with homepage https://staging.faraios.com and exact redirect https://staging.faraios.com/accounting/zoho/callback; old clients/credentials must remain preserved. No real provider grant, financial write, source deployment, recurring task or production change performed.
