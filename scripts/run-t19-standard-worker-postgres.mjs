@@ -6,6 +6,7 @@ import {spawn} from 'node:child_process';
 import {createServer} from 'node:net';
 import {once} from 'node:events';
 import {fileURLToPath} from 'node:url';
+const rotationOnly=process.argv.includes('--test-rotation');
 const correctionOnly=process.argv.includes('--test-correction'),recoveryOnly=process.argv.includes('--test-recovery'),vatOnly=process.argv.includes('--test-vat');
 if(Number(process.versions.node.split('.')[0])!==24)throw new Error('Node 24 required');
 const bin=process.env.T19_PG_BIN??(process.platform==='win32'?'C:/Program Files/PostgreSQL/17/bin':'');
@@ -26,7 +27,8 @@ try{
  await run(executable('pg_ctl'),['-D',data,'-l',log,'-o',`-h 127.0.0.1 -p ${port} -k "${root.replaceAll('\\','/')}"`,'-w','start'],{background:true});started=true;
 
  console.log('T19 isolated PostgreSQL:',(await run(executable('psql'),['-h','127.0.0.1','-p',String(port),'-U','postgres','-d','postgres','-X','-Atc','show server_version'])).trim());
- await run(process.execPath,['--test','--test-name-pattern='+(vatOnly?'VAT standard worker':recoveryOnly?'killed native worker':correctionOnly?'explicit fictitious non-VAT correction':'approved standard worker creates'),'test/t19-standard-worker.test.js'],{stream:true,extraEnv:{T19_CUSTODY_NATIVE_URL:`postgresql://postgres@127.0.0.1:${port}/postgres`}});
+ await run(process.execPath,['--test','--test-name-pattern='+(rotationOnly?'rotation SQL':vatOnly?'VAT standard worker':recoveryOnly?'killed native worker':correctionOnly?'explicit fictitious non-VAT correction':'approved standard worker creates'),rotationOnly?'test/t19-standard-rotation.test.js':'test/t19-standard-worker.test.js'],{stream:true,extraEnv:{T19_CUSTODY_NATIVE_URL:`postgresql://postgres@127.0.0.1:${port}/postgres`}});
+ if(rotationOnly)console.log('T19_ROTATION_COORDINATOR_NATIVE_PASS');
  if(vatOnly)console.log('T19_VAT_WORKER_NATIVE_PASS');
  if(recoveryOnly)console.log('T19_KILLED_WORKER_RECOVERY_NATIVE_PASS');
  if(correctionOnly)console.log('T19_TEST_CORRECTION_NATIVE_PASS');
@@ -41,8 +43,9 @@ try{
  await rm(root,{recursive:true,force:true});console.log('T19_DISPOSABLE_CLUSTER_CLEANED');
 }
 
-if(!correctionOnly&&!recoveryOnly&&!vatOnly){
+if(!correctionOnly&&!recoveryOnly&&!vatOnly&&!rotationOnly){
  await run(process.execPath,[fileURLToPath(import.meta.url),'--test-correction'],{stream:true});
  await run(process.execPath,[fileURLToPath(import.meta.url),'--test-recovery'],{stream:true});
  await run(process.execPath,[fileURLToPath(import.meta.url),'--test-vat'],{stream:true});
+ await run(process.execPath,[fileURLToPath(import.meta.url),'--test-rotation'],{stream:true});
 }
