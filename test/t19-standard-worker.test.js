@@ -16,7 +16,7 @@ async function setup(t){
  await db.exec(`create table auth.sessions(id uuid primary key,user_id uuid,not_after timestamptz);create function auth.jwt() returns jsonb language sql as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;
  create or replace function auth.uid() returns uuid language sql stable as $$select coalesce(nullif(auth.jwt()->>'sub',''),nullif(current_setting('request.jwt.claim.sub',true),''))::uuid$$;
  insert into auth.users values('${machine}','backend@test.invalid');insert into auth.sessions values('${session}','${machine}',null),('${ownerSession}','${owner}',null),('${managerSession}','${manager}',null);`);
- for(const name of ['t19-standard-store.sql','t19-standard-backend-role.sql','t19-standard-https.sql','t19-standard-https-org-pins.sql','t19-standard-request-principal.sql','t19-standard-jobs.sql','t19-standard-jobs-approval-facade.sql','t19-standard-invoice-review.sql','t19-standard-item-errors.sql'])await db.exec(await readFile(new URL('../database/'+name,import.meta.url),'utf8'));
+ for(const name of ['t19-standard-store.sql','t19-standard-backend-role.sql','t19-standard-https.sql','t19-standard-https-org-pins.sql','t19-standard-request-principal.sql','t19-standard-lease-recovery.sql','t19-standard-jobs.sql','t19-standard-jobs-approval-facade.sql','t19-standard-invoice-review.sql','t19-standard-item-errors.sql'])await db.exec(await readFile(new URL('../database/'+name,import.meta.url),'utf8'));
  const config=standardConfig({FARAIOS_ENVIRONMENT:'staging',FARAIOS_ORIGIN:'https://staging.example.test',ZOHO_API_DOMAIN:'https://www.zohoapis.com',ZOHO_CLIENT_ID:'synthetic-client',ZOHO_CLIENT_SECRET:'synthetic-secret',ZOHO_TOKEN_ENCRYPTION_KEY:'ab'.repeat(32),ZOHO_TOKEN_KEY_ID:'test'}),cipher=createTokenCipher(config);
  for(const [businessId,org,n] of [[a,'111',9100],[b,'222',9200]]){
   await db.query(`insert into private_t19_standard.backend_businesses values($1,$2,'staging',true,$3,'https://www.zohoapis.com')`,[machine,businessId,org]);
@@ -170,4 +170,36 @@ test('explicit fictitious non-VAT correction retains original evidence and canno
  await f.db.exec('set role authenticated');await assert.rejects(()=>f.db.query('select * from private_t19_standard.test_tax_corrections'),e=>e.code==='42501');await f.db.exec('reset role');
  await assert.rejects(()=>f.db.query("update public.business_invoices set snapshot=jsonb_set(snapshot,'{total_cents}','1') where id=$1",[f.invoice]));
  const jobId=await f.approve();await f.claims();assert.deepEqual(await f.worker.runOnce(a),{jobId,status:'matched'});assert.equal(f.posts(),1);
+});
+
+test('killed native worker recovers expired lease and reconciles one dispatched invoice without another POST',{skip:!process.env.T19_CUSTODY_NATIVE_URL,timeout:30000},async t=>{
+ const {fork}=await import('node:child_process');
+ const {once}=await import('node:events');
+ const f=await setup(t),job=await f.approve();await f.claims();
+ const child=fork(new URL('../test-support/t19-killed-standard-worker.mjs',import.meta.url),[],{stdio:['ignore','pipe','pipe','ipc']});
+ t.after(()=>{if(child.exitCode===null&&!child.killed)child.kill('SIGKILL');});
+ let childError='';child.stderr.on('data',d=>{childError+=d;});
+ const posted=new Promise((resolve,reject)=>{
+  child.on('error',reject);child.on('exit',()=>reject(Error('child exited before dispatch: '+childError)));
+  child.on('message',async message=>{
+   try{
+    assert.equal(message.unexpectedResult,undefined);
+    const response=await f.fetchImpl(message.url,message.options);
+    if(message.options.method==='POST'&&new URL(message.url).pathname.endsWith('/invoices')){resolve();return;} // Provider accepted; never return its receipt to child.
+    child.send({seq:message.seq,body:await response.json()});
+   }catch(e){reject(e);}
+  });
+ });
+ await posted;assert.equal(f.posts(),1);
+ const exited=once(child,'exit');child.kill('SIGKILL');await exited;
+ const row=(await f.db.query('select holder,released from private_t19_standard.operation_leases where business_id=$1',[a])).rows[0];assert.equal(row.released,false);
+ assert.equal((await f.worker.runOnce(a)).status,'unavailable');
+ await f.db.query("update private_t19_standard.operation_leases set expires_at=clock_timestamp()-interval '31 seconds' where business_id=$1",[a]);
+ // Old holder cannot commit after takeover, including job dispatch/finish.
+ await f.store.lock('staging',a,async()=>{
+  for(const action of ['guard','release','refresh'])await assert.rejects(()=>f.rpc('t19_standard_store',{action,input:{businessId:a,environment:'staging',lease:row.holder}}),e=>e.code==='42501');
+ });
+ assert.equal((await f.worker.runOnce(a)).status,'matched');assert.equal(f.posts(),1);
+ assert.equal((await f.worker.runOnce(a)).status,'idle');assert.equal(f.posts(),1);
+ const result=(await f.db.query('select state,dispatched from private_t19_standard.invoice_jobs where id=$1',[job])).rows[0];assert.equal(result.state,'completed');assert.equal(result.dispatched,true);
 });
