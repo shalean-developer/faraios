@@ -13,7 +13,7 @@ assertHostedEnvironment();
 const config=JSON.parse(await readFile(new URL('./config/staging.json',import.meta.url),'utf8'));
 assertStagingConfig(config);
 if(accountingProxy!==null&&typeof accountingProxy!=='function')throw new Error('Invalid accounting proxy');
-const restrictedFetch=createStagingFetch(globalThis.fetch,{accounting:Boolean(accountingProxy)&&!accountingConnectionOnly});
+const restrictedFetch=createStagingFetch(globalThis.fetch,{accounting:Boolean(accountingProxy)&&!accountingConnectionOnly,standardAccounting:Boolean(accountingProxy)&&accountingConnectionOnly});
 const factory=()=>createClient(config.url,config.publishableKey,{
   auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
   global:{fetch:restrictedFetch},

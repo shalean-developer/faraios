@@ -42,3 +42,27 @@ test('private setup HTTP mode has no callback or token-import route and keeps st
   assert.equal((await get('/accounting/'+foreign+'/status')).status,403);
  }finally{server.closeAllConnections();await new Promise(r=>server.close(r));}
 });
+
+test('owner review HTTP denies foreign business, manager, forged origin and ambiguous consent before queuing',async()=>{
+ let role='owner',writes=0,rechecks=0;
+ const config={origin:'https://staging.example.test',environment:'staging'};
+ const client={async rpc(name,args){if(name==='t19_standard_invoice_review')return {data:{environment:'staging',connection:null,invoices:[],invoiceCount:0}};if(name==='t19_standard_reconcile_invoice'){rechecks++;return {data:foreign};}if(args.input.totalCents!==10000)return {error:{message:'stale'}};writes++;return {data:foreign};}};
+ const auth={async read(sid){return sid==='valid'?{userId:'owner',businessIds:[business],businesses:[{id:business,name:'Synthetic business'}],memberships:[{userId:'owner',businessId:business,role,status:'active'}]}:null;},async withOwner(sid,b,action){if(sid!=='valid'||role!=='owner'||b!==business)throw Error();return action(client);}};
+ const handler=createStandardHandler({config,onboardingMode:'private',store:{},cipher:{},provider:{}});
+ const server=createServer((req,res)=>handler({req,res,auth,cookieName:'app_session'}));server.listen(0,'127.0.0.1');await once(server,'listening');
+ const invoke=(path,body=null,origin=config.origin)=>new Promise((resolve,reject)=>{const req=httpRequest({host:'127.0.0.1',port:server.address().port,path,method:body===null?'GET':'POST',headers:{Host:'staging.example.test',Cookie:'app_session=valid',Origin:origin,'Content-Type':'application/x-www-form-urlencoded'}},res=>{let html='';res.on('data',c=>html+=c);res.on('end',()=>resolve({status:res.statusCode,body:html,location:res.headers.location}));});req.on('error',reject);req.end(body);});
+ const data=new URLSearchParams({invoiceId:foreign,customerId:'123',connectionId:foreign,generation:'2',organizationId:'123',apiDomain:'https://www.zohoapis.com',invoiceVersion:'1',totalCents:'10000',confirm:'yes'}).toString(),path='/accounting/'+business+'/invoices';
+ try{
+  assert.equal((await invoke(path)).status,200);assert.equal((await invoke('/accounting/'+foreign+'/invoices')).status,403);
+  role='manager';assert.equal((await invoke(path)).status,403);assert.equal((await invoke(path+'/approve',data)).status,403);role='owner';
+  assert.equal((await invoke(path+'/approve',data,'https://evil.invalid')).status,403);
+  assert.equal((await invoke(path+'/approve',data+'&confirm=yes')).status,403);
+  assert.equal((await invoke(path+'/approve',data.replace('confirm=yes','confirm=no'))).status,403);
+  assert.equal((await invoke(path+'/approve',data.replace('totalCents=10000','totalCents=1'))).status,403);assert.equal(writes,0);
+  const result=await invoke(path+'/approve',data);assert.equal(result.status,303);assert.equal(result.location,path);assert.equal(writes,1);
+  const recheck=new URLSearchParams({jobId:foreign,connectionId:foreign,generation:'2'}).toString();
+  assert.equal((await invoke(path+'/reconcile',recheck,'https://evil.invalid')).status,403);
+  assert.equal((await invoke(path+'/reconcile',recheck+'&generation=2')).status,403);assert.equal(rechecks,0);
+  assert.equal((await invoke(path+'/reconcile',recheck)).status,303);assert.equal(rechecks,1);assert.equal(writes,1);
+ }finally{server.closeAllConnections();await new Promise(r=>server.close(r));}
+});
