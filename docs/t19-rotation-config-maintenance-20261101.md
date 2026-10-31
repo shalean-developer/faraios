@@ -1,0 +1,43 @@
+# T19 configuration switch and maintenance reader preparation
+
+1 November 2026, South Africa. Amendment to the maintenance procedure in `t19-live-key-rotation-preparation-20261101.md`. T19 remains In progress; T20 Not started. No live key rotation is evidenced by these source additions.
+
+## Added, inactive components
+
+`createRotationConfiguration` accepts a canonical owner-only private root and an immediate child operation directory named `rotation-*`. It operates only on `staging.json`. No application/worker entrypoint imports it; no environment/configuration is read on import. A host operator must bind it to `/var/www/vhosts/faraios.com/.faraios-t19-standard`, never a production path.
+
+Preparation requires a fresh maintenance check, validates the existing staging schema, creates a random 32-byte replacement key with a new key ID, and exclusively writes mode-0600 before/after configuration snapshots. The completed plan is written last. The snapshots deliberately contain private configuration secrets, including rollback key material; keep them in the protected host directory. Do not display, upload, log or commit them. Plan hashes also remain private. Public results contain only operation IDs, counts and state booleans. `loadKeys` is a private in-process interface returning only the two key buffers/IDs and business scope, not OAuth/backend credentials. Its caller must clear buffers after use; complete JavaScript string/memory erasure is not claimed.
+
+The adapter validates immutable snapshot hashes, exact business scope and unchanged non-key settings. Forward/rollback switching requires both repeated maintenance checks and a target-key credential verification callback before replacement. It writes/fsyncs a same-directory temporary file, rechecks current file identity/bytes, atomically renames it and fsyncs the parent. It never resumes writers or changes database rows. If the active file already matches the requested target, recovery is idempotent after the same gates pass.
+
+This is an **optimistic compare-before-replace under a cooperative exclusive lock**, not a kernel-level compare-and-swap with the database. All configuration writers must respect the maintenance window and `.rotation-configuration.lock`; an external editor/privileged actor can bypass that cooperation. A configuration change observed before rename rejects instead of overwriting. Database conversion and file replacement remain separate steps; interruption still requires the cold-maintenance recovery procedure.
+
+A real process kill can leave the target file installed and the lock present, even if no success result returned. `status()` identifies whether exact before/after bytes are installed without printing secrets. Never assume a failed command left the old file active. Do not automatically reclaim a lock: verify the previous process has exited and inspect actual file/database state, then use a separately reviewed exact lock cleanup. Ordinary exceptions remove only the operation's unchanged lock inode; partial private candidate/temp files remain restricted for investigation. No active configuration is automatically rolled back.
+
+## Maintenance reader contract
+
+`createRotationMaintenanceCheck` re-reads facts on every call, rejects future/stale observations (maximum five seconds), requires the staging web service stopped, schedule paused, private worker disabled, no pending/running jobs, and no foreign lease holders. The current operation's own valid per-business leases must be distinguished from foreign holders by the real reader.
+
+Inventory must cover the **complete set of key consumers**, not just enabled worker businesses. The expected business set must match exactly; every key-bearing row must be staging/connected with the old or new key ID. Extra consumers, disabled/revocation-pending rows with retained credentials, unknown keys and missing rows block activation. No job or uncertainty marker is changed by this check.
+
+Facts such as `inventoryComplete`, `webStopped`, `schedulerPaused` and `processNamespaceVerified` are reader attestations. A literal/test object does not prove hosting state. The still-to-be-assembled host adapter must derive these from fresh qualified Plesk/service/schedule, private-file and complete database metadata readers. It must preserve and report the held uncertain TEST invoice separately from active jobs. No new database grant is included here.
+
+`scanStagingWriterProcesses` reads Linux process metadata for the executing application UID, matches exact known Node entrypoint/preload arguments (including flags and relative paths), and returns only PID/kind. It does not emit command lines, environment, credentials or other process content, and never stops a process. It checks process identity/start time during reads. Unknown/unreadable metadata rejects; a process that exits while being observed can be ignored. No application process should be inferred stopped merely from an absent guessed PID.
+
+For the real `/proc` reader, the process must see its own current PID/UID in that procfs namespace, with no ancestor PID-namespace mapping. The local executor exposed an ancestor proc namespace; it is deliberately rejected rather than producing a false empty writer list. CI must separately demonstrate `T19_PROC_MATCHING_NAMESPACE_PASS` in its matching namespace. A matching synthetic proc fixture is not proof of the Plesk host. Custom `procRoot` is for explicit isolated fixtures; do not use it to qualify a host. The reader covers same-UID known entrypoints in the verified namespace; qualify that all real accounting/worker processes run under that UID and those entrypoints before using it. Paused launch controls plus repeated fresh scans are required; a scan is not an atomic guarantee against a privileged/uncooperative new launch.
+
+## Required actual release package
+
+Before live execution, qualify the Plesk namespace, writer identities and reliable stopped/paused observations; assemble exact host readers and a bounded operator invocation. Link the configuration business set/key pair to the credential journal; reject mismatches. Inventory every non-null consumer before considering activation.
+
+The approved sequence remains: stop/verify writers and drain work; prepare protected candidates; convert credentials under all leases with durable journal; verify all target-key records; switch protected configuration; verify fresh-process readback/decryption; restart/verify both business connections; restore the existing schedule; make and independently restore a new off-host encrypted backup. For rollback, keep stopped, rewrap all equivalent current records to the old key, then switch configuration back only after target verification. Never recreate a financial invoice for this test. No old key or snapshot is deleted by these modules.
+
+The current callback interfaces are source preparation, not a hosted CLI or evidence that launch controls work. No real key has been generated, no configuration switched and no live rotation attempted in this change.
+
+## Isolated evidence and rollback
+
+Tests use fictitious configuration and token material only. They verify forward/rollback and non-key preservation, mode/link/hardlink/overwrite denial, rejected maintenance/decryption gates, concurrent configuration operations, observed external edits, interruption before/after rename, an actual child-process SIGKILL after installation with retained recovery lock, and fresh-process decryption of two synthetic records. Maintenance tests deny stale/future facts, active processes/jobs/leases, incomplete inventory, foreign environments and unsupported statuses/keys. Scanner tests cover Node flags/preloads, relative paths, source-string false positives, malformed proc metadata, namespace mismatch rejection and a real synthetic writer in a qualified matching namespace.
+
+Run the new tests with existing rotation/recovery tests. Check exact-head full CI, including the real matching-proc marker, before merging. Tests do not demonstrate an actual Plesk pause, service restart, production capability or live key rotation.
+
+Source rollback: omit/revert these inactive modules, tests and this document. No migrations, runtime entrypoint changes, new privileges or hosted secret/configuration changes are included. Any future private operation artifacts require their own exact retention/cleanup decision; do not delete them speculatively.
