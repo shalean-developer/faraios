@@ -7,7 +7,7 @@ const invoice={id,business_id:connection.business_id,currency:'ZAR',total_cents:
 const secret={...connection,client_id:'synthetic-client',client_secret:'SENSITIVE_SYNTHETIC_SECRET',refresh_token:'SENSITIVE_SYNTHETIC_REFRESH',staging_organization_confirmed:true};
 invoice.snapshot.tax_snapshot={enabled:false,policy_version:0,price_basis:'customer_total',rate_bps:0,vat_number:null,registration_date:null,net_cents:10001,vat_cents:0,total_cents:10001};
 const external={invoice_id:'9001',invoice_number:'TEST-0001',reference_number:'FaraiOS:'+id,customer_id:'123',currency_code:'ZAR',status:'draft',is_emailed:false,total:'100.01',tax_total:0,shipping_charge:0,adjustment:0,payment_made:0,credits_applied:0,line_items:[{name:'Saved service',quantity:1,rate:'100.01',item_total:'100.01',unit:'visit',tax_id:'',discount_amount:0}]};
-function fixture({found=[],override={},failure=null,claimMode='create'}={}){
+function fixture({found=[],override={},failure=null,claimMode='create',resolveItems}={}){
  const calls=[];let posts=0;
  const fetchImpl=async(url,options={})=>{
   calls.push({url:String(url),...options});const u=new URL(url);let data;
@@ -22,7 +22,7 @@ function fixture({found=[],override={},failure=null,claimMode='create'}={}){
   if(u.pathname.startsWith('/books/')){assert.equal(u.searchParams.get('organization_id'),'111');assert.equal(options.headers.Authorization,'Zoho-oauthtoken synthetic-access');}
   assert.equal(options.redirect,'error');return {ok:true,status:200,text:async()=>JSON.stringify(data)};
  };
- const adapter=createZohoBooks({credentials:async alias=>{assert.equal(alias,'A_TEST');return secret;},fetchImpl});
+ const adapter=createZohoBooks({credentials:async alias=>{assert.equal(alias,'A_TEST');return secret;},fetchImpl,resolveItems});
  return {adapter,calls,posts:()=>posts,claim:{invoice:structuredClone(invoice),connection:{...connection},mode:claimMode}};
 }
 external.sub_total='100.01';
@@ -112,4 +112,13 @@ test('organisation list requires a unique active pinned match and complete resul
  }
  const f=fixture({override:{'/books/v3/organizations':()=>({code:0,organizations:[{...pinned,organization_id:'222'},pinned],page_context:{has_more_page:false}})}});
  assert.equal((await f.adapter.sync(f.claim)).outcome,'matched');
+});
+
+test('mapped item IDs reach creation and substituted receipt IDs are never accepted',async()=>{
+ const resolveItems=async()=>[{item_id:'555',name:'Saved service',quantity:1,rate:100.01,unit:'visit'}];
+ const f=fixture({resolveItems,override:{'/books/v3/invoices/9001':d=>({...d,invoice:{...d.invoice,line_items:d.invoice.line_items.map(l=>({...l,item_id:'555'}))}})}});
+ assert.equal((await f.adapter.sync(f.claim)).outcome,'matched');
+ assert.equal(JSON.parse(f.calls.find(c=>c.method==='POST'&&new URL(c.url).pathname.endsWith('/invoices')).body).line_items[0].item_id,'555');
+ const g=fixture({resolveItems});assert.equal((await g.adapter.sync(g.claim)).error_code,'mismatch');assert.equal(g.posts(),1);
+ for(const bad of [null,undefined,[]]){const h=fixture({resolveItems:async()=>bad});assert.equal((await h.adapter.sync(h.claim)).error_code,'item_mapping');assert.equal(h.posts(),0);}
 });
