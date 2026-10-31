@@ -198,6 +198,8 @@ test('killed native worker recovers expired lease and reconciles one dispatched 
  // Old holder cannot commit after takeover, including job dispatch/finish.
  await f.store.lock('staging',a,async()=>{
   for(const action of ['guard','release','refresh'])await assert.rejects(()=>f.rpc('t19_standard_store',{action,input:{businessId:a,environment:'staging',lease:row.holder}}),e=>e.code==='42501');
+  const attempt=(await f.db.query('select attempt_id from private_t19_standard.invoice_jobs where id=$1',[job])).rows[0].attempt_id;
+  for(const action of ['guard','dispatch','finish'])await assert.rejects(()=>f.rpc('t19_standard_jobs',{action,input:{businessId:a,environment:'staging',lease:row.holder,connectionId:id(9100),generation:1,jobId:job,attemptId:attempt,result:{outcome:'matched'}}}),e=>e.code==='42501');
  });
  assert.equal((await f.worker.runOnce(a)).status,'matched');assert.equal(f.posts(),1);
  assert.equal((await f.worker.runOnce(a)).status,'idle');assert.equal(f.posts(),1);
