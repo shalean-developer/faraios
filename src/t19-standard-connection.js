@@ -15,6 +15,21 @@ export function createStandardConnection({config,cipher,provider,store,sessions,
  async function current(businessId){return binding(await store.connection(config.environment,businessId));}
  return Object.freeze({
   // Private server utility only; never expose a refresh-token import HTTP route.
+  async resumeProvisioning(sid,{businessId,organizationId,stateDigest}){
+   const actor=await owner(sid,businessId);
+   if(!/^[0-9a-f]{64}$/.test(stateDigest??'')||!/^\d{1,30}$/.test(organizationId))throw fail();
+   return store.lock(config.environment,businessId,async(guard=async()=>{})=>{
+    const c=await current(businessId);
+    if(c.status!=='revocation_pending'||c.organizationId!==organizationId)throw fail();
+    const secret=cipher.open(c,c.envelope);
+    await guard();const tokens=await provider.refresh(secret.refreshToken);
+    if(tokens.refresh_token&&tokens.refresh_token!==secret.refreshToken)throw fail();
+    await guard();const organization=await provider.organization(tokens.access_token,organizationId);
+    if(await owner(sid,businessId)!==actor)throw fail();
+    await guard();await store.publish(c,organization);await store.resolve(stateDigest);
+    return {status:'connected',businessId,organization,connectionId:c.connectionId,generation:c.generation};
+   });
+  },
   async provision(sid,{businessId,organizationId,refreshToken,grantCode}){
    const actor=await owner(sid,businessId);
    const material=grantCode??refreshToken;
