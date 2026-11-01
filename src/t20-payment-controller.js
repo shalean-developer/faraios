@@ -14,6 +14,15 @@ export function createPaymentController({accounts,backend,fetchImpl}){
  async function lookup(businessId,reference){const a=scope(businessId),v=await backend.rpc('lookup',{businessId,accountId:a.account.accountId,reference});if(!v||v.businessId!==businessId||v.accountId!==a.account.accountId||v.reference!==reference||!v.intentId)throw denied();return v;}
  async function publish(v,o){return backend.rpc('publish',{businessId:v.businessId,accountId:v.accountId,intentId:v.intentId,transactionId:o.transactionId,status:o.status,amountCents:o.amountCents,currency:o.currency});}
  return Object.freeze({
+  async resolveReference(reference){
+   if(!/^FOS-[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(reference??''))throw denied();
+   let found;
+   for(const {account:a} of map.values()){
+    const v=await backend.rpc('lookup',{businessId:a.businessId,accountId:a.accountId,reference});
+    if(v){if(found||v.businessId!==a.businessId||v.accountId!==a.accountId||v.reference!==reference||!v.intentId)throw denied();found={businessId:v.businessId,intentId:v.intentId,reference};}
+   }
+   if(!found)throw denied();return found;
+  },
   async initialize({businessId,reference,email,approved}){
    if(approved!==true)throw denied();
    const a=scope(businessId),v=await lookup(businessId,reference),nonce=randomUUID(),input={businessId,accountId:a.account.accountId,intentId:v.intentId,nonce};
