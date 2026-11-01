@@ -16,6 +16,22 @@ export async function readAdjustmentSource(client,businessId,sourceId){
  for(const e of events){if(e.business_id!==businessId||e.source_id!==sourceId||e.version!==(state?.version??0)+1)throw new Error('Adjustment history scope mismatch');state=earningsAdjustmentEvent(state,{businessId,actorId:e.actor_id,role:e.actor_role,expectedVersion:e.version-1,key:e.event_key,type:e.event_type,payload:e.payload,at:new Date(e.created_at).toISOString()});}
  if(state.sources.length!==1||state.sources[0].id!==row.id||state.sources[0].revision!==row.revision||!isDeepStrictEqual(events[0].payload,row.original_payload))throw new Error('Adjustment source history mismatch');return {...row,state};
 }
+// Review amounts are deliberately separate from accrued earnings and settlement.
+export function teamEarningsReview(records,businessId){
+ const seen=new Set();
+ return records.map(record=>{
+  if(record.business_id!==businessId||!record.synthetic_only||record.state?.businessId!==businessId||record.state.sources.length!==1)throw new Error('Team review scope mismatch');
+  const source=record.state.sources[0];
+  if(source.id!==record.id||source.workerId!==record.worker_id||source.bookingId!==record.booking_id||seen.has(source.id))throw new Error('Team review source mismatch');
+  seen.add(source.id);
+  const approved=record.state.adjustments.filter(a=>a.status==='approved');
+  const sum=values=>{const n=values.reduce((a,b)=>a+b,0);if(!Number.isSafeInteger(n)||Math.abs(n)>2147483647)throw new Error('Review amount exceeds supported limit');return n;};
+  return {sourceId:source.id,bookingId:source.bookingId,workerId:source.workerId,originalCents:source.originalCents,
+   reviewedCents:sum([source.originalCents,...approved.filter(a=>a.kind!=='reimbursement').map(a=>a.deltaCents)]),
+   reimbursementCents:sum(approved.filter(a=>a.kind==='reimbursement').map(a=>a.deltaCents)),
+   disputed:record.state.adjustments.some(a=>a.disputed),pending:record.state.adjustments.filter(a=>a.status==='proposed').length};
+ });
+}
 const signedRand=v=>{const s=String(v??'').trim();return s.startsWith('-')?-parseRand(s.slice(1)):parseRand(s);};
 export function adjustmentPayload(form,{businessId,booking,record}){
  const type=form.get('action'),adjustmentId=form.get('adjustment_id');
@@ -42,7 +58,7 @@ export async function appendAdjustmentReview(client,{businessId,booking,record,f
  const {data,error}=await client.rpc('append_earnings_adjustment',{p_business_id:businessId,p_source_id:record?.id??payload.sourceId,p_version:version,p_key:key,p_type:type,p_payload:payload});
  if(error){const e=new Error(error.code==='40001'?'History changed; reopen before saving':'Adjustment could not be saved; review evidence and scope');e.status=error.code==='40001'?409:422;throw e;}return data;
 }
-export function renderAdjustmentReviews(business,{rows=[],booking=null,record=null,role='manager',message='',error=false,values=null}={}){
+export function renderAdjustmentReviews(business,{rows=[],team=[],booking=null,record=null,role='manager',message='',error=false,values=null}={}){
  const root='/earnings-adjustments?business='+encodeURIComponent(business.id),owner=role==='owner',staff=role==='staff';
  const input=(name,label,{value='',required=true,type='text'}={})=>{const id=randomUUID();return `<label for="${id}">${esc(label)}</label><input id="${id}" name="${esc(name)}" type="${type}" value="${esc(values?.get(name)??value)}"${required?' required':''} maxlength="2000">`;};
  const select=(name,label,choices)=>{const id=randomUUID(),selected=values?.get(name)??'';return `<label for="${id}">${esc(label)}</label><select id="${id}" name="${name}" required><option value="">Choose</option>${choices.map(([v,l])=>`<option value="${esc(v)}"${selected===v?' selected':''}>${esc(l)}</option>`).join('')}</select>`;};
@@ -57,8 +73,9 @@ export function renderAdjustmentReviews(business,{rows=[],booking=null,record=nu
    }
   }
   if(!staff)html+=form('propose','Prepare a linked correction',select('kind','Correction reason type',[['calculation_correction','Calculation correction'],['reimbursement','Reimbursement'],['additional_agreed_work','Additional agreed work']])+input('delta','Correction amount (R); minus sign for reviewed reduction')+input('occurrence','Unique source occurrence reference')+input('reason','Correction reason')+input('evidence','Correction evidence')+input('rule_evidence','Approved additional-work rule evidence',{required:false})+input('supersedes','Rejected proposal ID being replaced',{required:false})+'<button>Prepare synthetic correction</button>');
-  html+='<section class="panel"><h2>Audit history</h2>'+record.state.events.map(e=>`<p>${esc(new Intl.DateTimeFormat('en-ZA',{dateStyle:'medium',timeStyle:'short',timeZone:'Africa/Johannesburg'}).format(new Date(e.at)))} SAST · ${esc(e.type)} · ${esc(e.actorId)}</p>`).join('')+'</section>';
+  html+='<section class="panel"><h2>Audit history</h2>'+record.state.events.map(e=>`<article><p>${esc(new Intl.DateTimeFormat('en-ZA',{dateStyle:'medium',timeStyle:'short',timeZone:'Africa/Johannesburg'}).format(new Date(e.at)))} SAST · ${esc(e.type)} · ${esc(e.actorId)}</p><dl>${Object.entries(e.payload).map(([key,value])=>`<dt>${esc(key.replace(/([A-Z])/g," $1").replace(/^./,c=>c.toUpperCase()))}</dt><dd>${esc(value)}</dd>`).join('')}</dl></article>`).join('')+'</section>';
  }else if(booking&&!staff){html+=`<p>Synthetic source for booking ${esc(booking.id)}. Enter evidence-labelled example amounts; blanks remain unknown.</p>`+form('register_source','Register synthetic source',`<input type="hidden" name="source_id" value="${esc(values?.get('source_id')??randomUUID())}">`+select('worker_id','Assigned cleaner',(booking.assigned_staff??[]).map(id=>[id,id]))+input('original_amount','Original example earnings (R)')+input('original_version','Original version',{type:'number'})+input('original_period','Original period (YYYY-MM, Johannesburg)')+input('agreement_evidence','Example agreement evidence')+input('original_evidence','Example original earnings evidence')+'<button>Register synthetic source</button>');
  }else html+='<section class="panel"><h2>Saved synthetic sources</h2>'+rows.map(s=>`<p><a href="${root}&amp;source=${esc(s.id)}">Review ${esc(s.id.slice(0,8))}</a> · Cleaner ${esc(s.worker_id.slice(0,8))} · v${s.version}</p>`).join('')+(staff?'<p>Only your own linked sources are visible. Use a review request to dispute an amount.</p>':'<p>Open a booking to register a synthetic source for an assigned cleaner.</p>')+'</section>';
+ if(!record&&!booking&&team.length)html+='<section class="panel"><h2>Team earnings review</h2><p>Synthetic source amounts, not accrued pay or payout balances. Reviewed earnings include approved corrections, including disputed corrections still awaiting resolution. Reimbursements remain separate. A zero or disputed worker amount does not block another worker’s review.</p>'+team.map(row=>`<article><h3>Cleaner ${esc(row.workerId)}</h3><p>Booking ${esc(row.bookingId)}</p><dl><dt>Original agreed example</dt><dd>${money(row.originalCents)}</dd><dt>Reviewed earnings example</dt><dd>${money(row.reviewedCents)}</dd><dt>Approved reimbursements</dt><dd>${money(row.reimbursementCents)}</dd><dt>Review status</dt><dd>${row.disputed?'Disputed — review separately':'No open adjustment dispute'} · ${row.pending} pending proposals</dd></dl><a href="${root}&amp;source=${esc(row.sourceId)}">Explanation and history</a></article>`).join('')+'</section>';
  return html;
 }

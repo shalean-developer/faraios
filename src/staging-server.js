@@ -1,7 +1,8 @@
+import {earningsOperation,earningsFormInput,renderEarningsWorkspace} from './earnings-workspace.js';
 import {eftOperation,renderEft} from './t21-eft.js';
 import {listMonthlyStatements,readMonthlyStatement,appendMonthlyStatement,renderMonthlyStatements,settlementPreparerActions} from './monthly-settlements.js';
 import {readVatSettings,saveVatSettings} from './vat.js';
-import {listAdjustmentSources,readAdjustmentSource,appendAdjustmentReview,renderAdjustmentReviews} from './adjustment-reviews.js';
+import {listAdjustmentSources,readAdjustmentSource,appendAdjustmentReview,renderAdjustmentReviews,teamEarningsReview} from './adjustment-reviews.js';
 import {listCancellationCases,readCancellationCase,appendCancellationCase,renderCancellationCases} from './cancellation-cases.js';
 import {readSupervisorAllowances,saveSupervisorAllowance,renderSupervisorAllowances,previewMonthlyEarnings,allowanceMonth} from './supervisor-allowances.js';
 import {parseEarningsRule,parseRand,listEarningsRules,saveEarningsRule,previewEarnings,renderEarningsRules,templateRule} from './earnings.js';
@@ -68,6 +69,31 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
       if(req.method==='GET'&&url.pathname==='/quote-detail.js')return send(200,await readFile(new URL('../public/quote-detail.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/style.css')return send(200,await readFile(new URL('../public/style.css',import.meta.url),'utf8'),'text/css');
       if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/'))return send(200,loginForm(''));
+      if(url.pathname==='/earnings'&&['GET','POST'].includes(req.method)){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        let data=null;
+        if(req.method==='POST'){
+          if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
+          if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
+          let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>24000)return send(413,'Form too large','text/plain');}data=new URLSearchParams(body);
+        }
+        return await auth.withEarningsRules(id,url.searchParams.get('business'),req.method==='POST',async(client,business,owner)=>{
+          headerBusiness=business;const bookingId=url.searchParams.get('booking'),rawPage=url.searchParams.get('page')??'0';
+          if(!/^(0|[1-9]\d{0,6})$/.test(rawPage))return send(400,'Invalid earnings page','text/plain');
+          const page=Number(rawPage);let context=null,rows=[];
+          try{
+            if(bookingId)context=await earningsOperation(client,'context',{businessId:business.id,bookingId});
+            else rows=await earningsOperation(client,'list',{businessId:business.id,page});
+          }catch{return send(422,html('Earnings',renderEarningsWorkspace(business,{owner,error:'Earnings unavailable. Verify business access and the approved staging schema.'})));}
+          const show=error=>html('Earnings',renderEarningsWorkspace(business,{rows,context,owner,page,error,values:data}));
+          if(req.method==='GET')return send(200,show(''));
+          try{
+            const input=earningsFormInput(data,business.id,context);
+            await earningsOperation(client,data.get('action'),input);
+            return redirect('/earnings?business='+encodeURIComponent(business.id)+'&booking='+encodeURIComponent(context.bookingId));
+          }catch(error){return send(error.status??422,show(error.message));}
+        });
+      }
       if(url.pathname==='/monthly-settlements'&&['GET','POST'].includes(req.method)){
         if(!await readIdentity(id)){clear();return redirect('/login');}
         let data=null;
@@ -111,7 +137,13 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
           const booking=bookingId?await readBooking(client,business.id,bookingId):null;
           if(bookingId&&!booking)return send(404,'Booking unavailable','text/plain');
           const rows=!record&&!booking?(await listAdjustmentSources(client,business.id)).filter(r=>role!=='staff'||r.worker_id===userId):[];
-          const show=options=>html('Earnings adjustments',renderAdjustmentReviews(business,{record,booking,rows,role,...options}));
+          const team=[];
+          for(const row of rows){
+            const source=await readAdjustmentSource(client,business.id,row.id);
+            if(!source||role==='staff'&&source.worker_id!==userId)throw new Error('Team review source unavailable');
+            team.push(...teamEarningsReview([source],business.id));
+          }
+          const show=options=>html('Earnings adjustments',renderAdjustmentReviews(business,{record,booking,rows,team,role,...options}));
           if(req.method==='GET')return send(200,show({}));
           try{
             if(role==='staff'&&!['raise_dispute','request_review'].includes(data.get('action')))return send(403,'Own review requests only','text/plain');

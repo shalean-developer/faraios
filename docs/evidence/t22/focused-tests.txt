@@ -1,0 +1,44 @@
+✔ booking input, duplicate submission comparison and optimistic mutations (5.385596ms)
+✔ Postgres booking lifecycle, tenant links, snapshots, team and audit are enforced (4529.817589ms)
+✔ T22 database zero lead and disputed correction preserve other worker amount and exact retry history (2927.178287ms)
+✔ database journal preserves correction-only flow and reconstructs core including canonical replay (1866.4463ms)
+✔ database role, source scope and own-record RLS fail closed; direct mutations are denied (1574.973341ms)
+✔ direct RPC rejects poison payloads and stale approvals without journal mutations (1549.100956ms)
+✔ HTTP registers only scoped assigned synthetic source; form errors retain explicit blanks and choices (78.563185ms)
+✔ HTTP fresh manager/staff roles cannot gain owner actions; staff can review own source only (59.397204ms)
+✔ restore workspace disables all adjustment writes (11.377083ms)
+✔ staff HTTP records own review without granting owner approval or exposing another worker (12.1983ms)
+✔ history reader rejects incomplete scope; renderer escapes evidence and creates unique labels (1.321693ms)
+✔ T22 HTTP team review shows reconstructed amounts and own-record isolation without writes (16.30062ms)
+✔ paid R2500 plus missed R50 creates only R50 correction; replay cannot settle original again (4.963487ms)
+✔ managers prepare; only owner approves, rejects, freezes or simulates (1.091695ms)
+✔ reductions require lawful-basis, applicable agreement, fair process and full-entitlement evidence (0.728531ms)
+✔ no fines, nonpayment, damage, refund clawbacks or negative reimbursements (1.23108ms)
+✔ one cleaner dispute never blocks another valid positive correction; staff only their own (2.141858ms)
+✔ snapshot, version, occurrence and replacement links prevent silent rewrite and stale approval (0.805484ms)
+✔ unknowns stay unknown; negative/overflow/invalid dates and injected identity fields fail closed (1.389723ms)
+✔ replay requires same actor, role and content; stale and out-of-order events cannot mutate history (0.597228ms)
+✔ one percentage pool, then equal shares and a per-cleaner cap (3.659248ms)
+✔ integer percentage rounding and stable leftover cents are reproducible (0.889718ms)
+✔ missing choices, scope/hours, overflow and existing agreements cannot silently calculate (1.653961ms)
+✔ drafts preserve blanks and explicit zero; parsing excludes client business claims (0.57822ms)
+✔ six approved methods belong to the Shalean template, without an invented pay rate (19.553311ms)
+✔ persistence uses business/service/version predicates; lists every scoped page (1.960893ms)
+✔ rendering escapes data, offers no implicit rate, and limits changes to owner (17.748929ms)
+✔ Postgres isolates setup, checks service scope, preserves versions and audits owner writes (2770.020193ms)
+✔ T22 persisted new agreement accrues once after completion and opens immutable adjustment sources (2947.540563ms)
+✔ T22 protected zero-lead terms, late catalogue edits and unpaid customer never erase another worker earnings (2118.588477ms)
+✔ T22 database denies roles, injected identity, foreign scope, revoked session and direct mutation (1725.721443ms)
+✔ T22 accrual is atomic with adjustment-source collision and changed agreed team denied (1616.227836ms)
+✔ T22 actual HTTP to SQL: persisted agreement, completion, retry and explained adjustments; denial stays in workspace (1537.224416ms)
+✔ T22 SQL calculations match approved preview engine, caps, half-cent and fixed cases in independent businesses (1428.564685ms)
+✔ T22 rollback refuses retained agreement history; empty rollback leaves all older journals intact (2654.145651ms)
+✔ T22 direct RPC rejects missing/poison/whitespace agreement evidence and protects original review history (1344.773918ms)
+ℹ tests 36
+ℹ suites 0
+ℹ pass 36
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15580.455248

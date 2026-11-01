@@ -1,0 +1,16 @@
+✔ T22 persisted new agreement accrues once after completion and opens immutable adjustment sources (1853.135498ms)
+✔ T22 protected zero-lead terms, late catalogue edits and unpaid customer never erase another worker earnings (1430.180048ms)
+✔ T22 database denies roles, injected identity, foreign scope, revoked session and direct mutation (1328.71852ms)
+✔ T22 accrual is atomic with adjustment-source collision and changed agreed team denied (1395.086997ms)
+✔ T22 actual HTTP to SQL: persisted agreement, completion, retry and explained adjustments; denial stays in workspace (1605.669988ms)
+✔ T22 SQL calculations match approved preview engine, caps, half-cent and fixed cases in independent businesses (1440.615566ms)
+✔ T22 rollback refuses retained agreement history; empty rollback leaves all older journals intact (2769.590537ms)
+✔ T22 direct RPC rejects missing/poison/whitespace agreement evidence and protects original review history (1478.069606ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13469.736444

@@ -62,3 +62,14 @@ test('history reader rejects incomplete scope; renderer escapes evidence and cre
  assert.doesNotMatch(html,/<script>/);const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.equal(ids.length,new Set(ids).size);
  for(const m of html.matchAll(/<label for="([^"]+)"/g))assert.ok(ids.includes(m[1]));
 });
+test('T22 HTTP team review shows reconstructed amounts and own-record isolation without writes',()=>run(async({state,request})=>{
+ const response=await request(root);assert.equal(response.status,200);
+ const html=await response.text();assert.match(html,/Team earnings review/);assert.match(html,/not accrued pay/);assert.match(html,/1 pending proposals/);assert.match(html,/2[\s,]?500[.,]00/);
+ assert.equal(state.calls.length,0);
+ const detail=await(await request(savedPath)).text();assert.match(detail,/Occurrence Reference/);assert.match(detail,/missed1/);
+ state.role='staff';state.user=owner;
+ const denied=await(await request(root)).text();assert.doesNotMatch(denied,/Team earnings review|missed1/);
+ state.user=worker;assert.match(await(await request(root)).text(),/Team earnings review/);
+ state.active=false;assert.equal((await request(root)).status,403);
+ assert.equal(state.calls.length,0);
+},{saved:true,proposed:true}));
