@@ -93,3 +93,7 @@ echo CI_POLICY_T22_EARNINGS_NATIVE_PASS
 # T23 source claims, submissions and interrupted attempts in a separate synthetic cluster.
 T23_PG_BIN="$(pg_config --bindir)" node scripts/run-t23-payouts-postgres.mjs
 echo CI_POLICY_T23_PAYOUTS_NATIVE_PASS
+
+# T24 read-only cleaner projection under concurrent accrual and recovery.
+T24_PG_BIN="$(pg_config --bindir)" node scripts/run-t24-cleaner-postgres.mjs
+echo CI_POLICY_T24_CLEANER_NATIVE_PASS

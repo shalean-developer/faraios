@@ -1,0 +1,3 @@
+Local pre-final-dispatch broad run: 1207 tests;1177pass;2fail;28skip;107992ms.
+Failures: actual Unix listener is required; TCP and symlink paths are refused; inherited listener requires kernel-proven Unix identity and refuses TCP fd0.
+Both listen EPERM on local Unix socket paths. Exact-head eligible CI remains pending.

@@ -32,6 +32,12 @@ export function createAuthSessions({createClient,now=()=>Date.now()}) {
         return {...identity,businesses,businessIds:identity.businessIds.filter(id=>ids.has(id)),memberships:identity.memberships.filter(m=>ids.has(m.businessId))};
       }catch{sessions.delete(id);return null;}
     },
+    async withCleanerPortal(id,businessId,action){
+      const identity=await this.read(id);
+      if(!identity?.memberships.some(m=>m.businessId===businessId&&m.role==='staff'))throw new Error('Cleaner access denied');
+      const session=sessions.get(id);if(!session)throw new Error('Cleaner access denied');
+      return action(session.client,identity.businesses.find(b=>b.id===businessId),identity.userId);
+    },
     async withAdjustmentReviews(id,businessId,action){
       const identity=await this.read(id),membership=identity?.memberships.find(m=>m.businessId===businessId);
       if(!identity?.businessIds.includes(businessId)||!membership||!['owner','manager','staff'].includes(membership.role))throw new Error('Adjustment access denied');
