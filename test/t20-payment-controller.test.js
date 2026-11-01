@@ -25,13 +25,13 @@ function fixture({failure=false,lostFinish=false}={}){
  return {controller,counts:()=>({posts,published,lookups}),failPublication:()=>{failPublication=true;}};
 }
 test('controller claims before POST, repeated checkout returns existing result without another POST',async()=>{
- const f=fixture(),input={businessId:b,reference,email:'synthetic@example.test',approved:true};
+ const f=fixture(),input={businessId:b,reference,email:'synthetic@example.com',approved:true};
  const first=await f.controller.initialize(input);assert.equal(first.state,'ready');await f.controller.initialize(input);assert.equal(f.counts().posts,1);
  await assert.rejects(f.controller.initialize({...input,businessId:id}));assert.equal(f.counts().posts,1);
 });
 test('interrupted finish and unknown initialize preserve claim and never automatically dispatch again',async()=>{
  for(const options of [{failure:true},{lostFinish:true}]){
-  const f=fixture(options),input={businessId:b,reference,email:'synthetic@example.test',approved:true};
+  const f=fixture(options),input={businessId:b,reference,email:'synthetic@example.com',approved:true};
   await f.controller.initialize(input).catch(()=>{});const retry=await f.controller.initialize(input);assert.ok(['unknown','claimed'].includes(retry.state));assert.equal(f.counts().posts,1);
  }
 });
@@ -46,7 +46,7 @@ test('duplicate credentials or disabled configuration cannot compose a controlle
  assert.throws(()=>createPaymentController({accounts:[account,{...account,businessId:id,accountId:'456'}],backend:{rpc(){}}}));
  assert.throws(()=>createPaymentController({accounts:[{...account,enabled:false}],backend:{rpc(){}}}));
 });
-async function request({path='/payments/'+b+'/intents/'+id+'/initialize',method='POST',body='email=synthetic%40example.test&confirm=yes',headers={},authorized=true,publicationFails=false}={}){
+async function request({path='/payments/'+b+'/intents/'+id+'/initialize',method='POST',body='email=synthetic%40example.com&confirm=yes',headers={},authorized=true,publicationFails=false}={}){
  const calls=[];
  const req=Readable.from([Buffer.from(body)]);req.url=path;req.method=method;req.headers={host:'staging.faraios.com',origin:'https://staging.faraios.com','content-type':'application/x-www-form-urlencoded',cookie:'session=synthetic',...headers};
  const res={writeHead(code,headers){this.code=code;this.headers=headers;},end(body){this.body=JSON.parse(body);}};
@@ -56,7 +56,7 @@ async function request({path='/payments/'+b+'/intents/'+id+'/initialize',method=
 }
 test('routes authorize status in database before checkout and reject hostile origin/extra fields/live email',async()=>{
  const good=await request();assert.equal(good.res.code,200);assert.equal(good.calls[0].action,'status');assert.equal(good.calls[1].approved,true);assert.equal(good.res.headers['Cache-Control'],'no-store');
- for(const options of [{headers:{origin:'https://evil.example.test'}},{body:'email=real%40example.com&confirm=yes'},{body:'email=synthetic%40example.test&confirm=yes&amount=1'},{headers:{cookie:'session=a;session=b'}}])assert.notEqual((await request(options)).res.code,200);
+ for(const options of [{headers:{origin:'https://evil.example.test'}},{body:'email=real%40mail.example.org&confirm=yes'},{body:'email=synthetic%40example.com&confirm=yes&amount=1'},{headers:{cookie:'session=a;session=b'}}])assert.notEqual((await request(options)).res.code,200);
  assert.equal((await request({authorized:false})).res.code,401);
  assert.equal((await request({headers:{host:'faraios.com'}})).res.code,404);
 });

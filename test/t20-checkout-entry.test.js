@@ -16,6 +16,6 @@ test('owner entry GET renders saved-invoice form without creating intent or call
 });
 test('browser prepare POST uses saved invoice RPC and renders exact saved amount without provider dispatch',async()=>{
  const body='invoiceId='+invoice+'&requestId='+request;
- const good=await run({method:'POST',body});assert.equal(good.res.status,200);assert.deepEqual(good.calls,[{action:'create',input:{businessId:business,invoiceId:invoice,requestId:request}}]);assert.match(good.res.body,/Saved amount: R 100.00/);assert.match(good.res.body,new RegExp('/intents/'+request+'/initialize'));assert.match(good.res.body,/synthetic@example.test/);
+ const good=await run({method:'POST',body});assert.equal(good.res.status,200);assert.deepEqual(good.calls,[{action:'create',input:{businessId:business,invoiceId:invoice,requestId:request}}]);assert.match(good.res.body,/Saved amount: R 100.00/);assert.match(good.res.body,new RegExp('/intents/'+request+'/initialize'));assert.match(good.res.body,/synthetic@example.com/);
  for(const options of [{authorized:false},{extra:'&amount=1'},{extra:'&accountId=456'},{extra:'&requestId='+request},{result:{id:request,reference:'<script>',amountCents:10000,currency:'ZAR'}}])assert.equal((await run({method:'POST',body,...options})).res.status,409);
 });

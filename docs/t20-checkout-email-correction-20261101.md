@@ -1,0 +1,9 @@
+# T20 TEST checkout fixture correction
+
+The owner approved two R100 fictitious TEST checkout checks. Actual Shalean initialization returned unknown/no URL. Read-only Paystack verification by its exact reference returned HTTP400/not found. Bokkie's separately approved attempt was observed directly returning HTTP400/API false with an email-related message category; the controller preserved unknown/no URL. No paid result is established. Original response bodies, keys and customer/card information were not logged.
+
+Both requests used synthetic@example.test. The observed rejection points to the email fixture, though the Shalean original rejection reason was not retained. Change the browser's fictitious email and strict reserved-domain validation to synthetic@example.com / example.com. This reserved example domain supplies no live customer identity. Preserve API/owner/Origin/Host/database guards. Tests retain denial for arbitrary non-example-domain email and browser-supplied price/account.
+
+Do not reset, delete or re-dispatch original unknown checkout claims. Before a replacement test attempt, independently verify the original references at Paystack and confirm no credits. Preserve originals for operator review; any deliberate retirement to review_required must be explicitly recorded with exact evidence and guards, and never described as provider-confirmed failed or paid. Replacement intents must come through the actual owner session and remain the same approved fictitious invoice, business and R100 saved amount. No automatic recovery or additional payment feature is introduced here.
+
+Rollback: revert this email fixture change. Unknown attempts remain preserved. Production, webhook settings, Zoho invoices and T21 remain unchanged. Full provider acceptance is still outstanding.
