@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,writeFile,chmod,symlink,rm} from 'node:fs/promises';
+import {mkdtemp,writeFile,chmod,symlink,rm,lstat,realpath} from 'node:fs/promises';
 import {homedir} from 'node:os';
-import {join} from 'node:path';
+import {join,dirname} from 'node:path';
 import {readPaymentPrivateJson,createPaymentRuntime} from '../src/t20-payment-runtime.js';
 import {createStagingFetch} from '../src/hosted-staging.js';
 import {createStagingServer} from '../src/staging-server.js';
@@ -22,7 +22,17 @@ test('enabled TEST runtime checks each exact enrollment and closes failed startu
 });
 test('private reader rejects loose permissions, symlinks, malformed and oversized contents',async t=>{
  if(process.platform!=='linux')return t.skip('Linux private-file permission check');
- const dir=await mkdtemp(join(homedir(),'t20-private-'));t.after(()=>rm(dir,{recursive:true,force:true}));await chmod(dir,0o700);const file=join(dir,'test.json');
+ // Container HOME need not be a trusted secret ancestor. Select an actually
+ // owned/non-writable fixture chain; never relax the production reader.
+ let parent;
+ for(const candidate of [homedir(),process.cwd()]){
+  try{if(await realpath(candidate)!==candidate)continue;let safe=true;
+   for(let d=candidate;;d=dirname(d)){const s=await lstat(d);if(!s.isDirectory()||s.isSymbolicLink()||(s.mode&0o022)||![0,process.getuid()].includes(s.uid)){safe=false;break;}if(dirname(d)===d)break;}
+   if(safe){parent=candidate;break;}
+  }catch{}
+ }
+ assert.ok(parent,'eligible private fixture ancestor required');
+ const dir=await mkdtemp(join(parent,'t20-private-'));t.after(()=>rm(dir,{recursive:true,force:true}));await chmod(dir,0o700);const file=join(dir,'test.json');
  await writeFile(file,'{}',{mode:0o600});assert.deepEqual(await readPaymentPrivateJson(file),{});
  await chmod(file,0o644);await assert.rejects(readPaymentPrivateJson(file));await symlink(file,join(dir,'link'));await assert.rejects(readPaymentPrivateJson(join(dir,'link')));
  await chmod(file,0o600);await writeFile(file,'not json');await assert.rejects(readPaymentPrivateJson(file));await writeFile(file,'x'.repeat(8193));await assert.rejects(readPaymentPrivateJson(file));
