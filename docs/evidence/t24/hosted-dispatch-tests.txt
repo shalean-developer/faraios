@@ -1,0 +1,10 @@
+✔ T24 HTTP uses current staff identity, rejects injected business and writes, and renders four portal views (72.595179ms)
+✔ T24 hosted dispatch permits only the named public RPC and retains HTTPS/schema restrictions (5.285756ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 232.080836

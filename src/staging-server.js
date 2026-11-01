@@ -1,3 +1,4 @@
+import {cleanerPortalData,renderCleanerPortal} from './cleaner-portal.js';
 import {earningsOperation,earningsFormInput,renderEarningsWorkspace} from './earnings-workspace.js';
 import {eftOperation,renderEft} from './t21-eft.js';
 import {listMonthlyStatements,readMonthlyStatement,appendMonthlyStatement,renderMonthlyStatements,settlementPreparerActions} from './monthly-settlements.js';
@@ -69,6 +70,17 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
       if(req.method==='GET'&&url.pathname==='/quote-detail.js')return send(200,await readFile(new URL('../public/quote-detail.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/style.css')return send(200,await readFile(new URL('../public/style.css',import.meta.url),'utf8'),'text/css');
       if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/'))return send(200,loginForm(''));
+      if(url.pathname==='/cleaner'){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        if(req.method!=='GET')return send(405,'Cleaner portal is read-only','text/plain');
+        const view=url.searchParams.get('view')??'jobs',raw=url.searchParams.get('page')??'0';
+        if(!['jobs','schedule','earnings','profile'].includes(view)||!/^(0|[1-9]\d{0,6})$/.test(raw)||Number(raw)>1000000)return send(400,'Invalid portal page','text/plain');
+        return await auth.withCleanerPortal(id,url.searchParams.get('business'),async(client,business,userId)=>{
+          headerBusiness=business;
+          const data=await cleanerPortalData(client,business.id,userId,view,Number(raw));
+          return send(200,html('Cleaner portal',renderCleanerPortal(business,view,data,Number(raw))));
+        });
+      }
       if(url.pathname==='/earnings'&&['GET','POST'].includes(req.method)){
         if(!await readIdentity(id)){clear();return redirect('/login');}
         let data=null;
@@ -546,7 +558,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
       const selected=url.searchParams.get('business')??'all';
       if(selected!=='all'&&!identity.businessIds.includes(selected))return send(403,'You do not have access to this business.','text/plain');
       return send(200,renderWorkspace(identity,selected,{restoreTest}));
-    }catch(error){if(['Adjustment access denied','Earnings access denied','Invoice access denied','Quote access denied','Staff access denied','Settings access denied','Catalogue access denied','Customer access denied','Booking access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,loginForm('Staging service unavailable. Please try again later.'));}
+    }catch(error){if(['Cleaner access denied','Adjustment access denied','Earnings access denied','Invoice access denied','Quote access denied','Staff access denied','Settings access denied','Catalogue access denied','Customer access denied','Booking access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,loginForm('Staging service unavailable. Please try again later.'));}
   });return server;
 }
 

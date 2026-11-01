@@ -9,7 +9,7 @@ const tables=new Map([
     'cancellation_review_cases','cancellation_review_events','adjustment_review_sources','adjustment_review_events','settlement_review_statements','settlement_review_events'].map(t=>[t,['GET','HEAD']]),
   ...['business_settings','business_catalogue','business_customers','customer_addresses','business_earnings_rules','one_off_bookings','staff_profiles','staff_teams'].map(t=>[t,['GET','HEAD','POST','PATCH',...(t==='business_catalogue'?['DELETE']:[])]]),
 ]);
-const rpcs=new Set(['t22_earnings','booking_context','calendar_window','staff_availability','staff_context','quote_acceptance_actor','create_quote','change_quote','convert_quote','create_recurring','change_recurring','generate_recurring','invoice_totals','prepare_invoice','configure_business_vat','configure_supervisor_allowance','supervisor_allowance_context','append_cancellation_review','append_earnings_adjustment','append_monthly_settlement']);
+const rpcs=new Set(['t24_cleaner_portal','t22_earnings','booking_context','calendar_window','staff_availability','staff_context','quote_acceptance_actor','create_quote','change_quote','convert_quote','create_recurring','change_recurring','generate_recurring','invoice_totals','prepare_invoice','configure_business_vat','configure_supervisor_allowance','supervisor_allowance_context','append_cancellation_review','append_earnings_adjustment','append_monthly_settlement']);
 
 export function assertHostedEnvironment(env=process.env){
   // Refuse credentials rather than silently loading a production/provider connection.

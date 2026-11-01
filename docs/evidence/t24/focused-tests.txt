@@ -1,0 +1,20 @@
+✔ T24 HTTP uses current staff identity, rejects injected business and writes, and renders four portal views (76.057753ms)
+✔ T22 persisted new agreement accrues once after completion and opens immutable adjustment sources (2538.562181ms)
+✔ T22 protected zero-lead terms, late catalogue edits and unpaid customer never erase another worker earnings (2008.55072ms)
+✔ T22 database denies roles, injected identity, foreign scope, revoked session and direct mutation (1879.668193ms)
+✔ T22 accrual is atomic with adjustment-source collision and changed agreed team denied (1957.048358ms)
+✔ T22 actual HTTP to SQL: persisted agreement, completion, retry and explained adjustments; denial stays in workspace (1793.863115ms)
+✔ T22 SQL calculations match approved preview engine, caps, half-cent and fixed cases in independent businesses (1624.085553ms)
+✔ T22 rollback refuses retained agreement history; empty rollback leaves all older journals intact (2884.668919ms)
+✔ T22 direct RPC rejects missing/poison/whitespace agreement evidence and protects original review history (1503.083965ms)
+✔ T24 database restricts assignments, projection, profile, business, current role and session (1423.796685ms)
+✔ T24 own agreement and exact accrued cents never disclose teammate or create financial rows on replay (1545.234086ms)
+✔ T24 stable paging, safe render, empty state and fail-closed response validation (1485.658926ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 20928.67949
