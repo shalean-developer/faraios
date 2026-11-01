@@ -11,7 +11,7 @@ async function run({method='POST',body='accountId=123&confirm=yes',owner=true,si
 }
 test('owner setup uses real-session owner RPC and never takes credentials from browser',async()=>{
  const r=await run();assert.equal(r.res.status,303);assert.deepEqual(r.calls,[{name:'t20_payment_owner',action:'configure',input:{businessId:business,accountId:'123',enabled:true}}]);
- const get=await run({method:'GET',body:''});assert.equal(get.res.status,200);assert.equal(get.calls.length,0);assert.match(get.res.body,/does not activate checkout/);assert.ok(!get.res.body.includes('secretKey'));
+ const get=await run({method:'GET',body:''});assert.equal(get.res.status,200);assert.equal(get.res.headers['Referrer-Policy'],'same-origin');assert.equal(get.calls.length,0);assert.match(get.res.body,/does not activate checkout/);assert.ok(!get.res.body.includes('secretKey'));
 });
 test('manager/foreign owner, unsigned sessions, cross-origin, duplicate fields and secret overrides rejected',async()=>{
  for(const options of [{owner:false},{signedIn:false},{headers:{origin:'https://evil.example.test'}},{headers:{cookie:'sid=a;sid=b'}},{body:'accountId=123&confirm=yes&secretKey=synthetic'},{body:'accountId=123&accountId=456&confirm=yes'},{body:'accountId=0&confirm=yes'},{body:'accountId=123'},{body:'x'.repeat(1025)}]){
