@@ -1,4 +1,4 @@
-import {customerRoute,customerOperation,customerFormPayload,renderCustomerPortal,renderCustomerAccess} from './customer-portal.js';
+import {customerRoute,customerOperation,customerFormPayload,renderCustomerPortal,renderCustomerAccess,assessmentOperation,renderOfficeRequests} from './customer-portal.js';
 import {cleanerPortalData,renderCleanerPortal} from './cleaner-portal.js';
 import {earningsOperation,earningsFormInput,renderEarningsWorkspace} from './earnings-workspace.js';
 import {eftOperation,renderEft} from './t21-eft.js';
@@ -93,6 +93,28 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
           return send(200,pageHtml('Verified customer access',renderCustomerAccess(business,customer,links,{message})));
         });
       }
+      if(url.pathname==='/customer-requests'){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        if(!['GET','POST'].includes(req.method))return send(405,'Method unavailable','text/plain');
+        if(req.method==='POST'&&(req.headers.origin!==origin||req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded'))return send(403,'Origin or form rejected','text/plain');
+        let body='';if(req.method==='POST')for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>16384)return send(413,'Form too large','text/plain');}
+        return await auth.withQuotes(id,url.searchParams.get('business'),async(client,business)=>{
+          // Queue resolves the route through the guarded RPC, independently of UI membership.
+          const route=business.id;
+          try{
+            if(req.method==='POST'){
+              const data=new URLSearchParams(body),action=data.get('action');
+              if(!['assess','finalize'].includes(action))return send(400,'Invalid action','text/plain');
+              await assessmentOperation(client,route,action,Object.fromEntries(data));
+              return redirect('/customer-requests?business='+encodeURIComponent(business.id));
+            }
+            const page=Number(url.searchParams.get('page')??0);if(!Number.isSafeInteger(page)||page<0||page>1000000)return send(400,'Invalid page','text/plain');
+            const requests=await assessmentOperation(client,route,'queue',{page});
+            const paging=`<nav aria-label="Request pages">${page?`<a href="/customer-requests?business=${encodeURIComponent(business.id)}&amp;page=${page-1}">Previous</a>`:''}${requests.rows.length>50?` <a href="/customer-requests?business=${encodeURIComponent(business.id)}&amp;page=${page+1}">Next</a>`:''}</nav>`;
+            return send(200,pageHtml('Customer assessment requests',renderOfficeRequests(business,requests)+paging));
+          }catch(error){return send(error.status??422,esc(error.message),'text/plain');}
+        });
+      }
       const portalRoute=customerRoute(url.pathname);
       if(portalRoute){
         if(!['GET','POST'].includes(req.method))return send(405,'Method unavailable','text/plain');
@@ -104,7 +126,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
           const response=await auth.withCustomerSession(id,async(client,userId)=>{
             let message='';
             if(req.method==='POST'){
-              try{const op=customerFormPayload(data,business.catalogue);await customerOperation(client,portalRoute,op.action,op.payload);return redirect(url.pathname+'?view=history');}
+              try{const op=customerFormPayload(data,business.catalogue);await (['submit','agree'].includes(op.action)?assessmentOperation:customerOperation)(client,portalRoute,op.action,op.payload);return redirect(url.pathname+'?view=history');}
               catch(error){message=error.message;res.statusCode=error.status??422;}
             }
             const account=await customerOperation(client,portalRoute,'account');
@@ -113,8 +135,9 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
             if(!Number.isSafeInteger(page)||page<0||page>1000000)return send(400,'Invalid history page','text/plain');
             const history=await customerOperation(client,portalRoute,'history',{page});
             if(history.userId!==userId)throw Error('Customer context mismatch');
-            let html=renderCustomerPortal(portalRoute,business,{signedIn:true,account,history,serviceId,values:Object.fromEntries(data),message});
-            html+=`<nav aria-label="History pages">${page?`<a href="${url.pathname}?page=${page-1}">Previous</a> `:''}${history.rows.length>50?`<a href="${url.pathname}?page=${page+1}">Next</a>`:''}</nav>`;
+            const requests=await assessmentOperation(client,portalRoute,'history',{page});
+            let html=renderCustomerPortal(portalRoute,business,{signedIn:true,account,history,requests,serviceId,values:Object.fromEntries(data),message});
+            html+=`<nav aria-label="History pages">${page?`<a href="${url.pathname}?page=${page-1}">Previous</a> `:''}${(history.rows.length>50||requests.rows.length>50)?`<a href="${url.pathname}?page=${page+1}">Next</a>`:''}</nav>`;
             return send(message?res.statusCode:200,pageHtml(business.name,html));
           });
           if(response!==null)return response;

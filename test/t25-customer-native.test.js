@@ -30,5 +30,24 @@ test('T25 native: concurrent duplicate, rollback, response loss and revocation s
  try{assert.deepEqual((await beta(x)).rows[0].v,saved);await x.query('commit');}catch(e){assert(['40001','23505'].includes(e.code));await x.query('rollback');}
  await x.query('begin');await identity(x);assert.deepEqual((await beta(x)).rows[0].v,saved);await x.query('commit');
  assert.equal((await db.query("select count(*)::int n from public.one_off_bookings where business_id=$1",[id(20)])).rows[0].n,1);
+ // Real mandatory per-option assessment flags in the second business.
+ await db.query("update public.business_catalogue set cleaning_config=jsonb_set(cleaning_config,'{rules,property_type,House,assessment}','true') where id=$1",[id(120)]);
+ const pending={...p3,requestId:id(5200),catalogueVersions:{[id(120)]:'2'}};
+ const assessed=async(c,action,payload)=>(await c.query("select public.t25_customer_assessment('beta',$1,$2) v",[action,JSON.stringify(payload)])).rows[0].v;
+ await x.query('begin');await identity(x);const request=await assessed(x,'submit',pending);
+ await y.query('begin');await identity(y);const duplicate=assessed(y,'submit',pending);await blocked(y);await x.query('commit');assert.deepEqual(await duplicate,request);await y.query('commit');
+ await x.query('begin');await identity(x,owner);const quoted=await assessed(x,'assess',{requestId:id(5201),request:request.request,version:request.version,additional_cents:0,duration_minutes:420,reason:'Native synthetic assessment'});await x.query('commit');
+ const quote=(await db.query('select quote_version from private_t25.assessment_requests where id=$1',[request.request])).rows[0];
+ const consent={requestId:id(5202),request:request.request,version:quoted.version,quoteVersion:quote.quote_version,consent:true};
+ await x.query('begin');await identity(x);const agreed=await assessed(x,'agree',consent);
+ await y.query('begin');await identity(y);const duplicateConsent=assessed(y,'agree',consent);await blocked(y);await x.query('commit');assert.deepEqual(await duplicateConsent,agreed);await y.query('commit');
+ const finish={requestId:id(5203),request:request.request,version:agreed.version};
+ const count=async()=>(await db.query('select count(*)::int n from public.one_off_bookings')).rows[0].n;
+ const before=await count();await x.query('begin');await identity(x,owner);await assessed(x,'finalize',finish);await x.query('rollback');assert.equal(await count(),before);
+ assert.equal((await db.query('select state from private_t25.assessment_requests where id=$1',[request.request])).rows[0].state,'agreed');
+ await x.query('begin');await identity(x,owner);const savedAssessment=await assessed(x,'finalize',finish);
+ await y.query('begin');await identity(y,owner);const duplicateBooking=assessed(y,'finalize',finish);await blocked(y);await x.query('commit');assert.deepEqual(await duplicateBooking,savedAssessment);await y.query('commit');
+ await y.query('begin');await identity(y,owner);assert.deepEqual(await assessed(y,'finalize',finish),savedAssessment);await y.query('commit');assert.equal(await count(),before+1);
+ console.log('T25_ASSESSMENT_NATIVE_CONSENT_ROLLBACK_RETRY_PASS');
  console.log('T25_CUSTOMER_NATIVE_CONCURRENCY_ROLLBACK_RETRY_PASS');
 });

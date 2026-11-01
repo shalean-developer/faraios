@@ -37,7 +37,7 @@ export function parseCleaningConfig(form,kind,previous=null){
  const extras=form.getAll('allowed_extra');if(extras.length>50||new Set(extras).size!==extras.length||extras.some(id=>!/^[-0-9a-f]{36}$/i.test(id)))throw new Error('Check allowed extras.');
  return {cleaning_profile:profile,cleaning_config:{...durationSettings,linen_change_enabled:profile==='airbnb'&&form.get('linen_change_enabled')==='on',manual_duration:form.get('manual_duration')==='on',base_minutes:number(form,'base_minutes',1440),service_fee_cents:configMoney(form,'service_fee_cents'),rules,equipment,extras,extra_minutes:Object.fromEntries(extras.map(id=>[id,number(form,'extra_minutes_'+id,1440)]))}};
 }
-export function parseCleaningScope(form,service){
+export function parseCleaningScope(form,service,{allowPendingAssessment=false}={}){
  const profile=service.cleaning_profile;if(!profile)return null;const scope={};
  for(const key of cleaningFields(profile,service.cleaning_config)){const d=definitions[key];if(d.count){scope[key]=number(form,'scope_'+key,100);if(['bathrooms','carpet_rooms'].includes(key)&&scope[key]<1)throw new Error(d.label+' must be at least one.');}else{scope[key]=form.get('scope_'+key);if(!(d.custom?Object.keys(service.cleaning_config?.rules?.[key]??{}):d.options).includes(scope[key]))throw new Error('Select '+d.label.toLowerCase()+'.');}}
  if(profile==='airbnb'){scope.access_instructions=(form.get('scope_access_instructions')??'').trim();if(scope.access_instructions.length>2000)throw new Error('Access instructions exceed 2000 characters.');}
@@ -47,7 +47,7 @@ export function parseCleaningScope(form,service){
  if(policy==='assessed'){scope.equipment_arrangement=form.get('scope_equipment_arrangement');if(!['Customer supplies equipment','Business supplies equipment'].includes(scope.equipment_arrangement))throw new Error('Choose the equipment arrangement.');}
  const assessmentFields=['assessment_cents','assessment_minutes','assessment_reason'];
  if(assessmentFields.some(k=>(form.get(k)??'').trim())){const reason=(form.get('assessment_reason')??'').trim();if(!reason||reason.length>2000)throw new Error('Record the assessment and additional work/equipment decision.');const duration=number(form,'assessment_minutes',1440);if(duration<Math.max(15,service.cleaning_config?.minimum_minutes??15)||duration%(service.cleaning_config?.duration_step_minutes??1)!==0)throw new Error('Assessment duration must meet the service minimum and time blocks.');scope.assessment={additional_cents:number(form,'assessment_cents',2147483647),duration_minutes:duration,reason};}
- if(needsAssessment(service,scope)&&!scope.assessment)throw new Error('Complete the office assessment, additional charge (including explicit zero) and final duration before saving.');
+ if(!allowPendingAssessment&&needsAssessment(service,scope)&&!scope.assessment)throw new Error('Complete the office assessment, additional charge (including explicit zero) and final duration before saving.');
  return scope;
 }
 export function needsAssessment(service,scope){const cfg=service.cleaning_config??{};return !!(cfg.require_assessment||cfg.manual_duration||scope.equipment_arrangement==='Business supplies equipment'||Object.entries(scope).some(([k,v])=>cfg.rules?.[k]?.[definitions[k]?.count?'unit':v]?.assessment&&(typeof v!=='number'||v>0)));}

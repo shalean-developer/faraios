@@ -27,8 +27,37 @@ test('T25 actual HTTP to database: anonymous boundary, customer creation, mobile
 test('T25 hosted dispatch allows only named public RPCs with HTTPS and public schema',async()=>{
  const {createStagingFetch,stagingDatabase}=await import('../src/hosted-staging.js');let calls=0;
  const dispatch=createStagingFetch(async()=>{calls++;return new Response('{}');});
- for(const name of ['t25_customer_portal','t25_customer_access'])await dispatch(stagingDatabase+'/rest/v1/rpc/'+name,{method:'POST',body:'{}'});
- assert.equal(calls,2);
+ for(const name of ['t25_customer_portal','t25_customer_access','t25_customer_assessment'])await dispatch(stagingDatabase+'/rest/v1/rpc/'+name,{method:'POST',body:'{}'});
+ assert.equal(calls,3);
  for(const [url,init] of [[stagingDatabase+'/rest/v1/rpc/t25_customer_portal',{method:'GET'}],[stagingDatabase+'/rest/v1/rpc/t25_customer_access',{method:'POST',headers:{'Content-Profile':'private_t25'}}],['http://xdmfyrsauvqznkloroxg.supabase.co/rest/v1/rpc/t25_customer_portal',{method:'POST'}],[stagingDatabase+'/rest/v1/relationships',{method:'GET'}]])await assert.rejects(dispatch(url,init),/blocked/);
- assert.equal(calls,2);
+ assert.equal(calls,3);
+});
+
+test('T25 actual HTTP assessment submission and agreement use the guarded database path',async t=>{
+ const h=await httpFixture();t.after(()=>h.close());const {base}=h;
+ await h.db.query("update public.business_catalogue set cleaning_config=jsonb_set(cleaning_config,'{rules,property_type,House,assessment}','true') where id=$1",[id(110)]);
+ const login=await fetch(base+'/login',{method:'POST',headers:{Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'email=customer%40example.invalid&password=synthetic',redirect:'manual'});const Cookie=login.headers.get('set-cookie').split(';')[0];
+ const post=body=>fetch(base+'/b/alpha',{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body),redirect:'manual'});
+ assert.equal((await post({action:'enrol',requestId:id(3300),name:'SYNTHETIC assessed HTTP',phone:'000'})).status,303);
+ const c=(await h.f.call('account')).customers[0];assert.equal((await post({action:'address',requestId:id(3301),customer:c.id,label:'Synthetic',address_line:'Synthetic'})).status,303);
+ const address=(await h.f.call('account')).customers[0].addresses[0];
+ const form={action:'book',requestId:id(3302),customer:c.id,address_id:address.id,service_id:id(110),['version_'+id(110)]:'2',local_start:'2099-11-02T09:00',...Object.fromEntries(Object.entries(scope()).map(([k,v])=>['scope_'+k,String(v)]))};
+ assert.equal((await post(form)).status,303);
+ let response=await fetch(base+'/b/alpha?view=history',{headers:{Cookie}});assert.match(await response.text(),/Awaiting office assessment[\s\S]*Price pending · duration pending/);
+ const r=(await h.f.assess('history')).rows[0];
+ const ownerLogin=await fetch(base+'/login',{method:'POST',headers:{Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'email=owner%40example.invalid&password=synthetic',redirect:'manual'});assert.equal(ownerLogin.status,303);const officeCookie=ownerLogin.headers.get('set-cookie').split(';')[0];
+ const officePost=body=>fetch(base+'/customer-requests?business='+id(10),{method:'POST',headers:{Cookie:officeCookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body),redirect:'manual'});
+ response=await fetch(base+'/customer-requests?business='+id(10),{headers:{Cookie},redirect:'manual'});assert.equal(response.status,403);
+ response=await fetch(base+'/customer-requests?business='+id(10),{headers:{Cookie:officeCookie}});assert.equal(response.status,200);assert.match(await response.text(),/Send assessed quote for customer agreement/);
+ response=await officePost({action:'assess',requestId:id(3303),request:r.id,version:r.version,additional_cents:0,duration_minutes:420,reason:'Synthetic HTTP review'});assert.equal(response.status,303,await response.text());
+ const reviewed=(await h.f.assess('history')).rows[0];
+ const q=(await h.f.assess('history')).rows[0].quote;
+ response=await fetch(base+'/b/alpha?view=history',{headers:{Cookie}});assert.match(await response.text(),/I agree to this scope, total price and duration/);
+ const agree={action:'agree',requestId:id(3304),request:r.id,version:reviewed.version,quoteVersion:q.version,consent:'yes'};
+ assert.equal((await post({...agree,consent:'no'})).status,409);assert.equal((await post(agree)).status,303);assert.equal((await post(agree)).status,303);
+ assert.equal((await h.db.query('select count(*)::int n from public.one_off_bookings')).rows[0].n,0);
+ const agreed=(await h.f.assess('history')).rows[0];
+ response=await officePost({action:'finalize',requestId:id(3305),request:r.id,version:agreed.version});assert.equal(response.status,303,await response.text());
+ response=await fetch(base+'/b/alpha?view=history',{headers:{Cookie}});assert.match(await response.text(),/Draft booking created/);
+ assert.equal((await h.db.query('select count(*)::int n from public.one_off_bookings')).rows[0].n,1);
 });
