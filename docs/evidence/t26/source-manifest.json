@@ -1,0 +1,37 @@
+{
+  "base": "22c64938ecab8bdfff688beab436917606ff16cb",
+  "branch": "t26/notifications-failed-jobs",
+  "expectedSourceFingerprint": "3a08581d42b41100edd10026f5e54a39f2df48e48cbde106a21c264b1b20bbbe",
+  "files": {
+    "database/t26-notifications-candidate.sql": "c8d22717983e6f873f4bc8f5fe10ee37e075117b114e8b92d1423dac22b5515b",
+    "src/notifications.js": "bfb2637070fb19ce0a2c91b94c59646a4890b9549e1cb9b6ea794aab134c169e",
+    "src/staging-server.js": "2c7979e564fa81ae704d190004b1d5dca9f4fc8aec47fe8ee02846ca9cba7e4f",
+    "src/workspace-layout.js": "8f954b2e10d2c8743ba1f71b3aad78e4c0e328559df4471cdc93c1d4067c32e7",
+    "src/hosted-staging.js": "a83b8667ae11e43601d2b20d627c23eb668b1b8f937306f4a68dce8507c693b8",
+    "package.json": "07f25f29d0a851d681c296b03201f12bb067d07147d87f60d49f9e7d3e93ff89",
+    "scripts/run-ci-policy.sh": "4ba298c1b13226e0b4b3bdfdb1ca326f2d6f2bd6ef8bbe6d8bbddcfb3b63315b",
+    "scripts/run-t26-notifications-postgres.mjs": "162d736366e5a968f94b2f752c7e88839ba03cd55f6d5a6012327aea512d7c4b",
+    "test-support/t26-fixture.js": "ccbd7fb4c7997e38cd1e8cb83c7799a7011c916f8b41317da5c5ab289402983b",
+    "test-support/t26-http-fixture.js": "115d159ed17c9b379d445f0e940728243f7f7a838e43ba5de5eeb37b5cd8a07f",
+    "test/t26-notifications.test.js": "b3348b9a7c0ce045d0ec88dd76e405cd6feff25b5eb1b0709e35d17cd1bb6148",
+    "test/t26-notifications-http.test.js": "ccc3608866915412ac3cdec483ad8e62f0391f00c6ed10cbd440bd838d46cecc",
+    "test/t26-notifications-native.test.js": "1b95ff3ece84121548c389b12e6e85a89a579f9fc571e99ace9d682bcd39c950",
+    "docs/t26-source-preparation-20261101.md": "1aea7b1b1779231747ea6e4bdfdbc4b0cd872824cabc39ee2a33c3bdd22659e3"
+  },
+  "focused": {
+    "total": 11,
+    "pass": 10,
+    "fail": 0,
+    "skip": 1
+  },
+  "broad": {
+    "total": 1243,
+    "pass": 1210,
+    "fail": 2,
+    "skip": 31
+  },
+  "nativeRun": false,
+  "published": false,
+  "stagingChanged": false,
+  "externalDelivery": "disabled"
+}

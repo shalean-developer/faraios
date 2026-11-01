@@ -1,0 +1,19 @@
+✔ T26 HTTP to SQL: scoped office queue, disabled/sink control, current paid suppression and CSRF denial (5954.482459ms)
+✔ T26 hosted transport permits only the guarded public RPC (7.049757ms)
+﹣ T26 native: concurrent dispatch, commit response loss, rollback and payment snapshot fencing (1.086016ms) # SKIP
+✔ T26 SQL: Drafts are silent, disabled mode and exact confirmation/assignment state are enforced (6663.331632ms)
+✔ T26 SQL: both businesses suppress reminders when payment changes while queued; receipt uses current verified totals (3232.53698ms)
+✔ T26 SQL: durable failed job, same-key response loss, backoff, rollback-safe retry, and five-attempt bound (4194.342345ms)
+✔ T26 SQL: stale booking, cancelled/Draft, recipient deactivation and payment-on-failed-retry suppress safely (2802.093717ms)
+✔ T26 SQL: role/business/session isolation, forged payloads and direct table access are denied (3045.335046ms)
+✔ T26 UI: controlled sink, escaped scoped messages and retry controls (1.295364ms)
+✔ T26 SQL: verified online payment suppresses queued reminder; pending provider state never fabricates a receipt (2572.700712ms)
+✔ T26 SQL: current assignment reaches only its business staff; stale confirmation is suppressed and partial reminder has the actual balance (2198.924159ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 25041.383975
