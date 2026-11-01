@@ -74,12 +74,15 @@ test('T20 HTTPS: expired/banned/backend-membership and disabled enrollment check
 });
 test('T20 HTTPS: exact empty rollback preserves existing invoices and refuses populated installs',async t=>{
  const rollback=await readFile(new URL('../database/t20-payment-empty-rollback.sql',import.meta.url),'utf8');
- const empty=await fixture();t.after(empty.close);await httpsFixture(empty);await empty.exec(rollback);
+ const empty=await fixture();t.after(empty.close);await httpsFixture(empty);
+ await empty.exec('grant t20_payment_verifier to current_user with admin true,inherit false,set false');await empty.exec(rollback);
  assert.equal((await empty.q("select to_regnamespace('private_t20') as schema")).rows[0].schema,null);
  assert.equal((await empty.q('select count(*)::int as n from public.business_invoices')).rows[0].n,2);
  const populated=await fixture();t.after(populated.close);const {call}=await httpsFixture(populated);await call(owner,'configure',{businessId:a,accountId:'123',enabled:false},'owner');
  await assert.rejects(populated.exec(rollback),/t20_rollback_requires_empty_inactive_install/);await populated.exec('rollback');
  assert.equal((await populated.q('select count(*)::int as n from private_t20.accounts')).rows[0].n,1);
+ const assigned=await fixture();t.after(assigned.close);await httpsFixture(assigned);await assigned.exec('grant t20_payment_verifier to authenticated with inherit false,set true');
+ await assert.rejects(assigned.exec(rollback),/t20_rollback_requires_empty_inactive_install/);await assigned.exec('rollback');
 });
 test('T20 SQL: owner account boundaries, staff/foreign denials and backend-only publication',async t=>{
  const f=await fixture();t.after(f.close);await f.configure();await f.configure(b,'456');
