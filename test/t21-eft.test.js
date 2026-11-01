@@ -86,6 +86,10 @@ test('T21 real HTTP to SQL: manager records/verifies/matches, foreign/staff and 
  assert.equal((await http(path,'POST',receipt,cookie)).status,303);
  assert.equal((await http(path,'POST',{action:'verify',receiptId:id(701),confirmed:'yes'},cookie)).status,303);
  assert.equal((await http(path,'POST',{action:'allocate',receiptId:id(701),invoiceId:ia},cookie)).status,303);
+ // A duplicate bank transaction must stay inside the workspace with saved facts.
+ const duplicate=await http(path,'POST',{...receipt,requestId:id(702)},cookie);
+ assert.equal(duplicate.status,409);assert.ok(duplicate.body.includes('Manual EFT reconciliation'));assert.ok(duplicate.body.includes('role="alert"'));assert.ok(duplicate.body.includes('could not be confirmed'));assert.ok(duplicate.body.includes('HTTP-BANK'));assert.ok(!duplicate.body.includes('Welcome back'));
+ assert.equal((await f.call('list',{})).length,1);
  const result=await http(path+'&invoice='+ia,'GET',null,cookie);assert.equal(result.status,200);assert.ok(result.body.includes('Payment: paid'));assert.ok(result.body.includes(ia));assert.ok(result.body.includes('Balance R 0.00'));
  for(const role of ['staff','foreign']){const login=await http('/login','POST',{email:role+'@example.test',password:'synthetic-test-only'});assert.notEqual((await http(path,'GET',null,login.cookie)).status,200);}
  assert.equal((await f.call('status',{invoiceId:ia})).verifiedCents,10000);
