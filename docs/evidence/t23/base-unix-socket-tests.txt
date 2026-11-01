@@ -1,0 +1,48 @@
+✖ actual Unix listener is required; TCP and symlink paths are refused (5.856424ms)
+✖ inherited listener requires kernel-proven Unix identity and refuses TCP fd0 (2.894177ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 153.830511
+
+✖ failing tests:
+
+test at ../../../../tmp/faraios-t23-base/test/hosted-staging.test.js:145:1
+✖ actual Unix listener is required; TCP and symlink paths are refused (5.856424ms)
+  Error: listen EPERM: operation not permitted /workspace/scratch/808d60f3509b/faraios/t07-socket-W0ig1I/app.sock
+      at Server.setupListenHandle [as _listen2] (node:net:2368:21)
+      at listenInCluster (node:net:2499:12)
+      at Server.listen (node:net:2641:5)
+      at file:///tmp/faraios-t23-base/test/hosted-staging.test.js:151:77
+      at new Promise (<anonymous>)
+      at TestContext.<anonymous> (file:///tmp/faraios-t23-base/test/hosted-staging.test.js:151:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '/workspace/scratch/808d60f3509b/faraios/t07-socket-W0ig1I/app.sock',
+    port: -1
+  }
+
+test at ../../../../tmp/faraios-t23-base/test/hosted-staging.test.js:174:1
+✖ inherited listener requires kernel-proven Unix identity and refuses TCP fd0 (2.894177ms)
+  Error: listen EPERM: operation not permitted /workspace/scratch/808d60f3509b/faraios/t07-inherited-jpZF9v/app.sock
+      at Server.setupListenHandle [as _listen2] (node:net:2368:21)
+      at listenInCluster (node:net:2499:12)
+      at Server.listen (node:net:2641:5)
+      at file:///tmp/faraios-t23-base/test/hosted-staging.test.js:181:77
+      at new Promise (<anonymous>)
+      at TestContext.<anonymous> (file:///tmp/faraios-t23-base/test/hosted-staging.test.js:181:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '/workspace/scratch/808d60f3509b/faraios/t07-inherited-jpZF9v/app.sock',
+    port: -1
+  }
