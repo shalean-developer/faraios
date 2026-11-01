@@ -1,0 +1,34 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {PGlite} from '@electric-sql/pglite';import {btree_gist} from '@electric-sql/pglite/contrib/btree_gist';
+import {fixture,id,customer,other,scope} from '../test-support/t25-fixture.js';
+import {createStagingServer} from '../src/staging-server.js';
+import {httpFixture} from '../test-support/t25-http-fixture.js';
+test('T25 actual HTTP to database: anonymous boundary, customer creation, mobile-form request, history and forged access',async t=>{
+ const h=await httpFixture();t.after(()=>h.close());const {base}=h;
+ let r=await fetch(base+'/b/alpha');assert.equal(r.status,200);assert.match(await r.text(),/Synthetic alpha/);
+ r=await fetch(base+'/b/unknown');assert.equal(r.status,403);
+ const login=await fetch(base+'/login',{method:'POST',headers:{Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'email=customer%40example.invalid&password=synthetic&next=%2Fb%2Falpha',redirect:'manual'});assert.equal(login.status,303,await login.text());assert.equal(login.headers.get('location'),'/b/alpha');const Cookie=login.headers.get('set-cookie').split(';')[0];
+ const post=body=>fetch(base+'/b/alpha',{method:'POST',headers:{Cookie,Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body),redirect:'manual'});
+ r=await post({action:'enrol',requestId:id(3000),name:'SYNTHETIC HTTP customer',phone:'000'});assert.equal(r.status,303);
+ const c=(await h.f.call('account')).customers[0];
+ r=await post({action:'address',requestId:id(3001),customer:c.id,label:'Home',address_line:'SYNTHETIC HTTP street',city:'Synthetic'});assert.equal(r.status,303);
+ const address=(await h.f.call('account')).customers[0].addresses[0];
+ const form={action:'book',requestId:id(3002),customer:c.id,address_id:address.id,service_id:id(110),['version_'+id(110)]:'1',local_start:'2099-11-02T09:00',...Object.fromEntries(Object.entries(scope()).map(([k,v])=>['scope_'+k,String(v)]))};
+ r=await post(form);assert.equal(r.status,303);r=await post(form);assert.equal(r.status,303);
+ r=await fetch(base+'/b/alpha?view=history',{headers:{Cookie}});assert.equal(r.status,200);const text=await r.text();assert.match(text,/SYNTHETIC HTTP street/);assert.match(text,/Request awaiting office confirmation/);assert.doesNotMatch(text,/PRIVATE DEPOT|Office secret/);
+ assert.equal((await h.db.query('select count(*)::int n from public.one_off_bookings')).rows[0].n,1);
+ r=await post({...form,requestId:id(3003),customer:other});assert.equal(r.status,403);
+ r=await post({...form,requestId:id(3004),assessment_cents:'0'});assert.equal(r.status,422);
+ r=await fetch(base+'/b/alpha',{method:'POST',headers:{Cookie,Origin:'https://attacker.invalid','Content-Type':'application/x-www-form-urlencoded'},body:'action=enrol'});assert.equal(r.status,403);
+ r=await fetch(base+'/b/alpha',{method:'POST',headers:{Origin:base,'Content-Type':'application/x-www-form-urlencoded'},body:'action=enrol'});assert.equal(r.status,401);
+ r=await fetch(base+'/b/beta?view=history',{headers:{Cookie}});assert.doesNotMatch(await r.text(),/SYNTHETIC HTTP street/);
+ r=await fetch(base+'/customers',{headers:{Cookie},redirect:'manual'});assert.equal(r.status,403);
+});
+test('T25 hosted dispatch allows only named public RPCs with HTTPS and public schema',async()=>{
+ const {createStagingFetch,stagingDatabase}=await import('../src/hosted-staging.js');let calls=0;
+ const dispatch=createStagingFetch(async()=>{calls++;return new Response('{}');});
+ for(const name of ['t25_customer_portal','t25_customer_access'])await dispatch(stagingDatabase+'/rest/v1/rpc/'+name,{method:'POST',body:'{}'});
+ assert.equal(calls,2);
+ for(const [url,init] of [[stagingDatabase+'/rest/v1/rpc/t25_customer_portal',{method:'GET'}],[stagingDatabase+'/rest/v1/rpc/t25_customer_access',{method:'POST',headers:{'Content-Profile':'private_t25'}}],['http://xdmfyrsauvqznkloroxg.supabase.co/rest/v1/rpc/t25_customer_portal',{method:'POST'}],[stagingDatabase+'/rest/v1/relationships',{method:'GET'}]])await assert.rejects(dispatch(url,init),/blocked/);
+ assert.equal(calls,2);
+});
