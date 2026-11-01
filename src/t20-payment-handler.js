@@ -57,14 +57,14 @@ export function createPaymentHandler({controller}){
     const v=await rpc('create',{businessId,invoiceId:form.get('invoiceId'),requestId:form.get('requestId')});
     if((req.headers.accept??'').includes('text/html')){
      if(!uuid(v.id)||!/^FOS-[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(v.reference??'')||!Number.isSafeInteger(v.amountCents)||v.amountCents<=0||v.currency!=='ZAR')throw Error();
-     return html('<p>Saved reference: '+v.reference+'</p><p>Saved amount: R '+(v.amountCents/100).toFixed(2)+'</p><form method="post" action="/payments/'+businessId+'/intents/'+v.id+'/initialize"><label>Fictitious TEST email <input name="email" type="email" value="synthetic@example.test" required></label><label><input type="checkbox" name="confirm" value="yes" required> I approve this TEST-only checkout.</label><button>Open approved TEST checkout</button></form>');
+     return html('<p>Saved reference: '+v.reference+'</p><p>Saved amount: R '+(v.amountCents/100).toFixed(2)+'</p><form method="post" action="/payments/'+businessId+'/intents/'+v.id+'/initialize"><label>Fictitious TEST email <input name="email" type="email" value="synthetic@example.com" required></label><label><input type="checkbox" name="confirm" value="yes" required> I approve this TEST-only checkout.</label><button>Open approved TEST checkout</button></form>');
     }
     return send(200,v);
    }
    // DB status is the role/business/record authorization gate before backend work.
    const v=await rpc('status',{businessId,intentId});
    if(operation==='initialize'){
-    if(!exact(['email','confirm'])||form.get('confirm')!=='yes'||!/^[-A-Za-z0-9._+]+@example\.test$/.test(form.get('email')??''))throw Error();
+    if(!exact(['email','confirm'])||form.get('confirm')!=='yes'||!/^[-A-Za-z0-9._+]+@example\.com$/.test(form.get('email')??''))throw Error();
     return send(200,await controller.initialize({businessId,reference:v.reference,email:form.get('email'),approved:true}));
    }
    if(operation==='reconcile'&&exact([]))return send(200,await controller.reconcile({businessId,reference:v.reference}));
