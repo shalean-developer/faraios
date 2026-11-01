@@ -81,3 +81,7 @@ echo CI_POLICY_STANDARD_WORKER_NATIVE_PASS
 # T20 owns a separate synthetic cluster; no existing finance schema is changed.
 T20_PG_BIN="$(pg_config --bindir)" node scripts/run-t20-payments-postgres.mjs
 echo CI_POLICY_T20_PAYMENT_NATIVE_PASS
+
+# T21 manual EFT: independent connections in its own disposable cluster.
+T21_PG_BIN="$(pg_config --bindir)" node scripts/run-t21-payments-postgres.mjs
+echo CI_POLICY_T21_EFT_NATIVE_PASS

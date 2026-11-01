@@ -5,8 +5,7 @@ import {PGlite} from '@electric-sql/pglite';
 import {renderEft} from '../src/t21-eft.js';
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 const owner=id(1),manager=id(2),staff=id(3),foreign=id(4),a=id(10),b=id(20),ia=id(100),ib=id(200);
-async function fixture(){
- const db=new PGlite();
+export async function fixture(db=new PGlite()){
  await db.exec("create role anon;create role authenticated;create role service_role;create schema auth;create table auth.users(id uuid primary key,banned_until timestamptz);create table auth.sessions(id uuid primary key,user_id uuid,not_after timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select nullif(current_setting('request.jwt.claims',true),'')::jsonb$$;grant usage on schema auth to authenticated;");
  await db.exec(await readFile(new URL('../database/identity-draft.sql',import.meta.url),'utf8'));
  await db.exec('create table public.one_off_bookings(id uuid primary key,business_id uuid,status text);create table public.business_invoices(id uuid primary key,business_id uuid references public.businesses(id),booking_id uuid,total_cents integer,currency text,unique(business_id,id));');
