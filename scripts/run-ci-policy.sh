@@ -101,3 +101,7 @@ echo CI_POLICY_T24_CLEANER_NATIVE_PASS
 # T25 customer requests: own disposable cluster and independent connections.
 T25_PG_BIN="$(pg_config --bindir)" node scripts/run-t25-customer-postgres.mjs
 echo CI_POLICY_T25_CUSTOMER_NATIVE_PASS
+
+# T26 notification sink: isolated concurrent delivery/payment/retry guards.
+T26_PG_BIN="$(pg_config --bindir)" node scripts/run-t26-notifications-postgres.mjs
+echo CI_POLICY_T26_NOTIFICATIONS_NATIVE_PASS

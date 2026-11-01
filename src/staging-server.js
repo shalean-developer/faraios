@@ -1,3 +1,4 @@
+import {notificationOperation,notificationForm,renderNotifications} from './notifications.js';
 import {customerRoute,customerOperation,customerFormPayload,renderCustomerPortal,renderCustomerAccess,assessmentOperation,renderOfficeRequests} from './customer-portal.js';
 import {cleanerPortalData,renderCleanerPortal} from './cleaner-portal.js';
 import {earningsOperation,earningsFormInput,renderEarningsWorkspace} from './earnings-workspace.js';
@@ -73,6 +74,24 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
       if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/')){
         const next=url.searchParams.get('next');
         return send(200,loginForm('').replace('<label for="email">',customerRoute(next??'')?'<input type="hidden" name="next" value="'+esc(next)+'"><label for="email">':'<label for="email">'));
+      }
+      if(url.pathname==='/notifications'){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        if(!['GET','POST'].includes(req.method))return send(405,'Method unavailable','text/plain');
+        if(req.method==='POST'&&(req.headers.origin!==origin||req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded'))return send(403,'Origin or form rejected','text/plain');
+        let body='';if(req.method==='POST')for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>4096)return send(413,'Form too large','text/plain');}
+        return await auth.withBookings(id,url.searchParams.get('business'),async(client,business)=>{
+          try{
+            if(req.method==='POST'){
+              const {action,payload}=notificationForm(new URLSearchParams(body));await notificationOperation(client,business.id,action,payload);
+              return redirect('/notifications?business='+encodeURIComponent(business.id));
+            }
+            const page=Number(url.searchParams.get('page')??0);if(!Number.isSafeInteger(page)||page<0||page>1000000)return send(400,'Invalid page','text/plain');
+            const data=await notificationOperation(client,business.id,'list',{page});
+            const owner=headerIdentity.memberships.some(m=>m.businessId===business.id&&m.role==='owner'&&m.status==='active');
+            headerBusiness=business;return send(200,html('Notifications',renderNotifications(business,data,{owner,page})));
+          }catch(error){return send(error.status??422,esc(error.message),'text/plain');}
+        });
       }
       if(url.pathname==='/customer-access'){
         if(!await readIdentity(id)){clear();return redirect('/login');}

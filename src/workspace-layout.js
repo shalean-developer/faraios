@@ -11,6 +11,7 @@ export function renderWorkspaceNavigation(identity,selected='all',active='/dashb
  const permits=permission=>businesses.some(b=>canAccess({userId:identity.userId,businessId:b.id,permission,memberships:identity.memberships}));
  const items=[['Overview','/dashboard',null],['Bookings','/bookings','bookings.read'],['Recurring bookings','/recurring','bookings.read'],['Availability & calendar','/calendar','bookings.read'],['Customers','/customers','customers.read'],['Services & extras','/catalogue','catalogue.read'],['Staff & teams','/staff','staff.read'],['Quotes','/quotes','quotes.read'],['My Jobs','/cleaner','jobs.assigned.read'],['Finance','/invoices','finance.read'],['Earnings','/earnings','finance.read'],['Earnings rules','/earnings-rules','finance.read'],['My earnings','/cleaner?view=earnings','earnings.own.read'],['Business settings','/settings','business.manage'],['Team access',null,'members.manage']];
  items.splice(items.findIndex(i=>i[0]==='Earnings rules'),0,['Cancellation reviews','/cancellations','finance.read']);
+ items.splice(items.findIndex(i=>i[0]==='Earnings rules'),0,['Notifications','/notifications','bookings.read']);
  items.splice(items.findIndex(i=>i[0]==='Earnings rules'),0,['Earnings adjustments','/earnings-adjustments','finance.read']);
  items.splice(items.findIndex(i=>i[0]==='Earnings rules'),0,['Monthly settlement reviews','/monthly-settlements','finance.read']);
  items.splice(items.findIndex(i=>i[0]==='My earnings'),0,['My settlement reviews','/monthly-settlements','earnings.own.read']);
