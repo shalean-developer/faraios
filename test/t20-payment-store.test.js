@@ -85,5 +85,10 @@ test('T20 native concurrent publication and interrupted uncommitted/committed de
  const results=await Promise.all(clients.slice(1).map(c=>c.query(sql,params)));
  assert.equal(results.filter(r=>r.rows[0].result.changed).length,1);assert.deepEqual(await f.counts(),{credits:1,observations:1});
  const reopened=new pg.Client({connectionString:process.env.T20_NATIVE_URL});await reopened.connect();try{await reopened.query('set role t20_payment_verifier');assert.equal((await reopened.query(sql,params)).rows[0].result.changed,false);}finally{await reopened.end();}
- assert.deepEqual(await f.counts(),{credits:1,observations:1});t.diagnostic('T20_PAYMENT_CONCURRENCY_NATIVE_PASS');
+ assert.deepEqual(await f.counts(),{credits:1,observations:1});
+ await assert.rejects(f.as(staff,()=>f.q("select private_t20.configure_account($1,'123',false)",[a])),e=>e.code==='42501');
+ await assert.rejects(f.as(null,()=>f.q('select * from private_t20.credits'),'t20_payment_verifier'),e=>e.code==='42501');
+ await f.q("insert into public.business_invoices values($1,$2,10000,'ZAR')",[id(101),a]);await f.make(a,id(101),id(304));
+ await assert.rejects(f.publish('success',{intent:id(304)}),e=>e.code==='23505');assert.deepEqual(await f.counts(),{credits:1,observations:1});
+ t.diagnostic('T20_PAYMENT_CONCURRENCY_NATIVE_PASS');t.diagnostic('T20_PAYMENT_NATIVE_DENIAL_ROLLBACK_PASS');
 });
