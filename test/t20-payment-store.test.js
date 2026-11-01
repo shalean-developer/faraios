@@ -84,6 +84,36 @@ test('T20 HTTPS: exact empty rollback preserves existing invoices and refuses po
  const assigned=await fixture();t.after(assigned.close);await httpsFixture(assigned);await assigned.exec('grant t20_payment_verifier to authenticated with inherit false,set true');
  await assert.rejects(assigned.exec(rollback),/t20_rollback_requires_empty_inactive_install/);await assigned.exec('rollback');
 });
+test('T20 checkout: committed claim fences retries, foreign callers and uncertain outcomes',async t=>{
+ const f=await fixture();t.after(f.close);const {backend,call}=await httpsFixture(f),scope={businessId:a,accountId:'123',intentId:intent,nonce:id(700)};
+ await call(owner,'configure',{businessId:a,accountId:'123',enabled:true},'owner');await call(owner,'create',{businessId:a,invoiceId:ia,requestId:intent},'owner');
+ await f.exec(await readFile(new URL('../database/t20-checkout-dispatch-candidate.sql',import.meta.url),'utf8'));
+ const checkout=(user,action,input)=>call(user,action,input,'checkout');
+ await assert.rejects(checkout(backend,'claim',scope),e=>e.code==='42501');await f.q('insert into private_t20.backend_accounts values($1,$2,$3,true)',[backend,a,'123']);
+ for(const user of [owner,manager,staff,foreign])await assert.rejects(checkout(user,'claim',scope),e=>e.code==='42501');
+ for(const role of ['anon','service_role'])await assert.rejects(f.as(null,()=>f.q("select public.t20_payment_checkout('claim',$1)",[JSON.stringify(scope)]),role),e=>e.code==='42501');
+ assert.equal((await checkout(backend,'claim',scope)).rows[0].result.dispatch,true);
+ assert.equal((await checkout(backend,'claim',{...scope,nonce:id(701)})).rows[0].result.dispatch,false);
+ await assert.rejects(checkout(backend,'finish',{...scope,nonce:null,authorizationUrl:'https://checkout.paystack.com/synthetic'}),e=>e.code==='42501');
+ await assert.rejects(checkout(backend,'finish',{...scope,nonce:id(701),authorizationUrl:'https://checkout.paystack.com/synthetic'}),e=>e.code==='42501');
+ await assert.rejects(checkout(backend,'finish',{...scope,authorizationUrl:'https://evil.example.test/synthetic'}),e=>e.code==='23514');
+ assert.equal((await checkout(backend,'finish',{...scope,authorizationUrl:null})).rows[0].result.state,'unknown');
+ assert.equal((await checkout(backend,'claim',scope)).rows[0].result.dispatch,false);
+ await assert.rejects(checkout(backend,'finish',{...scope,authorizationUrl:'https://checkout.paystack.com/synthetic'}),e=>e.code==='42501');
+ await assert.rejects(checkout(backend,'claim',{...scope,businessId:b}),e=>e.code==='42501');
+ await assert.rejects(checkout(backend,'claim',{...scope,amountCents:1}),e=>e.code==='42501');
+ await f.q('delete from auth.sessions where user_id=$1',[backend]);await assert.rejects(checkout(backend,'claim',scope),e=>e.code==='42501');
+ assert.deepEqual(await f.counts(),{credits:0,observations:0});
+ await assert.rejects(f.exec(await readFile(new URL('../database/t20-checkout-dispatch-empty-rollback.sql',import.meta.url),'utf8')),/t20_checkout_rollback_requires_empty_store/);await f.exec('rollback');
+});
+test('T20 checkout additive empty rollback preserves original payment store',async t=>{
+ const f=await fixture();t.after(f.close);await httpsFixture(f);
+ await f.exec(await readFile(new URL('../database/t20-checkout-dispatch-candidate.sql',import.meta.url),'utf8'));
+ await f.exec(await readFile(new URL('../database/t20-checkout-dispatch-empty-rollback.sql',import.meta.url),'utf8'));
+ assert.equal((await f.q("select to_regclass('private_t20.checkouts') as removed")).rows[0].removed,null);
+ assert.equal((await f.q('select count(*)::int as n from public.business_invoices')).rows[0].n,2);
+ assert.deepEqual(await f.counts(),{credits:0,observations:0});
+});
 test('T20 SQL: owner account boundaries, staff/foreign denials and backend-only publication',async t=>{
  const f=await fixture();t.after(f.close);await f.configure();await f.configure(b,'456');
  for(const user of [manager,staff,foreign])await assert.rejects(f.as(user,()=>f.q("select private_t20.configure_account($1,'123',false)",[a])),e=>e.code==='42501');
@@ -149,6 +179,16 @@ test('T20 native concurrent publication and interrupted uncommitted/committed de
  assert.equal((await call(backend,'health',scope)).rows[0].result.ready,true);
  assert.equal((await call(backend,'lookup',{...scope,reference:'FOS-'+intent})).rows[0].result.status,'paid');
  assert.equal((await call(backend,'publish',{...scope,intentId:intent,transactionId:'500',status:'success',amountCents:10000,currency:'ZAR'})).rows[0].result.changed,false);
+ await f.exec(await readFile(new URL('../database/t20-checkout-dispatch-candidate.sql',import.meta.url),'utf8'));
+ await f.q("insert into public.business_invoices values($1,$2,10000,'ZAR')",[id(102),a]);await call(owner,'create',{businessId:a,invoiceId:id(102),requestId:id(305)},'owner');
+ const checkoutClients=await Promise.all(Array.from({length:3},async()=>{const c=new pg.Client({connectionString:process.env.T20_NATIVE_URL});await c.connect();await c.query('set role authenticated');await c.query("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claims',$2,false)",[backend,JSON.stringify({sub:backend,session_id:id(905)})]);return c;}));
+ try{
+  const args=JSON.stringify({...scope,intentId:id(305),nonce:id(700)}),sql="select public.t20_payment_checkout('claim',$1) as result";
+  await checkoutClients[0].query('begin');await checkoutClients[0].query(sql,[args]);await checkoutClients[0].end();
+  const claims=await Promise.all(checkoutClients.slice(1).map(c=>c.query(sql,[args])));assert.equal(claims.filter(c=>c.rows[0].result.dispatch).length,1);
+  assert.equal((await call(backend,'claim',{...scope,intentId:id(305),nonce:id(701)},'checkout')).rows[0].result.dispatch,false);
+  t.diagnostic('T20_CHECKOUT_DISPATCH_NATIVE_PASS');
+ }finally{for(const c of checkoutClients)await c.end().catch(()=>{});}
  await f.q('delete from auth.sessions where user_id=$1',[backend]);await assert.rejects(call(backend,'health',scope),e=>e.code==='42501');
  assert.deepEqual(await f.counts(),{credits:1,observations:1});t.diagnostic('T20_PAYMENT_BACKEND_NATIVE_PASS');
 });
