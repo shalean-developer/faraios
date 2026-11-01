@@ -1,3 +1,4 @@
+import {eftOperation,renderEft} from './t21-eft.js';
 import {listMonthlyStatements,readMonthlyStatement,appendMonthlyStatement,renderMonthlyStatements,settlementPreparerActions} from './monthly-settlements.js';
 import {readVatSettings,saveVatSettings} from './vat.js';
 import {listAdjustmentSources,readAdjustmentSource,appendAdjustmentReview,renderAdjustmentReviews} from './adjustment-reviews.js';
@@ -213,6 +214,27 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
           }catch(error){if(error.status===409)return send(409,show({owner:false,message:error.message,error:true}));let values=null;if(data.get('action')==='save')try{values=parseEarningsRule(data);}catch{values={model:data.get('model'),raw:Object.fromEntries(data)};}return send(error.status??422,show({values,message:error.message,error:true}));}
         });
       }
+      if(url.pathname==='/eft'&&paymentProxy&&['GET','POST'].includes(req.method)){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        return await auth.withInvoices(id,url.searchParams.get('business'),async(client,business)=>{
+          headerBusiness=business;
+          if(req.method==='POST'){
+            if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
+            if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
+            let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>4096)return send(413,'Form too large','text/plain');}
+            const f=new URLSearchParams(body),action=f.get('action');
+            const expected={record:['action','requestId','bankReference','evidenceReference','amount','receivedOn'],verify:['action','receiptId','confirmed'],allocate:['action','receiptId','invoiceId']}[action];
+            if(!expected||[...f.keys()].length!==expected.length||expected.some(k=>f.getAll(k).length!==1)||action==='verify'&&f.get('confirmed')!=='yes')return send(400,'Invalid EFT action','text/plain');
+            const input={businessId:business.id};for(const k of expected)if(!['action','confirmed'].includes(k))input[k==='amount'?'amountCents':k]=k==='amount'?parseRand(f.get(k)):f.get(k);
+            await eftOperation(client,action,input);
+            return redirect('/eft?business='+encodeURIComponent(business.id));
+          }
+          const page=Number(url.searchParams.get('page')??0);
+          if(!Number.isInteger(page)||page<0||page>9999999)return send(400,'Invalid evidence page','text/plain');
+          const status=url.searchParams.has('invoice')?await eftOperation(client,'status',{businessId:business.id,invoiceId:url.searchParams.get('invoice')}):null;
+          return send(200,html('Manual EFT reconciliation',renderEft(business,await eftOperation(client,'list',{businessId:business.id,page}),status,page)));
+        });
+      }
       if(url.pathname==='/invoices'&&['GET','POST'].includes(req.method)){
         if(!await readIdentity(id)){clear();return redirect('/login');}
         return await auth.withInvoices(id,url.searchParams.get('business'),async(client,business,actor,owner)=>{
@@ -223,7 +245,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
           const booking=invoice?await readBooking(client,business.id,invoice.booking_id):bookingId?await readBooking(client,business.id,bookingId):null;
           if(invoiceId&&!invoice||bookingId&&!booking||invoice&&!booking)return send(404,'Invoice or booking unavailable','text/plain');
           if(bookingId&&req.method==='GET'){const existing=await bookingInvoice(client,business.id,bookingId);if(existing)return redirect('/invoices?business='+encodeURIComponent(business.id)+'&invoice='+encodeURIComponent(existing.id));}
-          const show=async(options={})=>html('Invoices',renderInvoices(business,invoice||booking||settings?[]:await listInvoices(client,business.id),{invoice,booking,connection:await accountingConnection(client,business.id),totals:invoice||booking||settings?null:await invoiceTotals(client,business.id),owner,settings,workerConfigured:!accountingConnectionOnly&&Boolean(accountingProxy||accountingWorker&&accountingAdapter),accountingRuntimeAvailable:Boolean(accountingProxy),...options}));
+          const show=async(options={})=>html('Invoices',renderInvoices(business,invoice||booking||settings?[]:await listInvoices(client,business.id),{invoice,booking,connection:await accountingConnection(client,business.id),totals:invoice||booking||settings?null:await invoiceTotals(client,business.id),owner,settings,workerConfigured:!accountingConnectionOnly&&Boolean(accountingProxy||accountingWorker&&accountingAdapter),accountingRuntimeAvailable:Boolean(accountingProxy),paymentStatus:paymentProxy&&invoice?await eftOperation(client,'status',{businessId:business.id,invoiceId:invoice.id}):null,...options}));
           if(req.method==='GET')return send(200,await show({message:url.searchParams.get('saved')==='1'?'Saved. Accounting status is shown below.':''}));
           if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
           if(req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(415,'Form encoding required','text/plain');
@@ -441,7 +463,9 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
             headerBusiness=business;
           const ctx=await bookingContext(client,business.id),bookingId=url.searchParams.get('booking'),customerId=url.searchParams.get('customer'),booking=bookingId?await readBooking(client,business.id,bookingId):null,customer=customerId?await readCustomer(client,business.id,customerId):null;
           if(bookingId&&!booking||customerId&&!customer)return send(404,'Booking or customer unavailable','text/plain');
-          return send(200,html('Bookings',renderBookings(business,await listBookings(client,business.id),ctx,{booking,customer,customers:await listCustomers(client,business.id),addresses:customer?await listAddresses(client,business.id,customer.id):[],catalogue:await listCatalogue(client,business.id),values:{service_id:url.searchParams.get('service_id')??''},creating:url.searchParams.get('create')==='1',filters:{q:url.searchParams.get('q'),status:url.searchParams.get('status')},message:url.searchParams.get('saved')==='1'?'Booking saved.':''})));
+          const linkedPaymentInvoice=paymentProxy&&booking?await bookingInvoice(client,business.id,booking.id):null;
+          const paymentStatus=linkedPaymentInvoice?await eftOperation(client,'status',{businessId:business.id,invoiceId:linkedPaymentInvoice.id}):null;
+          return send(200,html('Bookings',renderBookings(business,await listBookings(client,business.id),ctx,{paymentStatus,booking,customer,customers:await listCustomers(client,business.id),addresses:customer?await listAddresses(client,business.id,customer.id):[],catalogue:await listCatalogue(client,business.id),values:{service_id:url.searchParams.get('service_id')??''},creating:url.searchParams.get('create')==='1',filters:{q:url.searchParams.get('q'),status:url.searchParams.get('status')},message:url.searchParams.get('saved')==='1'?'Booking saved.':''})));
         });
       }
         if(url.pathname==='/customers'){

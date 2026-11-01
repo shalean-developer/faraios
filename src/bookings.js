@@ -1,3 +1,4 @@
+import {renderPaymentSummary} from './t21-eft.js';
 import {renderVatSummary} from './vat.js';
 import {moduleHeading,feedback,statusBadge,localDateTime} from './workspace-layout.js';
 import {validPickerValue} from '../public/date-time-values.js';
@@ -59,7 +60,7 @@ export async function updateBooking(client,businessId,booking,form){
  }else throw new Error('Invalid booking action');
  const {data,error}=await client.from('one_off_bookings').update(row).eq('business_id',businessId).eq('id',booking.id).eq('version',version).select('id');if(error)throw databaseError(error);if(data?.length!==1){const conflict=new Error('This booking changed. Reopen it before saving.');conflict.status=409;throw conflict;}
 }
-export function renderBookings(business,bookings,ctx,{booking=null,customers=[],customer=null,addresses=[],catalogue=[],values={},message='',error=false,creating=false,filters={}}={}){
+export function renderBookings(business,bookings,ctx,{booking=null,customers=[],customer=null,addresses=[],catalogue=[],values={},message='',error=false,creating=false,filters={},paymentStatus=null}={}){
  const service=catalogue.find(i=>i.id===values.service_id&&i.kind==='service'&&i.is_active);
  const allowedExtras=catalogue.filter(i=>i.kind==='extra'&&i.is_active&&(!service?.cleaning_profile||service.cleaning_config?.extras?.includes(i.id)));
  const base='/bookings?business='+encodeURIComponent(business.id),money=n=>new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR'}).format(n/100);
@@ -79,7 +80,8 @@ export function renderBookings(business,bookings,ctx,{booking=null,customers=[],
    if(['draft','confirmed','assigned','en_route','arrived'].includes(b.status))content+=`<section class="panel"><h2>Reschedule</h2><form class="settings-form" method="post" action="${action}"><input type="hidden" name="action" value="reschedule">${hidden(b)}${scheduleFields(b)}${workFields(b,'reschedule')}${reason('reschedule')}<button>Save schedule</button></form></section>`;
    if(b.status==='assigned')content+=`<section class="panel"><h2>Change team</h2><form class="settings-form" method="post" action="${action}"><input type="hidden" name="action" value="reassign">${hidden(b)}${staffFields(b.assigned_staff)}${workFields(b,'reassign')}${reason('reassign')}<button>Save team</button></form></section>`;
   }
-  content+=`<p><a class="button secondary" href="/invoices?business=${encodeURIComponent(business.id)}&amp;booking=${encodeURIComponent(b.id)}">Prepare or open invoice</a></p>`;
+  content+=renderPaymentSummary(paymentStatus);
+  content+=`<p><a class="button secondary" href="/invoices?business=${encodeURIComponent(business.id)}&amp;booking=${encodeURIComponent(b.id)}">Prepare or open invoice</a> · <a href="/eft?business=${encodeURIComponent(business.id)}">Check payment and EFT evidence</a></p>`;
   if(b.source_quote_id)content+=`<p><a href="/quotes?business=${encodeURIComponent(business.id)}&amp;quote=${encodeURIComponent(b.source_quote_id)}">Open accepted quote and invoice handoff</a></p>`;
   content+=b.recurring_schedule_id?`<p><a href="/recurring?business=${encodeURIComponent(business.id)}&amp;schedule=${encodeURIComponent(b.recurring_schedule_id)}">Open recurring schedule</a></p>`:b.status!=='cancelled'?`<p><a href="/recurring?business=${encodeURIComponent(business.id)}&amp;source=${encodeURIComponent(b.id)}">Make recurring</a></p>`:'';
   content+=`<p><a href="${base}">Back to bookings</a></p>`;
