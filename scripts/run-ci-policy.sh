@@ -77,3 +77,7 @@ echo CI_POLICY_RESTORE_NATIVE_PASS
 # T19 standard worker: own disposable cluster; no hosted configuration.
 T19_PG_BIN="$(pg_config --bindir)" node scripts/run-t19-standard-worker-postgres.mjs
 echo CI_POLICY_STANDARD_WORKER_NATIVE_PASS
+
+# T20 owns a separate synthetic cluster; no existing finance schema is changed.
+T20_PG_BIN="$(pg_config --bindir)" node scripts/run-t20-payments-postgres.mjs
+echo CI_POLICY_T20_PAYMENT_NATIVE_PASS
