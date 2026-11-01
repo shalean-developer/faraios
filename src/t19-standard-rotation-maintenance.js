@@ -19,7 +19,11 @@ export async function scanStagingWriterProcesses({appRoot,procRoot='/proc',selfP
     const args=(await bounded(join(path,'cmdline'),65536)).split('\0').filter(Boolean),cwd=await readlink(join(path,'cwd'));
     const after=await stat(path);if(before.dev!==after.dev||before.ino!==after.ino||before.uid!==after.uid||started.ticks!==(await start(path)).ticks)throw deny();
     // Exact arguments, including flags/preloads; never substring-match source in -e.
-    for(const [script,kind]of scripts){const absolute=join(appRoot,script);if(args.slice(1).some(a=>a===absolute||a==='--require='+absolute||a==='--import=file://'+absolute||(cwd===appRoot&&(a===script||a==='./'+script)))){found.push({pid:Number(id),kind});break;}}
+    let matched=false;
+    for(const [script,kind]of scripts){const absolute=join(appRoot,script);if(args.slice(1).some(a=>a===absolute||a==='--require='+absolute||a==='--import=file://'+absolute||(cwd===appRoot&&(a===script||a==='./'+script)))){found.push({pid:Number(id),kind});matched=true;break;}}
+    // LiteSpeed can rewrite argv to a single process title. Any Node process
+    // rooted in this application blocks maintenance, even without a known script.
+    if(!matched&&cwd===appRoot)found.push({pid:Number(id),kind:'app-node'});
    }catch(e){if(e.code==='ENOENT'||e.code==='ESRCH'){let alive;try{alive=await stat(path);}catch(gone){if(gone.code==='ENOENT'||gone.code==='ESRCH')continue;throw gone;}if(alive&&['Z','X'].includes((await start(path)).state))continue;}throw e;}
   }return found.sort((a,b)=>a.pid-b.pid);
  }catch{throw deny();}

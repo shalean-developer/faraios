@@ -29,7 +29,8 @@ test('Linux process scanner handles exact paths, Node flags and relative scripts
  }
  await processEntry(101,['node',join(appRoot,'_standard_accounting.cjs')]);await processEntry(102,['node','--enable-source-maps','./scripts/t19-standard-invoice-worker.mjs']);await processEntry(103,['node','--require='+join(appRoot,'_standard_accounting.cjs'),'-e','SYNTHETIC']);
  await processEntry(104,['node','-e','console.log("_standard_accounting.cjs")']);await processEntry(105,['node','unrelated.mjs']);await processEntry(106,['php','_standard_accounting.cjs'],appRoot,'php');await processEntry(107,['node',join(appRoot,'scripts/t19-standard-scheduled-worker.mjs')]);await processEntry(108,['node',join(appRoot,'_standard_accounting.cjs')],appRoot,'renamed-node');
- const found=await scanStagingWriterProcesses({appRoot,procRoot,selfPid:999});assert.deepEqual(found,[{pid:101,kind:'web'},{pid:102,kind:'worker'},{pid:103,kind:'web'},{pid:107,kind:'scheduler'},{pid:108,kind:'web'}]);assert.ok(!JSON.stringify(found).includes('SYNTHETIC'));
+ await processEntry(109,['lsnode:REWRITTEN_TITLE']);await processEntry(110,['node','unrelated.mjs'],root);
+ const found=await scanStagingWriterProcesses({appRoot,procRoot,selfPid:999});assert.deepEqual(found,[{pid:101,kind:'web'},{pid:102,kind:'worker'},{pid:103,kind:'web'},{pid:104,kind:'app-node'},{pid:105,kind:'app-node'},{pid:107,kind:'scheduler'},{pid:108,kind:'web'},{pid:109,kind:'app-node'}]);assert.ok(!JSON.stringify(found).includes('SYNTHETIC'));assert.ok(!JSON.stringify(found).includes('REWRITTEN_TITLE'));
  assert.ok(!(await scanStagingWriterProcesses({appRoot,procRoot,selfPid:101})).some(p=>p.pid===101));
  await unlink(join(procRoot,'105','cmdline'));await assert.rejects(scanStagingWriterProcesses({appRoot,procRoot,selfPid:999}),deny);await writeFile(join(procRoot,'105','cmdline'),'node\0unrelated.mjs\0');
  await writeFile(join(procRoot,'104','stat'),'malformed');await assert.rejects(scanStagingWriterProcesses({appRoot,procRoot,selfPid:999}),deny);
@@ -40,4 +41,12 @@ test('real Linux proc scan detects a running synthetic writer and clears only af
  await once(child.stdout,'data');const status=await readFile('/proc/self/status','utf8'),pid=Number(status.match(/^Pid:\s+(\d+)/m)?.[1]),nested=status.match(/^NSpid:\s+(.+)$/m)?.[1]?.trim().split(/\s+/);
  if(pid!==process.pid||nested&&nested.length!==1){await assert.rejects(scanStagingWriterProcesses({appRoot}),deny);t.diagnostic('T19_PROC_NAMESPACE_MISMATCH_DENIED');}
  else{const found=await scanStagingWriterProcesses({appRoot});assert.deepEqual(found,[{pid:child.pid,kind:'worker'}]);child.kill('SIGTERM');await exit;assert.deepEqual(await scanStagingWriterProcesses({appRoot}),[]);t.diagnostic('T19_PROC_MATCHING_NAMESPACE_PASS');}
+});
+test('rewritten Node process title in application directory still blocks maintenance',{skip:process.platform!=='linux'},async t=>{
+ const appRoot=await mkdtemp(join(tmpdir(),'t19-proc-title-'));
+ const child=spawn(process.execPath,['-e',"process.title='lsnode:SYNTHETIC';console.log('READY');setInterval(()=>{},1000)"],{cwd:appRoot,env:{},stdio:['ignore','pipe','pipe']});const exit=once(child,'exit');
+ t.after(async()=>{if(child.exitCode===null&&child.signalCode===null){child.kill('SIGTERM');await exit;}await rm(appRoot,{recursive:true,force:true});});await once(child.stdout,'data');
+ const status=await readFile('/proc/self/status','utf8'),pid=Number(status.match(/^Pid:\s+(\d+)/m)?.[1]),nested=status.match(/^NSpid:\s+(.+)$/m)?.[1]?.trim().split(/\s+/);
+ if(pid!==process.pid||nested&&nested.length!==1){await assert.rejects(scanStagingWriterProcesses({appRoot}),deny);t.diagnostic('T19_PROC_TITLE_NAMESPACE_MISMATCH_DENIED');}
+ else{assert.deepEqual(await scanStagingWriterProcesses({appRoot}),[{pid:child.pid,kind:'app-node'}]);await assert.rejects(check(baseline(),{scanProcesses:()=>scanStagingWriterProcesses({appRoot})})(),deny);child.kill('SIGTERM');await exit;assert.deepEqual(await scanStagingWriterProcesses({appRoot}),[]);t.diagnostic('T19_PROC_REWRITTEN_TITLE_PASS');}
 });
