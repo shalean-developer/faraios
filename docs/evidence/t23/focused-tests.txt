@@ -1,0 +1,33 @@
+✔ PAY03 closed month, fifth target, preceding banking day and earlier deadlines (1894.351299ms)
+✔ PAY03 submitted/unknown/partial/cleared and retries never duplicate original amount (1684.304483ms)
+✔ PAY03 own-worker disputes remove freeze; resolution needs refreeze; independent pools stay pending (1503.195516ms)
+✔ PAY03 direct RPC role/scope/type/replay guards and RLS enforce access (1525.97925ms)
+✔ PAY03 links only approved correction delta; global claim prevents cross-period repayment and Stage2 simulation (1506.799955ms)
+✔ PAY03 partial clearing stays allocated to its line through dispute and resolution (1610.817616ms)
+✔ monthly HTTP scoped preparer, CSRF/body guards, fresh role and restore denial (74.242451ms)
+✔ monthly own-worker read/dispute has no owner controls and foreign worker is hidden (27.485268ms)
+✔ monthly errors preserve blanks; restore writes rejected (6.696396ms)
+✔ monthly restore is read-only (4.213344ms)
+✔ monthly summary never calls partial or unknown fully cleared and renderer escapes evidence (1.724926ms)
+✔ monthly reconciliation accepts dot and comma cents without allowing grouping or extra precision (0.813256ms)
+✔ T22 persisted new agreement accrues once after completion and opens immutable adjustment sources (1982.157779ms)
+✔ T22 protected zero-lead terms, late catalogue edits and unpaid customer never erase another worker earnings (1651.449791ms)
+✔ T22 database denies roles, injected identity, foreign scope, revoked session and direct mutation (1557.07703ms)
+✔ T22 accrual is atomic with adjustment-source collision and changed agreed team denied (1503.037633ms)
+✔ T22 actual HTTP to SQL: persisted agreement, completion, retry and explained adjustments; denial stays in workspace (1700.292679ms)
+✔ T22 SQL calculations match approved preview engine, caps, half-cent and fixed cases in independent businesses (1521.091365ms)
+✔ T22 rollback refuses retained agreement history; empty rollback leaves all older journals intact (2748.379123ms)
+✔ T22 direct RPC rejects missing/poison/whitespace agreement evidence and protects original review history (1413.033152ms)
+✔ T23 durable originals, frozen snapshots, partial recovery, later reimbursement and exact reconciliation (1490.134404ms)
+✔ T23 direct SQL denies manual/foreign/paid-only sources, fresh role/session and duplicate cross-period claims (1440.681857ms)
+✔ T23 protected R0 and source amount tampering, foreign worker and unaccrued originals are enforced in SQL (1460.602511ms)
+✔ T23 real local HTTP forms reach SQL for accrued selection, freeze, approval, submission and source reconciliation (1629.12235ms)
+✔ T23 disputed linked adjustment invalidates approval, resolution requires new freeze and retains clearing (1495.319996ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 25
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 21764.427196

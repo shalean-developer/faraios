@@ -1,0 +1,108 @@
+--- accepted-PAY03-writer
++++ T23-source-linked-writer
+@@ -1,4 +1,4 @@
+-create function audit.append_monthly_settlement(p_business_id uuid,p_statement_id uuid,p_version integer,p_key uuid,p_type text,p_payload jsonb)
++create or replace function audit.append_monthly_settlement(p_business_id uuid,p_statement_id uuid,p_version integer,p_key uuid,p_type text,p_payload jsonb)
+ returns uuid language plpgsql security definer set search_path='' as $$
+ declare uid uuid:=auth.uid();r text;s public.settlement_review_statements;e public.settlement_review_events;
+  allocations jsonb;remaining_lines jsonb;allocated bigint;cap bigint;old_allocated bigint;allocation_total bigint;allocation_key text;allocation_value text;
+@@ -8,14 +8,35 @@
+  id_pattern text:='^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$';
+  whitespace text:=U&'[\0009-\000D\0020\00A0\1680\2000-\200A\2028\2029\202F\205F\3000\FEFF]';
+ begin
+- select m.role into r from public.business_memberships m join public.businesses b on b.id=m.business_id where m.business_id=p_business_id and m.user_id=uid and m.status='active' and b.status='active';
++ if not private_t20.live_session() then raise exception 'Settlement session denied' using errcode='42501';end if;
++ select m.role into r from public.business_memberships m join public.businesses b on b.id=m.business_id where m.business_id=p_business_id and m.user_id=uid and m.status='active' and b.status='active' for share of m,b;
+  if r is null or r not in ('owner','manager','staff') then raise exception 'Settlement access denied' using errcode='42501';end if;
++ -- Resolve identifiers to immutable journal amounts; clients cannot supply replacement money or periods.
++ if p_type in ('add_accrued','add_adjustment') then
++  if r not in ('owner','manager') or jsonb_typeof(p_payload) is distinct from 'object'
++   or (select array_agg(q.field order by q.field) from jsonb_object_keys(p_payload) q(field)) is distinct from array['evidence','sourceId']
++   or jsonb_typeof(p_payload->'sourceId') is distinct from 'string' or p_payload->>'sourceId'!~id_pattern
++   then raise exception 'Invalid source selection' using errcode='42501';end if;
++  if p_type='add_accrued' then
++   select * into src from public.adjustment_review_sources where id=(p_payload->>'sourceId')::uuid and business_id=p_business_id;
++   if src.id is null then raise exception 'Accrued source unavailable';end if;
++   p_payload:=jsonb_build_object('kind','visit','sourceId',src.id,'bookingId',src.booking_id,'amountCents',src.original_payload->'originalCents','priorClearedCents',0,
++    'originalPeriod',src.original_payload->>'originalPeriod','sourceReference',src.id,'evidence',p_payload->'evidence');
++  else
++   select * into a from public.adjustment_review_items where id=(p_payload->>'sourceId')::uuid and business_id=p_business_id;
++   select * into src from public.adjustment_review_sources where id=a.source_id and business_id=p_business_id;
++   if a.id is null or src.id is null then raise exception 'Adjustment unavailable';end if;
++   p_payload:=jsonb_build_object('kind','correction','adjustmentId',a.id,'amountCents',a.delta_cents,'priorClearedCents',0,
++    'originalPeriod',src.original_payload->>'originalPeriod','sourceReference',a.id,'evidence',p_payload->'evidence');
++  end if;
++  p_type:='add_line';
++ end if;
+  if p_statement_id is null or p_statement_id::text!~id_pattern or p_key is null or p_key::text!~id_pattern or p_version is null or p_version<0 or jsonb_typeof(p_payload) is distinct from 'object' or octet_length(p_payload::text)>24000 then raise exception 'Invalid settlement event';end if;
+  if r='staff' and p_type<>'dispute' then raise exception 'Own review only' using errcode='42501';end if;
+  if r<>'owner' and p_type not in ('create','add_line','dispute') then raise exception 'Owner approval required' using errcode='42501';end if;
+  case p_type
+  when 'create' then allowed:=array['workerId','period','calendarEvidence','closedDates','earlierDeadline','deadlineEvidence'];required:=array['calendarEvidence'];
+- when 'add_line' then allowed:=array['kind','amountCents','priorClearedCents','originalPeriod','sourceReference','evidence','collected','collectionEvidence','adjustmentId','bookingId'];required:=array['sourceReference','evidence'];
++ when 'add_line' then allowed:=array['kind','amountCents','priorClearedCents','originalPeriod','sourceReference','evidence','collected','collectionEvidence','adjustmentId','bookingId','sourceId'];required:=array['sourceReference','evidence'];
+  when 'dispute' then allowed:=array['lineId','reason','evidence'];required:=array['reason','evidence'];
+  when 'collect_pool' then allowed:=array['lineId','collectedCents','collectionEvidence'];required:=array['collectionEvidence'];
+  when 'resolve' then allowed:=array['lineId','reason','workerReviewEvidence'];required:=array['reason','workerReviewEvidence'];
+@@ -44,7 +65,7 @@
+    end loop;
+   else
+    if jsonb_typeof(p_payload->k) is distinct from 'string' or octet_length(v)>2000 then raise exception 'Invalid evidence type or length';end if;
+-   if k in ('workerId','adjustmentId','bookingId','lineId','transferId') then
++   if k in ('workerId','adjustmentId','bookingId','lineId','transferId','sourceId') then
+     if lower(v)!~id_pattern then raise exception 'Invalid reference';end if;p_payload:=jsonb_set(p_payload,array[k],to_jsonb(lower(v)));
+    end if;
+   end if;
+@@ -75,11 +96,23 @@
+  if p_type='create' then
+   if s.version<>0 then raise exception 'Statement already exists';end if;
+  elsif p_type='add_line' then
+-  if st->'freeze'<>'null'::jsonb or jsonb_array_length(transfers)>0 or jsonb_array_length(lines)>=200 then raise exception 'Prepare lines before freeze; later changes require a linked correction';end if;
++  if jsonb_array_length(lines)>=200 or (p_payload->>'kind'<>'correction' and (st->'freeze'<>'null'::jsonb or jsonb_array_length(transfers)>0)) or exists(select 1 from jsonb_array_elements(transfers) x where x->>'uncertain'='true') then raise exception 'Prepare lines before freeze; later changes require a linked correction';end if;
++  if coalesce(p_payload->>'kind','') not in ('visit','correction') then raise exception 'Use accrued originals or approved linked adjustments';end if;
+   if coalesce(p_payload->>'kind','') not in ('visit','company_cancellation','customer_pool','reimbursement','correction') or coalesce(p_payload->>'originalPeriod','')!~'^[0-9]{4}-(0[1-9]|1[0-2])$' or p_payload->>'originalPeriod'>s.period then raise exception 'Valid original closed period required';end if;
+   if p_payload->>'amountCents' is null or p_payload->>'priorClearedCents' is null then raise exception 'Unknown amounts remain blank; explicit amounts required to add';end if;
++  if p_payload->>'kind'='visit' then
++   select * into src from public.adjustment_review_sources where id=(p_payload->>'sourceId')::uuid and business_id=p_business_id;
++   if src.id is null or src.worker_id is distinct from s.worker_id or src.booking_id is distinct from (p_payload->>'bookingId')::uuid
++    or src.original_payload->>'originalPeriod' is distinct from p_payload->>'originalPeriod'
++    or src.original_payload->'originalCents' is distinct from p_payload->'amountCents'
++    or p_payload->>'priorClearedCents'<>'0'
++    or not exists(select 1 from private_t22.agreements g join private_t22.accruals ac on ac.agreement_id=g.id and ac.business_id=g.business_id,
++       jsonb_array_elements(g.workers) w where g.business_id=p_business_id and g.booking_id=src.booking_id
++       and w->>'sourceId'=src.id::text and w->>'userId'=src.worker_id::text and w->'amountCents'=p_payload->'amountCents')
++    then raise exception 'Exact accrued original source required';end if;
++  elsif p_payload?'sourceId' then raise exception 'Original source only for accrued visit';end if;
+   delta:=(p_payload->>'amountCents')::bigint;prior:=(p_payload->>'priorClearedCents')::bigint;
+-  if prior<0 or delta=0 or delta<0 and p_payload->>'kind'<>'correction' or delta>=0 and prior>delta or delta<0 and prior<>0 then raise exception 'Invalid outstanding amount';end if;
++  if prior<0 or delta=0 and p_payload->>'kind'<>'visit' or delta<0 and p_payload->>'kind'<>'correction' or delta>=0 and prior>delta or delta<0 and prior<>0 then raise exception 'Invalid outstanding amount';end if;
+   occ:=(p_payload->>'kind')||':'||regexp_replace(p_payload->>'sourceReference','^'||whitespace||'+|'||whitespace||'+$','','g');
+   if p_payload->>'kind'='correction' then
+    if p_payload->>'adjustmentId' is null or prior<>0 then raise exception 'Linked correction only; original excluded';end if;
+@@ -100,8 +133,8 @@
+    if not p_payload?'collected' or p_payload->>'collected'='true' and length(regexp_replace(coalesce(p_payload->>'collectionEvidence',''),whitespace,'','g'))=0 then raise exception 'Collection status and evidence required';end if;
+   elsif p_payload?'collected' or p_payload?'collectionEvidence' then raise exception 'Collection fields only for customer pool';end if;
+   insert into public.settlement_review_claims(statement_id,business_id,worker_id,occurrence,adjustment_id) values(s.id,p_business_id,s.worker_id,occ,case when p_payload->>'kind'='correction' then a.id else null end);
+-  lines:=lines||jsonb_build_array(p_payload||jsonb_build_object('id',p_key,'disputed',false,'outstandingCents',delta-prior));
+-  st:=jsonb_set(st,'{lines}',lines);st:=st||jsonb_build_object('approval',null,'statementEvidence',null);
++  lines:=lines||jsonb_build_array(p_payload||case when p_payload->>'kind'='correction' then jsonb_build_object('adjustmentKind',a.kind) else '{}'::jsonb end||jsonb_build_object('id',p_key,'disputed',false,'outstandingCents',delta-prior));
++  st:=jsonb_set(st,'{lines}',lines);st:=st||jsonb_build_object('freeze',null,'approval',null,'statementEvidence',null);
+  elsif p_type='collect_pool' then
+   updated:='[]'::jsonb;
+   for line in select value from jsonb_array_elements(lines) loop
+@@ -144,12 +177,12 @@
+   if total<credited then raise exception 'Cleared amount preserved; prepare a separate lawful correction';end if;
+   if p_type='freeze' then
+    if jsonb_array_length(lines)=0 then raise exception 'Reviewed lines required';end if;
+-   st:=st||jsonb_build_object('freeze',jsonb_build_object('totalCents',total,'linkedVersions',linked_versions,'reference',p_payload,'actor',uid),'approval',null,'statementEvidence',null);
++   st:=st||jsonb_build_object('freeze',jsonb_build_object('lines',lines,'totalCents',total,'linkedVersions',linked_versions,'reference',p_payload,'actor',uid),'approval',null,'statementEvidence',null);
+   elsif p_type='approve' then
+-   if st->'freeze'='null'::jsonb or ((st->'freeze'->>'totalCents')::bigint<>total or st->'freeze'->'linkedVersions'<>linked_versions) then raise exception 'Current frozen statement required';end if;
++   if st->'freeze'='null'::jsonb or ((st->'freeze'->>'totalCents')::bigint<>total or st->'freeze'->'linkedVersions'<>linked_versions or st->'freeze'->'lines' is distinct from lines) then raise exception 'Current frozen statement required';end if;
+    st:=st||jsonb_build_object('approval',jsonb_build_object('totalCents',total,'evidence',p_payload,'actor',uid));
+   else
+-   if st->'freeze'='null'::jsonb or st->'approval'='null'::jsonb or ((st->'approval'->>'totalCents')::bigint<>total or st->'freeze'->'linkedVersions'<>linked_versions) then raise exception 'Current owner-approved frozen statement required';end if;
++   if st->'freeze'='null'::jsonb or st->'approval'='null'::jsonb or ((st->'approval'->>'totalCents')::bigint<>total or st->'freeze'->'linkedVersions'<>linked_versions or st->'freeze'->'lines' is distinct from lines) then raise exception 'Current owner-approved frozen statement required';end if;
+    if exists(select 1 from jsonb_array_elements(transfers) x where x->>'uncertain'='true') then raise exception 'Reconcile uncertain transfer before retry';end if;
+    requested:=(p_payload->>'amountCents')::bigint;
+    if requested is null or requested<=0 or requested<>total-credited then raise exception 'Only exact outstanding amount may be simulated';end if;
