@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
 import {earningsAdjustmentEvent} from '../src/earnings-adjustments.js';
+import {readAdjustmentSource,teamEarningsReview} from '../src/adjustment-reviews.js';
 const id=n=>'cd000000-0000-4000-8000-'+String(n).padStart(12,'0');
 const owner=id(1),manager=id(2),worker=id(3),other=id(4),a=id(10),b=id(11),booking=id(20),source=id(30);
 export async function adjustmentDatabase(fn){
@@ -25,6 +26,28 @@ export async function adjustmentDatabase(fn){
 const original={sourceId:source,bookingId:booking,workerId:worker,originalVersion:3,originalCents:250000,originalPeriod:'2026-10',agreementEvidence:'SYNTHETIC accepted terms',originalRecordEvidence:'SYNTHETIC R2500 paid'};
 const proposal={sourceId:source,kind:'reimbursement',deltaCents:5000,reason:'Missed R50',evidence:'SYNTHETIC receipt',occurrenceReference:' missed1 '};
 const approve=adjustmentId=>({adjustmentId,reason:'Verified',originalVerificationEvidence:'Original verified',entitlementReviewEvidence:'Full obligations reviewed'});
+test('T22 database zero lead and disputed correction preserve other worker amount and exact retry history',()=>adjustmentDatabase(async({db,append,as})=>{
+ const second=id(31);
+ await append(manager,'register_source',{...original,originalCents:0},0,id(110));
+ await append(manager,'register_source',{...original,sourceId:second,workerId:other,originalCents:30000},0,id(111),a,second);
+ await append(manager,'propose',{...proposal,sourceId:second},1,id(112),a,second);
+ await append(owner,'approve',approve(id(112)),2,id(113),a,second);
+ await append(owner,'approve',approve(id(112)),2,id(113),a,second);
+ await append(manager,'propose',{...proposal,occurrenceReference:'lead-review'},1,id(114));
+ await append(worker,'raise_dispute',{adjustmentId:id(114),reason:'Review lead separately',evidence:'TEST'},2,id(115));
+ const client={from(table){const filters=[];return{select(){return this;},eq(k,v){filters.push([k,v]);return this;},order(){return this;},range(){return this;},then(resolve,reject){
+  const allowed={adjustment_review_sources:true,adjustment_review_events:true};if(!allowed[table])throw new Error('Unexpected table');
+  as(owner,()=>db.query('select * from public.'+table+' where '+filters.map(([k],i)=>k+'=$'+(i+1)).join(' and ')+(table==='adjustment_review_events'?' order by version':''),filters.map(([,v])=>v))).then(result=>resolve({data:result.rows}),reject);
+ }}}};
+ const records=[];for(const ref of [source,second])records.push(await readAdjustmentSource(client,a,ref));
+ const review=teamEarningsReview(records,a);
+ assert.equal(review[0].reviewedCents,0);assert.equal(review[0].disputed,true);
+ assert.equal(review[1].reviewedCents,30000);assert.equal(review[1].reimbursementCents,5000);assert.equal(review[1].disputed,false);
+ assert.equal(records[1].state.events.length,3);
+ assert.throws(()=>teamEarningsReview(records,b),/scope/);
+ assert.throws(()=>teamEarningsReview([records[0],records[0]],a),/source/);
+ assert.equal((await as(other,()=>db.query('select * from public.adjustment_review_sources'))).rows.length,1);
+}));
 test('database journal preserves correction-only flow and reconstructs core including canonical replay',()=>adjustmentDatabase(async({db,append,as})=>{
  await append(manager,'register_source',original,0,id(100));
  await append(manager,'propose',proposal,1,id(101));

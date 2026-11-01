@@ -85,3 +85,7 @@ echo CI_POLICY_T20_PAYMENT_NATIVE_PASS
 # T21 manual EFT: independent connections in its own disposable cluster.
 T21_PG_BIN="$(pg_config --bindir)" node scripts/run-t21-payments-postgres.mjs
 echo CI_POLICY_T21_EFT_NATIVE_PASS
+
+# T22 earnings: isolated agreement/accrual concurrency and rollback.
+T22_PG_BIN="$(pg_config --bindir)" node scripts/run-t22-earnings-postgres.mjs
+echo CI_POLICY_T22_EARNINGS_NATIVE_PASS
