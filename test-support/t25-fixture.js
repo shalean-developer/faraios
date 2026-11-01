@@ -22,13 +22,13 @@ export async function fixture(db){
   await db.query("insert into private_t25.routes values($1,$2,true)",[route,business]);
   await db.query("insert into public.business_settings(business_id,display_name,working_days,opens_at,closes_at,time_zone) values($1,$2,array[0,1,2,3,4,5,6]::smallint[],'08:00','18:00','Africa/Johannesburg')",[business,'Synthetic '+route]);
   const rules={};for(const key of profileFields.regular){const d=definitions[key];rules[key]={};for(const opt of d.count?['unit']:d.custom?['No animals']:d.options)rules[key][opt]={cents:100,minutes:30};}
-  const config={base_minutes:210,service_fee_cents:500,rules,equipment:{policy:'included',base:'PRIVATE DEPOT MUST NOT LEAK'},extras:[],extra_minutes:{},minimum_minutes:210,duration_step_minutes:30};
+  const config={base_minutes:210,service_fee_cents:500,rules,equipment:{policy:'assessed',base:'PRIVATE DEPOT MUST NOT LEAK'},extras:[],extra_minutes:{},minimum_minutes:210,duration_step_minutes:30};
   await db.query("insert into public.business_catalogue(id,business_id,kind,name,pricing_model,unit_label,price_cents,currency,team_size,is_active,cleaning_profile,cleaning_config) values($1,$2,'service',$3,'fixed','visit',$4,'ZAR',1,true,'regular',$5)",[id(n+100),business,'Synthetic service '+route,n*1000,JSON.stringify(config)]);
  }
  const as=async(user,fn,role='authenticated')=>{await db.exec('set role '+role);await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user??'']);try{return await fn();}finally{await db.exec('reset role;reset request.jwt.claim.sub');}};
  const call=(action,payload={},user=customer,route='alpha')=>as(user,async()=>(await db.query('select public.t25_customer_portal($1,$2,$3) v',[route,action,JSON.stringify(payload)])).rows[0].v,user?'authenticated':'anon');
  return {db,as,call};
 }
-export function scope(){const s={};for(const key of profileFields.regular){const d=definitions[key];s[key]=d.count?1:d.custom?'No animals':d.options[0];}return s;}
+export function scope(){const s={equipment_arrangement:'Customer supplies equipment'};for(const key of profileFields.regular){const d=definitions[key];s[key]=d.count?1:d.custom?'No animals':d.options[0];}return s;}
 export async function enrol(f,user=customer,route='alpha',n=1000){const c=await f.call('enrol',{requestId:id(n),name:'Synthetic customer',phone:'0000000000'},user,route);const address=await f.call('address',{requestId:id(n+1),customer:c.customer,label:'Home',address_line:'Synthetic street',city:'Synthetic city'},user,route);return {customer:c.customer,address:address.address};}
 export const booking=(rel,n=1002,service=id(110))=>({requestId:id(n),...rel,localStart:'2099-11-02T09:00',selection:[{catalogue_id:service,quantity:1}],catalogueVersions:{[service]:'1'},scope:scope()});

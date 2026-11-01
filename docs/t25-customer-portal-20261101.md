@@ -27,7 +27,7 @@ This approval covers the decisions and authorised local source preparation/testi
 
 No new grants on source customer/address/booking tables, no customer office membership, no Auth email/SMS enablement, and no business-specific rates or financial mapping changes. Route/config/link/event tables have RLS and no client table grants. Public functions are invoker facades; narrow private functions verify current sessions and records with empty search paths. The additive context bridge returns an empty staff list for customers; the original office context retains its office guards. Current private pricing configuration is not returned wholesale; depot information and unknown config fields are excluded.
 
-Assessed services, office-estimated duration, equipment delivery needing measured distance, and scope options requiring assessment remain office work. Customers cannot invent assessment prices or override business hours. Customer-selected catalogue versions are optimistic preconditions, never price authority. Changes require reopening the page. Saved requests retain original authoritative prices even after catalogue edits.
+Services requiring assessment, office-estimated duration, business-supplied equipment needing assessment, equipment delivery needing measured distance, and scope options requiring assessment remain office work. An assessed equipment policy still permits the existing customer-supplied-equipment path without an office assessment; no equipment policy is rewritten. Customers cannot invent assessment prices or override business hours. Customer-selected catalogue versions are optimistic preconditions, never price authority. Changes require reopening the page. Saved requests retain original authoritative prices even after catalogue edits.
 
 ## Verification
 
@@ -66,7 +66,16 @@ Next proposed approval: publish this bounded branch and draft PR targeting stagi
 - Final T25 focused addendum, including hosted outbound RPC restrictions: **5 passed / 0 failed / 0 skipped**. Four overlap the regression command; counts are not additive.
 - Broader run before that last focused test addition: **1,225 total / 1,193 passed / 2 failed / 30 skipped**. Failures are the two recorded Unix-listener `EPERM` cases in `test/hosted-staging.test.js`, not T25 failures. Skips include platform-specific DPAPI and explicitly unavailable native database tests; no broad-suite PASS is claimed.
 - Repository `npm run check`, changed-file syntax and `git diff --check` pass after the final source changes.
-- Database candidate SHA-256: `bd9714130f1e9847c83f70d4f76bfc570057ce601e321799b17242d3dcf363b9`.
-- Customer portal module SHA-256: `494bba66e21ae97f02febac119eaf0b2b997d05b54e43e068c9b84491ec93ed3`.
+- Database candidate SHA-256: `8f7778a95c967867bf5374921de2fd8950120a743bd4a5f25e48f13518d0f169`.
+- Customer portal module SHA-256: `3ed1ec46df8cf66fa0a363fab3a3facd01af5206d5072f9fc77bbd4c0c4075cc`.
 
 Decision: **CONDITIONAL PASS for bounded source publication and exact-head CI qualification; NO-GO for merge, migration, deployment or Done status until their separate checks and approvals are satisfied.** No independent reviewer requirement is introduced.
+
+
+## Read-only staging comparison and equipment correction
+
+After owner-approved publication, PR296 was opened against staging; initial head `5ae0d17982eb00993ae776d55e9ae21f5b0826c9`, tree `7c1c0cdec2bbe732437f7aa295f539d31a0682b2`, exactly matching the local candidate. Canonical Build Tracker H26 is now In progress, K26 points to PR296, and L26 preserves historical text plus the approved decisions/preparation evidence. Completion remains blank.
+
+Fresh read-only staging metadata confirms PostgreSQL17.11, the Auth non-anonymous flag, the expected private live-session guard, original office context/private helper and invoker public facade; private_t25 is absent. Counts still match the accepted twelve groups: bookings27, invoices9, rules7, memberships5, agreements6, accruals6, sources6, adjustmentitems4, adjustmentevents18, statements2, monthlyevents30, claims4. Counts alone are not full-row digest comparison.
+
+The actual catalogues use assessed equipment in both businesses. Source inspection confirms this policy permits customer-supplied equipment without an assessment; only business-supplied equipment requires one (plus any independently assessed scope/duration). The initial T25 blanket block on assessed equipment was therefore too restrictive. This is corrected without changing catalogue values or existing policies. The disposable fixture now uses the actual assessed-equipment mode; customer-supplied requests succeed and business-supplied requests remain denied pending office assessment. Final focused regression after correction:5PASS/0FAIL/0SKIP. Existing CI on the initial head is historical for the corrected head; fresh exact-head qualification is required.

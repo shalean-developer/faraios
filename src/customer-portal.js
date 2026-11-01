@@ -40,7 +40,7 @@ export function renderCustomerPortal(route,business,{account=null,history=null,s
  const s=business.catalogue.find(c=>c.id===serviceId&&c.kind==='service');
  if(s){
   const cfg=s.cleaning_config;
-  if(!s.cleaning_profile||!cfg||cfg.manual_duration||cfg.require_assessment||cfg.equipment?.policy==='assessed')html+=`<section class="panel"><h2>${esc(s.name)}</h2><p>This service needs office assessment before it can be requested here. Contact ${esc(business.name)} to agree the scope, price and duration.</p></section>`;
+  if(!s.cleaning_profile||!cfg||cfg.manual_duration||cfg.require_assessment)html+=`<section class="panel"><h2>${esc(s.name)}</h2><p>This service needs office assessment before it can be requested here. Contact ${esc(business.name)} to agree the scope, price and duration.</p></section>`;
   else{
    const service=structuredClone(s);if(cfg.equipment?.policy==='distance')service.cleaning_config.equipment.policy='customer';
    let scope=cleaningScopeForm(service,values).replace(/<fieldset><legend>Office assessment<\/legend>[\s\S]*?<\/fieldset>/,'<p>Options requiring assessment must be arranged with the office.</p>');

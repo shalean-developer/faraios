@@ -32,7 +32,7 @@ test('T25 authoritative draft snapshots, idempotency, private history and failed
  assert.equal((await f.call('history',{},other)).rows.length,0);assert.equal((await f.call('history',{booking:first.booking},customer,'beta')).rows.length,0);
  await f.db.query('update public.business_catalogue set price_cents=99999 where id=$1',[id(110)]);assert.equal((await f.call('history')).rows[0].totalCents,first.totalCents);
  await assert.rejects(f.call('book',{...p,requestId:id(1500)}),e=>e.code==='40001');
- for(const overrides of [{customer:id(999)},{address:id(999)},{totalCents:1},{durationMinutes:1},{scope:{...p.scope,assessment:{additional_cents:0,duration_minutes:15,reason:'Forged'}}},{localStart:'2000-01-01T09:00'},{localStart:'2099-11-02T23:00'},{selection:[{catalogue_id:id(120),quantity:1}]}])await assert.rejects(f.call('book',{...p,requestId:crypto.randomUUID(),...overrides}));
+ for(const overrides of [{customer:id(999)},{address:id(999)},{totalCents:1},{durationMinutes:1},{scope:{...p.scope,equipment_arrangement:'Business supplies equipment'}},{scope:{...p.scope,assessment:{additional_cents:0,duration_minutes:15,reason:'Forged'}}},{localStart:'2000-01-01T09:00'},{localStart:'2099-11-02T23:00'},{selection:[{catalogue_id:id(120),quantity:1}]}])await assert.rejects(f.call('book',{...p,requestId:crypto.randomUUID(),...overrides}));
  assert.equal((await f.db.query('select count(*)::int n from public.one_off_bookings')).rows[0].n,1);
  const ownContext=await f.as(customer,()=>f.db.query('select public.booking_context($1) v',[a]));assert.deepEqual(ownContext.rows[0].v.staff,[]);
  await assert.rejects(f.as(staff,()=>f.db.query('select public.booking_context($1)',[a])),/denied/);
