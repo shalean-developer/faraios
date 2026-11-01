@@ -10,7 +10,7 @@ export function paymentBackendFetch(fetchImpl=globalThis.fetch){
    const auth=q.method==='POST'&&u.pathname==='/auth/v1/token'&&['?grant_type=password','?grant_type=refresh_token'].includes(u.search)
     ||q.method==='GET'&&u.pathname==='/auth/v1/user'&&!u.search
     ||q.method==='POST'&&u.pathname==='/auth/v1/logout'&&u.search==='?scope=local';
-   const rpc=q.method==='POST'&&u.pathname==='/rest/v1/rpc/t20_payment_backend'&&!u.search;
+   const rpc=q.method==='POST'&&['/rest/v1/rpc/t20_payment_backend','/rest/v1/rpc/t20_payment_checkout'].includes(u.pathname)&&!u.search;
    if(u.origin!==origin||u.username||u.password||u.hash||!auth&&!rpc||['accept-profile','content-profile'].some(h=>q.headers.has(h)&&q.headers.get(h)!=='public'))throw denied();
    const response=await fetchImpl(new Request(q,{redirect:'error',signal:AbortSignal.any([q.signal,AbortSignal.timeout(12000)])}));
    if(response.redirected)throw denied();
@@ -33,13 +33,13 @@ export async function createPaymentBackend({email,password,principalId,fetchImpl
  return Object.freeze({
   async rpc(action,input){
    try{
-    if(closed||!['health','lookup','publish'].includes(action))throw denied();
+    if(closed||!['health','lookup','publish','claim','finish'].includes(action))throw denied();
     const s=await client.auth.getSession();if(s.error||!s.data?.session)throw denied();
     if(s.data.session.expires_at*1000<=Date.now()+60000){
      if(!refresh)refresh=(async()=>{const v=await client.auth.refreshSession();if(v.error||v.data?.user?.id!==principalId)throw denied();})().finally(()=>{refresh=undefined;});
      await refresh;
     }
-    const r=await client.rpc('t20_payment_backend',{action,input});if(r.error)throw denied();return r.data;
+    const r=await client.rpc(['claim','finish'].includes(action)?'t20_payment_checkout':'t20_payment_backend',{action,input});if(r.error)throw denied();return r.data;
    }catch{throw denied();}
   },
   async close(){if(closed)return;closed=true;try{const r=await client.auth.signOut({scope:'local'});if(r.error)throw denied();}catch{throw denied();}}

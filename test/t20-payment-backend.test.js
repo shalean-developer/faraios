@@ -6,8 +6,9 @@ const json=v=>new Response(JSON.stringify(v),{headers:{'content-type':'applicati
 test('T20 backend transport allows only pinned Auth and payment RPC; rejects other origins/profiles/routes',async()=>{
  let calls=0;const f=paymentBackendFetch(async()=>{calls++;return json({ok:true});});
  await f(base+'/rest/v1/rpc/t20_payment_backend',{method:'POST'});assert.equal(calls,1);
+ await f(base+'/rest/v1/rpc/t20_payment_checkout',{method:'POST'});assert.equal(calls,2);
  for(const [url,init]of [[base+'/rest/v1/rpc/t19_standard_store',{method:'POST'}],[base+'/rest/v1/rpc/t20_payment_owner',{method:'POST'}],[base+'/rest/v1/business_invoices',{}],['https://api.paystack.co/transaction/initialize',{method:'POST'}],[base+'/rest/v1/rpc/t20_payment_backend?x=y',{method:'POST'}],[base+'/rest/v1/rpc/t20_payment_backend',{method:'POST',headers:{'content-profile':'private_t20'}}]])await assert.rejects(f(url,init),/payment_backend_denied/);
- assert.equal(calls,1);
+ assert.equal(calls,2);
 });
 test('T20 transport bounds responses and rejects redirected/error details without leaking them',async()=>{
  await assert.rejects(paymentBackendFetch(async()=>new Response('x'.repeat(262145)))(base+'/auth/v1/user'),/payment_backend_denied/);
@@ -24,6 +25,7 @@ function mock({wrongIdentity=false,expired=false}={}){
   if(u.pathname==='/auth/v1/user')return json(user);
   if(u.pathname==='/auth/v1/logout')return new Response(null,{status:204});
   if(u.pathname==='/rest/v1/rpc/t20_payment_backend')return json({ready:true});
+  if(u.pathname==='/rest/v1/rpc/t20_payment_checkout')return json({dispatch:false,state:'claimed'});
   throw Error('unexpected synthetic request');
  };
  return {fetchImpl,observed,refreshes:()=>refreshes};
@@ -31,6 +33,8 @@ function mock({wrongIdentity=false,expired=false}={}){
 test('T20 actual SDK composition verifies principal, scopes RPC and closes its own session',async()=>{
  const m=mock(),api=await createPaymentBackend({email:'backend@test.invalid',password:'SYNTHETIC_NOT_REAL',principalId,fetchImpl:m.fetchImpl});
  assert.equal((await api.rpc('health',{businessId:'synthetic',accountId:'123'})).ready,true);
+ assert.equal((await api.rpc('claim',{businessId:'synthetic',accountId:'123'})).dispatch,false);
+ assert.ok(m.observed.includes('/rest/v1/rpc/t20_payment_checkout'));
  await assert.rejects(api.rpc('configure',{}),/payment_backend_denied/);await api.close();await api.close();await assert.rejects(api.rpc('health',{}));
  assert.ok(m.observed.includes('/auth/v1/user'));assert.ok(m.observed.includes('/auth/v1/logout?scope=local'));
 });
