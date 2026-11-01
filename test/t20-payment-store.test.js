@@ -21,9 +21,10 @@ async function fixture(native=false){
  for(const business of [a,b])await q("insert into public.businesses(id,name,industry) values($1,'SYNTHETIC','cleaning')",[business]);
  for(const [business,user,role]of [[a,owner,'owner'],[b,owner,'owner'],[a,manager,'manager'],[a,staff,'staff'],[b,foreign,'owner']])await q('insert into public.business_memberships(business_id,user_id,role) values($1,$2,$3)',[business,user,role]);
  await q("insert into public.business_invoices values($1,$2,10000,'ZAR'),($3,$4,41000,'ZAR')",[ia,a,ib,b]);
- async function as(user,fn,role='authenticated'){
+ async function as(user,fn,role='authenticated',session=id(900+Number(user?.slice(-12)??0))){
   await q('set role '+role);await q("select set_config('request.jwt.claim.sub',$1,false)",[user??'']);
-  try{return await fn();}finally{await q('reset role');await q('reset request.jwt.claim.sub');}
+  await q("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub:user,session_id:session,role:'authenticated'})]);
+  try{return await fn();}finally{await q('reset role');await q('reset request.jwt.claim.sub');await q('reset request.jwt.claims');}
  }
  const configure=(business=a,account='123',enabled=true)=>as(owner,()=>q('select private_t20.configure_account($1,$2,$3)',[business,account,enabled]));
  const make=(business=a,invoice=ia,key=intent,user=owner)=>as(user,()=>q('select private_t20.create_intent($1,$2,$3) as result',[business,invoice,key]));
@@ -31,6 +32,58 @@ async function fixture(native=false){
  const counts=async()=>{const r=await q('select (select count(*)::int from private_t20.credits) as credits,(select count(*)::int from private_t20.observations) as observations');return r.rows[0];};
  return {db,q,exec,as,configure,make,publish,counts,close:()=>native?db.end():db.close()};
 }
+async function httpsFixture(f){
+ await f.exec("alter table auth.users add column banned_until timestamptz;create table auth.sessions(id uuid primary key,user_id uuid references auth.users(id),not_after timestamptz);create function auth.jwt() returns jsonb language sql stable as $$select nullif(current_setting('request.jwt.claims',true),'')::jsonb$$;");
+ for(const user of [owner,manager,staff,foreign])await f.q('insert into auth.sessions(id,user_id) values($1,$2)',[id(900+Number(user.slice(-12))),user]);
+ await f.exec(await readFile(new URL('../database/t20-payment-https-candidate.sql',import.meta.url),'utf8'));
+ const backend=id(5);await f.q('insert into auth.users(id) values($1)',[backend]);await f.q('insert into auth.sessions(id,user_id) values($1,$2)',[id(905),backend]);
+ const call=(user,action,input,kind='backend',session)=>f.as(user,()=>f.q('select public.t20_payment_'+kind+'($1,$2) as result',[action,JSON.stringify(input)]),'authenticated',session);
+ return {backend,call};
+}
+test('T20 HTTPS: live owner account setup and enrolled backend only; revoked and foreign identities denied',async t=>{
+ const f=await fixture();t.after(f.close);const {backend,call}=await httpsFixture(f);
+ await call(owner,'configure',{businessId:a,accountId:'123',enabled:true},'owner');
+ await call(owner,'create',{businessId:a,invoiceId:ia,requestId:intent},'owner');
+ const scope={businessId:a,accountId:'123'};
+ for(const role of ['anon','service_role'])await assert.rejects(f.as(null,()=>f.q("select public.t20_payment_backend('health',$1)",[JSON.stringify(scope)]),role),e=>e.code==='42501');
+ const wrappers=(await f.q("select bool_and(not prosecdef) as invoker from pg_proc where oid in ('public.t20_payment_owner(text,jsonb)'::regprocedure,'public.t20_payment_backend(text,jsonb)'::regprocedure)")).rows[0];assert.equal(wrappers.invoker,true);
+ for(const user of [owner,manager,staff,foreign,backend])await assert.rejects(call(user,'health',scope),e=>e.code==='42501');
+ await f.q('insert into private_t20.backend_accounts values($1,$2,$3,true)',[backend,a,'123']);
+ assert.equal((await call(backend,'health',scope)).rows[0].result.ready,true);
+ const found=(await call(backend,'lookup',{...scope,reference:'FOS-'+intent})).rows[0].result;assert.equal(found.amountCents,10000);assert.equal(found.businessId,a);
+ await assert.rejects(call(backend,'health',{businessId:b,accountId:'123'}),e=>e.code==='42501');
+ await assert.rejects(call(backend,'health',{...scope,environment:'production'}),e=>e.code==='42501');
+ await assert.rejects(call(backend,'configure',{...scope,enabled:true}),e=>e.code==='42501');
+ await assert.rejects(call(manager,'configure',{...scope,enabled:false},'owner'),e=>e.code==='42501');
+ await assert.rejects(call(foreign,'status',{businessId:a,intentId:intent},'owner'),e=>e.code==='42501');
+ await assert.rejects(f.configure(),e=>e.code==='42501');
+ const publish={...scope,intentId:intent,transactionId:'500',status:'success',amountCents:10000,currency:'ZAR'};
+ await call(backend,'publish',publish);assert.deepEqual(await f.counts(),{credits:1,observations:1});
+ await f.q('delete from auth.sessions where user_id=$1',[backend]);await assert.rejects(call(backend,'publish',publish),e=>e.code==='42501');
+ await f.q('delete from auth.sessions where user_id=$1',[owner]);await assert.rejects(call(owner,'status',{businessId:a,intentId:intent},'owner'),e=>e.code==='42501');
+ assert.deepEqual(await f.counts(),{credits:1,observations:1});
+});
+test('T20 HTTPS: expired/banned/backend-membership and disabled enrollment checks',async t=>{
+ const f=await fixture();t.after(f.close);const {backend,call}=await httpsFixture(f),scope={businessId:a,accountId:'123'};
+ await call(owner,'configure',{...scope,enabled:true},'owner');await f.q('insert into private_t20.backend_accounts values($1,$2,$3,true)',[backend,a,'123']);
+ await f.q("update auth.sessions set not_after=clock_timestamp()-interval '1 second' where user_id=$1",[backend]);await assert.rejects(call(backend,'health',scope),e=>e.code==='42501');
+ await f.q('update auth.sessions set not_after=null where user_id=$1',[backend]);await f.q("update auth.users set banned_until=clock_timestamp()+interval '1 hour' where id=$1",[backend]);await assert.rejects(call(backend,'health',scope),e=>e.code==='42501');
+ await f.q('update auth.users set banned_until=null where id=$1',[backend]);await f.q("insert into public.business_memberships(business_id,user_id,role) values($1,$2,'owner')",[a,backend]);await assert.rejects(call(backend,'health',scope),e=>e.code==='42501');
+ await f.q('delete from public.business_memberships where user_id=$1',[backend]);await f.q('update private_t20.backend_accounts set enabled=false');await assert.rejects(call(backend,'health',scope),e=>e.code==='42501');
+ await f.q('update private_t20.backend_accounts set enabled=true');await assert.rejects(call(backend,'health',scope,'backend',id(999)),e=>e.code==='42501');
+});
+test('T20 HTTPS: exact empty rollback preserves existing invoices and refuses populated installs',async t=>{
+ const rollback=await readFile(new URL('../database/t20-payment-empty-rollback.sql',import.meta.url),'utf8');
+ const empty=await fixture();t.after(empty.close);await httpsFixture(empty);
+ await empty.exec('grant t20_payment_verifier to current_user with admin true,inherit false,set false');await empty.exec(rollback);
+ assert.equal((await empty.q("select to_regnamespace('private_t20') as schema")).rows[0].schema,null);
+ assert.equal((await empty.q('select count(*)::int as n from public.business_invoices')).rows[0].n,2);
+ const populated=await fixture();t.after(populated.close);const {call}=await httpsFixture(populated);await call(owner,'configure',{businessId:a,accountId:'123',enabled:false},'owner');
+ await assert.rejects(populated.exec(rollback),/t20_rollback_requires_empty_inactive_install/);await populated.exec('rollback');
+ assert.equal((await populated.q('select count(*)::int as n from private_t20.accounts')).rows[0].n,1);
+ const assigned=await fixture();t.after(assigned.close);await httpsFixture(assigned);await assigned.exec('grant t20_payment_verifier to authenticated with inherit false,set true');
+ await assert.rejects(assigned.exec(rollback),/t20_rollback_requires_empty_inactive_install/);await assigned.exec('rollback');
+});
 test('T20 SQL: owner account boundaries, staff/foreign denials and backend-only publication',async t=>{
  const f=await fixture();t.after(f.close);await f.configure();await f.configure(b,'456');
  for(const user of [manager,staff,foreign])await assert.rejects(f.as(user,()=>f.q("select private_t20.configure_account($1,'123',false)",[a])),e=>e.code==='42501');
@@ -91,4 +144,11 @@ test('T20 native concurrent publication and interrupted uncommitted/committed de
  await f.q("insert into public.business_invoices values($1,$2,10000,'ZAR')",[id(101),a]);await f.make(a,id(101),id(304));
  await assert.rejects(f.publish('success',{intent:id(304)}),e=>e.code==='23505');assert.deepEqual(await f.counts(),{credits:1,observations:1});
  t.diagnostic('T20_PAYMENT_CONCURRENCY_NATIVE_PASS');t.diagnostic('T20_PAYMENT_NATIVE_DENIAL_ROLLBACK_PASS');
+ const {backend,call}=await httpsFixture(f),scope={businessId:a,accountId:'123'};
+ await assert.rejects(call(backend,'health',scope),e=>e.code==='42501');await f.q('insert into private_t20.backend_accounts values($1,$2,$3,true)',[backend,a,'123']);
+ assert.equal((await call(backend,'health',scope)).rows[0].result.ready,true);
+ assert.equal((await call(backend,'lookup',{...scope,reference:'FOS-'+intent})).rows[0].result.status,'paid');
+ assert.equal((await call(backend,'publish',{...scope,intentId:intent,transactionId:'500',status:'success',amountCents:10000,currency:'ZAR'})).rows[0].result.changed,false);
+ await f.q('delete from auth.sessions where user_id=$1',[backend]);await assert.rejects(call(backend,'health',scope),e=>e.code==='42501');
+ assert.deepEqual(await f.counts(),{credits:1,observations:1});t.diagnostic('T20_PAYMENT_BACKEND_NATIVE_PASS');
 });
