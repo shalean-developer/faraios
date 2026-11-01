@@ -225,9 +225,16 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
             const f=new URLSearchParams(body),action=f.get('action');
             const expected={record:['action','requestId','bankReference','evidenceReference','amount','receivedOn'],verify:['action','receiptId','confirmed'],allocate:['action','receiptId','invoiceId']}[action];
             if(!expected||[...f.keys()].length!==expected.length||expected.some(k=>f.getAll(k).length!==1)||action==='verify'&&f.get('confirmed')!=='yes')return send(400,'Invalid EFT action','text/plain');
-            const input={businessId:business.id};for(const k of expected)if(!['action','confirmed'].includes(k))input[k==='amount'?'amountCents':k]=k==='amount'?parseRand(f.get(k)):f.get(k);
-            await eftOperation(client,action,input);
-            return redirect('/eft?business='+encodeURIComponent(business.id));
+            try{
+              const input={businessId:business.id};for(const k of expected)if(!['action','confirmed'].includes(k))input[k==='amount'?'amountCents':k]=k==='amount'?parseRand(f.get(k)):f.get(k);
+              await eftOperation(client,action,input);
+              return redirect('/eft?business='+encodeURIComponent(business.id));
+            }catch{
+              // Re-read persisted evidence after rejection or an uncertain response.
+              // Never imply a financial operation failed or succeeded from transport alone.
+              const receipts=await eftOperation(client,'list',{businessId:business.id,page:0});
+              return send(409,html('Manual EFT reconciliation',renderEft(business,receipts,null,0,'EFT action could not be confirmed. Review the saved evidence below, the invoice balance and any existing online attempts before retrying.')));
+            }
           }
           const page=Number(url.searchParams.get('page')??0);
           if(!Number.isInteger(page)||page<0||page>9999999)return send(400,'Invalid evidence page','text/plain');
