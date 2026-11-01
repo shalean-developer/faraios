@@ -21,6 +21,7 @@ test('foreign business, account, environment and invalid saved amount cause zero
  for(const patch of [{businessId:'33333333-3333-4333-8333-333333333333'},{accountId:'102'},{environment:'production'},{amountCents:1.5},{reference:'browser-reference'}])await assert.rejects(p.verify({...intent,...patch}),/payment_provider_rejected/);
  assert.equal(calls,0);
  assert.throws(()=>createPaystackTestProvider({account,secretKey:'sk_live_'+ 'synthetic'.repeat(5)}),/payment_provider_rejected/);
+ for(const patch of [{accountId:'0'},{accountId:'01'},{businessId:'browser-business'}])assert.throws(()=>createPaystackTestProvider({account:{...account,...patch},secretKey}),/payment_provider_rejected/);
 });
 test('verification reads exact reference and returns sanitized success/failure/pending observations',async()=>{
  for(const status of ['success','failed','abandoned','pending']){

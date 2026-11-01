@@ -3,7 +3,7 @@ import {verifyPaystackTestResponse,verifyPaystackTestWebhook} from './t20-paymen
 const rejected=()=>new Error('payment_provider_rejected');
 const unknown=()=>new Error('payment_initialize_outcome_unknown');
 export function createPaystackTestProvider({account,secretKey,fetchImpl=globalThis.fetch}){
- if(!account||account.environment!=='staging'||!/^\d+$/.test(account.accountId)||!/^sk_test_[A-Za-z0-9]{32,}$/.test(secretKey)||typeof fetchImpl!=='function')throw rejected();
+ if(!account||!/^([0-9a-f]{8})(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(account.businessId)||account.environment!=='staging'||!/^[1-9][0-9]{0,29}$/.test(account.accountId)||typeof secretKey!=='string'||!/^sk_test_[A-Za-z0-9]{32,}$/.test(secretKey)||typeof fetchImpl!=='function')throw rejected();
  const pinned=Object.freeze({businessId:account.businessId,accountId:account.accountId,environment:'staging'});
  const key=Buffer.from(secretKey);
  function check(intent){
