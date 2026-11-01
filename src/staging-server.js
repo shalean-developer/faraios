@@ -111,7 +111,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
             const page=Number(url.searchParams.get('page')??0);if(!Number.isSafeInteger(page)||page<0||page>1000000)return send(400,'Invalid page','text/plain');
             const requests=await assessmentOperation(client,route,'queue',{page});
             const paging=`<nav aria-label="Request pages">${page?`<a href="/customer-requests?business=${encodeURIComponent(business.id)}&amp;page=${page-1}">Previous</a>`:''}${requests.rows.length>50?` <a href="/customer-requests?business=${encodeURIComponent(business.id)}&amp;page=${page+1}">Next</a>`:''}</nav>`;
-            return send(200,pageHtml('Customer assessment requests',renderOfficeRequests(business,requests)+paging));
+            return send(200,pageHtml('Customer assessment requests',renderOfficeRequests(business,requests,await listCatalogue(client,business.id))+paging));
           }catch(error){return send(error.status??422,esc(error.message),'text/plain');}
         });
       }
