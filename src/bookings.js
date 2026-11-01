@@ -13,12 +13,12 @@ export const bookingStatuses=Object.freeze({draft:'Draft',confirmed:'Confirmed',
 const transitions={draft:['confirmed','cancelled'],confirmed:['assigned','cancelled'],assigned:['en_route','cancelled'],en_route:['arrived','cancelled'],arrived:['in_progress','cancelled'],in_progress:['completed','cancelled'],completed:[],cancelled:[]};
 const text=(form,key,max=2000)=>{const value=(form.get(key)??'').trim();if(value.length>max)throw new Error(`Check ${key.replaceAll('_',' ')}.`);return value;};
 function schedule(form){const local_start=text(form,'local_start',16),raw=text(form,'duration_minutes',4),hours_override_reason=text(form,'hours_override_reason');if(!validPickerValue(local_start,'datetime')||!/^\d+$/.test(raw)||Number(raw)<15||Number(raw)>1440)throw new Error('Enter a date/time and duration from 15 to 1440 minutes.');return {local_start,duration_minutes:Number(raw),hours_override_reason};}
-export function parseBookingAgreement(form,catalogue){
+export function parseBookingAgreement(form,catalogue,options){
  const customer_id=text(form,'customer_id',36),address_id=text(form,'address_id',36),service_id=text(form,'service_id',36),request_key=text(form,'request_key',36);
  if(![customer_id,address_id,service_id,request_key].every(validCustomerId))throw new Error('Select a customer, address and service.');
  const quantity=value=>{if(!/^[1-9]\d{0,5}$/.test(value))throw new Error('Use positive whole-number quantities.');return Number(value);};
  const service=catalogue.find(r=>r.id===service_id&&r.kind==='service'&&r.is_active);if(!service)throw new Error('Select an active service.');
- const cleaning_scope=parseCleaningScope(form,service);
+ const cleaning_scope=parseCleaningScope(form,service,options);
  const selection=[{catalogue_id:service_id,quantity:quantity(text(form,'service_quantity',6))}];
  for(const extra of catalogue.filter(r=>r.kind==='extra'&&r.is_active)){const raw=text(form,'extra_'+extra.id,6);if(raw&&raw!=='0'&&service.cleaning_profile&&!service.cleaning_config?.extras?.includes(extra.id))throw new Error('This extra is not available for the selected service.');if(raw&&raw!=='0')selection.push({catalogue_id:extra.id,quantity:quantity(raw)});}
  if(selection.length>51)throw new Error('Select at most 50 extras.');
@@ -27,8 +27,8 @@ export function parseBookingAgreement(form,catalogue){
  if(!/^\d+$/.test(raw)||Number(raw)<15||Number(raw)>1440)throw new Error('Enter a duration from 15 to 1440 minutes.');
  return {customer_id,address_id,request_key,selection,duration_minutes:Number(raw),...(cleaning_scope?{cleaning_scope}:{} )};
 }
-export function parseBookingCreate(form,catalogue){
- const agreement=parseBookingAgreement(form,catalogue),timed=new URLSearchParams(form);timed.set('duration_minutes',String(agreement.duration_minutes));
+export function parseBookingCreate(form,catalogue,options){
+ const agreement=parseBookingAgreement(form,catalogue,options),timed=new URLSearchParams(form);timed.set('duration_minutes',String(agreement.duration_minutes));
  return {...agreement,...schedule(timed)};
 }
 const fields='id,business_id,request_key,customer_id,address_id,local_start,duration_minutes,time_zone,starts_at,ends_at,status,assigned_staff,customer_snapshot,address_snapshot,price_lines,total_cents,currency,required_team_size,version,change_reason,hours_override_reason,created_at,updated_at,cleaning_scope,cleaning_snapshot,recurring_schedule_id,recurring_occurrence_date,recurring_revision,source_quote_id,setup_minutes,travel_minutes,workload_limit_minutes,workload_time_zone,tax_snapshot';

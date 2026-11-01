@@ -1,0 +1,60 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {PGlite} from '@electric-sql/pglite';import {btree_gist} from '@electric-sql/pglite/contrib/btree_gist';
+import {fixture,id,a,owner,customer,other,staff,enrol,booking} from '../test-support/t25-fixture.js';
+import {customerFormPayload,renderCustomerPortal,renderOfficeRequests} from '../src/customer-portal.js';
+async function setup(t){const db=new PGlite({extensions:{btree_gist}});t.after(()=>db.close());const f=await fixture(db);await db.query(`update public.business_catalogue set cleaning_config=jsonb_set(jsonb_set(cleaning_config,'{rules,property_type,House,assessment}','true'),'{rules,bathrooms,unit,assessment}','true') where id=$1`,[id(110)]);return f;}
+const mutation=(r,n,extra={})=>({requestId:id(n),request:r.request,version:r.version,...extra});
+test('T25 actual assessment flags: pending request, office quote, explicit customer agreement and Draft conversion',async t=>{
+ const f=await setup(t),rel=await enrol(f),p=booking(rel);p.catalogueVersions[id(110)]='2';await assert.rejects(f.call('book',p));
+ const r=await f.assess('submit',p);assert.equal(r.state,'awaiting_assessment');assert.deepEqual(await f.assess('submit',p),r);
+ assert.equal((await f.db.query('select count(*)::int n from public.one_off_bookings')).rows[0].n,0);
+ assert.equal((await f.db.query('select count(*)::int n from public.business_quotes')).rows[0].n,0);
+ let hist=await f.assess('history');assert.equal(hist.rows[0].quote,null);
+ for(const user of [customer,other,staff])await assert.rejects(f.assess('assess',mutation(r,2000,{additional_cents:'0',duration_minutes:'420',reason:'Reviewed synthetic scope'}),user));
+ const review=mutation(r,2001,{additional_cents:'0',duration_minutes:'420',reason:'Reviewed synthetic scope'}),quoted=await f.assess('assess',review,owner);assert.deepEqual(await f.assess('assess',review,owner),quoted);
+ hist=await f.assess('history');const q=hist.rows[0].quote;assert(q.totalCents>0);assert.equal(q.durationMinutes,420);
+ await assert.rejects(f.as(owner,()=>f.db.query("select public.change_quote($1,$2,$3,'accepted','Office bypass')",[a,q.id,q.version])),/agreement required/);
+ await assert.rejects(f.assess('agree',mutation(quoted,2002,{consent:false,quoteVersion:q.version})),/explicitly agree/);
+ await assert.rejects(f.assess('agree',mutation(quoted,2003,{consent:true,quoteVersion:q.version}),other),/denied/);
+ const agreed=await f.assess('agree',mutation(quoted,2004,{consent:true,quoteVersion:q.version}));assert.equal(agreed.state,'agreed');
+ await assert.rejects(f.assess('assess',mutation(agreed,2005,{additional_cents:'1',duration_minutes:'420',reason:'Silent revision'}),owner));
+ const finalize=mutation(agreed,2006),booked=await f.assess('finalize',finalize,owner);assert.equal(booked.state,'booked');assert.deepEqual(await f.assess('finalize',finalize,owner),booked);
+ const b=(await f.db.query('select status,total_cents,duration_minutes,assigned_staff,source_quote_id from public.one_off_bookings')).rows[0];assert.equal(b.status,'draft');assert.equal(b.total_cents,q.totalCents);assert.equal(b.duration_minutes,420);assert.deepEqual(b.assigned_staff,[]);assert.equal(b.source_quote_id,q.id);
+ assert.equal((await f.db.query('select count(*)::int n from audit.cleaner_reservations')).rows[0].n,0);
+ assert.equal((await f.assess('history',{},other)).rows.length,0);assert.equal((await f.assess('history',{},customer,'beta')).rows.length,0);
+ assert.equal((await f.db.query("select count(*)::int n from private_t25.events where action='assessment_agree' and actor=$1",[customer])).rows[0].n,1);
+});
+test('T25 malformed request, tenant isolation, quote replacement, stale agreement and revoked relationship fail closed',async t=>{
+ const f=await setup(t),rel=await enrol(f),p=booking(rel);p.catalogueVersions[id(110)]='2';
+ for(const overrides of [{scope:{...p.scope,assessment:{additional_cents:0}}},{scope:{...p.scope,bathrooms:0}},{scope:{...p.scope,property_type:'Unknown'}},{address:id(999)},{totalCents:0},{localStart:'2099-11-02T23:00'},{selection:[{catalogue_id:id(120),quantity:1}]}])await assert.rejects(f.assess('submit',{...p,requestId:crypto.randomUUID(),...overrides}));
+ const r=await f.assess('submit',p);await assert.rejects(f.assess('submit',{...p,localStart:'2099-11-03T09:00'}),/different details/);
+ const quoted=await f.assess('assess',mutation(r,2101,{additional_cents:'100',duration_minutes:'420',reason:'First assessment'}),owner);const old=(await f.assess('history')).rows[0].quote;
+ const revised=await f.assess('assess',mutation(quoted,2102,{additional_cents:'200',duration_minutes:'420',reason:'Revised assessment'}),owner);
+ await assert.rejects(f.assess('agree',mutation(quoted,2103,{consent:true,quoteVersion:old.version})),/changed/);
+ const current=(await f.assess('history')).rows[0].quote;assert.notEqual(current.id,old.id);
+ const agreed=await f.assess('agree',mutation(revised,2104,{consent:true,quoteVersion:current.version}));
+ await f.call('revoke',{requestId:id(2105),customer:rel.customer,user:customer,evidence:'Synthetic revocation'},owner);
+ assert.equal((await f.assess('history')).rows.length,0);
+ await assert.rejects(f.assess('finalize',mutation(agreed,2106),owner),/agreement required/);
+ assert.equal((await f.db.query('select count(*)::int n from public.one_off_bookings')).rows[0].n,0);
+ assert.equal((await f.db.query('select status from public.business_quotes where id=$1',[current.id])).rows[0].status,'issued');
+ await assert.rejects(f.as(customer,()=>f.db.query('select * from private_t25.assessment_requests')),/permission denied/);
+ await f.db.query('delete from auth.sessions where user_id=$1',[customer]);await assert.rejects(f.assess('history'),/denied/);
+});
+test('T25 pending parser and visible quote consent preserve office defaults',async t=>{
+ const f=await setup(t),rel=await enrol(f),pub=await f.call('public',{},null),form=new URLSearchParams({action:'book',requestId:id(2200),customer:rel.customer,address_id:rel.address,service_id:id(110),['version_'+id(110)]:'2',local_start:'2099-11-02T09:00',scope_property_type:'House',scope_bedrooms:'1',scope_bathrooms:'1',scope_extra_rooms:'0',scope_pets:'No animals',scope_equipment_arrangement:'Customer supplies equipment'});
+ const op=customerFormPayload(form,pub.catalogue);assert.equal(op.action,'submit');assert.equal(op.payload.scope.assessment,undefined);
+ assert.match(renderCustomerPortal('alpha',pub,{signedIn:true,account:await f.call('account'),serviceId:id(110),requests:{rows:[]}}),/Price and duration remain pending/);
+ assert.match(renderOfficeRequests({id:a,name:'Synthetic'}, {rows:[]}),/customer agreement/i);
+});
+test('T25 second business and existing office quote screens require consent and retain the request receipt',async t=>{
+ const f=await setup(t),rel=await enrol(f,customer,'beta',2300),p=booking(rel,2302,id(120));
+ await f.db.query("update public.business_catalogue set cleaning_config=jsonb_set(cleaning_config,'{rules,property_type,House,assessment}','true') where id=$1",[id(120)]);p.catalogueVersions[id(120)]='2';
+ const r=await f.assess('submit',p,customer,'beta');const quoted=await f.assess('assess',mutation(r,2303,{additional_cents:0,duration_minutes:420,reason:'Second business synthetic review'}),owner,id(20));
+ let q=(await f.assess('history',{},customer,'beta')).rows[0].quote;assert(q.totalCents>20000);
+ await assert.rejects(f.as(owner,()=>f.db.query("select public.change_quote($1,$2,$3,'accepted','Cannot stand in for customer')",[id(20),q.id,q.version])),/agreement required/);
+ await f.assess('agree',mutation(quoted,2304,{consent:true,quoteVersion:q.version}),customer,'beta');
+ await f.as(owner,()=>f.db.query("select public.change_quote($1,$2,$3,'accepted','Office attests actual saved T25 customer agreement')",[id(20),q.id,q.version]));
+ const result=(await f.as(owner,()=>f.db.query("select public.convert_quote($1,$2,$3,$4,'') v",[id(20),q.id,q.version+1,p.localStart]))).rows[0].v;
+ const history=await f.assess('history',{},customer,'beta');assert.equal(history.rows[0].state,'booked');assert.equal(history.rows[0].booking,result.booking_id);assert.equal((await f.assess('history')).rows.length,0);
+});
