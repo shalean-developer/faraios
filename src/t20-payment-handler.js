@@ -1,9 +1,11 @@
-// Candidate routes only. Not mounted by this source increment.
+// TEST-only payment routes, mounted only by explicit private runtime configuration.
+import {randomUUID} from 'node:crypto';
 const uuid=v=>/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(v??'');
 export function createPaymentHandler({controller}){
  const origin='https://staging.faraios.com';
  return async({req,res,auth,cookieName})=>{
   const send=(code,body)=>{res.writeHead(code,{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(body));};
+  const html=body=>{res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'same-origin','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"});res.end('<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TEST checkout · FaraiOS staging</title><main><h1>TEST checkout</h1><p>FaraiOS staging only. Use approved fictitious invoices and test cards.</p>'+body+'</main></html>');};
   try{
    if(req.headers.host!=='staging.faraios.com')return send(404,{error:'unavailable'});
    const u=new URL(req.url,origin),hook=u.pathname.match(/^\/payments\/([0-9a-f-]{36})\/webhook$/i),route=u.pathname.match(/^\/payments\/([0-9a-f-]{36})\/intents(?:\/([0-9a-f-]{36})(?:\/(initialize|reconcile))?)?$/i);
@@ -42,6 +44,9 @@ export function createPaymentHandler({controller}){
     const body='<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>TEST payment verification</title><main><h1>TEST payment verification</h1><p>FaraiOS staging only.</p><p>Saved payment status: '+state+'</p><p>The checkout redirect alone does not prove payment. Verify the provider result below.</p><form method="post" action="/payments/return"><input type="hidden" name="reference" value="'+reference+'"><button>Verify TEST payment</button></form><p><a href="/invoices?business='+v.businessId+'">Return to invoices</a></p></main></html>';
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'same-origin','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"});res.end(body);return;
    }
+   if(req.method==='GET'&&!intentId&&!operation){
+    return await auth.withOwner(sid,businessId,async()=>html('<form method="post" action="'+u.pathname+'"><label>Saved invoice ID <input name="invoiceId" required pattern="[0-9a-fA-F-]{36}" maxlength="36"></label><label>TEST request ID <input name="requestId" value="'+randomUUID()+'" required pattern="[0-9a-fA-F-]{36}" maxlength="36"></label><button>Prepare TEST checkout</button></form>'));
+   }
    if(req.method==='GET'&&intentId&&!operation)return send(200,await rpc('status',{businessId,intentId}));
    if(req.method!=='POST')return send(405,{error:'unavailable'});
    if(req.headers.origin!==origin||req.headers['content-type']!=='application/x-www-form-urlencoded')throw Error();
@@ -49,7 +54,12 @@ export function createPaymentHandler({controller}){
    const exact=keys=>[...form.keys()].length===keys.length&&keys.every(k=>form.getAll(k).length===1);
    if(!intentId){
     if(!exact(['invoiceId','requestId'])||!uuid(form.get('invoiceId'))||!uuid(form.get('requestId')))throw Error();
-    return send(200,await rpc('create',{businessId,invoiceId:form.get('invoiceId'),requestId:form.get('requestId')}));
+    const v=await rpc('create',{businessId,invoiceId:form.get('invoiceId'),requestId:form.get('requestId')});
+    if((req.headers.accept??'').includes('text/html')){
+     if(!uuid(v.id)||!/^FOS-[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(v.reference??'')||!Number.isSafeInteger(v.amountCents)||v.amountCents<=0||v.currency!=='ZAR')throw Error();
+     return html('<p>Saved reference: '+v.reference+'</p><p>Saved amount: R '+(v.amountCents/100).toFixed(2)+'</p><form method="post" action="/payments/'+businessId+'/intents/'+v.id+'/initialize"><label>Fictitious TEST email <input name="email" type="email" value="synthetic@example.test" required></label><label><input type="checkbox" name="confirm" value="yes" required> I approve this TEST-only checkout.</label><button>Open approved TEST checkout</button></form>');
+    }
+    return send(200,v);
    }
    // DB status is the role/business/record authorization gate before backend work.
    const v=await rpc('status',{businessId,intentId});
