@@ -1,3 +1,4 @@
+import {customerRoute,customerOperation,customerFormPayload,renderCustomerPortal,renderCustomerAccess} from './customer-portal.js';
 import {cleanerPortalData,renderCleanerPortal} from './cleaner-portal.js';
 import {earningsOperation,earningsFormInput,renderEarningsWorkspace} from './earnings-workspace.js';
 import {eftOperation,renderEft} from './t21-eft.js';
@@ -69,7 +70,59 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
       if(req.method==='GET'&&url.pathname==='/catalogue-setup.js')return send(200,await readFile(new URL('../public/catalogue-setup.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/quote-detail.js')return send(200,await readFile(new URL('../public/quote-detail.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/style.css')return send(200,await readFile(new URL('../public/style.css',import.meta.url),'utf8'),'text/css');
-      if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/'))return send(200,loginForm(''));
+      if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/')){
+        const next=url.searchParams.get('next');
+        return send(200,loginForm('').replace('<label for="email">',customerRoute(next??'')?'<input type="hidden" name="next" value="'+esc(next)+'"><label for="email">':'<label for="email">'));
+      }
+      if(url.pathname==='/customer-access'){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        if(!['GET','POST'].includes(req.method))return send(405,'Method unavailable','text/plain');
+        if(req.method==='POST'&&(req.headers.origin!==origin||req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded'))return send(403,'Origin or form rejected','text/plain');
+        let body='';if(req.method==='POST')for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>16384)return send(413,'Form too large','text/plain');}
+        return await auth.withCustomers(id,url.searchParams.get('business'),async(client,business)=>{
+          const customer=await readCustomer(client,business.id,url.searchParams.get('customer'));if(!customer)return send(404,'Customer unavailable','text/plain');
+          const data=new URLSearchParams(body);let message='';
+          if(req.method==='POST'){
+            if(!['link','revoke'].includes(data.get('action')))return send(400,'Invalid action','text/plain');
+            const {error}=await client.rpc('t25_customer_access',{business:business.id,action:data.get('action'),payload:{customer:customer.id,user:data.get('user'),evidence:data.get('evidence'),requestId:data.get('requestId')}});
+            if(error)return send(error.code==='42501'?403:422,'Customer access change rejected. Check the verified identity and evidence.','text/plain');
+            return redirect('/customer-access?business='+encodeURIComponent(business.id)+'&customer='+encodeURIComponent(customer.id));
+          }
+          const {data:links,error}=await client.rpc('t25_customer_access',{business:business.id,action:'links',payload:{customer:customer.id}});
+          if(error)return send(422,'Customer portal is not configured for this business.','text/plain');
+          return send(200,pageHtml('Verified customer access',renderCustomerAccess(business,customer,links,{message})));
+        });
+      }
+      const portalRoute=customerRoute(url.pathname);
+      if(portalRoute){
+        if(!['GET','POST'].includes(req.method))return send(405,'Method unavailable','text/plain');
+        if(req.method==='POST'&&(req.headers.origin!==origin||req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded'))return send(403,'Origin or form rejected','text/plain');
+        let body='';if(req.method==='POST')for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>65536)return send(413,'Form too large','text/plain');}
+        const data=new URLSearchParams(body),serviceId=data.get('service_id')??url.searchParams.get('service')??'';
+        try{
+          const business=await customerOperation(createClient(),portalRoute,'public');
+          const response=await auth.withCustomerSession(id,async(client,userId)=>{
+            let message='';
+            if(req.method==='POST'){
+              try{const op=customerFormPayload(data,business.catalogue);await customerOperation(client,portalRoute,op.action,op.payload);return redirect(url.pathname+'?view=history');}
+              catch(error){message=error.message;res.statusCode=error.status??422;}
+            }
+            const account=await customerOperation(client,portalRoute,'account');
+            if(account.userId!==userId)throw Error('Customer context mismatch');
+            const page=Number(url.searchParams.get('page')??0);
+            if(!Number.isSafeInteger(page)||page<0||page>1000000)return send(400,'Invalid history page','text/plain');
+            const history=await customerOperation(client,portalRoute,'history',{page});
+            if(history.userId!==userId)throw Error('Customer context mismatch');
+            let html=renderCustomerPortal(portalRoute,business,{signedIn:true,account,history,serviceId,values:Object.fromEntries(data),message});
+            html+=`<nav aria-label="History pages">${page?`<a href="${url.pathname}?page=${page-1}">Previous</a> `:''}${history.rows.length>50?`<a href="${url.pathname}?page=${page+1}">Next</a>`:''}</nav>`;
+            return send(message?res.statusCode:200,pageHtml(business.name,html));
+          });
+          if(response!==null)return response;
+          if(req.method==='POST')return send(401,pageHtml('Sign in required','<h1>Sign in required</h1><p>Sign in, then return to this business page.</p>'));
+          return send(200,pageHtml(business.name,renderCustomerPortal(portalRoute,business)));
+        }catch(error){return send(error.status??503,pageHtml('Customer page unavailable','<h1>Customer page unavailable</h1><p>Check your access or try again later.</p>'));}
+      }
+
       if(url.pathname==='/cleaner'){
         if(!await readIdentity(id)){clear();return redirect('/login');}
         if(req.method!=='GET')return send(405,'Cleaner portal is read-only','text/plain');
@@ -490,7 +543,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
         if(url.pathname==='/login'){
           failures=failures.filter(t=>t>now()-60000);if(failures.length>=5)return send(429,loginForm('Too many attempts. Wait one minute.'));
           const data=new URLSearchParams(body);
-          try{const session=await auth.login(data.get('email'),data.get('password'));if(id)await auth.logout(id);res.setHeader('Set-Cookie',`${cookieName}=${session.id}; HttpOnly; SameSite=Strict; Path=/; Max-Age=1800${secure}`);return redirect('/dashboard');}
+          try{const session=await auth.login(data.get('email'),data.get('password'));if(id)await auth.logout(id);res.setHeader('Set-Cookie',`${cookieName}=${session.id}; HttpOnly; SameSite=Strict; Path=/; Max-Age=1800${secure}`);return redirect(customerRoute(data.get('next')??'')?data.get('next'):'/dashboard');}
           catch{failures.push(now());return send(401,loginForm('Unable to sign in. Check your staging account and try again.'));}
         }
       }

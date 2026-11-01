@@ -97,3 +97,7 @@ echo CI_POLICY_T23_PAYOUTS_NATIVE_PASS
 # T24 read-only cleaner projection under concurrent accrual and recovery.
 T24_PG_BIN="$(pg_config --bindir)" node scripts/run-t24-cleaner-postgres.mjs
 echo CI_POLICY_T24_CLEANER_NATIVE_PASS
+
+# T25 customer requests: own disposable cluster and independent connections.
+T25_PG_BIN="$(pg_config --bindir)" node scripts/run-t25-customer-postgres.mjs
+echo CI_POLICY_T25_CUSTOMER_NATIVE_PASS
