@@ -20,3 +20,8 @@ Assuming purchase credits and usage debits (not yet checked against row-level be
 4. Preserve R64.75 in existing Bokkie source until an explicit owner-approved supported transition/settlement treatment is documented. No creation of credits, booking payments, or migration as part of T28.
 
 Status: T28 mapping evidence, acceptance NOT READY. No production write performed.
+
+## Direction check — owner-supplied 2 November 2026
+Read-only completed-transaction aggregate: purchase_direction_mismatches **0**, usage_direction_mismatches **0**, transactions_with_prior_credit **8**, net_recorded_balance_change **+R14.75**. This establishes per-transaction arithmetic in the expected direction using the supplied query; it does **not** prove complete customer-by-customer chronological continuity or explain the R50 difference between current balances (R64.75) and listed ledger movement (+R14.75). A positive prior balance on eight transactions is compatible with prior credit, not proof of the original R50 source.
+
+Next safe test must compare **per-user earliest ledger balance_before and latest balance_after** against current user_credits.balance, without returning user_id or other row identifiers. Reconcile users without transactions separately. Keep R64.75 protected and do not fabricate an adjustment.
