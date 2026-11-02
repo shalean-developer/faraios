@@ -12,8 +12,12 @@ This is a **source-only Draft PR for CI**, not a completed T27 feature. Owner ap
 
 ## Mandatory incomplete requirements
 - **Issued invoice / outstanding balance / reimbursement metrics are not implemented.** The staging invoice row has draft document status even for some matched provider bindings; do not substitute sync status for an issued invoice or a stored Draft for revenue.
-- The existing earlier T27 isolated dashboard/rendering prototypes are **not yet integrated** into the real server/navigation. Do not mistake this PR for dashboard delivery.
+- A read-only /reports GET route and Reports navigation are now integrated into the staging-server source, including an authorised combined view. These source changes are **not deployed or browser-verified**.
 - Native PostgreSQL authenticated role/session/concurrency and date-reconciliation tests, two-business/current-membership revocation/API direct denial, exact-head CI, full regressions, source ownership and review still required.
 - Exact SQL amounts/dates and payout semantics require reconciliation against staging source records, including partial settlement and corrections.
 - Before any approved staging migration/deploy, verify Plesk subscription 738 / site 841, private checkpoint and scheduled workers, and prepare explicit fixture limits and before/after full-row hashes.
 - T27 remains In progress. Completion blank until actual hosted desktop/mobile/UI/API/database evidence and explicit owner acceptance. T28 untouched.
+
+## Continuation after initial publication
+
+Owner's existing source-publication/CI approval covers bounded further Draft PR updates, not merge or deployment. Added src/t27-reports.js, test/t27-reports.test.js, and read-only GET integration in staging-server.js/workspace-layout.js. The existing source tests are not native hosted acceptance. Last known CI at updated head was queued; never count earlier-head green as exact-head qualification.
