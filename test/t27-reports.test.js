@@ -8,3 +8,11 @@ test('authorized combined reads each business exactly once',async()=>{const seen
 test('revoking Bokkie removes it from combined report',async()=>{const copy={...identity,memberships:identity.memberships.filter(m=>m.businessId===a)};const seen=[];const c={rpc:async(_,q)=>{seen.push(q.p_business);return {data:{businessId:q.p_business,from:q.p_from,through:q.p_through},error:null}}};await collectReports(c,copy,'all','2026-11-01','2026-11-02');assert.deepEqual(seen,[a]);});
 test('report date boundaries validated',()=>{assert.deepEqual(reportDates(new URLSearchParams(),'2026-11-02'),{from:'2026-11-01',through:'2026-11-02'});assert.throws(()=>reportDates(new URLSearchParams('from=2026-12-01&through=2026-11-02'),'2026-11-02'));});
 test('names are escaped',()=>{const x=renderReports([{business:{id:a,name:'<script>'},report:{}}],{from:'2026-11-01',through:'2026-11-02',selected:a});assert.doesNotMatch(x,/<script>/);});
+
+test('unverified issued invoice metrics never render as zero',()=>{
+ const report={issuedInvoicesCents:null,issuedOutstandingCents:null,internalDraftInvoicesCents:2500,approvedReimbursementsCents:500};
+ const html=renderReports([{business:{id:a,name:'Shalean'},report}],{from:'2026-11-01',through:'2026-11-02',selected:a});
+ assert.match(html,/Not verified/);
+ assert.match(html,/R 25\.00/);
+ assert.match(html,/R 5\.00/);
+});
