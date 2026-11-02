@@ -15,3 +15,11 @@ Totals: 13 grouped confirmed historical visits, 0 completed/cancelled across the
 Acceptance impact: owner/office must verify work completion and continuation for each source group and ungrouped booking from operational evidence. Do not automatically complete, cancel, regenerate, reprioritize, migrate or invoice visits. Preserve source identifiers, status, history and parent links.
 
 Next: perform decision review through original Bokkie admin system, with an approved per-group continuation/ended/review transition, then reconcile finances/customer credits separately. No source mutations or T29 import.
+
+## Owner transition decision — 2 November 2026
+
+The owner explicitly instructed: **“For T28 Bokkie, preserve all five recurring groups as historical records and leave their completion and future agreement status under review pending operational evidence.”**
+
+**Decision T28-BOK-REC-01 — APPROVED for mapping only.** Preserve all five groups and their 13 historical grouped bookings, with original source IDs, dates, statuses, parent links and original recurrence group links. Preserve the sixth, ungrouped recurring-flagged booking separately for review. No source booking status, payment status or recurring agreement is reclassified. Do **not** infer completed work, expired or active customer agreements, or generate future visits.
+
+**Open acceptance qualification:** historical-preservation treatment is agreed; operational completion and continuation of each group and the ungrouped booking still require evidence and a specific disposition before declaring the recurrence transition fully resolved. This approval does not authorize a migration, write, booking generation, payment, notification, deployment or T29 rehearsal.
