@@ -34,3 +34,19 @@ T28-BOK-DEV-01 approves preserving development-stage website/CMS, blog, analytic
 - [ ] Explicit owner T28 staging acceptance; only then mark canonical tracker Done
 
 **Conclusion:** T28 remains In progress. There is no evidence sufficient to request staging acceptance. T29 remains Not started. No imports, updates, provider calls, finance operations or site changes were performed.
+
+## Owner-supplied live metadata — 2 November 2026 addendum
+
+Owner supplied live `information_schema` column metadata (attached text) and the FK table in the conversation. The delivered column file ends at `recurring_schedules` ordinal 20, while earlier reported schema count was 25; **recurring_schedules columns 21–25 and all `teams`/`team_members` columns are absent from this attachment**. Therefore no claim of complete live field coverage for those tables.
+
+Verified current live columns:
+- `quotes` 16 fields, with **id TEXT primary key** (historical migration 035 suggested UUID, therefore real schema drift). `service_type`, `extras ARRAY`, `status` and `estimated_price NUMERIC` exist. FaraiOS `business_quotes.id` is UUID: use a source-system+source-business+original TEXT quote ID crosswalk to a separate target UUID, never cast IDs or fabricate a quote acceptance/payment state.
+- `customers` 13 columns, including id UUID PK, nullable auth_user_id UUID, and role. `customer_profiles` 9 columns, id UUID PK and user_id UUID required. No FK between these identities appears in supplied FK list: linking is NOT established by matching email or name.
+- `cleaners` 37 columns, with id UUID PK and a separate required cleaner_id TEXT. Retain both identity namespaces. Password hashes, OTP codes, contact details and location coordinates are sensitive; none were requested or copied. Don't migrate login secrets.
+- `booking_cleaners` has id UUID PK, booking_id TEXT and cleaner_id TEXT. Verified live FKs: booking_cleaners.booking_id → bookings.id, booking_cleaners.cleaner_id → cleaners.cleaner_id. Preserve text-based source identifiers in a scoped key crosswalk for T18 and T24.
+- `recurring_schedules` first 20 columns observed: id UUID PK, customer_id UUID, cleaner_id UUID, start/end, frequency, preferred_time, days, money-related fields in later columns not yet confirmed. Earlier exact row count was zero; no live schedule transition inferred.
+- Live FK metadata supplied: recurring_schedules.customer_id → customers.id; team_members.cleaner_id → cleaners.cleaner_id; team_members.team_id → teams.team_id. No FK from quotes to customers appeared. Five FK rows in total, but this query excludes tables outside the selected set, so it is not proof of all project FKs.
+
+Remaining exact metadata needed before claiming full schema check: the five trailing recurrence columns, all `teams`/`team_members` columns, and the live `booking_cleaners`/customer/quote relationship cardinality and integrity counts (privacy-preserving aggregates). Existing 161 quotes, 12 cleaners, 2 booking_cleaners, and zero recurring_schedules are owner-reported exact counts. Status/value distributions and customer association still require read-only validation. No source data was modified.
+
+**T28 remains In progress. T29 Not started. This is not staging acceptance.**
