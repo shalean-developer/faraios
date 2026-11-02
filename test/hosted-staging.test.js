@@ -42,6 +42,20 @@ test('outbound SDK boundary denies live providers, other projects, messaging Aut
   let redirectPolicy;await createStagingFetch(async r=>{redirectPolicy=r.redirect;throw new TypeError('redirect refused');})(stagingDatabase+'/auth/v1/user').catch(()=>{});assert.equal(redirectPolicy,'error');
 });
 
+test('T27 hosted fetch allows only approved public report RPC POST',async()=>{
+ const calls=[];const restricted=createStagingFetch(async req=>{calls.push(req);return new Response('{}',{status:200});});
+ const path=stagingDatabase+'/rest/v1/rpc/t27_operational_report';
+ await restricted(path,{method:'POST'});
+ assert.equal(calls.length,1);assert.equal(calls[0].redirect,'error');
+ for(const [url,options] of [
+  [path,{method:'GET'}],[path+'?extra=1',{method:'POST'}],
+  [stagingDatabase+'/rest/v1/rpc/t27_operational_report_edit',{method:'POST'}],
+  [path,{method:'POST',headers:{'Content-Profile':'private_t27'}}],
+  ['https://example.invalid/rest/v1/rpc/t27_operational_report',{method:'POST'}]
+ ])await assert.rejects(restricted(url,options),/blocked/);
+ assert.equal(calls.length,1);
+});
+
 test('T04 hosted SDK admits only synthetic journal reads and audited append RPCs',async()=>{
   const calls=[];
   const restricted=createStagingFetch(async request=>{calls.push(request);return new Response('[]',{headers:{'Content-Type':'application/json'}});});
