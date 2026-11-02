@@ -38,6 +38,16 @@ begin
       on a.receipt_id=r.id and a.business_id=r.business_id
     where r.business_id=p_business and r.verified_at is not null and
     (r.verified_at at time zone 'Africa/Johannesburg')::date between p_from and p_through),
+  'internalDraftInvoicesCents',(select coalesce(sum(i.total_cents::bigint),0)
+    from public.business_invoices i where i.business_id=p_business and i.document_status='draft'
+      and (i.created_at at time zone 'Africa/Johannesburg')::date between p_from and p_through),
+  'issuedInvoicesCents',null,
+  'issuedOutstandingCents',null,
+  'approvedReimbursementsCents',(select coalesce(sum(a.delta_cents::bigint),0)
+    from public.adjustment_review_items a join public.adjustment_review_sources src
+      on src.id=a.source_id and src.business_id=a.business_id
+    where a.business_id=p_business and a.kind='reimbursement' and a.status='approved'
+      and a.simulated=false and (src.created_at at time zone 'Africa/Johannesburg')::date between p_from and p_through),
   'accruedEarningsCents',(select coalesce(sum((w->>'amountCents')::bigint),0)
     from private_t22.accruals a join private_t22.agreements g
       on g.id=a.agreement_id and g.business_id=a.business_id
