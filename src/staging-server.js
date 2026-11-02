@@ -1,3 +1,4 @@
+import {collectReports,renderReports,reportDates} from './t27-reports.js';
 import {notificationOperation,notificationForm,renderNotifications} from './notifications.js';
 import {customerRoute,customerOperation,customerFormPayload,renderCustomerPortal,renderCustomerAccess,assessmentOperation,renderOfficeRequests} from './customer-portal.js';
 import {cleanerPortalData,renderCleanerPortal} from './cleaner-portal.js';
@@ -74,6 +75,20 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
       if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/')){
         const next=url.searchParams.get('next');
         return send(200,loginForm('').replace('<label for="email">',customerRoute(next??'')?'<input type="hidden" name="next" value="'+esc(next)+'"><label for="email">':'<label for="email">'));
+      }
+      if(url.pathname==='/reports'){
+        if(req.method!=='GET')return send(405,'Read-only reports','text/plain');
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        const selected=url.searchParams.get('business')??'all';
+        const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Johannesburg',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(now()));
+        try{
+          const {from,through}=reportDates(url.searchParams,today);
+          const result=await auth.withAccountingSession(id,async(client)=>{
+            const fresh=await auth.read(id);if(!fresh)throw Object.assign(Error('Session expired'),{status:401});
+            return collectReports(client,fresh,selected,from,through);
+          });
+          activePath='/reports';return send(200,html('Reports',renderReports(result,{from,through,selected})));
+        }catch(e){return send(e.status??422,esc(e.message),'text/plain');}
       }
       if(url.pathname==='/notifications'){
         if(!await readIdentity(id)){clear();return redirect('/login');}
