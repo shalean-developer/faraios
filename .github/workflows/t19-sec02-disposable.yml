@@ -6,6 +6,8 @@ on:
       - 'test-support/t19-a12-f2-privilege-probe.sql'
       - '.github/workflows/t19-sec02-disposable.yml'
       - 'test-support/t19-sec02-separate-sessions.sh'
+      - 'test-support/t19-sec02-fencing.sql'
+      - 'test-support/t19-sec02-fencing-test.sh'
   workflow_dispatch:
 permissions:
   contents: read
@@ -61,3 +63,8 @@ jobs:
           "
       - name: Verify actual separate attacker login sessions
         run: bash test-support/t19-sec02-separate-sessions.sh
+      - name: Load row-locked disposable fencing fixture
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -c "set faraios.sec02='synthetic'" -f test-support/t19-sec02-fencing.sql
+      - name: Check seven-field fencing and disconnect
+        run: bash test-support/t19-sec02-fencing-test.sh
