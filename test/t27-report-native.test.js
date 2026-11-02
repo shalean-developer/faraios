@@ -18,7 +18,7 @@ test('T27 native: scoped reporting, zero leakage, current membership and reconci
  create table public.settlement_review_events(statement_id uuid,business_id uuid,event_type text,payload jsonb,created_at timestamptz);
  `);
  await db.exec(await readFile(new URL('../database/t27-operational-report-candidate.sql',import.meta.url),'utf8'));
- const get=async(business,user=owner,role='authenticated')=>f.as(user,async()=>(await db.query('select public.t27_operational_report($1,$2,$3) result',[business,'2026-10-01','2026-11-30'])).rows[0].result,role);
+ const get=async(business,user=owner,role='authenticated',from='2099-11-01',through='2099-11-30')=>f.as(user,async()=>(await db.query('select public.t27_operational_report($1,$2,$3) result',[business,from,through])).rows[0].result,role);
  const make=async business=>{const saved=await f.create(business,business===a?8100:8200);await f.confirm(saved);return saved;};
  const sa=await make(a),sb=await make(b);
  const r1=await get(a),r2=await get(b);
@@ -37,9 +37,9 @@ test('T27 native: scoped reporting, zero leakage, current membership and reconci
  const again=await get(b);assert.equal(again.businessId,b);
  assert.equal(again.verifiedEftReceiptsCents,0);
  await f.pay(sa,a,8400);
- const paid=await get(a);
+ const paid=await get(a,owner,'authenticated','2026-10-01','2026-11-30');
  assert.ok(paid.verifiedEftReceiptsCents>0);
  assert.equal(paid.allocatedVerifiedEftCents,paid.verifiedEftReceiptsCents);
- assert.equal((await get(b)).verifiedEftReceiptsCents,0);
+ assert.equal((await get(b,owner,'authenticated','2026-10-01','2026-11-30')).verifiedEftReceiptsCents,0);
  console.log('T27_NATIVE_ACCESS_RECONCILIATION_PASS');
 });
