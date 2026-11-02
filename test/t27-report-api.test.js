@@ -19,3 +19,13 @@ test('invalid inputs stop before transport',async()=>{
  const client={rpc:()=>{throw Error('called')}};
  await assert.rejects(readOperationalReport(client,'wrong','2026-11-01','2026-11-02'),/Invalid/);
 });
+
+test('RPC failure logs SQLSTATE only, not private details',async()=>{
+ const prior=console.error,logs=[];
+ console.error=(...a)=>logs.push(a.join(' '));
+ try{
+  const client={rpc:async()=>({error:{code:'42703',message:'secret invoice',details:'private details',hint:'private hint'}})};
+  await assert.rejects(readOperationalReport(client,id,'2026-11-01','2026-11-02'),e=>e.status===422&&e.message==='Report unavailable. Check access and current source state.');
+  assert.deepEqual(logs,['T27_REPORT_RPC_CODE=42703']);
+ }finally{console.error=prior;}
+});
