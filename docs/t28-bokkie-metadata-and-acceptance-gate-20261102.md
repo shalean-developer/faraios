@@ -62,3 +62,11 @@ The owner supplied the previously missing live `information_schema.columns` rows
 The owner-supplied live foreign keys match text-key joins `team_members.team_id→teams.team_id`, `team_members.cleaner_id→cleaners.cleaner_id`. FaraiOS T18 staff/team mappings must preserve original text IDs through source-scoped crosswalks. Do not equate the legacy text IDs with UUID primary keys. `max_jobs_per_day` is a configuration field, not proof that limits were enforced. The recurrence earnings_override is TEXT and monetary NUMERIC fields require source-rule validation before transforming to V1 amounts; zero source `recurring_schedules` rows were previously counted, but the 14 recurring-flagged booking records remain governed by T28-BOK-REC-01.
 
 **Structural metadata gap closed** for these three tables, based on owner-provided query results. Still outstanding: actual FK integrity/relationship counts, source quote statuses and customer linking, storage metadata, financial/provider reconciliation, owner and access/recovery evidence. No production writes or T29.
+
+## Owner-supplied live aggregate validation — 2 November 2026
+- `booking_cleaners`: 2 rows; **0 missing booking or cleaner FK matches** (tested via read-only LEFT JOIN).
+- `quotes`: 161 rows; **0 null/unrecognized statuses** against pending/contacted/converted/declined. 16 converted; 12 of those have `estimated_price IS NULL`. Do not infer missing invoice, payment, or price without original accepted quote/booking evidence.
+- `customers`: 101 rows; 10 with non-null `auth_user_id`. The original SQL labelled this output as 'exceptions', but it is **informational**, not 10 failures; 91 without explicit Auth link may be valid non-portal customers.
+- `team_members`: exactly 0; `recurring_schedules`: exactly 0. These empty tables do not invalidate booking-level recurrence or existing booking assignments.
+
+This verifies structural integrity for the two booking-cleaner links and quote status vocabulary, **not** all 161 quotation-to-customer links or the 12 missing historical estimated prices. Record these as mapping/evidence gaps; do not backfill or create financial entries under T28.
