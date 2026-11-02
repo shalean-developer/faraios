@@ -39,6 +39,34 @@ async function fixture(){
 }
 function jsonResponse(body){return new Response(JSON.stringify(body),{status:200,headers:{'Content-Type':'application/json'}});}
 const exchangeResponse=()=>jsonResponse({access_token:'DUMMY-ACCESS',refresh_token:'DUMMY-REFRESH',api_domain:'https://www.zohoapis.com',expires_in:3600,token_type:'Bearer'});
+
+test('expiry during post-exchange membership or vault read retains the late grant only for cleanup',async()=>{
+ for(const pauseAt of ['membership','read']){
+  const h=await fixture();h.prep();h.import();let returned=false,calls=0;const trusted=sessions();
+  const read=h.vault.read;
+  if(pauseAt==='read')h.vault.read=async()=>{const db=await read();if(returned)h.clock=h.m.endsAt;return db;};
+  const svc=h.svc({sessions:{read:async sid=>{const user=await trusted.read(sid);if(returned&&pauseAt==='membership')h.clock=h.m.endsAt;return user;}},fetchImpl:async()=>{calls++;returned=true;return exchangeResponse();}});
+  const {state}=await consent(h,svc);await assert.rejects(svc.callback('owner',state,'DUMMY-CODE'),e=>e.code==='stale');
+  const c=h.db.connections[h.m.businessId];assert.equal(calls,1);assert.equal(c.status,'disabled');assert.equal(c.credentials,undefined);
+  assert.equal(c.cleanup.refreshToken,'DUMMY-REFRESH');
+  assert.doesNotThrow(()=>cleanupSuccessor(h.db,h.m,h.cleanupEvidence(false),{now:h.clock}));
+ }
+});
+
+test('successor expiry during pre-dispatch persistence prevents egress and preserves conservative cleanup',async()=>{
+ const h=await fixture();h.prep();h.import();let calls=0;
+ const svc=h.svc({fetchImpl:async()=>{calls++;return exchangeResponse();}}),{state}=await consent(h,svc);
+ const write=h.vault.write;h.vault.write=async db=>{await write(db);h.clock=h.m.endsAt;};
+ await assert.rejects(svc.callback('owner',state,'DUMMY-CODE'),e=>e.code==='approval_required');
+ assert.equal(calls,0);assert.equal(h.db.connections[h.m.businessId].status,'disabled');
+ assert.equal(h.db.connections[h.m.businessId].cleanup.unknownOutcome,true);
+ assert.throws(()=>cleanupSuccessor(h.db,h.m,h.cleanupEvidence(true),{now:h.clock}));
+ const clean=cleanupSuccessor(h.db,h.m,h.cleanupEvidence(false),{now:h.clock});
+ assert.deepEqual(clean.connectionHistory[h.predecessor.id].record,h.predecessor);
+ assert.equal(clean.clients[h.m.clientId],undefined);
+ assert.doesNotMatch(JSON.stringify(clean),/SUCCESSOR-DUMMY-SECRET|DUMMY-REFRESH|DUMMY-ACCESS/);
+ await assert.rejects(svc.callback('owner',state,'DUMMY-CODE'));assert.equal(calls,0);
+});
 async function consent(h,service=h.svc()){
  const result=await service.authorise('owner');return {service,state:new URL(result.authorizationUrl).searchParams.get('state')};
 }
