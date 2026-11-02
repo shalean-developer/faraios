@@ -70,3 +70,14 @@ The owner-supplied live foreign keys match text-key joins `team_members.team_idâ
 - `team_members`: exactly 0; `recurring_schedules`: exactly 0. These empty tables do not invalidate booking-level recurrence or existing booking assignments.
 
 This verifies structural integrity for the two booking-cleaner links and quote status vocabulary, **not** all 161 quotation-to-customer links or the 12 missing historical estimated prices. Record these as mapping/evidence gaps; do not backfill or create financial entries under T28.
+
+## Live quotation status/price coverage â€” owner-supplied, 2 November 2026
+| status | records | estimated_price NULL | zero | positive | sum of positive estimates ZAR |
+|---|---:|---:|---:|---:|---:|
+| contacted | 61 | 35 | 0 | 26 | 31602.00 |
+| converted | 16 | 12 | 0 | 4 | 4130.00 |
+| declined | 11 | 11 | 0 | 0 | 0 |
+| pending | 73 | 11 | 0 | 62 | 2492845.00 |
+| **total** | **161** | **58** | **0** | **103** | **2528577.00** |
+
+No missing quote status categories. The high pending estimate aggregate must not be represented as revenue or accepted contract value; investigate magnitude/outliers using aggregate-only checks. Twelve converted quotations without estimates must retain NULL, not be retroactively repriced or assumed paid. Current source schema has no confirmed direct booking FK on quotes. Matching against bookings requires independent source evidence. No source data writes.
