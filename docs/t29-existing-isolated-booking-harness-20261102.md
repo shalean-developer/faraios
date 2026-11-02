@@ -1,0 +1,9 @@
+# T29 — Existing isolated booking harness and hosted access boundary (2026-11-02)
+
+Read-only source review identified `test/bookings.test.js`, which already uses an in-process **PGlite disposable PostgreSQL** instance; creates two synthetic cleaning businesses, memberships, customer/address/catalogue records; exercises booking lifecycle, tenant FKs, snapshots and audit under authenticated-role simulation. `test/staging-access-verifier.test.js` already tests a fixed-origin login/access verifier with fake HTTP transports and denied cross-business routes. Both are **existing regression coverage**, not new T29 hosted end-to-end evidence.
+
+T29 commit `e96a875` added policy-only synthetic checks and Foundation checks run 41500831586 passed. Existing isolated Postgres fixtures and source-level HTTP denial tests can be reused without a production-data copy or a new hosting environment. Refrain from claiming they are a real hosted authenticated cross-business denial, as fake HTTP transport and PGlite simulation are not a live account.
+
+**Current gates:** isolated synthetic booking lifecycle source tests exist and passed as part of Foundation checks; separate run-bound no-provider-egress proof, a controlled actual authenticated API/database denial test, and no-change/rollback evidence for T29 remain pending. Existing staging database has live accepted test/business data and must not be reset or populated with unreviewed synthetic records. No use of legacy systems, financial calls, notifications, import, deployment or T30.
+
+Next safe action: construct a run-bound evidence summary from CI job/test output, then run an authorised hosted read-only API/RLS negative test with authenticated Shalean and Bokkie-only accounts. For no-outbound-effects verification use disconnected disposable fixtures and assert provider endpoints are not invoked; do not enable real financial or notification integrations.
