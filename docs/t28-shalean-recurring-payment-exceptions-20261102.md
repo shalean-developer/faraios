@@ -24,3 +24,6 @@ Total unlinked: pending 99 / 26,150,200 cents (R261,502); reversed 1 / 42,000 ce
 2. Reconcile source booking/customer relationships using auth and CRM permission-safe identifiers privately. Do not auto-merge.
 3. Obtain owner approval of Shalean recurring preservation/legacy single-scheduler approach, and separately classify unlinked payments.
 4. Keep T28 open pending remaining mapped/retained source family decisions and final evidence. No import, no production mutation, no T29.
+
+## T28-SHA-REC-01 — OWNER APPROVED 2 November 2026
+The owner explicitly approved: preserve Shalean's 13 active recurring schedules and existing historical and future visits, original agreements, prices, and assignments. Keep Shalean's current scheduler authoritative until independently approved cutover; prevent duplicate generation; do not reactivate paused or cancelled schedules. This is a **mapping/preservation approval only**, not migration, schedule activation, production modification or T29 authority. The current source aggregate recorded 85 future visits linked to active schedules; that is evidence of the current source, not authorization to create them again. All source references, statuses, dates, historical policy versions and exceptions remain intact. Any actual cutover will need independently approved single-writer coordination and reconciliation.
