@@ -2,7 +2,7 @@
 
 **Source:** Connected Shalean production Supabase `paqjwfulwywtsyyvdxrq` information_schema public BASE TABLE names on 2026-11-02. **245 tables**. The assignment below is a **provisional name-based triage**, not a verified field-to-field mapping or approved legacy retention decision. Every source row is accounted for; no data rows accessed and no production mutation.
 
-Codes: MAP_REVIEW = V1 operational mapping requires fields/ownership proof; FINANCE_REVIEW = financial reconciliation and original obligations; EVIDENCE_REVIEW = auth/audit/notification retention and access scope; LEGACY_RETAIN_CANDIDATE = website/marketing etc. likely retained in source subject to owner policy and financial exceptions; OPERATIONS_REVIEW = operational auxiliary data requires dependency review; OPEN_UNMATCHED = not yet classified safely.
+Codes: MAP_REVIEW = V1 operational mapping requires fields/ownership proof; FINANCE_REVIEW = financial reconciliation and original obligations; EVIDENCE_REVIEW = auth/audit/notification retention and access scope; LEGACY_RETAIN_CANDIDATE = website/marketing etc. likely retained in source subject to owner policy and financial exceptions; OPERATIONS_REVIEW = operational auxiliary data requires dependency review; OPEN_UNMATCHED = not yet classified safely. Four manual follow-up tables were explicitly classified after name-only triage: cleaner_booking_track_points (privacy/operational), customer_care_case_events (evidence), customer_care_cases (service obligation), customer_monthly_billing_terms (financial).
 
 | # | Source public table | Family | Provisional treatment | Gate |
 |---:|---|---|---|---|
@@ -60,7 +60,7 @@ Codes: MAP_REVIEW = V1 operational mapping requires fields/ownership proof; FINA
 | 52 | `cleaner_applications` | Operational auxiliary | Classify dependent operational evidence and transitional retention | OPERATIONS_REVIEW |
 | 53 | `cleaner_auth_links` | V1 core operations | Candidate T12–T18/T22/T24 mapping; verify individual fields and histories | MAP_REVIEW |
 | 54 | `cleaner_availability` | V1 core operations | Candidate T12–T18/T22/T24 mapping; verify individual fields and histories | MAP_REVIEW |
-| 55 | `cleaner_booking_track_points` | Unmatched | Manual review of source and obligation | OPEN_UNMATCHED |
+| 55 | `cleaner_booking_track_points` | Operational auxiliary | Retain location evidence with privacy/retention controls; verify required dispatch history | OPERATIONS_REVIEW |
 | 56 | `cleaner_change_requests` | V1 core operations | Candidate T12–T18/T22/T24 mapping; verify individual fields and histories | MAP_REVIEW |
 | 57 | `cleaner_compliance_records` | Operational auxiliary | Classify dependent operational evidence and transitional retention | OPERATIONS_REVIEW |
 | 58 | `cleaner_early_finish_requests` | V1 core operations | Candidate T12–T18/T22/T24 mapping; verify individual fields and histories | MAP_REVIEW |
@@ -87,13 +87,13 @@ Codes: MAP_REVIEW = V1 operational mapping requires fields/ownership proof; FINA
 | 79 | `cron_http_targets` | Operational auxiliary | Classify dependent operational evidence and transitional retention | OPERATIONS_REVIEW |
 | 80 | `cron_run_leases` | Operational auxiliary | Classify dependent operational evidence and transitional retention | OPERATIONS_REVIEW |
 | 81 | `cron_runs` | Operational auxiliary | Classify dependent operational evidence and transitional retention | OPERATIONS_REVIEW |
-| 82 | `customer_care_case_events` | Unmatched | Manual review of source and obligation | OPEN_UNMATCHED |
-| 83 | `customer_care_cases` | Unmatched | Manual review of source and obligation | OPEN_UNMATCHED |
+| 82 | `customer_care_case_events` | Access, audit, communications | Retain customer-care audit and link to complaint evidence; no assumed V1 case equivalent | EVIDENCE_REVIEW |
+| 83 | `customer_care_cases` | Operational auxiliary | Retain unresolved customer-service obligations; agree case handling if active | OPERATIONS_REVIEW |
 | 84 | `customer_contact_health` | Access, audit, communications | T08–T11/T24–T27 or retain immutable evidence; verify actor/consent | EVIDENCE_REVIEW |
 | 85 | `customer_earnings_policies` | Financial obligations | Review ledger/source authority → T19–T23 or legacy financial retention | FINANCE_REVIEW |
 | 86 | `customer_identity_aliases` | V1 core operations | Candidate T12–T18/T22/T24 mapping; verify individual fields and histories | MAP_REVIEW |
 | 87 | `customer_memberships` | V1 core operations | Candidate T12–T18/T22/T24 mapping; verify individual fields and histories | MAP_REVIEW |
-| 88 | `customer_monthly_billing_terms` | Unmatched | Manual review of source and obligation | OPEN_UNMATCHED |
+| 88 | `customer_monthly_billing_terms` | Financial obligations | Compare current billing agreements, due dates and outstanding invoicing with T19 | FINANCE_REVIEW |
 | 89 | `customer_saved_addresses` | V1 core operations | Candidate T12–T18/T22/T24 mapping; verify individual fields and histories | MAP_REVIEW |
 | 90 | `customer_segment` | Legacy site/growth | Retain source/website unless required V1 records/obligations identified | LEGACY_RETAIN_CANDIDATE |
 | 91 | `customers` | V1 core operations | Candidate T12–T18/T22/T24 mapping; verify individual fields and histories | MAP_REVIEW |
