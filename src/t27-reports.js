@@ -10,6 +10,10 @@ const metrics=[
  ['verifiedOnlineCreditsCents','Verified online credits','money'],
  ['verifiedEftReceiptsCents','Verified EFT receipts','money'],
  ['allocatedVerifiedEftCents','Verified EFT allocated to invoices','money'],
+ ['internalDraftInvoicesCents','Internal draft invoices (not issued)','money'],
+ ['issuedInvoicesCents','Issued invoice value (not verified)','money'],
+ ['issuedOutstandingCents','Issued outstanding balance (not verified)','money'],
+ ['approvedReimbursementsCents','Approved reimbursements','money'],
  ['accruedEarningsCents','Accrued synthetic earnings','money'],
  ['clearedPayoutsCents','Cleared synthetic payouts','money']
 ];
@@ -28,10 +32,10 @@ export async function collectReports(client,identity,selected,from,through){
  return rows;
 }
 export function renderReports(rows,{from,through,selected}){
- const totals=Object.fromEntries(metrics.map(([k])=>[k,rows.reduce((sum,row)=>{
-  const n=Number(row.report[k]);if(!Number.isSafeInteger(n)||n<0)throw Error('Report metric invalid');return sum+n;
+ const totals=Object.fromEntries(metrics.map(([k])=>[k,rows.some(row=>row.report[k]===null||row.report[k]===undefined)?null:rows.reduce((sum,row)=>{
+  const raw=row.report[k];if(raw===null||raw===undefined)return sum;const n=Number(raw);if(!Number.isSafeInteger(n)||n<0)throw Error('Report metric invalid');return sum+n;
  },0)]));
- const display=(key,value)=>key.endsWith('Cents')?'R '+(value/100).toFixed(2):String(value);
+ const display=(key,value)=>value===null||value===undefined?'Not verified':key.endsWith('Cents')?'R '+(value/100).toFixed(2):String(value);
  const block=(name,values)=>'<section class="panel"><h2>'+esc(name)+'</h2><dl>'+metrics.map(([k,label])=>
  '<div class="business-row"><dt>'+esc(label)+'</dt><dd>'+esc(display(k,values[k]))+'</dd></div>').join('')+'</dl></section>';
  return '<h1>Reports and operational overview</h1><p>Staging records only. Booking value is not revenue; invoices, receipts, earnings, reimbursements and payouts are different financial stages. No external alerts are sent.</p>'+
