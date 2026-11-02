@@ -50,3 +50,15 @@ Verified current live columns:
 Remaining exact metadata needed before claiming full schema check: the five trailing recurrence columns, all `teams`/`team_members` columns, and the live `booking_cleaners`/customer/quote relationship cardinality and integrity counts (privacy-preserving aggregates). Existing 161 quotes, 12 cleaners, 2 booking_cleaners, and zero recurring_schedules are owner-reported exact counts. Status/value distributions and customer association still require read-only validation. No source data was modified.
 
 **T28 remains In progress. T29 Not started. This is not staging acceptance.**
+
+## Live missing-column completion — owner-supplied 2 November 2026
+
+The owner supplied the previously missing live `information_schema.columns` rows:
+
+- `recurring_schedules` ordinals 21–25: updated_at timestamptz, days_of_week ARRAY, earnings_override TEXT, total_amount NUMERIC, cleaner_earnings NUMERIC. Combined with the earlier first 20 entries, all **25 reported columns** are now represented.
+- `team_members` all 6: id UUID, team_id TEXT, cleaner_id TEXT, display_order INTEGER, created_at/updated_at timestamptz.
+- `teams` all 9: id UUID, team_id TEXT, name TEXT, display_order INTEGER, is_active BOOLEAN, created_at/updated_at timestamptz, team_type TEXT, max_jobs_per_day INTEGER.
+
+The owner-supplied live foreign keys match text-key joins `team_members.team_id→teams.team_id`, `team_members.cleaner_id→cleaners.cleaner_id`. FaraiOS T18 staff/team mappings must preserve original text IDs through source-scoped crosswalks. Do not equate the legacy text IDs with UUID primary keys. `max_jobs_per_day` is a configuration field, not proof that limits were enforced. The recurrence earnings_override is TEXT and monetary NUMERIC fields require source-rule validation before transforming to V1 amounts; zero source `recurring_schedules` rows were previously counted, but the 14 recurring-flagged booking records remain governed by T28-BOK-REC-01.
+
+**Structural metadata gap closed** for these three tables, based on owner-provided query results. Still outstanding: actual FK integrity/relationship counts, source quote statuses and customer linking, storage metadata, financial/provider reconciliation, owner and access/recovery evidence. No production writes or T29.
