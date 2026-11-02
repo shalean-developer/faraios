@@ -26,7 +26,7 @@ test('RPC failure logs SQLSTATE only, not private details',async()=>{
  try{
   const client={rpc:async()=>({error:{code:'42703',message:'secret invoice',details:'private details',hint:'private hint'}})};
   await assert.rejects(readOperationalReport(client,id,'2026-11-01','2026-11-02'),e=>e.status===422&&e.message==='Report unavailable. Check access and current source state.');
-  assert.deepEqual(logs,['T27_REPORT_FAILURE=DATABASE_SQLSTATE SQLSTATE=42703']);
+  assert.deepEqual(logs,['T27_REPORT_FAILURE=DATABASE_SQLSTATE SQLSTATE=42703 HTTP_STATUS=NA CODE_FORMAT=SQLSTATE']);
  }finally{console.error=prior;}
 });
 
@@ -36,7 +36,7 @@ test('classifies unrecognized RPC errors without logging message or secrets',asy
   const secret='DO_NOT_LOG_SECRET';
   const c={rpc:async()=>({data:null,error:{code:'PGRST_BAD',message:secret,details:secret,hint:secret}})};
   await assert.rejects(readOperationalReport(c,id,'2026-11-01','2026-11-02'),e=>e.status===422&&!e.message.includes(secret));
-  assert.deepEqual(logs,['T27_REPORT_FAILURE=RPC_ERROR_NO_SQLSTATE']);
+  assert.deepEqual(logs,['T27_REPORT_FAILURE=RPC_ERROR_NO_SQLSTATE HTTP_STATUS=NA CODE_FORMAT=OTHER']);
  }finally{console.error=previous;}
 });
 test('classifies thrown transport errors without leaking credentials',async()=>{
@@ -54,4 +54,23 @@ test('missing and invalid RPC responses fail closed with safe classification',as
   await assert.rejects(readOperationalReport({rpc:async()=>({data:{businessId:'wrong'},error:null})},id,'2026-11-01','2026-11-02'),e=>e.status===422);
   assert.deepEqual(logs,['T27_REPORT_FAILURE=MISSING_RPC_RESPONSE','T27_REPORT_FAILURE=INVALID_RPC_RESPONSE']);
  }finally{console.error=previous;}
+});
+
+test('reports only numeric HTTP status and fixed code format',async()=>{
+ const prev=console.error,logs=[];console.error=(...args)=>logs.push(args.join(' '));
+ try{
+  const secret='SECRET_TOKEN_SHOULD_NOT_PRINT';
+  for(const [error,status,expected] of [
+   [{code:'PGRST202',message:secret},404,'POSTGREST'],
+   [{code:'',message:secret},500,'ABSENT'],
+   [{code:503,message:secret},503,'NUMERIC'],
+   [{code:'unexpected_'+secret,message:secret},'HTTP_400','OTHER']
+  ]){
+   await assert.rejects(readOperationalReport({rpc:async()=>({error,status})},id,'2026-11-01','2026-11-02'),e=>e.status===422);
+   const last=logs.at(-1);
+   assert.ok(last.includes('CODE_FORMAT='+expected));
+   assert.ok(last.includes('HTTP_STATUS='+(typeof status==='number'?status:'NA')));
+   assert.ok(!last.includes(secret));
+  }
+ }finally{console.error=prev;}
 });
