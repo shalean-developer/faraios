@@ -1,0 +1,19 @@
+name: DEPLOY-153 promotion eligibility checks
+on:
+  pull_request:
+    paths:
+      - 'scripts/deploy-153-promotion-policy.mjs'
+      - 'test/deploy-153-promotion-policy.test.mjs'
+      - '.github/workflows/deploy-153-promotion-policy.yml'
+permissions:
+  contents: read
+jobs:
+  policy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24.22.1'
+      - run: node --test test/deploy-153-promotion-policy.test.mjs
