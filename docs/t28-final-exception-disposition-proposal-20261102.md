@@ -1,0 +1,20 @@
+# T28 — Consolidated exception-disposition proposal (2 November 2026)
+
+**Scope:** T28 mapping and agreed transitions only. User instructed proceeding as long as it is within T28; this authorizes documentation and read-only verification, **not automatic acceptance of new business decisions**, production edits, or T29.
+
+## Seven final gates — precise transition disposition for owner review
+
+| Gap | Proposed T28 treatment | Evidence status | Remaining decision/evidence |
+|---|---|---|---|
+| V01 Shalean Paystack payment exception | Retain original single booking-labelled unmatched transaction in legacy payments under Shalean financial oversight; preserve gateway reference, pending/ignored status, valid expense reference, and do not attach a guessed booking | Source relationship and anomaly verified read-only | Owner approval to retain as explicit exception until independently reviewed, and source/provider reconciliation at later execution gate |
+| V02 Shalean Auth-to-CRM link | Retain original booking linked to verified Auth user; no CRM record or customer portal relationship created without independent identity proof | Source unmatched CRM and existing Auth verified | Owner approval to retain as explicit exception pending office identity verification |
+| V03 Financial-provider evidence | Preserve source invoices, settlements, earnings, historical provider identifiers and Bokkie R64.75 credit as authoritative until provider-level reconciliation; never interpret recorded statuses as cash | Family mapping, amounts and credit aggregates documented | Verify provider claims and outstanding obligations before any financial cutover; mapping policy already protects records |
+| V04 Bokkie operational identity/quotes | Map UUID and TEXT IDs through source-scoped crosswalk, retain 15 high quotes and historical recurrence under approved decisions; retain unmatched customer relations for future verified linking | Live column metadata and 2 booking-cleaner FK integrity checks verified; 161 quotes status checked | Full per-record identity and quote acceptance evidence remains future verification; no email-only linking |
+| V05 Legacy recovery | Shalean/Bokkie original databases and assets remain retained under accountable owner; record backup/retrieval and rollback as mandatory pre-cutover conditions | Source access/storage inventory documented; restore NOT proven | Independent recoverability evidence before cutover; cannot claim a passed restore |
+| V06 Non-V1 source types | Retain original website, CMS, analytics, marketing, operations and historic source records in legacy system under SHA-LEG-01 / BOK-DEV-01, with exceptions for active obligations | Shalean 245/245 and Bokkie 43/43 names classified; not all live rows field-mapped | Confirm any business-active non-V1 obligation has a servicing owner; don't delete records |
+| V07 Typed crosswalk | Preserve original source IDs (including Bokkie text quote/team/cleaner keys), timestamps, prices and status versions; define conversion tests but do not create actual migration mapping tables in T28 | Representative source→V1 column mapping documented | Each future import requires independently validated exact source IDs and transformations; T28 does not import |
+
+## Requested decision, NOT yet granted
+**T28-EXCEPTIONS-01:** Retain the two isolated Shalean mapping exceptions in legacy authority with explicit owner-managed review, preserve all financial/customer provenance and do not repair without independently verified unique source identity. Treat V03/V05/V07 as separately enforced **pre-cutover verification dependencies**, not passed validations. Preserve existing Bokkie legacy and quotation/credit decisions. This approval would establish T28 disposition of the remaining exceptions without financial writes, customer linking or migration.
+
+No action will be taken on production, Supabase privileges, payment systems, notifications, storage, or schedulers. T28 stays In progress until the complete coverage matrix can demonstrate every required feature mapped or agreed. T29 remains Not started.
