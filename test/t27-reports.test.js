@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {collectReports,renderReports,reportDates} from '../src/t27-reports.js';
+const a='612be091-b1d7-4911-9c3b-143446a9fe27', b='0cc3f518-d64e-40c2-8817-bc14d1ef1420',user='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const identity={userId:user,businessIds:[a,b],businesses:[{id:a,name:'Shalean'},{id:b,name:'Bokkie'}],memberships:[{userId:user,businessId:a,role:'owner',status:'active'},{userId:user,businessId:b,role:'manager',status:'active'}]};
+test('denies unrelated or revoked memberships',async()=>{await assert.rejects(collectReports({},identity,'cccccccc-cccc-4ccc-8ccc-cccccccccccc','2026-11-01','2026-11-02'),e=>e.status===403);});
+test('authorized combined reads each business exactly once',async()=>{const seen=[];const c={rpc:async(_,q)=>{seen.push(q.p_business);return {data:{businessId:q.p_business,from:q.p_from,through:q.p_through,unassignedWork:2},error:null};}};const rows=await collectReports(c,identity,'all','2026-11-01','2026-11-02');assert.deepEqual(seen,[a,b]);assert.equal(rows.length,2);assert.match(renderReports(rows,{from:'2026-11-01',through:'2026-11-02',selected:'all'}),/Combined authorised/);});
+test('revoking Bokkie removes it from combined report',async()=>{const copy={...identity,memberships:identity.memberships.filter(m=>m.businessId===a)};const seen=[];const c={rpc:async(_,q)=>{seen.push(q.p_business);return {data:{businessId:q.p_business,from:q.p_from,through:q.p_through},error:null}}};await collectReports(c,copy,'all','2026-11-01','2026-11-02');assert.deepEqual(seen,[a]);});
+test('report date boundaries validated',()=>{assert.deepEqual(reportDates(new URLSearchParams(),'2026-11-02'),{from:'2026-11-01',through:'2026-11-02'});assert.throws(()=>reportDates(new URLSearchParams('from=2026-12-01&through=2026-11-02'),'2026-11-02'));});
+test('names are escaped',()=>{const x=renderReports([{business:{id:a,name:'<script>'},report:{}}],{from:'2026-11-01',through:'2026-11-02',selected:a});assert.doesNotMatch(x,/<script>/);});
