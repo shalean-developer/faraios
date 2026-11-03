@@ -38,7 +38,7 @@ select jsonb_build_object(
  'storage_objects',(select count(*) from storage.objects),
  'storage_buckets',(select count(*) from storage.buckets),
  'large_objects',(select count(*) from pg_largeobject_metadata),
- 'unexpected_schemas',(select coalesce(jsonb_agg(distinct n.nspname),'[]'::jsonb) from pg_class c join pg_namespace n on n.oid=c.relnamespace where c.relkind in ('r','p') and n.nspname not like 'pg_%' and n.nspname not in ('information_schema','public','audit','auth','storage','supabase_migrations','private_t19_custody','private_t19_standard','private_t20','private_t21','private_t22','private_t25','private_t26','extensions','realtime','graphql','graphql_public','vault','private_t19_custody','private_t19_standard','private_t20','private_t21','private_t22','private_t25','private_t26')),
+ 'unexpected_schemas',(select coalesce(jsonb_agg(distinct n.nspname),'[]'::jsonb) from pg_class c join pg_namespace n on n.oid=c.relnamespace where c.relkind in ('r','p') and n.nspname not like 'pg_%' and n.nspname not in ('information_schema','public','audit','auth','storage','supabase_migrations','private_t19_custody','private_t19_standard','private_t20','private_t21','private_t22','private_t25','private_t26','extensions','realtime','graphql','graphql_public','vault')),
  'catalog_sha256',(select encode(extensions.digest(value::text,'sha256'),'hex') from catalog),
  'tables',(select jsonb_agg(jsonb_build_object('schema',schema_name,'table',table_name,'rls',rls,'rows',((xpath('//n/text()',x))[1]::text)::bigint,'sha256',(xpath('//h/text()',x))[1]::text) order by schema_name,table_name) from fingerprints)
 ) as manifest;
