@@ -553,3 +553,17 @@ input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px sol
 @media(max-width:700px){.earnings-service-head{display:none}.earnings-service-row{grid-template-columns:1fr auto;gap:8px 14px}.earnings-service-row h2{grid-column:1/-1}.earnings-service-row>span{grid-column:1}.earnings-service-row>a{grid-column:2;grid-row:2/4;align-self:center}.earnings-method{display:block}.earnings-method button{margin-top:12px}}
 
 .allowance-person,.allowance-history{padding:16px 0;border-bottom:1px solid var(--line,#e5e7eb);overflow-wrap:anywhere}.allowance-person:last-child,.allowance-history:last-child{border-bottom:0}.allowance-person h3,.allowance-history h3{font-size:16px;margin:0 0 8px}.allowance-totals{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-top:24px}.allowance-totals dd{margin:0;text-align:right;overflow-wrap:anywhere}.allowance-totals dt:last-of-type,.allowance-totals dd:last-child{font-weight:700;border-top:1px solid #d8e2ed;padding-top:12px}
+
+
+/* T30: keep manual EFT evidence fields and long audit references usable on phones.
+   Scoped to /eft only; no changes to payment actions or validation. */
+.eft-record form,.eft-payment form,.eft-receipts form{min-width:0}
+.eft-record form>label,.eft-payment form>label,.eft-receipts form>label:not(:has(input[type="checkbox"])){display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:0;margin:0 0 14px;font-weight:600;font-size:13px;line-height:1.45}
+.eft-record form>label>input,.eft-payment form>label>input,.eft-receipts form>label>input:not([type="checkbox"]){display:block;box-sizing:border-box;width:100%;max-width:100%;min-width:0;padding:11px 12px;border:1px solid #cbdad3;border-radius:8px;background:#fff;color:#17332e;font:inherit;font-weight:400}
+.eft-receipts article{min-width:0;overflow-wrap:anywhere;word-break:normal}
+.eft-receipts article h3,.eft-receipts article p{overflow-wrap:anywhere}
+@media(max-width:600px){
+ .eft-record form,.eft-payment form,.eft-receipts form{display:flex;flex-direction:column;align-items:stretch;gap:0}
+ .eft-record form>button,.eft-payment form>button,.eft-receipts form>button{align-self:flex-start;max-width:100%;white-space:normal}
+ .eft-receipts article{padding:12px 0}
+}
