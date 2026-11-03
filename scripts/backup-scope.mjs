@@ -17,7 +17,7 @@ export function matchesCurrentScope(m,scope) {
  const allowed=['public','audit',...PRIVATE_BACKUP_SCHEMAS];
  const tables=m.tables.filter(t=>allowed.includes(t.schema));
  const names=tables.map(t=>t.schema+'.'+t.table).sort();
- const expected=(scope.version===3?[...scope.tables,...scope.privateTables]:scope.tables).sort();
+ const expected=(scope.version===3?[...scope.tables,...scope.privateTables]:[...scope.tables]).sort();
  const permitted=[...allowed,'auth','storage','supabase_migrations'];
  return (m.unexpected_schemas===undefined || JSON.stringify(m.unexpected_schemas)==='[]') && m.tables.every(t=>permitted.includes(t.schema)) &&
   m.scope===scope.id && m.catalog_sha256===scope.catalog &&
