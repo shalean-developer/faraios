@@ -18,7 +18,9 @@ export function matchesCurrentScope(m,scope) {
  const tables=m.tables.filter(t=>allowed.includes(t.schema));
  const names=tables.map(t=>t.schema+'.'+t.table).sort();
  const expected=(scope.version===3?[...scope.tables,...scope.privateTables]:scope.tables).sort();
- return m.scope===scope.id && m.catalog_sha256===scope.catalog &&
+ const permitted=[...allowed,'auth','storage','supabase_migrations'];
+ return (m.unexpected_schemas===undefined || JSON.stringify(m.unexpected_schemas)==='[]') && m.tables.every(t=>permitted.includes(t.schema)) &&
+  m.scope===scope.id && m.catalog_sha256===scope.catalog &&
   m.restore_catalog?.application===scope.application && m.restore_catalog?.managed===scope.managed &&
   JSON.stringify(names)===JSON.stringify(expected) && tables.every(t=>t.owner==='postgres' && t.rls===true);
 }
