@@ -68,7 +68,7 @@ test('T30 all 35 private tables must match exact reviewed manifest and retain RL
  assert.equal(matchesCurrentScope(m,v2),false);
  assert.throws(()=>validateManifest(m,v2));
  for(const mutate of [
-  x=>x.tables.pop(),
+  x=>x.tables.splice(x.tables.findIndex(t=>t.schema==='private_t19_custody'),1),
   x=>x.tables.find(t=>t.schema==='private_t20').rls=false,
   x=>x.tables.find(t=>t.schema==='private_t21').owner='other',
   x=>x.unexpected_schemas=['private_t99'],
