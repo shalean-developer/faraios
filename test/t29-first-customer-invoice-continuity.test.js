@@ -26,7 +26,21 @@ test('T29: isolated two-tenant customer -> booking -> unsynced invoice, rollback
   await db.query("insert into public.businesses(id,name,industry) values($1,'Synthetic Shalean','cleaning'),($2,'Synthetic Bokkie','cleaning')",[a,b]);
   await db.query("insert into public.business_memberships(business_id,user_id,role) values($1,$3,'owner'),($2,$4,'owner')",[a,b,user,other]);
   // Only these original, synthetic business/membership fixtures survive rollback.
-  const as=async(uid,fn)=>{await db.exec('set role authenticated');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid]);try{return await fn();}finally{await db.exec('reset role;reset request.jwt.claim.sub');}};
+  const as=async(uid,fn)=>{
+   // A failed SQL statement aborts its transaction in PostgreSQL. Contain
+   // scoped checks in a savepoint so cleanup cannot conceal the real error.
+   await db.exec('savepoint t29_actor');
+   try{
+    await db.exec('set role authenticated');
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid]);
+    const value=await fn();
+    await db.exec('reset role;reset request.jwt.claim.sub;release savepoint t29_actor');
+    return value;
+   }catch(error){
+    await db.exec('rollback to savepoint t29_actor;release savepoint t29_actor');
+    throw error;
+   }
+  };
   let outbound=0;const originalFetch=globalThis.fetch;
   globalThis.fetch=async()=>{outbound++;throw Error('T29_NETWORK_DENIED');};
   try{
