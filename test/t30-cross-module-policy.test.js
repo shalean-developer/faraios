@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {renderEft} from '../src/t21-eft.js';
 import {accessibleBusinesses,canAccess,canAccessOwnedRecord} from '../src/access.js';
 
 // T30 cross-module acceptance contract. All identifiers, records and actions
@@ -72,4 +74,35 @@ test('T30 synthetic end-to-end separation: no cross-business booking->invoice->p
   assert.equal(allowed(manager,business,'payouts.approve',record(business)),false);
   assert.equal(allowed('staff-shared',business,'payments.record',record(business)),false);
  }
+});
+
+
+test('T30 EFT mobile form contracts: labels, fields and receipt wrapping remain scoped to EFT',()=>{
+ const business={id:'synthetic-business',name:'Synthetic Business'};
+ const html=renderEft(business,[{
+  id:'synthetic-receipt',
+  bank_reference:'SYNTHETIC-RECEIPT-LONG-REFERENCE-123456789',
+  amount_cents:35500,
+  received_on:'2026-11-02',
+  evidence_reference:'SYNTHETIC-EVIDENCE',
+  invoice_id:null,
+  verified_at:'2026-11-02T00:00:00Z',
+  recorded_by:'synthetic-user',
+  recorded_at:'2026-11-02T00:00:00Z',
+  verified_by:'synthetic-user',
+ }]);
+ for(const scope of ['eft-record','eft-payment','eft-receipts']){
+  assert.match(html,new RegExp('class="panel '+scope+'"'));
+ }
+ for(const field of ['bankReference','evidenceReference','amount','receivedOn','invoice','invoiceId']){
+  assert.match(html,new RegExp('name="'+field+'"'));
+ }
+ assert.match(html,/SYNTHETIC-RECEIPT-LONG-REFERENCE/);
+ assert.match(html,/Match verified payment/);
+ const css=readFileSync(new URL('../public/style.css',import.meta.url),'utf8');
+ assert.match(css,/\.eft-record form>label/);
+ assert.match(css,/\.eft-record form>label>input/);
+ assert.match(css,/\.eft-receipts article\{[^}]*overflow-wrap:anywhere/);
+ assert.match(css,/@media\(max-width:600px\)\{\s*\.eft-record form/);
+ assert.match(css,/\.eft-payment form>label>input/);
 });
