@@ -17,12 +17,12 @@ test('T29: isolated two-tenant customer -> booking -> unsynced invoice, rollback
  const db=new PGlite({extensions:{btree_gist}});
  try{
   await db.exec(`create role anon;create role authenticated;create role service_role;
-   create schema auth;create table auth.users(id uuid primary key);
+   create schema auth;create table auth.users(id uuid primary key,email text);
    create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
    grant usage on schema public,auth to authenticated,anon;
    grant execute on function auth.uid() to authenticated;`);
   for(const file of files)await db.exec(await readFile(new URL('../database/'+file,import.meta.url),'utf8'));
-  await db.query('insert into auth.users(id) values($1),($2)',[user,other]);
+  await db.query("insert into auth.users(id,email) values($1,'shalean.qa@example.test'),($2,'bokkie.qa@example.test')",[user,other]);
   await db.query("insert into public.businesses(id,name,industry) values($1,'Synthetic Shalean','cleaning'),($2,'Synthetic Bokkie','cleaning')",[a,b]);
   await db.query("insert into public.business_memberships(business_id,user_id,role) values($1,$3,'owner'),($2,$4,'owner')",[a,b,user,other]);
   // Only these original, synthetic business/membership fixtures survive rollback.
