@@ -9,6 +9,7 @@ import { dumpSchemaScript, dumpDataScript, dumpRoleScript, INTERNAL_SCHEMAS, EXC
 import { createInterface } from 'node:readline/promises';
 import { Writable } from 'node:stream';
 import {validateScope,matchesCurrentScope,currentManifestSQL} from './backup-scope.mjs';
+import {PRIVATE_BACKUP_SCHEMAS} from './backup-private-scope.mjs';
 
 export const SOURCE = 'xdmfyrsauvqznkloroxg';
 export const CLI = '2.121.0'; // Vendored filter provenance, not an executed CLI.
@@ -49,10 +50,11 @@ export function validateManifest(m,scope) {
   const name=t.schema+'.'+t.table;
   if(names.has(name)||!Number.isSafeInteger(t.rows)||t.rows<0||!/^[a-f0-9]{64}$/.test(t.sha256)) fail('INVALID_MANIFEST');
   names.add(name);
-  if(['public','audit'].includes(t.schema)&&t.rls!==true) fail('SOURCE_RLS_CHANGED');
+  if(['public','audit',...PRIVATE_BACKUP_SCHEMAS].includes(t.schema)&&t.rls!==true) fail('SOURCE_RLS_CHANGED');
   if(['storage.buckets_vectors','storage.vector_indexes'].includes(name)&&t.rows!==0) fail('VECTOR_DATA_UNSUPPORTED');
  }
  if(!names.has('auth.users') || !names.has('supabase_migrations.schema_migrations')) fail('SOURCE_SCOPE_CHANGED');
+ if(m.tables.some(t=>PRIVATE_BACKUP_SCHEMAS.includes(t.schema))&&scope?.version!==3)fail('PRIVATE_SCOPE_NOT_REVIEWED');
  if(m.scope!==undefined) {
   if(!matchesCurrentScope(m,scope) || m.catalog_version!==2 || !Array.isArray(m.sequence_state))fail('SOURCE_SCOPE_CHANGED');
   const sequenceNames=new Set();
@@ -83,7 +85,7 @@ export function assertDataCoverage(files,manifest) {
  }
  for(const t of manifest.tables) {
   const table=identifier(t.schema)+'.'+identifier(t.table);
-  if(['public','audit'].includes(t.schema)&&!content['schema.sql'].includes('ALTER TABLE '+table+' ENABLE ROW LEVEL SECURITY;')) fail('DUMP_RLS_COVERAGE_FAILED');
+  if(['public','audit',...PRIVATE_BACKUP_SCHEMAS].includes(t.schema)&&!content['schema.sql'].includes('ALTER TABLE '+table+' ENABLE ROW LEVEL SECURITY;')) fail('DUMP_RLS_COVERAGE_FAILED');
   if(t.schema==='auth'&&t.table==='schema_migrations'||t.schema==='storage'&&['migrations','buckets_vectors','vector_indexes'].includes(t.table)) continue;
   const data=t.schema==='supabase_migrations'?counts['migration-data.sql']:counts['data.sql'];
   if(data.get(table)!==t.rows) fail('DUMP_DATA_COVERAGE_FAILED');
