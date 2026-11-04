@@ -1,9 +1,6 @@
 // T30: PostgreSQL 17 synchronized snapshot for one bounded capture attempt.
 // No source data, SQL results, snapshot token or credentials are logged.
 // Caller must preserve the existing operator write-freeze and archive safeguards.
-import pg from 'pg';
-
-const {Client}=pg;
 export const snapshotIdPattern=/^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{8}-[0-9]+$/;
 
 export function validateSnapshotId(id){
@@ -24,12 +21,13 @@ export function snapshotDumpFlag(snapshot){
  return '--snapshot='+validateSnapshotId(snapshot);
 }
 
-export async function openSnapshotKeeper({host,port,user,database,password,ca,clientFactory=(options)=>new Client(options),signal}){
+export async function openSnapshotKeeper({host,port,user,database,password,ca,clientFactory=null,signal}){
  if(signal?.aborted)throw Error('BACKUP_CANCELLED');
  if(typeof host!=='string'||!host||typeof user!=='string'||!user||
     database!=='postgres'||port!==5432||typeof password!=='string'||!password||
     typeof ca!=='string'||!ca.startsWith('-----BEGIN CERTIFICATE-----'))throw Error('BACKUP_SNAPSHOT_CONFIG_INVALID');
- const client=clientFactory({
+ const factory=clientFactory??((options)=>new ((await import('pg')).default.Client)(options));
+ const client=await factory({
   host,port,user,database,password,
   ssl:{ca,rejectUnauthorized:true,servername:host},
   application_name:'faraios-t30-snapshot-keeper',
