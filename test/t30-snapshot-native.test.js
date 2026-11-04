@@ -74,3 +74,13 @@ test('T30 read-committed role change is detectable outside an exported snapshot'
   await db.end();
  }
 });
+
+test('T30 native psql -A -t returns a bare JSON cell, not a row wrapper',t=>{
+ if(process.env.T30_SYNTHETIC_DATABASE!=='1'){t.skip('native disposable PG only');return;}
+ const sql="SELECT jsonb_build_object('application',repeat('a',64),'managed',repeat('b',64)) AS catalog";
+ const result=spawnSync('psql',['-X','-w','-A','-t','--set=ON_ERROR_STOP=1','-c',sql],{
+  encoding:'utf8',env:{...process.env,PGHOST:'127.0.0.1',PGPORT:'5432',PGUSER:'postgres',PGDATABASE:'postgres'},timeout:20000,maxBuffer:4096
+ });
+ assert.equal(result.status,0);
+ assert.deepEqual(parseFreshCatalog(result.stdout),{application:'a'.repeat(64),managed:'b'.repeat(64)});
+});
