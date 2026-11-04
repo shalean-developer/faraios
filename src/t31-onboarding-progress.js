@@ -29,6 +29,6 @@ export function renderOnboardingProgress(business,progress) {
   return '<section class="module-heading"><div><p class="eyebrow">'+escapeHtml(business.name)+'</p><h1>Set up your cleaning business</h1><p>Complete the configuration for this workspace. Progress comes from saved business records.</p></div></section>'
     +'<section class="panel"><h2>Onboarding progress: '+progress.completed+' of '+progress.total+'</h2>'
     +'<ol>'+steps.map(([key,label,url])=>'<li><strong>'+escapeHtml(label)+'</strong> — '+(progress[key]?'Configured':'Not configured')+' · <a href="'+url+'">'+(progress[key]?'Review':'Configure')+'</a></li>').join('')+'</ol>'
-    +'<p class="muted">Brand logo upload and staff invitations are not yet available in T31. Do not enter provider credentials or financial data here.</p>'
+    +'<p><a href="/branding?business='+id+'">Configure branding</a></p><p><a href="/team-invite?business='+id+'">Invite staff</a> · <a href="/team-members?business='+id+'">Manage team access</a></p><p class="muted">Logo upload and outbound invitation delivery remain inactive. Do not enter provider credentials or financial data here.</p>'
     +'<a href="/dashboard?business='+id+'">Return to workspace</a></section>';
 }
