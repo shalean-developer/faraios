@@ -47,7 +47,7 @@ test('V3 sequence plans reject omitted dump members',()=>{
 test('V3 sequence completion verifies an exact approved saved position',()=>{
  const m=manifest();
  m.sequence_state=[{schema:'public',sequence:'t30_v3_seq',last_value:'2'}];
- const command = "SELECT pg_catalog.setval('\\\"public\\\".\\\"t30_v3_seq\\\"', 2, true);";
+ const command = "SELECT pg_catalog.setval('\"public\".\"t30_v3_seq\"', 2, true);";
  const plan=v3SequenceCompletionPlan(profile,m,[{name:'data.sql',content:command},
   {name:'migration-data.sql',content:''}]);
  assert.equal(plan.sequences,1);
