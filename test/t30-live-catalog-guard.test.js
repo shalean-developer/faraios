@@ -17,11 +17,11 @@ test('T30 live catalog is read committed, independent of snapshot, and never rea
  }
 });
 test('T30 fresh role/schema fingerprint contract rejects malformed or changed values',()=>{
- const read=JSON.stringify({catalog:{application:A,managed:B}});
+ const read=JSON.stringify({application:A,managed:B});
  const c=parseFreshCatalog(read);
  assert.deepEqual(c,{application:A,managed:B});
  assert.doesNotThrow(()=>assertFreshCatalog(c,{application:A,managed:B}));
- for(const text of ['not json','[]',JSON.stringify({catalog:{application:A}}),JSON.stringify({catalog:{application:A,managed:B,extra:1}}),JSON.stringify({catalog:{application:'bad',managed:B}}),JSON.stringify({other:{application:A,managed:B}})]){
+ for(const text of ['not json','[]',JSON.stringify({catalog:{application:A,managed:B}}),JSON.stringify({application:A}),JSON.stringify({application:A,managed:B,extra:1}),JSON.stringify({application:'bad',managed:B}),JSON.stringify({other:{application:A,managed:B}})]){
   assert.throws(()=>parseFreshCatalog(text),/BACKUP_LIVE_CATALOG_INVALID/);
  }
  assert.throws(()=>assertFreshCatalog(c,{application:B,managed:B}),/BACKUP_LIVE_CATALOG_CHANGED/);
