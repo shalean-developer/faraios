@@ -62,9 +62,9 @@ test('T30 rejects altered V3 profile, archive envelope, scope and manifest',()=>
   c=>c.manifest.after.restore_catalog.application='d'.repeat(64),
   c=>c.manifest.finished='not-a-date',
  ];
- for(const mutate of cases){
+ for(const [index,mutate] of cases.entries()){
   const c=candidate();mutate(c);
-  assert.notEqual(codeOf(()=>inspectV3RestoreCandidate(c)),null);
+  assert.notEqual(codeOf(()=>inspectV3RestoreCandidate(c)),null,`invalid fixture case ${index} was accepted`);
  }
 });
 
@@ -76,7 +76,7 @@ test('T30 V3 row verification includes each private table and excludes provider-
  }
  assert.ok(sql.includes('FROM "public"."synthetic_00" t'));
  assert.ok(sql.includes('FROM "auth"."users" t'));
- assert.ok(!sql.includes('FROM "supabase_migrations"."schema_migrations" t'));
+ assert.ok(sql.includes('FROM "supabase_migrations"."schema_migrations" t'), 'migration history remains verified as in T11');
  assert.ok(sql.includes("T30_V3_ROW_MISMATCH"));
  assert.ok(!sql.includes('COMMIT;'));
  assert.ok(!sql.includes('setval('));
