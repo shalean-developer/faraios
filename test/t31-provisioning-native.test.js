@@ -110,6 +110,7 @@ test('T31 native: atomic bootstrap, concurrency, authorization and tenant RLS',{
  await assert.rejects(as(first,db=>db.query('select public.t31_suspend_member($1,$2)',[firstId,first])),e=>e.code==='42501');
  assert.equal((await as(first,db=>db.query('select public.t31_suspend_member($1,$2) ok',[firstId,second]))).rows[0].ok,true);
  assert.equal((await admin.query('select status from public.business_memberships where business_id=$1 and user_id=$2',[firstId,second])).rows[0].status,'suspended');
+ await assert.rejects(accept(second,token),e=>e.code==='42501','suspended user must not replay accepted invitation');
  assert.equal((await admin.query("select count(*)::integer n from audit.events where entity_table='business_memberships' and operation='UPDATE' and business_id=$1",[firstId])).rows[0].n,1);
  await assert.rejects(as(first,db=>db.query('select public.t31_suspend_member($1,$2)',[secondId,second])),e=>e.code==='42501');
  const tokenExpired=await invite(first,firstId,'second@example.invalid','manager');
