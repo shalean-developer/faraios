@@ -44,7 +44,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
   const cookieName=hostedStaging?'__Host-faraios_staging':restoreTest?'faraios_restore_test':'faraios_staging';
   const secure=hostedStaging?'; Secure':'';
   const loginForm=message=>ownerRegistrationEnabled?form(message,restoreTest).replace('</form>','</form><p><a href="/register">Register your cleaning business</a></p>'):form(message,restoreTest);
-  const auth=createAuthSessions({createClient,now});let failures=[];
+  const auth=createAuthSessions({createClient,now});let failures=[],registrationAttempts=[];
   const server=createServer(async(req,res)=>{
     let headerBusiness=null,headerIdentity=null,activePath='/dashboard';
     const readIdentity=async sessionId=>(headerIdentity=await auth.read(sessionId));
@@ -93,6 +93,9 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
         if(req.method==='GET')return send(200,show());
         if(req.headers.origin!==origin||req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(403,'Origin or form rejected','text/plain');
         let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>4096)return send(413,'Form too large','text/plain');}
+        registrationAttempts=registrationAttempts.filter(time=>time>now()-60000);
+        if(registrationAttempts.length>=5)return send(429,show('Registration temporarily unavailable. Try again later.'));
+        registrationAttempts.push(now());
         const data=new URLSearchParams(body);
         try{
           const result=await registerOwner(createClient,{email:data.get('email'),password:data.get('password')},{enabled:ownerRegistrationEnabled});
