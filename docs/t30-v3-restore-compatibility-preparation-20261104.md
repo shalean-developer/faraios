@@ -36,7 +36,7 @@ Current GitHub staging baseline: `64bf9ecb451505840c9723fe2ffe274e5f9ac8fc`. V3 
 
 ## Separation of approvals and execution gates
 
-**Gate A — source-only:** inspect code and tests; new protected V3 path stays non-operational. This preparation PR is documentation-only; CI on a later implementation head must be checked independently.
+**Gate A — source-only:** inspect code and tests; new protected V3 path stays non-operational. The preparation PR now includes offline-only validation code and synthetic tests. It is not a runnable restore. Re-verify CI on its exact updated head.
 
 **Gate B — staging capture:** separate explicit owner approval after a reversible complete writer-freeze plan. Only then may the existing V3 capture be run privately; produce ciphertext+checksum+separately protected key, independently retrieve and verify. No arbitrary `QUIET` assertion substitutes for a real freeze.
 
@@ -46,9 +46,15 @@ Current GitHub staging baseline: `64bf9ecb451505840c9723fe2ffe274e5f9ac8fc`. V3 
 
 ## No-change record
 
-This document identifies existing incompatibility and bounded V3 qualification; it is **not** implementation, CI qualification, archive creation, runtime activation, hosted recovery evidence or T30 acceptance. No tracked code, database, Plesk, provider, scheduler, key, backup profile or production changes are requested. T30 remains In progress; T31 Not started.
+This document records existing incompatibility and bounded V3 qualification. The PR includes offline-only implementation and synthetic tests, but it is **not** a complete restore implementation, archive creation, runtime activation, hosted recovery evidence or T30 acceptance. No tracked code, database, Plesk, provider, scheduler, key, backup profile or production changes are requested. T30 remains In progress; T31 Not started.
 
 References:
 - `scripts/restore-staging.mjs`, `config/restore-test.json`, `scripts/backup-scope.mjs`, `scripts/backup-private-scope.mjs`, `scripts/t30-private-restore-catalog.sql`.
 - `docs/t11-recovery-record.md`, `docs/t30-private-backup-schema-compatibility-20261103.md`, `docs/t30-synchronized-backup-snapshot-20261104.md`.
 - Canonical tracker: https://docs.google.com/spreadsheets/d/1v6o8ZLMUdqze-5WICBUp5ebLmZPObSkrgBUAxXg79PI/edit#gid=1809996177
+
+## Source-only implementation checkpoint — 4 November 2026
+
+PR #311 now contains `scripts/t30-v3-restore-qualification.mjs` and synthetic tests. The candidate inspector rejects changed V3 table scope and known source/historical destinations; the offline sealed-archive qualification calls the **existing** authenticated AES-256-GCM archive verifier in memory, pins the ciphertext SHA-256 and archive ID, and requires `importEnabled:false`. Its output explicitly retains `restore: NOT_RUN`, `destinationVerification: NOT_RUN` and `executionAuthorised:false`. These source functions cannot prove protected-file ACL custody, live destination emptiness, managed Auth baseline, Plesk settings or recovered access. No capture or restore invocation was added.
+
+Historical T11 `restore-staging.mjs`, `restore-test.json`, `restore-catalog.sql` and source/runtime files remain unchanged. **Remaining:** exact-head CI qualification, native disposable PostgreSQL 17 restore-replay/rollback tests, new independently pinned empty destination and approved snapshot, complete roles/ACL/catalog and sequence verification, independent off-site/key recovery, operational no-write controls and separate owner execution approvals. Do not merge or deploy based on offline tests alone.
