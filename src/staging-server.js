@@ -19,6 +19,7 @@ import {renderWorkspaceFrame} from './workspace-layout.js';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {createAuthSessions} from './auth-session.js';
+import {registerOwner} from './t31-owner-registration.js';
 import {provisionBusiness} from './t31-provisioning.js';
 import {randomUUID} from 'node:crypto';
 import {hostedRequestAllowed,stagingOrigin} from './hosted-staging.js';
@@ -31,7 +32,7 @@ const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const pageHtml=(title,body,business=null,identity=null,active='/dashboard',restoreTest=false)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS ${restoreTest?'restore test':'staging'}</title><link rel="stylesheet" href="/style.css"><script type="module" src="/dropdown.js"></script><script type="module" src="/date-time-picker.js"></script><script type="module" src="/catalogue-setup.js"></script>${title==='Quotes'?'<script type="module" src="/quote-detail.js"></script>':''}</head><body${business&&identity?' class="workspace-layout"':''}><div class="notice">FaraiOS ${restoreTest?'RESTORE TEST · Read-only recovery workspace · Integrations disabled':'STAGING · Test workspace · No production data'}</div>${business&&identity?renderWorkspaceFrame(identity,business,body,active):`<main class="${title==='Sign in'?'login':'workspace-page'}">${title==='Sign in'?'<div class="brand">FaraiOS</div>':''}${body}</main>`}</body></html>`;
 const form=(message,restoreTest=false)=>pageHtml('Sign in',`<h1>Welcome back</h1><p>${restoreTest?'Use your restored FaraiOS test account.':'Use your FaraiOS staging test account.'}</p>${message?`<p role="alert">${esc(message)}</p>`:''}<form method="post" action="/login" class="panel"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" maxlength="254" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><button type="submit">Sign in</button><p class="muted">Accounts are provisioned in staging. Never enter a production password here.</p></form>`,null,null,'/dashboard',restoreTest);
 
-export function createStagingServer({createClient,paymentProxy=null,paymentSetupProxy=null,accountingWorker=null,accountingAdapter=null,accountingProxy=null,accountingConnectionOnly=false,now=()=>Date.now(),restoreTest=false,earningsTemplates={},hostedStaging=false,hostedFingerprint=null,hostedTransport='passenger',hostedReady=()=>false}){
+export function createStagingServer({createClient,paymentProxy=null,paymentSetupProxy=null,accountingWorker=null,accountingAdapter=null,accountingProxy=null,accountingConnectionOnly=false,now=()=>Date.now(),restoreTest=false,earningsTemplates={},hostedStaging=false,hostedFingerprint=null,hostedTransport='passenger',hostedReady=()=>false,ownerRegistrationEnabled=false}){
   if(typeof hostedStaging!=='boolean'||hostedStaging&&(!['passenger','litespeed'].includes(hostedTransport)||restoreTest||accountingWorker||accountingAdapter||!/^[a-f0-9]{64}$/.test(hostedFingerprint??'')))throw new Error('Invalid hosted staging server');
   if(process.env.NODE_ENV==='production'&&!hostedStaging)throw new Error('Local staging server cannot run in production');
   if(typeof restoreTest!=='boolean'||restoreTest&&(accountingWorker||accountingAdapter||accountingProxy))throw new Error('Invalid isolated restore server');
@@ -39,6 +40,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
   if(typeof accountingConnectionOnly!=='boolean'||accountingConnectionOnly&&!accountingProxy)throw new Error('Invalid connection-only accounting runtime');
   if(paymentProxy!==null&&(typeof paymentProxy!=='function'||!hostedStaging||restoreTest))throw new Error('Invalid TEST payment runtime');
   if(paymentSetupProxy!==null&&(typeof paymentSetupProxy!=='function'||!hostedStaging||restoreTest))throw new Error('Invalid TEST payment setup');
+  if(typeof ownerRegistrationEnabled!=='boolean'||ownerRegistrationEnabled&&hostedStaging)throw new Error('Hosted owner registration needs separate email-safeguard authorisation');
   const cookieName=hostedStaging?'__Host-faraios_staging':restoreTest?'faraios_restore_test':'faraios_staging';
   const secure=hostedStaging?'; Secure':'';
   const loginForm=message=>form(message,restoreTest);
@@ -77,6 +79,25 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
       if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/')){
         const next=url.searchParams.get('next');
         return send(200,loginForm('').replace('<label for="email">',customerRoute(next??'')?'<input type="hidden" name="next" value="'+esc(next)+'"><label for="email">':'<label for="email">'));
+      }
+      // T31 registration: disabled by default, and never activated on hosted staging.
+      if(url.pathname==='/register'&&['GET','POST'].includes(req.method)){
+        if(restoreTest||!ownerRegistrationEnabled)return send(404,'Registration unavailable','text/plain');
+        const show=(message='')=>pageHtml('Owner registration',
+          '<h1>Create your FaraiOS account</h1><p>Confirm your email before creating your cleaning business.</p>'
+          +(message?'<p role="status">'+esc(message)+'</p>':'')
+          +'<form method="post" action="/register" class="panel"><label>Email</label><input name="email" type="email" autocomplete="email" maxlength="254" required>'
+          +'<label>Password</label><input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="1024" required>'
+          +'<button type="submit">Register account</button></form><p><a href="/login">Already registered? Sign in</a></p>',
+          null,null,'/dashboard',restoreTest);
+        if(req.method==='GET')return send(200,show());
+        if(req.headers.origin!==origin||req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded')return send(403,'Origin or form rejected','text/plain');
+        let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>4096)return send(413,'Form too large','text/plain');}
+        const data=new URLSearchParams(body);
+        try{
+          const result=await registerOwner(createClient,{email:data.get('email'),password:data.get('password')},{enabled:ownerRegistrationEnabled});
+          return send(200,show(result.message));
+        }catch(error){return send(422,show(error.message));}
       }
       // T31 bootstrap: verified login session only; no service role, no client-selected business ID.
       if(url.pathname==='/business/new'&&['GET','POST'].includes(req.method)){
