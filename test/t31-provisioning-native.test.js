@@ -60,7 +60,7 @@ test('T31 native: atomic bootstrap, concurrency, authorization and tenant RLS',{
  assert.ok(scoped.audits.length>=2&&scoped.audits.every(x=>x.business_id===firstId));
  await assert.rejects(as(first,db=>db.query('insert into public.business_memberships(business_id,user_id,role) values($1,$2,$3)',[secondId,first,'owner'])),e=>e.code==='42501');
  await assert.rejects(as(first,db=>db.query('insert into public.businesses(name,industry) values($1,$2)',['Forged','cleaning'])),e=>e.code==='42501');
- await assert.rejects(as(first,db=>db.query('select * from private.t31_provision_requests')),e=>e.code==='42501');
+ await assert.rejects(as(first,db=>db.query('select * from private_t31.t31_provision_requests')),e=>e.code==='42501');
  await assert.rejects(as(null,db=>db.query('select public.t31_provision_business($1,$2)',['Anon',reqFail]),'anon'),e=>e.code==='42501');
  await assert.rejects(as(null,db=>db.query('select public.t31_provision_business($1,$2)',['No user',reqFail])),e=>e.code==='28000');
  await assert.rejects(as(first,db=>db.query('select public.t31_provision_business($1,$2)',['Anon user',reqFail]),'authenticated',true),e=>e.code==='28000');
@@ -76,7 +76,7 @@ test('T31 native: atomic bootstrap, concurrency, authorization and tenant RLS',{
  for each row execute function public.t31_fail_membership();`);
  await assert.rejects(create(first,reqFail,'Failure Co'),/synthetic membership failure/);
  assert.equal((await admin.query("select count(*)::integer count from public.businesses where name='Failure Co'")).rows[0].count,0);
- assert.equal((await admin.query('select count(*)::integer count from private.t31_provision_requests where request_id=$1',[reqFail])).rows[0].count,0);
+ assert.equal((await admin.query('select count(*)::integer count from private_t31.t31_provision_requests where request_id=$1',[reqFail])).rows[0].count,0);
  await admin.query('drop trigger t31_failure on public.business_memberships');
  assert.match(await create(first,reqFail,'Failure Co'),/^[0-9a-f-]{36}$/);
  console.log('T31_NATIVE_ATOMIC_IDEMPOTENCY_RLS_PASS');
