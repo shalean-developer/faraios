@@ -23,14 +23,14 @@ test('T30 synchronized snapshot isolates two readers and pg_dump from later comm
   await writer.query('INSERT INTO public.t30_snapshot_ci_fixture VALUES (1)');
   keeper=await openSnapshotKeeper({
    host:'127.0.0.1',port:5432,user:'postgres',database:'postgres',
-   password:process.env.PGPASSWORD,ca:'-----BEGIN CERTIFICATE-----\\nsynthetic\\n-----END CERTIFICATE-----',
+   password:process.env.PGPASSWORD,ca:'-----BEGIN CERTIFICATE-----\nsynthetic\n-----END CERTIFICATE-----',
    clientFactory:()=>mk()
   });
   keeper.assertAlive();
   await writer.query('INSERT INTO public.t30_snapshot_ci_fixture VALUES (2)');
   const reader=mk();await reader.connect();
   try{
-   const script=bindManifestSnapshot('begin transaction isolation level repeatable read read only;\\nselect count(*)::integer AS n from public.t30_snapshot_ci_fixture;\\ncommit;',keeper.id);
+   const script=bindManifestSnapshot('begin transaction isolation level repeatable read read only;\nselect count(*)::integer AS n from public.t30_snapshot_ci_fixture;\ncommit;',keeper.id);
    // Exercise identical SQL import order, not just the token parser.
    for(const query of script.split(';').map(x=>x.trim()).filter(Boolean)){
     const result=await reader.query(query);
