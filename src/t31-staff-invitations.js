@@ -20,3 +20,15 @@ export async function acceptStaffInvitation(client,token) {
  return data;
 }
 export const escapeInvitation=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+export async function listBusinessMembers(client,businessId){
+ if(!uuid.test(businessId))throw Error('Invalid business');
+ const {data,error}=await client.rpc('t31_staff_members',{p_business:businessId});
+ if(error||!Array.isArray(data)||data.some(m=>!uuid.test(m.user_id)||!['owner','manager','staff'].includes(m.role)||!['active','suspended'].includes(m.status)))throw Error('Team access unavailable');
+ return data;
+}
+export async function suspendBusinessMember(client,businessId,userId){
+ if(!uuid.test(businessId)||!uuid.test(userId))throw Error('Invalid membership');
+ const {data,error}=await client.rpc('t31_suspend_member',{p_business:businessId,p_user:userId});
+ if(error||data!==true)throw Error('Membership change denied');
+}
