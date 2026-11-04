@@ -783,8 +783,8 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
         const businessId=url.searchParams.get('business');
         return await auth.withOwner(id,businessId,async(client,business)=>{
           headerBusiness=business;
-          const [settings,items]=await Promise.all([readBusinessSettings(client,business.id),listCatalogue(client,business.id)]);
-          return send(200,html('Business onboarding',renderOnboardingProgress(business,onboardingProgress(settings,items))));
+          const [settings,items,branding]=await Promise.all([readBusinessSettings(client,business.id),listCatalogue(client,business.id),readBranding(client,business.id)]);
+          return send(200,html('Business onboarding',renderOnboardingProgress(business,onboardingProgress(settings,items,branding))));
         });
       }
       if(url.pathname==='/settings'){
