@@ -67,3 +67,16 @@ Migration: feature inventory → data ownership mapping → rehearsal → counts
 4. Create isolated environments (T07), then memberships/auth/database isolation (T08–T09).
 
 Gate: CONDITIONAL PASS for documentation and isolated foundation work; NO-GO for production, migration or financial implementation until their requirements are verified.
+
+
+## Owner-approved SaaS V1 direction — 4 November 2026 (D16, supersedes legacy-first launch order)
+
+FaraiOS V1 is a standalone, multi-tenant **Cleaning Business Operating System** for independent cleaning companies. An owner can provision a business, configure operational rules and staff, and connect an existing external website using a business-specific hosted booking page or embeddable widget. Customer operations share the authoritative FaraiOS booking/quote/pricing engine; third-party website identifiers are not authorization. New public integration contracts must enforce tenant ownership, client isolation, rate limits and replay safety.
+
+**Launch sequence:** T30 evidence/architecture transition; T31 self-service new-business provisioning; T32 secure hosted-page/embed integration; T33 independent merchant and optional accounting connections; T34 synthetic independent third-business end-to-end pilot; T35 SaaS security/recovery/performance; T36 subscription/platform administration; T37 controlled production SaaS launch; T38 closure. Tasks T01–T29 retain their historical owner acceptance and evidence, and T05 remains blocked pending hosting-cost verification.
+
+**Legacy boundaries:** Shalean and Bokkie remain separate live businesses/systems and are not the compulsory platform onboarding or cutover targets. Their historical databases, obligations, earnings, credits and recurring bookings stay in their existing systems unless individually authorized for a future integration/migration. Previously approved Shalean/Bokkie calculations are business-specific, not mandatory platform defaults.
+
+**Deferred:** marketplace discovery and rankings, full visual website builder, central marketplace fund custody, other industries and native mobile apps. Business-owned merchant connections are preferred for V1. Provider/hosting services, production launch, migration, schema changes, backup operations, and the new implementation tasks require their own scope and owner approvals.
+
+The 19 October initial blueprint and old migration paragraphs above are **historical implementation baseline**. This amendment and canonical Build Tracker D16 control the direction and order after 4 November. See `docs/t30-saas-architecture-acceptance-transition-20261104.md` for evidence gaps and T30 acceptance boundaries.
