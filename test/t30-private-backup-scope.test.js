@@ -106,9 +106,9 @@ test('T30 source manifest catalogs only reviewed private schemas and all private
  assert.equal(raw.split(restricted).length-1,0,'private schemas must be fingerprinted for functions, triggers and policies');
  for(const key of ["'functions'","'triggers'","'policies'"]){
   const start=raw.indexOf(key+',(select ');
-  const end=raw.indexOf(')),',start);
-  assert.ok(start>=0&&end>start,key+' projection exists');
-  const fragment=raw.slice(start,end);
+  const line=raw.slice(start).split('\n')[0];
+  assert.ok(start>=0&&line.length>0,key+' projection exists');
+  const fragment=line;
   for(const schema of PRIVATE_BACKUP_SCHEMAS)assert.ok(fragment.includes("'"+schema+"'"),key+' includes '+schema);
  }
 
