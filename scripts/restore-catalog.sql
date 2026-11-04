@@ -1,7 +1,7 @@
 -- Portable structural fingerprints: role names, no project-specific object OIDs.
 -- No table records, Auth configuration or credentials are returned.
 with scopes(scope,names) as (values
- ('application',array['public','audit','supabase_migrations','private_t19_custody','private_t19_standard','private_t20','private_t21','private_t22','private_t25','private_t26']::text[]),
+ ('application',array['public','audit','supabase_migrations']::text[]),
  ('managed',array['auth','storage']::text[])
 ), catalogs as (
  select scope,jsonb_build_object(
