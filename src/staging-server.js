@@ -43,7 +43,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
   if(typeof ownerRegistrationEnabled!=='boolean'||ownerRegistrationEnabled&&hostedStaging)throw new Error('Hosted owner registration needs separate email-safeguard authorisation');
   const cookieName=hostedStaging?'__Host-faraios_staging':restoreTest?'faraios_restore_test':'faraios_staging';
   const secure=hostedStaging?'; Secure':'';
-  const loginForm=message=>form(message,restoreTest);
+  const loginForm=message=>ownerRegistrationEnabled?form(message,restoreTest).replace('</form>','</form><p><a href="/register">Register your cleaning business</a></p>'):form(message,restoreTest);
   const auth=createAuthSessions({createClient,now});let failures=[];
   const server=createServer(async(req,res)=>{
     let headerBusiness=null,headerIdentity=null,activePath='/dashboard';
