@@ -1,0 +1,42 @@
+// T30 reviewed non-managed private schema inventory, 3 November 2026.
+// These tables include sensitive financial/provider state and MUST be captured
+// only by the existing encrypted, owner-controlled backup workflow.
+// Exact names (rather than a private_* wildcard) fail closed on schema drift.
+export const PRIVATE_BACKUP_TABLES=Object.freeze([
+ 'private_t19_custody.connections',
+ 'private_t19_custody.events',
+ 'private_t19_custody.jobs',
+ 'private_t19_custody.machine_businesses',
+ 'private_t19_custody.machines',
+ 'private_t19_custody.oauth_clients',
+ 'private_t19_custody.oauth_states',
+ 'private_t19_custody.operations',
+ 'private_t19_custody.prepared_references',
+ 'private_t19_custody.revocations',
+ 'private_t19_standard.backend_businesses',
+ 'private_t19_standard.connections',
+ 'private_t19_standard.invoice_jobs',
+ 'private_t19_standard.oauth_states',
+ 'private_t19_standard.operation_leases',
+ 'private_t19_standard.test_tax_corrections',
+ 'private_t20.accounts',
+ 'private_t20.backend_accounts',
+ 'private_t20.checkouts',
+ 'private_t20.credits',
+ 'private_t20.intents',
+ 'private_t20.observations',
+ 'private_t21.allocations',
+ 'private_t21.invoice_fences',
+ 'private_t21.receipts',
+ 'private_t22.accruals',
+ 'private_t22.agreements',
+ 'private_t25.assessment_requests',
+ 'private_t25.events',
+ 'private_t25.relationships',
+ 'private_t25.routes',
+ 'private_t26.events',
+ 'private_t26.jobs',
+ 'private_t26.settings',
+ 'private_t26.sink',
+]);
+export const PRIVATE_BACKUP_SCHEMAS=Object.freeze([...new Set(PRIVATE_BACKUP_TABLES.map(name=>name.split('.')[0]))]);
