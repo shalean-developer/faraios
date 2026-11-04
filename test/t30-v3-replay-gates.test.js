@@ -43,3 +43,17 @@ test('V3 catalog and sequence plans reject private scope drift',()=>{
 test('V3 sequence plans reject omitted dump members',()=>{
  assert.ok(failure(()=>v3SequenceCompletionPlan(profile,manifest(),[])));
 });
+
+test('V3 sequence completion verifies an exact approved saved position',()=>{
+ const m=manifest();
+ m.sequence_state=[{schema:'public',sequence:'t30_v3_seq',last_value:'2'}];
+ const command="SELECT pg_catalog.setval('"+'"public"."t30_v3_seq'+"', 2, true);";
+ const plan=v3SequenceCompletionPlan(profile,m,[{name:'data.sql',content:command},
+  {name:'migration-data.sql',content:''}]);
+ assert.equal(plan.sequences,1);
+ assert.ok(plan.completionSQL.includes('setval'));
+ assert.ok(plan.verificationSQL.includes('T30_V3_SEQUENCE_STATE_MISMATCH'));
+ const bad=structuredClone(m);bad.sequence_state[0].last_value='3';
+ assert.ok(failure(()=>v3SequenceCompletionPlan(profile,bad,[{name:'data.sql',content:command},
+  {name:'migration-data.sql',content:''}])));
+});
