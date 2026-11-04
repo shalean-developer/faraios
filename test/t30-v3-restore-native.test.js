@@ -43,15 +43,14 @@ test('T30 native 17: generated private-row checks pass empty synthetic tables, r
    await client.query('CREATE SCHEMA '+quote(ns));
    created.push(ns);
   }
-  await client.query('CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public');
-  // Existing production-like digest reference is extensions.digest(...).
-  // On a disposable cluster, install an isolated wrapper over pgcrypto.digest.
+  // Use PostgreSQL 17's built-in SHA-256 to avoid installing persistent
+  // pgcrypto extension state into the shared disposable CI cluster. The
+  // following T19 native recovery test requires an extension-free baseline.
   await client.query('CREATE SCHEMA extensions');
   created.push('extensions');
-  // Production's extensions.digest accepts both text and bytea inputs.
-  // The row verifier calls both overloads; reproduce them in isolated CI.
-  await client.query("CREATE FUNCTION extensions.digest(bytea,text) RETURNS bytea LANGUAGE sql IMMUTABLE STRICT AS 'SELECT public.digest($1,$2)'");
-  await client.query("CREATE FUNCTION extensions.digest(text,text) RETURNS bytea LANGUAGE sql IMMUTABLE STRICT AS 'SELECT public.digest($1,$2)'");
+  // Reproduce only the exact digest algorithm used by this synthetic fixture.
+  await client.query("CREATE FUNCTION extensions.digest(bytea,text) RETURNS bytea LANGUAGE sql IMMUTABLE STRICT AS 'SELECT CASE WHEN $2 = ''sha256'' THEN pg_catalog.sha256($1) ELSE NULL END'");
+  await client.query("CREATE FUNCTION extensions.digest(text,text) RETURNS bytea LANGUAGE sql IMMUTABLE STRICT AS 'SELECT CASE WHEN $2 = ''sha256'' THEN pg_catalog.sha256(convert_to($1, ''UTF8'')) ELSE NULL END'");
   const createdPublic=[];
   for(const name of all){
    const [ns,table]=name.split('.');
