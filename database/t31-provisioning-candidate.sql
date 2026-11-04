@@ -57,7 +57,9 @@ begin
    where actor_user_id=v_actor and request_id=p_request_id for update;
   if v_saved.business_name<>v_name then raise exception 'Request identifier reused with different business details' using errcode='23505'; end if;
   if v_saved.business_id is not null then return v_saved.business_id; end if;
-  insert into public.businesses(name,industry,status) values(v_name,'cleaning','active') returning id into v_business;
+  -- Explicit UUID avoids RETURNING, whose SELECT RLS cannot see the tenant until membership exists.
+  v_business:=gen_random_uuid();
+  insert into public.businesses(id,name,industry,status) values(v_business,v_name,'cleaning','active');
   insert into public.business_memberships(business_id,user_id,role,status) values(v_business,v_actor,'owner','active');
   update private.t31_provision_requests set business_id=v_business
    where actor_user_id=v_actor and request_id=p_request_id;
