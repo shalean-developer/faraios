@@ -77,7 +77,9 @@ begin
  if not found or i.recipient_email<>v_email or i.state='revoked' or i.expires_at<=now()
  then raise exception 'Invitation unavailable' using errcode='42501';end if;
  if i.state='accepted' then
-   if i.accepted_user_id<>actor then raise exception 'Invitation unavailable' using errcode='42501';end if;
+   if i.accepted_user_id<>actor or not exists(select 1 from public.business_memberships m
+     where m.business_id=i.business_id and m.user_id=actor and m.role=i.role and m.status='active')
+   then raise exception 'Invitation unavailable' using errcode='42501';end if;
    return i.business_id;
  end if;
  if not exists(select 1 from public.businesses where id=i.business_id and status='active')
