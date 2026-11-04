@@ -41,6 +41,11 @@ test('T31 native: atomic bootstrap, concurrency, authorization and tenant RLS',{
    }catch(e){await db.query('rollback');throw e;}finally{await db.end();}
  };
  const create=(u,key,name)=>as(u,async db=>(await db.query('select public.t31_provision_business($1,$2) id',[name,key])).rows[0].id);
+ // Verified-email status is enforced inside PostgreSQL, even if a caller holds an Auth token.
+ await admin.query('update auth.users set email_confirmed_at=null where id=$1',[first]);
+ await assert.rejects(create(first,request,'First Cleaning'),e=>e.code==='42501');
+ assert.equal((await admin.query('select count(*)::integer n from public.businesses')).rows[0].n,0);
+ await admin.query('update auth.users set email_confirmed_at=now() where id=$1',[first]);
  const firstId=await create(first,request,'First Cleaning');
  assert.match(firstId,/^[0-9a-f-]{36}$/);
  assert.equal(await create(first,request,'First Cleaning'),firstId,'same actor/key must be idempotent');
