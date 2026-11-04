@@ -1,0 +1,7 @@
+# T29 — Plesk Node.js Environment page evidence (3 November 2026)
+
+Owner supplied screenshot of Plesk Node.js > Environment for staging.faraios.com. The custom Environment variables rows and Secrets rows show only empty NAME/Value placeholders; no custom entries are visible. Predefined variables shown are NODE_ENV=production, PASSENGER_APP_ENV=production, NODE_PATH=set by Passenger, IN_PASSENGER=1. No user-defined API keys or tokens appear on this page. No values, credential files or secrets have been copied to GitHub.
+
+Interpretation: this verifies only absence of custom entries visible in the Plesk Node.js Environment UI. The two 'production' strings are Passenger/Node application mode, not evidence of connection to production Supabase or payment providers. It does NOT establish that private configuration files loaded by _test_payments.cjs and the T19 worker are absent or disabled. Existing scheduled invoice worker remains enabled every 5 minutes; its guarded execution depends on protected worker file settings. Do not disable it for T29 or invoke Run Now.
+
+Actual T29 rehearsal is disconnected/local and does not use Plesk runtime or existing T19/T20 workers. Disconnected T29 no-provider-call tests have CI evidence, but a claim that all deployed host-level egress is disabled is NOT supported by this screenshot. No production or staging write, service change, deployment or T30 activity occurred. T29 remains In progress pending final interpretation of runtime gate and explicit owner staging acceptance.
