@@ -51,6 +51,9 @@ echo CI_CORRECT_PASSWORD_ACCEPTED
 # Native PostgreSQL 17 transaction-snapshot verification on this disposable fixture only.
 T30_SYNTHETIC_DATABASE=1 node --test test/t30-snapshot-native.test.js
 echo CI_T30_SYNCHRONIZED_SNAPSHOT_NATIVE_PASS
+# New V3 SQL qualification is isolated to this same disposable localhost cluster.
+T30_SYNTHETIC_DATABASE=1 node --test test/t30-v3-restore-native.test.js
+echo CI_T30_V3_ROW_VERIFICATION_NATIVE_PASS
 T19_SYNTHETIC_CATALOG_ONLY=yes node scripts/t19-custody-recovery-native17.mjs
 T19_PG_BIN="$(pg_config --bindir)" node scripts/run-t19-operational-postgres.mjs
 T19_PG_BIN="$(pg_config --bindir)" node scripts/run-t19-operational-postgres.mjs --owner-adapter
