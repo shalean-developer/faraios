@@ -26,7 +26,7 @@ export async function openSnapshotKeeper({host,port,user,database,password,ca,cl
  if(typeof host!=='string'||!host||typeof user!=='string'||!user||
     database!=='postgres'||port!==5432||typeof password!=='string'||!password||
     typeof ca!=='string'||!ca.startsWith('-----BEGIN CERTIFICATE-----'))throw Error('BACKUP_SNAPSHOT_CONFIG_INVALID');
- const factory=clientFactory??((options)=>new ((await import('pg')).default.Client)(options));
+ const factory=clientFactory??(async options=>{const {default:pg}=await import('pg');return new pg.Client(options);});
  const client=await factory({
   host,port,user,database,password,
   ssl:{ca,rejectUnauthorized:true,servername:host},
