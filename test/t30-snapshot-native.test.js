@@ -60,7 +60,7 @@ test('T30 read-committed role change is detectable outside an exported snapshot'
   const q=`SELECT jsonb_build_object('application',
    encode(sha256(convert_to((SELECT rolcanlogin::text FROM pg_roles WHERE rolname='${role}'),'UTF8')),'hex'),
    'managed',repeat('a',64)) AS catalog`;
-  return parseFreshCatalog(JSON.stringify((await db.query(q)).rows[0]));
+  return parseFreshCatalog(JSON.stringify((await db.query(q)).rows[0].catalog));
  };
  try{
   await db.query('CREATE ROLE '+role+' NOLOGIN');
