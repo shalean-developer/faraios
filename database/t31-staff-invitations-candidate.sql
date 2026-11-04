@@ -30,7 +30,7 @@ create policy t31_invite_worker_membership_insert on public.business_memberships
 create policy t31_invite_worker_audit on audit.events for insert to t31_invite_worker
  with check(entity_table='business_memberships' and operation='INSERT' and actor_user_id=auth.uid());
 create table private_t31.invitation_audit (
- id bigint generated always as identity primary key, business_id uuid not null,
+ id uuid primary key default gen_random_uuid(), business_id uuid not null,
  actor_user_id uuid not null, invitation_id uuid not null,
  action text not null check(action in ('created','accepted','revoked')),
  occurred_at timestamptz not null default clock_timestamp()
