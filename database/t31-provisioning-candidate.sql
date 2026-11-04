@@ -12,6 +12,7 @@ end $$;
 grant usage on schema public, audit, private_t31, auth to t31_bootstrap;
 -- Supabase Auth helper functions are invoked under this dedicated execution role.
 grant execute on function auth.uid(), auth.jwt() to t31_bootstrap;
+grant select(id,email_confirmed_at) on auth.users to t31_bootstrap;
 -- Required for ALTER FUNCTION OWNER, revoked after ownership transfer.
 grant create on schema private_t31 to t31_bootstrap;
 grant select,insert on public.businesses, public.business_memberships to t31_bootstrap;
@@ -49,6 +50,9 @@ begin
   v_actor:=auth.uid();
   if v_actor is null or (coalesce(auth.jwt()->>'is_anonymous','false'))='true' then
     raise exception 'Authentication required' using errcode='28000';
+  end if;
+  if not exists(select 1 from auth.users u where u.id=v_actor and u.email_confirmed_at is not null) then
+    raise exception 'Verified email required' using errcode='42501';
   end if;
   v_name:=btrim(p_name);
   if p_name is null or p_name<>v_name or length(v_name) not between 1 and 160
