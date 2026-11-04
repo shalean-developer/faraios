@@ -65,7 +65,7 @@ test('T31 native: atomic bootstrap, concurrency, authorization and tenant RLS',{
  await assert.rejects(as(null,db=>db.query('select public.t31_provision_business($1,$2)',['No user',reqFail])),e=>e.code==='28000');
  await assert.rejects(as(first,db=>db.query('select public.t31_provision_business($1,$2)',['Anon user',reqFail]),'authenticated',true),e=>e.code==='28000');
  // Inject a failing membership insert; the tenant and idempotency record must also roll back.
- await admin.query(`create function public.t31_fail_membership() returns trigger language plpgsql as $$
+ await admin.query(`create function public.t31_fail_membership() returns trigger language plpgsql security definer set search_path='' as $
  begin
  if exists(select 1 from public.businesses where id=new.business_id and name='Failure Co') then
  raise exception 'synthetic membership failure';
