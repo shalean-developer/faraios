@@ -1,7 +1,7 @@
 import {escapeHtml} from './workspace-layout.js';
 
 // T31 persisted-state checklist. No client-provided "completed" flag or privileged mutation.
-export function onboardingProgress(settings,items=[]) {
+export function onboardingProgress(settings,items=[],branding=null) {
   if(!Array.isArray(items)||items.some(item=>!item||typeof item!=='object'))throw Error('Onboarding data unavailable');
   const s=settings??{};
   const businessProfile=typeof s.display_name==='string'&&s.display_name.trim().length>0
@@ -12,10 +12,11 @@ export function onboardingProgress(settings,items=[]) {
     &&typeof s.closes_at==='string'&&s.closes_at.length>=5
     &&typeof s.time_zone==='string'&&s.time_zone.length>0;
   const activeServices=items.filter(item=>item.kind==='service'&&item.is_active===true&&Number.isSafeInteger(item.price_cents)&&item.price_cents>=0);
+  const branded=typeof branding?.accent_color==='string'&&/^#[0-9A-F]{6}$/.test(branding.accent_color);
   return Object.freeze({
-    profile:businessProfile,serviceAreas,operatingHours,services:activeServices.length>0,
-    completed:[businessProfile,serviceAreas,operatingHours,activeServices.length>0].filter(Boolean).length,
-    total:4
+    profile:businessProfile,serviceAreas,operatingHours,services:activeServices.length>0,branding:branded,
+    completed:[businessProfile,serviceAreas,operatingHours,activeServices.length>0,branded].filter(Boolean).length,
+    total:5
   });
 }
 export function renderOnboardingProgress(business,progress) {
@@ -24,7 +25,8 @@ export function renderOnboardingProgress(business,progress) {
     ['profile','Business contact and display name','/settings?business='+id],
     ['serviceAreas','Service areas','/settings?business='+id],
     ['operatingHours','Operating hours','/settings?business='+id],
-    ['services','Active cleaning service and pricing','/catalogue?business='+id]
+    ['services','Active cleaning service and pricing','/catalogue?business='+id],
+    ['branding','Business branding','/branding?business='+id]
   ];
   return '<section class="module-heading"><div><p class="eyebrow">'+escapeHtml(business.name)+'</p><h1>Set up your cleaning business</h1><p>Complete the configuration for this workspace. Progress comes from saved business records.</p></div></section>'
     +'<section class="panel"><h2>Onboarding progress: '+progress.completed+' of '+progress.total+'</h2>'
