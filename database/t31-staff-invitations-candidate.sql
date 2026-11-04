@@ -95,7 +95,7 @@ begin
 end $$;
 
 create function private_t31.staff_members(p_business uuid) returns jsonb
-language plpgsql stable security definer set search_path='' as $
+language plpgsql stable security definer set search_path='' as $$
 declare actor uuid;
 begin
  actor:=auth.uid();
@@ -105,10 +105,10 @@ begin
  then raise exception 'Owner access required' using errcode='42501';end if;
  return coalesce((select jsonb_agg(jsonb_build_object('user_id',m.user_id,'role',m.role,'status',m.status) order by m.user_id)
  from public.business_memberships m where m.business_id=p_business),'[]'::jsonb);
-end $;
+end $$;
 
 create function private_t31.suspend_member(p_business uuid,p_target uuid) returns boolean
-language plpgsql security definer set search_path='' as $
+language plpgsql security definer set search_path='' as $$
 declare actor uuid;
 begin
  actor:=auth.uid();
@@ -121,7 +121,7 @@ begin
  where business_id=p_business and user_id=p_target and role in ('staff','manager') and status='active';
  if not found then raise exception 'Active staff membership unavailable' using errcode='42501';end if;
  return true;
-end $;
+end $$;
 
 grant create on schema private_t31 to t31_invite_worker;
 alter function private_t31.create_invitation(uuid,text,text) owner to t31_invite_worker;
@@ -142,10 +142,10 @@ revoke all on function public.t31_invite_staff(uuid,text,text),public.t31_accept
 grant execute on function public.t31_invite_staff(uuid,text,text),public.t31_accept_invite(uuid) to authenticated;
 create function public.t31_staff_members(p_business uuid)
  returns jsonb language sql security invoker set search_path=''
- as $ select private_t31.staff_members(p_business) $;
+ as $$ select private_t31.staff_members(p_business) $$;
 create function public.t31_suspend_member(p_business uuid,p_user uuid)
  returns boolean language sql security invoker set search_path=''
- as $ select private_t31.suspend_member(p_business,p_user) $;
+ as $$ select private_t31.suspend_member(p_business,p_user) $$;
 revoke all on function public.t31_staff_members(uuid),public.t31_suspend_member(uuid,uuid) from public,anon,authenticated;
 grant execute on function public.t31_staff_members(uuid),public.t31_suspend_member(uuid,uuid) to authenticated;
 commit;
