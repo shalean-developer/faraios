@@ -19,6 +19,8 @@ import {renderWorkspaceFrame} from './workspace-layout.js';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {createAuthSessions} from './auth-session.js';
+import {provisionBusiness} from './t31-provisioning.js';
+import {randomUUID} from 'node:crypto';
 import {hostedRequestAllowed,stagingOrigin} from './hosted-staging.js';
 import {parseBusinessSettings,readBusinessSettings,saveBusinessSettings,renderBusinessSettings} from './business-settings.js';
 import {parseCatalogueItem,listCatalogue,saveCatalogueItem,deleteCatalogueItem,renderCatalogueDelete,renderCatalogueDeactivate,renderCatalogue} from './catalogue.js';
@@ -75,6 +77,23 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
       if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/')){
         const next=url.searchParams.get('next');
         return send(200,loginForm('').replace('<label for="email">',customerRoute(next??'')?'<input type="hidden" name="next" value="'+esc(next)+'"><label for="email">':'<label for="email">'));
+      }
+      // T31 bootstrap: verified login session only; no service role, no client-selected business ID.
+      if(url.pathname==='/business/new'&&['GET','POST'].includes(req.method)){
+        if(restoreTest)return send(405,'Restore test is read-only','text/plain');
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        if(req.method==='POST'&&(req.headers.origin!==origin||req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded'))
+          return send(403,'Origin or form rejected','text/plain');
+        const render=(requestId,message='')=>html('Create business',`<h1>Create a cleaning business</h1><p>Set up your independent workspace.</p>${message?'<p role="alert">'+esc(message)+'</p>':''}<form method="post" action="/business/new"><label for="business-name">Business name</label><input id="business-name" name="name" maxlength="160" required><input type="hidden" name="request_id" value="${esc(requestId)}"><button type="submit">Create workspace</button></form>`);
+        if(req.method==='GET')return send(200,render(randomUUID()));
+        let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>4096)return send(413,'Form too large','text/plain');}
+        const input=new URLSearchParams(body);
+        try{
+          const result=await auth.withBusinessProvisioning(id,client=>provisionBusiness(client,{name:input.get('name'),requestId:input.get('request_id')}));
+          return redirect('/dashboard?business='+encodeURIComponent(result.businessId));
+        }catch(error){
+          return send(422,render(input.get('request_id')??'',error.message));
+        }
       }
       if(url.pathname==='/reports'){
         if(req.method!=='GET')return send(405,'Read-only reports','text/plain');
