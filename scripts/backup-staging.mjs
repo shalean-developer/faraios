@@ -10,6 +10,8 @@ import { createInterface } from 'node:readline/promises';
 import { Writable } from 'node:stream';
 import {validateScope,matchesCurrentScope,currentManifestSQL} from './backup-scope.mjs';
 import {PRIVATE_BACKUP_SCHEMAS} from './backup-private-scope.mjs';
+import {openSnapshotKeeper,bindManifestSnapshot,snapshotDumpFlag} from './backup-snapshot.mjs';
+import {freshCatalogSQL,parseFreshCatalog,assertFreshCatalog} from './backup-live-catalog.mjs';
 
 export const SOURCE = 'xdmfyrsauvqznkloroxg';
 export const CLI = '2.121.0'; // Vendored filter provenance, not an executed CLI.
@@ -153,12 +155,13 @@ export async function ensureClientImage(env,runner=run,signal) {
 }
 
 // Only fixed modes and reviewed filters enter the container command/environment.
-export function dumpSpec(name) {
+export function dumpSpec(name,snapshot=null) {
  if(!DUMPS.some(([allowed])=>allowed===name))fail('DUMP_MODE_INVALID');
  if(name==='roles.sql')return {script:dumpRoleScript,env:{RESERVED_ROLES:RESERVED_ROLES.join('|'),ALLOWED_CONFIGS:ALLOWED_CONFIGS.join('|')}};
+ const flag=snapshot===null?'':snapshotDumpFlag(snapshot);
  const schema=name.startsWith('migration-')?'supabase_migrations':name==='managed-schema-reference.sql'?'auth|storage':null;
- if(name.endsWith('data.sql'))return {script:dumpDataScript,env:{INCLUDED_SCHEMAS:schema??'*',...(schema?{}:{EXCLUDED_SCHEMAS:EXCLUDED_SCHEMAS.join('|'),EXTRA_FLAGS:'--exclude-table "storage"."buckets_vectors" --exclude-table "storage"."vector_indexes"'})}};
- return {script:dumpSchemaScript,env:schema?{EXTRA_FLAGS:'--schema='+schema}:{EXCLUDED_SCHEMAS:INTERNAL_SCHEMAS.join('|')}};
+ if(name.endsWith('data.sql'))return {script:dumpDataScript,env:{INCLUDED_SCHEMAS:schema??'*',...(schema?{EXTRA_FLAGS:flag}:{EXCLUDED_SCHEMAS:EXCLUDED_SCHEMAS.join('|'),EXTRA_FLAGS:['--exclude-table "storage"."buckets_vectors" --exclude-table "storage"."vector_indexes"',flag].filter(Boolean).join(' ')})}};
+ return {script:dumpSchemaScript,env:schema?{EXTRA_FLAGS:['--schema='+schema,flag].filter(Boolean).join(' ')}:{EXCLUDED_SCHEMAS:INTERNAL_SCHEMAS.join('|'),...(flag?{EXTRA_FLAGS:flag}:{})}};
 }
 
 export function clientArgs(id,step,script,env,input=false) {
@@ -477,7 +480,7 @@ export async function verifyFile(archive,keyRoot,runner=run,signal) {
  return {id,sha256,fileCount};
 }
 
-export async function capture({home=homedir(),password,runner=run,progress=()=>{},signal,removeWorkdir=path=>rm(path,{recursive:true})}) {
+export async function capture({home=homedir(),password,runner=run,progress=()=>{},signal,removeWorkdir=path=>rm(path,{recursive:true}),snapshotFactory=openSnapshotKeeper}) {
  if(signal?.aborted) fail('BACKUP_CANCELLED');
  const profile=await loadCurrentProfile(home,runner,signal),scope=profile.scope;
  const root=join(home,'.faraios-backups'),keyRoot=join(home,'.faraios-recovery-keys');
@@ -491,7 +494,9 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
  const id=randomBytes(16).toString('hex'),work=join(root,id),temporary=join(work,'private-export');
  await guard.check();await privateDirectory(work,runner,signal);await guard.add(work);
  await guard.check();await privateDirectory(temporary,runner,signal);await guard.add(temporary);
- const sql=currentManifestSQL(await readFile(new URL('./staging-backup-manifest.sql',import.meta.url),'utf8'),await readFile(new URL(scope.version===3?'./t30-private-restore-catalog.sql':'./restore-catalog.sql',import.meta.url),'utf8'),scope);
+ const portable=await readFile(new URL(scope.version===3?'./t30-private-restore-catalog.sql':'./restore-catalog.sql',import.meta.url),'utf8');
+ const sql=currentManifestSQL(await readFile(new URL('./staging-backup-manifest.sql',import.meta.url),'utf8'),portable,scope);
+ const liveSQL=scope.version===3?freshCatalogSQL(portable):null;
  const client=async (step,script,extra={},input)=>{
   checkCancelled(signal);
   const heartbeat=setInterval(()=>progress('This backup step is still running...'),20000);
@@ -506,24 +511,36 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
    delete childEnv.PGPASSWORD;
   }
  };
- let artifact,keyPath,checksum,completed=false,cleanup='NOT_RUN';
+ let artifact,keyPath,checksum,completed=false,cleanup='NOT_RUN',snapshotKeeper;
  const started=new Date().toISOString();
  try {
   progress('Checking pinned PostgreSQL client image');
   const imageHeartbeat=setInterval(()=>progress('This backup step is still running...'),20000);
   try{await ensureClientImage(env,runner,signal);}finally{clearInterval(imageHeartbeat);}
+  if(scope.version===3){
+   await guard.check();await profile.check();
+   snapshotKeeper=await snapshotFactory({host:POOLER_HOST,port:5432,user:env.PGUSER,database:'postgres',password:env.PGPASSWORD,ca:await readFile(ROOT_CERT_PATH,'utf8'),signal});
+   snapshotKeeper.assertAlive();
+  }
+  // Fresh unpinned READ COMMITTED projections detect role/grant and DDL drift
+  // which manifests importing the same snapshot would otherwise conceal.
+  const liveCatalog=async()=>scope.version===3?parseFreshCatalog((await client('metadata','exec psql -X -w -q -A -t --set=ON_ERROR_STOP=1',{},liveSQL)).stdout):null;
+  const liveBefore=await liveCatalog();
   progress('Checking source metadata');
+  const pinnedSQL=snapshotKeeper?bindManifestSnapshot(sql,snapshotKeeper.id):sql;
   const readManifest=async()=>{
-   const m=parsePgManifest((await client('metadata','exec psql -X -w -q -A -t --set=ON_ERROR_STOP=1',{},sql)).stdout,scope);
+   snapshotKeeper?.assertAlive();
+   const m=parsePgManifest((await client('metadata','exec psql -X -w -q -A -t --set=ON_ERROR_STOP=1',{},pinnedSQL)).stdout,scope);
    if(m.scope!==scope.id || !matchesCurrentScope(m,scope))fail('SOURCE_SCOPE_CHANGED');
    return m;
   };
   const before=await readManifest();
+  if(liveBefore)assertFreshCatalog(liveBefore,before.restore_catalog);
   const files=[];let totalBytes=0;
   for(const [name] of DUMPS) {
    progress('Exporting '+name);
    let result;
-   try { const spec=dumpSpec(name);result=await client(name.replace('.sql',''),spec.script,spec.env); }
+   try { snapshotKeeper?.assertAlive();const spec=dumpSpec(name,snapshotKeeper?.id??null);result=await client(name.replace('.sql',''),spec.script,spec.env);snapshotKeeper?.assertAlive(); }
    catch(error) { if(['BACKUP_CANCELLED','CONTAINER_CLEANUP_FAILED','CHILD_TIMEOUT','CHILD_OUTPUT_TOO_LARGE','CLIENT_CONTAINER_START_FAILED','CLIENT_CONTAINER_PROCESS_FAILED','PROVIDER_CA_INVALID','PRIVATE_PROFILE_CHANGED','PRIVATE_PROFILE_MISSING','PRIVATE_PROFILE_UNSAFE_OR_INVALID'].includes(error.code))throw error;fail('DUMP_'+name.replace(/\.sql$/,'').replaceAll('-','_').toUpperCase()+'_FAILED'); }
    const bytes=result.stdoutBytes??Buffer.from(result.stdout,'utf8'),content=bytes.toString('utf8');
    totalBytes+=bytes.length;
@@ -536,7 +553,10 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
   const after=await readManifest();
   if(signal?.aborted) fail('BACKUP_CANCELLED');
   if(!same(before,after)) fail('SOURCE_CHANGED_DURING_BACKUP');
-  const manifest={version:1,source:SOURCE,filterSource:'supabase/cli@'+CLI,clientImage:CLIENT_IMAGE,transport:{host:POOLER_HOST,port:5432,sslmode:'verify-full',sslrootcert:'Supabase Root 2021 CA',caSha256:ROOT_CERT_SHA256},started,finished:new Date().toISOString(),consistency:'Operator-confirmed write freeze plus before/after row and catalog SHA-256 comparison; individual pg_dump transactions.',before,after,scope:'Logical database export with Auth data and separate migration history. Platform configuration, custom managed-schema replay, Storage bytes and provider secrets require separate recovery treatment.'};
+  snapshotKeeper?.assertAlive();
+  const liveAfter=await liveCatalog();
+  if(liveAfter){assertFreshCatalog(liveAfter,before.restore_catalog);assertFreshCatalog(liveAfter,liveBefore);}
+  const manifest={version:1,source:SOURCE,filterSource:'supabase/cli@'+CLI,clientImage:CLIENT_IMAGE,transport:{host:POOLER_HOST,port:5432,sslmode:'verify-full',sslrootcert:'Supabase Root 2021 CA',caSha256:ROOT_CERT_SHA256},started,finished:new Date().toISOString(),consistency:scope.version===3?'Synchronized PostgreSQL snapshot for database dump members; roles-only export guarded by independent live role/schema pre/post projections and still requires operator write freeze.':'Operator-confirmed write freeze plus before/after row and catalog SHA-256 comparison; individual pg_dump transactions.',before,after,scope:'Logical database export with Auth data and separate migration history. Platform configuration, custom managed-schema replay, Storage bytes and provider secrets require separate recovery treatment.'};
   const content=JSON.stringify(manifest);files.push({name:'manifest.json',content,sha256:sha256(content)});
   assertDataCoverage(files,before);
   if(Buffer.byteLength(JSON.stringify(files))>MAX_PAYLOAD/2) fail('BACKUP_TOO_LARGE');
@@ -560,6 +580,7 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
   cleanup='PASSED';completed=true;
   return {source:SOURCE,artifact,keyPath,sha256:checksum,privateWorkdirCleanup:cleanup,helperPlaintextSQLFiles:'NEVER_WRITTEN',encryptedLocalVerification:'PASSED',offsiteBackup:'PENDING',offlineKeyCopy:'PENDING',restore:'NOT_RUN'};
  } finally {
+  if(snapshotKeeper)await snapshotKeeper.close();
   delete env.PGPASSWORD;
   if(!completed) {
    // SQL was captured only in memory; no child can write plaintext dump files.
