@@ -174,6 +174,12 @@ test('T31 disconnected full third-cleaning-company journey and forbidden tenant 
   const serviceSave=await request('/catalogue?business='+id,{cookie:owner,data:service});
   assert.equal(serviceSave.status,303);
   assert.equal(b.catalogue[0].price_cents,50000);
+  const extraSave=await request('/catalogue?business='+id,{cookie:owner,data:{
+   kind:'extra',name:'Inside oven',description:'Synthetic extra',pricing_model:'fixed',price:'75.00',unit_label:'extra',status:'active'
+  }});
+  assert.equal(extraSave.status,303);
+  assert.equal(b.catalogue.length,2);
+  assert.equal(b.catalogue.find(x=>x.kind==='extra')?.price_cents,7500);
   const configured=await request('/onboarding?business='+id,{cookie:owner});
   assert.equal(configured.status,200);
   assert.match(await configured.text(),/5 of 5/);
@@ -215,6 +221,20 @@ test('T31 disconnected full third-cleaning-company journey and forbidden tenant 
   assert.equal((await request('/branding?business='+id,{cookie:cleaner})).status,403);
   assert.equal((await request('/team-members?business='+id,{cookie:cleaner})).status,403);
   assert.equal((await request('/team-invite?business='+id,{cookie:cleaner,data:{email:'other@example.invalid',role:'owner'}})).status,403);
+  // Manager invitation uses an independent verified identity, never an owner grant.
+  await register('third-manager@example.invalid');
+  b.users.get('third-manager@example.invalid').verified=true;
+  const manager=await login('third-manager@example.invalid');
+  const managerInvite=await request('/team-invite?business='+id,{cookie:owner,data:{email:'third-manager@example.invalid',role:'manager'}});
+  assert.equal(managerInvite.status,200);
+  const managerToken=(await managerInvite.text()).match(/<code>([a-f0-9-]{36})<\/code>/)?.[1];
+  assert.match(managerToken??'',/^[a-f0-9-]{36}$/);
+  assert.equal((await request('/accept-invite',{cookie:manager,data:{token:managerToken}})).status,303);
+  assert.equal((await request('/dashboard?business='+id,{cookie:manager})).status,200);
+  assert.equal((await request('/branding?business='+id,{cookie:manager})).status,403);
+  assert.equal((await request('/team-invite?business='+id,{cookie:manager})).status,403);
+  assert.equal((await request('/team-members?business='+id,{cookie:manager})).status,403);
+  assert.equal(b.members.find(m=>m.user_id===b.users.get('third-manager@example.invalid').id)?.role,'manager');
   const member=b.members.find(m=>m.user_id===b.users.get('third-cleaner@example.invalid').id);
   assert.equal(member.role,'staff');
   const suspension=await request('/team-members?business='+id,{cookie:owner,data:{user:member.user_id}});
