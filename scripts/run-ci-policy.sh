@@ -60,6 +60,9 @@ npm run check
 echo CI_POLICY_SYNTAX_PASS
 npm test
 echo CI_POLICY_FULL_SUITE_PASS
+# Native PostgreSQL 17 transaction-snapshot verification on this disposable fixture only.
+T30_SYNTHETIC_DATABASE=1 node --test test/t30-snapshot-native.test.js
+echo CI_T30_SYNCHRONIZED_SNAPSHOT_NATIVE_PASS
 
 T19_PG_BIN="$(pg_config --bindir)" npm run test:accounting:postgres
 echo CI_POLICY_DEDICATED_NATIVE_PASS
