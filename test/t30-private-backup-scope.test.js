@@ -102,5 +102,15 @@ test('T30 source manifest catalogs only reviewed private schemas and all private
  assert.ok(sql.includes("'catalog_version',2"));
  assert.ok(sql.includes("'restore_catalog'"));
  assert.ok(sql.includes("'private_t19_custody'"));
+ const restricted="in ('public','audit','auth','storage')";
+ assert.equal(raw.split(restricted).length-1,0,'private schemas must be fingerprinted for functions, triggers and policies');
+ for(const key of ["'functions'","'triggers'","'policies'"]){
+  const start=raw.indexOf(key+',(select ');
+  const end=raw.indexOf(')),',start);
+  assert.ok(start>=0&&end>start,key+' projection exists');
+  const fragment=raw.slice(start,end);
+  for(const schema of PRIVATE_BACKUP_SCHEMAS)assert.ok(fragment.includes("'"+schema+"'"),key+' includes '+schema);
+ }
+
  assert.ok(!sql.includes('${PRIVATE_BACKUP_SCHEMAS'));
 });
