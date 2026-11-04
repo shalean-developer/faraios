@@ -9,7 +9,9 @@ do $$ begin
     create role t31_bootstrap nologin noinherit;
   end if;
 end $$;
-grant usage on schema public, audit, private to t31_bootstrap;
+grant usage on schema public, audit, private, auth to t31_bootstrap;
+-- Supabase Auth helper functions are invoked under this dedicated execution role.
+grant execute on function auth.uid(), auth.jwt() to t31_bootstrap;
 -- Required for ALTER FUNCTION OWNER, revoked after ownership transfer.
 grant create on schema private to t31_bootstrap;
 grant select,insert on public.businesses, public.business_memberships to t31_bootstrap;
