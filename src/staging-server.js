@@ -20,6 +20,7 @@ import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {createAuthSessions} from './auth-session.js';
 import {registerOwner} from './t31-owner-registration.js';
+import {onboardingProgress,renderOnboardingProgress} from './t31-onboarding-progress.js';
 import {provisionBusiness} from './t31-provisioning.js';
 import {randomUUID} from 'node:crypto';
 import {hostedRequestAllowed,stagingOrigin} from './hosted-staging.js';
@@ -700,6 +701,16 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
             return send(200,html('Delete catalogue item',renderCatalogueDelete(business,editing,url.searchParams.get('view'))));
           }
           return send(200,html('Catalogue',renderCatalogue(business,items,canManage,editing,url.searchParams.get('deleted')==='1'?'Item deleted.':url.searchParams.get('saved')==='1'?'Catalogue saved.':'',false,url.searchParams.get('view'),{q:url.searchParams.get('q'),status:url.searchParams.get('status'),service:url.searchParams.get('service')})));
+        });
+      }
+      if(url.pathname==='/onboarding'){
+        if(req.method!=='GET')return send(405,'Read-only onboarding overview','text/plain');
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        const businessId=url.searchParams.get('business');
+        return await auth.withOwner(id,businessId,async(client,business)=>{
+          headerBusiness=business;
+          const [settings,items]=await Promise.all([readBusinessSettings(client,business.id),listCatalogue(client,business.id)]);
+          return send(200,html('Business onboarding',renderOnboardingProgress(business,onboardingProgress(settings,items))));
         });
       }
       if(url.pathname==='/settings'){
