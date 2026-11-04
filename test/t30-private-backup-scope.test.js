@@ -91,7 +91,7 @@ test('T30 private table schema/RLS and row-copy completeness are enforced',()=>{
 });
 test('T30 source manifest catalogs only reviewed private schemas and all private sequences',()=>{
  const raw=readFileSync(new URL('../scripts/staging-backup-manifest.sql',import.meta.url),'utf8');
- const portable=readFileSync(new URL('../scripts/restore-catalog.sql',import.meta.url),'utf8');
+ const portable=readFileSync(new URL('../scripts/t30-private-restore-catalog.sql',import.meta.url),'utf8');
  const sql=currentManifestSQL(raw,portable,profile);
  for(const schema of PRIVATE_BACKUP_SCHEMAS){
   assert.ok(raw.includes("'"+schema+"'"),schema+' included in raw manifest');
