@@ -3,7 +3,7 @@
 // processes, and never grants authority to import an archive.
 import {validateScope,matchesCurrentScope} from './backup-scope.mjs';
 import {PRIVATE_BACKUP_SCHEMAS,PRIVATE_BACKUP_TABLES} from './backup-private-scope.mjs';
-import {SOURCE,DUMPS,validateManifest} from './backup-staging.mjs';
+import {SOURCE,DUMPS,validateManifest,openBackup,sha256} from './backup-staging.mjs';
 
 const OLD_DESTINATION='zrlojsvkqipuwkkyfrkn';
 const HASH=/^[a-f0-9]{64}$/;
@@ -74,4 +74,39 @@ export function v3RowVerificationSQL(scopeInput,manifest){
  });
  return 'DO $t30_v3_rows$ DECLARE n bigint; h text; BEGIN\n'+
    statements.join('\n')+'\nEND $t30_v3_rows$;\n';
+}
+
+// Authenticate a sealed V3 archive entirely in memory, using the existing T11
+// AES-GCM format, member hash/coverage checks and V3 profile scope validators.
+// This function never reads files, opens a network connection or executes SQL.
+// The plan is only an offline comparison against separately reviewed pins,
+// NOT proof that a destination exists or is empty and NOT restore authority.
+export function qualifySealedV3Offline({bytes,key,profile,pins}={}){
+ if(!Buffer.isBuffer(bytes)||!Buffer.isBuffer(key)||key.length!==32||
+    !pins||typeof pins!=='object'||
+    JSON.stringify(Object.keys(pins).sort())!==
+      JSON.stringify(['archiveId','archiveSha256','destination','importEnabled','source'].sort())||
+    pins.source!==SOURCE||pins.importEnabled!==false||
+    !/^[a-f0-9]{32}$/.test(pins.archiveId??'')||
+    !HASH.test(pins.archiveSha256??''))
+  failure('T30_V3_OFFLINE_PINS_INVALID');
+ let scope;
+ try{scope=validateScope(profile,SOURCE);}
+ catch{failure('T30_V3_PROFILE_INVALID');}
+ if(scope.version!==3)failure('T30_V3_SCOPE_INVALID');
+ if(sha256(bytes)!==pins.archiveSha256)failure('T30_V3_CIPHERTEXT_HASH_MISMATCH');
+ let result;
+ try{result=openBackup(bytes,key,scope);}
+ catch{failure('T30_V3_ARCHIVE_AUTHENTICATION_FAILED');}
+ if(result.id!==pins.archiveId)failure('T30_V3_ARCHIVE_ID_MISMATCH');
+ let manifest;
+ try{manifest=JSON.parse(result.payload.files.find(f=>f.name==='manifest.json').content);}
+ catch{failure('T30_V3_MANIFEST_INVALID');}
+ const inspected=inspectV3RestoreCandidate({
+  profile:scope,manifest,destination:pins.destination,
+  archive:{id:result.id,sha256:pins.archiveSha256,files:result.payload.files.map(f=>f.name)}
+ });
+ return Object.freeze({...inspected,archiveAuthentication:'PASSED',
+  ciphertextSha256:pins.archiveSha256,
+  destinationVerification:'NOT_RUN',executionAuthorised:false});
 }
