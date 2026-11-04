@@ -179,6 +179,26 @@ test('T31 disconnected full third-cleaning-company journey and forbidden tenant 
   assert.match(await configured.text(),/5 of 5/);
   assert.equal((await request('/branding?business='+foreign,{cookie:owner})).status,403);
   assert.equal((await request('/team-members?business='+foreign,{cookie:owner})).status,403);
+  // A separate company starts empty and cannot inherit another tenant's catalogue or profile.
+  await register('fourth-owner@example.invalid');
+  b.users.get('fourth-owner@example.invalid').verified=true;
+  const fourth=await login('fourth-owner@example.invalid');
+  const fourthForm=await request('/business/new',{cookie:fourth});
+  const fourthKey=(await fourthForm.text()).match(/name="request_id" value="([^"]+)"/)?.[1];
+  assert.match(fourthKey??'',/^[a-f0-9-]{36}$/);
+  const fourthCreated=await request('/business/new',{cookie:fourth,data:{name:'Fourth Independent Cleaning',request_id:fourthKey}});
+  assert.equal(fourthCreated.status,303);
+  const fourthId=new URL(fourthCreated.headers.get('location'),'http://localhost').searchParams.get('business');
+  assert.notEqual(fourthId,id);
+  assert.equal((await request('/dashboard?business='+fourthId,{cookie:owner})).status,403);
+  assert.equal((await request('/dashboard?business='+id,{cookie:fourth})).status,403);
+  assert.equal((await request('/settings?business='+id,{cookie:fourth})).status,403);
+  assert.equal((await request('/branding?business='+id,{cookie:fourth})).status,403);
+  assert.equal((await request('/catalogue?business='+id,{cookie:fourth})).status,403);
+  assert.equal((await request('/onboarding?business='+fourthId,{cookie:fourth})).status,200);
+  assert.equal(b.settings.some(x=>x.business_id===fourthId),false);
+  assert.equal(b.brands.some(x=>x.business_id===fourthId),false);
+  assert.equal(b.catalogue.some(x=>x.business_id===fourthId),false);
   await register('third-cleaner@example.invalid');
   b.users.get('third-cleaner@example.invalid').verified=true;
   const cleaner=await login('third-cleaner@example.invalid');
@@ -201,8 +221,8 @@ test('T31 disconnected full third-cleaning-company journey and forbidden tenant 
   assert.equal(suspension.status,303);
   assert.equal((await request('/dashboard?business='+id,{cookie:cleaner})).status,403);
   assert.equal((await request('/accept-invite',{cookie:cleaner,data:{token}})).status,422,'suspended token must not restore access');
-  assert.equal(b.businesses.length,1);
-  assert.equal(b.calls.filter(x=>x==='t31_provision_business').length,2);
+  assert.equal(b.businesses.length,2);
+  assert.equal(b.calls.filter(x=>x==='t31_provision_business').length,3);
   assert.equal(b.calls.every(x=>!/(email|send|payment|zoho|external)/i.test(x)),true,'no outbound provider actions');
  });
  console.log('T31_SYNTHETIC_HTTP_FULL_ONBOARDING_PASS');
