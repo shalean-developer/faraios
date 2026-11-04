@@ -50,8 +50,8 @@ test('T30 native 17: generated private-row checks pass empty synthetic tables, r
   created.push('extensions');
   // Production's extensions.digest accepts both text and bytea inputs.
   // The row verifier calls both overloads; reproduce them in isolated CI.
-  await client.query('CREATE FUNCTION extensions.digest(bytea,text) RETURNS bytea LANGUAGE sql IMMUTABLE STRICT AS 'SELECT public.digest($1,$2)'');
-  await client.query('CREATE FUNCTION extensions.digest(text,text) RETURNS bytea LANGUAGE sql IMMUTABLE STRICT AS 'SELECT public.digest($1,$2)'');
+  await client.query("CREATE FUNCTION extensions.digest(bytea,text) RETURNS bytea LANGUAGE sql IMMUTABLE STRICT AS 'SELECT public.digest($1,$2)'");
+  await client.query("CREATE FUNCTION extensions.digest(text,text) RETURNS bytea LANGUAGE sql IMMUTABLE STRICT AS 'SELECT public.digest($1,$2)'");
   const createdPublic=[];
   for(const name of all){
    const [ns,table]=name.split('.');
