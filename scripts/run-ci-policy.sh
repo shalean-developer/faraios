@@ -112,3 +112,7 @@ echo CI_POLICY_T26_NOTIFICATIONS_NATIVE_PASS
 # T27 scoped reports native acceptance in own disposable cluster.
 T27_PG_BIN="$(pg_config --bindir)" node scripts/run-t27-report-postgres.mjs
 echo CI_POLICY_T27_REPORT_NATIVE_PASS
+
+# T31 isolated PostgreSQL 17: authenticated provisioning, atomic rollback, concurrent retries and RLS.
+T31_PG_BIN="$(pg_config --bindir)" node scripts/run-t31-provisioning-postgres.mjs
+echo CI_POLICY_T31_PROVISIONING_NATIVE_PASS
