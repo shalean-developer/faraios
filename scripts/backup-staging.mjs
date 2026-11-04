@@ -11,6 +11,7 @@ import { Writable } from 'node:stream';
 import {validateScope,matchesCurrentScope,currentManifestSQL} from './backup-scope.mjs';
 import {PRIVATE_BACKUP_SCHEMAS} from './backup-private-scope.mjs';
 import {openSnapshotKeeper,bindManifestSnapshot,snapshotDumpFlag} from './backup-snapshot.mjs';
+import {freshCatalogSQL,parseFreshCatalog,assertFreshCatalog} from './backup-live-catalog.mjs';
 
 export const SOURCE = 'xdmfyrsauvqznkloroxg';
 export const CLI = '2.121.0'; // Vendored filter provenance, not an executed CLI.
@@ -493,7 +494,9 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
  const id=randomBytes(16).toString('hex'),work=join(root,id),temporary=join(work,'private-export');
  await guard.check();await privateDirectory(work,runner,signal);await guard.add(work);
  await guard.check();await privateDirectory(temporary,runner,signal);await guard.add(temporary);
- const sql=currentManifestSQL(await readFile(new URL('./staging-backup-manifest.sql',import.meta.url),'utf8'),await readFile(new URL(scope.version===3?'./t30-private-restore-catalog.sql':'./restore-catalog.sql',import.meta.url),'utf8'),scope);
+ const portable=await readFile(new URL(scope.version===3?'./t30-private-restore-catalog.sql':'./restore-catalog.sql',import.meta.url),'utf8');
+ const sql=currentManifestSQL(await readFile(new URL('./staging-backup-manifest.sql',import.meta.url),'utf8'),portable,scope);
+ const liveSQL=scope.version===3?freshCatalogSQL(portable):null;
  const client=async (step,script,extra={},input)=>{
   checkCancelled(signal);
   const heartbeat=setInterval(()=>progress('This backup step is still running...'),20000);
@@ -519,6 +522,10 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
    snapshotKeeper=await snapshotFactory({host:POOLER_HOST,port:5432,user:env.PGUSER,database:'postgres',password:env.PGPASSWORD,ca:await readFile(ROOT_CERT_PATH,'utf8'),signal});
    snapshotKeeper.assertAlive();
   }
+  // Fresh unpinned READ COMMITTED projections detect role/grant and DDL drift
+  // which manifests importing the same snapshot would otherwise conceal.
+  const liveCatalog=async()=>scope.version===3?parseFreshCatalog((await client('metadata','exec psql -X -w -q -A -t --set=ON_ERROR_STOP=1',{},liveSQL)).stdout):null;
+  const liveBefore=await liveCatalog();
   progress('Checking source metadata');
   const pinnedSQL=snapshotKeeper?bindManifestSnapshot(sql,snapshotKeeper.id):sql;
   const readManifest=async()=>{
@@ -528,6 +535,7 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
    return m;
   };
   const before=await readManifest();
+  if(liveBefore)assertFreshCatalog(liveBefore,before.restore_catalog);
   const files=[];let totalBytes=0;
   for(const [name] of DUMPS) {
    progress('Exporting '+name);
@@ -546,7 +554,9 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
   if(signal?.aborted) fail('BACKUP_CANCELLED');
   if(!same(before,after)) fail('SOURCE_CHANGED_DURING_BACKUP');
   snapshotKeeper?.assertAlive();
-  const manifest={version:1,source:SOURCE,filterSource:'supabase/cli@'+CLI,clientImage:CLIENT_IMAGE,transport:{host:POOLER_HOST,port:5432,sslmode:'verify-full',sslrootcert:'Supabase Root 2021 CA',caSha256:ROOT_CERT_SHA256},started,finished:new Date().toISOString(),consistency:scope.version===3?'Synchronized PostgreSQL snapshot for database dump members; roles-only export remains outside snapshot and requires operator write freeze.':'Operator-confirmed write freeze plus before/after row and catalog SHA-256 comparison; individual pg_dump transactions.',before,after,scope:'Logical database export with Auth data and separate migration history. Platform configuration, custom managed-schema replay, Storage bytes and provider secrets require separate recovery treatment.'};
+  const liveAfter=await liveCatalog();
+  if(liveAfter){assertFreshCatalog(liveAfter,before.restore_catalog);assertFreshCatalog(liveAfter,liveBefore);}
+  const manifest={version:1,source:SOURCE,filterSource:'supabase/cli@'+CLI,clientImage:CLIENT_IMAGE,transport:{host:POOLER_HOST,port:5432,sslmode:'verify-full',sslrootcert:'Supabase Root 2021 CA',caSha256:ROOT_CERT_SHA256},started,finished:new Date().toISOString(),consistency:scope.version===3?'Synchronized PostgreSQL snapshot for database dump members; roles-only export guarded by independent live role/schema pre/post projections and still requires operator write freeze.':'Operator-confirmed write freeze plus before/after row and catalog SHA-256 comparison; individual pg_dump transactions.',before,after,scope:'Logical database export with Auth data and separate migration history. Platform configuration, custom managed-schema replay, Storage bytes and provider secrets require separate recovery treatment.'};
   const content=JSON.stringify(manifest);files.push({name:'manifest.json',content,sha256:sha256(content)});
   assertDataCoverage(files,before);
   if(Buffer.byteLength(JSON.stringify(files))>MAX_PAYLOAD/2) fail('BACKUP_TOO_LARGE');
