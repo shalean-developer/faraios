@@ -10,6 +10,8 @@ do $$ begin
   end if;
 end $$;
 grant usage on schema public, audit, private to t31_bootstrap;
+-- Required for ALTER FUNCTION OWNER, revoked after ownership transfer.
+grant create on schema private to t31_bootstrap;
 grant select,insert on public.businesses, public.business_memberships to t31_bootstrap;
 grant insert on audit.events to t31_bootstrap;
 create table private.t31_provision_requests (
@@ -62,6 +64,7 @@ begin
   return v_business;
 end $$;
 alter function private.t31_provision_business(text,uuid) owner to t31_bootstrap;
+revoke create on schema private from t31_bootstrap;
 revoke all on function private.t31_provision_business(text,uuid) from public,anon,authenticated;
 grant usage on schema private to authenticated;
 grant execute on function private.t31_provision_business(text,uuid) to authenticated;
