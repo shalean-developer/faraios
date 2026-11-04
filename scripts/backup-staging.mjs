@@ -491,7 +491,7 @@ export async function capture({home=homedir(),password,runner=run,progress=()=>{
  const id=randomBytes(16).toString('hex'),work=join(root,id),temporary=join(work,'private-export');
  await guard.check();await privateDirectory(work,runner,signal);await guard.add(work);
  await guard.check();await privateDirectory(temporary,runner,signal);await guard.add(temporary);
- const sql=currentManifestSQL(await readFile(new URL('./staging-backup-manifest.sql',import.meta.url),'utf8'),await readFile(new URL('./restore-catalog.sql',import.meta.url),'utf8'),scope);
+ const sql=currentManifestSQL(await readFile(new URL('./staging-backup-manifest.sql',import.meta.url),'utf8'),await readFile(new URL(scope.version===3?'./t30-private-restore-catalog.sql':'./restore-catalog.sql',import.meta.url),'utf8'),scope);
  const client=async (step,script,extra={},input)=>{
   checkCancelled(signal);
   const heartbeat=setInterval(()=>progress('This backup step is still running...'),20000);
