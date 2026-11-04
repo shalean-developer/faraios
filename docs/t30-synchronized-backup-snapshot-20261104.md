@@ -20,3 +20,10 @@ The sixth archive member, **`pg_dumpall --roles-only`**, is global metadata and 
 5. No offsite backup and no new isolated recovery target have been approved. T30 recovery acceptance and T31 stay blocked.
 
 Do not merge/deploy this draft as an automatically usable recovery capability. No production or staging data changed.
+
+## Owner-authorised, non-capture hosted session-pooler compatibility probe
+The owner approved a narrowly scoped read-only hosted compatibility test on 4 November 2026. The connected Supabase SQL tool does not expose a dedicated, kept-open PostgreSQL client session and does not accept a cross-session exported snapshot. Do NOT treat an independent single SQL request as proof of shared snapshot compatibility, and do not extract credentials from Plesk or Supabase.
+
+For an owner-operated check on the existing Windows workstation only, the staging repository includes `scripts/t30-probe-session-pooler.mjs`. Run `node scripts/t30-probe-session-pooler.mjs` in a private terminal after regular trusted `npm ci` setup. The helper prompts privately for the **existing** staging database password, connects to the pinned session pooler at port 5432 with the pinned Root 2021 CA, opens one read-only transaction exporting a snapshot, creates an independent second read-only PostgreSQL session, imports the exact snapshot via `SET TRANSACTION SNAPSHOT`, verifies the pinned database/role, then rolls back and closes both sessions. No dumps, data exports, archives, writes, restore, or Plesk configuration changes. Output is either `T30_POOLER_SNAPSHOT_IMPORT_PASS` or `T30_POOLER_SNAPSHOT_IMPORT_NOT_VERIFIED`; share only that one status. The script never prints the password or snapshot token. Never paste database credentials, log files, connection strings, or terminal screenshots into the conversation.
+
+Until the operator executes it and the single result is independently checked, hosted session-pooler compatibility is **NOT VERIFIED**. This probe does not test `pg_dump` source compatibility or the roles-only capture; those remain separate qualification gates.
