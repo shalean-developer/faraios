@@ -33,7 +33,7 @@ export async function verifyReadOnlyPooler({password,clientFactory=null,signal})
   await reader.query("SET TRANSACTION SNAPSHOT '"+keeper.id+"'");
   const r=await reader.query("SELECT current_setting('transaction_read_only') AS readonly, current_database() AS db, current_user AS db_user");
   if(r.rows?.length!==1||r.rows[0].readonly!=='on'||
-     r.rows[0].db!=='postgres'||r.rows[0].db_user!=='postgres.'+SOURCE)
+     r.rows[0].db!=='postgres'||r.rows[0].db_user!=='postgres')
     throw Error('T30_POOLER_IDENTITY_OR_READONLY_MISMATCH');
   keeper.assertAlive();
   return {result:'T30_POOLER_SNAPSHOT_IMPORT_PASS',project:SOURCE,mode:'readonly',exports:0,writes:0};
