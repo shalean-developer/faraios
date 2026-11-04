@@ -12,6 +12,7 @@ The 35 table names are pinned in `scripts/backup-private-scope.mjs` from read-on
 
 - Require a protected local backup profile **version 3** with `privateTables` exactly matching the reviewed inventory. Legacy version 2 profiles remain valid only when no private tables exist. Current v2 will continue failing closed.
 - Include only the seven named private schemas in the manifest's supported set, portable application catalog, source structure hash and sequence metadata. Any extra schema/table fails. Avoid wildcard `private_*` inclusion.
+- Source-release review found 45 private-schema functions, 5 triggers, and 14 RLS policies in the read-only staging catalog. The manifest's raw fingerprint now also includes these private routines, triggers and policies, in addition to tables, columns, grants and portable catalog projection. Isolated test asserts all seven scopes are present in each of the three catalog sections.
 - Require private tables to have RLS and the expected owner, verify all expected table names, and assert the encrypted database dump contains full row-COPY coverage and RLS enable statements for all private tables. Never publish raw rows, tokens or keys.
 - Preserve AES-256-GCM encrypted archive, SHA-256 sidecar, local private ACL guards, existing TLS trust, no plaintext SQL files and separate key custody. No changes to payment or accounting runtime behavior.
 - Source-only synthetic regression tests exercise valid and rejected profiles, missing/extra tables, wrong ownership, disabled RLS, missing data rows and missing dump RLS entries.
@@ -23,5 +24,7 @@ The 35 table names are pinned in `scripts/backup-private-scope.mjs` from read-on
 3. **Backup completeness:** Auth/control-plane, Plesk/private T19/T20 files/keys and other non-database settings require separate protected inventory. Current Storage metadata is zero, but later object bytes require separate capture.
 4. **Restore:** the previous T11 restore helper is pinned to an older archive and already-used inactive destination. Do not reuse it. New isolated empty target and any project cost require separate approval and recovery/role checks.
 5. **Acceptance:** do not mark T30 recovery PASSED without current encrypted archive, off-site retrieval and key verification, an authorised isolated recovery, full RPO/RTO measurement and no-source-change evidence.
+
+The accepted T19 `scripts/restore-catalog.sql` is byte-identical to staging; T30 uses a separate `scripts/t30-private-restore-catalog.sql` for v3 capture only. The historical restore helper remains locked to an older T11 archive and must not be treated as a v3 recovery workflow.
 
 This PR modifies code and synthetic tests only. It must pass all latest-head CI and independent source review before owner considers the next gate. No production, staging data, backup/profile, worker, service, provider or T31 change was performed.
