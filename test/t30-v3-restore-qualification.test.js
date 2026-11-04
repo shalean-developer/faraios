@@ -52,7 +52,7 @@ test('T30 rejects altered V3 profile, archive envelope, scope and manifest',()=>
   c=>c.archive.sha256='x',
   c=>c.archive.files.pop(),
   c=>c.archive.files.push('unknown.sql'),
-  c=>c.archive.files.reverse(),
+  c=>c.archive.files[0]=c.archive.files[1],
   c=>c.manifest.source='other',
   c=>c.manifest.before.tables.find(t=>t.schema==='private_t20').rls=false,
   c=>c.manifest.before.tables.find(t=>t.schema==='private_t21').owner='other',
