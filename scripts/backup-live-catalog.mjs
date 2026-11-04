@@ -15,9 +15,9 @@ export function freshCatalogSQL(portable){
 export function parseFreshCatalog(stdout){
  let value;
  try{value=JSON.parse(stdout.trim());}catch{throw Error('BACKUP_LIVE_CATALOG_INVALID');}
- const keys=value&&typeof value==='object'&&!Array.isArray(value)?Object.keys(value):[];
- if(keys.length!==1||keys[0]!=='catalog')throw Error('BACKUP_LIVE_CATALOG_INVALID');
- const catalog=value.catalog;
+ // psql -A -t prints the single JSON cell directly, without a column-name
+ // wrapper. The Supabase SQL API's row array is not the psql wire format.
+ const catalog=value;
  if(!catalog||typeof catalog!=='object'||Array.isArray(catalog)||
     Object.keys(catalog).sort().join('|')!=='application|managed'||
     !HEX.test(catalog.application)||!HEX.test(catalog.managed))throw Error('BACKUP_LIVE_CATALOG_INVALID');
