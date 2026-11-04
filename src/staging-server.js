@@ -22,7 +22,7 @@ import {createAuthSessions} from './auth-session.js';
 import {registerOwner} from './t31-owner-registration.js';
 import {onboardingProgress,renderOnboardingProgress} from './t31-onboarding-progress.js';
 import {parseBranding,readBranding,saveBranding,renderBranding} from './t31-branding.js';
-import {parseStaffInvitation,createStaffInvitation,acceptStaffInvitation,escapeInvitation} from './t31-staff-invitations.js';
+import {parseStaffInvitation,createStaffInvitation,acceptStaffInvitation,listBusinessMembers,suspendBusinessMember,escapeInvitation} from './t31-staff-invitations.js';
 import {provisionBusiness} from './t31-provisioning.js';
 import {randomUUID} from 'node:crypto';
 import {hostedRequestAllowed,stagingOrigin} from './hosted-staging.js';
@@ -740,6 +740,27 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
             +'<label>Email</label><input name="email" type="email" maxlength="254" required>'
             +'<label>Role</label><select name="role"><option value="staff">Cleaner</option><option value="manager">Manager</option></select>'
             +'<button type="submit">Create invitation</button></form>'+detail));
+        });
+      }
+      if(url.pathname==='/team-members'&&['GET','POST'].includes(req.method)){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        if(restoreTest&&req.method==='POST')return send(405,'Restore test is read-only','text/plain');
+        if(req.method==='POST'&&(req.headers.origin!==origin||req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded'))return send(403,'Origin or form rejected','text/plain');
+        const businessId=url.searchParams.get('business');
+        let body='';if(req.method==='POST')for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>4096)return send(413,'Form too large','text/plain');}
+        return await auth.withOwner(id,businessId,async(client,business)=>{
+          headerBusiness=business;
+          if(req.method==='POST'){
+            const params=new URLSearchParams(body);
+            try{await suspendBusinessMember(client,business.id,params.get('user'));
+              return redirect('/team-members?business='+encodeURIComponent(business.id));
+            }catch(error){return send(403,'Membership change denied','text/plain');}
+          }
+          const users=await listBusinessMembers(client,business.id);
+          const rows=users.map(user=>'<li><code>'+escapeInvitation(user.user_id)+'</code> · '+escapeInvitation(user.role)+' · '+escapeInvitation(user.status)
+            +(user.role!=='owner'&&user.status==='active'?'<form method="post" action="/team-members?business='+encodeURIComponent(business.id)+'"><input type="hidden" name="user" value="'+escapeInvitation(user.user_id)+'"><button type="submit">Suspend</button></form>':'')+'</li>').join('');
+          return send(200,html('Team access','<h1>Team access · '+escapeInvitation(business.name)+'</h1><p>Only business owners can manage staff membership.</p>'
+            +'<a href="/team-invite?business='+encodeURIComponent(business.id)+'">Invite staff</a><ul>'+rows+'</ul>'));
         });
       }
       if(url.pathname==='/accept-invite'&&['GET','POST'].includes(req.method)){
