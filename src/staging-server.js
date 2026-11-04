@@ -21,6 +21,8 @@ import {readFile} from 'node:fs/promises';
 import {createAuthSessions} from './auth-session.js';
 import {registerOwner} from './t31-owner-registration.js';
 import {onboardingProgress,renderOnboardingProgress} from './t31-onboarding-progress.js';
+import {parseBranding,readBranding,saveBranding,renderBranding} from './t31-branding.js';
+import {parseStaffInvitation,createStaffInvitation,acceptStaffInvitation,escapeInvitation} from './t31-staff-invitations.js';
 import {provisionBusiness} from './t31-provisioning.js';
 import {randomUUID} from 'node:crypto';
 import {hostedRequestAllowed,stagingOrigin} from './hosted-staging.js';
@@ -702,6 +704,57 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
           }
           return send(200,html('Catalogue',renderCatalogue(business,items,canManage,editing,url.searchParams.get('deleted')==='1'?'Item deleted.':url.searchParams.get('saved')==='1'?'Catalogue saved.':'',false,url.searchParams.get('view'),{q:url.searchParams.get('q'),status:url.searchParams.get('status'),service:url.searchParams.get('service')})));
         });
+      }
+      if(url.pathname==='/branding'&&['GET','POST'].includes(req.method)){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        if(restoreTest&&req.method==='POST')return send(405,'Restore test is read-only','text/plain');
+        if(req.method==='POST'&&(req.headers.origin!==origin||req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded'))return send(403,'Origin or form rejected','text/plain');
+        const businessId=url.searchParams.get('business');
+        let body='';if(req.method==='POST')for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>4096)return send(413,'Form too large','text/plain');}
+        return await auth.withOwner(id,businessId,async(client,business)=>{
+          headerBusiness=business;
+          if(req.method==='GET')return send(200,html('Branding',renderBranding(business,await readBranding(client,business.id))));
+          const form=new URLSearchParams(body);
+          try{const brand=parseBranding(form);await saveBranding(client,business.id,brand);
+            return redirect('/branding?business='+encodeURIComponent(business.id)+'&saved=1');
+          }catch(error){return send(422,html('Branding',renderBranding(business,Object.fromEntries(form),error.message)));}
+        });
+      }
+      if(url.pathname==='/team-invite'&&['GET','POST'].includes(req.method)){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        if(restoreTest&&req.method==='POST')return send(405,'Restore test is read-only','text/plain');
+        if(req.method==='POST'&&(req.headers.origin!==origin||req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded'))return send(403,'Origin or form rejected','text/plain');
+        const businessId=url.searchParams.get('business');
+        let body='';if(req.method==='POST')for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>4096)return send(413,'Form too large','text/plain');}
+        return await auth.withOwner(id,businessId,async(client,business)=>{
+          headerBusiness=business;
+          const form=new URLSearchParams(body);
+          let detail='',status=200;
+          if(req.method==='POST')try{
+            const token=await createStaffInvitation(client,business.id,parseStaffInvitation(form));
+            detail='<p role="status">Invite created. Share this code privately with the intended recipient. No email was sent.</p><code>'+escapeInvitation(token)+'</code>';
+          }catch(error){status=422;detail='<p role="alert">'+escapeInvitation(error.message)+'</p>';}
+          return send(status,html('Invite staff','<h1>Invite staff · '+escapeInvitation(business.name)+'</h1>'
+            +'<p>Only an owner may invite a manager or cleaner. No outbound email is sent.</p>'
+            +'<form method="post" action="/team-invite?business='+encodeURIComponent(business.id)+'">'
+            +'<label>Email</label><input name="email" type="email" maxlength="254" required>'
+            +'<label>Role</label><select name="role"><option value="staff">Cleaner</option><option value="manager">Manager</option></select>'
+            +'<button type="submit">Create invitation</button></form>'+detail));
+        });
+      }
+      if(url.pathname==='/accept-invite'&&['GET','POST'].includes(req.method)){
+        if(!await readIdentity(id)){clear();return redirect('/login');}
+        if(restoreTest&&req.method==='POST')return send(405,'Restore test is read-only','text/plain');
+        if(req.method==='POST'&&(req.headers.origin!==origin||req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded'))return send(403,'Origin or form rejected','text/plain');
+        let body='';if(req.method==='POST')for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>4096)return send(413,'Form too large','text/plain');}
+        let message='',status=200;
+        if(req.method==='POST')try{
+          const businessId=await auth.withBusinessProvisioning(id,client=>acceptStaffInvitation(client,new URLSearchParams(body).get('token')));
+          return redirect('/dashboard?business='+encodeURIComponent(businessId));
+        }catch(error){message=error.message;status=422;}
+        return send(status,html('Accept team invitation','<h1>Accept invitation</h1><p>Use the code received from your business owner. Your signed-in email must be verified and match the invitation.</p>'
+          +(message?'<p role="alert">'+escapeInvitation(message)+'</p>':'')
+          +'<form method="post" action="/accept-invite"><label>Invitation code</label><input name="token" maxlength="36" required><button type="submit">Join business</button></form>'));
       }
       if(url.pathname==='/onboarding'){
         if(req.method!=='GET')return send(405,'Read-only onboarding overview','text/plain');
