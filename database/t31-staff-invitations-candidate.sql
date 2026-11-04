@@ -4,6 +4,7 @@ create role t31_invite_worker nologin noinherit;
 grant usage on schema public, auth, audit, private_t31 to t31_invite_worker;
 grant select on public.businesses,public.business_memberships to t31_invite_worker;
 grant insert on public.business_memberships,audit.events to t31_invite_worker;
+grant update(status) on public.business_memberships to t31_invite_worker;
 grant select(id,email,email_confirmed_at) on auth.users to t31_invite_worker;
 grant execute on function auth.uid(),auth.jwt() to t31_invite_worker;
 create table private_t31.invitations(
@@ -27,8 +28,11 @@ create policy t31_invite_worker_business_read on public.businesses for select to
 create policy t31_invite_worker_membership_read on public.business_memberships for select to t31_invite_worker using(true);
 create policy t31_invite_worker_membership_insert on public.business_memberships for insert to t31_invite_worker
  with check(user_id=auth.uid() and role in ('staff','manager') and status='active');
+create policy t31_invite_worker_membership_suspend on public.business_memberships for update to t31_invite_worker
+ using(role in ('manager','staff') and status='active')
+ with check(role in ('manager','staff') and status='suspended');
 create policy t31_invite_worker_audit on audit.events for insert to t31_invite_worker
- with check(entity_table='business_memberships' and operation='INSERT' and actor_user_id=auth.uid());
+ with check(entity_table='business_memberships' and operation in ('INSERT','UPDATE') and actor_user_id=auth.uid());
 create table private_t31.invitation_audit (
  id uuid primary key default gen_random_uuid(), business_id uuid not null,
  actor_user_id uuid not null, invitation_id uuid not null,
@@ -88,13 +92,44 @@ begin
  return i.business_id;
 end $$;
 
+create function private_t31.staff_members(p_business uuid) returns jsonb
+language plpgsql stable security definer set search_path='' as $
+declare actor uuid;
+begin
+ actor:=auth.uid();
+ if actor is null or coalesce(auth.jwt()->>'is_anonymous','false')='true' or not exists(
+ select 1 from public.business_memberships m join public.businesses b on b.id=m.business_id
+ where m.business_id=p_business and m.user_id=actor and m.role='owner' and m.status='active' and b.status='active')
+ then raise exception 'Owner access required' using errcode='42501';end if;
+ return coalesce((select jsonb_agg(jsonb_build_object('user_id',m.user_id,'role',m.role,'status',m.status) order by m.user_id)
+ from public.business_memberships m where m.business_id=p_business),'[]'::jsonb);
+end $;
+
+create function private_t31.suspend_member(p_business uuid,p_target uuid) returns boolean
+language plpgsql security definer set search_path='' as $
+declare actor uuid;
+begin
+ actor:=auth.uid();
+ if actor is null or coalesce(auth.jwt()->>'is_anonymous','false')='true' or not exists(
+ select 1 from public.business_memberships m join public.businesses b on b.id=m.business_id
+ where m.business_id=p_business and m.user_id=actor and m.role='owner' and m.status='active' and b.status='active')
+ then raise exception 'Owner access required' using errcode='42501';end if;
+ if p_target=actor then raise exception 'Cannot suspend owner' using errcode='42501';end if;
+ update public.business_memberships set status='suspended'
+ where business_id=p_business and user_id=p_target and role in ('staff','manager') and status='active';
+ if not found then raise exception 'Active staff membership unavailable' using errcode='42501';end if;
+ return true;
+end $;
+
 grant create on schema private_t31 to t31_invite_worker;
 alter function private_t31.create_invitation(uuid,text,text) owner to t31_invite_worker;
 alter function private_t31.accept_invitation(uuid) owner to t31_invite_worker;
+alter function private_t31.staff_members(uuid) owner to t31_invite_worker;
+alter function private_t31.suspend_member(uuid,uuid) owner to t31_invite_worker;
 revoke create on schema private_t31 from t31_invite_worker;
-revoke all on function private_t31.create_invitation(uuid,text,text),private_t31.accept_invitation(uuid) from public,anon,authenticated;
+revoke all on function private_t31.create_invitation(uuid,text,text),private_t31.accept_invitation(uuid),private_t31.staff_members(uuid),private_t31.suspend_member(uuid,uuid) from public,anon,authenticated;
 grant usage on schema private_t31 to authenticated;
-grant execute on function private_t31.create_invitation(uuid,text,text),private_t31.accept_invitation(uuid) to authenticated;
+grant execute on function private_t31.create_invitation(uuid,text,text),private_t31.accept_invitation(uuid),private_t31.staff_members(uuid),private_t31.suspend_member(uuid,uuid) to authenticated;
 create function public.t31_invite_staff(p_business uuid,p_email text,p_role text)
  returns uuid language sql security invoker set search_path=''
  as $$ select private_t31.create_invitation(p_business,p_email,p_role) $$;
@@ -103,4 +138,12 @@ create function public.t31_accept_invite(p_token uuid)
  as $$ select private_t31.accept_invitation(p_token) $$;
 revoke all on function public.t31_invite_staff(uuid,text,text),public.t31_accept_invite(uuid) from public,anon,authenticated;
 grant execute on function public.t31_invite_staff(uuid,text,text),public.t31_accept_invite(uuid) to authenticated;
+create function public.t31_staff_members(p_business uuid)
+ returns jsonb language sql security invoker set search_path=''
+ as $ select private_t31.staff_members(p_business) $;
+create function public.t31_suspend_member(p_business uuid,p_user uuid)
+ returns boolean language sql security invoker set search_path=''
+ as $ select private_t31.suspend_member(p_business,p_user) $;
+revoke all on function public.t31_staff_members(uuid),public.t31_suspend_member(uuid,uuid) from public,anon,authenticated;
+grant execute on function public.t31_staff_members(uuid),public.t31_suspend_member(uuid,uuid) to authenticated;
 commit;
