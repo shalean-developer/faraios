@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import pg from 'pg';
 import {PRIVATE_BACKUP_TABLES,PRIVATE_BACKUP_SCHEMAS} from '../scripts/backup-private-scope.mjs';
 import {v3RowVerificationSQL} from '../scripts/t30-v3-restore-qualification.mjs';
+import {v3SequenceCompletionPlan} from '../scripts/t30-v3-replay-gates.mjs';
 import {SOURCE} from '../scripts/backup-staging.mjs';
 
 const sha=s=>createHash('sha256').update(s).digest('hex');
@@ -77,5 +78,39 @@ test('T30 native 17: generated private-row checks pass empty synthetic tables, r
   }
   for(const ns of created.reverse())await client.query('DROP SCHEMA IF EXISTS '+quote(ns)+' CASCADE').catch(()=>{});
   await client.end();
+ }
+});
+
+test('T30 native PostgreSQL 17 guarded sequence completion detects altered value',async t=>{
+ if(process.env.T30_SYNTHETIC_DATABASE!=='1'){
+  t.skip('disposable disconnected PostgreSQL only');return;
+ }
+ assert.equal(process.env.PGHOST,'127.0.0.1');
+ assert.equal(process.env.PGPORT,'5432');
+ assert.equal(process.env.PGUSER,'postgres');
+ const db=new pg.Client({host:'127.0.0.1',port:5432,user:'postgres',
+  database:'postgres',password:process.env.PGPASSWORD,ssl:false});
+ await db.connect();
+ const seq='t30v3_qa_sequence';
+ try{
+  const preexisting=await db.query('SELECT to_regclass($1) AS relation',['public.'+seq]);
+  assert.equal(preexisting.rows[0].relation,null);
+  await db.query('CREATE SEQUENCE public.'+quote(seq));
+  const scopedManifest={...manifest,sequence_state:[{schema:'public',sequence:seq,last_value:'2'}]};
+  const sequenceCommand="SELECT pg_catalog.setval('"+'"public"."'+seq+'"'+"', 2, true);";
+  const plan=v3SequenceCompletionPlan(scope,scopedManifest,[
+   {name:'data.sql',content:sequenceCommand},
+   {name:'migration-data.sql',content:''}
+  ]);
+  assert.equal(plan.executionAuthorised,false);
+  assert.equal(plan.mustReverifyCommittedRestore,true);
+  await db.query(plan.completionSQL);
+  await db.query(plan.verificationSQL);
+  await db.query('SELECT pg_catalog.setval($1,3,true)',['public.'+seq]);
+  await assert.rejects(db.query(plan.verificationSQL),/T30_V3_SEQUENCE_STATE_MISMATCH/);
+  t.diagnostic('T30_V3_SEQUENCE_GUARD_NATIVE_PASS');
+ } finally {
+  await db.query('DROP SEQUENCE IF EXISTS public.'+quote(seq)).catch(()=>{});
+  await db.end();
  }
 });
