@@ -102,7 +102,7 @@ test('T30 native PostgreSQL 17 guarded sequence completion detects altered value
   assert.equal(preexisting.rows[0].relation,null);
   await db.query('CREATE SEQUENCE public.'+quote(seq));
   const scopedManifest={...manifest,sequence_state:[{schema:'public',sequence:seq,last_value:'2'}]};
-  const sequenceCommand="SELECT pg_catalog.setval('"+'"public"."'+seq+'"'+"', 2, true);";
+  const sequenceCommand="SELECT pg_catalog.setval('\\\"public\\\".\\\""+seq+"\\\"', 2, true);";
   const plan=v3SequenceCompletionPlan(scope,scopedManifest,[
    {name:'data.sql',content:sequenceCommand},
    {name:'migration-data.sql',content:''}
