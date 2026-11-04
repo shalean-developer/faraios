@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import pg from 'pg';
 import {spawnSync} from 'node:child_process';
 import {openSnapshotKeeper,bindManifestSnapshot} from '../scripts/backup-snapshot.mjs';
+import {parseFreshCatalog,assertFreshCatalog} from '../scripts/backup-live-catalog.mjs';
 
 test('T30 synchronized snapshot isolates two readers and pg_dump from later commits',async t=>{
  if(process.env.T30_SYNTHETIC_DATABASE!=='1'){
@@ -47,5 +48,29 @@ test('T30 synchronized snapshot isolates two readers and pg_dump from later comm
   if(keeper)await keeper.close();
   await writer.query('DROP TABLE IF EXISTS public.t30_snapshot_ci_fixture').catch(()=>{});
   await writer.end();
+ }
+});
+
+test('T30 read-committed role change is detectable outside an exported snapshot',async t=>{
+ if(process.env.T30_SYNTHETIC_DATABASE!=='1'){t.skip('native disposable PG only');return;}
+ const db=new pg.Client({host:'127.0.0.1',port:5432,user:'postgres',database:'postgres',password:process.env.PGPASSWORD,ssl:false});
+ await db.connect();
+ const role='t30_snapshot_ci_login_role';
+ const fingerprint=async()=>{
+  const q=`SELECT jsonb_build_object('application',
+   encode(sha256(convert_to((SELECT rolcanlogin::text FROM pg_roles WHERE rolname='${role}'),'UTF8')),'hex'),
+   'managed',repeat('a',64)) AS catalog`;
+  return parseFreshCatalog(JSON.stringify((await db.query(q)).rows[0]));
+ };
+ try{
+  await db.query('CREATE ROLE '+role+' NOLOGIN');
+  const before=await fingerprint();
+  await db.query('ALTER ROLE '+role+' LOGIN');
+  const after=await fingerprint();
+  assert.notEqual(before.application,after.application);
+  assert.throws(()=>assertFreshCatalog(after,before),/BACKUP_LIVE_CATALOG_CHANGED/);
+ }finally{
+  await db.query('DROP ROLE IF EXISTS '+role).catch(()=>{});
+  await db.end();
  }
 });
