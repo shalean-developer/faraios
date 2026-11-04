@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {PRIVATE_BACKUP_TABLES} from '../scripts/backup-private-scope.mjs';
 import {DUMPS,SOURCE,CLI,CLIENT_IMAGE,sealBackup,sha256} from '../scripts/backup-staging.mjs';
 import {qualifySealedV3Offline} from '../scripts/t30-v3-restore-qualification.mjs';
+import {prepareSealedV3ReplayReview} from '../scripts/t30-v3-guarded-replay-review.mjs';
 
 const HASH='a'.repeat(64);
 const publicAudit=[...Array.from({length:27},(_,i)=>'public.qa_'+String(i).padStart(2,'0')),
@@ -42,6 +43,7 @@ function build(mutate=()=>{}){
   if(name==='data.sql')part=m.tables.filter(t=>t.schema!=='supabase_migrations')
    .map(copy).join('');
   if(name==='migration-data.sql')part=m.tables.filter(t=>t.schema==='supabase_migrations').map(copy).join('');
+  if(name==='roles.sql')part='GRANT SET ON PARAMETER "log_min_messages" TO "supabase_realtime_admin";\n';
   const content=start+'\n'+part+end+'\n';
   return {name,content,sha256:sha256(content)};
  });
@@ -86,4 +88,41 @@ test('T30 refuses altered ciphertext, key, pins, original projects and import en
 test('T30 rejects authenticated archive whose source manifest disagrees with V3 profile',()=>{
  const x=build(m=>{m.after.tables.find(t=>t.schema==='private_t20').rows=1;});
  assert.equal(outcome(()=>qualifySealedV3Offline(x)),'T30_V3_ARCHIVE_AUTHENTICATION_FAILED');
+});
+
+const replayEvidence=()=>({
+ source:'independent-destination-preflight',projectRef:'abcdefghijklmnopqrst',
+ database:'postgres',role:'postgres',databaseMajor:17,applicationObjects:0,
+ managedDataRows:0,largeObjects:0,vaultSecrets:0,foreignServers:0,
+ unexpectedSchemas:[],applicationCatalogSha256:'d'.repeat(64),
+ managedCatalogSha256:'c'.repeat(64),outboundDispatchDisabled:true,
+ snapshotIsolationReviewed:true
+});
+test('T30 sealed V3 plan is still a disabled in-memory review, with atomic replay guards',()=>{
+ const x=build();
+ const plan=prepareSealedV3ReplayReview({...x,
+  destinationEvidence:replayEvidence(),
+  emptyApplicationCatalogSha256:'d'.repeat(64),
+  managedCatalogSha256:'c'.repeat(64)});
+ assert.equal(plan.executionAuthorised,false);
+ assert.equal(plan.restore,'NOT_RUN');
+ assert.equal(plan.requiresSingleTransaction,true);
+ assert.equal(plan.requiresSeparateSequenceApproval,true);
+ assert.equal(plan.sequenceCount,0);
+ assert.ok(plan.transactionalSQL.startsWith('SAVEPOINT faraios_t30_v3_replay;'));
+ assert.ok(plan.transactionalSQL.includes('T30_V3_DESTINATION_NOT_EMPTY'));
+ assert.ok(plan.transactionalSQL.includes('T30_V3_EMPTY_CATALOG_MISMATCH'));
+ assert.ok(plan.transactionalSQL.includes('T30_V3_RESTORE_CATALOG_MISMATCH'));
+ assert.ok(plan.transactionalSQL.includes('T30_V3_ROW_MISMATCH'));
+ assert.ok(plan.transactionalSQL.includes('CREATE EXTENSION IF NOT EXISTS btree_gist'));
+ assert.ok(!plan.transactionalSQL.includes('pg_catalog.setval('));
+ assert.ok(!plan.transactionalSQL.includes('COMMIT;'));
+});
+test('T30 sealed V3 plan refuses unreviewed destination and enabled imports',()=>{
+ const x=build(),base={...x,destinationEvidence:replayEvidence(),
+  emptyApplicationCatalogSha256:'d'.repeat(64),managedCatalogSha256:'c'.repeat(64)};
+ const bad=structuredClone(base.destinationEvidence);bad.outboundDispatchDisabled=false;
+ assert.notEqual(outcome(()=>prepareSealedV3ReplayReview({...base,destinationEvidence:bad})),null);
+ assert.notEqual(outcome(()=>prepareSealedV3ReplayReview({...base,
+  pins:{...x.pins,importEnabled:true}})),null);
 });
