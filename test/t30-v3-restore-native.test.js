@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import pg from 'pg';
 import {PRIVATE_BACKUP_TABLES,PRIVATE_BACKUP_SCHEMAS} from '../scripts/backup-private-scope.mjs';
 import {v3RowVerificationSQL} from '../scripts/t30-v3-restore-qualification.mjs';
-import {v3SequenceCompletionPlan} from '../scripts/t30-v3-replay-gates.mjs';
+import {v3SequenceCompletionPlan,v3CatalogVerificationSQL} from '../scripts/t30-v3-replay-gates.mjs';
 import {SOURCE} from '../scripts/backup-staging.mjs';
 
 const sha=s=>createHash('sha256').update(s).digest('hex');
@@ -59,6 +59,11 @@ test('T30 native 17: generated private-row checks pass empty synthetic tables, r
    if(ns==='public')createdPublic.push(table);
   }
   const check=v3RowVerificationSQL(scope,manifest);
+  // Use the actual V3 portable role/ACL/security catalog projection.
+  // All capture hashes in this disposable fixture are deliberately synthetic,
+  // so SQL must run and refuse the mismatched catalog.
+  const catalog=v3CatalogVerificationSQL(scope,manifest);
+  await assert.rejects(client.query(catalog),/T30_V3_RESTORE_CATALOG_MISMATCH/);
   await client.query('BEGIN READ ONLY');
   await client.query(check);
   await client.query('ROLLBACK');
