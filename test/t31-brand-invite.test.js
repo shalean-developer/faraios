@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseBranding,readBranding,saveBranding,renderBranding} from '../src/t31-branding.js';
-import {parseStaffInvitation,createStaffInvitation,acceptStaffInvitation} from '../src/t31-staff-invitations.js';
+import {parseStaffInvitation,createStaffInvitation,acceptStaffInvitation,listBusinessMembers,suspendBusinessMember} from '../src/t31-staff-invitations.js';
 const bid='10000000-0000-4000-8000-000000000031';
 const token='20000000-0000-4000-8000-000000000031';
 test('T31 branding requires safe colour and HTTPS asset, escapes untrusted display',()=>{
@@ -36,4 +36,17 @@ test('T31 invite/accept sends only audited RPC arguments; errors redact details'
  const bad={rpc:async()=>({error:{message:'secret auth schema detail'}})};
  await assert.rejects(createStaffInvitation(bad,bid,{email:'staff@example.invalid',role:'staff'}),e=>!e.message.includes('secret'));
  await assert.rejects(acceptStaffInvitation(bad,token),e=>!e.message.includes('secret'));
+});
+
+test('T31 membership management rejects malformed IDs and verifies typed owner-scoped results',async()=>{
+ const user='00000000-0000-4000-8000-000000000031';
+ const calls=[];
+ const client={rpc:async(name,params)=>{calls.push([name,params]);return name==='t31_staff_members'
+   ?{data:[{user_id:user,role:'staff',status:'active'}]}:{data:true};}};
+ assert.deepEqual(await listBusinessMembers(client,bid),[{user_id:user,role:'staff',status:'active'}]);
+ await suspendBusinessMember(client,bid,user);
+ assert.deepEqual(calls,[['t31_staff_members',{p_business:bid}],['t31_suspend_member',{p_business:bid,p_user:user}]]);
+ await assert.rejects(suspendBusinessMember(client,bid,'forged'),/Invalid membership/);
+ await assert.rejects(listBusinessMembers({rpc:async()=>({data:[{user_id:user,role:'platform_admin',status:'active'}]})},bid),/Team access unavailable/);
+ await assert.rejects(suspendBusinessMember({rpc:async()=>({error:{message:'private details'}})},bid,user),e=>!e.message.includes('private'));
 });
