@@ -16,6 +16,9 @@ grant execute on function auth.uid(), auth.jwt() to t31_bootstrap;
 grant create on schema private to t31_bootstrap;
 grant select,insert on public.businesses, public.business_memberships to t31_bootstrap;
 grant insert on audit.events to t31_bootstrap;
+-- Identity audit trigger runs as invoker; RLS must allow its narrowly scoped writes.
+create policy t31_identity_audit on audit.events for insert to t31_bootstrap
+ with check(entity_table in ('businesses','business_memberships') and operation='INSERT' and actor_user_id=auth.uid());
 create table private.t31_provision_requests (
   actor_user_id uuid not null references auth.users(id),
   request_id uuid not null,
