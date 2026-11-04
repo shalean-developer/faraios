@@ -103,6 +103,15 @@ test('T31 native: atomic bootstrap, concurrency, authorization and tenant RLS',{
  await assert.rejects(invite(second,firstId,'first@example.invalid'),e=>e.code==='42501');
  await assert.rejects(accept(second,'30000000-0000-4000-8000-000000000399'),e=>e.code==='42501');
  await assert.rejects(as(second,db=>db.query('select * from private_t31.invitations')),e=>e.code==='42501');
+ const roster=await as(first,db=>db.query('select public.t31_staff_members($1) members',[firstId]));
+ assert.equal(roster.rows[0].members.some(m=>m.user_id===second&&m.role==='staff'&&m.status==='active'),true);
+ await assert.rejects(as(second,db=>db.query('select public.t31_staff_members($1)',[firstId])),e=>e.code==='42501');
+ await assert.rejects(as(second,db=>db.query('select public.t31_suspend_member($1,$2)',[firstId,first])),e=>e.code==='42501');
+ await assert.rejects(as(first,db=>db.query('select public.t31_suspend_member($1,$2)',[firstId,first])),e=>e.code==='42501');
+ assert.equal((await as(first,db=>db.query('select public.t31_suspend_member($1,$2) ok',[firstId,second]))).rows[0].ok,true);
+ assert.equal((await admin.query('select status from public.business_memberships where business_id=$1 and user_id=$2',[firstId,second])).rows[0].status,'suspended');
+ assert.equal((await admin.query("select count(*)::integer n from audit.events where entity_table='business_memberships' and operation='UPDATE' and business_id=$1",[firstId])).rows[0].n,1);
+ await assert.rejects(as(first,db=>db.query('select public.t31_suspend_member($1,$2)',[secondId,second])),e=>e.code==='42501');
  const tokenExpired=await invite(first,firstId,'second@example.invalid','manager');
  await admin.query('update private_t31.invitations set expires_at=now()-interval \'1 second\' where token_hash=md5($1::text)',[tokenExpired]);
  await assert.rejects(accept(second,tokenExpired),e=>e.code==='42501');
