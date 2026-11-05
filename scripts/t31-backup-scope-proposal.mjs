@@ -12,6 +12,20 @@ export const T31_NEW_PRIVATE_TABLES=Object.freeze([
  'private_t31.t31_provision_requests'
 ]);
 export const T31_NEW_ROLES=Object.freeze(['t31_bootstrap','t31_invite_worker']);
+export const T31_REVIEWED_FUNCTIONS=Object.freeze({
+ 'private_t31.t31_provision_business(text,uuid)':Object.freeze({owner:'t31_bootstrap',securityDefiner:true}),
+ 'private_t31.create_invitation(uuid,text,text)':Object.freeze({owner:'t31_invite_worker',securityDefiner:true}),
+ 'private_t31.accept_invitation(uuid)':Object.freeze({owner:'t31_invite_worker',securityDefiner:true}),
+ 'private_t31.staff_members(uuid)':Object.freeze({owner:'t31_invite_worker',securityDefiner:true}),
+ 'private_t31.suspend_member(uuid,uuid)':Object.freeze({owner:'t31_invite_worker',securityDefiner:true}),
+ 'private_t31.capture_brand()':Object.freeze({owner:'postgres',securityDefiner:true}),
+ 'public.t31_provision_business(text,uuid)':Object.freeze({owner:'postgres',securityDefiner:false}),
+ 'public.t31_invite_staff(uuid,text,text)':Object.freeze({owner:'postgres',securityDefiner:false}),
+ 'public.t31_accept_invite(uuid)':Object.freeze({owner:'postgres',securityDefiner:false}),
+ 'public.t31_staff_members(uuid)':Object.freeze({owner:'postgres',securityDefiner:false}),
+ 'public.t31_suspend_member(uuid,uuid)':Object.freeze({owner:'postgres',securityDefiner:false})
+});
+
 export const T31_BASELINE_BUSINESS_IDS=Object.freeze([
  '0cc3f518-d64e-40c2-8817-bc14d1ef1420',
  '612be091-b1d7-4911-9c3b-143446a9fe27'
@@ -40,7 +54,7 @@ export function proposePostT31Scope(current,source){
 }
 // Strong rejection: requires reviewed post-schema structural fingerprints and
 // explicit owner-supplied *exact* business IDs. No arbitrary new-tenant wildcard.
-export function validatePostT31Inventory(proposal,manifest,{businessIds,fingerprints}={}){
+export function validatePostT31Inventory(proposal,manifest,{businessIds,fingerprints,roles,functions}={}){
  if(proposal?.version!==4||proposal.activation!=='DISABLED'||!manifest||
  !Array.isArray(manifest.tables)||!Array.isArray(manifest.business_ids)||
  !Array.isArray(businessIds)||!fingerprints||
@@ -49,6 +63,12 @@ export function validatePostT31Inventory(proposal,manifest,{businessIds,fingerpr
  if(!eq(sorted(businessIds),businessIds)||new Set(businessIds).size!==businessIds.length||
  businessIds.some(v=>!id.test(v))||T31_BASELINE_BUSINESS_IDS.some(v=>!businessIds.includes(v))||
  !eq(manifest.business_ids,businessIds))throw Error('T31_BUSINESS_IDS_CHANGED');
+ if(!Array.isArray(roles)||!eq(sorted(roles.map(r=>r?.name)),T31_NEW_ROLES)||
+ roles.some(r=>r.canlogin!==false||r.bypassrls!==false||r.createrole!==false)||
+ !functions||typeof functions!=='object'||Array.isArray(functions)||
+ !eq(sorted(Object.keys(functions)),sorted(Object.keys(T31_REVIEWED_FUNCTIONS)))||
+ Object.entries(T31_REVIEWED_FUNCTIONS).some(([name,expected])=>
+  !eq(functions[name],expected)))throw Error('T31_BACKUP_ROLE_FUNCTION_CHANGED');
  const expected=sorted([...proposal.tables,...proposal.privateTables]);
  const permitted=new Set(['public','audit','auth','storage','supabase_migrations',...proposal.privateTables.map(v=>v.split('.')[0])]);
  if(manifest.tables.some(t=>!t||!permitted.has(t.schema)||typeof t.table!=='string'))throw Error('T31_UNREVIEWED_BACKUP_SCHEMA');
