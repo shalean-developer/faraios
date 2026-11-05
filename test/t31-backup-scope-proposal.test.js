@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {PRIVATE_BACKUP_TABLES} from '../scripts/backup-private-scope.mjs';
 import {SOURCE} from '../scripts/backup-staging.mjs';
 import {validateScope,matchesCurrentScope} from '../scripts/backup-scope.mjs';
-import {T31_NEW_PUBLIC_TABLES,T31_NEW_PRIVATE_TABLES,T31_NEW_ROLES,T31_BASELINE_BUSINESS_IDS,proposePostT31Scope,validatePostT31Inventory} from '../scripts/t31-backup-scope-proposal.mjs';
+import {T31_NEW_PUBLIC_TABLES,T31_NEW_PRIVATE_TABLES,T31_NEW_ROLES,T31_REVIEWED_FUNCTIONS,T31_BASELINE_BUSINESS_IDS,proposePostT31Scope,validatePostT31Inventory} from '../scripts/t31-backup-scope-proposal.mjs';
 const original={version:3,source:SOURCE,id:'owner-controlled-pre-t31',catalog:'a'.repeat(64),application:'b'.repeat(64),managed:'c'.repeat(64),
  tables:['audit.events','audit.fixture', 'public.business_catalogue','public.business_memberships','public.business_settings','public.businesses'],
  privateTables:[...PRIVATE_BACKUP_TABLES]};
@@ -32,7 +32,7 @@ test('T31 backup scope requires exact owner V3 and never modifies it',()=>{
 });
 test('T31 post-migration manifest refuses partial capture, foreign tenants, roles and RLS drift',()=>{
  const proposal=proposePostT31Scope(original,SOURCE),manifestOk=manifest(proposal);
- const inputs={businessIds:[...T31_BASELINE_BUSINESS_IDS],fingerprints:hash};
+ const inputs={businessIds:[...T31_BASELINE_BUSINESS_IDS],fingerprints:hash,roles:T31_NEW_ROLES.map(name=>({name,canlogin:false,bypassrls:false,createrole:false})),functions:structuredClone(T31_REVIEWED_FUNCTIONS)};
  assert.deepEqual(validatePostT31Inventory(proposal,manifestOk,inputs),{
  review:'POST_T31_INVENTORY_MATCHED',activation:'DISABLED',tables:proposal.tables.length+proposal.privateTables.length,businesses:2
  });
@@ -52,6 +52,10 @@ test('T31 post-migration manifest refuses partial capture, foreign tenants, role
   const m=structuredClone(manifestOk);mutate(m);
   assert.throws(()=>validatePostT31Inventory(proposal,m,inputs));
  }
+ assert.throws(()=>validatePostT31Inventory(proposal,manifestOk,{...inputs,roles:[...inputs.roles].slice(1)}));
+ assert.throws(()=>validatePostT31Inventory(proposal,manifestOk,{...inputs,roles:[{...inputs.roles[0],canlogin:true},inputs.roles[1]]}));
+ assert.throws(()=>validatePostT31Inventory(proposal,manifestOk,{...inputs,functions:{...inputs.functions,['private_t31.accept_invitation(uuid)']:{owner:'postgres',securityDefiner:true}}}));
+ assert.throws(()=>validatePostT31Inventory(proposal,manifestOk,{...inputs,functions:{...inputs.functions,['public.t31_invite_staff(uuid,text,text)']:{owner:'postgres',securityDefiner:true}}}));
  assert.throws(()=>validatePostT31Inventory(proposal,manifestOk,{...inputs,businessIds:[]}));
  assert.throws(()=>validatePostT31Inventory(proposal,manifestOk,{...inputs,fingerprints:{...hash,managed:'0'.repeat(63)}}));
 });
