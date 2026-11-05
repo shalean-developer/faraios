@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import {PRIVATE_BACKUP_TABLES} from '../scripts/backup-private-scope.mjs';
 import {SOURCE} from '../scripts/backup-staging.mjs';
 import {validateScope,matchesCurrentScope} from '../scripts/backup-scope.mjs';
-import {T31_NEW_PUBLIC_TABLES,T31_NEW_PRIVATE_TABLES,T31_NEW_ROLES,T31_REVIEWED_FUNCTIONS,T31_BASELINE_BUSINESS_IDS,proposePostT31Scope,validatePostT31Inventory} from '../scripts/t31-backup-scope-proposal.mjs';
+import {T31_NEW_PUBLIC_TABLES,T31_NEW_PRIVATE_TABLES,T31_NEW_ROLES,T31_NEW_PRIVATE_SEQUENCES,T31_REVIEWED_FUNCTIONS,T31_BASELINE_BUSINESS_IDS,proposePostT31Scope,validatePostT31Inventory} from '../scripts/t31-backup-scope-proposal.mjs';
 const original={version:3,source:SOURCE,id:'owner-controlled-pre-t31',catalog:'a'.repeat(64),application:'b'.repeat(64),managed:'c'.repeat(64),
  tables:['audit.events','audit.fixture', 'public.business_catalogue','public.business_memberships','public.business_settings','public.businesses'],
  privateTables:[...PRIVATE_BACKUP_TABLES]};
 const hash={catalog:'d'.repeat(64),application:'e'.repeat(64),managed:'f'.repeat(64)};
 function manifest(proposal){
  const all=[...proposal.tables,...proposal.privateTables];
- return {database_major:17,business_ids:[...T31_BASELINE_BUSINESS_IDS],unexpected_schemas:[],catalog_sha256:hash.catalog,
+ return {database_major:17,business_ids:[...T31_BASELINE_BUSINESS_IDS],unexpected_schemas:[],sequence_state:[{schema:'auth',sequence:'refresh_tokens_id_seq',last_value:'20'},{schema:'private_t31',sequence:'brand_audit_id_seq',last_value:'2'}],catalog_sha256:hash.catalog,
  restore_catalog:{application:hash.application,managed:hash.managed},
  tables:all.map(name=>{const [schema,table]=name.split('.');return {schema,table,owner:'postgres',rls:true,rows:0,sha256:'1'.repeat(64)};})};
 }
@@ -25,6 +25,7 @@ test('T31 backup scope requires exact owner V3 and never modifies it',()=>{
  assert.deepEqual(plan.privateTables.filter(x=>x.startsWith('private_t31.')),T31_NEW_PRIVATE_TABLES);
  assert.equal(plan.tables.length,v3.tables.length+1);
  assert.equal(plan.privateTables.length,PRIVATE_BACKUP_TABLES.length+4);
+ assert.deepEqual(T31_NEW_PRIVATE_SEQUENCES,['private_t31.brand_audit_id_seq']);
  assert.throws(()=>validateScope(plan,SOURCE),/PRIVATE_PROFILE_INVALID/);
  assert.throws(()=>proposePostT31Scope({...original,version:2},SOURCE));
  assert.throws(()=>proposePostT31Scope({...original,privateTables:[...PRIVATE_BACKUP_TABLES].slice(1)},SOURCE));
@@ -47,7 +48,9 @@ test('T31 post-migration manifest refuses partial capture, foreign tenants, role
   m=>m.tables.push({schema:'private_unknown',table:'sensitive',owner:'postgres',rls:true,rows:0,sha256:'1'.repeat(64)}),
   m=>m.business_ids=['00000000-0000-4000-8000-000000000000',...T31_BASELINE_BUSINESS_IDS],
   m=>m.catalog_sha256='0'.repeat(64),
-  m=>m.unexpected_schemas=['private_other']
+  m=>m.unexpected_schemas=['private_other'],
+  m=>m.sequence_state=m.sequence_state.filter(seq=>seq.schema!=='private_t31'),
+  m=>m.sequence_state.push({schema:'private_t31',sequence:'unexpected_seq',last_value:'9'})
  ]){
   const m=structuredClone(manifestOk);mutate(m);
   assert.throws(()=>validatePostT31Inventory(proposal,m,inputs));
