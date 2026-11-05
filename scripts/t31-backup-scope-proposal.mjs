@@ -50,10 +50,12 @@ export function validatePostT31Inventory(proposal,manifest,{businessIds,fingerpr
  businessIds.some(v=>!id.test(v))||T31_BASELINE_BUSINESS_IDS.some(v=>!businessIds.includes(v))||
  !eq(manifest.business_ids,businessIds))throw Error('T31_BUSINESS_IDS_CHANGED');
  const expected=sorted([...proposal.tables,...proposal.privateTables]);
- const actual=sorted(manifest.tables.filter(t=>['public','audit','private_t19_custody','private_t19_standard','private_t20','private_t21','private_t22','private_t25','private_t26','private_t31'].includes(t.schema))
+ const permitted=new Set(['public','audit','auth','storage','supabase_migrations',...proposal.privateTables.map(v=>v.split('.')[0])]);
+ if(manifest.tables.some(t=>!t||!permitted.has(t.schema)||typeof t.table!=='string'))throw Error('T31_UNREVIEWED_BACKUP_SCHEMA');
+ const actual=sorted(manifest.tables.filter(t=>expected.some(name=>name.startsWith(t.schema+'.')))
  .map(t=>t.schema+'.'+t.table));
  if(!eq(expected,actual)||new Set(actual).size!==actual.length||
- manifest.unexpected_schemas?.length||manifest.database_major!==17)
+ !Array.isArray(manifest.unexpected_schemas)||manifest.unexpected_schemas.length!==0||manifest.database_major!==17)
   throw Error('T31_BACKUP_TABLES_CHANGED');
  if(manifest.tables.filter(t=>expected.includes(t.schema+'.'+t.table))
  .some(t=>t.rls!==true||t.owner!=='postgres'||!Number.isSafeInteger(t.rows)||t.rows<0||!sha(t.sha256)))
