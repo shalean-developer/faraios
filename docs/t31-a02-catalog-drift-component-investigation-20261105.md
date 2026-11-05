@@ -34,6 +34,18 @@ The current component-only query was derived from the exact committed `scripts/t
 
 The `custom_types`, `enums` and `views` components are JSON null and do not contain rows. This table is a **present-day baseline only**; without a Nov 4 component manifest no historical per-component equality/inequality is provable. In particular, the difference in top-level hashes does not prove that every component above has changed.
 
+## Current-state least-privilege review (read-only)
+
+This is a **partial present-state security verification**, not a certification of the historical migration contents, full access matrix or all API pathways.
+
+- All `public` 27, `audit` 3 and exact 35 private T19/T20/T21/T22/T25/T26 application tables have RLS enabled, and each currently has the expected `postgres` table owner. Verified by `pg_class`/namespace owner inventory.
+- No `PUBLIC` table grants were returned on the seven protected schemas by `aclexplode(coalesce(relacl,acldefault('r',relowner)))` in the checked table scope.
+- No direct `SELECT` or `INSERT` privileges were returned for `anon` or `authenticated` on those protected tables, in the checked table scope.
+- The private schema function count by schema is 11, 11, 8, 2, 1, 6, 4; 39 of the 43 functions are SECURITY DEFINER. All 39 have an explicit function-level `search_path` in `proconfig`. This check does not establish that each function body is safe or that every grant is correct.
+- The `anon`, `authenticated`, `t19_hosted_custody`, `t19_runtime_owner`, `t19_standard_backend` and `t20_payment_verifier` roles show `rolsuper=false`, `rolbypassrls=false`, `rolcanlogin=false` and `rolcreaterole=false`. This is limited to the named roles; other grant paths and runtime transport require separate review.
+
+**Evidence interpretation:** No tested emergency privilege escalation or missing RLS was identified in these queries, but the original 4 November object-level baseline remains unavailable and the exact cause of application/catalog fingerprint drift is still unresolved. Do not infer that the old V3 profile can be activated safely.
+
 ## Required safe closeout
 
 1. Obtain a **verifiable Nov 4 V3 component/object-level structural snapshot** or explicitly record its absence. Do not infer old component values from SHA-256 digests: cryptographic hashes are one-way.
