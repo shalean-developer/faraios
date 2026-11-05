@@ -30,7 +30,6 @@ test('T31-A02 creates only a different, inactive, validated V3 proposal, preserv
  assert.ok(validateScope(answer.candidate,SOURCE));
 });
 test('T31-A02 refuses unreviewed hashes, changed baseline, missing protected tables or absent provenance',()=>{
- const base=old();
  const acceptable={fingerprints:{...CURRENT_REVIEWED_FINGERPRINTS},reviewedSourceSha:head};
  for(const mutate of [
   p=>{p.version=2;},
@@ -43,7 +42,7 @@ test('T31-A02 refuses unreviewed hashes, changed baseline, missing protected tab
   p=>{p.tables.push('public.unknown');},
   p=>{p.id='t31-a02-v3-rebaseline-review-20261105';}
  ]){
-  const p=base;mutate(p);
+  const p=old();mutate(p);
   assert.throws(()=>proposeT31A02V3Rebaseline(p,acceptable));
  }
  for(const opts of [
