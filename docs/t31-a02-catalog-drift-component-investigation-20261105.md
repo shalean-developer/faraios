@@ -46,6 +46,12 @@ This is a **partial present-state security verification**, not a certification o
 
 **Evidence interpretation:** No tested emergency privilege escalation or missing RLS was identified in these queries, but the original 4 November object-level baseline remains unavailable and the exact cause of application/catalog fingerprint drift is still unresolved. Do not infer that the old V3 profile can be activated safely.
 
+## Follow-up preservation and limited log check
+
+- Repeated read-only row fingerprints (same selected-fields algorithm as the previous staging review) match the earlier 5 Nov checkpoint: businesses 2 / `c4e263bfc29b5c36d7bc23819986d688`; memberships 5 / `c23c10e0c49dd5ab414005b52baba0ac`; catalogue 53 / `639535f3f8677731c4bd24e57bbe2c2e`; audit.events 353 / `562ddc22e3d722155ab4db9eeeb8ac20`. These are **partial field-level checks**, not complete backup, guarantees of database immutability, or proof of no other writes.
+- The Supabase PostgreSQL log stream for **4 Nov 04:45–5 Nov 04:45 UTC** contained 577 postgres events; a read-only **text-pattern** aggregate found zero matching `CREATE FUNCTION`, `DROP FUNCTION`, `ALTER FUNCTION`, `CREATE ROLE`, `ALTER ROLE` or `GRANT` strings in those log attributes. **Do not infer no DDL occurred:** PostgreSQL may not log successful statements, or the relevant event may be absent/expired. No log content or private SQL statements were exported.
+- The discrepancy between T30's documented 45 private functions and today's 43 therefore remains **unexplained**, not disproved. Hash comparison cannot determine which component changed without a saved older component manifest or an independently accepted current-state risk rebaseline.
+
 ## Required safe closeout
 
 1. Obtain a **verifiable Nov 4 V3 component/object-level structural snapshot** or explicitly record its absence. Do not infer old component values from SHA-256 digests: cryptographic hashes are one-way.
