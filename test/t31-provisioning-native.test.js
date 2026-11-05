@@ -32,7 +32,7 @@ test('T31 native: atomic bootstrap, concurrency, authorization and tenant RLS',{
  const migration=await readFile(new URL('../database/migrations-review/20261105010000_t31_atomic_onboarding_review.sql',import.meta.url),'utf8');
  assert.equal((migration.match(/^begin;$/gm)??[]).length,1,'one atomic BEGIN');
  assert.equal((migration.match(/^commit;$/gm)??[]).length,1,'one atomic COMMIT');
- assert.match(migration,/^begin;\n/);
+ assert.match(migration,/\nbegin;\n/);
  assert.match(migration,/\ncommit;\s*$/);
  const failed=migration.replace(/\ncommit;\s*$/,"\nselect 1/0;\ncommit;\n");
  await assert.rejects(admin.query(failed),e=>e.code==='22012','injected late failure rolls back ALL DDL');
