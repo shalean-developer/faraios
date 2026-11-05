@@ -25,9 +25,29 @@ test('T31 native: atomic bootstrap, concurrency, authorization and tenant RLS',{
  grant usage on schema auth to authenticated,anon;
  grant execute on function auth.uid(),auth.jwt() to authenticated,anon;`);
  await admin.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now()),($3,$4,now())',[first,'first@example.invalid',second,'second@example.invalid']);
- for(const path of ['../database/identity-draft.sql','../database/audit-draft.sql','../database/t31-provisioning-candidate.sql','../database/t31-branding-candidate.sql','../database/t31-staff-invitations-candidate.sql']){
+ for(const path of ['../database/identity-draft.sql','../database/audit-draft.sql']){
    await admin.query(await readFile(new URL(path,import.meta.url),'utf8'));
  }
+ // The exact atomic migration under review is tested, not only its component drafts.
+ const migration=await readFile(new URL('../database/migrations-review/20261105010000_t31_atomic_onboarding_review.sql',import.meta.url),'utf8');
+ assert.equal((migration.match(/^begin;$/gm)??[]).length,1,'one atomic BEGIN');
+ assert.equal((migration.match(/^commit;$/gm)??[]).length,1,'one atomic COMMIT');
+ assert.match(migration,/\nbegin;\n/);
+ assert.match(migration,/\ncommit;\s*$/);
+ const failed=migration.replace(/\ncommit;\s*$/,"\nselect 1/0;\ncommit;\n");
+ await assert.rejects(admin.query(failed),e=>e.code==='22012','injected late failure rolls back ALL DDL');
+ await admin.query('rollback');
+ for(const name of ['private_t31','t31_bootstrap','t31_invite_worker']){
+  const q=name==='private_t31'?'select to_regnamespace($1) is null as absent':'select not exists(select 1 from pg_roles where rolname=$1) as absent';
+  assert.equal((await admin.query(q,[name])).rows[0].absent,true,'no orphan schema or role after failed transaction');
+ }
+ assert.equal((await admin.query("select count(*)::integer n from pg_policies where policyname like 't31_%'")).rows[0].n,0);
+ assert.equal((await admin.query("select count(*)::integer n from public.businesses")).rows[0].n,0);
+ await admin.query(migration);
+ // Replay is fenced before any state change.
+ await assert.rejects(admin.query(migration),e=>e.code==='55000');
+ await admin.query('rollback');
+ console.log('T31_ATOMIC_MIGRATION_ABORT_ROLLBACK_PASS');
  const as=async(user,action,role='authenticated',anonymous=false)=>{
    const db=new pg.Client({connectionString:url.href});await db.connect();
    try {

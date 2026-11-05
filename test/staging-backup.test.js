@@ -94,6 +94,12 @@ test('current scope rejects same-count substitution, ownership and catalog drift
  const raw=await readFile(new URL('../scripts/staging-backup-manifest.sql',import.meta.url),'utf8'),portable=await readFile(new URL('../scripts/restore-catalog.sql',import.meta.url),'utf8');
  const sql=currentManifestSQL(raw,portable,CURRENT_SCOPE);
  assert.match(sql,/set local search_path = ''/);assert.match(sql,/'restore_catalog'/);assert.match(sql,/'owner',owner/);
+ // Verify the effective backup hash excludes changing Auth sequence counters;
+ // standalone/raw SQL with a different search_path is not an approved profile check.
+ assert.match(raw,/jsonb_agg\(to_jsonb\(s\) order by s\.schemaname,s\.sequencename\)/);
+ assert.match(sql,/jsonb_agg\(to_jsonb\(s\)-'last_value' order by s\.schemaname,s\.sequencename\)/);
+ assert.doesNotMatch(sql,/jsonb_agg\(to_jsonb\(s\) order by s\.schemaname,s\.sequencename\)/);
+ assert.match(sql,/set local timezone = 'UTC';[\s\S]*set local search_path = '';/);
  assert.ok(sql.startsWith('begin transaction isolation level repeatable read read only;'));
 });
 
