@@ -13,6 +13,12 @@
 - `scripts/t31-backup-scope-proposal.mjs` is an **inactive, offline proposal**. It enumerates the exact additional tables, expected new roles and T31 function owners/SECURITY DEFINER flags. It does not change the live backup or restore helper and it cannot activate a V4 profile. Its test `test/t31-backup-scope-proposal.test.js` checks omissions, extra schemas, role drift, cross-business changes, RLS or owner mismatch and catalog drift.
 - Existing restore script `scripts/restore-staging.mjs` pins a legacy restore-test destination and approved historical capture config; that destination **cannot be presumed empty or safe for this new archive**. Do not change its fixed destination or import constraints without a distinct review and approval.
 
+## Additional blocking sequence incompatibility
+
+The T31 `private_t31.brand_audit` table has `id bigint generated always as identity`, creating `private_t31.brand_audit_id_seq`. Existing `scripts/backup-scope.mjs` only includes previously approved private schemas in the sequence snapshot, while `scripts/backup-staging.mjs` validates sequence names against `public`, `audit`, `auth`, `storage`, and `supabase_migrations` **without private schemas**. Existing `scripts/restore-staging.mjs` also validates against a hard-pinned historical sequence list. A post-T31 V4 pipeline must explicitly include and restore the new sequence under the reviewed private schema, without weakening known-sequence checks or existing managed Auth sequence handling. An encrypted archive without complete sequence recovery cannot qualify.
+
+The inactive candidate `scripts/t31-backup-scope-proposal.mjs` now rejects missing or unreviewed private T31 sequence entries in a prospective manifest. Neither the current V3 backup nor the existing restore implementation is modified or activated by this proposal.
+
 ## Gate A — approve and run a fresh protected PRE-migration backup
 
 1. Receive the owner's separate explicit authorisation for **one FaraiOS staging backup only** at source project `xdmfyrsauvqznkloroxg`, not schema migration or deployment. Record owner, date, approved project and limits.
