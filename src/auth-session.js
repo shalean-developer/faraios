@@ -32,6 +32,13 @@ export function createAuthSessions({createClient,now=()=>Date.now()}) {
         return {...identity,businesses,businessIds:identity.businessIds.filter(id=>ids.has(id)),memberships:identity.memberships.filter(m=>ids.has(m.businessId))};
       }catch{sessions.delete(id);return null;}
     },
+    async withBusinessProvisioning(id,action){
+      const identity=await this.read(id);
+      if(!identity)throw new Error('Sign in required');
+      const session=sessions.get(id);
+      if(!session)throw new Error('Sign in required');
+      return action(session.client,identity);
+    },
     async withCustomerSession(id,action){
       prune();const session=sessions.get(id);if(!session)return null;
       const {data,error}=await session.client.auth.getUser();

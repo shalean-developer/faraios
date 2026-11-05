@@ -1,0 +1,24 @@
+# T31 — Synthetic onboarding closeout and protected preview release gate
+
+**Status:** Source-only preparation for independent-owner testing. This document does NOT authorise or record any database migration, merge, staging deployment, external email, production change or T32 work. Canonical tracker: T30 Done, T31 In progress, T32 Not started.
+
+## Independent E2E acceptance matrix
+A new synthetic owner and a second unrelated synthetic owner must register using disconnected Supabase Auth adapters, confirm their email in the synthetic harness, sign in, create distinct UUID businesses using the audited RPC (including duplicate request replay), configure the selected tenant's profile/contact areas/hours, branding, services/prices/extras, invite an authenticated distinct staff user, accept only as the verified recipient, manage the staff membership, sign in as staff, and show own-tenant dashboard access. Prove a fourth independent tenant inherits no staff, catalogue, profile, branding, credentials, or obligations. Deny forged business IDs, foreign tenant pages, wrong invite recipient, unconfirmed registration, unauthorised invite, owner elevation, repeated token after suspension, anonymous and revoked membership. No external network and no provider side effects.
+
+- Native PostgreSQL gate previously passed at exact PR head `c81bc26148ccaaac021f0425c76cc9b14773aad4` (Foundation #41931815986) including rollback, concurrent retry, branding and invitation RLS.
+- New disconnected HTTP application rehearsal: `test/t31-synthetic-onboarding-http.test.js`. Requires latest-head Foundation CI PASS **and** log marker `T31_SYNTHETIC_HTTP_FULL_ONBOARDING_PASS` before this gate can be marked verified. An in-memory Auth email-confirmed transition models the event; it is not proof of real provider email delivery.
+- Observe distinct business records and verified tenant membership, and preserve unchanged legacy systems. No live Shalean/Bokkie data is used.
+
+## Separate approval decision — not yet requested for execution
+**No-go until owner explicitly approves each independently:**
+
+1. **Schema review and staging migration approval.** Produce generated migration from the accepted source candidates (not raw draft execution); diff live staging catalog, confirm private schema/function ownership, grants/RLS, PostgreSQL role interactions, rollback method, backup/read-only fingerprint, a quiet window, and test-write isolation. No migration before isolated native and staging preflight approval.
+2. **Source-only PR merge approval.** Latest-head checks and scope diff reviewed, unrelated historical PRs excluded. Draft PR #313 remains unmerged until the owner authorises source merge.
+3. **Protected staging/preview deployment approval.** Identify exact hostname, app root, branch/SHA, Supabase project, TLS/reverse proxy, authentication method, synthetic test-account boundary, noindex/robots, rollback SHA/backup, logging and rate-limit protections. Do not expose an open public registration route or enable unrestricted account creation.
+4. **Authentication email safeguard approval.** Existing hosted staging blocks `/auth/v1/signup`; `ownerRegistrationEnabled` is also forbidden in hosted staging. That is intentional. Before any real signup test, separately verify the target Supabase Auth project redirect allowlist, email confirmation behavior, custom SMTP/hook policy and explicit recipient allowlist/test sink. Never relax the no-outbound control merely to make a demo work. A manually seeded synthetic Auth account may be used for later UI-only preview if explicitly authorised and transparently distinguished from true self-registration acceptance.
+5. **Owner visual acceptance.** Verify genuine HTTP/browser roles/tenant switching, mobile layout, config save persistence, invitation lifecycle, direct URL denial, no data leak, warnings/errors/retries, no unexpected email/payment/accounting effects, and read-back counts. Only then request explicit T31 staging acceptance and update Done. T32 stays Not started.
+
+**Rollback posture:** source rollback to owner-verified prior staging commit; application/SQL rollback rehearsed in isolated environment; no destructive DB downgrade without a reviewed recovery procedure; records/obligations preserved. No changes to Shalean/Bokkie historical databases. Financial and provider workflows remain disabled.
+
+## Release/governance caution
+The currently reviewed hosted server is configured for a pinned staging Supabase project and its credential/outbound allowlists. A successful local synthetic HTTP test does **not** make this a portable or hosted preview environment. Any preview plan must independently qualify environment isolation, test registration and email safeguards, database permissions, provider restrictions, and data preservation. Treat any missing gate as **NO GO**.
