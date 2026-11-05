@@ -12,6 +12,7 @@ export const T31_NEW_PRIVATE_TABLES=Object.freeze([
  'private_t31.t31_provision_requests'
 ]);
 export const T31_NEW_ROLES=Object.freeze(['t31_bootstrap','t31_invite_worker']);
+export const T31_NEW_PRIVATE_SEQUENCES=Object.freeze(['private_t31.brand_audit_id_seq']);
 export const T31_REVIEWED_FUNCTIONS=Object.freeze({
  'private_t31.t31_provision_business(text,uuid)':Object.freeze({owner:'t31_bootstrap',securityDefiner:true}),
  'private_t31.create_invitation(uuid,text,text)':Object.freeze({owner:'t31_invite_worker',securityDefiner:true}),
@@ -69,6 +70,11 @@ export function validatePostT31Inventory(proposal,manifest,{businessIds,fingerpr
  !eq(sorted(Object.keys(functions)),sorted(Object.keys(T31_REVIEWED_FUNCTIONS)))||
  Object.entries(T31_REVIEWED_FUNCTIONS).some(([name,expected])=>
   !eq(functions[name],expected)))throw Error('T31_BACKUP_ROLE_FUNCTION_CHANGED');
+ if(!Array.isArray(manifest.sequence_state))throw Error('T31_PRIVATE_SEQUENCE_REVIEW_MISSING');
+ const privateSequences=manifest.sequence_state.filter(v=>v?.schema==='private_t31');
+ if(!eq(sorted(privateSequences.map(v=>v.schema+'.'+v.sequence)),T31_NEW_PRIVATE_SEQUENCES)||
+ privateSequences.some(v=>v.last_value!==null&&(typeof v.last_value!=='string'||!/^-?[0-9]+$/.test(v.last_value))))
+  throw Error('T31_PRIVATE_SEQUENCE_CHANGED');
  const expected=sorted([...proposal.tables,...proposal.privateTables]);
  const permitted=new Set(['public','audit','auth','storage','supabase_migrations',...proposal.privateTables.map(v=>v.split('.')[0])]);
  if(manifest.tables.some(t=>!t||!permitted.has(t.schema)||typeof t.table!=='string'))throw Error('T31_UNREVIEWED_BACKUP_SCHEMA');
