@@ -1,6 +1,7 @@
 // T31 full application-flow rehearsal with a disconnected, stateful Supabase/Auth adapter.
 // No provider network, staged DB, real email, privileged support action or payment execution.
 import test from 'node:test';
+import {request as httpRequest} from 'node:http';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {createStagingServer} from '../src/staging-server.js';
@@ -109,13 +110,14 @@ function syntheticBackend(){
  };
  return {createClient,users,businesses,members,settings,brands,catalogue,invites,calls};
 }
-async function serve(factory,work){
- const server=createStagingServer({createClient:factory,ownerRegistrationEnabled:true});
+async function serve(factory,work,preview=false){
+ const server=createStagingServer({createClient:factory,ownerRegistrationEnabled:true,...(preview?{hostedStaging:true,hostedOnboardingPreview:true,hostedFingerprint:"a".repeat(64)}:{})});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const url='http://127.0.0.1:'+server.address().port;
  const request=async(path,{cookie='',data=null,method=data?'POST':'GET'}={})=>{
-  const headers={};if(cookie)headers.Cookie=cookie;
-  if(data){headers.Origin=url;headers['Content-Type']='application/x-www-form-urlencoded';}
+  const headers=preview?{Host:"staging.faraios.com","!~passenger-proto":"https"}:{};if(cookie)headers.Cookie=cookie;
+  if(data){headers.Origin=preview?"https://staging.faraios.com":url;headers['Content-Type']='application/x-www-form-urlencoded';}
+  if(preview)return new Promise((resolve,reject)=>{const req=httpRequest(url+path,{method,headers},res=>{let body='';res.on('data',chunk=>body+=chunk);res.on('end',()=>resolve(new Response(body,{status:res.statusCode,headers:res.headers})));});req.on('error',reject);req.end(data?new URLSearchParams(data).toString():undefined);});
   return fetch(url+path,{method,headers,body:data?new URLSearchParams(data):undefined,redirect:'manual'});
  };
  try{await work({request,url});}finally{await new Promise((resolve,reject)=>server.close(e=>e?reject(e):resolve()));}
@@ -246,4 +248,31 @@ test('T31 disconnected full third-cleaning-company journey and forbidden tenant 
   assert.equal(b.calls.every(x=>!/(email|send|payment|zoho|external)/i.test(x)),true,'no outbound provider actions');
  });
  console.log('T31_SYNTHETIC_HTTP_FULL_ONBOARDING_PASS');
+});
+
+ test('T31 hosted saved-state routing resumes owner setup and preserves tenant denial',async()=>{
+ const b=syntheticBackend(),email='routing@example.invalid',password='long-routing-test-password';
+ await serve(b.createClient,async({request})=>{
+  await request('/register',{data:{email,password}});b.users.get(email).verified=true;
+  const login=()=>request('/login',{data:{email,password}});
+  let result=await login();assert.equal(result.headers.get('location'),'/business/new');
+  let cookie=result.headers.get('set-cookie').split(';')[0];
+  assert.equal((await request('/dashboard',{cookie})).headers.get('location'),'/business/new');
+  const form=await request('/business/new',{cookie});
+  const key=(await form.text()).match(/name="request_id" value="([^"]+)"/)[1];
+  result=await request('/business/new',{cookie,data:{name:'Routing company',request_id:key}});
+  const target=result.headers.get('location');assert.match(target,/^\/onboarding\?business=/);
+  const id=new URL(target,'https://staging.faraios.com').searchParams.get('business');
+  assert.equal((await request('/dashboard',{cookie})).headers.get('location'),target);
+  result=await login();assert.equal(result.headers.get('location'),target);
+  cookie=result.headers.get('set-cookie').split(';')[0];
+  b.settings[0]={business_id:id,display_name:'Routing company',contact_email:email,service_areas:['Cape Town'],working_days:[1],opens_at:'08:00',closes_at:'17:00',time_zone:'Africa/Johannesburg'};
+  b.catalogue.push({business_id:id,kind:'service',is_active:true,price_cents:10000});b.brands.push({business_id:id,accent_color:'#146C94'});
+  result=await login();assert.equal(result.headers.get('location'),'/dashboard?business='+id);
+  cookie=result.headers.get('set-cookie').split(';')[0];
+  assert.equal((await request('/dashboard?business='+id,{cookie})).status,200);
+  assert.equal((await request('/dashboard?business='+randomUUID(),{cookie})).status,403);
+  b.brands.length=0;
+  assert.equal((await request('/dashboard?business='+id,{cookie})).headers.get('location'),target,'saved state changes resume setup');
+ },true);
 });

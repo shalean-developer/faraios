@@ -34,7 +34,7 @@ import {bookingContext,listBookings,readBooking,parseBookingCreate,createBooking
 import {renderWorkspace} from './workspace.js';
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pageHtml=(title,body,business=null,identity=null,active='/dashboard',restoreTest=false)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS ${restoreTest?'restore test':'staging'}</title><link rel="stylesheet" href="/style.css?v=t31-password-20261106"><script type="module" src="/dropdown.js"></script><script type="module" src="/date-time-picker.js"></script><script type="module" src="/catalogue-setup.js"></script>${title==='Quotes'?'<script type="module" src="/quote-detail.js"></script>':''}</head><body${business&&identity?' class="workspace-layout"':''}><div class="notice">FaraiOS ${restoreTest?'RESTORE TEST · Read-only recovery workspace · Integrations disabled':'STAGING · Test workspace · No production data'}</div>${business&&identity?renderWorkspaceFrame(identity,business,body,active):`<main class="${title==='Sign in'?'login':'workspace-page'}">${title==='Sign in'?'<div class="brand">FaraiOS</div>':''}${body}</main>`}</body></html>`;
-const form=(message,restoreTest=false)=>pageHtml('Sign in',`<h1>Welcome back</h1><p>${restoreTest?'Use your restored FaraiOS test account.':'Use your FaraiOS staging test account.'}</p>${message?`<p role="alert">${esc(message)}</p>`:''}<form method="post" action="/login" class="panel"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" maxlength="254" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><button type="submit">Sign in</button><p class="muted">Accounts are provisioned in staging. Never enter a production password here.</p></form>`,null,null,'/dashboard',restoreTest);
+const form=(message,restoreTest=false)=>pageHtml('Sign in',`<h1>Welcome back</h1><p>${restoreTest?'Use your restored FaraiOS test account.':'Use your FaraiOS staging test account.'}</p>${message?`<p role="alert">${esc(message)}</p>`:''}<form method="post" action="/login" class="panel"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" maxlength="254" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><button type="submit">Sign in</button><p class="muted">Use your confirmed FaraiOS account. Never enter a production password here.</p></form>`,null,null,'/dashboard',restoreTest);
 
 export function createStagingServer({createClient,paymentProxy=null,paymentSetupProxy=null,accountingWorker=null,accountingAdapter=null,accountingProxy=null,accountingConnectionOnly=false,now=()=>Date.now(),restoreTest=false,earningsTemplates={},hostedStaging=false,hostedFingerprint=null,hostedTransport='passenger',hostedReady=()=>false,ownerRegistrationEnabled=false,hostedOnboardingPreview=false}){
   if(typeof hostedStaging!=='boolean'||hostedStaging&&(!['passenger','litespeed'].includes(hostedTransport)||restoreTest||accountingWorker||accountingAdapter||!/^[a-f0-9]{64}$/.test(hostedFingerprint??'')))throw new Error('Invalid hosted staging server');
@@ -48,6 +48,16 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
   if(typeof ownerRegistrationEnabled!=='boolean'||ownerRegistrationEnabled&&hostedStaging&&!hostedOnboardingPreview)throw new Error('Hosted owner registration needs separate email-safeguard authorisation');
   const cookieName=hostedStaging?'__Host-faraios_staging':restoreTest?'faraios_restore_test':'faraios_staging';
   const secure=hostedStaging?'; Secure':'';
+  const onboardingDestination=async(sessionId,identity,selected='all')=>{
+    if(!identity.businessIds.length)return '/business/new';
+    const businessId=selected==='all'?(identity.businessIds.length===1?identity.businessIds[0]:null):selected;
+    if(!businessId||!identity.memberships.some(m=>m.businessId===businessId&&m.role==='owner'&&m.status==='active'))return '/dashboard';
+    const progress=await auth.withOwner(sessionId,businessId,async(client,business)=>{
+      const [settings,items,branding]=await Promise.all([readBusinessSettings(client,business.id),listCatalogue(client,business.id),readBranding(client,business.id)]);
+      return onboardingProgress(settings,items,branding);
+    });
+    return (progress.completed===progress.total?'/dashboard':'/onboarding')+'?business='+encodeURIComponent(businessId);
+  };
   const loginForm=message=>ownerRegistrationEnabled?form(message,restoreTest).replace('</form>','</form><p><a href="/register">Register your cleaning business</a></p>'):form(message,restoreTest);
   const auth=createAuthSessions({createClient,now});let failures=[],registrationAttempts=[];
   const server=createServer(async(req,res)=>{
@@ -84,6 +94,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
       if(req.method==='GET'&&url.pathname==='/password-visibility.js')return send(200,await readFile(new URL('../public/password-visibility.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/style.css')return send(200,await readFile(new URL('../public/style.css',import.meta.url),'utf8'),'text/css');
       if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/')){
+        if(hostedOnboardingPreview){const identity=await readIdentity(id);if(identity)return redirect(await onboardingDestination(id,identity));}
         const next=url.searchParams.get('next');
         return send(200,loginForm('').replace('<label for="email">',customerRoute(next??'')?'<input type="hidden" name="next" value="'+esc(next)+'"><label for="email">':'<label for="email">'));
       }
@@ -121,7 +132,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
         const input=new URLSearchParams(body);
         try{
           const result=await auth.withBusinessProvisioning(id,client=>provisionBusiness(client,{name:input.get('name'),requestId:input.get('request_id')}));
-          return redirect('/dashboard?business='+encodeURIComponent(result.businessId));
+          return redirect('/onboarding?business='+encodeURIComponent(result.businessId));
         }catch(error){
           return send(422,render(input.get('request_id')??'',error.message));
         }
@@ -722,7 +733,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
         if(url.pathname==='/login'){
           failures=failures.filter(t=>t>now()-60000);if(failures.length>=5)return send(429,loginForm('Too many attempts. Wait one minute.'));
           const data=new URLSearchParams(body);
-          try{const session=await auth.login(data.get('email'),data.get('password'));if(id)await auth.logout(id);res.setHeader('Set-Cookie',`${cookieName}=${session.id}; HttpOnly; SameSite=Strict; Path=/; Max-Age=1800${secure}`);return redirect(customerRoute(data.get('next')??'')?data.get('next'):'/dashboard');}
+          try{const session=await auth.login(data.get('email'),data.get('password'));if(id)await auth.logout(id);res.setHeader('Set-Cookie',`${cookieName}=${session.id}; HttpOnly; SameSite=Strict; Path=/; Max-Age=1800${secure}`);return redirect(customerRoute(data.get('next')??'')?data.get('next'):hostedOnboardingPreview?await onboardingDestination(session.id,await auth.read(session.id)):'/dashboard');}
           catch{failures.push(now());return send(401,loginForm('Unable to sign in. Check your staging account and try again.'));}
         }
       }
@@ -799,6 +810,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
       const identity=await readIdentity(id);if(!identity){clear();return redirect('/login');}
       const selected=url.searchParams.get('business')??'all';
       if(selected!=='all'&&!identity.businessIds.includes(selected))return send(403,'You do not have access to this business.','text/plain');
+      if(hostedOnboardingPreview){const destination=await onboardingDestination(id,identity,selected);if(destination.startsWith('/onboarding')||destination==='/business/new')return redirect(destination);}
       return send(200,renderWorkspace(identity,selected,{restoreTest}));
     }catch(error){if(['Cleaner access denied','Adjustment access denied','Earnings access denied','Invoice access denied','Quote access denied','Staff access denied','Settings access denied','Catalogue access denied','Customer access denied','Booking access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,loginForm('Staging service unavailable. Please try again later.'));}
   });return server;
