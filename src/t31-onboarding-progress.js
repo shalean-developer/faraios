@@ -20,17 +20,20 @@ export function onboardingProgress(settings,items=[],branding=null) {
   });
 }
 export function renderOnboardingProgress(business,progress) {
-  const id=encodeURIComponent(business.id);
-  const steps=[
-    ['profile','Business contact and display name','/settings?business='+id],
-    ['serviceAreas','Service areas','/settings?business='+id],
-    ['operatingHours','Operating hours','/settings?business='+id],
-    ['services','Active cleaning service and pricing','/catalogue?business='+id],
-    ['branding','Business branding','/branding?business='+id]
-  ];
-  return '<section class="module-heading"><div><p class="eyebrow">'+escapeHtml(business.name)+'</p><h1>Set up your cleaning business</h1><p>Complete the configuration for this workspace. Progress comes from saved business records.</p></div></section>'
-    +'<section class="panel"><h2>Onboarding progress: '+progress.completed+' of '+progress.total+'</h2>'
-    +'<ol>'+steps.map(([key,label,url])=>'<li><strong>'+escapeHtml(label)+'</strong> — '+(progress[key]?'Configured':'Not configured')+' · <a href="'+url+'">'+(progress[key]?'Review':'Configure')+'</a></li>').join('')+'</ol>'
-    +'<p><a href="/branding?business='+id+'">Configure branding</a></p><p><a href="/team-invite?business='+id+'">Invite staff</a> · <a href="/team-members?business='+id+'">Manage team access</a></p><p class="muted">Logo upload and outbound invitation delivery remain inactive. Do not enter provider credentials or financial data here.</p>'
-    +'<a href="/dashboard?business='+id+'">Return to workspace</a></section>';
+ const id=encodeURIComponent(business.id);
+ const steps=[
+  ['profile','Profile','Name and contact details','/settings?business='+id],
+  ['serviceAreas','Service areas','Where you work','/settings?business='+id],
+  ['operatingHours','Hours','Working days and times','/settings?business='+id],
+  ['services','Services & prices','Your services and extras','/catalogue?business='+id],
+  ['branding','Branding','Your business colour','/branding?business='+id]
+ ];
+ const next=steps.find(([key])=>!progress[key]);
+ const complete=!next;
+ return '<section class="setup-page"><div class="setup-heading"><p class="eyebrow">'+escapeHtml(business.name)+'</p><h1>Business setup</h1><p>'+(complete?'You’re ready to open your workspace.':'Add your details to get started.')+'</p></div>'
+ +'<section class="panel setup-card" aria-labelledby="setup-progress"><div class="setup-progress-heading"><h2 id="setup-progress">Your progress</h2><span>'+progress.completed+' of '+progress.total+' complete</span></div>'
+ +'<progress class="setup-progress" max="'+progress.total+'" value="'+progress.completed+'" aria-label="Business setup progress">'+progress.completed+' of '+progress.total+'</progress>'
+ +'<ol class="setup-steps">'+steps.map(([key,label,description,url],i)=>'<li class="'+(progress[key]?'is-complete':'')+'"><span class="setup-number" aria-hidden="true">'+(progress[key]?'✓':i+1)+'</span><div class="setup-step-copy"><h3>'+escapeHtml(label)+'</h3><p>'+description+'</p></div><span class="setup-status">'+(progress[key]?'Done':'To do')+'</span><a class="setup-step-link" href="'+url+'" aria-label="'+(progress[key]?'Edit ':'Set up ')+escapeHtml(label)+'">'+(progress[key]?'Edit':'Set up')+'</a></li>').join('')+'</ol>'
+ +'<div class="setup-footer"><p>'+(next?'Next: '+escapeHtml(next[1]):'All five steps are complete.')+'</p><a class="setup-primary" href="'+(next?next[3]:'/dashboard?business='+id)+'">'+(next?'Continue setup':'Open dashboard')+' <span aria-hidden="true">→</span></a></div></section>'
+ +'<section class="setup-team" aria-labelledby="setup-team-title"><div><h2 id="setup-team-title">Team</h2><p>Optional — add your team when you’re ready.</p></div><div><a href="/team-invite?business='+id+'">Invite staff</a><a href="/team-members?business='+id+'">Manage access</a></div></section></section>';
 }
