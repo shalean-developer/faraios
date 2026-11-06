@@ -20,7 +20,8 @@ export function enhanceCatalogueSetup(form){
  if(unused&&visible&&add){unused.hidden=true;add.hidden=!unused.querySelector('[data-pet-row]');add.addEventListener('click',()=>{const row=unused.querySelector('[data-pet-row]');if(row){visible.append(row);row.querySelector('input')?.focus();}add.hidden=!unused.querySelector('[data-pet-row]');sync();});}
  form.addEventListener('change',sync);
  form.addEventListener('input',sync);
- form.addEventListener('invalid',event=>{let parent=event.target.parentElement;while(parent&&parent!==form){if(parent.tagName==='DETAILS')parent.open=true;parent=parent.parentElement;}},true);
+ let revealingInvalid=false;
+ form.addEventListener('invalid',event=>{if(revealingInvalid)return;revealingInvalid=true;setTimeout(()=>{revealingInvalid=false;},0);let parent=event.target.parentElement;while(parent&&parent!==form){if(parent.tagName==='DETAILS')parent.open=true;parent=parent.parentElement;}},true);
  form.addEventListener('reset',()=>setTimeout(sync,0));sync();
 }
 if(typeof document!=='undefined')document.querySelectorAll('form.catalogue-setup').forEach(enhanceCatalogueSetup);
