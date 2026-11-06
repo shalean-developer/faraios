@@ -597,3 +597,37 @@ form[action="/business/new"] input:not([type="hidden"]){display:block;width:100%
 form[action="/business/new"] input:focus-visible{outline:3px solid #16654f33;outline-offset:2px;border-color:#16654f}
 form[action="/business/new"] button{width:100%;min-height:48px;font-weight:600}
 @media(max-width:600px){main.workspace-page:has(form[action="/business/new"]){margin:32px auto;padding:0 20px 32px}main:has(form[action="/business/new"]) h1{font-size:28px}form[action="/business/new"]{padding:24px 20px}}
+
+/* Business setup checklist */
+.setup-page{max-width:920px;margin:0 auto}
+.setup-heading h1{font-size:32px;line-height:1.2;margin:8px 0 12px}
+.setup-heading .eyebrow{margin:0 0 8px}
+.setup-heading>p:last-child{margin:0}
+.setup-card{padding:28px;margin-top:28px}
+.setup-progress-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.setup-progress-heading h2{font-size:18px;margin:0}
+.setup-progress-heading>span{font-size:13px;color:#527066}
+.setup-progress{display:block;width:100%;height:8px;margin:18px 0 12px;border:0;border-radius:8px;overflow:hidden;background:#e7eeea;accent-color:#16654f}
+.setup-progress::-webkit-progress-bar{background:#e7eeea;border-radius:8px}
+.setup-progress::-webkit-progress-value{background:#16654f;border-radius:8px}
+.setup-progress::-moz-progress-bar{background:#16654f;border-radius:8px}
+.setup-steps{list-style:none;padding:0;margin:0}
+.setup-steps li{display:flex;align-items:center;gap:16px;padding:20px 0;border-bottom:1px solid #e7eeea}
+.setup-number{display:grid;place-items:center;flex:0 0 34px;height:34px;background:#f0f4f2;border-radius:50%;color:#527066;font-size:14px;font-weight:600}
+.is-complete .setup-number{background:#e1f2e9;color:#16654f}
+.setup-step-copy{flex:1;min-width:0}
+.setup-step-copy h3{font-size:15px;margin:0 0 4px}
+.setup-step-copy p{font-size:13px;margin:0;line-height:1.4}
+.setup-status{font-size:12px;color:#6e817b}
+.is-complete .setup-status{color:#16654f}
+.setup-step-link{font-size:13px;font-weight:600;min-width:66px;text-align:center;border:1px solid #cbdad3;border-radius:8px;padding:9px 12px}
+.setup-step-link:hover{background:#edf5f0}
+.setup-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:24px}
+.setup-footer p{margin:0;font-size:14px}
+.setup-primary{display:inline-flex;align-items:center;justify-content:center;gap:20px;padding:13px 18px;border-radius:8px;background:#16654f;color:#fff;font-weight:600;font-size:14px;min-height:48px}
+.setup-primary:hover{background:#104d3c}
+.setup-team{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:24px 4px}
+.setup-team h2{font-size:16px;margin:0 0 6px}
+.setup-team p{font-size:13px;margin:0}
+.setup-team>div:last-child{display:flex;gap:20px;font-size:13px}
+@media(max-width:600px){.setup-heading h1{font-size:27px}.setup-card{padding:20px}.setup-steps li{gap:10px;padding:18px 0;flex-wrap:wrap}.setup-status{display:none}.setup-step-copy p{font-size:12px}.setup-step-link{padding:10px;min-width:60px}.setup-footer,.setup-team{align-items:stretch;flex-direction:column}.setup-team>div:last-child{gap:24px}.setup-progress-heading{align-items:flex-start;flex-direction:column;gap:6px}}
