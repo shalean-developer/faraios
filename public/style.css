@@ -579,3 +579,10 @@ form[action="/register"] input:focus-visible{outline:3px solid #16654f33;outline
 form[action="/register"] button{width:100%;min-height:48px;font-weight:600}
 main:has(form[action="/register"])>p:last-child{text-align:center;font-size:14px}
 @media(max-width:600px){main.workspace-page:has(form[action="/register"]){margin:32px auto;padding:0 20px 32px}main:has(form[action="/register"]) h1{font-size:28px}form[action="/register"].panel{padding:24px 20px}.notice{overflow-wrap:anywhere}}
+
+.registration-password{position:relative}
+form[action="/register"] .registration-password input{padding-right:56px;margin-bottom:0}
+form[action="/register"] .password-toggle{position:absolute;right:4px;top:4px;width:40px;min-height:40px;height:40px;padding:8px;display:grid;place-items:center;background:transparent;color:#16654f;border:0}
+form[action="/register"] .password-toggle[hidden],.eye-slash[hidden]{display:none}
+form[action="/register"] .password-toggle:hover{background:#e7f3ed}
+form[action="/register"] #password-help{margin:8px 0 24px;font-size:13px}
