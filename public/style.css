@@ -631,3 +631,25 @@ form[action="/business/new"] button{width:100%;min-height:48px;font-weight:600}
 .setup-team p{font-size:13px;margin:0}
 .setup-team>div:last-child{display:flex;gap:20px;font-size:13px}
 @media(max-width:600px){.setup-heading h1{font-size:27px}.setup-card{padding:20px}.setup-steps li{gap:10px;padding:18px 0;flex-wrap:wrap}.setup-status{display:none}.setup-step-copy p{font-size:12px}.setup-step-link{padding:10px;min-width:60px}.setup-footer,.setup-team{align-items:stretch;flex-direction:column}.setup-team>div:last-child{gap:24px}.setup-progress-heading{align-items:flex-start;flex-direction:column;gap:6px}}
+
+/* Business settings usability */
+.settings-sections{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 24px}
+.settings-sections a{display:inline-flex;align-items:center;padding:9px 14px;border:1px solid #d6e2dc;border-radius:8px;background:white;font-size:13px;min-height:44px}
+.business-settings-form{width:100%;max-width:940px}
+.business-settings-form .editor-panel{padding:24px;scroll-margin-top:20px}
+.business-settings-form .editor-panel h2{font-size:18px;margin-bottom:18px}
+.business-settings-form .form-grid{gap:20px}
+.business-settings-form .form-field{min-width:0}
+.business-settings-form .form-field>label{font-size:13px;font-weight:600;margin-bottom:8px}
+.business-settings-form input:not([type=checkbox]):not([type=hidden]),.business-settings-form textarea{font-size:16px;min-height:46px;max-width:100%}
+.business-settings-form small{display:block;font-size:12px;color:#527066;line-height:1.5;margin-top:8px}
+.business-settings-form .weekday-options{padding:12px;gap:8px;margin:0 0 22px}
+.business-settings-form .weekday-options .day{border:1px solid #d6e2dc;border-radius:8px;gap:8px;padding:8px 12px}
+.business-settings-form .weekday-options .day:has(input:checked){background:#e7f3ed;border-color:#16654f;color:#16654f}
+.business-settings-form .weekday-options input{flex:0 0 18px;margin:0}
+.business-settings-form input:focus-visible,.business-settings-form textarea:focus-visible{outline:3px solid #16654f33;outline-offset:2px;border-color:#16654f}
+.business-settings-form .workload-field{max-width:340px}
+.business-settings-form .workload-field input{display:block;width:100%;padding:12px 14px;border:1px solid #cbdad3;border-radius:8px;background:white;font:inherit}
+.business-settings-form .form-actions{position:sticky;bottom:0;z-index:5;padding:16px 0;background:#f5f7f6;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.business-settings-form .form-actions>*{min-height:46px}
+@media(max-width:600px){.business-settings-form .editor-panel{padding:20px}.business-settings-form .form-grid{grid-template-columns:minmax(0,1fr)}.business-settings-form .form-actions{padding:12px 0}.business-settings-form .form-actions>button{flex:1}.settings-sections{gap:6px}.settings-sections a{padding:8px 10px}}

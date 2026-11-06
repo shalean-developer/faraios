@@ -266,6 +266,11 @@ test('T31 disconnected full third-cleaning-company journey and forbidden tenant 
   assert.equal((await request('/dashboard',{cookie})).headers.get('location'),target);
   result=await login();assert.equal(result.headers.get('location'),target);
   cookie=result.headers.get('set-cookie').split(';')[0];
+  const invalid=await request('/settings?business='+id,{cookie,data:{display_name:'Keep my entry',contact_email:email,service_areas:'Cape Town',working_days:'1',opens_at:'18:00',closes_at:'08:00',time_zone:'Africa/Johannesburg',max_daily_minutes:'480',next:'setup'}});
+  assert.equal(invalid.status,422);assert.match(await invalid.text(),/Keep my entry/);
+  const saved=await request('/settings?business='+id,{cookie,data:{display_name:'Routing company',contact_email:email,service_areas:'Cape Town',working_days:'1',opens_at:'08:00',closes_at:'17:00',time_zone:'Africa/Johannesburg',max_daily_minutes:'480',next:'setup'}});
+  assert.equal(saved.headers.get('location'),'/onboarding?business='+id+'&saved=1');
+  assert.equal(b.settings[0].max_daily_minutes,480);
   b.settings[0]={business_id:id,display_name:'Routing company',contact_email:email,service_areas:['Cape Town'],working_days:[1],opens_at:'08:00',closes_at:'17:00',time_zone:'Africa/Johannesburg'};
   b.catalogue.push({business_id:id,kind:'service',is_active:true,price_cents:10000});b.brands.push({business_id:id,accent_color:'#146C94'});
   result=await login();assert.equal(result.headers.get('location'),'/dashboard?business='+id);
