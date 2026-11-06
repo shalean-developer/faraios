@@ -662,7 +662,7 @@ form[action="/business/new"] button{width:100%;min-height:48px;font-weight:600}
 .settings-sections{align-items:center}
 .workspace-header>div:first-child .muted{font-weight:600;color:#527066}
 
-.business-settings-form .settings-hours-row{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(230px,1fr);gap:24px;align-items:start;margin-bottom:22px}
+.business-settings-form .settings-hours-row{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:20px;align-items:start;margin-bottom:22px}
 .business-settings-form .settings-hours-row .weekday-options{margin-bottom:0}
 .business-settings-form .settings-hours-row>.form-field{padding-top:4px}
 @media(max-width:850px){.business-settings-form .settings-hours-row{grid-template-columns:minmax(0,1fr);gap:18px}}
