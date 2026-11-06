@@ -7,6 +7,6 @@ if(button&&password){
   password.type=visible?'text':'password';
   button.setAttribute('aria-label',visible?'Hide password':'Show password');
   button.setAttribute('aria-pressed',String(visible));
-  button.querySelector('.eye-slash').hidden=!visible;
+  button.querySelector('.eye-slash').toggleAttribute('hidden',!visible);
  });
 }
