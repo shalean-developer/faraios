@@ -9,17 +9,54 @@ do $$ begin
     create role t31_bootstrap nologin noinherit;
   end if;
 end $$;
-grant usage on schema public, audit, private_t31, auth to t31_bootstrap;
--- Supabase Auth helper functions are invoked under this dedicated execution role.
-grant execute on function auth.uid(), auth.jwt() to t31_bootstrap;
-grant select(id,email_confirmed_at) on auth.users to t31_bootstrap;
+grant usage on schema public, audit, private_t31 to t31_bootstrap;
+-- Managed Auth stays owned by Supabase. Only narrow current-caller bridges
+-- execute as the installer; worker roles never receive Auth schema access.
+create function private_t31.current_actor() returns uuid
+language sql stable security definer set search_path='' as $$ select auth.uid() $$;
+create function private_t31.current_claims() returns jsonb
+language sql stable security definer set search_path='' as $$ select auth.jwt() $$;
+create function private_t31.current_verified_email() returns text
+language sql stable security definer set search_path='' as $$
+ select lower(email) from auth.users where id=auth.uid() and email_confirmed_at is not null
+$$;
+revoke all on function private_t31.current_actor(),private_t31.current_claims(),private_t31.current_verified_email()
+ from public,anon,authenticated;
+grant execute on function private_t31.current_actor(),private_t31.current_claims(),private_t31.current_verified_email()
+ to t31_bootstrap;
+-- The invoker-rights identity audit trigger also needs the caller ID while
+-- executing under the worker role. Its writes still obey worker grants/RLS.
+grant usage on schema private_t31 to authenticated;
+grant execute on function private_t31.current_actor() to authenticated;
+create or replace function audit.capture_identity_change() returns trigger
+language plpgsql security invoker set search_path='' as $audit$
+declare v_old jsonb; v_new jsonb; v_business uuid;
+begin
+ if tg_table_schema <> 'public' or tg_table_name not in ('businesses','business_memberships') then
+  raise exception 'Unsupported audit source';
+ end if;
+ if tg_op <> 'INSERT' then v_old:=to_jsonb(old); end if;
+ if tg_op <> 'DELETE' then v_new:=to_jsonb(new); end if;
+ if tg_op='UPDATE' and v_old=v_new then return new; end if;
+ v_business:=case when tg_table_name='businesses' then coalesce(v_new->>'id',v_old->>'id')::uuid
+ else coalesce(v_new->>'business_id',v_old->>'business_id')::uuid end;
+ if tg_op='UPDATE' and ((tg_table_name='businesses' and v_old->>'id'<>v_new->>'id')
+ or (tg_table_name='business_memberships' and (v_old->>'business_id'<>v_new->>'business_id' or v_old->>'user_id'<>v_new->>'user_id'))) then
+  raise exception 'Audited identity keys are immutable';
+ end if;
+ insert into audit.events(business_id,actor_user_id,database_role,entity_table,operation,old_record,new_record)
+ values(v_business,private_t31.current_actor(),current_user,tg_table_name,tg_op,v_old,v_new);
+ if tg_op='DELETE' then return old; end if;
+ return new;
+end;
+$audit$;
 -- Required for ALTER FUNCTION OWNER, revoked after ownership transfer.
 grant create on schema private_t31 to t31_bootstrap;
 grant select,insert on public.businesses, public.business_memberships to t31_bootstrap;
 grant insert on audit.events to t31_bootstrap;
 -- Identity audit trigger runs as invoker; RLS must allow its narrowly scoped writes.
 create policy t31_identity_audit on audit.events for insert to t31_bootstrap
- with check(entity_table in ('businesses','business_memberships') and operation='INSERT' and actor_user_id=auth.uid());
+ with check(entity_table in ('businesses','business_memberships') and operation='INSERT' and actor_user_id=private_t31.current_actor());
 create table private_t31.t31_provision_requests (
   actor_user_id uuid not null references auth.users(id),
   request_id uuid not null,
@@ -36,22 +73,22 @@ grant select,insert,update on private_t31.t31_provision_requests to t31_bootstra
 create policy t31_insert_business on public.businesses for insert to t31_bootstrap
   with check(industry='cleaning' and status='active');
 create policy t31_read_new_business on public.businesses for select to t31_bootstrap
-  using(exists(select 1 from public.business_memberships m where m.business_id=businesses.id and m.user_id=auth.uid() and m.role='owner' and m.status='active'));
+  using(exists(select 1 from public.business_memberships m where m.business_id=businesses.id and m.user_id=private_t31.current_actor() and m.role='owner' and m.status='active'));
 create policy t31_insert_owner on public.business_memberships for insert to t31_bootstrap
-  with check(user_id=auth.uid() and role='owner' and status='active');
+  with check(user_id=private_t31.current_actor() and role='owner' and status='active');
 create policy t31_read_membership on public.business_memberships for select to t31_bootstrap
-  using(user_id=auth.uid());
+  using(user_id=private_t31.current_actor());
 create policy t31_requests_all on private_t31.t31_provision_requests for all to t31_bootstrap
-  using(actor_user_id=auth.uid()) with check(actor_user_id=auth.uid());
+  using(actor_user_id=private_t31.current_actor()) with check(actor_user_id=private_t31.current_actor());
 create function private_t31.t31_provision_business(p_name text,p_request_id uuid)
 returns uuid language plpgsql security definer set search_path='' as $$
 declare v_actor uuid; v_name text; v_business uuid; v_saved private_t31.t31_provision_requests%rowtype;
 begin
-  v_actor:=auth.uid();
-  if v_actor is null or (coalesce(auth.jwt()->>'is_anonymous','false'))='true' then
+  v_actor:=private_t31.current_actor();
+  if v_actor is null or (coalesce(private_t31.current_claims()->>'is_anonymous','false'))='true' then
     raise exception 'Authentication required' using errcode='28000';
   end if;
-  if not exists(select 1 from auth.users u where u.id=v_actor and u.email_confirmed_at is not null) then
+  if private_t31.current_verified_email() is null then
     raise exception 'Verified email required' using errcode='42501';
   end if;
   v_name:=btrim(p_name);
@@ -74,8 +111,6 @@ begin
    where actor_user_id=v_actor and request_id=p_request_id;
   return v_business;
 end $$;
-alter function private_t31.t31_provision_business(text,uuid) owner to t31_bootstrap;
-revoke create on schema private_t31 from t31_bootstrap;
 revoke all on function private_t31.t31_provision_business(text,uuid) from public,anon,authenticated;
 grant usage on schema private_t31 to authenticated;
 grant execute on function private_t31.t31_provision_business(text,uuid) to authenticated;
@@ -85,4 +120,8 @@ returns uuid language sql security invoker set search_path=''
 as $$ select private_t31.t31_provision_business(p_name,p_request_id) $$;
 revoke all on function public.t31_provision_business(text,uuid) from public,anon,authenticated;
 grant execute on function public.t31_provision_business(text,uuid) to authenticated;
+grant t31_bootstrap to current_user with set true, inherit false;
+alter function private_t31.t31_provision_business(text,uuid) owner to t31_bootstrap;
+revoke t31_bootstrap from current_user;
+revoke create on schema private_t31 from t31_bootstrap;
 commit;

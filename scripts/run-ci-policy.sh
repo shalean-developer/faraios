@@ -116,3 +116,7 @@ echo CI_POLICY_T27_REPORT_NATIVE_PASS
 # T31 isolated PostgreSQL 17: authenticated provisioning, atomic rollback, concurrent retries and RLS.
 T31_PG_BIN="$(pg_config --bindir)" node scripts/run-t31-provisioning-postgres.mjs
 echo CI_POLICY_T31_PROVISIONING_NATIVE_PASS
+
+# T31 greenfield foundation: independent disposable PG17 database and RLS checks.
+T31_GREENFIELD_PG_BIN="$(pg_config --bindir)" node scripts/run-t31-greenfield-postgres.mjs
+echo CI_POLICY_T31_GREENFIELD_NATIVE_PASS

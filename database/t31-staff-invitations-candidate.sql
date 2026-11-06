@@ -1,12 +1,11 @@
 -- T31 invitation candidate. Unapplied, no outbound email. Depends on identity, audit, T31 provisioning.
 begin;
 create role t31_invite_worker nologin noinherit;
-grant usage on schema public, auth, audit, private_t31 to t31_invite_worker;
+grant usage on schema public, audit, private_t31 to t31_invite_worker;
 grant select on public.businesses,public.business_memberships to t31_invite_worker;
 grant insert on public.business_memberships,audit.events to t31_invite_worker;
 grant update(status) on public.business_memberships to t31_invite_worker;
-grant select(id,email,email_confirmed_at) on auth.users to t31_invite_worker;
-grant execute on function auth.uid(),auth.jwt() to t31_invite_worker;
+grant execute on function private_t31.current_actor(),private_t31.current_claims(),private_t31.current_verified_email() to t31_invite_worker;
 create table private_t31.invitations(
  id uuid primary key default gen_random_uuid(),
  business_id uuid not null references public.businesses(id) on delete restrict,
@@ -27,12 +26,12 @@ create policy t31_invite_worker_records on private_t31.invitations for all to t3
 create policy t31_invite_worker_business_read on public.businesses for select to t31_invite_worker using(true);
 create policy t31_invite_worker_membership_read on public.business_memberships for select to t31_invite_worker using(true);
 create policy t31_invite_worker_membership_insert on public.business_memberships for insert to t31_invite_worker
- with check(user_id=auth.uid() and role in ('staff','manager') and status='active');
+ with check(user_id=private_t31.current_actor() and role in ('staff','manager') and status='active');
 create policy t31_invite_worker_membership_suspend on public.business_memberships for update to t31_invite_worker
  using(role in ('manager','staff') and status='active')
  with check(role in ('manager','staff') and status='suspended');
 create policy t31_invite_worker_audit on audit.events for insert to t31_invite_worker
- with check(entity_table='business_memberships' and operation in ('INSERT','UPDATE') and actor_user_id=auth.uid());
+ with check(entity_table='business_memberships' and operation in ('INSERT','UPDATE') and actor_user_id=private_t31.current_actor());
 create table private_t31.invitation_audit (
  id uuid primary key default gen_random_uuid(), business_id uuid not null,
  actor_user_id uuid not null, invitation_id uuid not null,
@@ -42,15 +41,15 @@ create table private_t31.invitation_audit (
 revoke all on private_t31.invitation_audit from public,anon,authenticated;
 grant insert on private_t31.invitation_audit to t31_invite_worker;
 create policy t31_invite_worker_audit_insert on private_t31.invitation_audit for insert to t31_invite_worker
- with check(actor_user_id=auth.uid());
+ with check(actor_user_id=private_t31.current_actor());
 alter table private_t31.invitation_audit enable row level security;
 
 create function private_t31.create_invitation(p_business uuid,p_email text,p_role text) returns uuid
 language plpgsql security definer set search_path='' as $$
 declare actor uuid; token uuid; inv_id uuid;
 begin
- actor:=auth.uid();
- if actor is null or coalesce(auth.jwt()->>'is_anonymous','false')='true' then raise exception 'Authentication required' using errcode='28000';end if;
+ actor:=private_t31.current_actor();
+ if actor is null or coalesce(private_t31.current_claims()->>'is_anonymous','false')='true' then raise exception 'Authentication required' using errcode='28000';end if;
  if p_role not in ('staff','manager') or p_email is null or length(p_email) not between 3 and 254
  or p_email<>lower(btrim(p_email)) or p_email !~ '^[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+$' then
  raise exception 'Invalid invitation details' using errcode='22023';end if;
@@ -69,9 +68,9 @@ create function private_t31.accept_invitation(p_token uuid) returns uuid
 language plpgsql security definer set search_path='' as $$
 declare actor uuid; v_email text; i private_t31.invitations%rowtype;
 begin
- actor:=auth.uid();
- if actor is null or coalesce(auth.jwt()->>'is_anonymous','false')='true' then raise exception 'Authentication required' using errcode='28000';end if;
- select lower(email) into v_email from auth.users where id=actor and email_confirmed_at is not null;
+ actor:=private_t31.current_actor();
+ if actor is null or coalesce(private_t31.current_claims()->>'is_anonymous','false')='true' then raise exception 'Authentication required' using errcode='28000';end if;
+ v_email:=private_t31.current_verified_email();
  if v_email is null then raise exception 'Verified email required' using errcode='42501';end if;
  select * into i from private_t31.invitations where token_hash=md5(p_token::text) for update;
  if not found or i.recipient_email<>v_email or i.state='revoked' or i.expires_at<=now()
@@ -98,8 +97,8 @@ create function private_t31.staff_members(p_business uuid) returns jsonb
 language plpgsql stable security definer set search_path='' as $$
 declare actor uuid;
 begin
- actor:=auth.uid();
- if actor is null or coalesce(auth.jwt()->>'is_anonymous','false')='true' or not exists(
+ actor:=private_t31.current_actor();
+ if actor is null or coalesce(private_t31.current_claims()->>'is_anonymous','false')='true' or not exists(
  select 1 from public.business_memberships m join public.businesses b on b.id=m.business_id
  where m.business_id=p_business and m.user_id=actor and m.role='owner' and m.status='active' and b.status='active')
  then raise exception 'Owner access required' using errcode='42501';end if;
@@ -111,8 +110,8 @@ create function private_t31.suspend_member(p_business uuid,p_target uuid) return
 language plpgsql security definer set search_path='' as $$
 declare actor uuid;
 begin
- actor:=auth.uid();
- if actor is null or coalesce(auth.jwt()->>'is_anonymous','false')='true' or not exists(
+ actor:=private_t31.current_actor();
+ if actor is null or coalesce(private_t31.current_claims()->>'is_anonymous','false')='true' or not exists(
  select 1 from public.business_memberships m join public.businesses b on b.id=m.business_id
  where m.business_id=p_business and m.user_id=actor and m.role='owner' and m.status='active' and b.status='active')
  then raise exception 'Owner access required' using errcode='42501';end if;
@@ -123,12 +122,6 @@ begin
  return true;
 end $$;
 
-grant create on schema private_t31 to t31_invite_worker;
-alter function private_t31.create_invitation(uuid,text,text) owner to t31_invite_worker;
-alter function private_t31.accept_invitation(uuid) owner to t31_invite_worker;
-alter function private_t31.staff_members(uuid) owner to t31_invite_worker;
-alter function private_t31.suspend_member(uuid,uuid) owner to t31_invite_worker;
-revoke create on schema private_t31 from t31_invite_worker;
 revoke all on function private_t31.create_invitation(uuid,text,text),private_t31.accept_invitation(uuid),private_t31.staff_members(uuid),private_t31.suspend_member(uuid,uuid) from public,anon,authenticated;
 grant usage on schema private_t31 to authenticated;
 grant execute on function private_t31.create_invitation(uuid,text,text),private_t31.accept_invitation(uuid),private_t31.staff_members(uuid),private_t31.suspend_member(uuid,uuid) to authenticated;
@@ -148,4 +141,12 @@ create function public.t31_suspend_member(p_business uuid,p_user uuid)
  as $$ select private_t31.suspend_member(p_business,p_user) $$;
 revoke all on function public.t31_staff_members(uuid),public.t31_suspend_member(uuid,uuid) from public,anon,authenticated;
 grant execute on function public.t31_staff_members(uuid),public.t31_suspend_member(uuid,uuid) to authenticated;
+grant create on schema private_t31 to t31_invite_worker;
+grant t31_invite_worker to current_user with set true, inherit false;
+alter function private_t31.create_invitation(uuid,text,text) owner to t31_invite_worker;
+alter function private_t31.accept_invitation(uuid) owner to t31_invite_worker;
+alter function private_t31.staff_members(uuid) owner to t31_invite_worker;
+alter function private_t31.suspend_member(uuid,uuid) owner to t31_invite_worker;
+revoke t31_invite_worker from current_user;
+revoke create on schema private_t31 from t31_invite_worker;
 commit;
