@@ -666,3 +666,17 @@ form[action="/business/new"] button{width:100%;min-height:48px;font-weight:600}
 .business-settings-form .settings-hours-row .weekday-options{margin-bottom:0}
 .business-settings-form .settings-hours-row>.form-field{padding-top:4px}
 @media(max-width:850px){.business-settings-form .settings-hours-row{grid-template-columns:minmax(0,1fr);gap:18px}}
+
+/* Compact service editor */
+#catalogue-editor{max-width:1040px;padding:24px}
+.catalogue-setup>.setup-section{margin:0 0 12px}
+.catalogue-setup>.setup-section>summary{padding:16px 18px;min-height:56px}
+.catalogue-setup .setup-body{padding:20px}
+.catalogue-setup .setup-body>.setup-grid{gap:16px}
+.catalogue-setup .setup-field>span{font-size:12px}
+.catalogue-setup .setup-rate-row{padding:12px 0;gap:12px}
+.catalogue-setup .setup-option-group{margin:12px 0;padding:14px}
+.catalogue-setup .setup-subsection{margin:14px 0}
+.catalogue-setup .setup-save{position:sticky;bottom:0;z-index:5;background:white;border-top:1px solid #dfe7e3;padding:14px 0 0;margin-top:16px}
+.catalogue-setup .setup-save p{font-size:12px;margin:0 0 10px}
+@media(max-width:600px){#catalogue-editor{padding:16px}.catalogue-setup .setup-body{padding:16px}.catalogue-setup>.setup-section>summary{padding:14px}.catalogue-setup .setup-save{padding-bottom:8px}}
