@@ -26,6 +26,7 @@ import {parseStaffInvitation,createStaffInvitation,acceptStaffInvitation,listBus
 import {provisionBusiness} from './t31-provisioning.js';
 import {randomUUID} from 'node:crypto';
 import {hostedRequestAllowed,stagingOrigin} from './hosted-staging.js';
+import {previewProject,previewRoutes} from './t31-hosted-preview.js';
 import {parseBusinessSettings,readBusinessSettings,saveBusinessSettings,renderBusinessSettings} from './business-settings.js';
 import {parseCatalogueItem,listCatalogue,saveCatalogueItem,deleteCatalogueItem,renderCatalogueDelete,renderCatalogueDeactivate,renderCatalogue} from './catalogue.js';
 import {parseCustomerForm,listCustomers,readCustomer,listAddresses,readAddress,saveCustomerRecord,renderCustomers} from './customers.js';
@@ -35,7 +36,7 @@ const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const pageHtml=(title,body,business=null,identity=null,active='/dashboard',restoreTest=false)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS ${restoreTest?'restore test':'staging'}</title><link rel="stylesheet" href="/style.css"><script type="module" src="/dropdown.js"></script><script type="module" src="/date-time-picker.js"></script><script type="module" src="/catalogue-setup.js"></script>${title==='Quotes'?'<script type="module" src="/quote-detail.js"></script>':''}</head><body${business&&identity?' class="workspace-layout"':''}><div class="notice">FaraiOS ${restoreTest?'RESTORE TEST · Read-only recovery workspace · Integrations disabled':'STAGING · Test workspace · No production data'}</div>${business&&identity?renderWorkspaceFrame(identity,business,body,active):`<main class="${title==='Sign in'?'login':'workspace-page'}">${title==='Sign in'?'<div class="brand">FaraiOS</div>':''}${body}</main>`}</body></html>`;
 const form=(message,restoreTest=false)=>pageHtml('Sign in',`<h1>Welcome back</h1><p>${restoreTest?'Use your restored FaraiOS test account.':'Use your FaraiOS staging test account.'}</p>${message?`<p role="alert">${esc(message)}</p>`:''}<form method="post" action="/login" class="panel"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" maxlength="254" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><button type="submit">Sign in</button><p class="muted">Accounts are provisioned in staging. Never enter a production password here.</p></form>`,null,null,'/dashboard',restoreTest);
 
-export function createStagingServer({createClient,paymentProxy=null,paymentSetupProxy=null,accountingWorker=null,accountingAdapter=null,accountingProxy=null,accountingConnectionOnly=false,now=()=>Date.now(),restoreTest=false,earningsTemplates={},hostedStaging=false,hostedFingerprint=null,hostedTransport='passenger',hostedReady=()=>false,ownerRegistrationEnabled=false}){
+export function createStagingServer({createClient,paymentProxy=null,paymentSetupProxy=null,accountingWorker=null,accountingAdapter=null,accountingProxy=null,accountingConnectionOnly=false,now=()=>Date.now(),restoreTest=false,earningsTemplates={},hostedStaging=false,hostedFingerprint=null,hostedTransport='passenger',hostedReady=()=>false,ownerRegistrationEnabled=false,hostedOnboardingPreview=false}){
   if(typeof hostedStaging!=='boolean'||hostedStaging&&(!['passenger','litespeed'].includes(hostedTransport)||restoreTest||accountingWorker||accountingAdapter||!/^[a-f0-9]{64}$/.test(hostedFingerprint??'')))throw new Error('Invalid hosted staging server');
   if(process.env.NODE_ENV==='production'&&!hostedStaging)throw new Error('Local staging server cannot run in production');
   if(typeof restoreTest!=='boolean'||restoreTest&&(accountingWorker||accountingAdapter||accountingProxy))throw new Error('Invalid isolated restore server');
@@ -43,14 +44,15 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
   if(typeof accountingConnectionOnly!=='boolean'||accountingConnectionOnly&&!accountingProxy)throw new Error('Invalid connection-only accounting runtime');
   if(paymentProxy!==null&&(typeof paymentProxy!=='function'||!hostedStaging||restoreTest))throw new Error('Invalid TEST payment runtime');
   if(paymentSetupProxy!==null&&(typeof paymentSetupProxy!=='function'||!hostedStaging||restoreTest))throw new Error('Invalid TEST payment setup');
-  if(typeof ownerRegistrationEnabled!=='boolean'||ownerRegistrationEnabled&&hostedStaging)throw new Error('Hosted owner registration needs separate email-safeguard authorisation');
+  if(typeof hostedOnboardingPreview!=='boolean'||hostedOnboardingPreview&&(!hostedStaging||restoreTest||paymentProxy||paymentSetupProxy||accountingProxy||accountingWorker||accountingAdapter||Object.keys(earningsTemplates).length))throw Error('Invalid isolated onboarding preview');
+  if(typeof ownerRegistrationEnabled!=='boolean'||ownerRegistrationEnabled&&hostedStaging&&!hostedOnboardingPreview)throw new Error('Hosted owner registration needs separate email-safeguard authorisation');
   const cookieName=hostedStaging?'__Host-faraios_staging':restoreTest?'faraios_restore_test':'faraios_staging';
   const secure=hostedStaging?'; Secure':'';
   const loginForm=message=>ownerRegistrationEnabled?form(message,restoreTest).replace('</form>','</form><p><a href="/register">Register your cleaning business</a></p>'):form(message,restoreTest);
   const auth=createAuthSessions({createClient,now});let failures=[],registrationAttempts=[];
   const server=createServer(async(req,res)=>{
     let headerBusiness=null,headerIdentity=null,activePath='/dashboard';
-    const readIdentity=async sessionId=>(headerIdentity=await auth.read(sessionId));
+    const readIdentity=async sessionId=>{headerIdentity=await auth.read(sessionId);if(headerIdentity&&hostedOnboardingPreview)headerIdentity={...headerIdentity,onboardingPreview:true};return headerIdentity;};
     const html=(title,body)=>pageHtml(title,body,headerBusiness,headerIdentity,activePath,restoreTest);
     const expected=`127.0.0.1:${server.address()?.port}`, origin=hostedStaging?stagingOrigin:`http://${expected}`;
     const send=(code,body,type='text/html; charset=utf-8')=>{res.writeHead(code,{'Content-Type':type,'Cache-Control':'no-store','Referrer-Policy':'same-origin','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"});res.end(body);};
@@ -66,7 +68,8 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
         if(req.method!=='GET'&&req.headers.origin!==origin&&!(paymentProxy&&req.method==='POST'&&/^\/payments\/[0-9a-f-]{36}\/webhook$/i.test(req.url)))return send(403,'Origin rejected','text/plain');
       }
       const url=new URL(req.url,origin),id=req.headers.cookie?.match(new RegExp('(?:^|;\\s*)'+cookieName+'=([a-f0-9-]+)'))?.[1];
-      if(hostedStaging&&req.method==='GET'&&url.pathname==='/environment-health')return send(200,JSON.stringify({environment:'staging',transport:hostedTransport,transportSecurity:hostedTransport==='litespeed'?'managed-tls-edge':'passenger-protected-https',projectRef:'xdmfyrsauvqznkloroxg',sourceFingerprint:hostedFingerprint,appPaymentDispatch:paymentProxy?'test-only':'disabled',appNotificationDispatch:'disabled',authEmailSafeguard:'requires-independent-verification',accountingWorker:'disabled'}),'application/json');
+      if(hostedOnboardingPreview&&!previewRoutes.has(url.pathname))return send(404,'This module is not part of the onboarding preview','text/plain');
+      if(hostedStaging&&req.method==='GET'&&url.pathname==='/environment-health')return send(200,JSON.stringify({environment:'staging',transport:hostedTransport,transportSecurity:hostedTransport==='litespeed'?'managed-tls-edge':'passenger-protected-https',projectRef:hostedOnboardingPreview?previewProject:'xdmfyrsauvqznkloroxg',sourceFingerprint:hostedFingerprint,appPaymentDispatch:paymentProxy?'test-only':'disabled',appNotificationDispatch:'disabled',authEmailSafeguard:'requires-independent-verification',accountingWorker:'disabled'}),'application/json');
       activePath=url.pathname;
       if(restoreTest&&req.method!=='GET'&&!(req.method==='POST'&&['/login','/logout'].includes(url.pathname)))return send(405,'Restore test: business writes are disabled','text/plain');
       if(restoreTest&&req.method==='GET'&&url.pathname==='/restore-health')return send(200,JSON.stringify({environment:'restore-test',businessWrites:'disabled',accountingWorker:'disabled'}),'application/json');
@@ -83,7 +86,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
         const next=url.searchParams.get('next');
         return send(200,loginForm('').replace('<label for="email">',customerRoute(next??'')?'<input type="hidden" name="next" value="'+esc(next)+'"><label for="email">':'<label for="email">'));
       }
-      // T31 registration: disabled by default, and never activated on hosted staging.
+      // T31 registration: legacy hosting remains blocked; dedicated onboarding preview requires its Auth hook.
       if(url.pathname==='/register'&&['GET','POST'].includes(req.method)){
         if(restoreTest||!ownerRegistrationEnabled)return send(404,'Registration unavailable','text/plain');
         const show=(message='')=>pageHtml('Owner registration',
@@ -700,7 +703,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
             const data=new URLSearchParams(body);let settings;
             try{settings=parseBusinessSettings(data);}catch(error){
               const values=Object.fromEntries(data);values.working_days=data.getAll('working_days').map(Number);
-              return send(422,html('Business settings',renderBusinessSettings(business,values,error.message,true,await readVatSettings(client,businessId))));
+              return send(422,html('Business settings',renderBusinessSettings(business,values,error.message,true,hostedOnboardingPreview?false:await readVatSettings(client,businessId))));
             }
             await saveBusinessSettings(client,businessId,settings);return redirect('/settings?business='+encodeURIComponent(businessId)+'&saved=1');
           });
@@ -710,7 +713,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
           return await auth.withOwner(id,url.searchParams.get('business'),async(client,business)=>{
             headerBusiness=business;
             try{await saveVatSettings(client,business.id,new URLSearchParams(body));}
-            catch(error){if(error.message==='Settings access denied')throw error;return send(error.status??422,html('Business settings',renderBusinessSettings(business,await readBusinessSettings(client,business.id),error.message,true,await readVatSettings(client,business.id))));}
+            catch(error){if(error.message==='Settings access denied')throw error;return send(error.status??422,html('Business settings',renderBusinessSettings(business,await readBusinessSettings(client,business.id),error.message,true,hostedOnboardingPreview?false:await readVatSettings(client,business.id))));}
             return redirect('/settings?business='+encodeURIComponent(business.id)+'&vat_saved=1');
           });
         }
@@ -789,7 +792,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
       }
       if(url.pathname==='/settings'){
         if(!await readIdentity(id)){clear();return redirect('/login');}
-        return await auth.withOwner(id,url.searchParams.get('business'),async(client,business)=>{headerBusiness=business;return send(200,html('Business settings',renderBusinessSettings(business,await readBusinessSettings(client,business.id),url.searchParams.get('vat_saved')==='1'?'VAT setting saved.':url.searchParams.get('saved')==='1'?'Settings saved.':'',false,await readVatSettings(client,business.id))));});
+        return await auth.withOwner(id,url.searchParams.get('business'),async(client,business)=>{headerBusiness=business;return send(200,html('Business settings',renderBusinessSettings(business,await readBusinessSettings(client,business.id),url.searchParams.get('vat_saved')==='1'?'VAT setting saved.':url.searchParams.get('saved')==='1'?'Settings saved.':'',false,hostedOnboardingPreview?false:await readVatSettings(client,business.id))));});
       }
       if(url.pathname!=='/dashboard')return send(404,'Not found','text/plain');
       const identity=await readIdentity(id);if(!identity){clear();return redirect('/login');}

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import pg from 'pg';
+import {readFile} from 'node:fs/promises';
 import {installRestrictedGreenfield} from '../test-support/t31-greenfield-fixture.js';
 
 // Connects ONLY to the dedicated disposable local PostgreSQL cluster.
@@ -13,6 +14,21 @@ test('T31 greenfield foundation installs cleanly and isolates tenant settings an
  const db=new pg.Client({connectionString:url.href});
  await db.connect();t.after(()=>db.end());
  await installRestrictedGreenfield(db);
+ const migration=await readFile(new URL('../deploy/t31-greenfield/supabase/migrations/20261106195033_t31_onboarding_foundation.sql',import.meta.url),'utf8');
+ await assert.rejects(db.query(migration),e=>e.code==='P0001');
+ await db.query('rollback');
+ // Auth hook gate denies all until a separately approved recipient is configured.
+ await db.query('begin');await db.query('set local role supabase_auth_admin');
+ assert.equal((await db.query("select private_t31.before_user_created($1::jsonb) result",[JSON.stringify({user:{email:'test@example.invalid'}})])).rows[0].result.error.http_code,403);
+ await db.query('rollback');
+ await db.query("insert into private_t31.registration_allowlist(email,enabled) values('test@example.invalid',true)");
+ await db.query('begin');await db.query('set local role supabase_auth_admin');
+ assert.deepEqual((await db.query("select private_t31.before_user_created($1::jsonb) result",[JSON.stringify({user:{email:'test@example.invalid'}})])).rows[0].result,{});
+ assert.equal((await db.query("select private_t31.before_user_created($1::jsonb) result",[JSON.stringify({user:{email:'foreign@example.invalid'}})])).rows[0].result.error.http_code,403);
+ await db.query('rollback');
+ console.log('T31_REGISTRATION_ALLOWLIST_NATIVE_PASS');
+ await db.query('select max_daily_minutes from public.business_settings');
+ await db.query('select cleaning_profile,cleaning_config from public.business_catalogue');
  const alice='31000000-0000-4000-8000-000000000001';
  const bob='31000000-0000-4000-8000-000000000002';
  await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now()),($3,$4,now())',

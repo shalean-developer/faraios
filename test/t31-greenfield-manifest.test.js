@@ -4,8 +4,8 @@ import {GREENFIELD_T31_FILES} from '../src/t31-greenfield-manifest.js';
 
 test('T31 greenfield source order is complete and isolated', () => {
   const files=GREENFIELD_T31_FILES;
-  assert.equal(files.length,10);
-  assert.equal(new Set(files).size,10);
+  assert.equal(files.length,13);
+  assert.equal(new Set(files).size,13);
   assert.equal(files[0],'database/identity-draft.sql');
   assert.equal(files[1],'database/audit-draft.sql');
   assert.ok(files.indexOf('database/bookings-draft.sql')<files.indexOf('database/staff-teams-draft.sql'));

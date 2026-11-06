@@ -1,10 +1,10 @@
 // Restricted managed-Auth permission model; not a replacement for hosted acceptance.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {GREENFIELD_T31_FILES} from '../src/t31-greenfield-manifest.js';
+const migrationPath='../deploy/t31-greenfield/supabase/migrations/20261106195033_t31_onboarding_foundation.sql';
 
 export async function installRestrictedGreenfield(db) {
- await db.query(`create role authenticated nologin; create role anon nologin;
+ await db.query(`create role authenticated nologin; create role anon nologin; create role supabase_auth_admin nologin;
  create role t31_fixture_auth_owner nologin;
  create role t31_fixture_installer nologin nosuperuser nobypassrls noinherit createrole;
  create schema auth authorization t31_fixture_auth_owner;
@@ -31,8 +31,7 @@ export async function installRestrictedGreenfield(db) {
  await db.query('set role t31_fixture_installer');
  try {
   assert.equal((await db.query('select rolsuper,rolbypassrls from pg_roles where rolname=current_user')).rows[0].rolsuper,false);
-  for(const path of GREENFIELD_T31_FILES)
-   await db.query(await readFile(new URL('../'+path,import.meta.url),'utf8'));
+  await db.query(await readFile(new URL(migrationPath,import.meta.url),'utf8'));
  } catch(error) { await db.query('rollback'); throw error; }
  finally { await db.query('reset role'); }
  assert.deepEqual((await db.query(`select nspowner::regrole::text owner,nspacl::text acl
