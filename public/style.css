@@ -653,3 +653,11 @@ form[action="/business/new"] button{width:100%;min-height:48px;font-weight:600}
 .business-settings-form .form-actions{position:sticky;bottom:0;z-index:5;padding:16px 0;background:#f5f7f6;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .business-settings-form .form-actions>*{min-height:46px}
 @media(max-width:600px){.business-settings-form .editor-panel{padding:20px}.business-settings-form .form-grid{grid-template-columns:minmax(0,1fr)}.business-settings-form .form-actions{padding:12px 0}.business-settings-form .form-actions>button{flex:1}.settings-sections{gap:6px}.settings-sections a{padding:8px 10px}}
+
+.settings-tab-list{display:flex;gap:6px;flex-wrap:wrap;padding:4px;background:#e7eeea;border-radius:10px}
+.settings-tab-list [role=tab]{border:0;background:transparent;margin:0;min-width:80px;justify-content:center}
+.settings-tab-list [role=tab][aria-selected=true]{background:#16654f;color:white;box-shadow:0 2px 5px #17332e12;font-weight:600}
+.business-settings-form [role=tabpanel][hidden]{display:none!important}
+.business-settings-form [role=tabpanel]:not([hidden]){margin-top:0}
+.settings-sections{align-items:center}
+.workspace-header>div:first-child .muted{font-weight:600;color:#527066}

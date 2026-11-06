@@ -2,7 +2,7 @@
 export const previewProject='qcmnxjilmsibxftfverd';
 export const previewDatabase='https://qcmnxjilmsibxftfverd.supabase.co';
 export const previewKey='sb_publishable__ObwQV0RX9dhkBOXaI5zSA_eeZErPF1';
-export const previewRoutes=new Set(['/','/login','/logout','/register','/business/new','/dashboard','/onboarding','/settings','/catalogue','/branding','/staff','/team-invite','/team-members','/accept-invite','/environment-health','/robots.txt','/style.css','/password-visibility.js','/dropdown.js','/date-time-picker.js','/date-time-values.js','/catalogue-setup.js']);
+export const previewRoutes=new Set(['/','/login','/logout','/register','/business/new','/dashboard','/onboarding','/settings','/catalogue','/branding','/staff','/team-invite','/team-members','/accept-invite','/environment-health','/robots.txt','/style.css','/settings-tabs.js','/password-visibility.js','/dropdown.js','/date-time-picker.js','/date-time-values.js','/catalogue-setup.js']);
 const reads=new Set(['businesses','business_memberships']);
 const writes=new Set(['business_settings','business_catalogue','t31_business_branding','staff_profiles','staff_teams']);
 const rpcs=new Set(['t31_provision_business','t31_invite_staff','t31_accept_invite','t31_staff_members','t31_suspend_member','staff_context','staff_availability']);

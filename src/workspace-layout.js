@@ -24,8 +24,8 @@ export function renderWorkspaceFrame(identity,business,body,active='/dashboard')
  return `<a class="skip-link" href="#main-content">Skip to content</a><div class="workspace-topbar">${renderWorkspaceHeader({business})}</div><div class="workspace">${renderWorkspaceNavigation(identity,business?.id??'all',active)}<main id="main-content" tabindex="-1" class="content module-content">${body}</main></div>`;
 }
 
-export function moduleHeading({title,business,description='',actions='',back=''}){
- return `${back?`<a class="module-back" href="${back}">← Back</a>`:''}<div class="module-heading"><div><p class="eyebrow">${escapeHtml(business.name)}</p><h1>${escapeHtml(title)}</h1>${description?`<p class="module-description">${escapeHtml(description)}</p>`:''}</div>${actions?`<div class="module-actions">${actions}</div>`:''}</div>`;
+export function moduleHeading({title,business,description='',actions='',back='',showBusiness=true}){
+ return `${back?`<a class="module-back" href="${back}">← Back</a>`:''}<div class="module-heading"><div>${showBusiness?`<p class="eyebrow">${escapeHtml(business.name)}</p>`:''}<h1>${escapeHtml(title)}</h1>${description?`<p class="module-description">${escapeHtml(description)}</p>`:''}</div>${actions?`<div class="module-actions">${actions}</div>`:''}</div>`;
 }
 
 export function feedback(message,error=false){return message?`<p class="feedback ${error?'feedback-error':'feedback-success'}" role="${error?'alert':'status'}">${escapeHtml(message)}</p>`:'';}
