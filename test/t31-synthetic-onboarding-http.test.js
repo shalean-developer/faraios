@@ -277,7 +277,17 @@ test('T31 disconnected full third-cleaning-company journey and forbidden tenant 
   cookie=result.headers.get('set-cookie').split(';')[0];
   assert.equal((await request('/dashboard?business='+id,{cookie})).status,200);
   assert.equal((await request('/dashboard?business='+randomUUID(),{cookie})).status,403);
+  assert.equal((await request('/dashboard',{cookie})).headers.get('location'),'/dashboard?business='+id,'single configured business skips selector');
   b.brands.length=0;
   assert.equal((await request('/dashboard?business='+id,{cookie})).headers.get('location'),target,'saved state changes resume setup');
+  for(const role of ['manager','staff']){
+   b.members.find(m=>m.user_id===b.users.get(email).id&&m.business_id===id).role=role;
+   result=await login();assert.equal(result.headers.get('location'),'/dashboard?business='+id);
+   cookie=result.headers.get('set-cookie').split(';')[0];
+   assert.equal((await request('/dashboard',{cookie})).headers.get('location'),'/dashboard?business='+id);
+   const view=await request('/dashboard?business='+id,{cookie});assert.equal(view.status,200);
+   const markup=await view.text();assert.doesNotMatch(markup,/Create business|>Setup<|Open setup/);
+   assert.equal((await request('/settings?business='+id,{cookie})).status,403);
+  }
  },true);
 });

@@ -51,7 +51,8 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
   const onboardingDestination=async(sessionId,identity,selected='all')=>{
     if(!identity.businessIds.length)return '/business/new';
     const businessId=selected==='all'?(identity.businessIds.length===1?identity.businessIds[0]:null):selected;
-    if(!businessId||!identity.memberships.some(m=>m.businessId===businessId&&m.role==='owner'&&m.status==='active'))return '/dashboard';
+    if(!businessId)return '/dashboard';
+    if(!identity.memberships.some(m=>m.businessId===businessId&&m.role==='owner'&&m.status==='active'))return '/dashboard?business='+encodeURIComponent(businessId);
     const progress=await auth.withOwner(sessionId,businessId,async(client,business)=>{
       const [settings,items,branding]=await Promise.all([readBusinessSettings(client,business.id),listCatalogue(client,business.id),readBranding(client,business.id)]);
       return onboardingProgress(settings,items,branding);
@@ -804,7 +805,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
       const identity=await readIdentity(id);if(!identity){clear();return redirect('/login');}
       const selected=url.searchParams.get('business')??'all';
       if(selected!=='all'&&!identity.businessIds.includes(selected))return send(403,'You do not have access to this business.','text/plain');
-      if(hostedOnboardingPreview){const destination=await onboardingDestination(id,identity,selected);if(destination.startsWith('/onboarding')||destination==='/business/new')return redirect(destination);}
+      if(hostedOnboardingPreview){const destination=await onboardingDestination(id,identity,selected);if(destination.startsWith('/onboarding')||destination==='/business/new'||selected==='all'&&identity.businessIds.length===1)return redirect(destination);}
       return send(200,renderWorkspace(identity,selected,{restoreTest}));
     }catch(error){if(['Cleaner access denied','Adjustment access denied','Earnings access denied','Invoice access denied','Quote access denied','Staff access denied','Settings access denied','Catalogue access denied','Customer access denied','Booking access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,loginForm('Staging service unavailable. Please try again later.'));}
   });return server;

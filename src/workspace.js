@@ -24,13 +24,27 @@ export function renderWorkspace(identity, selected='all', {restoreTest=false}={}
 function renderPreviewWorkspace(identity,selected){
  const allowed=accessibleBusinesses(identity.userId,identity.memberships);
  if(selected!=='all'&&!allowed.includes(selected))throw new Error('Business access denied');
- const businesses=identity.businesses.filter(b=>allowed.includes(b.id)),visible=businesses.filter(b=>selected==='all'||b.id===selected);
+ const businesses=identity.businesses.filter(b=>allowed.includes(b.id));
+ const visible=businesses.filter(b=>selected==='all'||b.id===selected);
  const role=id=>identity.memberships.find(m=>m.businessId===id&&m.userId===identity.userId&&m.status==='active')?.role;
  const business=selected==='all'?null:visible[0],e=v=>esc(compactDisplayId(v));
- const body='<section class="ui-overview"><div class="module-heading"><div><h1>Overview</h1><p>Your business workspaces.</p></div><a class="button primary" href="/business/new">Create business</a></div>'
- +(businesses.length?'<form class="panel ui-switcher" method="get" action="/dashboard"><label for="business">Business</label><div class="switch"><select data-dropdown id="business" name="business"><option value="all"'+(selected==='all'?' selected':'')+'>All businesses</option>'+businesses.map(b=>'<option value="'+esc(b.id)+'"'+(selected===b.id?' selected':'')+'>'+e(b.name)+'</option>').join('')+'</select><button>Apply</button></div></form>':'')
- +'<section class="panel"><h2>'+(business?'Workspace':'Businesses')+'</h2>'
- +(visible.length?visible.map(b=>'<article class="business-row"><div><strong>'+e(b.name)+'</strong><p>'+({owner:'Owner',manager:'Manager',staff:'Cleaner'}[role(b.id)]??'Member')+'</p></div><div class="ui-business-actions">'+(role(b.id)==='owner'?'<a class="button primary" href="/onboarding?business='+encodeURIComponent(b.id)+'">Open setup</a>':'')+(selected===b.id&&canAccess({userId:identity.userId,businessId:b.id,permission:'catalogue.read',memberships:identity.memberships})?'<a class="button secondary" href="/catalogue?business='+encodeURIComponent(b.id)+'">Services</a>':selected!==b.id?'<a class="button secondary" href="/dashboard?business='+encodeURIComponent(b.id)+'">Open workspace</a>':'')+'</div></article>').join(''):'<p>No businesses yet. Create one to get started.</p>')
- +'</section><p class="muted">Setup, services, staff and access are available in this preview.</p></section>';
- return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Overview · FaraiOS staging</title><link rel="stylesheet" href="/style.css?v=t31-ui-audit-final-20261107"><script type="module" src="/dropdown.js"></script></head><body class="workspace-layout"><div class="notice">FaraiOS STAGING · Test workspace · No production data</div>'+renderWorkspaceFrame(identity,business,body,'/dashboard')+'</body></html>';
+ const canCreate=!businesses.length||(business?role(business.id)==='owner':businesses.some(b=>role(b.id)==='owner'));
+ const duplicateName=b=>businesses.filter(other=>other.name.trim().toLowerCase()===b.name.trim().toLowerCase()).length>1;
+ const reference=b=>duplicateName(b)?' · '+compactDisplayId(b.id):'';
+ const roles={owner:'Owner',manager:'Manager',staff:'Cleaner'};
+ const actions=b=>{
+  const id=encodeURIComponent(b.id),name=e(b.name+reference(b));
+  if(!business)return '<a class="button primary" href="/dashboard?business='+id+'" aria-label="Open '+name+'">Open workspace</a>';
+  return (role(b.id)==='owner'?'<a class="button secondary" href="/onboarding?business='+id+'">Setup</a>':'')
+   +(canAccess({userId:identity.userId,businessId:b.id,permission:'catalogue.read',memberships:identity.memberships})?'<a class="button primary" href="/catalogue?business='+id+'">Services</a>':'');
+ };
+ const body='<section class="ui-overview"><div class="module-heading"><div><h1>'+(business?'Overview':'Businesses')+'</h1><p>'+(business?'Your selected workspace.':'Choose a business to continue.')+'</p></div><div class="ui-business-actions">'
+ +(business&&businesses.length>1?'<a class="button secondary" href="/dashboard?business=all#business">Switch business</a>':'')
+ +(canCreate?'<a class="button secondary" href="/business/new">Create business</a>':'')+'</div></div>'
+ +'<section class="panel" id="business" aria-label="Business workspaces">'
+ +(visible.length?visible.map(b=>'<article class="business-row"><div><strong>'+e(b.name)+'</strong><p>'+roles[role(b.id)]+(duplicateName(b)?' · <span class="business-reference">Ref '+e(b.id)+'</span>':'')+'</p>'
+ +(business&&role(b.id)==='staff'?'<p>Staff tools are not available in this preview.</p>':'')
+ +'</div><div class="ui-business-actions">'+actions(b)+'</div></article>').join(''):'<h2>No businesses yet</h2><p>Create a business to get started.</p>')
+ +'</section></section>';
+ return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+(business?'Overview':'Businesses')+' · FaraiOS staging</title><link rel="stylesheet" href="/style.css?v=t31-overview-audit-20261107"><script type="module" src="/dropdown.js"></script></head><body class="workspace-layout"><div class="notice">FaraiOS STAGING · Test workspace · No production data</div>'+renderWorkspaceFrame(identity,business,body,'/dashboard')+'</body></html>';
 }
