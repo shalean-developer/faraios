@@ -706,3 +706,11 @@ form[action="/business/new"] button{width:100%;min-height:48px;font-weight:600}
 .team-invite-note h2{font-size:16px;color:#193c34;margin:0 0 6px}
 .team-invite-note p{font-size:14px;margin:0}
 @media(max-width:600px){.team-access-heading{align-items:flex-start;flex-direction:column;gap:16px}.team-access-heading h1{font-size:28px}.team-access .panel{padding:16px}.team-access-table{min-width:500px}}
+
+.team-access .member-id{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px}
+.team-access .member-id code{display:inline;margin:0;padding:2px 6px;border-radius:4px;background:#f1f5f3;color:#49635b;white-space:nowrap}
+.team-access .team-invite-note{position:static;width:auto;min-height:0;background:#fff;border:1px solid #dfe7e3;border-radius:12px;padding:20px 24px;margin-top:20px}
+.team-access .team-invite-note h2{font-size:18px;margin:0 0 12px}
+.team-access .team-invite-note ol{display:flex;flex-wrap:wrap;gap:12px 40px;padding-left:20px;margin:0 0 12px;font-size:14px}
+.team-access .team-invite-note p{margin:0;font-size:13px}
+@media(max-width:600px){.team-access .team-invite-note{padding:16px}.team-access .team-invite-note ol{display:block}.team-access .team-invite-note li+li{margin-top:8px}}
