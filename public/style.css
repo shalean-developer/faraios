@@ -763,3 +763,9 @@ form[action="/business/new"] button{width:100%;min-height:48px;font-weight:600}
 .login .registration-password input{display:block;width:100%;min-height:46px;padding:12px 48px 12px 12px;border:1px solid #cbdad3;border-radius:8px;font:inherit}
 .login .registration-password .password-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:8px;display:flex;align-items:center;justify-content:center;background:transparent;color:#176a55;border:0}
 .login .registration-password .password-toggle[hidden]{display:none}
+
+.ui-overview .ui-business-actions{justify-content:flex-end}
+.setup-page .setup-card{margin-top:20px;padding:24px}
+.setup-page .setup-footer{padding-top:18px}
+.setup-page .setup-team{padding:12px 0}
+@media(max-width:600px){.setup-page .setup-card{padding:20px}.ui-overview .ui-business-actions{justify-content:flex-start}}
