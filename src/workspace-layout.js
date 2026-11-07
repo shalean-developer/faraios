@@ -1,6 +1,7 @@
 import {canAccess,accessibleBusinesses} from './access.js';
 import {renderWorkspaceHeader} from './workspace-header.js';
 
+export const compactDisplayId=value=>String(value??'').replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,id=>id.slice(0,8)+'…'+id.slice(-4));
 export const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 // Navigation is derived from verified membership records. Destinations still enforce access.

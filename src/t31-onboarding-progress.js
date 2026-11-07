@@ -22,15 +22,15 @@ export function onboardingProgress(settings,items=[],branding=null) {
 export function renderOnboardingProgress(business,progress) {
  const id=encodeURIComponent(business.id);
  const steps=[
-  ['profile','Profile','Name and contact details','/settings?business='+id],
-  ['serviceAreas','Service areas','Where you work','/settings?business='+id],
-  ['operatingHours','Hours','Working days and times','/settings?business='+id],
-  ['services','Services & prices','Your services and extras','/catalogue?business='+id],
+  ['profile','Profile','Name and contact details','/settings?business='+id+'#profile'],
+  ['serviceAreas','Areas','Where you work','/settings?business='+id+'#profile'],
+  ['operatingHours','Hours','Working days and times','/settings?business='+id+'#hours'],
+  ['services','Services','Services, prices and extras','/catalogue?business='+id],
   ['branding','Branding','Your business colour','/branding?business='+id]
  ];
  const next=steps.find(([key])=>!progress[key]);
  const complete=!next;
- return '<section class="setup-page"><div class="setup-heading"><p class="eyebrow">'+escapeHtml(business.name)+'</p><h1>Business setup</h1><p>'+(complete?'You’re ready to open your workspace.':'Add your details to get started.')+'</p></div>'
+ return '<section class="setup-page"><div class="setup-heading"><h1>Setup</h1><p>'+(complete?'You’re ready to open your workspace.':'Add your details to get started.')+'</p></div>'
  +'<section class="panel setup-card" aria-labelledby="setup-progress"><div class="setup-progress-heading"><h2 id="setup-progress">Your progress</h2><span>'+progress.completed+' of '+progress.total+' complete</span></div>'
  +'<progress class="setup-progress" max="'+progress.total+'" value="'+progress.completed+'" aria-label="Business setup progress">'+progress.completed+' of '+progress.total+'</progress>'
  +'<ol class="setup-steps">'+steps.map(([key,label,description,url],i)=>'<li class="'+(progress[key]?'is-complete':'')+'"><span class="setup-number" aria-hidden="true">'+(progress[key]?'✓':i+1)+'</span><div class="setup-step-copy"><h3>'+escapeHtml(label)+'</h3><p>'+description+'</p></div><span class="setup-status">'+(progress[key]?'Done':'To do')+'</span><a class="setup-step-link" href="'+url+'" aria-label="'+(progress[key]?'Edit ':'Set up ')+escapeHtml(label)+'">'+(progress[key]?'Edit':'Set up')+'</a></li>').join('')+'</ol>'

@@ -714,3 +714,52 @@ form[action="/business/new"] button{width:100%;min-height:48px;font-weight:600}
 .team-access .team-invite-note ol{display:flex;flex-wrap:wrap;gap:12px 40px;padding-left:20px;margin:0 0 12px;font-size:14px}
 .team-access .team-invite-note p{margin:0;font-size:13px}
 @media(max-width:600px){.team-access .team-invite-note{padding:16px}.team-access .team-invite-note ol{display:block}.team-access .team-invite-note li+li{margin-top:8px}}
+
+/* T31 UI baseline: short headings, bounded forms, compact optional content. */
+.module-content h1,.workspace-page h1,.login h1{font-size:32px;line-height:1.2;letter-spacing:-.7px}
+.module-content .module-heading{margin-bottom:20px}
+.module-content .module-heading .eyebrow{margin-top:0}
+.ui-page{max-width:720px}
+.ui-page>h1{margin:16px 0 8px}
+.ui-page>p{margin:0 0 20px}
+.ui-form{display:grid;gap:20px}
+.ui-form .form-field{display:flex;flex-direction:column;gap:8px;min-width:0}
+.ui-form label{font-size:14px;font-weight:600}
+.ui-form input,.ui-form select{width:100%;max-width:none;min-height:44px;padding:11px 12px;border:1px solid #cbdad3;border-radius:8px;background:white;font:inherit;color:inherit}
+.ui-form small{font-size:12px;line-height:1.5;color:#6e817b}
+.ui-form h2{margin:0;font-size:18px}
+.ui-form .form-actions{margin:0;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.ui-form .muted{margin:0}
+.ui-page .module-back{display:inline-block;margin-bottom:4px}
+.invitation-result code{display:block;overflow-wrap:anywhere;padding:12px;background:#f3f7f5;border-radius:8px}
+.ui-overview{max-width:1040px}
+.ui-overview .module-heading h1{margin-top:0}
+.ui-overview .module-heading p{margin:4px 0 0}
+.ui-switcher{display:flex;align-items:center;gap:16px;padding:16px 20px}
+.ui-switcher label{font-size:14px;font-weight:600}
+.ui-switcher .switch{flex:1;align-items:center;min-width:0}
+.ui-switcher select{max-width:none;width:100%}
+.ui-business-actions{display:flex;flex-wrap:wrap;gap:10px}
+.ui-overview .business-row:last-child{padding-bottom:0}
+.ui-overview .business-row p{font-size:13px}
+#staff-editor{max-width:900px}
+#staff-editor fieldset{border:1px solid #dfe7e3;border-radius:10px;padding:16px;display:flex;flex-wrap:wrap;gap:12px}
+#staff-editor .setup-save{padding-top:16px}
+.setup-page .setup-heading{margin-bottom:20px}
+.setup-page .setup-steps li{padding-top:14px;padding-bottom:14px}
+.setup-page .setup-team{margin-top:16px}
+.module-content input:focus-visible,.module-content textarea:focus-visible,.ui-form select:focus-visible{outline:3px solid #bb7b22;outline-offset:2px}
+@media(max-width:600px){
+ .module-content h1,.workspace-page h1,.login h1{font-size:27px}
+ .ui-form{padding:20px;gap:18px}
+ .ui-switcher{align-items:flex-start;flex-direction:column}
+ .ui-switcher .switch{width:100%}
+ .ui-business-actions{width:100%}
+ .ui-business-actions .button{flex:1;text-align:center}
+ .setup-page .setup-steps li{padding-top:12px;padding-bottom:12px}
+}
+
+.login .registration-password{position:relative;margin:8px 0 20px}
+.login .registration-password input{display:block;width:100%;min-height:46px;padding:12px 48px 12px 12px;border:1px solid #cbdad3;border-radius:8px;font:inherit}
+.login .registration-password .password-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:8px;display:flex;align-items:center;justify-content:center;background:transparent;color:#176a55;border:0}
+.login .registration-password .password-toggle[hidden]{display:none}
