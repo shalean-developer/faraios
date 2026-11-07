@@ -680,3 +680,29 @@ form[action="/business/new"] button{width:100%;min-height:48px;font-weight:600}
 .catalogue-setup .setup-save{position:sticky;bottom:0;z-index:5;background:white;border-top:1px solid #dfe7e3;padding:14px 0 0;margin-top:16px}
 .catalogue-setup .setup-save p{font-size:12px;margin:0 0 10px}
 @media(max-width:600px){#catalogue-editor{padding:16px}.catalogue-setup .setup-body{padding:16px}.catalogue-setup>.setup-section>summary{padding:14px}.catalogue-setup .setup-save{padding-bottom:8px}}
+
+/* Compact, readable business membership view. */
+.team-access{max-width:1040px}
+.team-access-heading{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:24px}
+.team-access-heading h1{font-size:32px;margin:0 0 8px}
+.team-access-heading p{margin:0;color:#58716b}
+.team-access-heading .button{display:inline-flex;white-space:nowrap;align-items:center;text-decoration:none;background:#176a55;color:white;border-radius:8px;padding:12px 18px}
+.team-access .panel{padding:24px}
+.team-access .panel h2{font-size:20px;margin:0 0 8px}
+.member-count{font-size:14px;color:#58716b;margin-left:8px}
+.team-table-scroll{overflow-x:auto}
+.team-access-table{width:100%;border-collapse:collapse;margin-top:20px}
+.team-access-table th{text-align:left;font-size:13px;color:#58716b;padding:12px;border-bottom:1px solid #dfe7e3}
+.team-access-table td{padding:16px 12px;border-bottom:1px solid #e8eeeb;vertical-align:top}
+.team-access-table td:last-child{white-space:nowrap}
+.team-access-table form{margin:0}
+.member-id{font-size:12px;margin-top:8px;color:#58716b}
+.member-id summary{cursor:pointer}
+.member-id code{display:block;overflow-wrap:anywhere;max-width:240px;margin-top:8px}
+.member-status{display:inline-block;border-radius:20px;padding:4px 10px;font-size:13px}
+.member-status.is-active{background:#e5f3ed;color:#176a55}
+.member-status.is-suspended{background:#f2efea;color:#6b5844}
+.team-invite-note{padding:0 4px;margin-top:20px;color:#58716b}
+.team-invite-note h2{font-size:16px;color:#193c34;margin:0 0 6px}
+.team-invite-note p{font-size:14px;margin:0}
+@media(max-width:600px){.team-access-heading{align-items:flex-start;flex-direction:column;gap:16px}.team-access-heading h1{font-size:28px}.team-access .panel{padding:16px}.team-access-table{min-width:500px}}
