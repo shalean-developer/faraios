@@ -567,3 +567,205 @@ input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px sol
  .eft-record form>button,.eft-payment form>button,.eft-receipts form>button{align-self:flex-start;max-width:100%;white-space:normal}
  .eft-receipts article{padding:12px 0}
 }
+
+/* T31 registration: scoped to the public signup form. */
+main.workspace-page:has(form[action="/register"]){width:100%;max-width:520px;margin:56px auto;padding:0 24px 48px}
+main:has(form[action="/register"]) h1{font-size:32px;line-height:1.18;letter-spacing:-.8px;margin:0 0 16px}
+main:has(form[action="/register"])>p{margin:0 0 20px}
+form[action="/register"].panel{display:flex;flex-direction:column;align-items:stretch;padding:28px;margin:28px 0 24px;box-shadow:0 8px 28px #17332e08}
+form[action="/register"] label{display:block;font-size:14px;font-weight:600;margin:0 0 8px}
+form[action="/register"] input{display:block;width:100%;min-width:0;min-height:48px;padding:12px 14px;margin:0 0 24px;border:1px solid #b7cbc2;border-radius:8px;background:#fff;color:#17332e;font:inherit;font-size:16px}
+form[action="/register"] input:focus-visible{outline:3px solid #16654f33;outline-offset:2px;border-color:#16654f}
+form[action="/register"] button{width:100%;min-height:48px;font-weight:600}
+main:has(form[action="/register"])>p:last-child{text-align:center;font-size:14px}
+@media(max-width:600px){main.workspace-page:has(form[action="/register"]){margin:32px auto;padding:0 20px 32px}main:has(form[action="/register"]) h1{font-size:28px}form[action="/register"].panel{padding:24px 20px}.notice{overflow-wrap:anywhere}}
+
+.registration-password{position:relative}
+form[action="/register"] .registration-password input{padding-right:56px;margin-bottom:0}
+form[action="/register"] .password-toggle{position:absolute;right:4px;top:4px;width:40px;min-height:40px;height:40px;padding:8px;display:grid;place-items:center;background:transparent;color:#16654f;border:0}
+form[action="/register"] .password-toggle[hidden],.eye-slash[hidden]{display:none}
+form[action="/register"] .password-toggle:hover{background:#e7f3ed}
+form[action="/register"] #password-help{margin:8px 0 24px;font-size:13px}
+
+/* Independent business creation */
+main.workspace-page:has(form[action="/business/new"]){width:100%;max-width:560px;margin:56px auto;padding:0 24px 48px}
+main:has(form[action="/business/new"]) h1{font-size:32px;line-height:1.2;letter-spacing:-.8px;margin:0 0 16px}
+main:has(form[action="/business/new"])>p{margin:0 0 24px}
+form[action="/business/new"]{display:flex;flex-direction:column;align-items:stretch;background:#fff;border:1px solid #dfe7e3;border-radius:14px;padding:28px;margin-top:28px;box-shadow:0 8px 28px #17332e08}
+form[action="/business/new"] label{display:block;font-size:14px;font-weight:600;margin:0 0 8px}
+form[action="/business/new"] input:not([type="hidden"]){display:block;width:100%;min-width:0;min-height:48px;padding:12px 14px;margin:0 0 24px;border:1px solid #b7cbc2;border-radius:8px;background:#fff;color:#17332e;font:inherit;font-size:16px}
+form[action="/business/new"] input:focus-visible{outline:3px solid #16654f33;outline-offset:2px;border-color:#16654f}
+form[action="/business/new"] button{width:100%;min-height:48px;font-weight:600}
+@media(max-width:600px){main.workspace-page:has(form[action="/business/new"]){margin:32px auto;padding:0 20px 32px}main:has(form[action="/business/new"]) h1{font-size:28px}form[action="/business/new"]{padding:24px 20px}}
+
+/* Business setup checklist */
+.setup-page{max-width:920px;margin:0 auto}
+.setup-heading h1{font-size:32px;line-height:1.2;margin:8px 0 12px}
+.setup-heading .eyebrow{margin:0 0 8px}
+.setup-heading>p:last-child{margin:0}
+.setup-card{padding:28px;margin-top:28px}
+.setup-progress-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.setup-progress-heading h2{font-size:18px;margin:0}
+.setup-progress-heading>span{font-size:13px;color:#527066}
+.setup-progress{display:block;width:100%;height:8px;margin:18px 0 12px;border:0;border-radius:8px;overflow:hidden;background:#e7eeea;accent-color:#16654f}
+.setup-progress::-webkit-progress-bar{background:#e7eeea;border-radius:8px}
+.setup-progress::-webkit-progress-value{background:#16654f;border-radius:8px}
+.setup-progress::-moz-progress-bar{background:#16654f;border-radius:8px}
+.setup-steps{list-style:none;padding:0;margin:0}
+.setup-steps li{display:flex;align-items:center;gap:16px;padding:20px 0;border-bottom:1px solid #e7eeea}
+.setup-number{display:grid;place-items:center;flex:0 0 34px;height:34px;background:#f0f4f2;border-radius:50%;color:#527066;font-size:14px;font-weight:600}
+.is-complete .setup-number{background:#e1f2e9;color:#16654f}
+.setup-step-copy{flex:1;min-width:0}
+.setup-step-copy h3{font-size:15px;margin:0 0 4px}
+.setup-step-copy p{font-size:13px;margin:0;line-height:1.4}
+.setup-status{font-size:12px;color:#6e817b}
+.is-complete .setup-status{color:#16654f}
+.setup-step-link{font-size:13px;font-weight:600;min-width:66px;text-align:center;border:1px solid #cbdad3;border-radius:8px;padding:9px 12px}
+.setup-step-link:hover{background:#edf5f0}
+.setup-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:24px}
+.setup-footer p{margin:0;font-size:14px}
+.setup-primary{display:inline-flex;align-items:center;justify-content:center;gap:20px;padding:13px 18px;border-radius:8px;background:#16654f;color:#fff;font-weight:600;font-size:14px;min-height:48px}
+.setup-primary:hover{background:#104d3c}
+.setup-team{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:24px 4px}
+.setup-team h2{font-size:16px;margin:0 0 6px}
+.setup-team p{font-size:13px;margin:0}
+.setup-team>div:last-child{display:flex;gap:20px;font-size:13px}
+@media(max-width:600px){.setup-heading h1{font-size:27px}.setup-card{padding:20px}.setup-steps li{gap:10px;padding:18px 0;flex-wrap:wrap}.setup-status{display:none}.setup-step-copy p{font-size:12px}.setup-step-link{padding:10px;min-width:60px}.setup-footer,.setup-team{align-items:stretch;flex-direction:column}.setup-team>div:last-child{gap:24px}.setup-progress-heading{align-items:flex-start;flex-direction:column;gap:6px}}
+
+/* Business settings usability */
+.settings-sections{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 24px}
+.settings-sections a{display:inline-flex;align-items:center;padding:9px 14px;border:1px solid #d6e2dc;border-radius:8px;background:white;font-size:13px;min-height:44px}
+.business-settings-form{width:100%;max-width:940px}
+.business-settings-form .editor-panel{padding:24px;scroll-margin-top:20px}
+.business-settings-form .editor-panel h2{font-size:18px;margin-bottom:18px}
+.business-settings-form .form-grid{gap:20px}
+.business-settings-form .form-field{min-width:0}
+.business-settings-form .form-field>label{font-size:13px;font-weight:600;margin-bottom:8px}
+.business-settings-form input:not([type=checkbox]):not([type=hidden]),.business-settings-form textarea{font-size:16px;min-height:46px;max-width:100%}
+.business-settings-form small{display:block;font-size:12px;color:#527066;line-height:1.5;margin-top:8px}
+.business-settings-form .weekday-options{padding:12px;gap:8px;margin:0 0 22px}
+.business-settings-form .weekday-options .day{border:1px solid #d6e2dc;border-radius:8px;gap:8px;padding:8px 12px}
+.business-settings-form .weekday-options .day:has(input:checked){background:#e7f3ed;border-color:#16654f;color:#16654f}
+.business-settings-form .weekday-options input{flex:0 0 18px;margin:0}
+.business-settings-form input:focus-visible,.business-settings-form textarea:focus-visible{outline:3px solid #16654f33;outline-offset:2px;border-color:#16654f}
+.business-settings-form .workload-field{max-width:340px}
+.business-settings-form .workload-field input{display:block;width:100%;padding:12px 14px;border:1px solid #cbdad3;border-radius:8px;background:white;font:inherit}
+.business-settings-form .form-actions{position:sticky;bottom:0;z-index:5;padding:16px 0;background:#f5f7f6;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.business-settings-form .form-actions>*{min-height:46px}
+@media(max-width:600px){.business-settings-form .editor-panel{padding:20px}.business-settings-form .form-grid{grid-template-columns:minmax(0,1fr)}.business-settings-form .form-actions{padding:12px 0}.business-settings-form .form-actions>button{flex:1}.settings-sections{gap:6px}.settings-sections a{padding:8px 10px}}
+
+.settings-tab-list{display:flex;gap:6px;flex-wrap:wrap;padding:4px;background:#e7eeea;border-radius:10px}
+.settings-tab-list [role=tab]{border:0;background:transparent;margin:0;min-width:80px;justify-content:center}
+.settings-tab-list [role=tab][aria-selected=true]{background:#16654f;color:white;box-shadow:0 2px 5px #17332e12;font-weight:600}
+.business-settings-form [role=tabpanel][hidden]{display:none!important}
+.business-settings-form [role=tabpanel]:not([hidden]){margin-top:0}
+.settings-sections{align-items:center}
+.workspace-header>div:first-child .muted{font-weight:600;color:#527066}
+
+.business-settings-form .settings-hours-row{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:20px;align-items:start;margin-bottom:22px}
+.business-settings-form .settings-hours-row .weekday-options{margin-bottom:0}
+.business-settings-form .settings-hours-row>.form-field{padding-top:4px}
+@media(max-width:850px){.business-settings-form .settings-hours-row{grid-template-columns:minmax(0,1fr);gap:18px}}
+
+/* Compact service editor */
+#catalogue-editor{max-width:1040px;padding:24px}
+.catalogue-setup>.setup-section{margin:0 0 12px}
+.catalogue-setup>.setup-section>summary{padding:16px 18px;min-height:56px}
+.catalogue-setup .setup-body{padding:20px}
+.catalogue-setup .setup-body>.setup-grid{gap:16px}
+.catalogue-setup .setup-field>span{font-size:12px}
+.catalogue-setup .setup-rate-row{padding:12px 0;gap:12px}
+.catalogue-setup .setup-option-group{margin:12px 0;padding:14px}
+.catalogue-setup .setup-subsection{margin:14px 0}
+.catalogue-setup .setup-save{position:sticky;bottom:0;z-index:5;background:white;border-top:1px solid #dfe7e3;padding:14px 0 0;margin-top:16px}
+.catalogue-setup .setup-save p{font-size:12px;margin:0 0 10px}
+@media(max-width:600px){#catalogue-editor{padding:16px}.catalogue-setup .setup-body{padding:16px}.catalogue-setup>.setup-section>summary{padding:14px}.catalogue-setup .setup-save{padding-bottom:8px}}
+
+/* Compact, readable business membership view. */
+.team-access{max-width:1040px}
+.team-access-heading{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:24px}
+.team-access-heading h1{font-size:32px;margin:0 0 8px}
+.team-access-heading p{margin:0;color:#58716b}
+.team-access-heading .button{display:inline-flex;white-space:nowrap;align-items:center;text-decoration:none;background:#176a55;color:white;border-radius:8px;padding:12px 18px}
+.team-access .panel{padding:24px}
+.team-access .panel h2{font-size:20px;margin:0 0 8px}
+.member-count{font-size:14px;color:#58716b;margin-left:8px}
+.team-table-scroll{overflow-x:auto}
+.team-access-table{width:100%;border-collapse:collapse;margin-top:20px}
+.team-access-table th{text-align:left;font-size:13px;color:#58716b;padding:12px;border-bottom:1px solid #dfe7e3}
+.team-access-table td{padding:16px 12px;border-bottom:1px solid #e8eeeb;vertical-align:top}
+.team-access-table td:last-child{white-space:nowrap}
+.team-access-table form{margin:0}
+.member-id{font-size:12px;margin-top:8px;color:#58716b}
+.member-id summary{cursor:pointer}
+.member-id code{display:block;overflow-wrap:anywhere;max-width:240px;margin-top:8px}
+.member-status{display:inline-block;border-radius:20px;padding:4px 10px;font-size:13px}
+.member-status.is-active{background:#e5f3ed;color:#176a55}
+.member-status.is-suspended{background:#f2efea;color:#6b5844}
+.team-invite-note{padding:0 4px;margin-top:20px;color:#58716b}
+.team-invite-note h2{font-size:16px;color:#193c34;margin:0 0 6px}
+.team-invite-note p{font-size:14px;margin:0}
+@media(max-width:600px){.team-access-heading{align-items:flex-start;flex-direction:column;gap:16px}.team-access-heading h1{font-size:28px}.team-access .panel{padding:16px}.team-access-table{min-width:500px}}
+
+.team-access .member-id{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px}
+.team-access .member-id code{display:inline;margin:0;padding:2px 6px;border-radius:4px;background:#f1f5f3;color:#49635b;white-space:nowrap}
+.team-access .team-invite-note{position:static;width:auto;min-height:0;background:#fff;border:1px solid #dfe7e3;border-radius:12px;padding:20px 24px;margin-top:20px}
+.team-access .team-invite-note h2{font-size:18px;margin:0 0 12px}
+.team-access .team-invite-note ol{display:flex;flex-wrap:wrap;gap:12px 40px;padding-left:20px;margin:0 0 12px;font-size:14px}
+.team-access .team-invite-note p{margin:0;font-size:13px}
+@media(max-width:600px){.team-access .team-invite-note{padding:16px}.team-access .team-invite-note ol{display:block}.team-access .team-invite-note li+li{margin-top:8px}}
+
+/* T31 UI baseline: short headings, bounded forms, compact optional content. */
+.module-content h1,.workspace-page h1,.login h1{font-size:32px;line-height:1.2;letter-spacing:-.7px}
+.module-content .module-heading{margin-bottom:20px}
+.module-content .module-heading .eyebrow{margin-top:0}
+.ui-page{max-width:720px}
+.ui-page>h1{margin:16px 0 8px}
+.ui-page>p{margin:0 0 20px}
+.ui-form{display:grid;gap:20px}
+.ui-form .form-field{display:flex;flex-direction:column;gap:8px;min-width:0}
+.ui-form label{font-size:14px;font-weight:600}
+.ui-form input,.ui-form select{width:100%;max-width:none;min-height:44px;padding:11px 12px;border:1px solid #cbdad3;border-radius:8px;background:white;font:inherit;color:inherit}
+.ui-form small{font-size:12px;line-height:1.5;color:#6e817b}
+.ui-form h2{margin:0;font-size:18px}
+.ui-form .form-actions{margin:0;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.ui-form .muted{margin:0}
+.ui-page .module-back{display:inline-block;margin-bottom:4px}
+.invitation-result code{display:block;overflow-wrap:anywhere;padding:12px;background:#f3f7f5;border-radius:8px}
+.ui-overview{max-width:1040px}
+.ui-overview .module-heading h1{margin-top:0}
+.ui-overview .module-heading p{margin:4px 0 0}
+.ui-switcher{display:flex;align-items:center;gap:16px;padding:16px 20px}
+.ui-switcher label{font-size:14px;font-weight:600}
+.ui-switcher .switch{flex:1;align-items:center;min-width:0}
+.ui-switcher select{max-width:none;width:100%}
+.ui-business-actions{display:flex;flex-wrap:wrap;gap:10px}
+.ui-overview .business-row:last-child{padding-bottom:0}
+.ui-overview .business-row p{font-size:13px}
+#staff-editor{max-width:900px}
+#staff-editor fieldset{border:1px solid #dfe7e3;border-radius:10px;padding:16px;display:flex;flex-wrap:wrap;gap:12px}
+#staff-editor .setup-save{padding-top:16px}
+.setup-page .setup-heading{margin-bottom:20px}
+.setup-page .setup-steps li{padding-top:14px;padding-bottom:14px}
+.setup-page .setup-team{margin-top:16px}
+.module-content input:focus-visible,.module-content textarea:focus-visible,.ui-form select:focus-visible{outline:3px solid #bb7b22;outline-offset:2px}
+@media(max-width:600px){
+ .module-content h1,.workspace-page h1,.login h1{font-size:27px}
+ .ui-form{padding:20px;gap:18px}
+ .ui-switcher{align-items:flex-start;flex-direction:column}
+ .ui-switcher .switch{width:100%}
+ .ui-business-actions{width:100%}
+ .ui-business-actions .button{flex:1;text-align:center}
+ .setup-page .setup-steps li{padding-top:12px;padding-bottom:12px}
+}
+
+.login .registration-password{position:relative;margin:8px 0 20px}
+.login .registration-password input{display:block;width:100%;min-height:46px;padding:12px 48px 12px 12px;border:1px solid #cbdad3;border-radius:8px;font:inherit}
+.login .registration-password .password-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:8px;display:flex;align-items:center;justify-content:center;background:transparent;color:#176a55;border:0}
+.login .registration-password .password-toggle[hidden]{display:none}
+
+.ui-overview .ui-business-actions{justify-content:flex-end}
+.setup-page .setup-card{margin-top:20px;padding:24px}
+.setup-page .setup-footer{padding-top:18px}
+.setup-page .setup-team{padding:12px 0}
+@media(max-width:600px){.setup-page .setup-card{padding:20px}.ui-overview .ui-business-actions{justify-content:flex-start}}

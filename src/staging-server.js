@@ -22,20 +22,21 @@ import {createAuthSessions} from './auth-session.js';
 import {registerOwner} from './t31-owner-registration.js';
 import {onboardingProgress,renderOnboardingProgress} from './t31-onboarding-progress.js';
 import {parseBranding,readBranding,saveBranding,renderBranding} from './t31-branding.js';
-import {parseStaffInvitation,createStaffInvitation,acceptStaffInvitation,listBusinessMembers,suspendBusinessMember,escapeInvitation} from './t31-staff-invitations.js';
+import {parseStaffInvitation,createStaffInvitation,acceptStaffInvitation,listBusinessMembers,suspendBusinessMember,escapeInvitation,renderTeamAccess,renderStaffInvitation,renderAcceptInvitation} from './t31-staff-invitations.js';
 import {provisionBusiness} from './t31-provisioning.js';
 import {randomUUID} from 'node:crypto';
 import {hostedRequestAllowed,stagingOrigin} from './hosted-staging.js';
+import {previewProject,previewRoutes} from './t31-hosted-preview.js';
 import {parseBusinessSettings,readBusinessSettings,saveBusinessSettings,renderBusinessSettings} from './business-settings.js';
 import {parseCatalogueItem,listCatalogue,saveCatalogueItem,deleteCatalogueItem,renderCatalogueDelete,renderCatalogueDeactivate,renderCatalogue} from './catalogue.js';
 import {parseCustomerForm,listCustomers,readCustomer,listAddresses,readAddress,saveCustomerRecord,renderCustomers} from './customers.js';
 import {bookingContext,listBookings,readBooking,parseBookingCreate,createBooking,updateBooking,renderBookings} from './bookings.js';
 import {renderWorkspace} from './workspace.js';
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const pageHtml=(title,body,business=null,identity=null,active='/dashboard',restoreTest=false)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS ${restoreTest?'restore test':'staging'}</title><link rel="stylesheet" href="/style.css"><script type="module" src="/dropdown.js"></script><script type="module" src="/date-time-picker.js"></script><script type="module" src="/catalogue-setup.js"></script>${title==='Quotes'?'<script type="module" src="/quote-detail.js"></script>':''}</head><body${business&&identity?' class="workspace-layout"':''}><div class="notice">FaraiOS ${restoreTest?'RESTORE TEST · Read-only recovery workspace · Integrations disabled':'STAGING · Test workspace · No production data'}</div>${business&&identity?renderWorkspaceFrame(identity,business,body,active):`<main class="${title==='Sign in'?'login':'workspace-page'}">${title==='Sign in'?'<div class="brand">FaraiOS</div>':''}${body}</main>`}</body></html>`;
-const form=(message,restoreTest=false)=>pageHtml('Sign in',`<h1>Welcome back</h1><p>${restoreTest?'Use your restored FaraiOS test account.':'Use your FaraiOS staging test account.'}</p>${message?`<p role="alert">${esc(message)}</p>`:''}<form method="post" action="/login" class="panel"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" maxlength="254" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><button type="submit">Sign in</button><p class="muted">Accounts are provisioned in staging. Never enter a production password here.</p></form>`,null,null,'/dashboard',restoreTest);
+const pageHtml=(title,body,business=null,identity=null,active='/dashboard',restoreTest=false)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · FaraiOS ${restoreTest?'restore test':'staging'}</title><link rel="stylesheet" href="/style.css?v=t31-ui-audit-final-20261107"><script type="module" src="/dropdown.js"></script><script type="module" src="/date-time-picker.js"></script><script type="module" src="/catalogue-setup.js?v=t31-first-invalid-20261107"></script>${title==='Business settings'?'<script type="module" src="/settings-tabs.js"></script>':''}${title==='Quotes'?'<script type="module" src="/quote-detail.js"></script>':''}</head><body${business&&identity?' class="workspace-layout"':''}><div class="notice">FaraiOS ${restoreTest?'RESTORE TEST · Read-only recovery workspace · Integrations disabled':'STAGING · Test workspace · No production data'}</div>${business&&identity?renderWorkspaceFrame(identity,business,body,active):`<main class="${title==='Sign in'?'login':'workspace-page'}">${title==='Sign in'?'<div class="brand">FaraiOS</div>':''}${body}</main>`}</body></html>`;
+const form=(message,restoreTest=false)=>pageHtml('Sign in',`<script type="module" src="/password-visibility.js?v=t31-ui-audit-final-20261107"></script><h1>Welcome back</h1><p>${restoreTest?'Use your restored FaraiOS test account.':'Sign in to your workspace.'}</p>${message?`<p role="alert">${esc(message)}</p>`:''}<form method="post" action="/login" class="panel"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" maxlength="254" required style="display:block;width:100%;padding:12px;margin:8px 0 20px"><label for="password">Password</label><div class="registration-password"><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required><button type="button" class="password-toggle" aria-label="Show password" aria-controls="password" aria-pressed="false" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="m4 4 16 16" hidden/></svg></button></div><button type="submit">Sign in</button><p class="muted">Use your confirmed staging account.</p></form>`,null,null,'/dashboard',restoreTest);
 
-export function createStagingServer({createClient,paymentProxy=null,paymentSetupProxy=null,accountingWorker=null,accountingAdapter=null,accountingProxy=null,accountingConnectionOnly=false,now=()=>Date.now(),restoreTest=false,earningsTemplates={},hostedStaging=false,hostedFingerprint=null,hostedTransport='passenger',hostedReady=()=>false,ownerRegistrationEnabled=false}){
+export function createStagingServer({createClient,paymentProxy=null,paymentSetupProxy=null,accountingWorker=null,accountingAdapter=null,accountingProxy=null,accountingConnectionOnly=false,now=()=>Date.now(),restoreTest=false,earningsTemplates={},hostedStaging=false,hostedFingerprint=null,hostedTransport='passenger',hostedReady=()=>false,ownerRegistrationEnabled=false,hostedOnboardingPreview=false}){
   if(typeof hostedStaging!=='boolean'||hostedStaging&&(!['passenger','litespeed'].includes(hostedTransport)||restoreTest||accountingWorker||accountingAdapter||!/^[a-f0-9]{64}$/.test(hostedFingerprint??'')))throw new Error('Invalid hosted staging server');
   if(process.env.NODE_ENV==='production'&&!hostedStaging)throw new Error('Local staging server cannot run in production');
   if(typeof restoreTest!=='boolean'||restoreTest&&(accountingWorker||accountingAdapter||accountingProxy))throw new Error('Invalid isolated restore server');
@@ -43,14 +44,26 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
   if(typeof accountingConnectionOnly!=='boolean'||accountingConnectionOnly&&!accountingProxy)throw new Error('Invalid connection-only accounting runtime');
   if(paymentProxy!==null&&(typeof paymentProxy!=='function'||!hostedStaging||restoreTest))throw new Error('Invalid TEST payment runtime');
   if(paymentSetupProxy!==null&&(typeof paymentSetupProxy!=='function'||!hostedStaging||restoreTest))throw new Error('Invalid TEST payment setup');
-  if(typeof ownerRegistrationEnabled!=='boolean'||ownerRegistrationEnabled&&hostedStaging)throw new Error('Hosted owner registration needs separate email-safeguard authorisation');
+  if(typeof hostedOnboardingPreview!=='boolean'||hostedOnboardingPreview&&(!hostedStaging||restoreTest||paymentProxy||paymentSetupProxy||accountingProxy||accountingWorker||accountingAdapter||Object.keys(earningsTemplates).length))throw Error('Invalid isolated onboarding preview');
+  if(typeof ownerRegistrationEnabled!=='boolean'||ownerRegistrationEnabled&&hostedStaging&&!hostedOnboardingPreview)throw new Error('Hosted owner registration needs separate email-safeguard authorisation');
   const cookieName=hostedStaging?'__Host-faraios_staging':restoreTest?'faraios_restore_test':'faraios_staging';
   const secure=hostedStaging?'; Secure':'';
+  const onboardingDestination=async(sessionId,identity,selected='all')=>{
+    if(!identity.businessIds.length)return '/business/new';
+    const businessId=selected==='all'?(identity.businessIds.length===1?identity.businessIds[0]:null):selected;
+    if(!businessId)return '/dashboard';
+    if(!identity.memberships.some(m=>m.businessId===businessId&&m.role==='owner'&&m.status==='active'))return '/dashboard?business='+encodeURIComponent(businessId);
+    const progress=await auth.withOwner(sessionId,businessId,async(client,business)=>{
+      const [settings,items,branding]=await Promise.all([readBusinessSettings(client,business.id),listCatalogue(client,business.id),readBranding(client,business.id)]);
+      return onboardingProgress(settings,items,branding);
+    });
+    return (progress.completed===progress.total?'/dashboard':'/onboarding')+'?business='+encodeURIComponent(businessId);
+  };
   const loginForm=message=>ownerRegistrationEnabled?form(message,restoreTest).replace('</form>','</form><p><a href="/register">Register your cleaning business</a></p>'):form(message,restoreTest);
   const auth=createAuthSessions({createClient,now});let failures=[],registrationAttempts=[];
   const server=createServer(async(req,res)=>{
     let headerBusiness=null,headerIdentity=null,activePath='/dashboard';
-    const readIdentity=async sessionId=>(headerIdentity=await auth.read(sessionId));
+    const readIdentity=async sessionId=>{headerIdentity=await auth.read(sessionId);if(headerIdentity&&hostedOnboardingPreview)headerIdentity={...headerIdentity,onboardingPreview:true};return headerIdentity;};
     const html=(title,body)=>pageHtml(title,body,headerBusiness,headerIdentity,activePath,restoreTest);
     const expected=`127.0.0.1:${server.address()?.port}`, origin=hostedStaging?stagingOrigin:`http://${expected}`;
     const send=(code,body,type='text/html; charset=utf-8')=>{res.writeHead(code,{'Content-Type':type,'Cache-Control':'no-store','Referrer-Policy':'same-origin','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"});res.end(body);};
@@ -66,7 +79,8 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
         if(req.method!=='GET'&&req.headers.origin!==origin&&!(paymentProxy&&req.method==='POST'&&/^\/payments\/[0-9a-f-]{36}\/webhook$/i.test(req.url)))return send(403,'Origin rejected','text/plain');
       }
       const url=new URL(req.url,origin),id=req.headers.cookie?.match(new RegExp('(?:^|;\\s*)'+cookieName+'=([a-f0-9-]+)'))?.[1];
-      if(hostedStaging&&req.method==='GET'&&url.pathname==='/environment-health')return send(200,JSON.stringify({environment:'staging',transport:hostedTransport,transportSecurity:hostedTransport==='litespeed'?'managed-tls-edge':'passenger-protected-https',projectRef:'xdmfyrsauvqznkloroxg',sourceFingerprint:hostedFingerprint,appPaymentDispatch:paymentProxy?'test-only':'disabled',appNotificationDispatch:'disabled',authEmailSafeguard:'requires-independent-verification',accountingWorker:'disabled'}),'application/json');
+      if(hostedOnboardingPreview&&!previewRoutes.has(url.pathname))return send(404,'This module is not part of the onboarding preview','text/plain');
+      if(hostedStaging&&req.method==='GET'&&url.pathname==='/environment-health')return send(200,JSON.stringify({environment:'staging',transport:hostedTransport,transportSecurity:hostedTransport==='litespeed'?'managed-tls-edge':'passenger-protected-https',projectRef:hostedOnboardingPreview?previewProject:'xdmfyrsauvqznkloroxg',sourceFingerprint:hostedFingerprint,appPaymentDispatch:paymentProxy?'test-only':'disabled',appNotificationDispatch:'disabled',authEmailSafeguard:'requires-independent-verification',accountingWorker:'disabled'}),'application/json');
       activePath=url.pathname;
       if(restoreTest&&req.method!=='GET'&&!(req.method==='POST'&&['/login','/logout'].includes(url.pathname)))return send(405,'Restore test: business writes are disabled','text/plain');
       if(restoreTest&&req.method==='GET'&&url.pathname==='/restore-health')return send(200,JSON.stringify({environment:'restore-test',businessWrites:'disabled',accountingWorker:'disabled'}),'application/json');
@@ -78,19 +92,22 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
       if(req.method==='GET'&&url.pathname==='/dropdown.js')return send(200,await readFile(new URL('../public/dropdown.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/catalogue-setup.js')return send(200,await readFile(new URL('../public/catalogue-setup.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/quote-detail.js')return send(200,await readFile(new URL('../public/quote-detail.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
+      if(req.method==='GET'&&url.pathname==='/password-visibility.js')return send(200,await readFile(new URL('../public/password-visibility.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
+      if(req.method==='GET'&&url.pathname==='/settings-tabs.js')return send(200,await readFile(new URL('../public/settings-tabs.js',import.meta.url),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&url.pathname==='/style.css')return send(200,await readFile(new URL('../public/style.css',import.meta.url),'utf8'),'text/css');
       if(req.method==='GET'&&(url.pathname==='/login'||url.pathname==='/')){
+        if(hostedOnboardingPreview){const identity=await readIdentity(id);if(identity)return redirect(await onboardingDestination(id,identity));}
         const next=url.searchParams.get('next');
         return send(200,loginForm('').replace('<label for="email">',customerRoute(next??'')?'<input type="hidden" name="next" value="'+esc(next)+'"><label for="email">':'<label for="email">'));
       }
-      // T31 registration: disabled by default, and never activated on hosted staging.
+      // T31 registration: legacy hosting remains blocked; dedicated onboarding preview requires its Auth hook.
       if(url.pathname==='/register'&&['GET','POST'].includes(req.method)){
         if(restoreTest||!ownerRegistrationEnabled)return send(404,'Registration unavailable','text/plain');
         const show=(message='')=>pageHtml('Owner registration',
-          '<h1>Create your FaraiOS account</h1><p>Confirm your email before creating your cleaning business.</p>'
+          '<script type="module" src="/password-visibility.js?v=t31-ui-audit-final-20261107"></script><h1>Create account</h1><p>Confirm your email after registering, then set up your business.</p>'
           +(message?'<p role="status">'+esc(message)+'</p>':'')
-          +'<form method="post" action="/register" class="panel"><label>Email</label><input name="email" type="email" autocomplete="email" maxlength="254" required>'
-          +'<label>Password</label><input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="1024" required>'
+          +'<form method="post" action="/register" class="panel"><label for="register-email">Email</label><input id="register-email" name="email" type="email" autocomplete="email" maxlength="254" required>'
+          +'<label for="register-password">Password</label><div class="registration-password"><input id="register-password" name="password" type="password" autocomplete="new-password" aria-describedby="password-help" minlength="12" maxlength="1024" required><button type="button" class="password-toggle" aria-label="Show password" aria-controls="register-password" aria-pressed="false" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="m4 4 16 16" hidden/></svg></button></div><p id="password-help" class="muted">Use at least 12 characters.</p>'
           +'<button type="submit">Register account</button></form><p><a href="/login">Already registered? Sign in</a></p>',
           null,null,'/dashboard',restoreTest);
         if(req.method==='GET')return send(200,show());
@@ -111,13 +128,13 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
         if(!await readIdentity(id)){clear();return redirect('/login');}
         if(req.method==='POST'&&(req.headers.origin!==origin||req.headers['content-type']?.split(';')[0]!=='application/x-www-form-urlencoded'))
           return send(403,'Origin or form rejected','text/plain');
-        const render=(requestId,message='')=>html('Create business',`<h1>Create a cleaning business</h1><p>Set up your independent workspace.</p>${message?'<p role="alert">'+esc(message)+'</p>':''}<form method="post" action="/business/new"><label for="business-name">Business name</label><input id="business-name" name="name" maxlength="160" required><input type="hidden" name="request_id" value="${esc(requestId)}"><button type="submit">Create workspace</button></form>`);
+        const render=(requestId,message='')=>html('Create business',`<h1>Create business</h1><p>Name your business to get started.</p>${message?'<p role="alert">'+esc(message)+'</p>':''}<form method="post" action="/business/new"><label for="business-name">Business name</label><input id="business-name" name="name" maxlength="160" required><input type="hidden" name="request_id" value="${esc(requestId)}"><button type="submit">Create workspace</button></form>`);
         if(req.method==='GET')return send(200,render(randomUUID()));
         let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>4096)return send(413,'Form too large','text/plain');}
         const input=new URLSearchParams(body);
         try{
           const result=await auth.withBusinessProvisioning(id,client=>provisionBusiness(client,{name:input.get('name'),requestId:input.get('request_id')}));
-          return redirect('/dashboard?business='+encodeURIComponent(result.businessId));
+          return redirect('/onboarding?business='+encodeURIComponent(result.businessId));
         }catch(error){
           return send(422,render(input.get('request_id')??'',error.message));
         }
@@ -557,7 +574,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
         let body='';if(req.method==='POST')for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>4096)return send(413,'Form too large','text/plain');}
         return await auth.withOwner(id,businessId,async(client,business)=>{
           headerBusiness=business;
-          if(req.method==='GET')return send(200,html('Branding',renderBranding(business,await readBranding(client,business.id))));
+          if(req.method==='GET')return send(200,html('Branding',renderBranding(business,await readBranding(client,business.id),url.searchParams.has('saved')?'Branding saved.':'')));
           const form=new URLSearchParams(body);
           try{const brand=parseBranding(form);await saveBranding(client,business.id,brand);
             return redirect('/branding?business='+encodeURIComponent(business.id)+'&saved=1');
@@ -576,14 +593,9 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
           let detail='',status=200;
           if(req.method==='POST')try{
             const token=await createStaffInvitation(client,business.id,parseStaffInvitation(form));
-            detail='<p role="status">Invite created. Share this code privately with the intended recipient. No email was sent.</p><code>'+escapeInvitation(token)+'</code>';
+            detail='<p role="status">Invitation created. Share this code privately. No email was sent.</p><code>'+escapeInvitation(token)+'</code>';
           }catch(error){status=422;detail='<p role="alert">'+escapeInvitation(error.message)+'</p>';}
-          return send(status,html('Invite staff','<h1>Invite staff · '+escapeInvitation(business.name)+'</h1>'
-            +'<p>Only an owner may invite a manager or cleaner. No outbound email is sent.</p>'
-            +'<form method="post" action="/team-invite?business='+encodeURIComponent(business.id)+'">'
-            +'<label>Email</label><input name="email" type="email" maxlength="254" required>'
-            +'<label>Role</label><select name="role"><option value="staff">Cleaner</option><option value="manager">Manager</option></select>'
-            +'<button type="submit">Create invitation</button></form>'+detail));
+          return send(status,html('Invite staff',renderStaffInvitation(business,Object.fromEntries(form),detail)));
         });
       }
       if(url.pathname==='/team-members'&&['GET','POST'].includes(req.method)){
@@ -601,10 +613,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
             }catch(error){return send(403,'Membership change denied','text/plain');}
           }
           const users=await listBusinessMembers(client,business.id);
-          const rows=users.map(user=>'<li><code>'+escapeInvitation(user.user_id)+'</code> · '+escapeInvitation(user.role)+' · '+escapeInvitation(user.status)
-            +(user.role!=='owner'&&user.status==='active'?'<form method="post" action="/team-members?business='+encodeURIComponent(business.id)+'"><input type="hidden" name="user" value="'+escapeInvitation(user.user_id)+'"><button type="submit">Suspend</button></form>':'')+'</li>').join('');
-          return send(200,html('Team access','<h1>Team access · '+escapeInvitation(business.name)+'</h1><p>Only business owners can manage staff membership.</p>'
-            +'<a href="/team-invite?business='+encodeURIComponent(business.id)+'">Invite staff</a><ul>'+rows+'</ul>'));
+          return send(200,html('Team access',renderTeamAccess(business,users,headerIdentity.userId)));
         });
       }
       if(url.pathname==='/accept-invite'&&['GET','POST'].includes(req.method)){
@@ -617,9 +626,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
           const businessId=await auth.withBusinessProvisioning(id,client=>acceptStaffInvitation(client,new URLSearchParams(body).get('token')));
           return redirect('/dashboard?business='+encodeURIComponent(businessId));
         }catch(error){message=error.message;status=422;}
-        return send(status,html('Accept team invitation','<h1>Accept invitation</h1><p>Use the code received from your business owner. Your signed-in email must be verified and match the invitation.</p>'
-          +(message?'<p role="alert">'+escapeInvitation(message)+'</p>':'')
-          +'<form method="post" action="/accept-invite"><label>Invitation code</label><input name="token" maxlength="36" required><button type="submit">Join business</button></form>'));
+        return send(status,html('Accept team invitation',renderAcceptInvitation(message)));
       }
       if(req.method==='POST'){
         if(req.headers.origin!==origin)return send(403,'Origin rejected','text/plain');
@@ -700,9 +707,12 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
             const data=new URLSearchParams(body);let settings;
             try{settings=parseBusinessSettings(data);}catch(error){
               const values=Object.fromEntries(data);values.working_days=data.getAll('working_days').map(Number);
-              return send(422,html('Business settings',renderBusinessSettings(business,values,error.message,true,await readVatSettings(client,businessId))));
+              return send(422,html('Business settings',renderBusinessSettings(business,values,error.message,true,hostedOnboardingPreview?false:await readVatSettings(client,businessId))));
             }
-            await saveBusinessSettings(client,businessId,settings);return redirect('/settings?business='+encodeURIComponent(businessId)+'&saved=1');
+            try{await saveBusinessSettings(client,businessId,settings);}catch{
+              return send(422,html('Business settings',renderBusinessSettings(business,settings,'Settings could not be saved. Your entries are still here. Try again.',true,hostedOnboardingPreview?false:await readVatSettings(client,businessId))));
+            }
+            return redirect((hostedOnboardingPreview&&data.get('next')==='setup'?'/onboarding':'/settings')+'?business='+encodeURIComponent(businessId)+'&saved=1');
           });
         }
         if(url.pathname==='/vat-settings'){
@@ -710,7 +720,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
           return await auth.withOwner(id,url.searchParams.get('business'),async(client,business)=>{
             headerBusiness=business;
             try{await saveVatSettings(client,business.id,new URLSearchParams(body));}
-            catch(error){if(error.message==='Settings access denied')throw error;return send(error.status??422,html('Business settings',renderBusinessSettings(business,await readBusinessSettings(client,business.id),error.message,true,await readVatSettings(client,business.id))));}
+            catch(error){if(error.message==='Settings access denied')throw error;return send(error.status??422,html('Business settings',renderBusinessSettings(business,await readBusinessSettings(client,business.id),error.message,true,hostedOnboardingPreview?false:await readVatSettings(client,business.id))));}
             return redirect('/settings?business='+encodeURIComponent(business.id)+'&vat_saved=1');
           });
         }
@@ -718,7 +728,7 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
         if(url.pathname==='/login'){
           failures=failures.filter(t=>t>now()-60000);if(failures.length>=5)return send(429,loginForm('Too many attempts. Wait one minute.'));
           const data=new URLSearchParams(body);
-          try{const session=await auth.login(data.get('email'),data.get('password'));if(id)await auth.logout(id);res.setHeader('Set-Cookie',`${cookieName}=${session.id}; HttpOnly; SameSite=Strict; Path=/; Max-Age=1800${secure}`);return redirect(customerRoute(data.get('next')??'')?data.get('next'):'/dashboard');}
+          try{const session=await auth.login(data.get('email'),data.get('password'));if(id)await auth.logout(id);res.setHeader('Set-Cookie',`${cookieName}=${session.id}; HttpOnly; SameSite=Strict; Path=/; Max-Age=1800${secure}`);return redirect(customerRoute(data.get('next')??'')?data.get('next'):hostedOnboardingPreview?await onboardingDestination(session.id,await auth.read(session.id)):'/dashboard');}
           catch{failures.push(now());return send(401,loginForm('Unable to sign in. Check your staging account and try again.'));}
         }
       }
@@ -789,12 +799,13 @@ export function createStagingServer({createClient,paymentProxy=null,paymentSetup
       }
       if(url.pathname==='/settings'){
         if(!await readIdentity(id)){clear();return redirect('/login');}
-        return await auth.withOwner(id,url.searchParams.get('business'),async(client,business)=>{headerBusiness=business;return send(200,html('Business settings',renderBusinessSettings(business,await readBusinessSettings(client,business.id),url.searchParams.get('vat_saved')==='1'?'VAT setting saved.':url.searchParams.get('saved')==='1'?'Settings saved.':'',false,await readVatSettings(client,business.id))));});
+        return await auth.withOwner(id,url.searchParams.get('business'),async(client,business)=>{headerBusiness=business;return send(200,html('Business settings',renderBusinessSettings(business,await readBusinessSettings(client,business.id),url.searchParams.get('vat_saved')==='1'?'VAT setting saved.':url.searchParams.get('saved')==='1'?'Settings saved.':'',false,hostedOnboardingPreview?false:await readVatSettings(client,business.id))));});
       }
       if(url.pathname!=='/dashboard')return send(404,'Not found','text/plain');
       const identity=await readIdentity(id);if(!identity){clear();return redirect('/login');}
       const selected=url.searchParams.get('business')??'all';
       if(selected!=='all'&&!identity.businessIds.includes(selected))return send(403,'You do not have access to this business.','text/plain');
+      if(hostedOnboardingPreview){const destination=await onboardingDestination(id,identity,selected);if(destination.startsWith('/onboarding')||destination==='/business/new'||selected==='all'&&identity.businessIds.length===1)return redirect(destination);}
       return send(200,renderWorkspace(identity,selected,{restoreTest}));
     }catch(error){if(['Cleaner access denied','Adjustment access denied','Earnings access denied','Invoice access denied','Quote access denied','Staff access denied','Settings access denied','Catalogue access denied','Customer access denied','Booking access denied'].includes(error.message))return send(403,html('Access denied','<h1>Access denied</h1><p>You do not have permission to access this business configuration.</p><a href="/dashboard">Back to workspace</a>'));return send(503,loginForm('Staging service unavailable. Please try again later.'));}
   });return server;

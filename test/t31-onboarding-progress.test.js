@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {onboardingProgress,renderOnboardingProgress} from '../src/t31-onboarding-progress.js';
+import {renderWorkspaceHeader} from '../src/workspace-header.js';
 import {renderWorkspace} from '../src/workspace.js';
 const a='10000000-0000-4000-8000-000000000031',b='10000000-0000-4000-8000-000000000032',uid='00000000-0000-4000-8000-000000000031';
 const details={display_name:'Independent Cleaning',contact_email:'hello@example.invalid',service_areas:['Cape Town'],working_days:[1,2,3,4,5],opens_at:'08:00:00',closes_at:'17:00:00',time_zone:'Africa/Johannesburg'};
@@ -16,7 +17,8 @@ test('T31 onboarding progress follows persisted business configuration, never br
 test('T31 progress markup escapes tenant names and links only to selected ID',()=>{
  const html=renderOnboardingProgress({id:a,name:'<script>bad</script>'},onboardingProgress(details,items));
  assert.doesNotMatch(html,/<script>/);
- assert.match(html,/&lt;script&gt;/);
+ assert.match(renderWorkspaceHeader({business:{id:a,name:'<script>bad</script>'}}),/&lt;script&gt;/);
+ assert.ok(html.includes('/settings?business='+a+'#hours'));
  assert.match(html,new RegExp('/catalogue\\?business='+a));
  assert.doesNotMatch(html,new RegExp(b));
 });

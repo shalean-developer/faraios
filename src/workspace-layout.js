@@ -1,6 +1,7 @@
 import {canAccess,accessibleBusinesses} from './access.js';
 import {renderWorkspaceHeader} from './workspace-header.js';
 
+export const compactDisplayId=value=>String(value??'').replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,id=>id.slice(0,8)+'…'+id.slice(-4));
 export const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 // Navigation is derived from verified membership records. Destinations still enforce access.
@@ -9,23 +10,24 @@ export function renderWorkspaceNavigation(identity,selected='all',active='/dashb
  const businesses=identity.businesses.filter(b=>allowed.includes(b.id)&&(selected==='all'||b.id===selected));
  if(selected!=='all'&&!businesses.length)throw new Error('Business access denied');
  const permits=permission=>businesses.some(b=>canAccess({userId:identity.userId,businessId:b.id,permission,memberships:identity.memberships}));
- const items=[['Overview','/dashboard',null],['Reports','/reports','finance.read'],['Bookings','/bookings','bookings.read'],['Recurring bookings','/recurring','bookings.read'],['Availability & calendar','/calendar','bookings.read'],['Customers','/customers','customers.read'],['Services & extras','/catalogue','catalogue.read'],['Staff & teams','/staff','staff.read'],['Quotes','/quotes','quotes.read'],['My Jobs','/cleaner','jobs.assigned.read'],['Finance','/invoices','finance.read'],['Earnings','/earnings','finance.read'],['Earnings rules','/earnings-rules','finance.read'],['My earnings','/cleaner?view=earnings','earnings.own.read'],['Business settings','/settings','business.manage'],['Team access','/team-members','members.manage']];
+ const items=[['Overview','/dashboard',null],['Reports','/reports','finance.read'],['Bookings','/bookings','bookings.read'],['Recurring bookings','/recurring','bookings.read'],['Availability & calendar','/calendar','bookings.read'],['Customers','/customers','customers.read'],['Services','/catalogue','catalogue.read'],['Staff','/staff','staff.read'],['Quotes','/quotes','quotes.read'],['My Jobs','/cleaner','jobs.assigned.read'],['Finance','/invoices','finance.read'],['Earnings','/earnings','finance.read'],['Earnings rules','/earnings-rules','finance.read'],['My earnings','/cleaner?view=earnings','earnings.own.read'],['Settings','/settings','business.manage'],['Access','/team-members','members.manage']];
  items.splice(items.findIndex(i=>i[0]==='Earnings rules'),0,['Cancellation reviews','/cancellations','finance.read']);
  items.splice(items.findIndex(i=>i[0]==='Earnings rules'),0,['Notifications','/notifications','bookings.read']);
  items.splice(items.findIndex(i=>i[0]==='Earnings rules'),0,['Earnings adjustments','/earnings-adjustments','finance.read']);
  items.splice(items.findIndex(i=>i[0]==='Earnings rules'),0,['Monthly settlement reviews','/monthly-settlements','finance.read']);
  items.splice(items.findIndex(i=>i[0]==='My earnings'),0,['My settlement reviews','/monthly-settlements','earnings.own.read']);
  items.splice(items.findIndex(i=>i[0]==='My earnings'),0,['My adjustment reviews','/earnings-adjustments','earnings.own.read']);
- const links=items.filter(([, ,permission])=>!permission||permits(permission)).map(([label,path])=>path&&(selected!=='all'||path==='/dashboard'||path==='/reports')?`<a href="${path}${selected==='all'?'':(path.includes('?')?'&amp;':'?')+'business='+encodeURIComponent(selected)}"${path===active?' class="active" aria-current="page"':''}>${escapeHtml(label)}</a>`:`<span aria-disabled="true">${escapeHtml(label)}<small>${path?'Select a business':'Planned'}</small></span>`).join('');
- return `<aside class="workspace-sidebar"><details class="mobile-navigation"><summary><span class="menu-icon" aria-hidden="true">☰</span><span class="sr-only">Toggle workspace menu</span><span aria-hidden="true">Menu</span></summary><nav aria-label="Mobile workspace">${links}</nav></details><p class="side-label">WORKSPACE</p><div class="desktop-navigation"><nav aria-label="Workspace">${links}</nav></div><p class="side-note">One account. Your authorised businesses.</p></aside>`;
+ const activeRoute=({'/team-invite':'/team-members','/branding':'/settings','/onboarding':'/dashboard'})[active]??active;
+ const links=items.filter(([,path])=>!identity.onboardingPreview||selected!=='all'||path==='/dashboard').filter(([,path])=>!identity.onboardingPreview||['/dashboard','/catalogue','/staff','/settings','/team-members'].includes(path)).filter(([, ,permission])=>!permission||permits(permission)).map(([label,path])=>path&&(selected!=='all'||path==='/dashboard'||path==='/reports')?`<a href="${path}${selected==='all'?'':(path.includes('?')?'&amp;':'?')+'business='+encodeURIComponent(selected)}"${path===activeRoute?' class="active" aria-current="page"':''}>${escapeHtml(label)}</a>`:`<span aria-disabled="true">${escapeHtml(label)}<small>${path?'Select a business':'Planned'}</small></span>`).join('');
+ return `<aside class="workspace-sidebar"><details class="mobile-navigation"><summary><span class="menu-icon" aria-hidden="true">☰</span><span class="sr-only">Toggle workspace menu</span><span aria-hidden="true">Menu</span></summary><nav aria-label="Mobile workspace">${links}</nav></details><p class="side-label">WORKSPACE</p><div class="desktop-navigation"><nav aria-label="Workspace">${links}</nav></div><p class="side-note">Your business workspace.</p></aside>`;
 }
 
 export function renderWorkspaceFrame(identity,business,body,active='/dashboard'){
  return `<a class="skip-link" href="#main-content">Skip to content</a><div class="workspace-topbar">${renderWorkspaceHeader({business})}</div><div class="workspace">${renderWorkspaceNavigation(identity,business?.id??'all',active)}<main id="main-content" tabindex="-1" class="content module-content">${body}</main></div>`;
 }
 
-export function moduleHeading({title,business,description='',actions='',back=''}){
- return `${back?`<a class="module-back" href="${back}">← Back</a>`:''}<div class="module-heading"><div><p class="eyebrow">${escapeHtml(business.name)}</p><h1>${escapeHtml(title)}</h1>${description?`<p class="module-description">${escapeHtml(description)}</p>`:''}</div>${actions?`<div class="module-actions">${actions}</div>`:''}</div>`;
+export function moduleHeading({title,business,description='',actions='',back='',showBusiness=true}){
+ return `${back?`<a class="module-back" href="${back}">← Back</a>`:''}<div class="module-heading"><div>${showBusiness?`<p class="eyebrow">${escapeHtml(business.name)}</p>`:''}<h1>${escapeHtml(title)}</h1>${description?`<p class="module-description">${escapeHtml(description)}</p>`:''}</div>${actions?`<div class="module-actions">${actions}</div>`:''}</div>`;
 }
 
 export function feedback(message,error=false){return message?`<p class="feedback ${error?'feedback-error':'feedback-success'}" role="${error?'alert':'status'}">${escapeHtml(message)}</p>`:'';}

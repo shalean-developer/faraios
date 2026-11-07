@@ -151,6 +151,7 @@ test('runtime detection refuses generic loaders, wrong root/socket/startup and s
   assert.equal(runtime.detectHostedRuntime(options),'litespeed');
   assert.equal(runtime.detectHostedRuntime({...options,env:{...options.env,LSNODE_STARTUP_FILE:'_accounting.cjs'}}),'litespeed');
   assert.equal(runtime.detectHostedRuntime({...options,env:{...options.env,LSNODE_STARTUP_FILE:'_test_payments.cjs'}}),'litespeed');
+  assert.equal(runtime.detectHostedRuntime({...options,env:{...options.env,LSNODE_STARTUP_FILE:'_t31_preview.cjs'}}),'litespeed');
   for(const patch of [{lsNode:{}},{argv:['node','app.js']},{serverPrototype:{}},...['LSNODE_SOCKET','LSNODE_ROOT','LSNODE_STARTUP_FILE'].map(name=>({env:{...options.env,[name]:'incorrect'}}))])assert.throws(()=>runtime.detectHostedRuntime({...options,...patch}),/verified/);
   assert.equal(await readFile(new URL('../public/.htaccess',import.meta.url),'utf8'),runtime.httpsRules);
 });

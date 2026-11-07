@@ -18,8 +18,11 @@ export async function saveBranding(client,businessId,values){
 }
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function renderBranding(business,settings={},message=''){
- return '<h1>Branding · '+esc(business.name)+'</h1><p>'+esc(message)+'</p><form method="post" action="/branding?business='+encodeURIComponent(business.id)+'">'
- +'<label for="accent">Brand colour</label><input id="accent" name="accent_color" required pattern="#[0-9a-fA-F]{6}" value="'+esc(settings.accent_color??'#146C94')+'">'
- +'<label for="logo">HTTPS logo URL (optional)</label><input id="logo" name="logo_url" maxlength="500" value="'+esc(settings.logo_url)+'">'
- +'<button type="submit">Save branding</button></form>';
+ const s=settings??{},back='/onboarding?business='+encodeURIComponent(business.id);
+ return '<section class="ui-page"><a class="module-back" href="'+back+'">← Back to setup</a><h1>Branding</h1><p>Choose your business colour and logo.</p>'
+ +(message?'<p class="feedback" role="status">'+esc(message)+'</p>':'')
+ +'<form class="panel ui-form" method="post" action="/branding?business='+encodeURIComponent(business.id)+'"><h2>Brand details</h2>'
+ +'<div class="form-field"><label for="accent">Brand colour</label><input id="accent" name="accent_color" required maxlength="7" pattern="#[0-9a-fA-F]{6}" aria-describedby="colour-help" value="'+esc(s.accent_color??'#146C94')+'"><small id="colour-help">Hex colour, for example #146C94.</small></div>'
+ +'<div class="form-field"><label for="logo">Logo URL <span class="muted">(optional)</span></label><input id="logo" name="logo_url" type="url" maxlength="500" aria-describedby="logo-help" value="'+esc(s.logo_url)+'"><small id="logo-help">Use an HTTPS image link. Uploads are not available yet.</small></div>'
+ +'<div class="form-actions"><button type="submit">Save branding</button><a class="button secondary" href="'+back+'">Cancel</a></div></form></section>';
 }
