@@ -19,36 +19,49 @@ function wl_config(): array {
     $config = require $real . '/config.php';
     if (!is_array($config) || strlen($config['secret'] ?? '') < 32) throw new RuntimeException('Invalid private configuration');
     $config['dir'] = $real;
-    $config += ['enabled' => false, 'environment' => 'production', 'transport' => 'mail', 'base_url' => 'https://www.faraios.com', 'sender' => 'hello@faraios.com', 'min_seconds' => 3, 'global_hourly_limit' => 30];
+    $config += ['enabled' => false, 'environment' => 'production', 'transport' => 'resend', 'base_url' => 'https://www.faraios.com', 'sender' => 'hello@notify.faraios.com', 'reply_to' => 'hello@faraios.com', 'owner_email' => 'hello@faraios.com', 'resend_url' => 'https://api.resend.com', 'min_seconds' => 3, 'global_hourly_limit' => 30];
     $url = parse_url($config['base_url']);
     $local = in_array($url['host'] ?? '', ['localhost', '127.0.0.1'], true);
     if (($url['scheme'] ?? '') !== 'https' && !($config['environment'] === 'test' && $local)) throw new RuntimeException('HTTPS required');
-    if (!filter_var($config['sender'], FILTER_VALIDATE_EMAIL) || preg_match('/[\r\n]/', $config['sender'])) throw new RuntimeException('Invalid sender');
+    foreach (['sender','reply_to','owner_email'] as $field) if (!filter_var($config[$field], FILTER_VALIDATE_EMAIL) || preg_match('/[\r\n]/', $config[$field])) throw new RuntimeException('Invalid email configuration');
+    $localTest = $config['environment'] === 'test';
+    $dbHost = parse_url($config['supabase_url'] ?? '', PHP_URL_HOST) ?: '';
+    if (!preg_match('/^[a-z]{20}\.supabase\.co$/D', $dbHost) && !($localTest && in_array($dbHost,['127.0.0.1','localhost'],true))) throw new RuntimeException('Invalid database endpoint');
+    if (strlen($config['supabase_key'] ?? '') < 20) throw new RuntimeException('Database credential missing');
+    if (!$localTest && (!str_starts_with($config['supabase_url'], 'https://') || $config['resend_url'] !== 'https://api.resend.com')) throw new RuntimeException('Invalid service endpoint');
+    if (!in_array($config['transport'], ['resend','capture'],true)) throw new RuntimeException('Invalid mail transport');
+    if ($config['transport'] === 'resend' && strlen($config['resend_key'] ?? '') < 20) throw new RuntimeException('Email credential missing');
     if ($config['transport'] === 'capture' && $config['environment'] !== 'test') throw new RuntimeException('Capture is test only');
     return $config;
 }
 
-function wl_db(): PDO {
-    static $db;
-    if ($db) return $db;
-    $c = wl_config();
-    umask(0077);
-    $db = new PDO('sqlite:' . $c['dir'] . '/waitlist.sqlite', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
-    $db->exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL;');
-    $db->exec("CREATE TABLE IF NOT EXISTS subscribers (
-        id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE COLLATE NOCASE, name TEXT NOT NULL,
-        business_type TEXT NOT NULL, interests TEXT NOT NULL, status TEXT NOT NULL,
-        consent_version TEXT NOT NULL, consent_text TEXT NOT NULL, created_at INTEGER NOT NULL,
-        confirmed_at INTEGER, withdrawn_at INTEGER, last_request_at INTEGER NOT NULL,
-        confirm_hash TEXT UNIQUE, confirm_expires INTEGER, withdraw_hash TEXT UNIQUE
-    );
-    CREATE TABLE IF NOT EXISTS outbox (
-        id TEXT PRIMARY KEY, subscriber_id TEXT NOT NULL REFERENCES subscribers(id) ON DELETE CASCADE,
-        payload TEXT, status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0,
-        created_at INTEGER NOT NULL, next_attempt INTEGER NOT NULL, sent_at INTEGER, last_error TEXT
-    );
-    CREATE TABLE IF NOT EXISTS rate_limits (bucket TEXT PRIMARY KEY, hits INTEGER NOT NULL, expires INTEGER NOT NULL);");
-    return $db;
+final class WLStore {
+    public function rpc(string $name, array $params = []): mixed {
+        $c = wl_config();
+        $result = wl_http($c['supabase_url'] . '/rest/v1/rpc/' . $name, $params, [
+            'apikey: ' . $c['supabase_key'], 'Authorization: Bearer ' . $c['supabase_key']
+        ]);
+        if ($result['status'] < 200 || $result['status'] >= 300) throw new RuntimeException('Database request failed');
+        return $result['body'];
+    }
+}
+
+function wl_db(): WLStore { return new WLStore(); }
+
+/** Bounded HTTPS requests, with no redirects and no credentials in logs or exceptions. */
+function wl_http(string $url, array $body, array $headers): array {
+    $context = stream_context_create(['http' => [
+        'method' => 'POST', 'header' => implode("\r\n", array_merge(['Content-Type: application/json', 'Accept: application/json'], $headers)),
+        'content' => json_encode($body ?: new stdClass(), JSON_THROW_ON_ERROR),
+        'timeout' => 12, 'ignore_errors' => true, 'follow_location' => 0, 'max_redirects' => 0
+    ], 'ssl' => ['verify_peer' => true, 'verify_peer_name' => true, 'crypto_method' => STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT | STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT]]);
+    $raw = @file_get_contents($url, false, $context, 0, 1048576);
+    $responseHeaders = $http_response_header ?? [];
+    preg_match('/^HTTP\/\S+ (\d+)/', $responseHeaders[0] ?? '', $match);
+    if ($raw === false) return ['status' => 0, 'body' => null];
+    try { $decoded = $raw === '' ? null : json_decode($raw, true, 64, JSON_THROW_ON_ERROR); }
+    catch (JsonException $e) { $decoded = null; }
+    return ['status' => (int)($match[1] ?? 0), 'body' => $decoded];
 }
 
 function wl_headers(): void {
@@ -83,12 +96,9 @@ function wl_json(array $data, int $status = 200): never {
     exit;
 }
 
-function wl_rate(PDO $db, string $key, int $limit, int $seconds): bool {
-    $now = time();
-    $bucket = hash_hmac('sha256', $key . ':' . intdiv($now, $seconds), wl_config()['secret']);
-    $s = $db->prepare('INSERT INTO rate_limits(bucket,hits,expires) VALUES(?,1,?) ON CONFLICT(bucket) DO UPDATE SET hits=hits+1 RETURNING hits');
-    $s->execute([$bucket, $now + $seconds]);
-    return (int)$s->fetchColumn() <= $limit;
+function wl_rate(WLStore $db, string $key, int $limit, int $seconds): bool {
+    $bucket = hash_hmac('sha256', $key . ':' . intdiv(time(), $seconds), wl_config()['secret']);
+    return $db->rpc('waitlist_rate', ['p_bucket' => $bucket, 'p_limit' => $limit, 'p_seconds' => $seconds]) === true;
 }
 
 function wl_validate(array $data): array {
@@ -107,127 +117,76 @@ function wl_validate(array $data): array {
     return [$name, $email, $type, array_values(array_unique($interests))];
 }
 
-function wl_signup(PDO $db, array $fields): ?string {
+function wl_signup(WLStore $db, array $fields): ?string {
     [$name, $email, $type, $interests] = $fields;
-    $now = time();
-    $db->exec('BEGIN IMMEDIATE');
-    try {
-        $s = $db->prepare('SELECT * FROM subscribers WHERE email=?');
-        $s->execute([$email]);
-        $old = $s->fetch();
-        // Never overwrite someone else's confirmed details or undo an unsubscribe.
-        if ($old && ($old['status'] !== 'pending' || $old['last_request_at'] > $now - 3600)) {
-            $db->exec('COMMIT');
-            return null;
-        }
-        $id = $old['id'] ?? bin2hex(random_bytes(16));
-        $token = bin2hex(random_bytes(32));
-        $withdraw = bin2hex(random_bytes(32));
-        if ($old) {
-            $s = $db->prepare('UPDATE subscribers SET confirm_hash=?,confirm_expires=?,withdraw_hash=?,last_request_at=? WHERE id=?');
-            $s->execute([hash('sha256', $token), $now + 86400, hash('sha256', $withdraw), $now, $id]);
-            $s = $db->prepare("UPDATE outbox SET status='cancelled',payload=NULL WHERE subscriber_id=? AND status IN ('pending','retry')");
-            $s->execute([$id]);
-        } else {
-            $s = $db->prepare("INSERT INTO subscribers(id,email,name,business_type,interests,status,consent_version,consent_text,created_at,last_request_at,confirm_hash,confirm_expires,withdraw_hash) VALUES(?,?,?,?,?,'pending',?,?,?,?,?,?,?)");
-            $s->execute([$id, $email, $name, $type, json_encode($interests), WL_CONSENT_VERSION, WL_CONSENT, $now, $now, hash('sha256', $token), $now + 86400, hash('sha256', $withdraw)]);
-        }
-        $job = bin2hex(random_bytes(16));
-        $s = $db->prepare('INSERT INTO outbox(id,subscriber_id,payload,created_at,next_attempt) VALUES(?,?,?,?,?)');
-        $s->execute([$job, $id, json_encode(['confirm' => $token, 'withdraw' => $withdraw]), $now, $now]);
-        $db->exec('COMMIT');
-        return $job;
-    } catch (Throwable $e) {
-        $db->exec('ROLLBACK');
-        throw $e;
-    }
+    return $db->rpc('waitlist_signup', [
+        'p_name' => $name, 'p_email' => $email, 'p_business_type' => $type, 'p_interests' => $interests,
+        'p_consent_version' => WL_CONSENT_VERSION, 'p_consent_text' => WL_CONSENT,
+        'p_confirm' => bin2hex(random_bytes(32)), 'p_withdraw' => bin2hex(random_bytes(32))
+    ]);
 }
 
-function wl_transition(PDO $db, string $action, string $token): bool {
+function wl_transition(WLStore $db, string $action, string $token): bool {
     if (!preg_match('/^[a-f0-9]{64}$/D', $token)) return false;
-    $now = time();
-    $db->exec('BEGIN IMMEDIATE');
-    try {
-        if ($action === 'confirm') {
-            $s = $db->prepare("UPDATE subscribers SET status='confirmed',confirmed_at=?,confirm_hash=NULL,confirm_expires=NULL WHERE confirm_hash=? AND status='pending' AND confirm_expires>=?");
-            $s->execute([$now, hash('sha256', $token), $now]);
-        } else {
-            $s = $db->prepare("UPDATE subscribers SET status='withdrawn',withdrawn_at=?,confirm_hash=NULL,confirm_expires=NULL,withdraw_hash=NULL WHERE withdraw_hash=? AND status IN ('pending','confirmed')");
-            $s->execute([$now, hash('sha256', $token)]);
-        }
-        $changed = $s->rowCount() === 1;
-        $db->exec("UPDATE outbox SET status='cancelled',payload=NULL WHERE status IN ('pending','retry') AND subscriber_id IN (SELECT id FROM subscribers WHERE status!='pending')");
-        $db->exec('COMMIT');
-        return $changed;
-    } catch (Throwable $e) { $db->exec('ROLLBACK'); throw $e; }
+    $changed = $db->rpc('waitlist_transition', ['p_action' => $action, 'p_token' => $token]) === true;
+    if ($changed && $action === 'confirm') {
+        try { wl_process($db); } catch (Throwable $e) { error_log('FaraiOS owner notification queued for retry'); }
+    }
+    return $changed;
 }
 
 function wl_message(array $row): array {
     $c = wl_config();
-    $payload = json_decode($row['payload'], true, 512, JSON_THROW_ON_ERROR);
-    $confirm = $c['base_url'] . '/waitlist/confirm.php#token=' . $payload['confirm'];
-    $withdraw = $c['base_url'] . '/waitlist/unsubscribe.php#token=' . $payload['withdraw'];
-    $text = "Confirm your FaraiOS waitlist request\n\nPlease confirm that you want FaraiOS waitlist, launch and early-access updates about your selected interests.\n\nConfirm your email (expires in 24 hours):\n$confirm\n\nYou are not on the active waitlist until you confirm. If you did not request this, ignore this email.\n\nCancel this request or unsubscribe later:\n$withdraw\n\nQuestions or privacy requests: hello@faraios.com\nFaraiOS — Build. Grow. Manage.\n";
-    return ['to' => $row['email'], 'subject' => 'Confirm your FaraiOS waitlist request', 'text' => $text, 'id' => $row['id']];
+    $p = $row['payload'];
+    if ($row['kind'] === 'owner') {
+        $to = $c['owner_email'];
+        $subject = 'New confirmed FaraiOS waitlist signup';
+        $text = "A visitor confirmed their FaraiOS waitlist request.\n\nName: " . $p['name'] . "\nEmail: " . $p['email'] . "\nBusiness: " . $p['business_type'] . "\nInterests: " . implode(', ', $p['interests']) . "\nConfirmed: " . $p['confirmed_at'] . "\n\nView records in your private Supabase Table Editor. This is an owner notification, not a marketing email.\n";
+    } else {
+        $to = $p['to'];
+        $subject = 'Confirm your FaraiOS waitlist request';
+        $confirm = $c['base_url'] . '/waitlist/confirm.php#token=' . $p['confirm'];
+        $withdraw = $c['base_url'] . '/waitlist/unsubscribe.php#token=' . $p['withdraw'];
+        $text = "Confirm your FaraiOS waitlist request\n\nPlease confirm that you want FaraiOS waitlist, launch and early-access updates about your selected interests.\n\nConfirm your email (expires in 24 hours):\n$confirm\n\nYou are not on the active waitlist until you confirm. If you did not request this, ignore this email.\n\nCancel this request or unsubscribe later:\n$withdraw\n\nQuestions or privacy requests: hello@faraios.com\nFaraiOS — Build. Grow. Manage.\n";
+    }
+    return ['from' => 'FaraiOS <' . $c['sender'] . '>', 'to' => [$to], 'reply_to' => $c['reply_to'], 'subject' => $subject, 'text' => $text];
 }
 
-function wl_send(array $message): bool {
+function wl_send(array $message, string $id): array {
     $c = wl_config();
     if ($c['transport'] === 'capture') {
-        file_put_contents($c['dir'] . '/captured.jsonl', json_encode($message) . "\n", FILE_APPEND | LOCK_EX);
-        return true;
+        file_put_contents($c['dir'] . '/captured.jsonl', json_encode(['id' => $id, 'message' => $message]) . "\n", FILE_APPEND | LOCK_EX);
+        return ['outcome' => 'sent', 'provider_id' => $id];
     }
-    if ($c['transport'] === 'fail' && $c['environment'] === 'test') return false;
-    if ($c['transport'] !== 'mail') throw new RuntimeException('Unknown mail transport');
-    return mail($message['to'], $message['subject'], $message['text'], [
-        'From' => 'FaraiOS <' . $c['sender'] . '>', 'Reply-To' => $c['sender'],
-        'MIME-Version' => '1.0', 'Content-Type' => 'text/plain; charset=UTF-8',
-        'Message-ID' => '<waitlist-' . $message['id'] . '@faraios.com>',
-        'Auto-Submitted' => 'auto-generated'
-    ], '-f' . escapeshellarg($c['sender']));
+    $r = wl_http($c['resend_url'] . '/emails', $message, ['Authorization: Bearer ' . $c['resend_key'], 'Idempotency-Key: faraios-waitlist/' . $id]);
+    if ($r['status'] >= 200 && $r['status'] < 300 && is_string($r['body']['id'] ?? null)) return ['outcome' => 'sent', 'provider_id' => $r['body']['id']];
+    // Network ambiguity, 429 and provider 5xx are safe to retry with the same key.
+    return ['outcome' => $r['status'] === 0 || $r['status'] === 429 || $r['status'] >= 500 ? 'retry' : 'failed', 'provider_id' => null];
 }
 
-function wl_process(PDO $db, ?string $only = null): int {
-    $c = wl_config();
-    $lock = fopen($c['dir'] . '/worker.lock', 'c');
-    if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) return 0;
+function wl_process(WLStore $db, ?string $only = null): int {
     $sent = 0;
-    try {
-        // A process crash after handing off email is ambiguous: do not send it twice.
-        $db->exec("UPDATE outbox SET status='uncertain',payload=NULL,last_error='Worker interrupted; manual review required' WHERE status='sending' AND next_attempt < " . (time() - 300));
-        $sql = "SELECT o.*,s.email,s.status AS subscriber_status,s.confirm_expires FROM outbox o JOIN subscribers s ON s.id=o.subscriber_id WHERE o.status IN ('pending','retry') AND o.next_attempt<=?";
-        $args = [time()];
-        if ($only !== null) { $sql .= ' AND o.id=?'; $args[] = $only; }
-        $s = $db->prepare($sql . ' ORDER BY o.created_at LIMIT 10');
-        $s->execute($args);
-        foreach ($s->fetchAll() as $row) {
-            if ($row['subscriber_status'] !== 'pending' || $row['confirm_expires'] <= time()) {
-                $db->prepare("UPDATE outbox SET status='cancelled',payload=NULL WHERE id=?")->execute([$row['id']]);
-                continue;
-            }
-            if (!wl_rate($db, 'outgoing', (int)$c['global_hourly_limit'], 3600)) break;
-            $db->prepare("UPDATE outbox SET status='sending',attempts=attempts+1,next_attempt=? WHERE id=?")->execute([time(), $row['id']]);
-            $ok = wl_send(wl_message($row));
-            if ($ok) {
-                $db->prepare("UPDATE outbox SET status='sent',payload=NULL,sent_at=?,last_error=NULL WHERE id=?")->execute([time(), $row['id']]);
-                $sent++;
-            } else {
-                $attempt = $row['attempts'] + 1;
-                $state = $attempt >= 4 ? 'failed' : 'retry';
-                $db->prepare("UPDATE outbox SET status=?,next_attempt=?,last_error='Mail server did not accept message',payload=CASE WHEN ?='failed' THEN NULL ELSE payload END WHERE id=?")
-                    ->execute([$state, time() + (60 * (2 ** $attempt)), $state, $row['id']]);
-            }
-        }
-    } finally { flock($lock, LOCK_UN); fclose($lock); }
+    for ($i = 0; $i < ($only ? 1 : 10); $i++) {
+        if (!wl_rate($db, 'outgoing', (int)wl_config()['global_hourly_limit'], 3600)) break;
+        $job = $db->rpc('waitlist_claim', ['p_only' => $only]);
+        if (!$job) break;
+        $result = wl_send(wl_message($job), $job['id']);
+        $db->rpc('waitlist_ack', ['p_id' => $job['id'], 'p_lease' => $job['lease'], 'p_outcome' => $result['outcome'], 'p_provider_id' => $result['provider_id']]);
+        if ($result['outcome'] === 'sent') $sent++;
+    }
     return $sent;
 }
 
-function wl_cleanup(PDO $db): void {
-    $db->prepare('DELETE FROM rate_limits WHERE expires<?')->execute([time()]);
-    $db->prepare("DELETE FROM subscribers WHERE status='pending' AND last_request_at<?")->execute([time() - 7 * 86400]);
-    $db->prepare("DELETE FROM subscribers WHERE status='withdrawn' AND withdrawn_at<?")->execute([time() - 30 * 86400]);
-    $db->prepare("DELETE FROM outbox WHERE created_at<? AND status IN ('sent','failed','cancelled','uncertain')")->execute([time() - 30 * 86400]);
-    // Renew consent instead of retaining a dormant waitlist indefinitely.
-    $db->prepare("DELETE FROM subscribers WHERE status='confirmed' AND confirmed_at<?")->execute([time() - 365 * 86400]);
+function wl_cleanup(WLStore $db): void {
+    $db->rpc('waitlist_cleanup');
     foreach (glob(wl_config()['dir'] . '/sessions/sess_*') ?: [] as $file) if (filemtime($file) < time() - 86400) @unlink($file);
+}
+
+function wl_webhook_valid(string $raw, string $id, string $timestamp, string $signatures, string $secret): bool {
+    if (strlen($id)>200 || $id==='' || !preg_match('/^[0-9]{1,12}$/D', $timestamp) || abs(time()-(int)$timestamp)>300 || !str_starts_with($secret,'whsec_')) return false;
+    $key = base64_decode(substr($secret,6),true);
+    if ($key===false || strlen($key)<16) return false;
+    $expected = base64_encode(hash_hmac('sha256',$id.'.'.$timestamp.'.'.$raw,$key,true));
+    foreach (explode(' ', $signatures) as $signature) if (str_starts_with($signature,'v1,') && hash_equals($expected,substr($signature,3))) return true;
+    return false;
 }

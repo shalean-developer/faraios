@@ -1,7 +1,7 @@
 Options -Indexes
 <IfModule mod_rewrite.c>
 RewriteEngine On
-RewriteRule ^(?:\.git|scripts|tests|docs)(?:/|$) - [F,L,NC]
+RewriteRule ^(?:\.git|scripts|tests|docs|supabase)(?:/|$) - [F,L,NC]
 RewriteRule ^waitlist/(?:core|action-page)\.php$ - [F,L,NC]
 RewriteRule (?:^|/)(?:\.[^/]+|[^/]+\.(?:sqlite|sqlite3|db|jsonl|csv|log|bak|md|ini|env|lock))$ - [F,L,NC]
 </IfModule>

@@ -5,3 +5,5 @@ config.php
 .user.ini
 node_modules/
 test-results/
+supabase/.temp/
+supabase/.branches/
