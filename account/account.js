@@ -3,3 +3,13 @@ document.querySelectorAll('.show').forEach(button=>button.addEventListener('clic
 const confirm=document.getElementById('confirm-button');
 if(confirm){const params=new URLSearchParams(location.hash.slice(1));const hash=params.get('token_hash')||document.getElementById('token_hash').value||'';const type=params.get('type')||document.getElementById('type').value||'';history.replaceState(null,'',location.pathname+location.search);if(/^[a-f0-9]{40,128}$/i.test(hash)&&['email','recovery'].includes(type)){document.getElementById('token_hash').value=hash;document.getElementById('type').value=type;confirm.disabled=false;document.getElementById('link-status').textContent='Your link is ready.';}else{document.getElementById('link-status').textContent='This link is incomplete. Request a new email below.';}}
 document.querySelectorAll('form').forEach(form=>form.addEventListener('submit',()=>{const button=form.querySelector('button:not([type="button"])');if(button){button.disabled=true;button.textContent='Please wait…';}}));
+
+const country=document.getElementById('country');
+const zone=document.getElementById('time_zone');
+if(country&&zone)country.addEventListener('change',()=>{
+ const zones=(country.selectedOptions[0]?.dataset.zones||'').split(' ').filter(Boolean);
+ if(zones.length&&!zones.includes(zone.value)){
+  const localZone=Intl.DateTimeFormat().resolvedOptions().timeZone;
+  zone.value=zones.includes(localZone)?localZone:zones[0];
+ }
+});

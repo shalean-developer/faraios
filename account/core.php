@@ -77,8 +77,8 @@ function setup_complete(array $b): bool {return isset(regions()['countries'][$b[
 function location_fields(?array $b): void {
  $country=(string)($_POST['country']??$b['country']??'');$zone=(string)($_POST['time_zone']??$b['time_zone']??'');
  echo '<label for="country">Country</label><select id="country" name="country" autocomplete="country" required><option value="">Choose your country</option>';
- foreach(regions()['countries'] as $key=>$label)echo '<option value="'.esc($key).'"'.($country===$key?' selected':'').'>'.esc($label).'</option>';
+ foreach(regions()['countries'] as $key=>$label)echo '<option value="'.esc($key).'" data-zones="'.esc(implode(' ',regions()['country_zones'][$key]??[])).'"'.($country===$key?' selected':'').'>'.esc($label).'</option>';
  echo '</select><label for="time_zone">Time zone</label><select id="time_zone" name="time_zone" required><option value="">Choose your time zone</option>';
  foreach(regions()['time_zones'] as $key)echo '<option value="'.esc($key).'"'.($zone===$key?' selected':'').'>'.esc(str_replace('_',' ',$key)).'</option>';
- echo '</select><small>For South Africa, choose Africa/Johannesburg. Times for your business will use this zone.</small>';
+ echo '</select><small>We suggest a time zone when you choose a country. Check it before saving.</small>';
 }

@@ -69,10 +69,13 @@ class Accounts(Journey):
   for value in ['Fresh Company','Owner','South Africa','Africa/Johannesburg','Complete']:self.assertIn(value,page)
   type(self).biz[0].update(country=None,time_zone=None)
   self.assertIn('Needs details',self.getpage('welcome'))
-  self.assertIn('complete your setup',self.getpage('business'))
+  self.assertIn('Check your country',self.getpage('business'))
   self.assertIn('South Africa',self.submit('business',country='ZA',time_zone='Africa/Johannesburg'))
   self.assertEqual(len(self.biz),1)
   self.assertEqual(self.biz[0]['name'],'Fresh Company')
+  self.assertIn('Business details',self.getpage('business&edit=location'))
+  self.assertIn('Europe/London',self.submit('business&edit=location',country='GB',time_zone='Europe/London'))
+  self.assertIn('Europe/London',self.getpage('welcome'))
   self.assertIn('Fresh Company',self.getpage('welcome'))
   self.assertIn('Welcome back',self.submit('welcome',action='logout'))
   self.assertIn('Welcome back',self.getpage('welcome'))
@@ -90,7 +93,7 @@ class Accounts(Journey):
   body=urllib.parse.urlencode({'csrf':token,'token_hash':'c'*64,'type':'email'}).encode()
   r=type(self).client.open(urllib.request.Request(self.accountbase+'/account/index.php?page=confirm',data=body,headers={'Origin':'null'}));html=r.read().decode()
   self.assertIn('form has expired',html);self.assertIn('value="'+('c'*64)+'"',html)
-  self.assertIn('account.js?v=20261112-2',html)
+  self.assertIn('account.js?v=20261112-3',html)
  def test_04_session_refresh_and_errors(self):
   type(self).expired_login=True
   type(self).confirmed=True
