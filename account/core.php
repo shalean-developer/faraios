@@ -33,6 +33,11 @@ function api(string $path,array $body=[],string $method='POST',?string $token=nu
  preg_match('/\s(\d{3})\s/',$http_response_header[0]??'', $m); $status=(int)($m[1]??0);
  $data=json_decode($raw?:'{}',true); if(!is_array($data)) $data=[];
  if ($status<200||$status>=300) {
+  if (str_starts_with($path,'/rest/v1/rpc/business_profile_')) {
+   if (($data['code']??'')==='23505') throw new RuntimeException('This page address is already taken. Choose another address, or reload if you already saved a draft.');
+   $safe=['Draft changed. Reload before saving or publishing.','Add a description, service areas and at least one public contact before publishing.','Complete business country and time zone first.'];
+   if (in_array($data['message']??'', $safe,true)) throw new RuntimeException($data['message']);
+  }
   if (($token && $status===401) || (str_starts_with($path,'/auth/v1/token?grant_type=refresh_token') && in_array($status,[400,401,403],true))) throw new AccountSessionExpired('Your session has expired. Please sign in again.');
   $code=(string)($data['error_code']??$data['code']??'');
   if (in_array($code,['invalid_credentials','invalid_login_credentials'],true)) throw new RuntimeException('Your email or password is incorrect. Try again or reset your password.');
