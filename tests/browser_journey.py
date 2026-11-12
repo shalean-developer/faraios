@@ -31,12 +31,11 @@ with tempfile.TemporaryDirectory(prefix='faraios-ui-') as temp:
             assert page.locator('[data-waitlist]').count()==3
             for button in page.locator('[data-waitlist]').all():
                 button.click()
+                page.wait_for_url(base+'/waitlist.html')
                 page.locator('#waitlist .wl-submit').wait_for(state='visible')
                 page.wait_for_function("!document.querySelector('#waitlist .wl-submit').disabled")
-                assert page.locator('#waitlist').evaluate('(d)=>d.open')
-                page.keyboard.press('Escape')
-                assert not page.locator('#waitlist').evaluate('(d)=>d.open')
-                assert button.evaluate('(b)=>b===document.activeElement')
+                assert page.locator('.wl-form').is_visible()
+                page.go_back()
             page.screenshot(path=str(out/'homepage-desktop.png'),full_page=True)
             for width in [320,360,390,768,1440]:
                 page.set_viewport_size({'width':width,'height':844 if width<768 else 1000})
@@ -45,11 +44,11 @@ with tempfile.TemporaryDirectory(prefix='faraios-ui-') as temp:
                 page.locator('[data-waitlist]').first.click()
                 page.wait_for_function("!document.querySelector('#waitlist .wl-submit').disabled")
                 assert page.locator('#waitlist').evaluate('(d)=>d.scrollWidth<=d.clientWidth'),width
-                assert page.locator('#waitlist').evaluate('(d)=>d.getBoundingClientRect().bottom<=innerHeight'),width
+                assert page.locator('#waitlist').evaluate('(d)=>getComputedStyle(d).overflowY==="visible"'),width
                 page.screenshot(path=str(out/f'waitlist-{width}.png'))
-                page.keyboard.press('Escape')
+                page.go_back()
             page.set_viewport_size({'width':390,'height':844})
-            page.locator('[data-waitlist]').first.click()
+            page.goto(base+'/waitlist.html')
             page.wait_for_function("!document.querySelector('#waitlist .wl-submit').disabled")
             page.get_by_label('Your name',exact=True).fill('Preview Owner')
             page.get_by_label('Email address',exact=True).fill('preview@example.test')
@@ -73,6 +72,6 @@ with tempfile.TemporaryDirectory(prefix='faraios-ui-') as temp:
             page.get_by_role('heading',name='You’re unsubscribed.',exact=True).wait_for()
             assert not errors,errors
             browser.close()
-        print('PASS: 3 CTA buttons, focus return, 5 viewport sizes, no overflow, real form save → captured email → confirm → unsubscribe; no browser errors.')
+        print('PASS: 3 CTA buttons, page navigation, 5 viewport sizes, no overflow, real form save → captured email → confirm → unsubscribe; no browser errors.')
     finally:
         server.terminate();server.wait()

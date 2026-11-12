@@ -21,7 +21,7 @@ try {
     if (strtok($_SERVER['CONTENT_TYPE'] ?? '', ';') !== 'application/json') wl_json(['error' => 'Unsupported form format.'], 415);
     $data = json_decode(file_get_contents('php://input', false, null, 0, 8193), true, 16, JSON_THROW_ON_ERROR);
     if (!is_array($data)) wl_json(['error' => 'Please check the form.'], 422);
-    if (!is_string($data['csrf'] ?? null) || !hash_equals($_SESSION['csrf'], $data['csrf'])) wl_json(['error' => 'Your form expired. Close and reopen it to try again.'], 403);
+    if (!is_string($data['csrf'] ?? null) || !hash_equals($_SESSION['csrf'], $data['csrf'])) wl_json(['error' => 'Your form expired. Reload this page to try again.'], 403);
     if (!wl_rate($db, 'submit:' . $ip, 5, 3600)) wl_json(['error' => 'Too many attempts. Please try again in an hour.'], 429);
     $fields = wl_validate($data);
     $generic = ['message' => 'Check your inbox for a confirmation link. If you have already joined, your place is saved.'];

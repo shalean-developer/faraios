@@ -1,6 +1,6 @@
 # FaraiOS New
 
-Fresh approved homepage, with a small PHP waitlist prepared on `feature/waitlist-20261112`. No build step or frontend dependencies.
+Fresh approved homepage and dedicated waitlist page, with a small PHP waitlist prepared on `feature/waitlist-20261112`. No build step or frontend dependencies.
 
 The waitlist collects name, email, business type and six interests with explicit consent. It uses private SQLite storage, double email opt-in, unsubscribe, server-side spam controls, a bounded mail queue and owner-only CSV export through Plesk. It introduces no dashboard, product authentication, booking or payment system.
 

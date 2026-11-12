@@ -1,9 +1,9 @@
 'use strict';
 (() => {
   const endpoint = new URL('api.php', document.currentScript.src).href;
-  const dialog = document.querySelector('#waitlist');
-  const form = dialog.querySelector('form');
-  const status = dialog.querySelector('[role="status"]');
+  const page = document.querySelector('#waitlist');
+  const form = page.querySelector('form');
+  const status = page.querySelector('[role="status"]');
   const submit = form.querySelector('[type="submit"]');
   let csrf = '';
   let loading;
@@ -19,16 +19,10 @@
       status.textContent = '';
       submit.disabled = false;
     } catch (error) {
-      status.textContent = error.message || 'Unable to connect. Close and reopen the form to try again.';
+      status.textContent = error.message || 'Unable to connect. Reload the page to try again.';
     }
   }
-  document.querySelectorAll('[data-waitlist]').forEach(button => {
-    button.addEventListener('click', () => {
-      form.hidden = false;
-      dialog.querySelector('.wl-success').hidden = true;
-      loading = prepare();
-    });
-  });
+  loading = prepare();
   form.addEventListener('submit', async event => {
     event.preventDefault();
     if (!form.reportValidity()) return;
@@ -53,7 +47,7 @@
       if (!response.ok) throw new Error(data.error || 'We could not save your request. Please try again.');
       form.hidden = true;
       form.reset();
-      const success = dialog.querySelector('.wl-success');
+      const success = page.querySelector('.wl-success');
       success.hidden = false;
       success.querySelector('h3').focus();
     } catch (error) {
