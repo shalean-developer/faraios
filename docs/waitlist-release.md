@@ -12,7 +12,7 @@ Dedicated waitlist page linked from all three homepage CTAs. Name, email, busine
 
 The fresh `faraios-new` project returned by the Supabase connection is `rxelmugnucfajrqmphhe`, organization `lypbvtudsbxxdcnzbqwc`, Ireland, PostgreSQL 17.11. It was healthy with no application tables before work. No old project was used. Hosted migration `20261112123416_waitlist_supabase_resend` was applied after a renewed confirmation on 12 November 2026. The source filename is aligned to the returned hosted version. A service-role hosted signup/duplicate/confirm/owner-job/unsubscribe test was rolled back; no test records or emails were retained/sent. Public/customer function and table grants were checked. Security advisors reported only four informational RLS-without-policy notices, intentional for server-only access; no permissive policies were added. See https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy .
 
-The Resend connector is linked to a Shalean team; the supplied browser is logged into the separate FaraiOS team. No cross-team domain claim or transfer was attempted. A new `notify.faraios.com` domain was prepared in the FaraiOS browser account. DNS verification, API credentials and delivery tests are still required. No upgrade/purchase was performed. Free-tier limits, inactivity pausing and hosting allowances still apply; verify the actual account plan before launch.
+The Resend connector is linked to a Shalean team; the supplied browser is logged into the separate FaraiOS team. No cross-team domain claim or transfer was attempted. A new `notify.faraios.com` domain was prepared in the FaraiOS browser account. The owner approved all three DNS records, and Plesk confirmed they were saved on 12 November 2026. Resend verification was started and currently shows pending. API credentials and delivery tests are still required. No upgrade/purchase was performed. Free-tier limits, inactivity pausing and hosting allowances still apply; verify the actual account plan before launch.
 
 ## Private Plesk configuration
 
@@ -70,3 +70,15 @@ Before launch: apply and verify the hosted migration; run Supabase security advi
 Production Plesk follows `main` automatically. Keep changes on the draft branch; never merge before preview acceptance and complete hosted checks. After approval, merge/pull/deploy through GitHub → Plesk Git, enable private config, and verify the live journey using owner-controlled data. Rollback source to the prior commit or disable `enabled`; preserve Supabase records. No dashboard/customer authentication/booking/payment scope is implied by using Supabase.
 
 Local validation: 15 native PostgreSQL 17.11 + PHP integration tests passed on the current source; PHP/JS syntax and diff checks passed. Hosted browser, real Resend delivery, DNS, private credentials, webhook/worker and backup checks remain open.
+
+## Resend DNS evidence
+
+Owner-approved records saved in the faraios.com Plesk DNS zone, TTL 3600:
+
+| Type | Name | Value |
+|---|---|---|
+| TXT | resend._domainkey.notify | Resend-generated DKIM public key, matched exactly against the FaraiOS workspace |
+| CNAME | rsend.notify | rsend-euw1.forge.rmta.net. |
+| CNAME | send.notify | send.forge.rmta.net. |
+
+Plesk reported “The changes made to DNS records were successfully saved.” Resend domain 4f46b667-902a-4c07-b892-46e32f2447bf then showed pending/looking for DNS records. No domain claim/transfer, API key creation or root mail/MX changes were performed. The sending-only API key form offered no domain-specific option while verification was pending, so it was cancelled without generating a key. Production website source remains undeployed.
