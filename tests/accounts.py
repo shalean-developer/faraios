@@ -8,27 +8,30 @@ class Accounts(Journey):
   super().setUpClass()
   cls.sql("create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;grant usage on schema auth to authenticated;grant execute on all functions in schema auth to authenticated;")
   cls.sql(next((ROOT/'supabase/migrations').glob('*account_business_setup.sql')).read_text())
+  cls.sql(next((ROOT/'supabase/migrations').glob('*business_location_details.sql')).read_text())
   cls.ids=[str(uuid.uuid4()),str(uuid.uuid4())];cls.sql('insert into auth.users values '+','.join("('%s')"%x for x in cls.ids))
   cls.auth_calls=[];cls.confirmed=False;cls.used=False;cls.biz=[];cls.expired_login=False;cls.deny_refresh=False;cls.invalid_credentials=False;cls.biz_unavailable=False
   class Gateway(BaseHTTPRequestHandler):
    def log_message(self,*args):pass
    def call(self):
     body=json.loads(self.rfile.read(int(self.headers.get('Content-Length',0))) or '{}');cls.auth_calls.append((self.path,body));status=200;data={}
-    if self.path.startswith('/auth/v1/token'):
+    if self.path.startswith('/auth/v1/signup'):cls.saved_name=body['data']['name']
+    elif self.path.startswith('/auth/v1/token'):
      if cls.deny_refresh and 'grant_type=refresh_token' in self.path:status=400;data={'error_code':'refresh_token_not_found'}
      elif cls.invalid_credentials:status=400;data={'error_code':'invalid_credentials'}
      elif not cls.confirmed:status=400;data={'error_code':'email_not_confirmed'}
      else:data={'access_token':'test_access','refresh_token':'test_refresh','expires_in':(-1 if cls.expired_login and 'grant_type=password' in self.path else 3600),'user':{'id':cls.ids[0]}}
-    elif self.path=='/auth/v1/user':data={'id':cls.ids[0],'email':'owner@example.test','email_confirmed_at':'2026-11-12'}
+    elif self.path=='/auth/v1/user':data={'id':cls.ids[0],'email':'owner@example.test','email_confirmed_at':'2026-11-12','user_metadata':{'name':cls.saved_name}}
     elif self.path=='/auth/v1/verify':
      if cls.used:status=403
      else:cls.used=True;cls.confirmed=True;data={'access_token':'test_access','refresh_token':'test_refresh'}
     elif self.path.startswith('/rest/v1/businesses'):
      if cls.biz_unavailable:status=503
-     if self.command=='POST':cls.biz=[{'id':str(uuid.uuid4()),'name':body['name'],'business_type':body['business_type']}]
+     if self.command=='POST':cls.biz=[{'id':str(uuid.uuid4()),'name':body['name'],'business_type':body['business_type'],'country':body['country'],'time_zone':body['time_zone']}]
+     if self.command=='PATCH':cls.biz[0].update(body)
      data=cls.biz
     self.send_response(status);self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(json.dumps(data).encode())
-   do_POST=call;do_GET=call;do_PUT=call
+   do_POST=call;do_GET=call;do_PUT=call;do_PATCH=call
   cls.account_gateway=ThreadingHTTPServer(('127.0.0.1',0),Gateway);threading.Thread(target=cls.account_gateway.serve_forever,daemon=True).start()
   cls.accountbase='http://127.0.0.1:'+str(port());private=cls.private/'accounts';private.mkdir()
   (private/'config.php').write_text("<?php return ['enabled'=>true,'environment'=>'test','base_url'=>'"+cls.accountbase+"','supabase_url'=>'http://127.0.0.1:"+str(cls.account_gateway.server_port)+"','publishable_key'=>'test_public'];")
@@ -50,6 +53,7 @@ class Accounts(Journey):
  def test_01_account_journey(self):
   self.assertIn('Create your account',self.getpage('signup'))
   self.assertIn('12 and 128',self.submit('signup',name='Owner',email='owner@example.test',password='short'))
+  self.assertIn('Enter a valid name',self.submit('signup',name='x'*121,email='owner@example.test',password='long-test-password'))
   self.assertIn('Check your email',self.submit('signup',name='Owner',email='owner@example.test',password='long-test-password'))
   self.submit('verify',email='owner@example.test')
   resend=[p for p,b in self.auth_calls if p.startswith('/auth/v1/resend')][-1]
@@ -59,7 +63,16 @@ class Accounts(Journey):
   self.assertEqual(self.last_url.split('?')[-1],'page=signin')
   self.assertIn('Tell us about',self.submit('signin',email='owner@example.test',password='long-test-password'))
   self.assertIn('Choose your business type',self.submit('business',business_name='Fresh Company',business_type='bad'))
-  self.assertIn('Fresh Company',self.submit('business',business_name='Fresh Company',business_type='cleaning'))
+  self.assertIn('Choose your country',self.submit('business',business_name='Fresh Company',business_type='cleaning',country='XX',time_zone='UTC'))
+  self.assertIn('Choose a valid time zone',self.submit('business',business_name='Fresh Company',business_type='cleaning',country='ZA',time_zone='Invalid/Zone'))
+  page=self.submit('business',business_name='Fresh Company',business_type='cleaning',country='ZA',time_zone='Africa/Johannesburg')
+  for value in ['Fresh Company','Owner','South Africa','Africa/Johannesburg','Complete']:self.assertIn(value,page)
+  type(self).biz[0].update(country=None,time_zone=None)
+  self.assertIn('Needs details',self.getpage('welcome'))
+  self.assertIn('complete your setup',self.getpage('business'))
+  self.assertIn('South Africa',self.submit('business',country='ZA',time_zone='Africa/Johannesburg'))
+  self.assertEqual(len(self.biz),1)
+  self.assertEqual(self.biz[0]['name'],'Fresh Company')
   self.assertIn('Fresh Company',self.getpage('welcome'))
   self.assertIn('Welcome back',self.submit('welcome',action='logout'))
   self.assertIn('Welcome back',self.getpage('welcome'))
@@ -110,6 +123,15 @@ class Accounts(Journey):
   scoped(a,"insert into public.businesses(owner_id,name,business_type) values ('"+a+"','Native A','cleaning')")
   self.assertEqual(scoped(a,'select count(*) from public.businesses'),'1')
   self.assertEqual(scoped(b,'select count(*) from public.businesses'),'0')
+  scoped(a,"update public.businesses set country='ZA',time_zone='Africa/Johannesburg'")
+  self.assertEqual(scoped(a,'select country from public.businesses'),'ZA')
+  scoped(b,"update public.businesses set country='GB',time_zone='Europe/London'")
+  self.assertEqual(scoped(a,'select country from public.businesses'),'ZA')
+  for country,zone in [('XX','UTC'),('ZA','Invalid/Zone'),('ZA',None)]:
+   with self.assertRaises(RuntimeError):scoped(a,"update public.businesses set country='"+country+"',time_zone="+("'"+zone+"'" if zone else 'NULL'))
+  with self.assertRaises(RuntimeError):scoped(a,"update public.businesses set owner_id='"+b+"'")
+  scoped(b,"insert into public.businesses(owner_id,name,business_type,country,time_zone) values ('"+b+"','Native B','other','GB','Europe/London')")
+  self.assertEqual(scoped(b,'select name from public.businesses'),'Native B')
   for q in ["insert into public.businesses(owner_id,name,business_type) values ('"+a+"','Forge','other')","update public.businesses set name='Stolen'","delete from public.businesses"]:
    with self.assertRaises(RuntimeError):scoped(b,q)
   with self.assertRaises(RuntimeError):self.sql('set role anon;select * from public.businesses')
