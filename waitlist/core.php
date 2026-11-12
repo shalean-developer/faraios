@@ -135,6 +135,8 @@ function wl_transition(WLStore $db, string $action, string $token): bool {
     return $changed;
 }
 
+require_once __DIR__ . '/email.php';
+
 function wl_message(array $row): array {
     $c = wl_config();
     $p = $row['payload'];
@@ -149,7 +151,7 @@ function wl_message(array $row): array {
         $withdraw = $c['base_url'] . '/waitlist/unsubscribe.php#token=' . $p['withdraw'];
         $text = "Confirm your FaraiOS waitlist request\n\nPlease confirm that you want FaraiOS waitlist, launch and early-access updates about your selected interests.\n\nConfirm your email (expires in 24 hours):\n$confirm\n\nYou are not on the active waitlist until you confirm. If you did not request this, ignore this email.\n\nCancel this request or unsubscribe later:\n$withdraw\n\nQuestions or privacy requests: hello@faraios.com\nFaraiOS — Build. Grow. Manage.\n";
     }
-    return ['from' => 'FaraiOS <' . $c['sender'] . '>', 'to' => [$to], 'reply_to' => $c['reply_to'], 'subject' => $subject, 'text' => $text];
+    return ['from' => 'FaraiOS <' . $c['sender'] . '>', 'to' => [$to], 'reply_to' => $c['reply_to'], 'subject' => $subject, 'text' => $text] + ($row['kind'] === 'owner' ? [] : ['html' => wl_confirmation_html($confirm, $withdraw)]);
 }
 
 function wl_send(array $message, string $id): array {
