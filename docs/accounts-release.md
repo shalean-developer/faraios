@@ -38,3 +38,11 @@ Verified fresh project `rxelmugnucfajrqmphhe`, healthy PostgreSQL 17, Supabase o
 Source preparation in progress. Hosted Auth SMTP currently disabled, Site URL localhost:3000 and no redirects at inspection. Production deployment blocked until isolated and hosted evidence plus owner preview acceptance. Do not claim real email or mobile end-to-end success from simulated local tests.
 
 Local evidence: three account suites passed (real PHP HTTP journey with simulated Auth/REST, CSRF/response headers, native PostgreSQL ownership/grants including anonymous and cross-owner denial). Real hosted Auth, SMTP, recovery and mobile visual checks remain pending. PHP syntax, JS syntax and diff checks passed.
+
+## Hosted preparation evidence — 12 November 2026
+
+Draft PR #2, initial head 9081b17. Plesk manual Git target faraios-accounts-preview.git follows feature/accounts-20261112 and deploys only to /faraios.com/_accounts-preview. Source deployed and signup page rendered successfully using private /private/faraios-account/config.php with only the project publishable key. This default directory is temporarily preview-only; before production use separate FARAIOS_ACCOUNT_DIR settings and verify the application base-path guard. Config contains no Resend or service-role secret. Do not submit hosted registrations until SMTP/templates/redirects are complete.
+
+Additive business migration applied to the specifically authorized faraios-new project as hosted version 20261112152816; source filename aligned. Security advisors: only the four pre-existing informational waitlist RLS-without-policy notices; no business-table advisory. No business/account records inserted by this migration. Native tests remain disposable. The 15 waitlist regression tests passed.
+
+Hosted signup layout inspected at 390×844, scrollWidth=390 (no horizontal overflow). This is a signup layout check, not full mobile journey acceptance. SMTP settings form opened but not saved; credential handoff required. Site URL/redirects/templates still need configuration. Password-change security notification not yet enabled. Production remains on main unchanged. Waitlist worker/status/private export success was visible in Plesk task notifications; restore and webhook proof remain open.

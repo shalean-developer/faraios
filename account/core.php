@@ -7,6 +7,7 @@ function cfg(): array {
  if (!is_array($c) || !($c['enabled']??false)) throw new RuntimeException('Account setup is not available yet. Please try again later.');
  $test=($c['environment']??'')==='test';
  if (!$test && (($c['supabase_url']??'')!=='https://rxelmugnucfajrqmphhe.supabase.co' || !str_starts_with($c['base_url']??'', 'https://www.faraios.com'))) throw new RuntimeException('Account configuration is unavailable.');
+ if (!$test && !str_starts_with($_SERVER['SCRIPT_NAME']??'', (parse_url($c['base_url'],PHP_URL_PATH)?:'').'/account/')) throw new RuntimeException('Account configuration is unavailable.');
  if (empty($c['publishable_key'])) throw new RuntimeException('Account configuration is unavailable.');
  return $c;
 }

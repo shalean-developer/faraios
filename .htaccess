@@ -1,6 +1,9 @@
 Options -Indexes
 <IfModule mod_rewrite.c>
 RewriteEngine On
+# Account preview must never reuse the live waitlist configuration.
+RewriteCond %{REQUEST_URI} ^/_accounts-preview/waitlist/ [NC]
+RewriteRule ^ - [F,L]
 RewriteRule ^(?:\.git|scripts|tests|docs|supabase)(?:/|$) - [F,L,NC]
 RewriteRule ^account/core\.php$ - [F,L,NC]
 RewriteRule ^waitlist/(?:core|action-page|email)\.php$ - [F,L,NC]
