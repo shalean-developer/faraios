@@ -48,6 +48,9 @@ class Accounts(Journey):
   self.assertIn('Create your account',self.getpage('signup'))
   self.assertIn('12 and 128',self.submit('signup',name='Owner',email='owner@example.test',password='short'))
   self.assertIn('Check your email',self.submit('signup',name='Owner',email='owner@example.test',password='long-test-password'))
+  self.submit('verify',email='owner@example.test')
+  resend=[p for p,b in self.auth_calls if p.startswith('/auth/v1/resend')][-1]
+  self.assertEqual(urllib.parse.parse_qs(urllib.parse.urlparse(resend).query)['redirect_to'],[self.accountbase+'/account/index.php?page=confirm'])
   self.assertIn('Please check',self.submit('signin',email='owner@example.test',password='long-test-password'))
   self.assertIn('Email verified',self.submit('confirm',token_hash='a'*64,type='email'))
   self.assertIn('Tell us about',self.submit('signin',email='owner@example.test',password='long-test-password'))
