@@ -5,11 +5,12 @@ $error='';$notice='';$u=null;$b=null;
 try {
  start();
  $notice=(string)($_SESSION['notice']??'');unset($_SESSION['notice']);
+ if($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='logout') {csrf();if(($_POST['action']??'')==='logout') {if(!empty($_SESSION['auth'])){try{api('/auth/v1/logout',[],'POST',$_SESSION['auth']['access_token']);}catch(Throwable $e){}}$_SESSION=[];session_regenerate_id(true);go('signin');}}
  if(in_array($page,['business','welcome'],true)){$u=user();$b=business();if($page==='business'&&$b)go('welcome');if($page==='welcome'&&!$b)go('business');}
  if($page==='reset'&&empty($_SESSION['recovery_until']))go('forgot');
  if($_SERVER['REQUEST_METHOD']==='POST') {
   csrf();
-  if(($_POST['action']??'')==='logout') {if(!empty($_SESSION['auth'])){try{api('/auth/v1/logout',[],'POST',$_SESSION['auth']['access_token']);}catch(Throwable $e){}}$_SESSION=[];session_regenerate_id(true);go('signin');}
+
   $redirect=cfg()['base_url'].'/account/index.php?page=confirm';
   if($page==='signup') { $e=email();$p=password();$name=field('name',120);api('/auth/v1/signup?redirect_to='.rawurlencode($redirect),['email'=>$e,'password'=>$p,'data'=>['name'=>$name]]);go('verify'); }
   elseif($page==='verify') {api('/auth/v1/resend?redirect_to='.rawurlencode($redirect),['type'=>'signup','email'=>email()]);$notice='If confirmation is needed, a new email is on its way. Check your inbox and spam folder.';}
@@ -19,6 +20,7 @@ try {
   elseif($page==='reset') {if(($_SESSION['recovery_until']??0)<time())throw new RuntimeException('This reset session expired. Request a new reset email.');$p=password();if(!hash_equals($p,(string)($_POST['password_confirm']??'')))throw new RuntimeException('Your passwords do not match.');api('/auth/v1/user',['password'=>$p],'PUT',$_SESSION['auth']['access_token']);try{api('/auth/v1/logout',[],'POST',$_SESSION['auth']['access_token']);}catch(Throwable $e){}$_SESSION=[];session_regenerate_id(true);$_SESSION['csrf']=bin2hex(random_bytes(32));$_SESSION['notice']='Password updated. Sign in with your new password.';go('signin');}
   elseif($page==='business') {$name=field('business_name',120);$type=(string)($_POST['business_type']??'');if(!in_array($type,['cleaning','beauty-wellness','home-maintenance-trades','other'],true))throw new RuntimeException('Choose your business type.');api('/rest/v1/businesses',['owner_id'=>$u['id'],'name'=>$name,'business_type'=>$type],'POST',$_SESSION['auth']['access_token']);go('welcome');}
  }
+} catch(AccountSessionExpired $e) {$_SESSION=['csrf'=>bin2hex(random_bytes(32)),'notice'=>$e->getMessage()];session_regenerate_id(true);go('signin');
 } catch(Throwable $e) {$error=$e instanceof RuntimeException?$e->getMessage():'Something went wrong. Please try again.';}
 $titles=['signup'=>'Create your account','verify'=>'Check your email','signin'=>'Welcome back','forgot'=>'Reset your password','confirm'=>'Continue securely','reset'=>'Choose a new password','business'=>'Tell us about your business','welcome'=>'You’re ready to begin'];
 ?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title><?=esc($titles[$page])?> | FaraiOS</title><link rel="icon" href="../favicon.svg"><link rel="stylesheet" href="account.css"><script src="account.js?v=20261112-2" defer></script></head><body><header><a href="../index.html" aria-label="FaraiOS home"><img src="../FaraiOS-logo.svg" alt="FaraiOS" width="180"></a><a class="home" href="../index.html" aria-label="Home">⌂<span> Home</span></a></header><main><section class="card"><p class="eyebrow">YOUR BUSINESS, CONNECTED</p><h1><?=esc($titles[$page])?></h1>

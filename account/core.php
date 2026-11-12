@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+class AccountSessionExpired extends RuntimeException {}
 function cfg(): array {
  static $c; if ($c !== null) return $c;
  $dir=getenv('FARAIOS_ACCOUNT_DIR') ?: '/var/www/vhosts/shalean.com/private/faraios-account';
@@ -32,6 +33,11 @@ function api(string $path,array $body=[],string $method='POST',?string $token=nu
  preg_match('/\s(\d{3})\s/',$http_response_header[0]??'', $m); $status=(int)($m[1]??0);
  $data=json_decode($raw?:'{}',true); if(!is_array($data)) $data=[];
  if ($status<200||$status>=300) {
+  if (($token && $status===401) || (str_starts_with($path,'/auth/v1/token?grant_type=refresh_token') && in_array($status,[400,401,403],true))) throw new AccountSessionExpired('Your session has expired. Please sign in again.');
+  $code=(string)($data['error_code']??$data['code']??'');
+  if (in_array($code,['invalid_credentials','invalid_login_credentials'],true)) throw new RuntimeException('Your email or password is incorrect. Try again or reset your password.');
+  if ($code==='email_not_confirmed') throw new RuntimeException('Verify your email before signing in. You can request another verification email below.');
+  if (str_starts_with($path,'/auth/v1/verify') && in_array($status,[400,401,403,422],true)) throw new RuntimeException('This email link is invalid, expired or already used. Request a new verification or password reset email.');
   if($status===429) throw new RuntimeException('Too many attempts. Please wait a few minutes and try again.');
   if($status===400||$status===401||$status===403||$status===422) throw new RuntimeException('Please check your details. For sign-in, verify your email first or reset your password. Email links may have expired; request a new one.');
   throw new RuntimeException('We could not connect right now. Please try again.');

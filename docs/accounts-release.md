@@ -1,77 +1,70 @@
 # FaraiOS New — accounts and business setup
 
-## Scope and baseline
+## Scope and release state
 
-User-authorized 12 November 2026: create account → verify email → sign in → create business → welcome; password reset, branded emails, mobile pages, isolated preview before production. Base main `0157fd3`. Fresh code only. No old implementation, historical import, bookings, payments or dashboard. Homepage, waitlist and their configuration remain intact. Registration does not touch waitlist tables, queues or Resend marketing contacts.
+Authorized 12 November 2026: Create account → Verify email → Sign in → Create business → Welcome; password reset, branded emails, mobile pages and business isolation. Fresh implementation from main 0157fd3. No deleted code/history restored, no imports, bookings, payments or dashboard. Homepage and waitlist application code preserved. Registration never writes waitlist consent or Resend marketing contacts.
 
-## Smallest implementation
+**Current decision: CONDITIONAL PASS for final preview review; production NO-GO until the latest source is deployed to preview, hosted smoke checks pass, owner accepts and production configuration is verified.** PR #2 stays draft. main auto-deploys to production through Plesk Git, so do not merge it prematurely.
 
-PHP account area on the existing Plesk site, no frontend dependencies/build. Supabase Auth handles passwords, verification, recovery and email throttling; Resend custom SMTP delivers Auth templates. PHP holds access/refresh tokens in server-side sessions. Browser receives only an HttpOnly, Secure, SameSite=Lax session identifier with a separate cookie name/path for each environment. Every mutation checks CSRF; sensitive responses are no-store/noindex with restrictive CSP. Idle sessions expire after 30 minutes; Supabase user lookup validates identity on protected requests. Refresh tokens are rotated. No service-role key is used in this account application.
+## Implementation
 
-One business per account, enforced by owner_id uniqueness. SELECT/INSERT grants and RLS constrain all business access to the authenticated non-anonymous owner. Updates/deletion/owner transfer are unavailable. Business name and type only. No staff roles yet. Future child tables must reference business ID and enforce membership policies; never infer authority from editable user metadata. Supabase email confirmation must stay enabled; anonymous sign-in disabled.
+Existing Plesk PHP hosting; no build step or frontend package dependency. Supabase Auth stores credentials and handles verification/recovery; FaraiOS Resend SMTP sends the branded confirmation/recovery templates. PHP stores access/refresh tokens in server sessions. Browser receives an HttpOnly, Secure, SameSite=Lax identifier scoped to the account path, with a separate cookie name per base URL. All account responses are no-store/noindex with restrictive CSP. No service-role or Resend key in the account application.
 
-Email links carry token hashes in fragments, stripped immediately by local JS. GET never consumes a token: an explicit CSRF-protected POST verifies it. Verification logs out the issued session and asks for sign-in; recovery has a 10-minute application window. Supabase controls one-time token expiry (configure 3600 seconds). A reset signs out through Supabase then clears the local session. No user-selected redirect destination.
+Email links carry a one-time token hash in the fragment. JavaScript removes it from the address bar and supplies the explicit POST form. GET never consumes a token. CSRF and exact Origin checks remain enabled. Referrer-Policy is same-origin: no-referrer was found to make native browser form POSTs send Origin:null and fail the application check. Retry preserves posted link fields. Versioned JavaScript avoids stale mobile retry code. Successful verification and password reset use a 303 redirect to the sign-in URL rather than rendering a sign-in form at the confirmation URL.
 
-## Connections and cost
+Idle sessions expire after 30 minutes. Supabase identity is checked on protected requests. Access token refresh rotates tokens; rejected refresh/access credentials clear the application session and return to sign-in. Sign-out executes before business data loading, so a business data outage does not prevent logout. Auth errors distinguish wrong credentials, unverified email and expired/used links without exposing provider internals.
 
-Verified fresh project `rxelmugnucfajrqmphhe`, healthy PostgreSQL 17, Supabase organization Free. FaraiOS Resend browser workspace Free; connected Resend API tools point to Shalean and must not be used for FaraiOS writes. Existing verified FaraiOS sending subdomain recorded as notify.faraios.com; preserve existing key. No plan upgrade, paid runner, new project or paid branch authorized. Existing Plesk billing continues; no additional app server required. Free quota, pausing and lack of managed recovery guarantees remain operational limits. Confirm actual Resend/Supabase quotas in dashboards before launch; no unconditional zero-cost production guarantee.
+One business per owner is enforced by owner_id uniqueness. SELECT and column-limited INSERT grants plus owner-scoped RLS restrict rows to the authenticated, non-anonymous owner. UPDATE/DELETE are not granted; customers cannot reassign ownership. Business name/type only. Future child tables must reference a business and enforce authorization; editable metadata is not authority.
 
-## Required configuration before hosted preview
+## Services and cost
 
-1. Private directory `/var/www/vhosts/shalean.com/private/faraios-account-preview`, outside every web root; config.php 0600. Use separate production directory later.
-2. PHP config returns `enabled=>true`, `environment=>'preview'`, `base_url=>'https://www.faraios.com/_accounts-preview'`, `supabase_url=>'https://rxelmugnucfajrqmphhe.supabase.co'`, `publishable_key=>'<project publishable key>'`. Set FARAIOS_ACCOUNT_DIR in preview-only Plesk config. Do not copy the waitlist server secret. Protect session storage permissions.
-3. Supabase Site URL `https://www.faraios.com`; exact permitted Auth redirect: `https://www.faraios.com/_accounts-preview/account/index.php?page=confirm`. Add production account URL only for release. No wildcards. Keep email confirmation enabled and anonymous sign-in disabled. Password minimum 12; OTP expiry 3600 seconds. Review Auth abuse limits, password leak protection availability and CAPTCHA before public launch.
-4. Custom SMTP: Resend's documented SMTP host/port/TLS; username resend; password a FaraiOS domain-restricted sending key installed directly by owner; sender `hello@notify.faraios.com`, name FaraiOS. Verify current Resend SMTP documentation in dashboard. Do not display/copy key into chat or source.
-5. Install confirmation/recovery templates from supabase/templates; subjects match titles. Disable click/open tracking for Auth links. Enable password-change security notification with branded content. Verify SPF/DKIM/DMARC and owner-controlled inbox receipt.
-6. Apply additive business migration only after native tests. No waitlist alterations. Preview source on feature/accounts-20261112, manual Plesk Git repository to /faraios.com/_accounts-preview; noindex and separate cookie path. It shares the named Supabase project, so use only marked owner-controlled test accounts/businesses. It is not a separate database.
-7. Full hosted account journey, confirmation replay/expiry/resend, password reset across tabs, sign-out, session refresh, business reload, duplicate submit and two-account direct REST isolation; desktop/mobile visual/keyboard checks. Preserve homepage/waitlist regression results.
-8. Owner reviews preview before merge. main auto-deploys via Plesk Git: do not merge beforehand. After acceptance install production private config and exact redirect, GitHub → Plesk Git release, smoke test, rollback via disable account config/source revert while preserving records.
+- Only Supabase faraios-new rxelmugnucfajrqmphhe, Ireland, PostgreSQL 17. Organization shows Free. Additive business migration hosted version 20261112152816, aligned with its source filename.
+- FaraiOS Resend browser workspace shows Free, with notify.faraios.com verified during the waitlist work. The connected Resend API plugin instead exposes Shalean; do not use it for FaraiOS mail changes or logs. Automatic review blocked log inspection. Actual inbox verification/recovery was completed by the owner.
+- Existing Plesk subscription remains in use. No extra server, paid runner, project, paid branch, upgrade or purchase introduced. Quotas, free-project pausing and backup limitations still apply. No unconditional zero-cost production guarantee. Auth email delivery defaults to a shared project rate limit; monitor it before increasing usage.
+- Leaked-password protection is a paid-plan capability and was not activated. Password-change security notification is an optional follow-up; the required confirmation and recovery emails are branded.
 
-## Separate waitlist follow-up register
+## Evidence and acceptance
 
-- WL-WEBHOOK: install correct FaraiOS Resend signed webhook and prove delivered/bounced/complained/failed/suppressed, replay rejection and suppression. Source handler exists; hosted completion not yet verified.
-- WL-RECOVERY: verify database backup/export and a restoration rehearsal including consent/withdrawal reconciliation, private secrets/config and queue recovery. Do not claim a configured backup is proven recovery.
-- Existing release notes also leave scheduled worker/private export, mail header and mobile/CTA evidence open. Reconcile current evidence separately without changing subscriber status or treating account registration as consent.
+| Requirement | Evidence | Limitation/status |
+|---|---|---|
+| Create account | Real Plesk HTTP signup for owner-controlled hello@faraios.com; Supabase user created | Marked preview account |
+| Verify email | Owner followed real email; email_confirmed_at populated | Inbox receipt is owner evidence; provider logs not inspected |
+| Sign in | Real hosted password grant through PHP reached Create business; owner later reached Welcome on mobile | New owner password never requested or read |
+| Create business/save/reload | FaraiOS Preview Test Business, type other, created via PHP; hosted SQL confirms ownership; subsequent HTTP reload preserved it | Test business, not an approved trading business name |
+| Welcome/mobile | Owner Samsung screenshot shows verified account and saved business; signup inspected at 390×844 with scrollWidth 390 | Latest error/session/privacy changes need final preview smoke |
+| Password recovery | Real reset email requested; owner then reached Welcome; old generated test password now returns 400 invalid_credentials | Reset link replay/expiry covered locally with simulated Auth, not a second real inbox cycle |
+| Sign out | Hosted HTTP returned Sign in; protected reload required sign-in | Outage logout additionally tested locally |
+| Business isolation | Hosted actual authenticated role + owner claims sees 1 business; different identity claims sees 0. Hosted rolled-back probe denied forged owner INSERT, UPDATE, DELETE and anon SELECT | Claims simulated in SQL; not a second real mailbox-authenticated HTTP account |
+| Security/session | Five local PHP/PostgreSQL suites cover CSRF, Origin:null rejection, retry token, redirect URL, expiry/replay, refresh success/failure, idle expiry, logout during data outage, grants and ownership | Auth/REST gateway simulated locally; RLS runs in native PG |
+| Browser CSRF regression | Real hosted Chromium dummy-token POST passed CSRF and reached expected invalid-token response; no form-expired message | No valid email token consumed by automated browser |
+| Hosted response/access | same-origin policy, no-store, Secure/HttpOnly/SameSite=Lax cookie; core.php, docs, .git/config and preview waitlist API all return 403 | No secrets captured in evidence |
+| Waitlist regression | All 15 native PG/PHP tests pass | Webhook and restore checks tracked separately |
+| Source checks | PHP/JS syntax and git diff checks pass | No paid GitHub Actions used |
 
-## Release status
+Tests: `PHP_BIN=php PG_BIN=/path/to/postgres/bin python3 tests/accounts.py` and `tests/journey.py`. Disposable PostgreSQL 17 required; never point tests at a hosted database. Native SQL policy probes used a temporary table and ROLLBACK, leaving no persistent changes.
 
-Preview source deployed. Initial inspection found SMTP disabled, localhost Site URL and no redirects; these have now been configured as recorded below. Production deployment blocked until isolated and hosted evidence plus owner preview acceptance. Do not claim real email or mobile end-to-end success from simulated local tests.
+## Preview configuration
 
-Local evidence: three account suites passed (real PHP HTTP journey with simulated Auth/REST, CSRF/response headers, native PostgreSQL ownership/grants including anonymous and cross-owner denial). Real hosted Auth, SMTP, recovery and mobile visual checks remain pending. PHP syntax, JS syntax and diff checks passed.
+Manual Plesk Git repository faraios-accounts-preview.git follows feature/accounts-20261112, destination /faraios.com/_accounts-preview. Production faraios.git follows main to /faraios.com. Confirm the repository card before pulling/deploying. No production branch switch.
 
-## Hosted preparation evidence — 12 November 2026
+Current preview config is /var/www/vhosts/shalean.com/private/faraios-account/config.php, outside web roots, containing enabled=true, environment=preview, base_url=https://www.faraios.com/_accounts-preview, project URL and publishable key only. This default directory is preview-only. For release establish separate FARAIOS_ACCOUNT_DIR values for preview/production; the base-path guard must reject the wrong environment. Protect config/session file permissions. Do not copy waitlist server secrets.
 
-Draft PR #2, initial head 9081b17. Plesk manual Git target faraios-accounts-preview.git follows feature/accounts-20261112 and deploys only to /faraios.com/_accounts-preview. Source deployed and signup page rendered successfully using private /private/faraios-account/config.php with only the project publishable key. This default directory is temporarily preview-only; before production use separate FARAIOS_ACCOUNT_DIR settings and verify the application base-path guard. Config contains no Resend or service-role secret. Do not submit hosted registrations until SMTP/templates/redirects are complete.
+Supabase Site URL is https://www.faraios.com. Only the exact preview callback is allowed: https://www.faraios.com/_accounts-preview/account/index.php?page=confirm. No wildcard redirects. Email confirmation enabled; anonymous sign-in disabled; password minimum 12; OTP expiry 3600 seconds.
 
-Additive business migration applied to the specifically authorized faraios-new project as hosted version 20261112152816; source filename aligned. Security advisors: only the four pre-existing informational waitlist RLS-without-policy notices; no business-table advisory. No business/account records inserted by this migration. Native tests remain disposable. The 15 waitlist regression tests passed.
+Owner installed SMTP credential privately. Reloaded settings showed enabled, smtp.resend.com:465, username resend, sender FaraiOS <hello@notify.faraios.com>. No credential read/copied. Full clean confirmation/recovery HTML templates installed from supabase/templates; subjects match titles. Tracking must stay disabled for Auth links. Replies/support use hello@faraios.com.
 
-Hosted signup layout inspected at 390×844, scrollWidth=390 (no horizontal overflow). This is a signup layout check, not full mobile journey acceptance. SMTP settings form opened but not saved; credential handoff required. Site URL/redirects/templates still need configuration. Password-change security notification not yet enabled. Production remains on main unchanged. Waitlist worker/status/private export success was visible in Plesk task notifications; restore and webhook proof remain open.
+## Final preview and production steps
 
-## Auth configuration and first hosted request
+1. Pull/deploy the latest feature/accounts-20261112 commit only to the account preview. Check wrong-password copy, expired-session handling and the expanded privacy notice. Sign in using the owner's chosen password; saved business must remain and sign-out/reload must work. No new account/password reset is needed for routine smoke tests.
+2. Review the preview result with the owner. Record acceptance of the tested scope and limitations, including the simulated second-identity policy test. Production requires explicit approval after this result is reviewable.
+3. Install separate private production config, initially disabled, with base_url=https://www.faraios.com. Verify preview retains its config/path. Add exactly https://www.faraios.com/account/index.php?page=confirm to the Auth allowlist; preserve preview callback. Check all links and environment boundaries.
+4. After approval, merge qualified PR #2 into main and let production Git deploy. Enable production account config and verify register/verify/sign-in/business/welcome/reset without modifying waitlist consent. Public account entry links need an owner-approved placement; homepage CTA redesign is not part of this change.
+5. Validate homepage/waitlist live regression and production health. Rollback by disabling production account config or reverting source, retaining Auth/business records. Do not delete or import historical records.
 
-Owner installed SMTP credential and replied Done. Reloaded SMTP settings show enabled with stored password, smtp.resend.com:465 and FaraiOS sender name. No secret read or copied. Installed clean full confirmation and recovery HTML templates from source with subjects Verify your email for FaraiOS and Reset your FaraiOS password; recovery content was revisited and confirmed persisted. Site URL saved as https://www.faraios.com with only the exact preview confirmation redirect. Confirm email enabled, anonymous sign-in disabled, password minimum saved as 12, OTP expiry observed 3600 seconds. Leaked-password protection requires a paid plan and was not enabled. Password-change notification remains pending.
+## Separate waitlist follow-ups
 
-A real HTTP registration through the Plesk account endpoint used owner-controlled hello@faraios.com, name FaraiOS Preview Test and a generated test password retained privately in scratch. Result: Check your email. Supabase count changed from zero accounts to one account, zero verified. Sign-in before verification was rejected. This proves the hosted signup request and confirmation requirement, not inbox delivery. No business has been created yet.
+- WL-WEBHOOK: correct FaraiOS workspace signed webhook installation and real delivered/bounced/complained/failed/suppressed handling, signature/replay rejection and suppression proof. Handler exists; hosted completion not verified.
+- WL-RECOVERY: backup/export and restore rehearsal, including private configuration, queue recovery and withdrawal/consent reconciliation. A backup setting alone is not recovery proof.
+- Plesk task success notifications showed worker/status/private export completion. Reconcile those operating records separately; remaining mail-authentication/header and complete waitlist mobile/CTA evidence is outside this account closeout.
 
-Automatic approval review blocked Resend email-log inspection for an identified account/workspace mismatch; no workaround attempted. Owner inbox verification requested. Remaining: real verification link, sign-in and business creation/reload, recovery, cross-tab/replay checks, two-account direct REST isolation and complete desktop/mobile journey. Production main untouched; no release acceptance claimed.
-
-## Mobile form Origin failure — correction pending preview deployment
-
-Owner screenshot shows Continue securely, expired form and incomplete token. The preview serves Referrer-Policy: no-referrer. Browser native form POST under that policy can carry Origin: null (MDN Referrer-Policy, Effect on Origin header), while csrf() rejects all nonmatching supplied origins. Reproduced against hosted preview with a synthetic token: valid session CSRF + Origin:null returns expired form; retry token is preserved by updated PHP. No real email token consumed. Previous HTTP tests supplied Origin explicitly and missed this browser interaction.
-
-Changed account policy to same-origin, preserving strict Origin and CSRF checks, with no referrer sent to other origins. Added regression assertions for the response policy, null-origin rejection and token preservation; account suites pass. Added version suffix to account.js so phones fetch the retry fix rather than a cached asset. These source corrections require another account-preview Pull/Deploy; production remains unchanged. Account still unverified at inspection. Do not ask for another email retry until the new response policy is observed on hosted preview.
-
-## Hosted browser regression after owner deployment
-
-Confirmed preview HTTP 200, Referrer-Policy same-origin and account.js?v=20261112-2. A real Chromium browser opened the confirmation page with a synthetic 64-character dummy token, rendered Your link is ready, and submitted Continue. The POST passed the application CSRF/Origin check and returned the expected Supabase invalid-link error, with Your link is ready retained. No This form has expired or incomplete-token message recurred. This proves the corrected browser form submission and retry preservation, not successful verification of a real email token. Owner account remained unverified before this test. Fresh email verification requested through the preview; owner must complete its real one-time link. Production main unchanged.
-
-## Real verification and business persistence
-
-Owner reached sign-in after the browser Origin fix. Supabase confirms hello@faraios.com email_confirmed_at is populated. Native HTTP sign-in with privately retained generated test credentials reached page=business with heading Tell us about your business and no errors. Created marked FaraiOS Preview Test Business, type other; hosted SQL independently confirms the business is owned by the verified account. Owner sign-in attempt with other credentials returned the overly broad authentication error; explained that this is the generated-password test account and initiated the supported password reset journey so the owner can choose their password. Do not expose or reuse the generated password as the owner's permanent credential. Password reset completion and full remaining acceptance still pending. No production merge/release.
-
-## Owner mobile completion and recovery result
-
-Owner supplied mobile screenshot of You're ready to begin, hello@faraios.com and FaraiOS Preview Test Business after the requested password reset. Hosted database independently confirms verified account, sign-in and persisted owned business. A direct Supabase Auth password-grant check rejected the old generated test password with HTTP 400 invalid_credentials, confirming it can no longer sign in. Owner's new password was never requested/read. Together with the owner screenshot this supports successful recovery and subsequent owner sign-in; no claim is made to inspecting the new credential.
-
-Core hosted journey now evidenced: account creation → owner inbox verification → sign-in → test business creation/save/reload → welcome; sign-out and password reset/new sign-in also evidenced. Mobile welcome rendered in owner screenshot. Remaining release work includes full acceptance reconciliation, direct hosted two-account isolation, session refresh/replay/expiry/browser checks, concise auth error messages, account-data privacy notice review, production configuration and explicit owner release approval. Waitlist webhook/recovery remain separate. PR stays draft; main/production not released.
-
+No account creation grants marketing consent. No production readiness claim closes the outstanding waitlist webhook/backup checks.
