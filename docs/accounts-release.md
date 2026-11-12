@@ -4,7 +4,7 @@
 
 Authorized 12 November 2026: Create account → Verify email → Sign in → Create business → Welcome; password reset, branded emails, mobile pages and business isolation. Fresh implementation from main 0157fd3. No deleted code/history restored, no imports, bookings, payments or dashboard. Homepage and waitlist application code preserved. Registration never writes waitlist consent or Resend marketing contacts.
 
-**Current decision: CONDITIONAL PASS for final preview review; production NO-GO until the latest source is deployed to preview, hosted smoke checks pass, owner accepts and production configuration is verified.** PR #2 stays draft. main auto-deploys to production through Plesk Git, so do not merge it prematurely.
+**Current decision: CONDITIONAL PASS for final preview review; production NO-GO until owner acceptance and verified separate production configuration. The latest source deployment and hosted smoke checks have passed.** PR #2 stays draft. main auto-deploys to production through Plesk Git, so do not merge it prematurely.
 
 ## Implementation
 
@@ -68,3 +68,10 @@ Owner installed SMTP credential privately. Reloaded settings showed enabled, smt
 - Plesk task success notifications showed worker/status/private export completion. Reconcile those operating records separately; remaining mail-authentication/header and complete waitlist mobile/CTA evidence is outside this account closeout.
 
 No account creation grants marketing consent. No production readiness claim closes the outstanding waitlist webhook/backup checks.
+
+## Final hosted smoke — latest application source deployed
+
+Owner reported deployment of 3d1a390. Fresh HTTP checks confirmed account sign-in 200; same-origin referrer policy; no-store; Secure/HttpOnly/SameSite=Lax cookie. Deliberately wrong credentials returned the new specific email/password error through the real PHP/Auth path. Preview privacy page contains account/business processing and separate marketing consent text. Internal core.php remains 403. Live homepage and waitlist both return 200 and their SHA-256 content matches the preserved source byte-for-byte. No application changes were made after these results; this closeout update is documentation only and does not require another preview deployment.
+
+Hosted smoke PASS for the inspected changes. Prior owner mobile welcome/recovery and hosted ownership evidence remain applicable. Production release still needs owner preview acceptance and separate production config/callback verification. Main remains unmerged; no production rollout claimed. Waitlist webhook and restore checks remain independent and open.
+
