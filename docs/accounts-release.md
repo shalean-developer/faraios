@@ -64,3 +64,8 @@ Changed account policy to same-origin, preserving strict Origin and CSRF checks,
 ## Hosted browser regression after owner deployment
 
 Confirmed preview HTTP 200, Referrer-Policy same-origin and account.js?v=20261112-2. A real Chromium browser opened the confirmation page with a synthetic 64-character dummy token, rendered Your link is ready, and submitted Continue. The POST passed the application CSRF/Origin check and returned the expected Supabase invalid-link error, with Your link is ready retained. No This form has expired or incomplete-token message recurred. This proves the corrected browser form submission and retry preservation, not successful verification of a real email token. Owner account remained unverified before this test. Fresh email verification requested through the preview; owner must complete its real one-time link. Production main unchanged.
+
+## Real verification and business persistence
+
+Owner reached sign-in after the browser Origin fix. Supabase confirms hello@faraios.com email_confirmed_at is populated. Native HTTP sign-in with privately retained generated test credentials reached page=business with heading Tell us about your business and no errors. Created marked FaraiOS Preview Test Business, type other; hosted SQL independently confirms the business is owned by the verified account. Owner sign-in attempt with other credentials returned the overly broad authentication error; explained that this is the generated-password test account and initiated the supported password reset journey so the owner can choose their password. Do not expose or reuse the generated password as the owner's permanent credential. Password reset completion and full remaining acceptance still pending. No production merge/release.
+
