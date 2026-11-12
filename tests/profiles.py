@@ -56,7 +56,7 @@ class Profiles(Journey):
   self.post('/account/index.php?page=signin',email='a@example.test',password='test-long-password')
   path='/account/profile.php';html=self.get(path)[1];self.assertIn('Public details',html);self.assertNotIn('PRIVATE-ACCOUNT',html)
   data=dict(action='save',version=0,name='Fresh Public',description='<script>alert(1)</script> Friendly service',email='public@example.test',phone='+27 21 123 4567',website='https://example.test',areas='Claremont',slug='fresh-public',open_0='on',from_0='08:00',to_0='17:00')
-  self.assertIn('Closing time',self.post(path,**(data|{'to_0':'07:00'})))
+  invalid=self.post(path,**(data|{'to_0':'07:00'}));self.assertIn('Closing time',invalid);self.assertIn('Friendly service',invalid);self.assertIn('value="07:00"',invalid);self.assertIn('public@example.test',invalid)
   self.assertIn('starting with https',self.post(path,**(data|{'website':'javascript:alert(1)'})))
   self.assertIn('Draft saved',self.post(path,**data));self.assertIn('Fresh Public',self.get(path)[1])
   self.assertEqual(self.get('/b/index.php?slug=fresh-public')[0],404)

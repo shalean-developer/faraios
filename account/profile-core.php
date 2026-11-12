@@ -9,6 +9,12 @@ function profile_logo(string $raw): array {
  if(strlen($raw)>150000||!in_array($mime,['image/png','image/jpeg','image/webp'],true)||!$size||$size[0]>2000||$size[1]>2000)throw new RuntimeException('Choose a PNG, JPG or WebP logo up to 150 KB and 2000 × 2000 pixels.');
  return ['mime'=>$mime,'data'=>base64_encode($raw)];
 }
+function profile_form_values(array $old): array {
+ // Display-only recovery after validation errors; never bypass profile_values() when saving.
+ foreach(['name','description','email','phone','website','areas'] as $key)if(isset($_POST[$key])&&is_string($_POST[$key]))$old[$key]=substr($_POST[$key],0,8000);
+ $old['hours']=[];foreach(profile_days() as $i=>$day)$old['hours'][]=isset($_POST['open_'.$i])?[(string)($_POST['from_'.$i]??''),(string)($_POST['to_'.$i]??'')]:null;
+ return $old;
+}
 function profile_values(array $old): array {
  $p=[];foreach(['name'=>120,'description'=>2000,'email'=>254,'phone'=>40,'website'=>500,'areas'=>1000] as $key=>$max){$v=trim((string)($_POST[$key]??''));if(preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/',$v)||mb_len($v)>$max)throw new RuntimeException('Check your '. $key.'.');$p[$key]=$v;}
  if(mb_len($p['name'])<2)throw new RuntimeException('Enter a public business name.');
