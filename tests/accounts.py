@@ -68,8 +68,13 @@ class Accounts(Journey):
   self.assertIn('Please check',self.submit('confirm',token_hash='b'*64,type='recovery'))
   self.assertFalse(any('waitlist' in p for p,b in self.auth_calls))
  def test_02_csrf_and_headers(self):
-  r=self.client.open(self.accountbase+'/account/index.php?page=signin');self.assertIn('no-store',r.headers['Cache-Control']);self.assertIn("frame-ancestors 'none'",r.headers['Content-Security-Policy'])
+  r=self.client.open(self.accountbase+'/account/index.php?page=signin');self.assertIn('no-store',r.headers['Cache-Control']);self.assertEqual(r.headers['Referrer-Policy'],'same-origin');self.assertIn("frame-ancestors 'none'",r.headers['Content-Security-Policy'])
   r=self.client.open(urllib.request.Request(self.accountbase+'/account/index.php?page=forgot',data=b'email=owner%40example.test'));self.assertIn('form has expired',r.read().decode())
+  html=self.getpage('confirm');token=re.search('name="csrf" value="([^"]+)"',html)[1]
+  body=urllib.parse.urlencode({'csrf':token,'token_hash':'c'*64,'type':'email'}).encode()
+  r=self.client.open(urllib.request.Request(self.accountbase+'/account/index.php?page=confirm',data=body,headers={'Origin':'null'}));html=r.read().decode()
+  self.assertIn('form has expired',html);self.assertIn('value="'+('c'*64)+'"',html)
+  self.assertIn('account.js?v=20261112-2',html)
  def test_03_rls(self):
   def scoped(uid,q,anonymous=False):
    return self.sql("set role authenticated;set request.jwt.claim.sub='"+uid+"';set request.jwt.claims='"+json.dumps({'is_anonymous':anonymous})+"';"+q)
