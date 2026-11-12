@@ -14,7 +14,7 @@ function wl_config(): array {
     $real = realpath($dir);
     $public = realpath(dirname(__DIR__));
     if (!$real || $real === $public || str_starts_with($real . '/', $public . '/')) throw new RuntimeException('Storage must be outside website');
-    $docroot = realpath($_SERVER['DOCUMENT_ROOT'] ?? '') ?: $public;
+    $docroot = PHP_SAPI === 'cli' ? $public : (realpath($_SERVER['DOCUMENT_ROOT'] ?? '') ?: $public);
     if ($real === $docroot || str_starts_with($real . '/', $docroot . '/')) throw new RuntimeException('Storage must be outside document root');
     $config = require $real . '/config.php';
     if (!is_array($config) || strlen($config['secret'] ?? '') < 32) throw new RuntimeException('Invalid private configuration');
