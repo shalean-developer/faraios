@@ -44,3 +44,22 @@ Application 84528178c90d568c8051466853e6f09e7b9309fc is deployed through the man
 - Production homepage and waitlist entry rendered in connected browser; no source files changed. Direct network byte/hash regression was unavailable and is not claimed.
 
 Gate: CONDITIONAL PASS for preview review; NO-GO for production until hosted editor verification and owner review.
+
+## Authenticated hosted closeout — 12 November 2026 (SAST)
+
+This supersedes the earlier pending authenticated editor checks. Owner signed into preview with the existing account/business. Application correction c3715003277c22e845b04c820621d58be80a940d was pulled and manually deployed to preview only; production repository/branch/destination were unchanged.
+
+PASS — hosted preview verification:
+- Welcome → Business profile opened the existing Shalean Cleaning Services business, without creating another business. Public contact fields began blank, despite the account having a private sign-in email.
+- Invalid Monday closing-before-opening was rejected. This exposed and fixed an error-state usability defect: all submitted public fields and day/time selections now remain after an error, with hours expanded. Regression assertions added; all four profile suites passed again.
+- Uploaded the existing FaraiOS social-preview.png as a temporary raster fixture (1200×630), saved it through the real multipart form, reloaded and verified successful image loading and saved description/contact/areas/hours. This was an upload test, not a final Shalean logo.
+- At 390px the editor and saved preview had no horizontal overflow. Checked and edited Tuesday hours using the mobile controls; saved 10:00–18:00 and reopened the saved preview. Monday retained 08:00–17:00. Desktop logo loading verified. Viewport reset afterward.
+- An already-used slug was rejected with clear feedback and entered details retained. Restored the unique shalean-cleaning-preview address and saved successfully.
+- The public route was unavailable before publish. Explicit preview publish made the saved snapshot available without an account session at /_accounts-preview/b/shalean-cleaning-preview. It contained only entered public details; private sign-in email absent.
+- Changed draft description and removed the temporary logo. Save left the public description and logo unchanged. Republish updated the description and removed the logo publicly.
+- Unpublish made the public route unavailable. Reloading the editor retained draft details/address; saved preview reopened successfully. Final state: this user's preview profile is UNPUBLISHED with its draft preserved. Test contacts and hours are fictional, not approved operational details.
+- The separate fictional Bright & Co sample remains only in preview for public demonstration. No live profiles were published, no production source was deployed, and no real marketing email was sent.
+
+Acceptance mapping: profile fields PASS; draft persistence PASS; mobile editor/preview PASS; unique address/publish PASS; edit/republish/unpublish PASS; private/public separation PASS; owner isolation PASS with the documented native/simulated-claims limitation. Latest correction has passing native profile tests; prior account/waitlist suites remain applicable because the correction only changes profile error display and its regression assertions.
+
+Gate: PASS for owner preview review. Production remains pending explicit owner review/deployment approval and post-release verification. No waitlist webhook/recovery or Resend-workspace claims are added.
