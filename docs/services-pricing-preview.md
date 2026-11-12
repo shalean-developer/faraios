@@ -31,3 +31,13 @@ Status: prepared and locally verified; hosted preview acceptance pending.
 Applied additive migration through the owner's connected Supabase SQL editor to rxelmugnucfajrqmphhe. Migration history 20261112215916 verified. Rollback-only tests/services-hosted.sql completed without error: native owner save/publish/private edit/stale publish/archive, other-owner denial and anon draft/private-ID denial. Final verification: services RLS true; live service catalogue count zero; live profiles published zero. Test records rolled back. The application source is still not deployed.
 
 Local commit a51a0b7 prepared. Automatic approval review rejected git push because it publishes new code/migration to the public repository and requires explicit owner authorization for that payload. No workaround attempted. Allanux client-area login is the second preview blocker. Next: owner authorizes public review-branch push and signs into Allanux; then push/open draft PR, deploy preview only, verify authenticated editor/public lifecycle and 390px layouts, and show result before production approval.
+
+## Preview deployment — 13 November 2026 SAST
+
+Owner replied “Approved and signed in.” Public branch published through GitHub connector (shell Git credential transport unavailable); PR #5 opened as draft. Connector source tree 97f532936ac344ecd6fa1288ac81d2e790762a60 matched tested local tree exactly. Initial app commit 7c285707; follow-up 27a97ea refreshes stylesheet URLs to avoid old cached CSS on existing browsers.
+
+Connected Plesk: changed only faraios-accounts-preview.git to feature/services-pricing-20261112 and manually deployed /faraios.com/_accounts-preview. Production faraios.git remains main, automatic /faraios.com, PR #4 release. Waitlist preview unchanged.
+
+Seeded three fictional services using simulated owner claims for the existing Bright & Co preview demo only: fixed ZAR 505, from ZAR 950, request a quote. Public sample /_accounts-preview/b/faraios-demo-cleaning renders all three with descriptions/durations and explicit currency. At 390×844 the corrected service card, price wrapping and spacing were visually inspected; document scrollWidth 375 <= viewport 390. Viewport restored. This SQL seed is not an authenticated editor journey.
+
+Authenticated preview session expired. Sign-in handoff left open; add/edit/save/reload/publish/archive editor and mobile form checks remain pending. No production app deployment/merge authorized or performed. Live Shalean profile remains unpublished; no live services created.
