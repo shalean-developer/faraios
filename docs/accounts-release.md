@@ -4,7 +4,7 @@
 
 Authorized 12 November 2026: Create account → Verify email → Sign in → Create business → Welcome; password reset, branded emails, mobile pages and business isolation. Fresh implementation from main 0157fd3. No deleted code/history restored, no imports, bookings, payments or dashboard. Homepage and waitlist application code preserved. Registration never writes waitlist consent or Resend marketing contacts.
 
-**Current decision: CONDITIONAL PASS for final preview review; production NO-GO until owner acceptance and verified separate production configuration. The latest source deployment and hosted smoke checks have passed.** PR #2 stays draft. main auto-deploys to production through Plesk Git, so do not merge it prematurely.
+**Release authorized by owner: “push to live.”** Preview journey and final hosted smoke passed. Homepage account links and corrected SVG Home icon deployed to preview. Production configuration and callback prepared; GitHub → Plesk Git rollout is in progress.
 
 ## Implementation
 
@@ -75,3 +75,7 @@ Owner reported deployment of 3d1a390. Fresh HTTP checks confirmed account sign-i
 
 Hosted smoke PASS for the inspected changes. Prior owner mobile welcome/recovery and hosted ownership evidence remain applicable. Production release still needs owner preview acceptance and separate production config/callback verification. Main remains unmerged; no production rollout claimed. Waitlist webhook and restore checks remain independent and open.
 
+
+## Production preparation — 12 November 2026
+
+Owner explicitly requested release. Private production.php now holds production URL and public Supabase configuration. The private config.php routes only exact SCRIPT_NAME /account/index.php to production.php; preview keeps its previous settings. No credentials are stored in source. Supabase Site URL remains https://www.faraios.com; exact production and preview confirmation callbacks are saved with no wildcard. Branded recovery template verified in connected browser. Mobile homepage menu checked at 390×844: both account links visible, no horizontal overflow. Header, hero and final waitlist links preserved. Application head d16a0cd qualified for release; this update changes documentation only. Post-deployment live smoke still required. WL-WEBHOOK and WL-RECOVERY remain open.
