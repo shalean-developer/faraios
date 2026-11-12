@@ -1,4 +1,20 @@
-# Account and business details — preview
+# Account and business details — release evidence
+
+## Production closeout — 12 November 2026 (SAST)
+
+Owner approved deployment with “Deploy.” PR #3 merged as 9720f7a9b7c5ecf374fb9bb3b27f65de515ebf7b and deployed through the production Plesk main repository. Public registration, homepage and waitlist responded HTTP 200; live account.js v20261112-3 and account.css v20261112-4 were verified.
+
+Fresh production journey completed:
+- Owner created a new account, received and followed its verification email, signed in and created Shalean Cleaning Services (Cleaning).
+- Hosted Supabase confirmed the account was newly created on this release date, email verified, saved Auth name present, and linked business saved. The account name was entered as “Shalean Cleaning Services”; it was preserved as entered.
+- Welcome and reopened business edit page retained ZA / Africa/Johannesburg across reloads; setup status Complete.
+- Password-reset request submitted through live FaraiOS. Owner completed the email/password steps privately and reported Done. A later authenticated Welcome reload and Supabase last_sign_in_at at 21:38:19 SAST confirmed subsequent sign-in and preserved business data. No new password was requested, read or entered by the agent.
+- Recovery completion evidence is owner confirmation plus post-reset authenticated sign-in, not provider email-log inspection or a password-hash comparison. The Auth audit query returned no matching rows and was not used as proof.
+- Existing business records were retained. No Shalean/Bokkie historical data was imported; this is a newly created business in the fresh system.
+
+This supersedes earlier pending-release statements below. Preview validation and ownership-policy limitations remain as recorded. WL-WEBHOOK and WL-RECOVERY remain separate and open. No mismatched Resend workspace logs were accessed.
+
+
 
 Base: main 593accb0097eb580c994451effe2486d3e3e8239 (merged PR #2).
 
