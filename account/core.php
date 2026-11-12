@@ -14,7 +14,7 @@ function cfg(): array {
 function esc(string $s): string {return htmlspecialchars($s,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
 function start(): void {
  $c=cfg(); $secure=($c['environment']??'')!=='test';
- header('Cache-Control: no-store'); header('Referrer-Policy: no-referrer');header('X-Content-Type-Options: nosniff');header('X-Robots-Tag: noindex, nofollow');
+ header('Cache-Control: no-store'); header('Referrer-Policy: same-origin');header('X-Content-Type-Options: nosniff');header('X-Robots-Tag: noindex, nofollow');
  header("Content-Security-Policy: default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
  ini_set('session.use_strict_mode','1'); ini_set('session.use_only_cookies','1');
  session_name('faraios_account_'.substr(hash('sha256',$c['base_url']),0,12));
