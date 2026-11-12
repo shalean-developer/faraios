@@ -43,7 +43,7 @@ class Accounts(Journey):
  @classmethod
  def submit(cls,page,**data):
   html=cls.getpage(page);data['csrf']=re.search('name="csrf" value="([^"]+)"',html)[1]
-  r=cls.client.open(urllib.request.Request(cls.accountbase+'/account/index.php?page='+page,data=urllib.parse.urlencode(data).encode(),headers={'Origin':cls.accountbase}));return r.read().decode()
+  r=cls.client.open(urllib.request.Request(cls.accountbase+'/account/index.php?page='+page,data=urllib.parse.urlencode(data).encode(),headers={'Origin':cls.accountbase}));cls.last_url=r.url;return r.read().decode()
  def test_01_account_journey(self):
   self.assertIn('Create your account',self.getpage('signup'))
   self.assertIn('12 and 128',self.submit('signup',name='Owner',email='owner@example.test',password='short'))
@@ -53,6 +53,7 @@ class Accounts(Journey):
   self.assertEqual(urllib.parse.parse_qs(urllib.parse.urlparse(resend).query)['redirect_to'],[self.accountbase+'/account/index.php?page=confirm'])
   self.assertIn('Please check',self.submit('signin',email='owner@example.test',password='long-test-password'))
   self.assertIn('Email verified',self.submit('confirm',token_hash='a'*64,type='email'))
+  self.assertEqual(self.last_url.split('?')[-1],'page=signin')
   self.assertIn('Tell us about',self.submit('signin',email='owner@example.test',password='long-test-password'))
   self.assertIn('Choose your business type',self.submit('business',business_name='Fresh Company',business_type='bad'))
   self.assertIn('Fresh Company',self.submit('business',business_name='Fresh Company',business_type='cleaning'))
