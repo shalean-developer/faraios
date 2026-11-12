@@ -1,0 +1,7 @@
+*.sqlite*
+*.jsonl
+*.csv
+config.php
+.user.ini
+node_modules/
+test-results/
