@@ -31,3 +31,16 @@ Hosted preview, mobile screenshots, real hosted policies and owner review remain
 5. Present preview and limitations to owner before any production release.
 
 Rollback: leave production source alone; return preview repository to prior branch. Retain additive tables/drafts rather than deleting data. Production release later requires separate approval, latest checks and post-release verification. WL-WEBHOOK and WL-RECOVERY are separate and open. Do not inspect the mismatched Resend account/workspace.
+
+## Hosted evidence — 12 November 2026 (SAST)
+
+Application 84528178c90d568c8051466853e6f09e7b9309fc is deployed through the manual faraios-accounts-preview.git repository to /faraios.com/_accounts-preview. Production faraios.git still follows main at the PR #3 app release; no production pull, merge or app deployment performed.
+
+- Additive schema applied using the connected Supabase SQL editor; both new tables have RLS enabled. Migration history recorded as 20261112195239. Existing account/business/waitlist records preserved.
+- A fictional Bright & Co Cleaning sample was saved and published only in the preview namespace for the existing designated FaraiOS Preview Test Business. Public contact is hello@example.test. Address: https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning. This seed used SQL with simulated owner claims, not an authenticated browser editor journey.
+- Real public PHP/PostgREST read renders this sample without an account session. Desktop and 390px layouts inspected; no horizontal overflow. Browser viewport restored.
+- Hosted rollback-only assertions passed: other owner cannot read the test draft or unpublish it; anon cannot read drafts or private business_id column; live public snapshot count is zero. Owner save changes only draft, publish updates snapshot, unpublish removes snapshot while retaining draft. These native hosted checks use simulated JWT claims, not two real signed-in mailboxes.
+- Preview sign-in wall observed. Authenticated hosted editor save/reload, multipart logo and editor mobile controls remain pending fresh owner sign-in. Do not call this feature accepted or production-ready yet.
+- Production homepage and waitlist entry rendered in connected browser; no source files changed. Direct network byte/hash regression was unavailable and is not claimed.
+
+Gate: CONDITIONAL PASS for preview review; NO-GO for production until hosted editor verification and owner review.
