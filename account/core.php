@@ -51,7 +51,7 @@ function csrf(): void {
 }
 function email(): string {$e=strtolower(trim((string)($_POST['email']??'')));if(strlen($e)>254||!filter_var($e,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Enter a valid email address.');return $e;}
 function password(): string {$p=(string)($_POST['password']??'');if(strlen($p)<12||strlen($p)>128)throw new RuntimeException('Use a password between 12 and 128 characters.');return $p;}
-function field(string $key,int $max): string {$v=trim((string)($_POST[$key]??''));if(strlen($v)<2||strlen($v)>$max)throw new RuntimeException('Enter a valid '.str_replace('_',' ',$key).'.');return $v;}
+function field(string $key,int $max): string {$v=trim((string)($_POST[$key]??''));if(!preg_match('/\A.{2,'.$max.'}\z/us',$v)||preg_match('/[\x00-\x1f\x7f]/u',$v))throw new RuntimeException('Enter a valid '.str_replace('_',' ',$key).'.');return $v;}
 function store_session(array $s): void {if(empty($s['access_token'])||empty($s['refresh_token']))throw new RuntimeException('Please verify your email before signing in.');session_regenerate_id(true);$_SESSION['auth']=$s;$_SESSION['csrf']=bin2hex(random_bytes(32));}
 function user(): array {
  if(empty($_SESSION['auth'])) {go('signin');}
@@ -61,7 +61,24 @@ function user(): array {
  if(empty($u['email_confirmed_at']))throw new RuntimeException('Verify your email before continuing.');
  return $u;
 }
-function business(): ?array {$b=api('/rest/v1/businesses?select=id,name,business_type&limit=1',[],'GET',$_SESSION['auth']['access_token']);return $b[0]??null;}
+function business(): ?array {$b=api('/rest/v1/businesses?select=id,name,business_type,country,time_zone&limit=1',[],'GET',$_SESSION['auth']['access_token']);return $b[0]??null;}
 function go(string $p): never {header('Location: index.php?page='.$p,true,303);exit;}
 function form_start(): void {echo '<form method="post"><input type="hidden" name="csrf" value="'.esc($_SESSION['csrf']).'">';}
 function input(string $name,string $label,string $type='text',string $auto='',int $max=120): void {echo '<label for="'.$name.'">'.$label.'</label><div class="input-row"><input id="'.$name.'" name="'.$name.'" type="'.$type.'" autocomplete="'.$auto.'" maxlength="'.$max.'" required'.($type==='password'?' minlength="12"':'').' value="'.($type==='password'?'':esc((string)($_POST[$name]??''))).'">'.($type==='password'?'<button class="show" type="button" aria-controls="'.$name.'" aria-pressed="false">Show</button>':'').'</div>';}
+
+function regions(): array {static $data; return $data ??= json_decode(file_get_contents(__DIR__.'/regions.json'),true,512,JSON_THROW_ON_ERROR);}
+function location_details(): array {
+ $country=(string)($_POST['country']??'');$zone=(string)($_POST['time_zone']??'');
+ if(!isset(regions()['countries'][$country]))throw new RuntimeException('Choose your country.');
+ if(!in_array($zone,regions()['time_zones'],true))throw new RuntimeException('Choose a valid time zone.');
+ return ['country'=>$country,'time_zone'=>$zone];
+}
+function setup_complete(array $b): bool {return isset(regions()['countries'][$b['country']??'']) && in_array($b['time_zone']??'',regions()['time_zones'],true);}
+function location_fields(?array $b): void {
+ $country=(string)($_POST['country']??$b['country']??'');$zone=(string)($_POST['time_zone']??$b['time_zone']??'');
+ echo '<label for="country">Country</label><select id="country" name="country" autocomplete="country" required><option value="">Choose your country</option>';
+ foreach(regions()['countries'] as $key=>$label)echo '<option value="'.esc($key).'" data-zones="'.esc(implode(' ',regions()['country_zones'][$key]??[])).'"'.($country===$key?' selected':'').'>'.esc($label).'</option>';
+ echo '</select><label for="time_zone">Time zone</label><select id="time_zone" name="time_zone" required><option value="">Choose your time zone</option>';
+ foreach(regions()['time_zones'] as $key)echo '<option value="'.esc($key).'"'.($zone===$key?' selected':'').'>'.esc(str_replace('_',' ',$key)).'</option>';
+ echo '</select><small>We suggest a time zone when you choose a country. Check it before saving.</small>';
+}
