@@ -35,7 +35,7 @@ Verified fresh project `rxelmugnucfajrqmphhe`, healthy PostgreSQL 17, Supabase o
 
 ## Release status
 
-Source preparation in progress. Hosted Auth SMTP currently disabled, Site URL localhost:3000 and no redirects at inspection. Production deployment blocked until isolated and hosted evidence plus owner preview acceptance. Do not claim real email or mobile end-to-end success from simulated local tests.
+Preview source deployed. Initial inspection found SMTP disabled, localhost Site URL and no redirects; these have now been configured as recorded below. Production deployment blocked until isolated and hosted evidence plus owner preview acceptance. Do not claim real email or mobile end-to-end success from simulated local tests.
 
 Local evidence: three account suites passed (real PHP HTTP journey with simulated Auth/REST, CSRF/response headers, native PostgreSQL ownership/grants including anonymous and cross-owner denial). Real hosted Auth, SMTP, recovery and mobile visual checks remain pending. PHP syntax, JS syntax and diff checks passed.
 
@@ -46,3 +46,11 @@ Draft PR #2, initial head 9081b17. Plesk manual Git target faraios-accounts-prev
 Additive business migration applied to the specifically authorized faraios-new project as hosted version 20261112152816; source filename aligned. Security advisors: only the four pre-existing informational waitlist RLS-without-policy notices; no business-table advisory. No business/account records inserted by this migration. Native tests remain disposable. The 15 waitlist regression tests passed.
 
 Hosted signup layout inspected at 390×844, scrollWidth=390 (no horizontal overflow). This is a signup layout check, not full mobile journey acceptance. SMTP settings form opened but not saved; credential handoff required. Site URL/redirects/templates still need configuration. Password-change security notification not yet enabled. Production remains on main unchanged. Waitlist worker/status/private export success was visible in Plesk task notifications; restore and webhook proof remain open.
+
+## Auth configuration and first hosted request
+
+Owner installed SMTP credential and replied Done. Reloaded SMTP settings show enabled with stored password, smtp.resend.com:465 and FaraiOS sender name. No secret read or copied. Installed clean full confirmation and recovery HTML templates from source with subjects Verify your email for FaraiOS and Reset your FaraiOS password; recovery content was revisited and confirmed persisted. Site URL saved as https://www.faraios.com with only the exact preview confirmation redirect. Confirm email enabled, anonymous sign-in disabled, password minimum saved as 12, OTP expiry observed 3600 seconds. Leaked-password protection requires a paid plan and was not enabled. Password-change notification remains pending.
+
+A real HTTP registration through the Plesk account endpoint used owner-controlled hello@faraios.com, name FaraiOS Preview Test and a generated test password retained privately in scratch. Result: Check your email. Supabase count changed from zero accounts to one account, zero verified. Sign-in before verification was rejected. This proves the hosted signup request and confirmation requirement, not inbox delivery. No business has been created yet.
+
+Automatic approval review blocked Resend email-log inspection for an identified account/workspace mismatch; no workaround attempted. Owner inbox verification requested. Remaining: real verification link, sign-in and business creation/reload, recovery, cross-tab/replay checks, two-account direct REST isolation and complete desktop/mobile journey. Production main untouched; no release acceptance claimed.
