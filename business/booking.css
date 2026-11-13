@@ -30,3 +30,13 @@
 .booking-header .booking-progress li span{position:absolute;top:46px;left:50%;transform:translateX(-50%);width:auto;height:auto;padding:0;margin:0;overflow:visible;clip-path:none;white-space:nowrap;font-size:11px;font-weight:500;line-height:16px;color:#526176}
 .booking-header .booking-progress li[aria-current=step] span{color:#174b84;font-weight:700}
 @media(max-width:900px){.booking-header .booking-progress{max-width:320px}}
+
+.booking-services{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-top:16px}
+.booking-service-card{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;margin:0;padding:24px 18px;border:1px solid #dfe5ed;border-radius:12px;background:#fff;cursor:pointer;min-width:0;overflow-wrap:anywhere}
+.booking-service-card:hover{border-color:#087bbd;background:#f7fbfe}.booking-service-card:has(input:checked){border:2px solid #087bbd;padding:23px 17px;background:#edf7fc;box-shadow:0 0 0 2px #087bbd14}
+.request-layout .booking-service-card input{position:absolute;top:12px;right:12px;width:18px;height:18px;margin:0;accent-color:#087bbd}
+.booking-service-card:focus-within{outline:3px solid #8dccf1;outline-offset:3px}
+.service-card-icon{display:grid;place-items:center;width:64px;height:64px;border-radius:16px;background:#e8f3f1;color:#087c79;margin:4px 0 6px}
+.service-card-icon svg{width:40px;height:40px}.service-card-name{font-size:16px;line-height:1.4;font-weight:700}.service-card-price{color:#174b84;font-size:14px;font-weight:650}.service-card-duration{font-size:12px;color:#637682;font-weight:400}.service-card-description{font-size:13px;line-height:1.5;color:#526176;font-weight:400}
+.service-intro{color:#526176}.service-selected-price{font-size:13px;margin-top:16px}
+@media(max-width:600px){.booking-services{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.booking-service-card{padding:22px 12px 16px}.booking-service-card:has(input:checked){padding:21px 11px 15px}.service-card-name{font-size:14px}.service-card-price{font-size:12px}.service-card-description{font-size:12px}.service-card-icon{width:52px;height:52px}.service-card-icon svg{width:32px;height:32px}}
