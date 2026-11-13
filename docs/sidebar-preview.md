@@ -15,3 +15,13 @@ Test setup corrections: first native dashboard attempt lacked shared-library con
 Browser checkpoint: previous preview was authenticated on inspection, but reload after deployment expired to sign-in. Owner asked to sign in to /_accounts-preview/account/index.php?page=signin. Authenticated navigation, keyboard, responsive layout and visual review are PENDING. Do not label preview fully tested or deploy production until these pass and owner has reviewed it.
 
 Rollback preview: switch only the accounts preview repository back to feature/dashboard-overview-20261113 or PR #14 and deploy manually. No data rollback needed.
+
+## Authenticated preview closeout — PASS
+
+Owner signed in and replied Ready. Application f8cf4e2 verified in connected Chrome on the isolated preview only. All nine sidebar destinations load, active aria-current matches page, and existing forms/filters/profile/service controls remain present. Desktop 1280: each page scrollWidth <= viewport. Mobile 390: all nine pages scrollWidth <= viewport; Overview and enquiry/quote forms also pass 320-pixel overflow checks. No device-hardware claim.
+
+Drawer verified by keyboard: Enter opens; focus enters Close menu; Shift+Tab at first link wraps to Account, Tab at last wraps to brand; Escape closes, returns focus to Menu and clears background inert. Navigation closes drawer on destination. Desktop reset restores sidebar; final viewport override reset. Financial breakdown and definitions expand/collapse with Enter. All four Overview Create links open correct forms without submission.
+
+Retained preview: Today 1, New enquiries 3, awaiting responses 0, overdue 0. November ZAR outstanding 75.00, overdue 0.00, net recorded payments 555.50; expandable payments 886.00 less reversals 330.50. October net 0 with current outstanding still 75.00. Returned to November. Existing labelled booking/staff/invoice fixtures visible. No hosted business writes or new fixtures; production protected records untouched by this presentation-only preview. Full-page screenshots: docs/evidence/sidebar-desktop-preview.jpg and sidebar-mobile-preview.jpg. Preview left open for owner review.
+
+Decision: PASS for tested preview, awaiting owner review/deployment instruction. No production merge/deployment authorized or performed. Native 17-check result from previous checkpoint remains valid; browser testing required no source correction.
