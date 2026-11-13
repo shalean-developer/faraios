@@ -41,3 +41,17 @@ Production/main remains PR #8, waitlist preview unchanged. Live homepage and wai
 Preview owner session expired and redirects to sign-in. Full real browser save/reload, quote conversion, calendar and mobile acceptance remain pending owner sign-in. No full preview PASS claimed. Final self-review hardened manual browser-back resubmission to reuse posted request ID and reject stale writes; local journey confirms exactly one manual record after replay. This is an application-only change; schema unchanged. Local booking suite rerun PASS.
 
 Connected Security Advisor rerun: zero errors; one existing Auth leaked-password-protection disabled warning, unchanged. No new security warning.
+
+## Authenticated preview acceptance — 13 November 2026 SAST
+
+Owner signed in to preview; claimed the signed-in Welcome tab. Application remains `c59051a94a6862152e13b53610c45c3a5f6d3d14`; subsequent changes are evidence only.
+
+Real connected Chrome/PHP/Supabase PASS: Welcome retains complete Shalean business setup and Bookings entry; empty preview list; manual fictional customer/phone/address/date/time/duration; three-decimal price rejected with fields retained; corrected 2 × ZAR 505.25 saved/reloaded at ZAR 1,010.50, 20 November 08:30–10:30 Africa/Johannesburg. Rescheduled to 09:00–11:00 and sequentially saved/reloaded In Progress, Completed and Cancelled. Cancelled filter retains the booking.
+
+Existing accepted fictional quote A54CEBAC converted with customer, two service items, notes and ZAR 1,135.50 preserved and noneditable. Address/date/start/duration saved as 23 November 10:00–11:30. Reload succeeded. Returning to accepted quote and choosing Create / open booking reopened the identical booking URL. Source quote remains Accepted. No duplicate conversion or quote mutation.
+
+Calendar PASS: November shows both records on the correct dates/times/statuses; December shows no bookings; returning November restores entries. Mobile viewport 390×844: calendar, quote editor, manual editor and list have document scrollWidth 375 (no horizontal overflow). Quote booking duration changed from 90 to 105 minutes on mobile, saved/reloaded as 10:00–11:45 with agreed price unchanged. Desktop viewport restored; full-page calendar screenshot visually inspected and saved at docs/evidence/bookings-calendar-preview.jpg. Mobile screenshots from connected viewport capture appeared scaled in the capture surface; responsive sizing, controls and save/reload were independently verified through DOM/layout and interaction. No claim of physical-device testing.
+
+Final hosted SQL PASS: businesses=2; live_bookings=0; preview_bookings=2 (Cancelled=1, Scheduled=1); linked quote booking count=1; source quote Accepted; preview booking writes enabled=true/live=false; live_quotes=0; preview_quotes=3; live_public_pages=0; Shalean unpublished. Two fictional preview bookings retained for owner review. Existing account/business/profile/services/enquiries/quotes not changed by booking tests; no production fixtures, email, publication, payment, staff or recurrence operations.
+
+Decision: **PASS for owner preview review**, with documented limitations. High-volume hosted pagination and abuse are not browser-tested; cross-owner database tests simulate JWT identities rather than two real owner logins. Overlaps allowed, long bookings displayed on start day and pagination at 100 records remain explicit V1 behavior. Production main stays PR #8 with booking writes disabled. Explicit owner Deploy instruction is required before production release.
