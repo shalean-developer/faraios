@@ -76,6 +76,9 @@ class Requests(Profiles):
   self.get(path);self.assertEqual(int(self.sql('select count(*) from public.business_booking_requests')),before+1)
   self.post('/account/index.php?page=signin',email='a@example.test',password='test-long-password');self.assertIn('Fixed clean',self.get('/account/requests.php')[1]);self.assertIn('Fictional Customer',self.get('/account/requests.php?id='+rid)[1])
   self.post('/account/index.php?page=signin',email='b@example.test',password='test-long-password');self.assertNotIn('Fixed clean',self.get('/account/requests.php')[1]);self.assertIn('unavailable',self.get('/account/requests.php?id='+rid)[1])
+  from pathlib import Path
+  hosted=Path(__file__).with_name('requests-hosted.sql').read_text().replace("'preview'","'live'").replace('faraios-demo-cleaning','request-demo').replace("'50500'","'87525'")
+  self.assertIn('PASS rollback-only',self.sql(hosted))
   self.scope(a,f"select public.business_profile_unpublish('{bid}','live')")
   self.assertEqual(self.get(path)[0],404)
   with self.assertRaises(RuntimeError):rpc(args|dict(p_request=str(uuid.uuid4())))
