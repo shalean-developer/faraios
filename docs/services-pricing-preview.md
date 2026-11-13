@@ -41,3 +41,15 @@ Connected Plesk: changed only faraios-accounts-preview.git to feature/services-p
 Seeded three fictional services using simulated owner claims for the existing Bright & Co preview demo only: fixed ZAR 505, from ZAR 950, request a quote. Public sample /_accounts-preview/b/faraios-demo-cleaning renders all three with descriptions/durations and explicit currency. At 390×844 the corrected service card, price wrapping and spacing were visually inspected; document scrollWidth 375 <= viewport 390. Viewport restored. This SQL seed is not an authenticated editor journey.
 
 Authenticated preview session expired. Sign-in handoff left open; add/edit/save/reload/publish/archive editor and mobile form checks remain pending. No production app deployment/merge authorized or performed. Live Shalean profile remains unpublished; no live services created.
+
+## Authenticated hosted acceptance — 13 November 2026 SAST
+
+Supersedes pending editor checks above. Owner signed into preview; reused existing Shalean business without creating an account/business.
+
+PASS: add service, fixed ZAR 505.25, description/duration, public selection; invalid 505.123 rejected and entered values retained; save/reload and saved private preview. Publish services alone did not publish the draft business page. Explicit profile publish displayed the saved service snapshot. Editing name/price to From ZAR 750 and saving left public output at ZAR 505.25 until service republish. Archive left public service visible until publication, then removed it. Restore made the service private. Request-a-quote mode saved/published without a numeric price. Mobile editor at 390×844 had scrollWidth 375; form fields/pricing controls inspected, duration changed to 180 minutes, saved and reloaded. Public mobile sample had already passed at 390px. Browser viewport reset.
+
+Cleanup PASS: owner's temporary preview profile unpublished; public route shows Page not available. Fictional owner test service archived and empty service selection explicitly published, so future profile publication will not expose that fixture. Its draft retained for reversible restore. Bright & Co demonstration remains published only in preview with three fictional services. Production source remains PR #4; no live catalogue created and live Shalean profile untouched.
+
+Isolation remains covered by native PostgreSQL and hosted rollback-only tests with simulated JWT identities, not two real mailbox-authenticated owners. No real marketing email, Resend-workspace operation or waitlist recovery verification performed.
+
+Decision: PASS for owner preview review. Production merge/deployment requires explicit owner approval, followed by release and live smoke verification. Application candidate remains 27a97ea18b318dd9687b2039c24b65e30c390bbc; later commits are evidence only.
