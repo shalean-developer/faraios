@@ -33,6 +33,10 @@ function api(string $path,array $body=[],string $method='POST',?string $token=nu
  preg_match('/\s(\d{3})\s/',$http_response_header[0]??'', $m); $status=(int)($m[1]??0);
  $data=json_decode($raw?:'{}',true); if(!is_array($data)) $data=[];
  if ($status<200||$status>=300) {
+  if(str_starts_with($path,'/rest/v1/rpc/business_customer_')){
+   $safe=['Customers unavailable.','Customer unavailable.','Check customer details.','Check customer search.','Customer changed or unavailable. Reload before saving.','Record unavailable or already linked.','Quote changed or unavailable. Reload before saving.','Booking changed or unavailable. Reload before saving.','Business currency changed. Reload before saving.','Check quote details and expiry','Check booking details.','An accepted quote from this business is required.','This quote already has a booking. Open it from the booking list.','Choose a valid date and time.','This local time is skipped or repeated by daylight saving. Choose another time.'];
+   if(in_array($data['message']??'', $safe,true))throw new RuntimeException($data['message']);
+  }
   if(str_starts_with($path,'/rest/v1/rpc/business_booking_')){
    $safe=['Bookings unavailable.','Booking changed or unavailable. Reload before saving.','Booking time zone changed. Reload before saving.','Business time zone changed. Reload before saving.','New bookings must be Scheduled.','An accepted quote from this business is required.','This quote already has a booking. Open it from the booking list.','Business currency changed. Reload before saving.','Booking currency cannot be changed.','Check booking details.','Choose a valid date and time.','This local time is skipped or repeated by daylight saving. Choose another time.','Choose a date between 2000 and 2099.'];
    if(in_array($data['message']??'', $safe,true))throw new RuntimeException($data['message']);

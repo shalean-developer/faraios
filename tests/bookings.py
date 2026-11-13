@@ -5,9 +5,10 @@ from concurrent.futures import ThreadPoolExecutor
 import json,unittest,sys,uuid,re
 from datetime import datetime,timezone
 class Bookings(Profiles):
- extra_migrations=['customer_enquiries','customer_quotes','bookings_scheduling']
+ extra_migrations=['customer_enquiries','customer_quotes','bookings_scheduling','customer_profiles']
  def test_bookings(self):
   a,b=self.ids;bid=self.bids[0]
+  self.sql("update customer_private.ingress set enabled=true where environment='live'")
   self.sql("update booking_private.ingress set enabled=true where environment='live';update quote_private.ingress set enabled=true where environment='live'")
   self.post('/account/index.php?page=signin',email='a@example.test',password='test-long-password')
   path='/account/bookings.php?new=1'
@@ -62,7 +63,7 @@ class Bookings(Profiles):
   self.sql("update public.business_quotes set status='Declined' where id="+lit(qid))
   with self.assertRaises(RuntimeError):write(a,p_id=str(uuid.uuid4()),p_version=0,p_quote=qid)
   self.sql("update public.business_quotes set status='Accepted' where id="+lit(qid))
-  qid2=str(uuid.uuid4());self.sql('insert into public.business_quotes select '+lit(qid2)+',business_id,environment,enquiry_id,document,expires_on,status,version,'+lit('b'*64)+',sender,created_at,sent_at,responded_at from public.business_quotes where id='+lit(qid))
+  qid2=str(uuid.uuid4());self.sql('insert into public.business_quotes select '+lit(qid2)+',business_id,environment,enquiry_id,document,expires_on,status,version,'+lit('b'*64)+',sender,created_at,sent_at,responded_at,customer_id from public.business_quotes where id='+lit(qid))
   def attempt(_):
    try:write(a,p_id=str(uuid.uuid4()),p_version=0,p_quote=qid2);return True
    except RuntimeError:return False
