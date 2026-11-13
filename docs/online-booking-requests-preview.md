@@ -140,3 +140,8 @@ Preview candidate5a12a3d deployed accounts-preview only; Plesk Done. PHP/JS synt
 ### Compact tiles matched to measured reference
 
 Owner removed all card pricing/duration/descriptions; cards now icon/name only, pricing remains in summary and review. Then measured Sweepsouth /accounts/launch actual service button128x128px, radius8px, parent gap8px. Applied matching fixed dimensions/gap/radius with original FaraiOS icons. Hosted candidate f5f7af88 deployed accounts-preview only; Plesk completed/Done. All3 FaraiOS cards measured128x128px/radius8px, grid gap8px. Desktop screenshot visually inspected. Prior compact selection check confirmed summary ZAR505 still updates. No records changed or submitted, no production release. Preview left open for review.
+
+
+### Booking introduction cleanup
+
+Owner requested removal of Request a booking title, introductory pending-confirmation paragraph, Business page back link and body Step1of5 text. Preview candidate4f2968e deployed accounts-preview only; Plesk Done. Removed visible introduction/link; hidden step-status remains for existing JS updates. Booking region retains accessible label; header stepper, summary pending-confirmation wording, review and success notices preserved. Hosted DOM and desktop screenshot PASS requested text absent. No submission/record changes; production unchanged.
