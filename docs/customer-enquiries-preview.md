@@ -52,3 +52,23 @@ Preview owner's idle session expired and redirected to sign-in. Asked owner to s
 Prepared `tests/enquiries-hosted.sql` and verified it against disposable PostgreSQL with the same fictional fixture; PASS. It has not yet run on hosted Supabase. It uses simulated JWT identities and ROLLBACK, not mailbox-authenticated second-owner evidence.
 
 Decision: preview deployed; public successful submission verified. Full end-to-end acceptance pending owner session and stable browser connection. Production remains NO-GO pending completed preview review and explicit owner release approval. Live intake is disabled. Resend and separate waitlist webhook/recovery checks are untouched.
+
+## Authenticated hosted acceptance — 13 November 2026 SAST
+
+Owner signed into preview. Application candidate remains `63bd1d4edee9d9cabf0adab6c5ef6cc483d6e3cb`; subsequent commits are evidence only.
+
+PASS: Welcome → Enquiries loads the signed-in Shalean business with an empty list; the separate Bright & Co enquiry is not visible. Used the existing owner's preview profile only: retained original name/email/description/areas in browser memory, temporarily changed public name and public email to fictional Preview Cleaning Test / hello@example.test, saved/published the preview page at `shalean-cleaning-preview`. No live page or services were published or modified.
+
+Submitted a fictional phone-only general enquiry through the real public PHP form. Success shown. Refresh returned to the blank GET form with no repeat success. Owner list contained exactly one Fictional Customer Test enquiry, initially New; detail showed requirements and phone link. New → Contacted → Closed succeeded, Closed survived reload, New filter showed no results and Closed filter showed exactly one. At 390px: public form scrollWidth 375, owner list 390, detail 375; no horizontal overflow. Visually inspected public form and owner list screenshots. Mobile detail status Closed → New saved and survived reload, then returned to Closed. Viewport reset.
+
+Cleanup PASS: temporary owner preview page unpublished, GET shows Page not available. Original name/email/description/areas restored and all four compared equal after reload; other profile inputs were not changed. One fictional owner enquiry remains Closed for review. Bright & Co remains the public fictional demo; its published-service submission passed in the preceding session.
+
+Hosted `tests/enquiries-hosted.sql` PASS through connected Supabase: published-service intake and snapshot; identical request idempotency; invalid/private-service rejection; live intake disabled; anonymous SELECT denied; owner read, Contacted/Closed and stale-write rejection; immutable email; other-owner read/status denied. All probes rolled back. These are simulated JWT identities under native authenticated/anon roles, not a second mailbox-authenticated browser owner.
+
+Security Advisor: zero database errors; one Auth warning (leaked-password protection disabled), configuration unchanged. Six informational no-policy entries: two private enquiry tables and four pre-existing waitlist tables, all intentionally client-denied. Data API schema picker visually confirmed only public and graphql_public checked; enquiry_private and waitlist_private unchecked. No API settings changed.
+
+Final native state: live_intake=false; live_enquiries=0; live_public_pages=0; owner_preview_published=false; owner_test_count=1; owner_test_status=Closed; rollback_probe_remaining=false. No Resend operations, email sends, paid CI, waitlist webhook/recovery changes, bookings, payments or dashboard.
+
+Limits: spam caps and list pagination are covered by source/local checks rather than a hosted high-volume browser exercise; caps are basic abuse controls, not CAPTCHA. Prior 26 intended PHP/PostgreSQL suites remain passing, with enquiry suite rerun after Chrome header fix. No implementation changes were needed during this acceptance session.
+
+Decision: **PASS for owner preview review**. Review the public demo and signed-in Enquiries before authorizing production. PR #6 remains draft/unmerged; production source stays PR #5 and live intake stays disabled. Existing Auth warning is documented independently and does not indicate an enquiry-table access defect.
