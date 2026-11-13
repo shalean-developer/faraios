@@ -31,7 +31,11 @@ class Staff(Profiles):
    html=self.get('/account/bookings.php?staff='+ids[0]+view)[1];self.assertIn('Fictional Alex',html);self.assertIn('Overlap',html)
   # Half-open intervals: touching endpoints have no overlap.
   self.assertEqual(self.scope(a,'select conflicts from public.business_booking_schedule where id='+lit(touch)),'[]')
-  self.assertIn('changed or unavailable',self.post(path,action='assign',id=rid,assignment_version=0))
+  failed=self.post(path,action='assign',id=rid,assignment_version=0)
+  self.assertIn('changed or unavailable',failed)
+  self.assertIn('name="item_name_0" list="services" maxlength="120" value="Clean"',failed)
+  self.assertIn('name="quantity_0" type="number" min="1" max="9999" step="1" value="1"',failed)
+  self.assertIn('name="price_0" inputmode="decimal" value="505.00"',failed)
   edit='/account/staff.php?id='+ids[0]
   self.assertIn('Staff saved',self.post(edit,id=ids[0],version=1,name='Fictional Alex Updated',email='',phone=''))
   self.assertIn('(inactive)',self.get('/account/bookings.php')[1]);self.assertIn('existing assignment',self.get(path)[1])
