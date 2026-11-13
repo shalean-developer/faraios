@@ -36,3 +36,13 @@ PHP lint, JS syntax, diff checks PASS. Targeted native dashboard and invoice sui
 
 
 Hosting follow-up: Allanux normal sign-in restored the session, opened Plesk from the reseller service, confirmed production remains main/PR #14. Pulled the Zenbooker alignment revision and manually deployed only accounts preview. Completed deployment observed. Preview reload reached expired-session sign-in; owner asked to sign in and reply Ready. Revised desktop/mobile visual and New menu checks remain pending. No production deployment or hosted record write.
+
+## Revised reference-aligned authenticated preview — PASS
+
+Owner replied Ready after signing in. Final application f9b95dc370bdddbd93898959f41847858d7757ad deployed only to accounts preview via Plesk manual deploy; production stays PR #14. Fixed stretched sidebar grid rows (align-content:start) and singular booking label during visual QA. Native dashboard rerun PASS after correction; PHP lint/JS syntax/diff PASS. Invoice regression previously PASS for reference alignment.
+
+Connected browser: New summary opens with Enter, exposes four correct forms, Escape closes and restores summary focus. No form submitted. Mobile drawer focuses Close menu, marks background inert, Escape closes and returns Menu focus. Account/business footer visible at 844px bottom; navigation links now 38px rather than stretched rows. All nine mobile destinations return correct active state with no alerts or horizontal overflow at actual 390px (scrollWidth 375 or390). Requested 320 override remained 390, so no revised 320 claim. Fresh desktop review tab verified actual1280/scroll1265 and final screenshot. Temporary viewport reset; desktop tab retained.
+
+Financial browser readback: November current outstanding ZAR75.00, overdue0.00, net555.50, payment886.00 less reversal330.50. October net0.00 with current outstanding75.00; November restored. Today1 labelled booking, New3, awaiting0, overdue0, historical staff assignment and part-paid preview invoice remain. No hosted records created/changed, no notifications or integration access. Existing production protections preserved by unchanged PHP handlers/database and no production deploy.
+
+Final screenshots: docs/evidence/zenbooker-aligned-desktop.jpg and zenbooker-aligned-mobile.jpg supersede earlier screenshots for current design. PASS: revised tested preview ready for owner review. Production merge/deploy still requires explicit owner instruction.
