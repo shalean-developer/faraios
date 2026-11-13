@@ -21,13 +21,13 @@ class Profiles(Journey):
      elif url.path.startswith('/rest/v1/'):
       prefix="set role authenticated;set request.jwt.claim.sub="+lit(uid)+";set request.jwt.claims='{\"is_anonymous\":false}';" if uid in cls.ids else 'set role anon;'
       if '/rpc/' in url.path:
-       name=url.path.rsplit('/',1)[-1];assert name in ['business_profile_save','business_profile_publish','business_profile_unpublish','business_services_save','business_services_publish','business_enquiry_submit','business_enquiry_status','business_quote_write','business_quote_customer','business_booking_write','business_customer_search','business_customer_write','business_customer_link','business_customer_quote_create','business_customer_booking_create','business_staff_write','business_staff_assign'];parts=[]
+       name=url.path.rsplit('/',1)[-1];assert name in ['business_profile_save','business_profile_publish','business_profile_unpublish','business_services_save','business_services_publish','business_enquiry_submit','business_enquiry_status','business_quote_write','business_quote_customer','business_booking_write','business_customer_search','business_customer_write','business_customer_link','business_customer_quote_create','business_customer_booking_create','business_staff_write','business_staff_assign','business_invoice_write','business_invoice_payment','business_invoice_customer'];parts=[]
        for k,v in body.items():parts.append(k+'=>'+(lit(json.dumps(v))+'::jsonb' if k in ['p_draft','p_document','p_details','p_staff'] else lit(v)))
        data=json.loads(cls.sql(prefix+'select public.'+name+'('+','.join(parts)+')'))
       else:
-       table=url.path.rsplit('/',1)[-1];assert table in ['businesses','business_profiles','business_public_pages','business_service_catalogues','business_enquiries','business_quotes','business_quote_list','business_bookings','business_customers','business_staff','business_booking_schedule'];cols=q.get('select',['*'])[0];assert re.fullmatch(r'[a-z_,*]+',cols);conditions=[]
+       table=url.path.rsplit('/',1)[-1];assert table in ['businesses','business_profiles','business_public_pages','business_service_catalogues','business_enquiries','business_quotes','business_quote_list','business_bookings','business_customers','business_staff','business_booking_schedule','business_invoice_list','business_invoice_payments'];cols=q.get('select',['*'])[0];assert re.fullmatch(r'[a-z_,*]+',cols);conditions=[]
        for key,vs in q.items():
-        if key in ['business_id','environment','slug','id','status','effective_status','quote_id','customer_id']:conditions.append(key+'='+lit(vs[0].removeprefix('eq.')))
+        if key in ['business_id','environment','slug','id','status','effective_status','quote_id','customer_id','booking_id','invoice_id']:conditions.append(key+'='+lit(vs[0].removeprefix('eq.')))
         if key=='staff_ids':
          assert vs[0].startswith('cs.');conditions.append('staff_ids @> '+lit(vs[0][3:])+'::uuid[]')
         if key=='starts_at':
@@ -35,8 +35,9 @@ class Profiles(Journey):
            op,val=v.split('.',1);assert op in ['gte','lt'];conditions.append('starts_at'+('>=' if op=='gte' else '<')+lit(val)+'::timestamptz')
        if table=='business_staff':conditions.append('true')
        query='select '+cols+' from public.'+table+(' where '+' and '.join(conditions) if conditions else '')
-       if table in ['business_enquiries','business_quote_list','business_quotes']:query+=' order by created_at desc,id desc limit '+str(int(q.get('limit',[21])[0]))+' offset '+str(int(q.get('offset',[0])[0]))
+       if table in ['business_enquiries','business_quote_list','business_quotes','business_invoice_list']:query+=' order by created_at desc,id desc limit '+str(int(q.get('limit',[21])[0]))+' offset '+str(int(q.get('offset',[0])[0]))
        if table in ['business_bookings','business_booking_schedule']:query+=' order by starts_at asc,id asc limit '+str(int(q.get('limit',[101])[0]))+' offset '+str(int(q.get('offset',[0])[0]))
+       if table=='business_invoice_payments':query+=' order by created_at,id limit '+str(int(q.get('limit',[100])[0]))+' offset '+str(int(q.get('offset',[0])[0]))
        if table=='business_staff':query+=' order by name,id limit '+str(int(q.get('limit',[100])[0]))+' offset '+str(int(q.get('offset',[0])[0]))
        data=json.loads(cls.sql(prefix+"select coalesce(jsonb_agg(to_jsonb(t)),'[]'::jsonb) from ("+query+') t'))
     except Exception as e:status=400;data={'code':'23505' if 'unique constraint' in str(e) else 'P0001','message':str(e).split('ERROR:  ')[-1].split('\n')[0]}

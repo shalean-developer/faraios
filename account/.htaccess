@@ -1,5 +1,5 @@
 Options -Indexes
 <IfModule mod_rewrite.c>
 RewriteEngine On
-RewriteRule ^(?:core|profile-core|services-core|customers-core|staff-core)\.php$ - [F,L,NC]
+RewriteRule ^(?:core|profile-core|services-core|customers-core|staff-core|invoices-core)\.php$ - [F,L,NC]
 </IfModule>
