@@ -5,7 +5,7 @@ RewriteEngine On
 RewriteCond %{REQUEST_URI} ^/_accounts-preview/waitlist/ [NC]
 RewriteRule ^ - [F,L]
 RewriteRule ^(?:\.git|scripts|tests|docs|supabase)(?:/|$) - [F,L,NC]
-RewriteRule ^account/(?:core|profile-core|services-core)\.php$ - [F,L,NC]
+RewriteRule ^account/(?:core|profile-core|services-core|enquiries-core)\.php$ - [F,L,NC]
 RewriteRule ^waitlist/(?:core|action-page|email)\.php$ - [F,L,NC]
 RewriteRule (?:^|/)(?:\.[^/]+|[^/]+\.(?:sqlite|sqlite3|db|jsonl|csv|log|bak|md|ini|env|lock))$ - [F,L,NC]
 </IfModule>
