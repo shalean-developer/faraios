@@ -1,0 +1,70 @@
+/* Dashboard design applied only to authenticated business editors. */
+.business-page .app-topbar{background:transparent;border-bottom:0;height:54px;min-height:54px}
+.business-page .app-page-title{font-size:13px;color:#637682}
+.business-page .editor-main{margin:16px auto 24px;max-width:1440px}
+.business-page .editor-heading{align-items:center;flex-direction:row;margin:24px 0;gap:16px}
+.business-page .editor-heading h1,.business-page .editor-main>h1{font-size:24px;letter-spacing:-.4px;margin-bottom:8px}
+.business-page .editor-heading .muted{font-size:13px;max-width:65ch}
+.business-page .editor-main h2{font-size:17px;letter-spacing:-.15px}
+.business-page .editor-main h3{font-size:15px;line-height:1.45}
+.business-page .editor-main .panel{border-radius:7px;border-color:#e0e7ed;box-shadow:none;padding:22px;margin-top:20px;min-width:0}
+.business-page .editor-grid{align-items:start;gap:20px;grid-template-columns:minmax(0,1fr) minmax(250px,300px)}
+.business-page .editor-grid>.panel,.business-page .editor-grid>aside>.panel:first-child{margin-top:0}
+.business-page .publish-panel{top:20px}
+.business-page .editor-main .badge{font-size:11px;line-height:1.5;padding:4px 10px;white-space:normal;flex-shrink:0}
+.business-page .editor-main p{font-size:14px;line-height:1.6}
+.business-page .editor-main .muted,.business-page .editor-main small{font-size:12px}
+.business-page .editor-main label{font-size:13px;margin:16px 0 6px;font-weight:600}
+.business-page .editor-main input:not([type=checkbox]),.business-page .editor-main select,.business-page .editor-main textarea{border:1px solid #d5dfe7;border-radius:7px;padding:9px 11px;min-height:42px;font-size:14px;background:#fff}
+.business-page .editor-main textarea{line-height:1.6}
+.business-page .editor-main input[type=checkbox]{width:18px;height:18px;accent-color:#087bbd;flex-shrink:0}
+.business-page .editor-main .check{font-weight:400;gap:10px;line-height:1.6}
+.business-page .editor-main .button{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:auto;max-width:100%;min-height:44px;font-size:13px;padding:10px 16px;border-radius:7px;vertical-align:middle;margin:18px 8px 0 0;line-height:1.5;white-space:normal}
+.business-page .editor-main .secondary{background:#fff;border-color:#cadbe6;color:#086dba}
+.business-page .editor-main .text-button{min-height:44px;font-size:13px}
+.business-page .enquiry-filter{padding:14px 16px;border:1px solid #e0e7ed;border-radius:7px;background:#fff;gap:10px 14px;flex-wrap:wrap;margin:0 0 20px}
+.business-page .enquiry-filter label{margin:0;font-size:12px}
+.business-page .enquiry-filter input:not([type=checkbox]){width:auto;min-width:0;flex:1 1 180px;max-width:380px}
+.business-page .enquiry-filter select{width:auto;min-width:130px;max-width:240px;flex:1 1 130px}
+.business-page .enquiry-filter .button{margin:0;flex-shrink:0}
+.business-page .enquiry-detail form{max-width:460px}
+.business-page .editor-main .service-card{padding:16px 0;border-color:#e8edf1;min-width:0}
+.business-page .editor-main .panel>.service-card:first-child{padding-top:0}
+.business-page .editor-main .panel>.service-card:last-child{padding-bottom:0;border-bottom:0}
+.business-page .editor-main .service-card h2,.business-page .editor-main .service-card h3{font-size:15px;margin:0;font-weight:650}
+.business-page .editor-main .service-card p{font-size:13px;margin:7px 0}
+.business-page .service-title{align-items:center;gap:12px}
+.business-page .service-title>h2{margin-bottom:0}
+.business-page .service-actions{gap:20px;flex-wrap:wrap;font-size:13px}
+.business-page .quote-items{margin:16px 0;border:1px solid #e0e7ed;border-radius:7px;padding:0 16px;background:#fafcfd}
+.business-page .quote-items .service-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;padding:12px 0!important;border-bottom:1px solid #e0e7ed!important}
+.business-page .quote-items .service-card:last-child{border-bottom:0!important}
+.business-page .quote-items .service-card h3{grid-column:1}
+.business-page .quote-items .service-card p{grid-column:1;margin:0}
+.business-page .quote-items .service-card strong{grid-column:2;grid-row:1/3;align-self:center;font-size:14px;text-align:right}
+.business-page .editor-main .quote-total{font-size:18px;margin:12px 0;font-weight:700}
+.business-page .quote-line{background:#fafcfd;border-color:#e0e7ed;border-radius:7px;padding:14px 16px;margin:16px 0}
+.business-page .quote-line legend{font-size:12px;color:#536a7b;padding:0 6px}
+.business-page .quote-line label:first-of-type{margin-top:8px}
+.business-page .quote-saved{margin-top:24px;padding-top:20px;border-color:#e0e7ed}
+.business-page .editor-main details{border-color:#e0e7ed;margin-top:18px;padding-top:14px}
+.business-page .editor-main summary{font-size:13px;min-height:32px}
+.business-page .booking-views{margin:0 0 16px;gap:8px;font-size:13px}
+.business-page .booking-views a{border:1px solid #d7e3eb;border-radius:6px;background:#fff;padding:8px 16px;text-decoration:none;min-height:40px}
+.business-page .calendar-day{border-color:#e0e7ed;border-radius:7px;padding:10px}
+.business-page .calendar-event{background:#eaf4fb;border-left:3px solid #087bbd;color:#205875}
+.business-page .enquiry-pagination{font-size:13px;margin-top:18px}
+.business-page .enquiry-pagination a{padding:8px 0;min-height:40px}
+.business-page .notice,.business-page .alert{font-size:13px;border-radius:7px}
+.business-page .editor-main .description{overflow-wrap:anywhere}
+.business-page .editor-main *{min-width:0}
+@media(max-width:1100px){.business-page .editor-grid{grid-template-columns:1fr}.business-page .publish-panel{position:static}}
+@media(max-width:900px){.business-page .app-topbar{height:auto;min-height:60px;background:#fff;border-bottom:1px solid #e0e7ed}.business-page .editor-main{margin-top:18px}}
+@media(max-width:700px){.business-page .editor-heading{align-items:flex-start;margin:20px 0;gap:12px}.business-page .editor-heading h1,.business-page .editor-main>h1{font-size:21px}.business-page .editor-main .panel{padding:18px}.business-page .enquiry-filter{padding:14px;display:grid;grid-template-columns:1fr;gap:8px}.business-page .enquiry-filter input:not([type=checkbox]),.business-page .enquiry-filter select,.business-page .enquiry-filter .button{width:100%;max-width:100%;margin:0}.business-page .service-title{flex-wrap:wrap;align-items:flex-start}.business-page .service-title h2,.business-page .service-title h3{flex:1 1 160px}.business-page .service-title strong{flex-shrink:1}.business-page .editor-main .button{display:flex;width:100%;margin-right:0}.business-page .editor-heading .badge{max-width:46%}.business-page .two-col{grid-template-columns:1fr;gap:0}.business-page .editor-main .quote-total{font-size:17px}}
+@media(max-width:360px){.business-page .editor-heading{flex-direction:column}.business-page .editor-heading .badge{max-width:100%}.business-page .quote-items .service-card{grid-template-columns:1fr}.business-page .quote-items .service-card strong{grid-column:1;grid-row:auto;text-align:left}}
+@media(max-width:700px){.business-page .service-title{flex-direction:row}.business-page .service-title h2,.business-page .service-title h3{min-height:0}}
+
+/* One content heading and action row; sidebar provides section navigation. */
+.business-page .app-topbar{display:none}.business-page .editor-main{margin-top:28px}.business-page .editor-heading{margin:0 0 24px}.business-page .editor-heading>.page-create,.business-page .page-heading-actions>.page-create{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;min-height:44px;border-radius:7px;background:#087bbd;color:#fff;font-size:13px;font-weight:650;text-decoration:none;white-space:nowrap;flex-shrink:0}.page-heading-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}.business-page .page-heading-actions .badge{max-width:100%}.business-page .preview-banner{margin-bottom:24px}
+@media(max-width:900px){.business-page .app-topbar{display:flex;min-height:60px}.business-page .editor-main{margin-top:18px}.business-page .editor-heading{margin:0 0 20px}.business-page .editor-heading>.page-create,.business-page .page-heading-actions>.page-create{padding:9px 12px}}
+@media(max-width:600px){.business-page .page-heading-actions{flex-direction:column;align-items:flex-end;gap:8px}.business-page .editor-heading>.page-create{font-size:12px}.business-page .editor-heading>.page-create{width:auto}}
