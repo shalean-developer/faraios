@@ -128,3 +128,10 @@ Owner requested avatar-like numbered circles. CSS-only progress treatment plus a
 ### Labelled circles with connecting line
 
 Owner requested labels below each number and one line hidden within circles. Preview application313883a deployed only to accounts-preview; Plesk completed/Done. Grid positions circles and labels; continuous connector lies behind opaque circle fills, visible only in gaps. Desktop and mobile390 screenshots visually PASS: all5 labels visible, line stops visually at each circle edge, avatar/header retained. Temporary viewport reset; preview left open. CSS-only plus cache version update; no records changed, no production release.
+
+
+### Selectable service cards
+
+Inspected requested Sweepsouth /accounts/launch in connected browser: icon/name service tiles and selection action. Adapted pattern with original FaraiOS line icons/branding, published catalogue only, native radio cards, configured Fixed/From/Quote price, duration and published description. Replaces dropdown, retains same service POST name/id and existing server validation. No reference assets or service catalogue imported.
+
+Preview candidate5a12a3d deployed accounts-preview only; Plesk Done. PHP/JS syntax and whitespace PASS; native PostgreSQL/PHP tests/requests.py PASS. Hosted PASS fixed/quote summary updates, From display, Continue to Details and Back preserving selected service. Desktop3-column and mobile390 2-column screenshots inspected, visible selected border/radio, summary and reachable Continue. No new submission or record changes. Viewport reset; customer preview left open. No production merge/deployment/intake activation.
