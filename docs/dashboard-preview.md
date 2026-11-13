@@ -48,8 +48,24 @@ Draft PR #13, application b624f97fdaf3bf6a206713f6580b9d8049cd820d deployed thro
 
 Connected hosted rollback-only probes PASS: existing preview counts and financial sums independently reconciled, preview enquiry create/replay increments New exactly once, live manual intake rejects, cross-business and anonymous calls reject. All probe fixtures rolled back. Script: tests/dashboard-hosted.sql.
 
-Authenticated hosted UI and mobile verification PENDING: opening dashboard redirected to preview sign-in because the owner session expired. Owner must sign in at the preview account page; no credentials were entered or account changes attempted. Do not mark preview acceptance or production readiness complete before those checks.
+Initial authenticated UI check paused at expired session. Owner signed in and replied Ready; subsequent authenticated verification is recorded below. No credentials were entered by the assistant.
 
-Decision: CONDITIONAL PASS for isolated technical preview; authenticated UI/mobile review remains open. NO-GO for production deployment pending owner review and explicit deployment approval.
+Initial checkpoint: CONDITIONAL PASS pending authenticated review. Final preview decision below supersedes this checkpoint; production still requires owner approval.
 
 Preservation readback after schema installation and rollback probes exactly matches every baseline hash above (including enquiries), with accounts still 3 and Shalean unpublished. No hosted test fixture was retained. Migration 20261113143833 recorded in schema_migrations; LF-normalized source MD5 cd17da9c1977edefa5b9056e9ce8795c matches committed file. The editor stores CRLF line endings; normalization removes CR only. No business records or existing schema objects were rewritten.
+
+
+## Authenticated preview closeout
+
+Owner replied Ready after signing in. Final preview application revision 5db77fd6ce09413e4314737bc900b97d4d937921, deployed only to /_accounts-preview. Desktop overview was visually inspected; final desktop DOM at 1280 viewport confirmed populated booking/attention/invoice views. Mobile at 390 pixels verified no horizontal overflow (document width 375/390); saved full-page screenshot docs/evidence/dashboard-mobile-preview.png. A wrapped Refresh link was corrected with nonshrinking/no-wrap CSS, and the stylesheet URL versioned to avoid stale caching. Temporary viewport override reset; mobile test tab closed and normal desktop review tab left open. Attempts to capture a final full-page desktop image timed out; mobile image is the durable screenshot evidence. No 320-pixel result is claimed because the browser continued reporting 390 after the requested override.
+
+All four dashboard create links opened the correct forms. Private enquiry saved/reloaded successfully without publication or notifications; New count rose 2 → 3. Booking saved with 18:00–19:00 in Africa/Johannesburg and assigned existing Fictional Mobile Preview Staff; dashboard shows exactly one booking and the same staff. Quote quick link opened a blank draft; no new quote was saved. Invoice quick link created a clearly labelled preview draft of ZAR 100.00, then issued INV-000003: dashboard Unpaid 1 / Outstanding 100.00. Recorded preview-only payment ZAR 25.00: dashboard Unpaid 0 / Part paid 1 / Outstanding 75.00; November payments 886.00 − reversals 330.50 = net 555.50. October selector showed payments/reversals/net all zero while current outstanding remained 75.00. Returned to November for owner review. Existing paid/void exclusions and empty states were observed before creating fixtures. Overdue and date-boundary cases are proven by the native suite; no overdue production fixture was created.
+
+New **preview-only**, clearly labelled retained verification records:
+- Enquiry d595a7f9-4213-ae4d-bece-ebc8b1ebd4d2, DASHBOARD PREVIEW TEST Customer, New.
+- Booking b103dbe6-b873-1c50-07b0-486a7b5050b2, DASHBOARD PREVIEW TEST Booking, Scheduled, 13 November 2026 18:00–19:00, fictional service address, assigned existing fictional preview staff.
+- Invoice e6709b80-8861-e037-7abe-6ef49ef6a0c6 / INV-000003, DASHBOARD PREVIEW TEST Invoice, Part Paid, ZAR 75.00 outstanding; payment 8CD74EA1 ZAR 25.00 labelled PREVIEW TEST ONLY - no real funds.
+
+No real money moved. These fixtures intentionally remain available for owner preview review; production history is untouched. Connected database readback returned true for every complete-row baseline comparison after excluding only the three new preview IDs and their payment. Quotes/staff/business hashes matched without exclusions. This preserves all previous production and preview records, including protected cancelled bookings, void invoices, payment reversals, staff statuses and unpublished business-page state. Homepage and waitlist source are unchanged.
+
+Decision: PASS — tested isolated preview ready for owner review. Production remains PR #12. Do not merge/deploy until explicit owner instruction; enabling live manual enquiry intake remains a reviewed release step.
