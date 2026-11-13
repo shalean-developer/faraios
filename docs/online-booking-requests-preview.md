@@ -145,3 +145,8 @@ Owner removed all card pricing/duration/descriptions; cards now icon/name only, 
 ### Booking introduction cleanup
 
 Owner requested removal of Request a booking title, introductory pending-confirmation paragraph, Business page back link and body Step1of5 text. Preview candidate4f2968e deployed accounts-preview only; Plesk Done. Removed visible introduction/link; hidden step-status remains for existing JS updates. Booking region retains accessible label; header stepper, summary pending-confirmation wording, review and success notices preserved. Hosted DOM and desktop screenshot PASS requested text absent. No submission/record changes; production unchanged.
+
+
+### Summary hidden during Service only
+
+Owner requested summary hidden on service selection. Candidate5c20217 deployed accounts-preview only (Plesk Done). Existing show(index) sets summary.hidden only when index0 and restores on subsequent steps; service layout uses full width. JS syntax PASS. Initial hosted Service complementary count0 confirmed summary hidden; browser then returned Chat API failure and stalled on follow-up before Back/Continue screenshot verification. Full navigation verification remains pending if connection cannot recover. No requests/records modified; production unchanged.
