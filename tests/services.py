@@ -42,10 +42,11 @@ class Services(Profiles):
   self.scope(a,f"select public.business_profile_unpublish('{bid}','live')");self.assertEqual(self.get(public)[0],404)
   self.scope(a,f"select public.business_profile_publish('{bid}','live',1)");self.assertIn('Quote service',self.get(public)[1])
   # Whole-number currencies must reopen with input the same validator accepts.
-  whole=dict(currency='JPY',items=[d['items'][0]|{'amount':10000}])
-  self.scope(a,f"select public.business_services_save('{bid}','live',"+lit(json.dumps(whole))+"::jsonb,7)")
-  edit=self.get(path+'?edit='+sid)[1];self.assertIn('name="amount" type="text" inputmode="decimal" value="100"',edit)
-  self.assertIn('Draft saved',self.post(path,**(data|{'id':sid,'version':8,'amount':'100','name':'Renamed whole price'})))
+  for i,currency in enumerate(['JPY','UGX','RWF']):
+   whole=dict(currency=currency,items=[d['items'][0]|{'amount':10000}])
+   self.scope(a,f"select public.business_services_save('{bid}','live',"+lit(json.dumps(whole))+f"::jsonb,{7+2*i})")
+   edit=self.get(path+'?edit='+sid)[1];self.assertIn('name="amount" type="text" inputmode="decimal" value="100"',edit)
+   self.assertIn('Draft saved',self.post(path,**(data|{'id':sid,'version':8+2*i,'amount':'100','name':'Renamed whole price'})))
   for change in [{'currency':'BAD'},{'items':[d['items'][0]|{'duration':0}]},{'items':[d['items'][0]|{'private_email':'bad'}]}]:
    with self.assertRaises(RuntimeError):self.scope(a,f"select public.business_services_save('{bid}','live',"+lit(json.dumps(d|change))+"::jsonb,7)")
   self.assertEqual(self.sql("set role anon;select count(*) from public.business_public_pages where environment='preview'"),'0')
