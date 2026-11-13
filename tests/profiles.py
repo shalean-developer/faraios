@@ -21,15 +21,15 @@ class Profiles(Journey):
      elif url.path.startswith('/rest/v1/'):
       prefix="set role authenticated;set request.jwt.claim.sub="+lit(uid)+";set request.jwt.claims='{\"is_anonymous\":false}';" if uid in cls.ids else 'set role anon;'
       if '/rpc/' in url.path:
-       name=url.path.rsplit('/',1)[-1];assert name in ['business_profile_save','business_profile_publish','business_profile_unpublish','business_services_save','business_services_publish','business_enquiry_submit','business_enquiry_status'];parts=[]
-       for k,v in body.items():parts.append(k+'=>'+(lit(json.dumps(v))+'::jsonb' if k=='p_draft' else lit(v)))
+       name=url.path.rsplit('/',1)[-1];assert name in ['business_profile_save','business_profile_publish','business_profile_unpublish','business_services_save','business_services_publish','business_enquiry_submit','business_enquiry_status','business_quote_write','business_quote_customer'];parts=[]
+       for k,v in body.items():parts.append(k+'=>'+(lit(json.dumps(v))+'::jsonb' if k in ['p_draft','p_document'] else lit(v)))
        data=json.loads(cls.sql(prefix+'select public.'+name+'('+','.join(parts)+')'))
       else:
-       table=url.path.rsplit('/',1)[-1];assert table in ['businesses','business_profiles','business_public_pages','business_service_catalogues','business_enquiries'];cols=q.get('select',['*'])[0];assert re.fullmatch(r'[a-z_,*]+',cols);conditions=[]
+       table=url.path.rsplit('/',1)[-1];assert table in ['businesses','business_profiles','business_public_pages','business_service_catalogues','business_enquiries','business_quotes','business_quote_list'];cols=q.get('select',['*'])[0];assert re.fullmatch(r'[a-z_,*]+',cols);conditions=[]
        for key,vs in q.items():
-        if key in ['business_id','environment','slug','id','status']:conditions.append(key+'='+lit(vs[0].removeprefix('eq.')))
+        if key in ['business_id','environment','slug','id','status','effective_status']:conditions.append(key+'='+lit(vs[0].removeprefix('eq.')))
        query='select '+cols+' from public.'+table+(' where '+' and '.join(conditions) if conditions else '')
-       if table=='business_enquiries':query+=' order by created_at desc,id desc limit '+str(int(q.get('limit',[21])[0]))+' offset '+str(int(q.get('offset',[0])[0]))
+       if table in ['business_enquiries','business_quote_list']:query+=' order by created_at desc,id desc limit '+str(int(q.get('limit',[21])[0]))+' offset '+str(int(q.get('offset',[0])[0]))
        data=json.loads(cls.sql(prefix+"select coalesce(jsonb_agg(to_jsonb(t)),'[]'::jsonb) from ("+query+') t'))
     except Exception as e:status=400;data={'code':'23505' if 'unique constraint' in str(e) else 'P0001','message':str(e).split('ERROR:  ')[-1].split('\n')[0]}
     raw=json.dumps(data).encode();self.send_response(status);self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(raw)

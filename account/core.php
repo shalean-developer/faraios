@@ -33,6 +33,10 @@ function api(string $path,array $body=[],string $method='POST',?string $token=nu
  preg_match('/\s(\d{3})\s/',$http_response_header[0]??'', $m); $status=(int)($m[1]??0);
  $data=json_decode($raw?:'{}',true); if(!is_array($data)) $data=[];
  if ($status<200||$status>=300) {
+  if(str_starts_with($path,'/rest/v1/rpc/business_quote_')){
+   $safe=['Quote changed or unavailable. Reload before saving.','Business currency changed. Reload before saving.','Check quote details and expiry','Update the expiry before sending.','Quote already answered or expired. Reload the page.'];
+   if(in_array($data['message']??'', $safe,true))throw new RuntimeException($data['message']);
+  }
   if(str_starts_with($path,'/rest/v1/rpc/business_enquiry_')){
    $safe=['Too many enquiries. Please try again later.','Enquiry changed or unavailable. Reload before updating.'];
    if(in_array($data['message']??'', $safe,true))throw new RuntimeException($data['message']);
