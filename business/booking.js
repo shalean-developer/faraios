@@ -25,10 +25,10 @@ if (form) {
   fields.time.setCustomValidity(past ? 'Choose a future preferred time in the business time zone.' : '');
  };
  const update = () => {
-  const option = fields.service.selectedOptions[0];
+  const option = form.querySelector('input[name="service"]:checked');
   const price = option?.dataset.price || 'Choose a service';
   const values = {
-   service: fields.service.value ? option.textContent : 'Not selected', price,
+   service: option ? option.dataset.name : 'Not selected', price,
    address: fields.address.value.trim() || 'Not entered',
    schedule: [fields.date.value, fields.time.value].filter(Boolean).join(' · ') || 'Not selected',
    requirements: fields.requirements.value.trim() || 'Not entered',
