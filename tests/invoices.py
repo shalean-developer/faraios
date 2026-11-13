@@ -75,6 +75,10 @@ class Invoices(Profiles):
   self.assertIn('Original retained',self.get(path)[1]);self.assertIn('Unpaid',self.get(publicpath)[1])
   self.assertEqual(self.get('/invoice/index.php?token='+'f'*64)[0],404);self.assertEqual(self.get('/account/invoices-core.php')[0],403)
   self.assertIn('INV-000001',self.get('/account/invoices.php?new=1&booking='+rid)[1])
+  from pathlib import Path
+  hosted=(Path(__file__).parent/'invoices-hosted.sql').read_text().replace("where name='FaraiOS Preview Test Business'","where id='"+bid+"'")
+  self.sql("update invoice_private.ingress set enabled=false where environment='live'")
+  self.assertIn('PASS:',self.sql(hosted))
   self.post('/account/index.php?page=signin',email='b@example.test',password='test-long-password');self.assertIn('Invoice unavailable',self.get(path)[1]);self.assertNotIn('Fictional HTTP',self.get('/account/invoices.php')[1])
 if __name__=='__main__':
  r=unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite([Invoices('test_invoices')]));sys.exit(not r.wasSuccessful())
