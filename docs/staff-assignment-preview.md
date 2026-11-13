@@ -1,0 +1,23 @@
+# Staff and booking assignment — FaraiOS New
+
+Base PR #10 merge ea4c39728d4752c9bd0a2199aea71f70dce40195, verified through GitHub and connected Plesk. Fresh project rxelmugnucfajrqmphhe only. Authenticated production Welcome verified. Preflight: live bookings 0, preview bookings 4, Shalean unpublished, staff schema absent.
+
+Welcome → Staff private create/edit: name required, optional email/phone, active status. Save booking using existing flow, then independently save one or several assignments. Assignment versions never update booking document, address, schedule, duration, status, quote or customer association. Inactive staff retain historical assignments, can be removed explicitly, and cannot receive new ones. No deletion UI or staff access accounts.
+
+Booking details/list/calendar show assigned names and inactive labels. Staff filter includes inactive profiles, persists through pagination/view switching. Overlaps compare half-open UTC intervals across all Scheduled/In Progress bookings and show business-local times, including cross-date/month/page conflicts. Cancelled/Completed and touching boundaries do not conflict. Warnings allow saving. No capacity/travel/leave modelling. Existing start-day calendar and 100-row paging remain.
+
+RLS on new tables, explicit nonanonymous owner checks, revoked anonymous access/direct authenticated DML, composite business/environment foreign keys. Public invoker RPCs delegate to private definer writers with fixed empty search_path and explicit owner/gate checks. Advisory lock serializes activation and assignment writes. Max 100 staff per booking. Staff directory/selector fetches in 100-row pages up to 10,000 with explicit error beyond that; high-volume performance unbenchmarked. Preview writes enabled, live disabled until owner-approved release.
+
+Native PostgreSQL 17 + real PHP HTTP (Auth/PostgREST simulated): staff lifecycle, validation, multi assignment, filters/calendar, cross-midnight overlap, touching boundaries, saved snapshot preservation, stale versions, inactive retention/removal/add denial, cross-owner/environment/anonymous/direct-DML denial, helper 403. Hosted rollback-only role probes PASS with simulated JWT identities and no retained fixtures. Existing targeted scripts run separately. An accidental generic unittest discovery run invoked inherited waitlist cases without their setup and failed for that harness reason; replaced by explicit script runs. No hosted waitlist webhook/recovery checks or outbound actions.
+
+No Resend, invitations, payroll, recurring bookings, payments, automated notifications or legacy data. Production deployment awaits owner preview review and Deploy instruction. Rollback: disable staff_private.ingress and restore PR #10 application, retaining all data.
+
+## Hosted preview result — 13 November 2026
+
+Draft PR #11. Application 4297e6b0ea5cf4e3bceeab6a3a14fdab66710eb8. Connected Plesk accounts preview branch switched to feature/staff-assignment-20261113; production main remained PR #10. Initial application deployment completed. Mobile filter layout follow-up pulled and Deploy clicked; final deployment outcome/visual verification was interrupted by browser connection timeout.
+
+Authenticated preview PASS before layout follow-up: created Fictional Alex and Fictional Bea; created two new bookings (30 Nov 23:30–1 Dec 01:30 and 1 Dec 00:30–01:30 Africa/Johannesburg), saved two staff on first and Alex on second; reload preserved ZAR 505/400 prices, customer names, addresses and schedules. Cross-month overlap warning linked the counterpart booking. Staff renamed and deactivated; both assignments remained, inactive labels and filtering worked, December calendar retained out-of-month overlap flag. Existing four preview bookings were not edited. Desktop staff screenshot visually inspected. Initial 390×844 booking list had no apparent horizontal overflow but selected staff name clipped; follow-up CSS expands mobile filter controls. Final refreshed mobile screenshot and Advisor results remain pending reconnection; no claim of Advisor pass.
+
+Native staff rerun after layout edit PASS; 15 targeted tests total passed across staff/accounts/profiles/services/enquiries/quotes/bookings/customers. Hosted rollback staff probes PASS. Migration 20261113103036 recorded with full source in fresh project history. Final observed SQL state: staff RLS true, anon SELECT false, authenticated UPDATE false; preview staff 2, bookings 6, assignments 3; live staff/bookings/assignments 0; preview gate true/live gate false; Shalean unpublished.
+
+No production deployment. Owner review still pending.

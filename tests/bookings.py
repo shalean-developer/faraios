@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 import json,unittest,sys,uuid,re
 from datetime import datetime,timezone
 class Bookings(Profiles):
- extra_migrations=['customer_enquiries','customer_quotes','bookings_scheduling','customer_profiles']
+ extra_migrations=['customer_enquiries','customer_quotes','bookings_scheduling','customer_profiles','staff_booking_assignment']
  def test_bookings(self):
   a,b=self.ids;bid=self.bids[0]
   self.sql("update booking_private.ingress set enabled=true where environment='live';update quote_private.ingress set enabled=true where environment='live'")

@@ -1,0 +1,42 @@
+-- Rollback-only probes; simulated JWT claims, no retained fixtures or outbound actions.
+begin;
+select set_config('faraios.staff_bid',(select id::text from public.businesses order by created_at limit 1),true);
+select set_config('request.jwt.claim.sub',(select owner_id::text from public.businesses where id=current_setting('faraios.staff_bid')::uuid),true),set_config('request.jwt.claims','{"is_anonymous":false}',true);
+set local role authenticated;
+do $$declare bid uuid=current_setting('faraios.staff_bid')::uuid;s uuid='914ad559-df25-45cc-8dd0-09082a4abb11';s2 uuid='914ad559-df25-45cc-8dd0-09082a4abb12';r uuid='914ad559-df25-45cc-8dd0-09082a4abb13';r2 uuid='914ad559-df25-45cc-8dd0-09082a4abb14';doc jsonb;zone text;currency text;snap jsonb;denied boolean;
+begin
+ select time_zone into zone from public.businesses where id=bid;
+ select coalesce((select draft->>'currency' from public.business_service_catalogues where business_id=bid and environment='preview'),'ZAR') into currency;
+ perform public.business_staff_write(bid,'preview',s,0,'Rollback Alex','staff@example.test','',true);
+ perform public.business_staff_write(bid,'preview',s2,0,'Rollback Bea','','',true);
+ doc=jsonb_build_object('name','Rollback client','email','client@example.test','phone','','notes','Saved requirements','currency',currency,'items',jsonb_build_array(jsonb_build_object('name','Test clean','quantity',1,'price',50500)));
+ perform public.business_booking_write(bid,'preview',r,0,null,doc,'10 Fictional Road','2026-11-30 23:30',zone,120,'Scheduled');
+ perform public.business_booking_write(bid,'preview',r2,0,null,doc,'20 Fictional Road','2026-12-01 00:30',zone,60,'Scheduled');
+ select to_jsonb(b)-'assignment_version' into snap from public.business_bookings b where id=r;
+ perform public.business_staff_assign(bid,'preview',r,0,jsonb_build_array(s,s2));
+ perform public.business_staff_assign(bid,'preview',r2,0,jsonb_build_array(s));
+ if (select count(*) from public.business_booking_staff where booking_id=r)<>2 then raise exception 'FAIL multi assignment';end if;
+ if (select to_jsonb(b)-'assignment_version' from public.business_bookings b where id=r)<>snap then raise exception 'FAIL booking preservation';end if;
+ if not exists(select 1 from public.business_booking_schedule where id=r and jsonb_array_length(conflicts)>0) then raise exception 'FAIL cross-midnight overlap';end if;
+ denied=false;begin perform public.business_staff_assign(bid,'preview',r,0,'[]');exception when raise_exception then denied=true;end;if not denied then raise exception 'FAIL stale';end if;
+ perform public.business_staff_write(bid,'preview',s,1,'Rollback Alex Updated','','',false);
+ perform public.business_staff_assign(bid,'preview',r,1,jsonb_build_array(s,s2));
+ if not exists(select 1 from public.business_booking_schedule where id=r and assigned_staff @> '[{"name":"Rollback Alex Updated","active":false}]') then raise exception 'FAIL inactive preservation';end if;
+ perform public.business_staff_assign(bid,'preview',r,2,jsonb_build_array(s2));
+ denied=false;begin perform public.business_staff_assign(bid,'preview',r,3,jsonb_build_array(s));exception when raise_exception then denied=true;end;if not denied then raise exception 'FAIL inactive addition';end if;
+ denied=false;begin perform public.business_staff_assign(bid,'live',r,3,jsonb_build_array(s2));exception when raise_exception then denied=true;end;if not denied then raise exception 'FAIL environment';end if;
+ denied=false;begin update public.business_staff set active=true;exception when insufficient_privilege then denied=true;end;if not denied then raise exception 'FAIL direct DML';end if;
+end$$;
+reset role;
+select set_config('request.jwt.claim.sub','ffffffff-ffff-ffff-ffff-ffffffffffff',true);
+set local role authenticated;
+do $$declare denied boolean=false;begin
+ if exists(select 1 from public.business_staff where id='914ad559-df25-45cc-8dd0-09082a4abb11') or exists(select 1 from public.business_booking_schedule where id='914ad559-df25-45cc-8dd0-09082a4abb13') then raise exception 'FAIL foreign read';end if;
+ begin perform public.business_staff_assign(current_setting('faraios.staff_bid')::uuid,'preview','914ad559-df25-45cc-8dd0-09082a4abb13',3,'[]');exception when raise_exception then denied=true;end;if not denied then raise exception 'FAIL foreign write';end if;
+end$$;
+reset role;
+set local role anon;
+do $$declare denied boolean=false;begin begin perform * from public.business_staff;exception when insufficient_privilege then denied=true;end;if not denied then raise exception 'FAIL anon';end if;end$$;
+reset role;
+rollback;
+select 'PASS: staff hosted rollback probes' as result;

@@ -4,7 +4,7 @@ from journey import lit
 import json,re,uuid,unittest,sys
 from concurrent.futures import ThreadPoolExecutor
 class Customers(Profiles):
- extra_migrations=['customer_enquiries','customer_quotes','bookings_scheduling','customer_profiles']
+ extra_migrations=['customer_enquiries','customer_quotes','bookings_scheduling','customer_profiles','staff_booking_assignment']
  def test_customers(self):
   a,b=self.ids;bid=self.bids[0]
   self.sql("update customer_private.ingress set enabled=true where environment='live';update quote_private.ingress set enabled=true where environment='live';update booking_private.ingress set enabled=true where environment='live'")
