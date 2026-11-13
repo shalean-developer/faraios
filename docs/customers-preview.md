@@ -24,7 +24,19 @@ Local `tests/customers.py`: real PHP HTTP and disposable PostgreSQL 17; only Aut
 
 Regression tests: quotes, bookings, enquiries, services, profiles, accounts. No paid GitHub Actions runs. Native dependencies fetched from official Debian snapshot packages into disposable scratch; no machine-wide installation.
 
-Hosted migration, advisor checks, preview deployment, authenticated browser desktop/mobile flows and owner review pending. No full preview PASS claimed yet.
+## Hosted and authenticated preview acceptance — 13 November 2026 SAST
+
+Application candidate `c1c9e4e99718b5448e7a3f83fb0d2d8c3dea0dc9`; heading correction `6e9e086a178e00530fb7b04fbef6007aee83d407`. Draft PR #10. Connected Plesk manual accounts preview follows `feature/customers-20261113`; production main remains PR #9. Additive migration installed through connected fresh Supabase SQL editor and recorded in migration history `20261113094646` with full source statement and candidate reference. Hosted rollback-only customer role script PASS, retaining no probe fixtures. Customer RLS true, anon SELECT false, direct authenticated UPDATE false. Security Advisor rerun: zero errors, unchanged existing leaked-password-protection warning; Health Advisor zero errors.
+
+Authenticated connected Chrome/PHP/Supabase PASS: empty customer list, fictional profile creation/reload, profile edits/reload, normalized phone search and case-insensitive email search, duplicate pause with no premature save, explicit confirmation creating a separate profile. Selected profile creates linked ZAR quote and manual booking; address prefill correct and private notes excluded. Quote ZAR 1,010.50 (2 × 505.25) marked sent and accepted through secure preview customer page without any email. Accepted quote conversion creates one linked booking for 29 November 10:00–11:30 Africa/Johannesburg. Manual booking ZAR 505.25 saved for 28 November 08:30–10:30. Profile name/address updates preserve original quote name, booking name, booking address and agreed prices; further private note edit after acceptance also leaves the accepted agreement unchanged.
+
+Manually created same-name quote remained unlinked, proving no automatic name match. Its detail → Link customer profile → explicit checkbox confirmation linked the correct customer; record appears under that profile with its own saved customer details. Profile activity shows accepted/draft quote statuses and both linked bookings. Native/rollback tests additionally exercise enquiry linking and enquiry→quote→booking inheritance; no new published page or hosted enquiry fixture was needed.
+
+Responsive connected browser at 390×844: profile and search document width 375, no horizontal overflow; case-insensitive search and explicit link submission succeed. Normal mobile and desktop screenshots visually reviewed and saved in `docs/evidence/customers-mobile-preview.jpg` and `docs/evidence/customers-desktop-preview.jpg`. Viewport reset. This is browser viewport testing, not a physical-device claim. Cross-owner tests simulate JWT identities; no claim of two real owner browser logins. High-volume pagination/load and fuzzy/international phone equivalence remain unbenchmarked V1 limitations.
+
+Final hosted state: preview customers 2, quotes 5 (3 preserved + 2 new), bookings 4 (2 preserved + 2 new); 2 linked quotes and 2 linked bookings. Live customers/quotes/bookings remain 0; live customer gate false, preview true; live public pages 0. No original preview fixtures changed. Homepage and waitlist HTTP 200 and byte-identical to preserved source; customer helper direct 403; Shalean unpublished public URL 404. No Resend workspace, emails, webhook/recovery, staff, recurring booking or payment operations. Fourteen intended local regression/lifecycle tests passed, with hosted rollback script also passing.
+
+**PASS for owner preview review.** Preview Customers left open. No main merge or production customer deployment performed. Owner review and explicit Deploy instruction remain required.
 
 ## Rollback
 
