@@ -25,3 +25,17 @@ Production NO-GO until real preview journey/mobile review and explicit owner dep
 Rollback: disable affected quote ingress and revert application to PR #7 while preserving all quote rows and prior fresh-system data. Do not drop tables or erase accepted responses. Preview ingress can be disabled independently.
 
 Decision: local and hosted native permission checks PASS; full preview acceptance pending owner sign-in. Production not deployed.
+
+## Authenticated browser acceptance — 13 November 2026 SAST
+
+Owner signed in. Recovered a stalled browser connection and claimed the actual signed-in Welcome tab. Candidate application remains 154cf353; evidence commits change no application code.
+
+PASS through real connected Chrome/PHP/Supabase: Welcome → Quotes empty list; manual fictional quote; three-decimal price rejected with all entered fields retained; two items (2 × ZAR 505.25 plus ZAR 125.00) saved and reloaded at ZAR 1,135.50 with correct expiry and no draft share link. Explicit send confirmation produced a single-quote customer link. Customer opened without account sign-in, accepted, reloaded with Accepted and no further response controls; owner detail reload and Accepted filter reflected the response. No real customer contacted and no email sent.
+
+Existing Closed fictional enquiry → Create quote prefilled name, phone and requirements. Saved/reopened/reloaded one ZAR 650.00 item, marked sent, opened customer link and declined; customer reload and private owner reload/Declined filter retained Declined. Enquiry remained Closed. One immediate reload during the initial save occurred before redirect completion, reopening the new form; the private list confirmed exactly one saved record, which reopened correctly. No application defect or duplicate was found.
+
+390×844 mobile PASS: draft editor, customer quote and private status list had scrollWidth 375 for viewport 390 (no horizontal overflow). Visually inspected editor and accepted customer page. Mobile-created draft 3 × ZAR 99.99 saved; changed to quantity 4, saved/reloaded as ZAR 399.96 with no share link. Customer accepted/declined controls worked; final response controls disappeared. Viewport restored. Three fictional review records remain: Accepted ZAR 1,135.50; Declined ZAR 650.00 linked to unchanged Closed enquiry; Draft ZAR 399.96. Owner Quotes list and accepted customer page left open for review.
+
+Final connected SQL check: live_quote_enabled=false, preview_quote_enabled=true, live_quotes=0, preview statuses Draft=1/Accepted=1/Declined=1, live_pages=0, shalean_published=false, fixture enquiry Closed. No account/business/profile/service/homepage/waitlist mutations were needed. Security Advisor showed zero errors and the pre-existing leaked-password protection disabled warning. No source changes during browser acceptance. Expiry and hostile direct writes were proven in local/native hosted rollback tests rather than waiting for natural expiry or attacking browser sessions. Cross-owner roles use simulated claims, not a second real mailbox login; high-volume pagination/abuse not exercised in hosted browser.
+
+Decision: **PASS for owner preview review**, with the documented test limitations. Production remains unchanged and live quote access disabled. Owner review and explicit Deploy instruction remain required before main merge/production deployment.
