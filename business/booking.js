@@ -42,6 +42,8 @@ if (form) {
  };
  const show = (index, focus = true) => {
   current = index;
+  document.querySelector('.request-summary').hidden = current === 0;
+  document.querySelector('.request-layout').classList.toggle('service-selection', current === 0);
   steps.forEach((step, i) => { step.hidden = i !== current; });
   progress.forEach((item, i) => {
    if (i === current) item.setAttribute('aria-current', 'step'); else item.removeAttribute('aria-current');
