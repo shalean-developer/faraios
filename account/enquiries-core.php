@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+// Nginx may route PHP directly without Apache rewrite rules. Helpers are include-only.
+if(realpath($_SERVER['SCRIPT_FILENAME']??'')===__FILE__){http_response_code(403);exit;}
 function enquiry_session(): void {
  $c=cfg();$path=(parse_url($c['base_url'],PHP_URL_PATH)?:'').'/b/';
  ini_set('session.use_strict_mode','1');ini_set('session.use_only_cookies','1');

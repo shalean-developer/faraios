@@ -12,6 +12,7 @@ class Enquiries(Profiles):
   except urllib.error.HTTPError as e:r=e
   return r.status,r.read().decode()
  def test_enquiries(self):
+  self.assertEqual(self.get("/account/enquiries-core.php")[0],403)
   a,b=self.ids;bid=self.bids[0]
   profile=dict(name='Published Test',description='Public description',email='public@example.test',phone='',website='',areas='Cape Town',hours=[None]*7,logo=None)
   self.scope(a,f"select public.business_profile_save('{bid}','live','enquiry-test',"+lit(json.dumps(profile))+"::jsonb,0)")
