@@ -34,3 +34,13 @@
  setOpen(false, false);
  document.body.classList.add('layout-enhanced');
 })();
+
+// Native details keeps creation links usable without JavaScript.
+(() => {
+ const menu = document.querySelector('.create-menu');
+ if (!menu) return;
+ document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && menu.open) { menu.open = false; menu.querySelector('summary').focus(); }
+ });
+ document.addEventListener('click', e => { if (!menu.contains(e.target)) menu.open = false; });
+})();
