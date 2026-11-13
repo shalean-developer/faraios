@@ -41,3 +41,7 @@ Final hosted state: preview customers 2, quotes 5 (3 preserved + 2 new), booking
 ## Rollback
 
 Disable `customer_private.ingress` for the affected environment, restore application to PR #9 and retain all customer records/associations. Do not drop columns/tables or delete records. Production release requires explicit owner instruction after preview review, then main merge/Plesk deployment and separate live customer gate activation.
+
+## Release hardening after owner Deploy instruction
+
+Final automated review found that new unlinked quotes/bookings unnecessarily depended on the customer gate. The UI now uses the existing quote/booking APIs whenever no explicit customer association exists; customer-aware atomic creation is used only for selected/inherited customer IDs. Quote and booking regression suites deliberately leave the live customer gate disabled and cover manual creation and accepted-quote conversion in that state. Customer lifecycle tests continue to cover the enabled customer path. No database schema/function change is needed.

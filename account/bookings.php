@@ -20,7 +20,7 @@ try{
  if($new&&!$r['quote_id']){$cid=(string)($_POST['customer']??$_GET['customer']??'');if($cid!==''){$customer=customer_load($b,$cid);if($_SERVER['REQUEST_METHOD']!=='POST'){foreach(['name','email','phone'] as $k)$r['document'][$k]=$customer['details'][$k];$r['address']=$customer['details']['address'];}}}
  if($_SERVER['REQUEST_METHOD']==='POST'){
  csrf();if(!$r)throw new RuntimeException('Booking unavailable.');if(($_POST['time_zone']??'')!==$zone)throw new RuntimeException('Business time zone changed. Reload before saving.');if(($_POST['currency']??'')!==$currency)throw new RuntimeException('Business currency changed. Reload before saving.');$fields=booking_fields();$doc=$r['quote_id']?$r['document']:quote_values($currency);
- $args=['p_business'=>$b['id'],'p_environment'=>profile_env(),'p_id'=>$r['id'],'p_version'=>(int)($_POST['version']??-1),'p_quote'=>$r['quote_id'],'p_document'=>$doc,'p_zone'=>$zone]+$fields;if($r['version']===0){$args['p_customer']=$customer['id']??null;$saved=profile_rpc('business_customer_booking_create',$args);}else{$saved=profile_rpc('business_booking_write',$args);}
+ $args=['p_business'=>$b['id'],'p_environment'=>profile_env(),'p_id'=>$r['id'],'p_version'=>(int)($_POST['version']??-1),'p_quote'=>$r['quote_id'],'p_document'=>$doc,'p_zone'=>$zone]+$fields;if($r['version']===0&&($customer||($source['customer_id']??null))){$args['p_customer']=$customer['id']??null;$saved=profile_rpc('business_customer_booking_create',$args);}else{$saved=profile_rpc('business_booking_write',$args);}
  unset($_SESSION['new_booking_id']);$_SESSION['booking_notice']='Booking saved.';header('Location: bookings.php?id='.rawurlencode($saved['id']),true,303);exit;
  }
  if(!$r){

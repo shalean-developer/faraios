@@ -6,7 +6,6 @@ class Quotes(Profiles):
  extra_migrations=['customer_enquiries','customer_quotes','bookings_scheduling','customer_profiles']
  def test_quotes(self):
   a,b=self.ids;bid=self.bids[0]
-  self.sql("update customer_private.ingress set enabled=true where environment='live'")
   self.sql("update quote_private.ingress set enabled=true where environment='live'")
   self.post('/account/index.php?page=signin',email='a@example.test',password='test-long-password')
   path='/account/quotes.php?new=1';data=dict(action='save',version=0,name='Fictional Customer',email='quote@example.test',phone='',notes='<script>test</script>',expires_on='2026-11-28',item_name_0='Standard clean',quantity_0='2',price_0='505.25')

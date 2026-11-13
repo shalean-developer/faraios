@@ -8,7 +8,6 @@ class Bookings(Profiles):
  extra_migrations=['customer_enquiries','customer_quotes','bookings_scheduling','customer_profiles']
  def test_bookings(self):
   a,b=self.ids;bid=self.bids[0]
-  self.sql("update customer_private.ingress set enabled=true where environment='live'")
   self.sql("update booking_private.ingress set enabled=true where environment='live';update quote_private.ingress set enabled=true where environment='live'")
   self.post('/account/index.php?page=signin',email='a@example.test',password='test-long-password')
   path='/account/bookings.php?new=1'
