@@ -23,6 +23,7 @@ class Enquiries(Profiles):
   self.sql("update enquiry_private.ingress set enabled=true where environment='live'")
   path='/b/index.php?slug=enquiry-test'
   html=self.get(path)[1];self.assertIn('Send enquiry',html);self.assertNotIn(bid,html)
+  self.assertEqual(self.client.open(self.url+path).headers.get("Referrer-Policy"),"same-origin")
   fields=dict(name='Alice <script>',email='alice@example.test',phone='',requirements='Please quote for my home. <img src=x onerror=alert(1)>',service='',website='')
   self.assertIn('wait a moment',self.send(path,**fields)[1]);time.sleep(2.1)
   self.assertIn('form has expired',self.send(path,**(fields|{'csrf':'bad'}))[1])

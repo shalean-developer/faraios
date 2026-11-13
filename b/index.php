@@ -2,7 +2,7 @@
 require dirname(__DIR__).'/account/core.php';require dirname(__DIR__).'/account/profile-core.php';require dirname(__DIR__).'/account/services-core.php';require dirname(__DIR__).'/account/enquiries-core.php';
 // Public pages do not create or inspect an account session. Configuration only uses the account entry path.
 $_SERVER['SCRIPT_NAME']=preg_replace('~/b/index.php$~','/account/index.php',$_SERVER['SCRIPT_NAME']);
-header('Cache-Control: no-store');header('X-Content-Type-Options: nosniff');header('Referrer-Policy: no-referrer');header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+header('Cache-Control: no-store');header('X-Content-Type-Options: nosniff');header('Referrer-Policy: same-origin');header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
 $p=null;$row=null;$error=false;
 try{$slug=(string)($_GET['slug']??'');if(preg_match('/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/',$slug)&&strlen($slug)<=64){$rows=api('/rest/v1/business_public_pages?environment=eq.'.profile_env().'&slug=eq.'.rawurlencode($slug).'&select=slug,document,time_zone,services',[],'GET');$row=$rows[0]??null;$p=$row['document']??null;}}
 catch(Throwable $e){$error=true;http_response_code(503);header('Retry-After: 60');}
