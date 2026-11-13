@@ -155,3 +155,10 @@ Owner requested summary hidden on service selection. Candidate5c20217 deployed a
 ### Direct service-card progression — 14 November 2026
 
 Owner requested hiding Service Continue and business name. Application2f9b282 deployed accounts-preview only; Plesk completed/Done. Service-card click validates and advances to Details; repeated click on already-selected card after Back also advances. Continue remains on later steps. Header published business name hidden; avatar retained. Hosted PASS no Continue/name on Service; radio click and label/name click each advance to Details; Details shows summary/current step2 and Back/Continue; Back returns Service with saved selection and hidden summary/Continue. This completes previously pending summary Back/Continue verification. Desktop screenshot visually inspected. No submission/records modified, no production release.
+
+
+### Service-address design — 14 November 2026
+
+Inspected requested Sweepsouth location/new-location UI. Adapted compact address panel, Where do you need help heading, rounded street input/location icon and optional unit/apartment input with original FaraiOS styling. No geolocation/maps/saved locations/autocomplete-provider integration introduced. Manual street input and unit combined into existing saved address string;120-char unit and1000-char combined bounds. POST fields retain separately on rejection. Summary/review combine both.
+
+Preview candidate3878f097 deployed accounts-preview only, Plesk Done. PHP/JS lint and whitespace PASS; native PostgreSQL/PHP request/security/lifecycle tests PASS, extended HTTP assertion verifies optional unit persisted in saved address. Updated obsolete Request a booking heading assertion to accessible region label following owner removal. Hosted fictional street/unit/requirements retention through Continue and Back PASS; exact combined summary and no desktop overflow. Desktop and mobile390 full-page screenshots inspected, address/requirements and controls fit. No hosted request submitted or records modified. Viewport reset; preview left on Details for owner review. Production unchanged.
