@@ -50,7 +50,7 @@ if (form) {
    item.classList.toggle('complete', i < current);
   });
   back.hidden = current === 0;
-  next.hidden = current === steps.length - 1;
+  next.hidden = current === 0 || current === steps.length - 1;
   send.hidden = current !== steps.length - 1;
   put('step-status', `Step ${current + 1} of 5 · ${steps[current].querySelector('legend').textContent}`);
   if (focus) steps[current].querySelector('legend').focus();
@@ -66,6 +66,9 @@ if (form) {
  steps.forEach(step => step.querySelector('legend').tabIndex = -1);
  back.addEventListener('click', () => show(Math.max(0, current - 1)));
  next.addEventListener('click', () => { if (valid(current)) show(current + 1); });
+ form.querySelectorAll('input[name="service"]').forEach(card => {
+  card.addEventListener('click', () => { if (current === 0 && valid(0)) show(1); });
+ });
  form.addEventListener('input', update);
  form.addEventListener('change', update);
  form.addEventListener('submit', event => {
