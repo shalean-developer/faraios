@@ -61,3 +61,22 @@ Additional local PASS: customers regression; tests/requests-hosted.sql was execu
 7. Update evidence and show owner tested preview. No production merge, deployment or gate activation until explicit owner instruction.
 
 Decision: **CONDITIONAL PASS — preview deployed, core hosted flow verified; remaining acceptance checks pending browser reconnection. Production NO-GO.**
+
+
+## Reconnected hosted verification — 13 November 2026
+
+Owner authorized completion of PR17 preview checks, retaining all records and showing preview before production.
+
+PASS: reconnected original Chrome. Original request CEC79B9C opens booking 6F7FDD8E (6f7fdd8e-08f7-4a9f-a266-1d1a6b1e9ea5), Cancelled persisted. No replacement booking created for it.
+
+PASS hosted quoted lifecycle: fictional request 6e7d4c45-134c-474d-864c-c368bbab9290, quote 4bdd65e2-f0d8-46ab-9a77-d6aa4dafd28e copied customer/service/requirements. Saved offered ZAR1250.00, marked sent (no email), customer accepted via secure preview link, owner reviewed/accepted and converted to f9b930e0-6604-40c6-aa83-1905967d3e4e. Exact address, Africa/Johannesburg 16 Dec2026 11:00–14:00, 180m and agreed amount retained. This NEW booking Cancelled and reload verified. All fixtures retained.
+
+PASS decline: fictional From-price request 96f71cc7-ff6d-4f2c-9b5b-e271b3960906 retained as Declined after reload.
+
+PASS desktop summary computed sticky top20px and remained top20px after scrolling; owner Requests one H1, sidebar and no horizontal overflow. PASS fresh mobile tab 390x844, document width375, compact summary above form, expand/collapse and service/address/date/time live updates. Screenshot showed reachable unobscured submit at bottom. Claimed-tab viewport initially inconsistent; fresh tab resolved and screenshots visually inspected. Viewport reset. Customer and owner previews left open for review.
+
+PASS tests/requests-hosted.sql executed through Faraios Supabase connector in rxelmugnucfajrqmphhe: rollback-only lifecycle, retry idempotency, permissions and business isolation. Simulated JWTs, not second real login. Probe absent after rollback. Data API UI exposes only public and graphql_public; request_private unexposed. Security advisors: intentional deny-all private tables INFO; leaked password protection disabled WARN, unchanged.
+
+PASS original-row fingerprints exactly match baseline: bookings11 80c0426e875dbde667e90135a9a25b8e (exclude ONLY the two new IDs above); invoices5 74925701dba50667f000f9cdff5ac737; payments9 37789d4f7c3ae4bf7a7f831a32fe57dd; staff5 9c2ea5a2b5cc12a8996348fe2192f76c. Preview ingress true; live ingress false; live requests0; live pages0. No original records modified or deleted.
+
+Decision: **PASS hosted preview functional verification. Owner preview review pending. Production NO-GO until explicit owner deployment instruction.** No merge, production deployment or gate activation performed.
