@@ -21,7 +21,7 @@ class Profiles(Journey):
      elif url.path.startswith('/rest/v1/'):
       prefix="set role authenticated;set request.jwt.claim.sub="+lit(uid)+";set request.jwt.claims='{\"is_anonymous\":false}';" if uid in cls.ids else 'set role anon;'
       if '/rpc/' in url.path:
-       name=url.path.rsplit('/',1)[-1];assert name in ['business_profile_save','business_profile_publish','business_profile_unpublish','business_services_save','business_services_publish','business_enquiry_submit','business_enquiry_status','business_quote_write','business_quote_customer','business_booking_write','business_customer_search','business_customer_write','business_customer_link','business_customer_quote_create','business_customer_booking_create','business_staff_write','business_staff_assign','business_invoice_write','business_invoice_payment','business_invoice_customer'];parts=[]
+       name=url.path.rsplit('/',1)[-1];assert name in ['business_profile_save','business_profile_publish','business_profile_unpublish','business_services_save','business_services_publish','business_enquiry_submit','business_enquiry_status','business_quote_write','business_quote_customer','business_booking_write','business_customer_search','business_customer_write','business_customer_link','business_customer_quote_create','business_customer_booking_create','business_staff_write','business_staff_assign','business_invoice_write','business_invoice_payment','business_invoice_customer','business_dashboard','business_enquiry_create'];parts=[]
        for k,v in body.items():parts.append(k+'=>'+(lit(json.dumps(v))+'::jsonb' if k in ['p_draft','p_document','p_details','p_staff'] else lit(v)))
        data=json.loads(cls.sql(prefix+'select public.'+name+'('+','.join(parts)+')'))
       else:
