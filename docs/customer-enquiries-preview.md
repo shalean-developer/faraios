@@ -38,3 +38,17 @@ After owner approval, merge reviewed PR to main, deploy via existing production 
 Rollback source to PR #5 and disable live ingress. Preserve accounts, businesses, profile/service drafts and all enquiries. Do not drop schema or erase records. Preview can be disabled independently via ingress. Statuses are reversible; customer correction/deletion requests are handled by controlled owner administration in this first release.
 
 Decision: PASS for local source validation; hosted preview acceptance pending. Production NO-GO until owner preview review and explicit deployment approval.
+
+## Hosted preview update — 13 November 2026 SAST
+
+Owner replied Ready. Reconnected browser verified fresh project history through services migration, only the fictional Bright & Co page published in preview, and live Shalean unpublished. Installed additive enquiry migration plus history entry through the connected SQL editor. Verified RLS=true, anon SELECT=false, authenticated INSERT=false, status-only UPDATE=true, requirements UPDATE=false, preview ingress=true, live ingress=false. No production application change.
+
+Switched only manual `faraios-accounts-preview.git` to `feature/customer-enquiries-20261113` and deployed candidate b00485d. Production remains main at PR #5; waitlist preview unchanged. Public browser testing found the public page's no-referrer policy caused Chrome form Origin:null and a CSRF rejection. Candidate **63bd1d4edee9d9cabf0adab6c5ef6cc483d6e3cb** corrects the header to same-origin, preserving strict origin validation. Enquiry HTTP/native PG suite passed again with response-header assertion. Pulled/deployed this fix to preview only.
+
+Hosted Chrome PASS after fix: required name/requirements browser validation; missing email AND phone rejected with entered name/requirements retained; optional service selector showed only three published demo services; Office cleaning request submitted with fictional customer/contact/requirements; success message confirmed business received it. No email was sent. This submission belongs only to the fictional Bright & Co preview page.
+
+Preview owner's idle session expired and redirected to sign-in. Asked owner to sign in on the open preview tab. Authenticated owner list/detail/status/save/reload, public refresh duplicate check, mobile layout/screenshot, hosted rollback-only role assertions, and advisor review remain pending. A combined browser call attempting refresh, owner inspection and 390px layout timed out before observations were returned; no mobile/refresh result is claimed. Temporary viewport state is unknown after the timeout and must be reset on reconnect.
+
+Prepared `tests/enquiries-hosted.sql` and verified it against disposable PostgreSQL with the same fictional fixture; PASS. It has not yet run on hosted Supabase. It uses simulated JWT identities and ROLLBACK, not mailbox-authenticated second-owner evidence.
+
+Decision: preview deployed; public successful submission verified. Full end-to-end acceptance pending owner session and stable browser connection. Production remains NO-GO pending completed preview review and explicit owner release approval. Live intake is disabled. Resend and separate waitlist webhook/recovery checks are untouched.
