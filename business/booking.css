@@ -14,3 +14,10 @@
 .booking-identity-name{font-size:13px;font-weight:650;overflow-wrap:anywhere;line-height:1.4}
 @media(max-width:900px){.booking-header{grid-template-columns:156px minmax(0,1fr);gap:14px;padding:14px 20px}.booking-header .booking-progress{grid-row:2;grid-column:1/-1}.booking-identity{grid-row:1;grid-column:2}.booking-header .booking-progress li{font-size:.75rem}.booking-identity-name{font-size:12px}}
 @media(max-width:400px){.booking-header{grid-template-columns:132px minmax(0,1fr);gap:12px;padding:12px 16px}.booking-header>a img{width:132px;height:auto}.booking-header .booking-avatar{width:32px;height:32px;flex-basis:32px}.booking-identity{gap:7px}}
+
+/* Compact numbered progress circles; names remain available to assistive technology. */
+.booking-header .booking-progress{justify-self:center;width:100%;max-width:360px}
+.booking-header .booking-progress ol{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.booking-header .booking-progress li{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;padding:0;border-radius:50%;font-size:.875rem;font-weight:650;position:relative}
+.booking-header .booking-progress li span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+@media(max-width:900px){.booking-header .booking-progress{max-width:320px}.booking-header .booking-progress li{font-size:.875rem}}
