@@ -3,7 +3,7 @@ const form = document.getElementById('booking-request');
 if (form) {
  const fields = form.elements;
  const steps = [...form.querySelectorAll('[data-step]')];
- const progress = [...form.querySelectorAll('.booking-progress li')];
+ const progress = [...document.querySelectorAll('.booking-progress li')];
  const back = document.getElementById('booking-back');
  const next = document.getElementById('booking-continue');
  const send = document.getElementById('booking-send');
