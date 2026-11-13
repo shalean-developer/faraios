@@ -5,3 +5,29 @@ Owner reviewed the authenticated isolated preview and explicitly instructed Depl
 Final release test: native disposable PostgreSQL 17 + actual PHP intake successfully creates a live enquiry, retains idempotency, rejects invalid environment/foreign owners/anonymous callers, and rejects live intake when ingress is disabled. Hosted probes use preview rollback fixtures only; no fictional production records are authorized.
 
 No notifications, Resend access, integrations, real money movement or waitlist webhook/recovery checks. Deployment/verification evidence will be appended after release. Rollback: restore PR #12 application; replace enquiry_private.manual_create with the preview-only implementation from migration 20261113143833 if manual intake must be disabled without affecting public enquiries. Retain all records and counters.
+
+## Deployment checkpoint
+
+PR #13 merged as f2a44d8ef30a80e687c711f88fd0f0f1f120137a after owner Deploy instruction. Final code head daaa54388ddc902576b5ddfdaf2c2512a19c4879: native release dashboard suite PASS; GitHub automatic code review completed with no findings. No GitHub Actions workflow or commit status was configured for this head; no paid CI run was introduced. The 17 targeted baseline tests had passed during preview, with dashboard rerun after the narrow release migration.
+
+Connected Supabase fresh-project migration 20261113151114 applied successfully and source recorded. LF-normalized MD5 49df5d776fec73648e8647e511453f8f matches the committed file. Existing enquiry ingress was already enabled for both preview and live and was not changed. Hosted rollback-only preview probes PASS after release routine replacement. Production read-only reconciliation under the actual owner JWT identity/role PASS for today's non-Cancelled booking count, current issued invoice balances by currency and current-month net ledger payments. Script tests/dashboard-production-readonly.sql creates no fixtures and rolls back session context only.
+
+Connected Plesk production faraios.git main Pull now completed, showing PR #13 merge and live-intake commit, with automatic deployment target /faraios.com. Public live /account/dashboard.php exists and redirects unauthenticated access to the existing sign-in page. Owner production session had expired; authenticated production UI verification is pending owner sign-in. Preview authenticated UI was already verified before deployment. Do not claim production browser figures/links checked until sign-in is completed. No fictional production records were created.
+
+## Preservation readback
+
+Before/after complete-row fingerprints across all environments (including retained preview fixtures) match exactly:
+
+| Dataset | MD5 |
+|---|---|
+| Bookings | f3224f9f16037e720b4c24899cd1f713 |
+| Quotes | e358e94c1321c50571767502a06d9dd4 |
+| Invoices | a60cd29694001ef360146dead94ee6a9 |
+| Payments | b08835474c167263fcde2fe36098fa36 |
+| Staff | 0ac494aa9d2231454818de4b38717325 |
+| Enquiries | abf18877a40d43b7acade932291bd027 |
+| Businesses | f5a653038fdad35dce0892e83a637044 |
+
+Accounts remain 3. Protected bookings 8EF88DF7, 14616616 and 10BBEB8F all Cancelled; invoices 56A668AE and 85EC16B3 both Void; live payment entries still net to zero. Staff rows/statuses unchanged, preserving labelled inactive test staff and active Farai Chitekedza. Shalean public page count remains 0. Homepage and waitlist source unchanged. No notifications, integrations, Resend access, waitlist webhook/recovery checks or real money movement.
+
+Decision: PASS for approved application deployment and read-only database reconciliation. Authenticated production browser verification remains PENDING owner sign-in; leave this checkpoint open until observed.
