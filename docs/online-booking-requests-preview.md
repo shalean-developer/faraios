@@ -80,3 +80,22 @@ PASS tests/requests-hosted.sql executed through Faraios Supabase connector in rx
 PASS original-row fingerprints exactly match baseline: bookings11 80c0426e875dbde667e90135a9a25b8e (exclude ONLY the two new IDs above); invoices5 74925701dba50667f000f9cdff5ac737; payments9 37789d4f7c3ae4bf7a7f831a32fe57dd; staff5 9c2ea5a2b5cc12a8996348fe2192f76c. Preview ingress true; live ingress false; live requests0; live pages0. No original records modified or deleted.
 
 Decision: **PASS hosted preview functional verification. Owner preview review pending. Production NO-GO until explicit owner deployment instruction.** No merge, production deployment or gate activation performed.
+
+
+## Guided flow preview — 13 November 2026
+
+Owner authorized Zenbooker-style guidance with FaraiOS branding; production remains prohibited. Deployed candidate ecf50e1657949abf81a1b3a61298e92fef7a6309 through Plesk faraios-accounts-preview.git only. Pull showed latest guided-progress commit; Deploy returned completed / Done. Production main PR16 and both live intake/publication gates untouched.
+
+Implemented Service → Details → Schedule → Contact → Review with Back/Continue, current-step indicator, validation and retained DOM entries. Review uses textContent for complete service/price/address/requirements/schedule/time-zone/contact summary. Enter before Review advances only after validation. Server rejection retains POST values and opens first client-invalid step. No-JavaScript fallback shows the full validated server form. Original request_submit, database/RLS/idempotency and owner actions unchanged. No migrations, dependencies, payments or notifications.
+
+Location coverage is presently free-text business service areas, with no structured coverage rule. Details displays the configured areas and states the business must confirm coverage. It deliberately makes no automatic location eligibility claim.
+
+PASS local: PHP syntax, JS syntax, diff whitespace; native PostgreSQL17/PHP tests/requests.py passed twice, including lifecycle, security/isolation, idempotency and HTTP retention. The last rerun included final PHP progress markup and CSS; subsequent change only bumped static asset cache versions.
+
+PASS connected Chrome hosted: empty Service/Details blocked; fixed ZAR505, From ZAR950 and Quote required summary updates; address and schedule retained after Back/Continue; missing contact channel blocked at Contact; complete Review displayed exact fictional details; desktop sticky summary stayed top20px on scrolling. Final indicator keeps all five steps in one row. Mobile390 screenshot confirmed compact expandable summary, expand/collapse, all five steps, unobscured Back and Send controls. Viewport override was reset afterward.
+
+PASS final mobile submission: request cdcd8275-548f-4c1d-98f4-ca7fd79a52e4, Fictional Guided Preview Test / guided-preview@example.test, Standard cleaning ZAR505 /120m, 123 Fictional Guided Test Road, Claremont, 18 Dec2026 10:30 Africa/Johannesburg, requirements "Fictional guided-flow preview verification. Preserve this request." Public confirmation explicitly pending; refresh safe. Signed-in owner Requests list contained exactly one new row; owner detail matched all fields and exposed existing quote/decline/review-checkbox/accept controls. New request retained Pending confirmation for owner review, not converted.
+
+Reopened both existing verification bookings read-only: 6F7FDD8E and F9B930E0 still Cancelled and retained. No existing record edits/deletions; no new bookings/invoices/payments/staff. Prior full protected-record fingerprints remain historical evidence from the earlier hosted checkpoint; they were not rerun for this presentation-only change.
+
+Customer customer-facing preview and signed-in owner detail left open; screenshots visually inspected. Owner preview review pending. PR17 stays draft. **Production NO-GO: no merge, production deployment or live-intake activation.**
