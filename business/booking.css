@@ -40,3 +40,13 @@
 .service-card-icon svg{width:40px;height:40px}.service-card-name{font-size:16px;line-height:1.4;font-weight:700}.service-card-price{color:#174b84;font-size:14px;font-weight:650}.service-card-duration{font-size:12px;color:#637682;font-weight:400}.service-card-description{font-size:13px;line-height:1.5;color:#526176;font-weight:400}
 .service-intro{color:#526176}.service-selected-price{font-size:13px;margin-top:16px}
 @media(max-width:600px){.booking-services{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.booking-service-card{padding:22px 12px 16px}.booking-service-card:has(input:checked){padding:21px 11px 15px}.service-card-name{font-size:14px}.service-card-price{font-size:12px}.service-card-description{font-size:12px}.service-card-icon{width:52px;height:52px}.service-card-icon svg{width:32px;height:32px}}
+
+/* Compact service tiles: icon and name only. Pricing stays in the summary. */
+.booking-services{grid-template-columns:repeat(auto-fill,minmax(130px,160px));gap:12px}
+.booking-service-card{min-height:142px;padding:18px 12px 14px;gap:8px;justify-content:center}
+.booking-service-card:has(input:checked){padding:17px 11px 13px}
+.service-card-icon{width:48px;height:48px;border-radius:12px;margin:0 0 4px}
+.service-card-icon svg{width:30px;height:30px}
+.service-card-name{font-size:14px;line-height:1.35}
+.request-layout .booking-service-card input{top:8px;right:8px;width:16px;height:16px}
+@media(max-width:600px){.booking-services{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.booking-service-card{min-height:130px;padding:16px 10px 12px}.booking-service-card:has(input:checked){padding:15px 9px 11px}.service-card-name{font-size:13px}}
