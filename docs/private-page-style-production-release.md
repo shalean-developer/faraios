@@ -9,3 +9,11 @@ Live /account/profile.php correctly redirected expired session to existing sign-
 No schema changes, hosted data writes, integrations, notifications, Resend access or waitlist webhook/recovery operations. Protected production bookings/invoices/reversal ledger/staff/publication state and retained preview history preserved through unchanged handlers/database. Source-only presentation changes plus existing Services create-link correction. No new database fingerprint claim.
 
 Rollback application to PR15 a667162e145ed5b0028f68b8e9cb11256ea2bab9 and deploy using production Git; no data rollback/reset/deletion.
+
+## Authenticated production closeout — PASS
+
+Owner replied ready after live sign-in. /account/profile.php shows one Profile h1, no duplicate topbar, 7px dashboard-style panels, production route/no preview banner, Draft status. Eight business pages checked at desktop1280: correct sidebar active state, single h1, no alerts or horizontal overflow; seven Create pages each show exactly one visible page-create action. Services Add service opens existing form with Add service heading/name input, no save.
+
+Live dashboard current ZAR outstanding0.00/overdue0.00/November net0.00. Expanded original payments276.90 and reversals276.90 retained and net zero. No forms submitted, records created/changed, publication, payment operation, notification or provider access. Identical deployed application passed preview mobile checks; no new live mobile claim. Live Profile left open. Screenshot docs/evidence/private-style-production.jpg.
+
+The previous pending sign-in checkpoint is closed. PASS: PR16 deployed and authenticated production page styling/header/action verification complete. Protected records remain preserved by unchanged handlers/database and no data writes; no new fingerprint claim.
