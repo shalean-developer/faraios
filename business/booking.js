@@ -71,7 +71,7 @@ if (form) {
   for (let i = 0; i < 4; i++) if (!valid(i)) { event.preventDefault(); return; }
  });
  const details = document.querySelector('.request-summary details');
- const media = window.matchMedia('(max-width: 700px)');
+ const media = window.matchMedia('(max-width: 900px)');
  const resize = () => { details.open = !media.matches; };
  media.addEventListener('change', resize);
  resize(); update();
