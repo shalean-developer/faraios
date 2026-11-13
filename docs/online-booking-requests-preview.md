@@ -123,3 +123,8 @@ Browser reconnected; pulled e198c0c9 branch evidence and deployed accounts-previ
 ### Number-only circular progress
 
 Owner requested avatar-like numbered circles. CSS-only progress treatment plus asset cache bump b8ee91f deployed to accounts-preview only; Plesk completed/Done. Five circles measured40x40px with50% radius; labels visually hidden but retained for assistive technology. Current and completed colors retained. Hosted forward/Back active-step updates PASS; desktop no horizontal overflow. Desktop and mobile390 screenshots inspected; compact number-only header and identity fit. Viewport reset; customer preview left open. No submissions, record changes, production merge/deployment or gate activation.
+
+
+### Labelled circles with connecting line
+
+Owner requested labels below each number and one line hidden within circles. Preview application313883a deployed only to accounts-preview; Plesk completed/Done. Grid positions circles and labels; continuous connector lies behind opaque circle fills, visible only in gaps. Desktop and mobile390 screenshots visually PASS: all5 labels visible, line stops visually at each circle edge, avatar/header retained. Temporary viewport reset; preview left open. CSS-only plus cache version update; no records changed, no production release.
