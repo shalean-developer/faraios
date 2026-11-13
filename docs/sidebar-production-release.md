@@ -9,3 +9,11 @@ Live /account/dashboard.php reload correctly redirects expired owner session to 
 No database migration, hosted record writes, notifications, Resend access, waitlist webhook/recovery checks, integrations or fictional production records. All page authentication/data/write handlers remain unchanged. Protected Cancelled bookings, Void invoices, payment/reversal history, staff statuses, unpublished Shalean page and retained preview audit fixtures preserved by presentation-only scope. No new database fingerprint/readback claim for this release yet.
 
 Rollback: revert PR #15 application to PR #14 on main and deploy using production Git; no data rollback, deletion, counter reset or schema action required. Production verification will be appended after owner sign-in.
+
+## Authenticated production closeout — PASS
+
+Owner signed in and replied Ready. Live /account/dashboard.php verified (no preview banner) with deployed compact sidebar, account/business footer, greeting/New action, Today/Needs attention and Money overview. Business display name remains FaraiOS Preview Test Business but route/environment is production. All nine destinations load, correct active states, no alerts, desktop1280/scrollWidth<=1280. All four New links open correct forms without submission. Live profile shows Draft; no publication performed.
+
+Production dashboard Today0, New0, awaiting0, overdue0; current ZAR outstanding0.00, overdue0.00, November net recorded payments0.00. Expanded breakdown retains payments276.90 and reversals276.90. Existing reversal history therefore still nets zero, and retained preview fixtures are excluded from live figures. No record write, form submission, payment action, notification or integration/provider access performed. No new database fingerprint claim; presentation-only code retains all handlers and database routines. Previously passed preview mobile/keyboard checks apply to identical deployed application; no additional live mobile claim made.
+
+Screenshot docs/evidence/sidebar-production.jpg captured live. Owner live dashboard left open for review. The prior pending-sign-in checkpoint is now closed. Decision PASS: sidebar navigation and dashboard refinement deployed through PR#15 and authenticated production verification complete.
