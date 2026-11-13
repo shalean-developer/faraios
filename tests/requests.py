@@ -58,9 +58,9 @@ class Requests(Profiles):
    self.assertEqual(self.sql(f"select document->'items'->0->>'price' from public.business_bookings where quote_id='{qid}'"),'99900')
   # Real PHP form, origin, timing, retained invalid inputs, escaping, success redirect and duplicate protection.
   path='/b/index.php?slug=request-demo&booking=1';html=self.get(path)[1]
-  self.assertIn('Request a booking',html);self.assertIn('Quote required',html);self.assertIn('request-summary',html)
+  self.assertIn('aria-label="Booking request"',html);self.assertIn('Quote required',html);self.assertIn('request-summary',html)
   self.assertEqual(self.get('/account/requests-core.php')[0],403)
-  fields=dict(name='Fictional HTTP',email='http@example.test',phone='',service=fixed['id'],address='456 Example Street',date='2090-06-01',time='09:15',requirements='Please clean this example home.',website='')
+  fields=dict(name='Fictional HTTP',email='http@example.test',phone='',service=fixed['id'],address='456 Example Street',unit='Unit 2A, Example Court',date='2090-06-01',time='09:15',requirements='Please clean this example home.',website='')
   token=re.search('name="csrf" value="([^"]+)"',html)[1];fields['snapshot_hash']=re.search('name="snapshot_hash" value="([^"]+)"',html)[1]
   def send(fields):
    request=urllib.request.Request(self.url+path,data=urllib.parse.urlencode(fields).encode(),headers={'Origin':self.url})
@@ -73,6 +73,7 @@ class Requests(Profiles):
   self.assertIn('value="Fictional HTTP"',send(fields|dict(csrf=token,email='')))
   before=int(self.sql('select count(*) from public.business_booking_requests'))
   send(fields|dict(csrf=token));self.assertEqual(int(self.sql('select count(*) from public.business_booking_requests')),before+1)
+  self.assertEqual(self.sql("select r.address from public.business_booking_requests r join public.business_enquiries e on e.id=r.id where e.email='http@example.test'"),'456 Example Street, Unit 2A, Example Court')
   self.get(path);self.assertEqual(int(self.sql('select count(*) from public.business_booking_requests')),before+1)
   self.post('/account/index.php?page=signin',email='a@example.test',password='test-long-password');self.assertIn('Fixed clean',self.get('/account/requests.php')[1]);self.assertIn('Fictional Customer',self.get('/account/requests.php?id='+rid)[1])
   self.post('/account/index.php?page=signin',email='b@example.test',password='test-long-password');self.assertNotIn('Fixed clean',self.get('/account/requests.php')[1]);self.assertIn('unavailable',self.get('/account/requests.php?id='+rid)[1])
