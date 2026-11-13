@@ -1,7 +1,7 @@
 <?php
-require __DIR__.'/core.php';require __DIR__.'/profile-core.php';require __DIR__.'/services-core.php';require __DIR__.'/quotes-core.php';require __DIR__.'/bookings-core.php';
+require __DIR__.'/core.php';require __DIR__.'/profile-core.php';require __DIR__.'/services-core.php';require __DIR__.'/quotes-core.php';require __DIR__.'/bookings-core.php';require __DIR__.'/customers-core.php';
 $_SERVER['SCRIPT_NAME']=preg_replace('~/account/bookings.php$~','/account/index.php',$_SERVER['SCRIPT_NAME']);
-$error='';$notice='';$b=null;$r=null;$rows=[];$source=null;$catalogue=null;$currency='ZAR';$zone='UTC';$filter=(string)($_GET['status']??'');$page=max(1,min(100000,(int)($_GET['page']??1)));$view=(string)($_GET['view']??'list');$month=(string)($_GET['month']??'');$new=isset($_GET['new']);
+$error='';$notice='';$b=null;$r=null;$rows=[];$source=null;$customer=null;$catalogue=null;$currency='ZAR';$zone='UTC';$filter=(string)($_GET['status']??'');$page=max(1,min(100000,(int)($_GET['page']??1)));$view=(string)($_GET['view']??'list');$month=(string)($_GET['month']??'');$new=isset($_GET['new']);
 try{
  start();$u=user();$b=business();if(!$b)go('business');$zone=$b['time_zone'];$catalogue=services_load($b);$currency=$catalogue['draft']['currency']??'ZAR';
  $notice=(string)($_SESSION['booking_notice']??'');unset($_SESSION['booking_notice']);
@@ -17,9 +17,10 @@ try{
  $requestId=$_SERVER['REQUEST_METHOD']==='POST'?(string)($_POST['id']??''):($_SESSION['new_booking_id']??=quote_uuid());if(!preg_match('/\A[0-9a-f-]{36}\z/',$requestId))throw new RuntimeException('Booking form expired. Reload before saving.');
  $r=['id'=>$requestId,'version'=>0,'quote_id'=>$source['id']??null,'document'=>$source['document']??['name'=>'','email'=>'','phone'=>'','notes'=>'','currency'=>$currency,'items'=>[]],'address'=>'','duration_minutes'=>60,'starts_at'=>'','time_zone'=>$zone,'status'=>'Scheduled'];
  }
+ if($new&&!$r['quote_id']){$cid=(string)($_POST['customer']??$_GET['customer']??'');if($cid!==''){$customer=customer_load($b,$cid);if($_SERVER['REQUEST_METHOD']!=='POST'){foreach(['name','email','phone'] as $k)$r['document'][$k]=$customer['details'][$k];$r['address']=$customer['details']['address'];}}}
  if($_SERVER['REQUEST_METHOD']==='POST'){
  csrf();if(!$r)throw new RuntimeException('Booking unavailable.');if(($_POST['time_zone']??'')!==$zone)throw new RuntimeException('Business time zone changed. Reload before saving.');if(($_POST['currency']??'')!==$currency)throw new RuntimeException('Business currency changed. Reload before saving.');$fields=booking_fields();$doc=$r['quote_id']?$r['document']:quote_values($currency);
- $saved=profile_rpc('business_booking_write',['p_business'=>$b['id'],'p_environment'=>profile_env(),'p_id'=>$r['id'],'p_version'=>(int)($_POST['version']??-1),'p_quote'=>$r['quote_id'],'p_document'=>$doc,'p_zone'=>$zone]+$fields);
+ $args=['p_business'=>$b['id'],'p_environment'=>profile_env(),'p_id'=>$r['id'],'p_version'=>(int)($_POST['version']??-1),'p_quote'=>$r['quote_id'],'p_document'=>$doc,'p_zone'=>$zone]+$fields;if($r['version']===0&&($customer||($source['customer_id']??null))){$args['p_customer']=$customer['id']??null;$saved=profile_rpc('business_customer_booking_create',$args);}else{$saved=profile_rpc('business_booking_write',$args);}
  unset($_SESSION['new_booking_id']);$_SESSION['booking_notice']='Booking saved.';header('Location: bookings.php?id='.rawurlencode($saved['id']),true,303);exit;
  }
  if(!$r){
@@ -37,10 +38,10 @@ catch(Throwable $e){$error=$e instanceof RuntimeException?$e->getMessage():'Book
 <?php if(profile_env()==='preview'):?><p class="preview-banner">Isolated preview · Fictional bookings only</p><?php endif;?>
 <?php if($error):?><p class="alert" role="alert"><?=esc($error)?></p><?php endif;if($notice):?><p class="notice" role="status"><?=esc($notice)?></p><?php endif;?>
 <?php if($b):?><div class="editor-heading"><div><p class="eyebrow"><?=esc($b['name'])?></p><h1>Bookings</h1><p class="muted">Private schedule · <?=esc(str_replace('_',' ',$zone))?> · <?=esc($currency)?></p></div><a href="bookings.php?new=1">Create booking</a></div>
-<?php if($r):$d=$r['document'];$posted=$_SERVER['REQUEST_METHOD']==='POST';if($posted&&!$r['quote_id'])foreach(['name','email','phone','notes'] as $k)if(is_string($_POST[$k]??null))$d[$k]=substr($_POST[$k],0,8000);$local=$r['starts_at']?booking_local($r):null;?>
+<?php if($new&&$r&&!$r['quote_id']):customer_picker($b,'bookings.php',(string)($_GET['customer_search']??''));endif;?><?php if($r):$d=$r['document'];$posted=$_SERVER['REQUEST_METHOD']==='POST';if($posted&&!$r['quote_id'])foreach(['name','email','phone','notes'] as $k)if(is_string($_POST[$k]??null))$d[$k]=substr($_POST[$k],0,8000);$local=$r['starts_at']?booking_local($r):null;?>
 <a href="bookings.php">← All bookings</a><section class="panel"><div class="service-title"><h2><?=$r['version']?'Booking '.esc(strtoupper(substr($r['id'],0,8))):'New booking'?></h2><span class="badge"><?=esc($r['status'])?></span></div>
-<?php if($r['version']):?><p><?=esc(booking_schedule($r))?> · <?=esc(str_replace('_',' ',$zone))?></p><?php quote_render($r['document']);endif;form_start();?>
-<input type="hidden" name="time_zone" value="<?=esc($zone)?>"><input type="hidden" name="currency" value="<?=esc($currency)?>"><input type="hidden" name="id" value="<?=esc($r['id'])?>"><input type="hidden" name="quote" value="<?=esc($r['quote_id']??'')?>"><input type="hidden" name="version" value="<?=(int)$r['version']?>">
+<?php if($r['version'])customer_record_link('booking',$r);if($customer):?><p>Selected customer: <a href="customers.php?id=<?=esc($customer['id'])?>"><?=esc($customer['details']['name'])?></a></p><?php endif;?><?php if($r['version']):?><p><?=esc(booking_schedule($r))?> · <?=esc(str_replace('_',' ',$zone))?></p><?php quote_render($r['document']);endif;form_start();?>
+<input type="hidden" name="customer" value="<?=esc($customer['id']??'')?>"><input type="hidden" name="time_zone" value="<?=esc($zone)?>"><input type="hidden" name="currency" value="<?=esc($currency)?>"><input type="hidden" name="id" value="<?=esc($r['id'])?>"><input type="hidden" name="quote" value="<?=esc($r['quote_id']??'')?>"><input type="hidden" name="version" value="<?=(int)$r['version']?>">
 <?php if($r['quote_id']):?><p><a href="quotes.php?id=<?=esc($r['quote_id'])?>">Accepted quote <?=esc(strtoupper(substr($r['quote_id'],0,8)))?></a> · Customer and agreed items are preserved.</p><h3><?=esc($d['name'])?></h3><p><?=esc($d['email'])?> <?=esc($d['phone'])?></p><?php if(!$r['version'])quote_render($d);?>
 <?php else:foreach(['name'=>'Customer name','email'=>'Email address','phone'=>'Phone number'] as $k=>$label):?><label for="<?=$k?>"><?=$label?></label><input id="<?=$k?>" name="<?=$k?>" type="<?=$k==='email'?'email':($k==='phone'?'tel':'text')?>" maxlength="<?=$k==='email'?254:($k==='phone'?40:120)?>" <?=$k==='name'?'required':''?> value="<?=esc($d[$k])?>"><?php endforeach;?><small>Provide an email address or phone number.</small>
 <h3>Items · <?=esc($currency)?></h3><p class="muted">Whole quantities. All prices are the final amounts offered to the customer.</p>

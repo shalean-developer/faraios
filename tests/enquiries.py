@@ -3,7 +3,7 @@ from profiles import Profiles
 from journey import lit
 import json,re,urllib.parse,urllib.request,urllib.error,unittest,uuid,sys,time
 class Enquiries(Profiles):
- extra_migrations=['customer_enquiries']
+ extra_migrations=['customer_enquiries','customer_quotes','bookings_scheduling','customer_profiles']
  def send(self,path,**fields):
   # Public forms have a two-second minimum and a separate cookie from owner authentication.
   html=self.get(path)[1];token=re.search('name="csrf" value="([^"]+)"',html)[1]
