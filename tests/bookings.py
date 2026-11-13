@@ -2,7 +2,7 @@
 from profiles import Profiles
 from journey import lit
 from concurrent.futures import ThreadPoolExecutor
-import json,unittest,sys,uuid
+import json,unittest,sys,uuid,re
 from datetime import datetime,timezone
 class Bookings(Profiles):
  extra_migrations=['customer_enquiries','customer_quotes','bookings_scheduling']
@@ -11,7 +11,8 @@ class Bookings(Profiles):
   self.sql("update booking_private.ingress set enabled=true where environment='live';update quote_private.ingress set enabled=true where environment='live'")
   self.post('/account/index.php?page=signin',email='a@example.test',password='test-long-password')
   path='/account/bookings.php?new=1'
-  data=dict(time_zone='Africa/Johannesburg',currency='ZAR',version=0,name='Fictional Booking',email='book@example.test',phone='',notes='<script>test</script>',item_name_0='Standard clean',quantity_0='2',price_0='505.25',address='10 Example Road, Testville',date='2026-11-20',time='08:30',duration='120')
+  newid=re.search('name="id" value="([^"]+)"',self.get(path)[1])[1]
+  data=dict(id=newid,time_zone='Africa/Johannesburg',currency='ZAR',version=0,name='Fictional Booking',email='book@example.test',phone='',notes='<script>test</script>',item_name_0='Standard clean',quantity_0='2',price_0='505.25',address='10 Example Road, Testville',date='2026-11-20',time='08:30',duration='120')
   self.assertIn('valid date',self.post(path,**(data|{'date':'2026-02-30'})))
   self.assertIn('service address',self.post(path,**(data|{'address':'x'})))
   self.assertIn('duration',self.post(path,**(data|{'duration':'0'})))
@@ -19,6 +20,7 @@ class Bookings(Profiles):
   html=self.post(path,**data);self.assertIn('Booking saved',html);self.assertIn('ZAR 1,010.50',html);self.assertIn('08:30 – 10:30',html);self.assertIn('&lt;script&gt;',html)
   r=json.loads(self.scope(a,'select to_jsonb(r) from public.business_bookings r'));rid=r['id'];detail='/account/bookings.php?id='+rid
   self.assertEqual(datetime.fromisoformat(r['starts_at']).astimezone(timezone.utc).isoformat(),'2026-11-20T06:30:00+00:00')
+  self.assertIn('changed or unavailable',self.post(path,**data));self.assertEqual(self.scope(a,'select count(*) from public.business_bookings'),'1')
   self.assertIn('10 Example Road',self.get(detail)[1]);self.assertIn('Fictional Booking',self.get('/account/bookings.php?view=calendar&month=2026-11')[1]);self.assertNotIn('Fictional Booking',self.get('/account/bookings.php?view=calendar&month=2026-12')[1])
   # Persist all statuses, reschedule and protect stale forms.
   for i,status in enumerate(['In Progress','Completed','Cancelled','Scheduled']):
@@ -48,7 +50,7 @@ class Bookings(Profiles):
   qid=str(uuid.uuid4());doc=r['document']|{'currency':'USD'}
   self.sql('insert into public.business_quotes(id,business_id,environment,document,expires_on,status,share_token,sent_at,sender) values('+','.join([lit(qid),lit(bid),"'live'",lit(json.dumps(doc))+'::jsonb',"'2026-12-01'","'Accepted'",lit('a'*64),'now()',"'{\"time_zone\":\"Africa/Johannesburg\"}'::jsonb"])+')')
   conv=path+'&quote='+qid;self.assertIn('USD 1,010.50',self.get(conv)[1]);self.assertNotIn('name="price_0"',self.get(conv)[1])
-  self.assertIn('Booking saved',self.post(conv,**dict(time_zone='Africa/Johannesburg',currency='USD',version=0,quote=qid,address='20 Fictional Road',date='2026-11-23',time='10:00',duration=90)))
+  self.assertIn('Booking saved',self.post(conv,**dict(id=re.search('name="id" value="([^"]+)"',self.get(conv)[1])[1],time_zone='Africa/Johannesburg',currency='USD',version=0,quote=qid,address='20 Fictional Road',date='2026-11-23',time='10:00',duration=90)))
   linked=json.loads(self.scope(a,'select to_jsonb(r) from public.business_bookings r where quote_id='+lit(qid)));self.assertEqual(linked['document'],doc)
   self.assertIn('Booking '+linked['id'][:8].upper(),self.get(conv)[1]);self.assertEqual(self.scope(a,'select count(*) from public.business_bookings where quote_id='+lit(qid)),'1')
   with self.assertRaises(RuntimeError):write(a,p_id=str(uuid.uuid4()),p_version=0,p_quote=qid)

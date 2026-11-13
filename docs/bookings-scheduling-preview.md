@@ -31,3 +31,13 @@ Do not merge/deploy production until preview owner review and explicit deploymen
 On later approval, inspect final head, merge/deploy production main through connected Plesk and separately enable only booking_private.ingress live. Verify authenticated empty live Bookings and preserved existing features; do not create live fictional bookings by default. Keep Resend and waitlist checks separate.
 
 Rollback: disable affected booking ingress; restore application to PR #8. Preserve bookings and linked quotes; do not drop table or delete records. Disable preview separately if needed.
+
+## Hosted preparation — 13 November 2026 SAST
+
+Initial application candidate `2be3fa436ccde40a6c1cddffca6950e9c1abfda4` published as draft PR #9 and deployed only to manual accounts preview. Additive migration installed through connected Supabase SQL editor; migration history recorded with source commit reference. Verification: bookings RLS=true, anon SELECT=false, authenticated UPDATE=false, preview enabled=true/live=false, booking rows=0. Rollback-only hosted script PASS for save/reschedule/statuses, accepted quote copy/duplicate prevention, stale/anonymous/cross-owner/environment denial and DST validation; probe data rolled back. Fresh baseline: 2 businesses, 0 live quotes, 3 preview quotes, 0 live public pages. No other system accessed.
+
+Production/main remains PR #8, waitlist preview unchanged. Live homepage and waitlist HTTP 200 and byte-identical to preserved source; booking preview stylesheet matches candidate; helper direct 403; unpublished Shalean page 404. No email/Resend or waitlist webhook/recovery operations.
+
+Preview owner session expired and redirects to sign-in. Full real browser save/reload, quote conversion, calendar and mobile acceptance remain pending owner sign-in. No full preview PASS claimed. Final self-review hardened manual browser-back resubmission to reuse posted request ID and reject stale writes; local journey confirms exactly one manual record after replay. This is an application-only change; schema unchanged. Local booking suite rerun PASS.
+
+Connected Security Advisor rerun: zero errors; one existing Auth leaked-password-protection disabled warning, unchanged. No new security warning.
