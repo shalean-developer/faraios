@@ -33,6 +33,7 @@ function api(string $path,array $body=[],string $method='POST',?string $token=nu
  preg_match('/\s(\d{3})\s/',$http_response_header[0]??'', $m); $status=(int)($m[1]??0);
  $data=json_decode($raw?:'{}',true); if(!is_array($data)) $data=[];
  if ($status<200||$status>=300) {
+  if(str_starts_with($path,'/rest/v1/rpc/business_staff_')){$safe=['Staff unavailable.','Check staff details.','Staff changed or unavailable. Reload before saving.','Assignments changed or unavailable. Reload before saving.','Choose up to 100 staff members.','Choose valid staff members.','Choose active staff from this business. Existing inactive assignments may be retained.'];if(in_array($data['message']??'', $safe,true))throw new RuntimeException($data['message']);}
   if(str_starts_with($path,'/rest/v1/rpc/business_customer_')){
    $safe=['Customers unavailable.','Customer unavailable.','Check customer details.','Check customer search.','Customer changed or unavailable. Reload before saving.','Record unavailable or already linked.','Quote changed or unavailable. Reload before saving.','Booking changed or unavailable. Reload before saving.','Business currency changed. Reload before saving.','Check quote details and expiry','Check booking details.','An accepted quote from this business is required.','This quote already has a booking. Open it from the booking list.','Choose a valid date and time.','This local time is skipped or repeated by daylight saving. Choose another time.'];
    if(in_array($data['message']??'', $safe,true))throw new RuntimeException($data['message']);

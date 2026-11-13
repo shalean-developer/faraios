@@ -3,7 +3,7 @@ from profiles import Profiles
 from journey import lit
 import json,unittest,sys,uuid,re
 class Quotes(Profiles):
- extra_migrations=['customer_enquiries','customer_quotes','bookings_scheduling','customer_profiles']
+ extra_migrations=['customer_enquiries','customer_quotes','bookings_scheduling','customer_profiles','staff_booking_assignment']
  def test_quotes(self):
   a,b=self.ids;bid=self.bids[0]
   self.sql("update quote_private.ingress set enabled=true where environment='live'")
