@@ -23,8 +23,8 @@ begin
  perform public.business_enquiry_create(b,'preview',n,'PREVIEW ROLLBACK Dashboard Test','dashboard@example.test','','Fictional rollback-only phone enquiry');
  perform public.business_enquiry_create(b,'preview',n,'PREVIEW ROLLBACK Dashboard Test','dashboard@example.test','','Fictional rollback-only phone enquiry');
  d=public.business_dashboard(b,'preview');if (d->>'new_enquiries')::bigint<>before_count+1 then raise exception 'FAIL enquiry idempotency';end if;
- begin perform public.business_enquiry_create(b,'live',gen_random_uuid(),'PROHIBITED LIVE TEST','dashboard@example.test','','This must never create a record');exception when raise_exception then denied=true;end;
- if not denied then raise exception 'FAIL live manual gate';end if;
+ begin perform public.business_enquiry_create(b,'invalid',gen_random_uuid(),'PROHIBITED ENV TEST','dashboard@example.test','','This must never create a record');exception when raise_exception then denied=true;end;
+ if not denied then raise exception 'FAIL invalid environment gate';end if;
 end$$;
 reset role;
 select set_config('request.jwt.claim.sub','ffffffff-ffff-ffff-ffff-ffffffffffff',true);
@@ -41,4 +41,4 @@ do $$declare denied boolean=false;begin
 end$$;
 reset role;
 rollback;
-select 'PASS: hosted dashboard snapshot, financial reconciliation, private preview intake/idempotency, live gate and owner/anonymous isolation; all fixtures rolled back' as result;
+select 'PASS: hosted dashboard snapshot, financial reconciliation, private preview intake/idempotency, environment gate and owner/anonymous isolation; all fixtures rolled back' as result;

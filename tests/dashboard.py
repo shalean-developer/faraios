@@ -5,7 +5,7 @@ from profiles import Profiles
 from journey import lit,ROOT
 import json,uuid,unittest,sys,re
 class Dashboard(Profiles):
- extra_migrations=['customer_enquiries','customer_quotes','bookings_scheduling','customer_profiles','staff_booking_assignment','invoices_payments','dashboard_overview']
+ extra_migrations=['customer_enquiries','customer_quotes','bookings_scheduling','customer_profiles','staff_booking_assignment','invoices_payments','dashboard_overview','dashboard_live_intake']
  def call(self,owner=None,env='live',bid=None,month='2026-11-01'):
   return json.loads(self.scope(owner or self.ids[0],f"select public.business_dashboard({lit(bid or self.bids[0])},{lit(env)},{lit(month)}::date)"))
  def doc(self,name='Fictional Client',currency='ZAR',price=10000):return dict(name=name,email='client@example.test',phone='',notes='',currency=currency,items=[dict(name='Clean',quantity=1,price=price)])
@@ -60,7 +60,7 @@ class Dashboard(Profiles):
   self.assertEqual(self.call(env='preview')['new_enquiries'],1)
   with self.assertRaises(RuntimeError):self.scope(b,query)
   with self.assertRaises(RuntimeError):self.scope(a,query.replace('deep clean','changed clean'))
-  with self.assertRaises(RuntimeError):self.scope(a,query.replace("'preview'","'live'"))
+  with self.assertRaises(RuntimeError):self.scope(a,query.replace("'preview'","'invalid'"))
   with self.assertRaises(RuntimeError):self.scope(a,'insert into public.business_enquiries(id) values(gen_random_uuid())')
   # DST 23-hour and 25-hour days, half-open overlap boundaries.
   self.sql("update public.businesses set time_zone='America/New_York' where id="+lit(bid))
@@ -74,9 +74,14 @@ class Dashboard(Profiles):
   html=self.get('/account/dashboard.php')[1];self.assertIn('265.00',html);self.assertIn('Fictional Alex',html);self.assertIn('enquiry-new.php',html);self.assertIn('As of',html)
   self.assertNotIn('265.00',self.get('/account/dashboard.php?month=garbage')[1]);self.assertIn('could not load',self.get('/account/dashboard.php?month=1999-01')[1])
   html=self.get('/account/enquiry-new.php')[1];eid=re.search('name="id" value="([^"]+)"',html)[1]
-  # Local base URL selects live; live manual intake must remain blocked until release approval.
-  denied=self.post('/account/enquiry-new.php',id=eid,name='Fictional HTTP Client',email='client@example.test',phone='',requirements='Please quote the fictional service')
-  self.assertIn('Could not save',denied)
+  # Local disposable live environment exercises the approved intake release.
+  self.sql("update enquiry_private.ingress set enabled=true where environment='live'")
+  saved=self.post('/account/enquiry-new.php',id=eid,name='Fictional HTTP Client',email='client@example.test',phone='',requirements='Please quote the fictional service')
+  self.assertIn('Enquiry created. No notification sent.',saved)
+  self.assertEqual(self.call()['new_enquiries'],1)
+  self.sql("update enquiry_private.ingress set enabled=false where environment='live'")
+  with self.assertRaises(RuntimeError):self.scope(a,query.replace("'preview'","'live'"))
+  self.sql("update enquiry_private.ingress set enabled=true where environment='live'")
   self.sql("update public.business_bookings set document=jsonb_set(document,'{name}',to_jsonb('<script>alert(1)</script>'::text)) where id="+lit(before))
   html=self.get('/account/dashboard.php')[1];self.assertIn('&lt;script&gt;',html);self.assertNotIn('<script>alert',html)
   self.post('/account/index.php?page=signin',email='b@example.test',password='test-long-password');self.assertNotIn('Fictional Alex',self.get('/account/dashboard.php')[1])
