@@ -39,3 +39,17 @@ Accounts 3; Shalean live public pages 0. Protected live bookings 8EF88DF7, 14616
 ## Release boundary and rollback
 
 Preview only. Main production remains PR #12. Dashboard RPC adds read capability under existing owner RLS; manual enquiry write is restricted to preview. Before production approval, review hosted evidence and enable live manual intake in a reviewed follow-up migration. Rollback application to PR #12, revoke the new public RPC EXECUTE permissions, and retain all records. No counter reset, record deletion or status cleanup is needed.
+
+## Hosted checkpoint
+
+Draft PR #13, application b624f97fdaf3bf6a206713f6580b9d8049cd820d deployed through connected Plesk only to /_accounts-preview. Main card remains PR #12. Shared fresh database received only new routines and their restricted grants; production application and business data were not changed. Manual enquiry intake rejects live environment.
+
+17 targeted native tests PASS: 5 accounts, 4 profile, 1 each services/enquiries/quotes/bookings/customers/staff/invoices/dashboard. Test harness simulates Auth/PostgREST transport, not database/RLS or PHP. No waitlist test cases or provider operations were invoked. PHP lint and diff whitespace check PASS.
+
+Connected hosted rollback-only probes PASS: existing preview counts and financial sums independently reconciled, preview enquiry create/replay increments New exactly once, live manual intake rejects, cross-business and anonymous calls reject. All probe fixtures rolled back. Script: tests/dashboard-hosted.sql.
+
+Authenticated hosted UI and mobile verification PENDING: opening dashboard redirected to preview sign-in because the owner session expired. Owner must sign in at the preview account page; no credentials were entered or account changes attempted. Do not mark preview acceptance or production readiness complete before those checks.
+
+Decision: CONDITIONAL PASS for isolated technical preview; authenticated UI/mobile review remains open. NO-GO for production deployment pending owner review and explicit deployment approval.
+
+Preservation readback after schema installation and rollback probes exactly matches every baseline hash above (including enquiries), with accounts still 3 and Shalean unpublished. No hosted test fixture was retained. Migration 20261113143833 recorded in schema_migrations; LF-normalized source MD5 cd17da9c1977edefa5b9056e9ce8795c matches committed file. The editor stores CRLF line endings; normalization removes CR only. No business records or existing schema objects were rewritten.
