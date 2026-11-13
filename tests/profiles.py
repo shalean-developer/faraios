@@ -8,7 +8,7 @@ class Profiles(Journey):
  def setUpClass(cls):
   super().setUpClass()
   cls.sql("create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;grant usage on schema auth to authenticated;grant execute on all functions in schema auth to authenticated;")
-  for name in ['account_business_setup','business_location_details','business_profiles']:cls.sql(next((ROOT/'supabase/migrations').glob('*'+name+'.sql')).read_text())
+  for name in ['account_business_setup','business_location_details','business_profiles','services_pricing']:cls.sql(next((ROOT/'supabase/migrations').glob('*'+name+'.sql')).read_text())
   cls.ids=[str(uuid.uuid4()),str(uuid.uuid4())];cls.bids=[str(uuid.uuid4()),str(uuid.uuid4())]
   for uid,bid in zip(cls.ids,cls.bids):cls.sql(f"insert into auth.users values('{uid}');insert into public.businesses(id,owner_id,name,business_type,country,time_zone) values('{bid}','{uid}','Fresh Test','cleaning','ZA','Africa/Johannesburg')")
   class Gateway(BaseHTTPRequestHandler):
@@ -21,11 +21,11 @@ class Profiles(Journey):
      elif url.path.startswith('/rest/v1/'):
       prefix="set role authenticated;set request.jwt.claim.sub="+lit(uid)+";set request.jwt.claims='{\"is_anonymous\":false}';" if uid in cls.ids else 'set role anon;'
       if '/rpc/' in url.path:
-       name=url.path.rsplit('/',1)[-1];assert name in ['business_profile_save','business_profile_publish','business_profile_unpublish'];parts=[]
+       name=url.path.rsplit('/',1)[-1];assert name in ['business_profile_save','business_profile_publish','business_profile_unpublish','business_services_save','business_services_publish'];parts=[]
        for k,v in body.items():parts.append(k+'=>'+(lit(json.dumps(v))+'::jsonb' if k=='p_draft' else lit(v)))
        data=json.loads(cls.sql(prefix+'select public.'+name+'('+','.join(parts)+')'))
       else:
-       table=url.path.rsplit('/',1)[-1];assert table in ['businesses','business_profiles','business_public_pages'];cols=q.get('select',['*'])[0];assert re.fullmatch(r'[a-z_,*]+',cols);conditions=[]
+       table=url.path.rsplit('/',1)[-1];assert table in ['businesses','business_profiles','business_public_pages','business_service_catalogues'];cols=q.get('select',['*'])[0];assert re.fullmatch(r'[a-z_,*]+',cols);conditions=[]
        for key,vs in q.items():
         if key in ['business_id','environment','slug']:conditions.append(key+'='+lit(vs[0].removeprefix('eq.')))
        query='select '+cols+' from public.'+table+(' where '+' and '.join(conditions) if conditions else '')
