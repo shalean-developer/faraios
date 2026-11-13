@@ -29,7 +29,7 @@ if (form) {
   const price = option?.dataset.price || 'Choose a service';
   const values = {
    service: option ? option.dataset.name : 'Not selected', price,
-   address: fields.address.value.trim() || 'Not entered',
+   address: [fields.address.value.trim(), fields.unit.value.trim()].filter(Boolean).join(', ') || 'Not entered',
    schedule: [fields.date.value, fields.time.value].filter(Boolean).join(' · ') || 'Not selected',
    requirements: fields.requirements.value.trim() || 'Not entered',
    name: fields.name.value.trim() || 'Not entered',
