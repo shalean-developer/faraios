@@ -118,3 +118,8 @@ PASS PHP lint for b/index.php and account/requests-core.php, JS syntax, whitespa
 ### Header hosted verification completed
 
 Browser reconnected; pulled e198c0c9 branch evidence and deployed accounts-preview only, Plesk completed/Done. Application candidate0401840. Hosted PASS: one progress navigation inside header, between logo and published business avatar/name; forward to Details updates header current step2, Back returns Service. Desktop screenshot inspected. Mobile390 full-page screenshot inspected: logo and avatar/name row1, all5 steps row2, compact summary and reachable Continue; document/header width390, no horizontal overflow. Temporary viewport reset; customer preview left open. No request submission or record changes. Header preview ready for owner review; production remains unchanged, no merge or live-intake activation.
+
+
+### Number-only circular progress
+
+Owner requested avatar-like numbered circles. CSS-only progress treatment plus asset cache bump b8ee91f deployed to accounts-preview only; Plesk completed/Done. Five circles measured40x40px with50% radius; labels visually hidden but retained for assistive technology. Current and completed colors retained. Hosted forward/Back active-step updates PASS; desktop no horizontal overflow. Desktop and mobile390 screenshots inspected; compact number-only header and identity fit. Viewport reset; customer preview left open. No submissions, record changes, production merge/deployment or gate activation.
