@@ -135,3 +135,8 @@ Owner requested labels below each number and one line hidden within circles. Pre
 Inspected requested Sweepsouth /accounts/launch in connected browser: icon/name service tiles and selection action. Adapted pattern with original FaraiOS line icons/branding, published catalogue only, native radio cards, configured Fixed/From/Quote price, duration and published description. Replaces dropdown, retains same service POST name/id and existing server validation. No reference assets or service catalogue imported.
 
 Preview candidate5a12a3d deployed accounts-preview only; Plesk Done. PHP/JS syntax and whitespace PASS; native PostgreSQL/PHP tests/requests.py PASS. Hosted PASS fixed/quote summary updates, From display, Continue to Details and Back preserving selected service. Desktop3-column and mobile390 2-column screenshots inspected, visible selected border/radio, summary and reachable Continue. No new submission or record changes. Viewport reset; customer preview left open. No production merge/deployment/intake activation.
+
+
+### Compact tiles matched to measured reference
+
+Owner removed all card pricing/duration/descriptions; cards now icon/name only, pricing remains in summary and review. Then measured Sweepsouth /accounts/launch actual service button128x128px, radius8px, parent gap8px. Applied matching fixed dimensions/gap/radius with original FaraiOS icons. Hosted candidate f5f7af88 deployed accounts-preview only; Plesk completed/Done. All3 FaraiOS cards measured128x128px/radius8px, grid gap8px. Desktop screenshot visually inspected. Prior compact selection check confirmed summary ZAR505 still updates. No records changed or submitted, no production release. Preview left open for review.
