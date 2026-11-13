@@ -99,3 +99,10 @@ PASS final mobile submission: request cdcd8275-548f-4c1d-98f4-ca7fd79a52e4, Fict
 Reopened both existing verification bookings read-only: 6F7FDD8E and F9B930E0 still Cancelled and retained. No existing record edits/deletions; no new bookings/invoices/payments/staff. Prior full protected-record fingerprints remain historical evidence from the earlier hosted checkpoint; they were not rerun for this presentation-only change.
 
 Customer customer-facing preview and signed-in owner detail left open; screenshots visually inspected. Owner preview review pending. PR17 stays draft. **Production NO-GO: no merge, production deployment or live-intake activation.**
+
+
+### Desktop width correction
+
+Owner reported narrow desktop layout. Preview candidate d987a3343db80ad1699d7325655b7c13faf13fd0 deployed only through accounts-preview. Booking-only canvas expanded from inherited824px to1280px; summary fixed300px, form uses remainder, reduced card padding32px, desktop action sized to content. Responsive stacked breakpoint900px shared by CSS/JS. Removed inherited details top border/spacing inside summary. Asset cache version bumped.
+
+Hosted PASS: at1280 viewport, form815px and summary300px, no horizontal overflow. Fresh desktop full-page screenshot inspected: wider form, single-row progress and right summary; mobile390 screenshot inspected: stacked compact summary, progress fits, Continue reachable. Temporary viewport reset; customer preview left open. Presentation-only change; no records created/edited/deleted, no production merge/deployment/intake activation. Prior lifecycle/security tests retained; no additional database test required for width change.
