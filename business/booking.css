@@ -5,3 +5,12 @@
 
 /* Booking-only canvas: keep the form primary on wide screens. */
 .public-main{max-width:1280px}#booking.public-card{padding:32px}.request-layout{grid-template-columns:minmax(0,1fr) 300px;gap:40px}.request-summary details{margin-top:0;border-top:0;padding-top:0}@media(max-width:900px){#booking.public-card{padding:24px}.request-layout{gap:20px}}@media(min-width:901px){.booking-controls .button{width:auto;min-width:180px;margin-top:0}.booking-controls button{margin-top:0}.booking-progress li{font-size:.85rem;padding:10px 4px}}
+
+/* Public booking header: brand, progress, published business identity. */
+.booking-header{height:auto;min-height:96px;display:grid;grid-template-columns:156px minmax(0,560px) minmax(120px,220px);justify-content:space-between;gap:24px;padding:16px max(22px,calc((100vw - 1236px)/2))}
+.booking-header .booking-progress{min-width:0}.booking-header .booking-progress ol{margin:0;gap:6px}.booking-header .booking-progress li{padding:7px 4px;font-size:.8rem}
+.booking-identity{display:flex;align-items:center;justify-content:flex-end;gap:10px;min-width:0}
+.booking-header .booking-avatar{width:40px;height:40px;flex:0 0 40px;border-radius:50%;object-fit:contain;background:#e6f3f2;color:#087c79;display:grid;place-items:center;font-weight:700;font-size:18px}
+.booking-identity-name{font-size:13px;font-weight:650;overflow-wrap:anywhere;line-height:1.4}
+@media(max-width:900px){.booking-header{grid-template-columns:156px minmax(0,1fr);gap:14px;padding:14px 20px}.booking-header .booking-progress{grid-row:2;grid-column:1/-1}.booking-identity{grid-row:1;grid-column:2}.booking-header .booking-progress li{font-size:.75rem}.booking-identity-name{font-size:12px}}
+@media(max-width:400px){.booking-header{grid-template-columns:132px minmax(0,1fr);gap:12px;padding:12px 16px}.booking-header>a img{width:132px;height:auto}.booking-header .booking-avatar{width:32px;height:32px;flex-basis:32px}.booking-identity{gap:7px}}
