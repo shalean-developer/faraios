@@ -150,3 +150,8 @@ Owner requested removal of Request a booking title, introductory pending-confirm
 ### Summary hidden during Service only
 
 Owner requested summary hidden on service selection. Candidate5c20217 deployed accounts-preview only (Plesk Done). Existing show(index) sets summary.hidden only when index0 and restores on subsequent steps; service layout uses full width. JS syntax PASS. Initial hosted Service complementary count0 confirmed summary hidden; browser then returned Chat API failure and stalled on follow-up before Back/Continue screenshot verification. Full navigation verification remains pending if connection cannot recover. No requests/records modified; production unchanged.
+
+
+### Direct service-card progression — 14 November 2026
+
+Owner requested hiding Service Continue and business name. Application2f9b282 deployed accounts-preview only; Plesk completed/Done. Service-card click validates and advances to Details; repeated click on already-selected card after Back also advances. Continue remains on later steps. Header published business name hidden; avatar retained. Hosted PASS no Continue/name on Service; radio click and label/name click each advance to Details; Details shows summary/current step2 and Back/Continue; Back returns Service with saved selection and hidden summary/Continue. This completes previously pending summary Back/Continue verification. Desktop screenshot visually inspected. No submission/records modified, no production release.
