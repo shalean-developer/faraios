@@ -66,3 +66,22 @@ Owner review still needs recovery loss/time objectives, the named incident
 responder/acknowledgement process, independent host-down monitoring and production
 release authorization. Supabase remains Free. Do not enable booking intake or
 republish a business to complete a recovery check.
+
+## Read-only hosted settings inventory, 14 November 2026
+
+Dashboard checked without saving changes: organization Free, faraios-new;
+Site URL https://www.faraios.com; exactly two redirect URLs:
+https://www.faraios.com/account/index.php?page=confirm and
+https://www.faraios.com/_accounts-preview/account/index.php?page=confirm.
+Signup enabled, email confirmation enabled, anonymous sign-in disabled, manual
+linking disabled; Email provider enabled and all displayed external providers
+and custom providers disabled/absent. Secure email change enabled; secure password
+change and requiring current password disabled at observation. These are an
+inventory, not a proposal to change policy. Email OTP expiry 3600 seconds, length
+8, magic links/OTP enabled. The password-minimum field was redacted by the browser;
+its current value was not recovered or inferred from older release notes.
+
+Custom SMTP enabled, host smtp.resend.com, port 465, displayed sender name FaraiOS.
+Credential/sender-address fields remained masked/redacted and were not revealed.
+No SMTP save, provider change, key rotation, password reset or test email occurred.
+Read-only database check: 82 Auth migrations, maximum version 20260831180000.

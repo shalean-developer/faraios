@@ -83,8 +83,9 @@ def check(directory):
    if sql("select has_table_privilege('authenticated','public.business_invoice_payments','INSERT,UPDATE,DELETE')")!='f':raise RestoreError('Restored payment ledger permits direct writes')
    auth=None
    if os.environ.get('RESTORE_AUTH_REHEARSAL')=='true':
-    from auth_recovery import rehearse
-    auth=rehearse(name,env,sql,check_business=True)
+    from auth_recovery import rehearse,AuthRecoveryError
+    try:auth=rehearse(name,env,sql,check_business=True)
+    except AuthRecoveryError as error:raise RestoreError(str(error)) from None
    report=dict(status='restore_verified',project=manifest['project'],backup_created_utc=manifest['created_utc'],source_commit=manifest['source_commit'],table_count=len(actual),snapshot_fingerprints_match=expected is not None,owner_scopes_checked=len(owners)+1,network='none during snapshot verification; internal-only during optional Auth test' if auth else 'none',published_ports=0,production_credentials_forwarded=False,auth_rehearsal=auth,elapsed_seconds=round(time.monotonic()-started,2),limitations=['Standalone PostgreSQL rehearsal; hosted Supabase configuration and Storage bytes not exercised','No recovery-time service guarantee established'])
   finally:
    # Removes only the generated disposable container; production is never a target.

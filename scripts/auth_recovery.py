@@ -100,7 +100,8 @@ def rehearse(db,env,sql,check_business=False):
   # A new signing secret makes prior access tokens invalid. Password hashes remain usable.
   print('Auth rehearsal: isolated database restored',file=__import__('sys').stderr)
   jwt=secrets.token_hex(32);start_auth(jwt);ready('http://localhost:9999/health')
-  if http('http://localhost:9999/user',token=first['access_token'])[0]!=401:raise AuthRecoveryError('Prior signing-key token remained valid')
+  code,rejected=http('http://localhost:9999/user',token=first['access_token'])
+  if code not in (401,403) or not isinstance(rejected,dict) or rejected.get('error_code')!='bad_jwt':raise AuthRecoveryError('Prior signing-key rejection not verified')
   tokens=[]
   for user in users:
    signed=login({k:user[k] for k in ['email','password']})
