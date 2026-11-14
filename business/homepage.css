@@ -69,3 +69,5 @@ html{scroll-padding-top:150px}.homepage-page{background:#fff;color:#193d38}.home
 .business-home:not(.business-standalone) .home-service-bottom{margin-top:auto;margin-bottom:0;padding-top:12px}
 .home-service-pricing-note{margin:20px 0}
 .home-service-card[id]{scroll-margin-top:160px}
+
+.home-service-card .service-photo{display:block;width:100%;height:auto;aspect-ratio:8/5;object-fit:cover;border-radius:8px;margin:0 0 20px}
