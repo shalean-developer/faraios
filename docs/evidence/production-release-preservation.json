@@ -1,0 +1,203 @@
+{
+  "date": "2026-11-14",
+  "project": "rxelmugnucfajrqmphhe",
+  "runtime": "e2855d39d666585e60bbc2700e06d01180b84437",
+  "tested_merge": "81445f525d82564b45635de5aff5f4f219d78378",
+  "before": [
+    {
+      "relation": "business_booking_requests",
+      "rows": 5,
+      "fingerprint": "223234d0b96d714643edd9b3e6a9098d"
+    },
+    {
+      "relation": "business_booking_staff",
+      "rows": 7,
+      "fingerprint": "2d401b3f2cab397616a23cbde8211f24"
+    },
+    {
+      "relation": "business_bookings",
+      "rows": 13,
+      "fingerprint": "636569c523b3f93ca6626adfd6399f0a"
+    },
+    {
+      "relation": "business_customers",
+      "rows": 2,
+      "fingerprint": "ed484f2007c71844dbdace1f667ecafb"
+    },
+    {
+      "relation": "business_enquiries",
+      "rows": 12,
+      "fingerprint": "48bec3ee5d107d812c2b816252c95f77"
+    },
+    {
+      "relation": "business_enquiry_activity",
+      "rows": 2,
+      "fingerprint": "83749509bc7acba1f6853d7fc6357320"
+    },
+    {
+      "relation": "business_invoice_events",
+      "rows": 31,
+      "fingerprint": "d49699213f6bb5d0b92ea9d59e835ade"
+    },
+    {
+      "relation": "business_invoice_payments",
+      "rows": 11,
+      "fingerprint": "871934b3fddbfeceb9252d438c5dd80e"
+    },
+    {
+      "relation": "business_invoices",
+      "rows": 7,
+      "fingerprint": "0d99c6c4e8323a3f13eb932e0a666151"
+    },
+    {
+      "relation": "business_profiles",
+      "rows": 5,
+      "fingerprint": "213a0048683a4910ee509d1755e598c3"
+    },
+    {
+      "relation": "business_public_pages",
+      "rows": 3,
+      "fingerprint": "592e0fda56bb5d28eba41bf1db5b35e4"
+    },
+    {
+      "relation": "business_quotes",
+      "rows": 9,
+      "fingerprint": "37876e29b5c4e5329e92cdd2d0ec12b0"
+    },
+    {
+      "relation": "business_service_catalogues",
+      "rows": 5,
+      "fingerprint": "04047d9e7aa06de15088dc954f1592ab"
+    },
+    {
+      "relation": "business_service_images",
+      "rows": 7,
+      "fingerprint": "27cefcfc94bf8d34acb82a6834533bcc"
+    },
+    {
+      "relation": "business_staff",
+      "rows": 5,
+      "fingerprint": "b968a6bb31cb0a1f98d1654d53bfb1dd"
+    },
+    {
+      "relation": "businesses",
+      "rows": 4,
+      "fingerprint": "172741a55c098770c0b30e0c5ee30a85"
+    },
+    {
+      "relation": "waitlist_subscribers",
+      "rows": 2,
+      "fingerprint": "b6fd9de9445116b06f63a6e608a51a70"
+    }
+  ],
+  "after_original_rows": [
+    {
+      "relation": "business_booking_requests",
+      "rows": 5,
+      "fingerprint": "223234d0b96d714643edd9b3e6a9098d"
+    },
+    {
+      "relation": "business_booking_staff",
+      "rows": 7,
+      "fingerprint": "2d401b3f2cab397616a23cbde8211f24"
+    },
+    {
+      "relation": "business_bookings",
+      "rows": 13,
+      "fingerprint": "636569c523b3f93ca6626adfd6399f0a"
+    },
+    {
+      "relation": "business_customers",
+      "rows": 2,
+      "fingerprint": "ed484f2007c71844dbdace1f667ecafb"
+    },
+    {
+      "relation": "business_enquiries",
+      "rows": 12,
+      "fingerprint": "48bec3ee5d107d812c2b816252c95f77"
+    },
+    {
+      "relation": "business_enquiry_activity",
+      "rows": 2,
+      "fingerprint": "83749509bc7acba1f6853d7fc6357320"
+    },
+    {
+      "relation": "business_invoice_events",
+      "rows": 31,
+      "fingerprint": "d49699213f6bb5d0b92ea9d59e835ade"
+    },
+    {
+      "relation": "business_invoice_payments",
+      "rows": 11,
+      "fingerprint": "871934b3fddbfeceb9252d438c5dd80e"
+    },
+    {
+      "relation": "business_invoices",
+      "rows": 7,
+      "fingerprint": "0d99c6c4e8323a3f13eb932e0a666151"
+    },
+    {
+      "relation": "business_profiles",
+      "rows": 5,
+      "fingerprint": "213a0048683a4910ee509d1755e598c3"
+    },
+    {
+      "relation": "business_public_pages",
+      "rows": 3,
+      "fingerprint": "592e0fda56bb5d28eba41bf1db5b35e4"
+    },
+    {
+      "relation": "business_quotes",
+      "rows": 9,
+      "fingerprint": "37876e29b5c4e5329e92cdd2d0ec12b0"
+    },
+    {
+      "relation": "business_service_catalogues",
+      "rows": 5,
+      "fingerprint": "04047d9e7aa06de15088dc954f1592ab"
+    },
+    {
+      "relation": "business_service_images",
+      "rows": 7,
+      "fingerprint": "27cefcfc94bf8d34acb82a6834533bcc"
+    },
+    {
+      "relation": "business_staff",
+      "rows": 5,
+      "fingerprint": "b968a6bb31cb0a1f98d1654d53bfb1dd"
+    },
+    {
+      "relation": "businesses",
+      "rows": 4,
+      "fingerprint": "172741a55c098770c0b30e0c5ee30a85"
+    },
+    {
+      "relation": "waitlist_subscribers",
+      "rows": 2,
+      "fingerprint": "b6fd9de9445116b06f63a6e608a51a70"
+    }
+  ],
+  "match": true,
+  "excluded_additions": [
+    {
+      "table": "business_quotes",
+      "id": "93c622d2-842d-e78c-881d-a3d2f4c4035a",
+      "reason": "new fictional release review quote, Sent, explicit free confirmation, 4000-character requirements retained"
+    }
+  ],
+  "hosted_rollback_sql": "tests/foundation-hosted.sql PASS; no retained fixtures",
+  "gates": {
+    "booking_requests": {
+      "live": false,
+      "preview": true
+    },
+    "enquiry_mail": {
+      "live": true,
+      "preview": false
+    },
+    "supabase_plan": "free"
+  },
+  "production_activation_applied": false,
+  "production_application_deployed": false,
+  "shalean_republished": false
+}

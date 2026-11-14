@@ -1,0 +1,23 @@
+"""Reproducible, offline application release gate. No hosted URLs, credentials or deploys."""
+import json,os,subprocess,sys,time,re,platform
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'test-results/release';OUT.mkdir(parents=True,exist_ok=True)
+suites=['accounts','profiles','services','customers','staff','enquiries','quotes','bookings','invoices','dashboard','requests','rooms','area-pages','website-release','customer-access','business-header','enquiry-workflow','foundation','production-activation','full-journey','enquiry-mail','enquiry-notifications','observability','ops-alerts','recovery']
+def command(args):
+ p=subprocess.run(args,cwd=ROOT,capture_output=True,text=True);return p.stdout.strip() or p.stderr.strip()
+env=dict(os.environ,RECOVERY_REPORT=str(OUT/'recovery.json'))
+report={'source':command(['git','rev-parse','HEAD']),'worktree_dirty':bool(command(['git','status','--porcelain'])),'python':platform.python_version(),'php':command([os.environ.get('PHP_BIN','php'),'-v']).splitlines()[0],'postgres':command([str(Path(os.environ.get('PG_BIN','/usr/lib/postgresql/17/bin'))/'postgres'),'--version']),'scope':'disposable native database + PHP HTTP; simulated Auth/REST; no hosted writes or provider sends','suites':[]}
+for name in suites:
+ started=time.monotonic()
+ try:
+  args=[os.environ.get('PHP_BIN','php'),str(ROOT/'tests/enquiry-mail.php')] if name=='enquiry-mail' else [sys.executable,str(ROOT/'tests'/f'{name}.py')]
+  p=subprocess.run(args,cwd=ROOT,env=env,capture_output=True,text=True,timeout=120)
+  output=p.stdout+p.stderr;code=p.returncode
+ except subprocess.TimeoutExpired:output='Suite timeout';code=124
+ (OUT/f'{name}.log').write_text(output)
+ count=re.search(r'Ran (\d+) tests? in',output)
+ report['suites'].append(dict(name=name,passed=code==0,tests=int(count[1]) if count else 0,seconds=round(time.monotonic()-started,3)))
+ print(('PASS ' if code==0 else 'FAIL ')+name,flush=True)
+ if code:print(output[-2500:],flush=True)
+report['passed']=all(x['passed'] for x in report['suites']);report['tests']=sum(x['tests'] for x in report['suites']);(OUT/'summary.json').write_text(json.dumps(report,indent=2)+'\n')
+print(json.dumps({'passed':report['passed'],'tests':report['tests'],'report':'test-results/release/summary.json'}));raise SystemExit(not report['passed'])

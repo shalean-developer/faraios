@@ -20,31 +20,20 @@ class BusinessHeader(SEO):
   self.private_config.write_text(routed)
   self.assertEqual(self.get(a)[0],200)
   self.private_config.write_text(original_config)
-  # Owner session alone must never appear in a customer header.
+  # Preview customer help never reads or replaces the owner session.
   self.post('/preview/account/index.php?page=signin',email='a@example.test',password='test-long-password')
   self.assertFalse(json.loads(self.get(a+'&mode=header')[1])['authenticated'])
+  html=self.get(a+'&return=services')[1]
+  self.assertIn('Customer help',html);self.assertNotIn('type="password"',html)
+  self.assertIn('href="'+self.url+'/preview/b/header-one/services"',html)
   self.assertIn('logo-size-80',self.get('/preview/b/header-one')[1]);self.assertIn('<span>SEO Example</span>',self.get('/preview/b/header-one')[1])
-  html=self.post(a+'&return=services',email='a@example.test',password='test-long-password');self.assertNotIn('Customer sign in</h1>',html)
-  self.assertTrue(json.loads(self.get(a+'&mode=header')[1])['authenticated'])
   self.assertFalse(json.loads(self.get(b+'&mode=header')[1])['authenticated'])
   self.assertTrue(json.loads(self.get('/preview/account/header-session.php')[1])['authenticated'])
-  self.assertIn('booking history and profile management are not available',self.get(a)[1])
   self.assertIn('href="'+self.url+'/preview/b/header-one"',self.get(a+'&return=https://evil.test')[1])
-  # Header is GET only, CSRF rejects unsigned logout, customer remains signed in.
-  def raw_post(path,data):
-   try:r=self.client.open(urllib.request.Request(self.url+path,data=urllib.parse.urlencode(data).encode()))
-   except urllib.error.HTTPError as e:r=e
-   return r.code,r.read().decode()
-  self.assertEqual(raw_post(a+'&mode=header',{})[0],405)
-  self.assertIn('form has expired',raw_post(a,{'action':'logout','csrf':'wrong'})[1])
-  self.assertTrue(json.loads(self.get(a+'&mode=header')[1])['authenticated'])
-  self.post(a+'&return=contact',action='logout')
-  self.assertFalse(json.loads(self.get(a+'&mode=header')[1])['authenticated'])
-  self.assertTrue(json.loads(self.get('/preview/account/header-session.php')[1])['authenticated'])
   self.assertEqual(self.get('/preview/account/customer.php?slug=unknown')[0],404)
   self.assertEqual(self.get('/preview/account/customer.php?slug=../bad')[0],404)
   self.private_config.write_text(self.live_config)
-  self.assertEqual(self.get('/account/customer.php?slug=header-one')[0],404) # preview slug never resolves live
+  self.assertEqual(self.get('/account/customer.php?slug=header-one')[0],404)
   self.private_config.write_text(self.preview_config)
   self.assertEqual(before,self.sql("select md5(string_agg(row_to_json(t)::text,'' order by business_id,environment)) from public.business_profiles t"))
   if os.environ.get('BROWSER_BIN'):

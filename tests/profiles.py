@@ -22,13 +22,16 @@ class Profiles(Journey):
      elif url.path.startswith('/rest/v1/'):
       prefix="set role authenticated;set request.jwt.claim.sub="+lit(uid)+";set request.jwt.claims='{\"is_anonymous\":false}';" if uid in cls.ids else 'set role anon;'
       if '/rpc/' in url.path:
-       name=url.path.rsplit('/',1)[-1];assert name in ['business_services_save_image','business_service_image','business_booking_available','business_profile_save','business_profile_publish','business_profile_unpublish','business_services_save','business_services_publish','business_enquiry_submit','business_enquiry_status','business_quote_write','business_quote_customer','business_booking_write','business_customer_search','business_customer_write','business_customer_link','business_customer_quote_create','business_customer_booking_create','business_staff_write','business_staff_assign','business_invoice_write','business_invoice_payment','business_invoice_customer','business_dashboard','business_enquiry_create','business_booking_request_submit','business_booking_request_action'];parts=[]
+       name=url.path.rsplit('/',1)[-1];cls.rpc_requests.append((name,body));assert name in ['business_services_save_image','business_service_image','business_booking_available','business_profile_save','business_profile_publish','business_profile_unpublish','business_services_save','business_services_publish','business_enquiry_submit','business_enquiry_status','business_enquiry_workflow_save','business_enquiry_workspace','business_quote_send','business_quote_write','business_quote_customer','business_booking_write','business_customer_search','business_customer_write','business_customer_link','business_customer_quote_create','business_customer_booking_create','business_staff_write','business_staff_assign','business_invoice_write','business_invoice_payment','business_invoice_customer','business_dashboard','business_enquiry_create','business_booking_request_submit','business_booking_request_action'];parts=[]
        for k,v in body.items():parts.append(k+'=>'+(lit(json.dumps(v))+'::jsonb' if k in ['p_image','p_draft','p_document','p_details','p_staff','p_service_snapshot','p_selections'] else lit(v)))
        data=json.loads(cls.sql(prefix+'select public.'+name+'('+','.join(parts)+')'))
       else:
        table=url.path.rsplit('/',1)[-1];assert table in ['business_service_images','businesses','business_profiles','business_public_pages','business_service_catalogues','business_enquiries','business_quotes','business_quote_list','business_bookings','business_customers','business_staff','business_booking_schedule','business_invoice_list','business_invoice_payments','business_booking_requests'];cols=q.get('select',['*'])[0];assert re.fullmatch(r'[a-z_,*]+',cols);conditions=[]
        for key,vs in q.items():
-        if key in ['business_id','environment','slug','id','status','effective_status','quote_id','customer_id','booking_id','invoice_id']:conditions.append(key+('>' if key=='slug' and vs[0].startswith('gt.') else '=')+lit(vs[0][3:]))
+        if key in ['business_id','environment','slug','id','status','effective_status','quote_id','enquiry_id','customer_id','booking_id','invoice_id','state','replaces_id']:
+         op,value=vs[0].split('.',1);assert op in ['eq','gt','neq'];conditions.append(key+{'eq':'=','gt':'>','neq':'<>'}[op]+lit(value))
+        if key=='follow_up_on':
+         op,value=vs[0].split('.',1);assert op=='lte';conditions.append('follow_up_on<='+lit(value)+'::date')
         if key=='staff_ids':
          assert vs[0].startswith('cs.');conditions.append('staff_ids @> '+lit(vs[0][3:])+'::uuid[]')
         if key=='starts_at':
@@ -45,7 +48,7 @@ class Profiles(Journey):
     except Exception as e:status=400;data={'code':'23505' if 'unique constraint' in str(e) else 'P0001','message':str(e).split('ERROR:  ')[-1].split('\n')[0]}
     raw=json.dumps(data).encode();self.send_response(status);self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(raw)
    do_POST=call;do_GET=call
-  cls.gw=ThreadingHTTPServer(('127.0.0.1',0),Gateway);threading.Thread(target=cls.gw.serve_forever,daemon=True).start()
+  cls.rpc_requests=[];cls.gw=ThreadingHTTPServer(('127.0.0.1',0),Gateway);threading.Thread(target=cls.gw.serve_forever,daemon=True).start()
   cls.url='http://127.0.0.1:'+str(port());private=cls.private/'profiles';private.mkdir();(private/'config.php').write_text("<?php return ['enabled'=>true,'environment'=>'test','base_url'=>'"+cls.url+"','supabase_url'=>'http://127.0.0.1:"+str(cls.gw.server_port)+"','publishable_key'=>'test'];")
   router=private/'router.php';router.write_text("<?php $path=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);if(preg_match('~^/b/([a-z0-9-]+)$~',$path,$m)){$_GET['slug']=$m[1];require "+repr(str(ROOT/'b/index.php'))+";return true;}return false;")
   cls.proc=subprocess.Popen([PHP,'-d','session.save_path='+str(private),'-S',cls.url.removeprefix('http://'),'-t',str(ROOT),str(router)],env=dict(cls.env,FARAIOS_ACCOUNT_DIR=str(private)),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)

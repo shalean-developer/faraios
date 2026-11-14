@@ -5,7 +5,7 @@
  if(!header)return;
  const measure=()=>document.documentElement.style.setProperty('--booking-header-height',header.getBoundingClientRect().height+'px');
  measure();new ResizeObserver(measure).observe(header);
- const identity=header.querySelector('[data-header-session]');
+ const identity=header.querySelector('[data-header-session], [data-customer-help]');
  if(!identity)return;
  identity.addEventListener('click',event=>{
   const link=event.target.closest('a');if(!link)return;
@@ -14,6 +14,7 @@
   const step=current.searchParams.get('step');
   target.searchParams.set('return',['service','details','schedule','contact','review'].includes(step)?'booking-'+step:'booking');link.href=target.href;
  });
+ if(!identity.dataset.headerSession)return;
  const endpoint=new URL(identity.dataset.headerSession,location.href);
  if(endpoint.origin!==location.origin)return;
  fetch(endpoint,{credentials:'same-origin',cache:'no-store',redirect:'error',headers:{Accept:'application/json'}})

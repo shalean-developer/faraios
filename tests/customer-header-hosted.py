@@ -9,14 +9,14 @@ def get(url):
  return r.code,r.headers,r.read()
 for suffix in ['', '&return=services','&return=booking-details','&return=https://example.invalid']:
  status,h,raw=get(preview+'/account/customer.php?slug=faraios-demo-cleaning'+suffix)
- assert status==200 and b'Customer sign in' in raw and b'Bright &amp; Co Cleaning' in raw and b'noindex' in h['X-Robots-Tag'].encode() and 'no-store' in h['Cache-Control']
- assert b'/account/index.php' not in raw
+ assert status==200 and b'Customer help' in raw and b'Bright &amp; Co Cleaning' in raw and b'noindex' in h['X-Robots-Tag'].encode() and 'no-store' in h['Cache-Control']
+ assert b'/account/index.php' not in raw and b'type="password"' not in raw and h['Referrer-Policy']=='no-referrer'
  report.append({'customerRoute':suffix,'status':status,'privateNoStore':True})
 status,h,raw=get(preview+'/account/customer.php?slug=faraios-demo-cleaning&mode=header');assert status==200 and json.loads(raw)=={'authenticated':False};report.append({'guestHeader':True})
-for url in [preview+'/account/customer.php?slug=unknown',preview+'/account/customer.php?slug=shalean-cleaning-services',base+'/account/customer.php?slug=shalean-cleaning-services']:
+for url in [preview+'/account/customer.php?slug=unknown',preview+'/account/customer.php?slug=shalean-cleaning-services']:
  status,_,_=get(url);assert status==404;report.append({'url':url,'status':status})
 for name in ['ui/booking-header.js','business/booking.css']:
  status,_,raw=get(preview+'/'+name);assert status==200 and raw==(root/name).read_bytes()
- status,_,raw=get(base+'/'+name);assert status==200 and raw==subprocess.check_output(['git','show','9e4c42d:'+name],cwd=root)
+ status,_,raw=get(base+'/'+name);assert status==200 and raw==subprocess.check_output(['git','show','cc8f2fc:'+name],cwd=root)
  report.append({'asset':name,'previewMatchesCandidate':True,'productionMatchesBase':True})
 (root/'docs/evidence/customer-header-hosted.json').write_text(json.dumps(report,indent=2)+'\n');print('PASS',len(report),'GET-only customer route and preview/production asset checks')

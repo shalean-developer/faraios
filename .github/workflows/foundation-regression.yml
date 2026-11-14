@@ -1,0 +1,28 @@
+name: Foundation regression
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  application:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native test runtimes
+        run: sudo apt-get update && sudo apt-get install -y postgresql-16 php-cli php-curl php-sqlite3
+      - name: PHP syntax
+        run: find account business b invoice quote notifications scripts -name '*.php' -print0 | xargs -0 -n 1 php -l
+      - name: Native journeys, isolation, outage recovery and restore rehearsal
+        env:
+          PG_BIN: /usr/lib/postgresql/16/bin
+        run: python3 tests/release-checks.py
+      - name: Keep release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: foundation-regression-evidence
+          path: test-results/release/
+          retention-days: 14

@@ -74,3 +74,5 @@
 .service-photo{display:block;width:100%;max-width:400px;height:auto;aspect-ratio:8/5;object-fit:cover;border-radius:8px;margin:12px 0 20px}
 
 .benefit-editor{border:0;padding:0;margin:24px 0;min-width:0}.benefit-editor legend{font-weight:700}.benefit-editor-card{border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin:12px 0}.benefit-editor-card summary{cursor:pointer;font-weight:600}
+
+.enquiry-workspace{margin-top:28px;border-top:1px solid #e2e8f0;padding-top:18px}.enquiry-history{margin-top:24px}.enquiry-workspace .service-card{overflow-wrap:anywhere}.enquiry-detail{min-width:0}.enquiry-history nav{display:flex;gap:20px;flex-wrap:wrap}
