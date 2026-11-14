@@ -13,6 +13,6 @@ RewriteRule (?:^|/)(?:\.[^/]+|[^/]+\.(?:sqlite|sqlite3|db|jsonl|csv|log|bak|md|i
 
 <IfModule mod_headers.c>
 # Preview assets and static landing pages also remain excluded from indexing.
-SetEnvIf Request_URI "^/_accounts-preview(?:/|$)" faraios_preview
+SetEnvIf Request_URI "^/_(?:accounts|waitlist)-preview(?:/|$)" faraios_preview
 Header always set X-Robots-Tag "noindex, nofollow" env=faraios_preview
 </IfModule>

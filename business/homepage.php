@@ -52,7 +52,7 @@ function homepage_render(array $p,array $catalogue,string $zone,string $url,stri
 <?php if(array_filter($p['hours']??[])):?><details><summary>Opening hours</summary><p><?=esc(str_replace('_',' ',$zone))?></p><dl class="hours-list"><?php foreach(profile_days() as $i=>$day):?><div><dt><?=$day?></dt><dd><?=!empty($p['hours'][$i])?esc(implode(' – ',$p['hours'][$i])):'Closed'?></dd></div><?php endforeach;?></dl></details><?php endif;?></div>
 <div class="home-enquiry-slot"><?php if($enquire&&isset($GLOBALS['homepage_enquiry'])):call_user_func($GLOBALS['homepage_enquiry']);else:?><p>Enquiries are available on the published business page.</p><?php endif;?></div></section>
 <?php endif;?>
-<footer class="home-footer"><div><strong><?=esc($p['name'])?></strong><p><?=date('Y')?> · <a href="<?=esc(cfg()['base_url'].'/privacy.html')?>">Privacy</a></p></div><a href="#homepage">Back to top ↑</a><span>Powered by FaraiOS</span></footer>
+<footer class="home-footer"><div><strong><?=esc($p['name'])?></strong><p><?=date('Y')?> · <a href="<?=esc(cfg()['base_url'].'/privacy.html#overview')?>">Privacy</a></p></div><a href="#homepage">Back to top ↑</a><span>Powered by FaraiOS</span></footer>
 </div>
 <?php }
 

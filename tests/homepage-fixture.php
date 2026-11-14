@@ -12,7 +12,7 @@ $d=['currency'=>'ZAR','items'=>[['id'=>str_repeat('a',32),'name'=>'Standard clea
 foreach($d['items'] as $i=>&$service)$service['id']=str_pad((string)$i,32,'0',STR_PAD_LEFT);unset($service);
 $page=$argv[2]??'';
 if(($argv[1]??'')==='custom'){foreach(business_page_defaults() as $key=>$default)$p['pages'][$key]=['title'=>'Custom '.$default['label'],'introduction'=>'Owner supplied introduction for '.$key,'body'=>'Owner supplied details <script>unsafe</script>'];$p['pages']['how-it-works']['steps']=[['Custom step one','Owner step one'],['Custom step two','Owner step two'],['Custom step three','Owner step three']];}
-$GLOBALS['homepage_enquiry']=function()use($d,$page){enquiry_form('example',$d,'',false,true,$page);};
+$GLOBALS['homepage_enquiry']=function()use($d,$page,$p){enquiry_form('example',$d,'',false,true,$page,$p['name']);};
 echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">';business_seo_head($p,$page,'https://example.test','example',false);echo '</head><body class="homepage-page">';homepage_header($p,'https://example.test/b/example','https://example.test','?logo=1',$page);echo '<main class="home-main">';homepage_render($p,$d,'Africa/Johannesburg','https://example.test/b/example','/hero.png',true,$page);echo '</main>';
 
 echo '</body></html>';
