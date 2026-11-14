@@ -74,6 +74,10 @@ def rehearse(db,env,sql,check_business=False):
    if last_code==200:return
    time.sleep(1)
   logs=subprocess.run(['docker','logs',target],env=env,capture_output=True,timeout=15)
+  if target==rest:
+   pglogs=subprocess.run(['docker','logs',db],env=env,capture_output=True,timeout=15)
+   for line in (pglogs.stdout+pglogs.stderr).decode(errors='replace').splitlines():
+    if 'FATAL:' in line and any(x in line for x in ['could not access file','could not load library','invalid value for parameter','unrecognized configuration parameter']):print(line[-600:],file=__import__('sys').stderr)
   detail=(logs.stdout+logs.stderr).decode(errors='replace');labels=[]
   for pattern,label in [('SSL is not enabled','isolated database does not support TLS'),('uuid_generate_v4','UUID extension dependency'),('permission denied','migration permission'),('does not exist','missing migration dependency'),('failed to parse','configuration parse failure'),('migration','migration failure'),('connection refused','database connection refused')]:
    if pattern in detail:labels.append(label)
