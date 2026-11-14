@@ -11,6 +11,8 @@ if(($argv[1]??'')==='custom'&&getenv('FARAIOS_TEST_HERO_FILE'))$p['homepage']['i
 $d=['currency'=>'ZAR','items'=>[['id'=>str_repeat('a',32),'name'=>'Standard cleaning','description'=>'Routine cleaning','mode'=>'fixed','amount'=>50500,'duration'=>120,'visible'=>true,'archived'=>false],['name'=>'Hidden service','visible'=>false],['name'=>'Archived service','visible'=>true,'archived'=>true],['name'=>'Deep cleaning','description'=>'Detailed cleaning','mode'=>'from','amount'=>95000,'duration'=>240,'visible'=>true,'archived'=>false],['name'=>'Office cleaning','description'=>'Workspace cleaning','mode'=>'quote','amount'=>null,'duration'=>180,'visible'=>true,'archived'=>false]]];
 foreach($d['items'] as $i=>&$service)$service['id']=str_pad((string)$i,32,'0',STR_PAD_LEFT);unset($service);
 $page=$argv[2]??'';
+if(in_array($argv[1]??'', ['benefit-cards','benefit-hidden','benefit-empty'],true))$p['homepage']['benefit_section']=['title'=>'Cleaning that fits your life.','visible'=>($argv[1]!=='benefit-hidden'),'cards'=>$argv[1]==='benefit-empty'?[]:[['icon'=>'home','title'=>'Care for every space','description'=>'Cleaning for homes, rentals and workplaces.'],['icon'=>'calendar','title'=>'Your schedule, your choice','description'=>'Choose a once-off clean or regular upkeep.'],['icon'=>'message','title'=>'Local support','description'=>'Speak directly with our Cape Town team.']]];
+
 if(($argv[1]??'')==='service-photo')$d['items'][0]['photo']=['id'=>str_repeat('f',32),'alt'=>'Example service photograph'];
 $canBook=!in_array($argv[1]??'', ['closed','empty'],true);if(($argv[1]??'')==='empty')$d['items']=[];
 if(($argv[1]??'')==='wide')$p['logo']=['mime'=>'image/png','data'=>base64_encode(file_get_contents(getenv('FARAIOS_TEST_LOGO_FILE')))];
