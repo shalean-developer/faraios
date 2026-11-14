@@ -63,3 +63,9 @@ html{scroll-padding-top:150px}.homepage-page{background:#fff;color:#193d38}.home
 .customer-main .customer-back{margin:24px 0 0;text-align:center}.customer-main .customer-back a{display:inline-flex;align-items:center;justify-content:center;min-height:44px}
 
 .customer-main .customer-intro{text-align:center}
+
+/* Compact homepage catalogue; standalone services retain full details. */
+.business-home:not(.business-standalone) .home-service-card{display:flex;flex-direction:column}
+.business-home:not(.business-standalone) .home-service-bottom{margin-top:auto;margin-bottom:0;padding-top:12px}
+.home-service-pricing-note{margin:20px 0}
+.home-service-card[id]{scroll-margin-top:160px}
