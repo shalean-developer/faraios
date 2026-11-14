@@ -1,0 +1,21 @@
+<?php
+// CLI only. Configuration and credentials live outside the web root. Does not use waitlist credentials.
+declare(strict_types=1);
+if(PHP_SAPI!=='cli'){http_response_code(403);exit;}
+require __DIR__.'/../notifications/enquiry-email.php';
+require __DIR__.'/../notifications/dispatch.php';
+function mail_http(string $url,array $body,array $headers): array {
+ $raw=@file_get_contents($url,false,stream_context_create(['http'=>['method'=>'POST','header'=>implode("\r\n",array_merge(['Content-Type: application/json'],$headers)),'content'=>json_encode($body,JSON_THROW_ON_ERROR),'timeout'=>12,'ignore_errors'=>true,'follow_location'=>0],'ssl'=>['verify_peer'=>true,'verify_peer_name'=>true]]));
+ preg_match('/\s(\d{3})\s/',$http_response_header[0]??'',$m);return ['status'=>(int)($m[1]??0),'body'=>json_decode($raw?:'{}',true)];
+}
+function mail_rpc(array $c,string $name,array $args): array {
+ $r=mail_http($c['supabase_url'].'/rest/v1/rpc/'.$name,$args,['apikey: '.$c['service_key'],'Authorization: Bearer '.$c['service_key']]);if($r['status']!==200||!is_array($r['body']))throw new RuntimeException('Mail queue unavailable');return $r['body'];
+}
+try {
+ $path=getenv('FARAIOS_ENQUIRY_MAIL_CONFIG')?:'/var/www/vhosts/shalean.com/private/faraios-enquiry-mail/config.php';
+ if(!is_file($path)){fwrite(STDOUT,"Enquiry mail disabled: no configuration.\n");exit(0);}
+ $real=realpath($path);$root=realpath(dirname(__DIR__));if(!$real||str_starts_with($real,$root.'/'))throw new RuntimeException('Configuration must be outside website');
+ $c=require $real;if(!is_array($c)||($c['enabled']??false)!==true){fwrite(STDOUT,"Enquiry mail disabled.\n");exit(0);}
+ if(!in_array($c['environment']??'',['preview','live'],true)||($c['supabase_url']??'')!=='https://rxelmugnucfajrqmphhe.supabase.co'||($c['base_url']??'')!==('https://www.faraios.com'.($c['environment']==='preview'?'/_accounts-preview':''))||!filter_var($c['sender']??'',FILTER_VALIDATE_EMAIL)||preg_match('/[\r\n]/',$c['sender'])||strlen($c['service_key']??'')<20||strlen($c['resend_key']??'')<20)throw new RuntimeException('Invalid mail configuration');
+ $processed=enquiry_mail_dispatch($c,fn($name,$args)=>mail_rpc($c,$name,$args),fn($message,$key)=>mail_http('https://api.resend.com/emails',$message,['Authorization: Bearer '.$c['resend_key'],'Idempotency-Key: '.$key]));fwrite(STDOUT,"Processed {$processed} enquiry notifications. Provider acceptance does not confirm inbox delivery.\n");
+}catch(Throwable $e){fwrite(STDERR,"Enquiry mail worker failed. Check private configuration and queue outcomes.\n");exit(1);}

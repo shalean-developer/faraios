@@ -92,3 +92,15 @@ html{scroll-padding-top:150px}.homepage-page{background:#fff;color:#193d38}.home
 @media(max-width:650px){.home-areas-intro{display:block;margin-bottom:18px}.home-areas-intro>.home-text-link{margin-top:12px}.home-areas>.home-area-groups{padding:16px}.home-areas .home-area-list{gap:8px}}
 
 .home-area-list a{color:inherit;text-decoration:underline;text-underline-offset:3px}.home-area-list a:focus-visible{outline:3px solid currentColor;outline-offset:4px}.business-standalone .home-page-intro{overflow-wrap:anywhere}
+
+/* Compact contact section, with a readable form and balanced contact details. */
+.home-contact{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:48px;align-items:start}
+.home-contact>div{min-width:0}.home-contact>div>h2{font-size:32px;line-height:1.2;letter-spacing:-.6px;max-width:420px}
+.home-contact-links{gap:0;margin-top:24px}.home-contact-links a{display:flex;align-items:center;min-height:44px;padding:8px 0;text-underline-offset:4px}
+.home-contact .enquiry-form{padding:24px;border:1px solid #e2e7e3;background:#f8faf9;border-radius:14px}
+.home-contact .enquiry-form h2{font-size:22px;margin-bottom:8px}.enquiry-fields{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}.enquiry-wide{grid-column:1/-1}.enquiry-fields>div{min-width:0}
+.enquiry-form label{margin-top:14px}.enquiry-form :is(input,select){min-height:46px}.enquiry-form textarea{min-height:112px}.enquiry-form .enquiry-privacy{font-size:13px;line-height:1.5;margin:16px 0}.enquiry-form .button{margin-top:16px}
+.enquiry-form :is(input,textarea,select):focus-visible{outline:3px solid #6d9ca8;outline-offset:2px}
+@media(max-width:800px){.home-contact{grid-template-columns:1fr;gap:24px}.home-contact>div>h2{font-size:28px}.home-contact-links{margin-top:12px}}
+@media(max-width:450px){.enquiry-fields{grid-template-columns:1fr;gap:0}.home-contact .enquiry-form{padding:18px}.home-contact>div>h2{font-size:26px}}
+:is(.theme-navy,.theme-plum,.theme-forest) .home-contact .button{background:var(--brand);border-color:var(--brand)}
