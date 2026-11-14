@@ -9,7 +9,7 @@ try {
   // Enumerate the public snapshot slug allowlist with stable keyset pagination. No drafts or IDs.
   $last='';$seen=[];
   do {
-   $rows=api('/rest/v1/business_public_pages?environment=eq.live&select=slug&order=slug.asc&limit=500'.($last!==''?'&slug=gt.'.rawurlencode($last):''),[],'GET');
+   $rows=api('/rest/v1/business_public_pages?environment=eq.live&select=slug,document&order=slug.asc&limit=500'.($last!==''?'&slug=gt.'.rawurlencode($last):''),[],'GET');
    foreach($rows as $row){if(!is_string($row['slug']??null)||$row['slug']<=$last||isset($seen[$row['slug']]))throw new RuntimeException('Invalid sitemap page');$seen[$row['slug']]=true;$last=$row['slug'];}
    $urls=array_merge($urls,business_sitemap_urls($rows,$base,$environment));
    // Never silently emit a truncated sitemap. A sitemap index is required beyond the protocol limit.
