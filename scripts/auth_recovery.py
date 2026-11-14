@@ -12,6 +12,9 @@ def safe_run(args,env,data=None,timeout=180):
  try:p=subprocess.run(args,env=env,input=data,capture_output=True,timeout=timeout)
  except (OSError,subprocess.TimeoutExpired):raise AuthRecoveryError('Isolated service command unavailable or timed out') from None
  if p.returncode:
+  if args[:2]==['docker','build']:
+   # Build context contains public source/public key only, before any data mounts.
+   print(p.stderr.decode(errors='replace')[-5000:],file=__import__('sys').stderr)
   stage='image download' if args[:2]==['docker','pull'] else ('database query' if 'psql' in args else 'container command')
   detail=p.stderr.decode(errors='replace');reason='private output suppressed'
   for pattern,label in [('manifest unknown','image tag unavailable'),('permission denied','permission denied'),('already exists','object already exists'),('does not exist','required object missing'),('connection refused','connection refused'),('syntax error','SQL syntax error')]:

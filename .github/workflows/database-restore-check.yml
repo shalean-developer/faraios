@@ -1,5 +1,25 @@
 name: Isolated database restore check
 on:
+  workflow_call:
+    inputs:
+      configuration_action:
+        type: string
+        default: monitor
+      backup_run_id:
+        type: string
+        default: ''
+      auth_rehearsal:
+        type: boolean
+        default: false
+      configuration_key_run:
+        type: string
+        default: ''
+      configuration_packet:
+        type: string
+        default: ''
+    secrets:
+      FARAIOS_BACKUP_PASSPHRASE:
+        required: true
   workflow_dispatch:
     inputs:
       backup_run_id:
@@ -12,7 +32,7 @@ on:
         required: false
         default: false
       configuration_action:
-        description: Private configuration action (none, key, import)
+        description: Private configuration action (none, key, import, monitor)
         required: false
         default: none
       configuration_key_run:
@@ -126,3 +146,39 @@ jobs:
       - name: Remove private temporary configuration
         if: always()
         run: rm -rf -- "$RUNNER_TEMP/restored-private" "$RUNNER_TEMP/config-key" "$RUNNER_TEMP/config-bundle"
+  watchdog:
+    if: inputs.configuration_action == 'monitor'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y php-cli
+      - name: Find independent ciphertext copy and backup status
+        id: source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/config-artifact.py
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.source.outputs.run_id }}
+          name: faraios-private-config
+          path: ${{ runner.temp }}/config-bundle
+      - name: Restore private configuration without executing it
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.FARAIOS_BACKUP_PASSPHRASE }}
+        run: php scripts/private-config-recovery.php --action=restore --key-dir="$RUNNER_TEMP/config-bundle" --packet="$RUNNER_TEMP/config-bundle/configuration.packet" --out="$RUNNER_TEMP/restored-private"
+      - name: Independent availability and recovery checks
+        env:
+          BACKUP_HEALTH_JSON: ${{ steps.source.outputs.health }}
+        run: php scripts/operations-watchdog.php --bundle="$RUNNER_TEMP/config-bundle" --restored="$RUNNER_TEMP/restored-private" --report="$RUNNER_TEMP/config-bundle/watchdog-report.json" --test-notification
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: faraios-private-config
+          path: ${{ runner.temp }}/config-bundle/
+          retention-days: 30
+          if-no-files-found: error
+      - name: Remove private temporary files
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/restored-private" "$RUNNER_TEMP/config-bundle"

@@ -9,3 +9,4 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y php-cli
       - run: php tests/private-config.php
+      - run: php tests/watchdog.php
