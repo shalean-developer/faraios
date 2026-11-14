@@ -38,13 +38,13 @@ def rehearse(db,env,sql,check_business=False):
    'GOTRUE_JWT_SECRET':secret,'GOTRUE_JWT_AUD':'authenticated','GOTRUE_JWT_ADMIN_ROLES':'service_role',
    'GOTRUE_JWT_DEFAULT_GROUP_NAME':'authenticated','GOTRUE_JWT_EXP':'3600','GOTRUE_SMTP_HOST':'127.0.0.1',
    'GOTRUE_SMTP_PORT':'1','GOTRUE_SMTP_ADMIN_EMAIL':'nobody@example.invalid','GOTRUE_LOG_LEVEL':'error'}
-  args=['docker','run','--detach','--rm','--name',auth,'--network',network,'--memory=512m','--cpus=1','--cap-drop=ALL','--security-opt=no-new-privileges']
+  args=['docker','run','--detach','--name',auth,'--network',network,'--memory=512m','--cpus=1','--cap-drop=ALL','--security-opt=no-new-privileges']
   for k,v in values.items():args+=['--env',k+'='+v]
   safe_run(args+[AUTH_IMAGE],env)
  def http(url,method='GET',payload=None,token=None):
   # Dedicated client avoids depending on utilities inside a service image.
   url=url.replace('http://localhost:9999','http://'+auth+':9999')
-  args=['docker','run','--rm','-i','--name',network+'-http','--network',network,'--memory=64m','--cpus=1','--cap-drop=ALL','--security-opt=no-new-privileges',HTTP_IMAGE,'--silent','--show-error','--max-time','10','--write-out','\\n%{http_code}','--header','Content-Type: application/json']
+  args=['docker','run','--rm','-i','--name',network+'-http','--network',network,'--memory=64m','--cpus=1','--cap-drop=ALL','--security-opt=no-new-privileges',HTTP_IMAGE,'--silent','--show-error','--max-time','3','--write-out','\\n%{http_code}','--header','Content-Type: application/json']
   if token:args+=['--header','Authorization: Bearer '+token]
   if method=='POST':args+=['--request','POST','--data-binary','@-']
   args+=[url]
@@ -55,10 +55,13 @@ def rehearse(db,env,sql,check_business=False):
   except ValueError:body=None
   return code,body
  def ready(url):
-  for _ in range(45):
+  target=rest if url.startswith('http://'+rest+':') else auth
+  for _ in range(15):
+   state=subprocess.run(['docker','inspect','--format','{{.State.Running}}',target],env=env,capture_output=True,timeout=15)
+   if state.stdout.strip()!=b'true':break
    if http(url)[0]==200:return
    time.sleep(1)
-  logs=subprocess.run(['docker','logs',auth],env=env,capture_output=True,timeout=15)
+  logs=subprocess.run(['docker','logs',target],env=env,capture_output=True,timeout=15)
   detail=(logs.stdout+logs.stderr).decode(errors='replace');labels=[]
   for pattern,label in [('SSL is not enabled','isolated database does not support TLS'),('uuid_generate_v4','UUID extension dependency'),('permission denied','migration permission'),('does not exist','missing migration dependency'),('failed to parse','configuration parse failure'),('migration','migration failure'),('connection refused','database connection refused')]:
    if pattern in detail:labels.append(label)
@@ -108,7 +111,7 @@ def rehearse(db,env,sql,check_business=False):
    user['refresh_token']=refreshed['refresh_token']
    tokens.append(refreshed['access_token'])
   if http('http://localhost:9999/token?grant_type=password','POST',{'email':users[0]['email'],'password':'incorrect-recovery-password'})[0] not in (400,401):raise AuthRecoveryError('Wrong password accepted')
-  args=['docker','run','--detach','--rm','--name',rest,'--network',network,'--memory=256m','--cpus=1','--cap-drop=ALL','--security-opt=no-new-privileges']
+  args=['docker','run','--detach','--name',rest,'--network',network,'--memory=256m','--cpus=1','--cap-drop=ALL','--security-opt=no-new-privileges']
   values={'PGRST_DB_URI':'postgres://authenticator:'+restpass+'@'+db+':5432/postgres?sslmode=disable','PGRST_DB_SCHEMAS':'public','PGRST_DB_ANON_ROLE':'anon','PGRST_JWT_SECRET':jwt}
   for k,v in values.items():args+=['--env',k+'='+v]
   safe_run(args+[REST_IMAGE],env);ready('http://'+rest+':3000/')
