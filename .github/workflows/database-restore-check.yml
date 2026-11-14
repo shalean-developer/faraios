@@ -4,8 +4,8 @@ on:
     inputs:
       backup_run_id:
         description: Successful encrypted backup workflow run ID
-        required: true
-        default: '43624732439'
+        required: false
+        default: ''
   schedule:
     - cron: '0 3 * * 0'
 permissions:

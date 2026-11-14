@@ -68,7 +68,9 @@ artifact using an Actions read token, checks ciphertext and decrypted-member has
 and restores it into a fresh PostgreSQL 17.11 container with `--network=none`, no
 published ports, no production credentials and a read-only host mount. All roles and
 object ownership are restored except the disposable bootstrap postgres role remains
-superuser to perform the restore. Recorded source schema grants are reapplied because
+superuser to perform the restore. Membership grantors are normalized to the local
+bootstrap postgres role; effective membership flags are retained, but provider
+grantor audit identity/revocation behavior is not rehearsed. Recorded source schema grants are reapplied because
 pg_dump omits some initial privileges. It checks snapshot table fingerprints where
 present, business constraints, owner/outsider row visibility and ledger write denial.
 The container and private plaintext are removed even on failure. Only an aggregate

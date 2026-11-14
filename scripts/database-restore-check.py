@@ -11,6 +11,8 @@ def run(args,env,stdin=None,stage='restore'):
  except (OSError,subprocess.TimeoutExpired):raise RestoreError(stage+' unavailable or timed out') from None
  if p.returncode:
   detail=p.stderr.decode(errors='replace');reason='private output suppressed'
+  for pattern,label in [('must have admin option','role membership grantor lacks admin option'),('must be superuser','superuser bootstrap required'),('permission denied to grant','role grant permission denied')]:
+   if pattern in detail:reason=label;break
   for code,label in [('42704','missing role or object'),('42501','insufficient permission'),('42710','duplicate object'),('42601','SQL syntax'),('42P01','missing table'),('3F000','missing schema'),('58P01','missing extension file')]:
    if code in detail:reason=label;break
   raise RestoreError(stage+' failed: '+reason)
@@ -43,13 +45,16 @@ def check(directory):
   if re.search(r'\bPASSWORD\b',roles,re.I):raise RestoreError('Role passwords must not be present')
   roles=re.sub(r'^CREATE ROLE postgres;\s*$', '',roles, flags=re.M)
   roles=re.sub(r'^ALTER ROLE postgres WITH .*;\s*$', '',roles, flags=re.M)
+  # Standalone cluster starts with built-in role memberships granted by postgres.
+  # Recreate effective memberships using that bootstrap grantor, not a hosted grantor.
+  roles=re.sub(r' GRANTED BY [a-z_][a-z_0-9]*;', ' GRANTED BY postgres;',roles)
   name='faraios-restore-'+uuid.uuid4().hex
   run(['docker','pull',IMAGE],env,stage='approved image download')
   try:
    # No ports, no network, no writable host mount, no production credentials.
    run(['docker','run','--detach','--rm','--name',name,'--network=none','--memory=1g','--cpus=2','--mount','type=bind,src='+td+',dst=/backup,readonly','--tmpfs','/var/lib/postgresql/data:rw,size=768m','--env','POSTGRES_HOST_AUTH_METHOD=trust',IMAGE],env,stage='isolated target startup')
    def cmd(tool,args):return ['docker','exec','-i',name,tool,*args]
-   def sql(q,stage='isolated query'):return run(cmd('psql',['-U','postgres','-d','postgres','-XAtq','-v','ON_ERROR_STOP=1','-v','VERBOSITY=sqlstate']),env,q.encode(),stage).decode().strip()
+   def sql(q,stage='isolated query'):return run(cmd('psql',['-U','postgres','-d','postgres','-XAtq','-v','ON_ERROR_STOP=1','-v','VERBOSITY=terse']),env,q.encode(),stage).decode().strip()
    ready=False
    for _ in range(60):
     p=subprocess.run(cmd('pg_isready',['-U','postgres']),env=env,capture_output=True)
