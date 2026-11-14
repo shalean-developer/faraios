@@ -54,3 +54,36 @@ Local evidence (14 November 2026): PostgreSQL 17 native export/encryption/fresh
 restore PASS. The disposable target recreates PostgreSQL's default public-schema
 USAGE grant after restoring that schema; hosted schema ownership/default grants
 must be verified independently. Production connection/container execution is pending.
+
+## Snapshot and isolated restore verification (F06)
+
+Version 2 backups retain a single read-only exported MVCC snapshot while collecting
+all selected-table counts/fingerprints and running pg_dump. The encrypted manifest
+also records effective schema grants. No customer values or per-table hashes are
+published in logs or evidence. Prior version 1 backups remain supported, but cannot
+prove snapshot fingerprint equality because they did not record those fingerprints.
+
+The manual `Isolated database restore check` workflow downloads a retained encrypted
+artifact using an Actions read token, checks ciphertext and decrypted-member hashes,
+and restores it into a fresh PostgreSQL 17.11 container with `--network=none`, no
+published ports, no production credentials and a read-only host mount. All roles and
+object ownership are restored except the disposable bootstrap postgres role remains
+superuser to perform the restore. Recorded source schema grants are reapplied because
+pg_dump omits some initial privileges. It checks snapshot table fingerprints where
+present, business constraints, owner/outsider row visibility and ledger write denial.
+The container and private plaintext are removed even on failure. Only an aggregate
+report is uploaded. No PHP, Auth, mail worker, or booking process is started.
+
+The same rehearsal is scheduled weekly on Sunday at 03:00 UTC using the latest
+successful main-branch backup. This proves standalone PostgreSQL data recovery,
+not a complete hosted Supabase service recovery or an Auth login/session roundtrip.
+Do not treat the measured small-database rehearsal as a service recovery guarantee.
+
+The `Database backup heartbeat` workflow runs after backup/restore completion and
+daily at 05:00 UTC. A failed latest completed run, missing/expired backup artifact,
+backup older than 30 hours, or restore older than eight days causes a failing check.
+API errors fail as unknown. This exposes failure in GitHub Actions; it does not
+send custom emails, page a responder, or establish receipt of an alert. The owner
+must monitor Actions notifications and provide an authorized destination before any
+external notification integration is added. Private application logging and Storage
+object/runtime-secret recovery remain separate open gates.

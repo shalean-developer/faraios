@@ -2,7 +2,8 @@ name: Database backup regression
 on:
   pull_request:
     paths:
-      - scripts/database-backup.py
+      - scripts/database*
+      - scripts/backup-health.py
       - tests/**
       - .github/workflows/database-backup*.yml
   workflow_dispatch:
@@ -15,7 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y postgresql-16 php-cli gnupg
+      - run: python3 tests/backup-health.py
       - run: python3 tests/database-backup.py
         env:
           PG_BIN: /usr/lib/postgresql/16/bin
           PHP_BIN: /usr/bin/php
+          BACKUP_DOCKER_RESTORE: '1'

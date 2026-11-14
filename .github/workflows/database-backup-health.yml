@@ -1,0 +1,21 @@
+name: Database backup heartbeat
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_run:
+    workflows: [Encrypted FaraiOS database backup, Isolated database restore check]
+    types: [completed]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  heartbeat:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check retained backup and restore freshness
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/backup-health.py
