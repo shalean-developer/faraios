@@ -1,0 +1,25 @@
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const fs=require('fs');
+(async()=>{
+ const {url}=JSON.parse(fs.readFileSync(process.env.ROOMS_FIXTURE));
+ const browser=await chromium.launch({executablePath:process.env.BROWSER_BIN,headless:true,args:['--no-sandbox'],env:process.env});
+ const page=await browser.newPage({viewport:{width:1280,height:900}});let errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(url+'/b/index.php?slug=request-demo&booking=1');await page.waitForTimeout(2100);await page.getByRole('radio').first().click();
+ await page.getByRole('group',{name:'Bedrooms',exact:true}).getByRole('button',{name:'2',exact:true}).click();
+ await page.getByRole('group',{name:'Bathrooms',exact:true}).getByRole('button',{name:'2',exact:true}).click();
+ await page.getByRole('button',{name:'Inside oven · +ZAR 100.00',exact:true}).click();
+ await page.getByLabel('Street address',{exact:true}).fill('123 Fictional Preview Road');await page.getByLabel('Requirements',{exact:true}).fill('Fictional isolated UI verification.');
+ let text=await page.locator('.request-summary').innerText();if(!text.includes('745.00')||!text.includes('185 minutes'))throw Error(text);
+ await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:process.env.EVIDENCE_DIR+'/rooms-desktop.png',fullPage:true});
+ await page.getByRole('group',{name:'Bedrooms',exact:true}).getByRole('button',{name:'3+ Custom',exact:true}).click();await page.locator('#quantity-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa').fill('4');
+ if(!(await page.locator('.request-summary').innerText()).includes('865.00'))throw Error('Custom price mismatch');
+ await page.getByRole('button',{name:'Back',exact:true}).click();if(await page.locator('.request-summary').isVisible())throw Error('Service summary should be hidden');await page.getByRole('radio').first().click();
+ if(await page.locator('#quantity-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa').inputValue()!=='4')throw Error('Lost quantity');
+ await page.setViewportSize({width:390,height:844});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:process.env.EVIDENCE_DIR+'/rooms-mobile.png',fullPage:true});
+ const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);if(overflow)throw Error('Mobile overflow');
+ await page.getByRole('button',{name:'Continue',exact:true}).click();await page.getByLabel('Preferred date',{exact:true}).fill('2090-12-20');await page.getByLabel('Preferred time',{exact:true}).fill('10:00');await page.getByRole('button',{name:'Continue',exact:true}).click();await page.getByLabel('Your name',{exact:true}).fill('Fictional Browser Rooms');await page.getByLabel('Email address',{exact:true}).fill('browser-rooms@example.test');await page.getByRole('button',{name:'Continue',exact:true}).click();
+ if(!(await page.locator('#booking-review').innerText()).includes('Bedrooms × 4'))throw Error('Review omitted rooms');
+ await page.getByRole('button',{name:'Send booking request',exact:true}).click();await page.getByText('Request received — pending confirmation.',{exact:false}).waitFor({timeout:3000}).catch(async e=>{console.log(await page.locator('body').innerText());throw e;});
+ if(errors.length)throw Error(errors.join('\n'));
+ console.log('PASS desktop/mobile, custom quantities, retained selections, summary price/duration, review and real isolated submission');await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});

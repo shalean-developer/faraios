@@ -74,3 +74,7 @@
 .address-entry small{margin-top:8px;font-size:12px}
 .address-entry .unit-label{margin-top:28px;font-weight:400}.unit-label span{color:#637682}
 @media(max-width:600px){.address-entry{padding:20px 16px;margin-bottom:24px}.address-entry h2{font-size:19px;margin-bottom:22px}.address-entry input{font-size:14px}}
+
+.booking-option-group{margin:24px 0}.booking-option{padding:14px 0;border-bottom:1px solid #e2e8f0;display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between}.booking-option>label{margin:0}.booking-option small{flex-basis:100%;margin:0}.quantity-controls{display:flex;align-items:center;gap:8px}.quantity-controls input{width:76px!important;text-align:center;margin:0!important}.quantity-controls button{width:40px;height:40px;border:1px solid #cbd5e1;border-radius:50%;background:#fff;font-size:22px}.extra-choice{padding:16px;border:1px solid #cbd5e1;border-radius:10px;background:white;width:100%;text-align:left}.extra-choice[aria-pressed="true"]{border-color:#5260ef;background:#eef2ff}#summary-breakdown{white-space:pre-line;font-size:13px}
+
+.quantity-presets{display:flex;gap:6px;flex-wrap:wrap}.quantity-presets button{min-width:40px;min-height:40px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;background:white}.quantity-presets button[aria-pressed="true"]{border-color:#5260ef;background:#eef2ff}.quantity-controls[hidden]{display:none}

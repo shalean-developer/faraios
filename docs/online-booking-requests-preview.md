@@ -162,3 +162,12 @@ Owner requested hiding Service Continue and business name. Application2f9b282 de
 Inspected requested Sweepsouth location/new-location UI. Adapted compact address panel, Where do you need help heading, rounded street input/location icon and optional unit/apartment input with original FaraiOS styling. No geolocation/maps/saved locations/autocomplete-provider integration introduced. Manual street input and unit combined into existing saved address string;120-char unit and1000-char combined bounds. POST fields retain separately on rejection. Summary/review combine both.
 
 Preview candidate3878f097 deployed accounts-preview only, Plesk Done. PHP/JS lint and whitespace PASS; native PostgreSQL/PHP request/security/lifecycle tests PASS, extended HTTP assertion verifies optional unit persisted in saved address. Updated obsolete Request a booking heading assertion to accessible region label following owner removal. Hosted fictional street/unit/requirements retention through Continue and Back PASS; exact combined summary and no desktop overflow. Desktop and mobile390 full-page screenshots inspected, address/requirements and controls fit. No hosted request submitted or records modified. Viewport reset; preview left on Details for owner review. Production unchanged.
+
+
+### Rooms, extras and pricing — 14 November 2026 candidate
+
+Owner approved the audit recommendation. Implemented per-service rooms/extras configuration, included allowances, unit prices and optional minutes; customer quantity presets/custom inputs/selectable extras; immediate itemized summary; authoritative database calculation and preserved original scope through requests/quotes/bookings/invoices. Existing records and legacy service shapes remain compatible. See [full implementation and evidence](service-rooms-extras-preview.md).
+
+PASS isolated native PG/PHP lifecycle/security tests and catalogue/quote/booking/customer/staff/invoice/dashboard regressions. PASS real local Chromium desktop/mobile and complete fictional submission. Screenshots use fictional test prices, not configured hosted prices.
+
+No hosted migration/deployment or records changed. Automatic approval review blocked the separate hosting account/preview-deployment path under the earlier deployment restriction. Candidate saved for review; preview-only deployment and additive migration remain pending authorization. No production merge/deployment/live-intake activation.
