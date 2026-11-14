@@ -13,6 +13,7 @@ class Backup(Profiles):
   return {table:sql("select count(*)||':'||md5(coalesce(string_agg(to_jsonb(t)::text,'' order by to_jsonb(t)::text),'')) from "+table+' t') for table in tables}
  def test_backup(self):
   a,b=self.ids;bid=self.bids[0];iid=str(uuid.uuid4());pid=str(uuid.uuid4());due=(datetime.date.today()+datetime.timedelta(days=14)).isoformat()
+  self.sql('create role postgres nosuperuser createrole createdb login bypassrls;create role supabase_admin superuser;grant pg_read_all_settings to supabase_admin with admin option;grant pg_read_all_settings to pg_monitor granted by supabase_admin;')
   self.sql("alter table auth.users add column encrypted_password text;update auth.users set encrypted_password='SYNTHETIC-HASH-NOT-A-REAL-PASSWORD'")
   doc=dict(name='Fictional Backup Customer',email='backup@example.test',phone='',notes='Private backup scope',currency='ZAR',items=[dict(name='Service',quantity=2,price=12525)])
   self.scope(a,'select public.business_enquiry_create('+','.join(map(lit,[bid,'preview',str(uuid.uuid4()),doc['name'],doc['email'],'','Private backup requirements.']))+')')
