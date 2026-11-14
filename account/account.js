@@ -10,7 +10,7 @@ if(confirm){
  if(/^[a-f0-9]{40,128}$/i.test(hash)&&['email','recovery','email_change'].includes(type)){
   document.getElementById('token_hash').value=hash;document.getElementById('type').value=type;confirm.disabled=false;document.getElementById('link-status').textContent='Your link is ready.';
  }else if(type==='email_change'||params.get('message')==='Confirmation link accepted. Please proceed to confirm link sent to the other email'){
-  confirm.hidden=true;document.getElementById('link-status').textContent='Email link processed. Confirm the links in both inboxes, then sign in with your new email.';
+  confirm.form.remove();document.getElementById('confirmation-intro').textContent='Your email confirmation is handled securely. No automatic sign-in is performed.';document.getElementById('link-status').textContent='Email link processed. Confirm the links in both inboxes, then sign in with your new email.';
  }else{
   document.getElementById('link-status').textContent='This link is incomplete or expired. Request a new email below.';
  }

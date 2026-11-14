@@ -148,7 +148,7 @@ class Accounts(Journey):
   body=urllib.parse.urlencode({'csrf':token,'token_hash':'c'*64,'type':'email'}).encode()
   r=type(self).client.open(urllib.request.Request(self.accountbase+'/account/index.php?page=confirm',data=body,headers={'Origin':'null'}));html=r.read().decode()
   self.assertIn('form has expired',html);self.assertIn('value="'+('c'*64)+'"',html)
-  self.assertIn('account.js?v=20261115-1',html)
+  self.assertIn('account.js?v=20261115-2',html)
  def test_04_session_refresh_and_errors(self):
   type(self).expired_login=True
   type(self).confirmed=True
