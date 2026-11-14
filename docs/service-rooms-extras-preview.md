@@ -59,3 +59,11 @@ PASS pre/post fingerprints identical for all protected rows: catalogues3 b71019f
 Owner Services access redirected to Welcome back: authenticated session expired. Owner editor hosted verification is pending sign-in; sign-in tab retained. No service options configured/published. Customer rooms/extras end-to-end evidence remains isolated until business configuration or a separately authorized new hosted fixture is available. Prior deployment block is resolved by owner's approval and successful preview deployment.
 
 Decision: PASS additive migration, preview deployment and public/calculator checks; CONDITIONAL PASS owner acceptance pending signed-in editor verification. Production NO-GO; no merge, production application deployment or live-intake activation.
+
+## Signed-in owner editor verification — 14 November 2026
+
+Owner signed in and said Ready. Reconnected the preview account FaraiOS Preview Test Business; Services listed unchanged Standard505/120m, Deep From950/240m and Office Quote required/180m. Opened Standard Edit read-only. PASS Rooms and extras section; Bedrooms/Bathrooms expand to availability checkbox, name/type, minimum/maximum/included quantity, additional unit price and additional minutes. PASS Add room or extra reveals a third selectable-extra editor with no overflow. Reload discarded the unsaved UI addition; no save/publish action performed. Standard remains unchanged at ZAR505/120m and has no configured options. Editor left open with Bedrooms expanded for owner review. [Owner editor screenshot](evidence/rooms-owner-editor.png).
+
+All9 protected table fingerprints remain identical to pre-migration baseline. Hosted owner editor visibility/interaction PASS; hosted save/reload of new option configuration and customer option lifecycle remain untested because existing-record changes were prohibited. These behaviors passed native/local browser tests. No new fixture, service configuration or publication performed. No production merge/deployment/live-intake activation.
+
+Decision: PASS hosted editor inspection and approved preview deployment scope. Owner configuration and preview acceptance pending; production NO-GO.
