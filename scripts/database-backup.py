@@ -35,7 +35,12 @@ def backup():
  gpg_env=dict(os.environ);gpg_env.pop('PGPASSWORD',None);gpg_env.pop('BACKUP_PASSPHRASE',None)
  os.umask(0o077)
  with tempfile.TemporaryDirectory(prefix='faraios-backup-') as td:
-  tmp=pathlib.Path(td);tmp.chmod(0o700);(tmp/'gnupg').mkdir(mode=0o700);gpg_env['GNUPGHOME']=str(tmp/'gnupg')
+  tmp=pathlib.Path(td);tmp.chmod(0o700);
+  if not test:
+   ca=ROOT/'config/certificates/supabase-prod-ca-2021.crt'
+   (tmp/'root.crt').write_bytes(pathlib.Path('/etc/ssl/certs/ca-certificates.crt').read_bytes()+b'\n'+ca.read_bytes())
+   env['PGSSLROOTCERT']=str(tmp/'root.crt')
+  (tmp/'gnupg').mkdir(mode=0o700);gpg_env['GNUPGHOME']=str(tmp/'gnupg')
   def cmd(binary,args):
    if image:
     return ['docker','run','--rm','--network=host','--read-only','--user',str(os.getuid())+':'+str(os.getgid()),'--mount','type=bind,src='+td+',dst='+td,'--mount','type=bind,src=/etc/ssl/certs/ca-certificates.crt,dst=/etc/ssl/certs/ca-certificates.crt,readonly',*sum((['--env',k] for k in ['PGHOST','PGPORT','PGUSER','PGPASSWORD','PGDATABASE','PGSSLMODE','PGSSLROOTCERT','PGOPTIONS']),[]),image,binary,*args]
