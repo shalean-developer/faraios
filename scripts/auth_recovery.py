@@ -10,7 +10,12 @@ class AuthRecoveryError(Exception):pass
 def safe_run(args,env,data=None):
  try:p=subprocess.run(args,env=env,input=data,capture_output=True,timeout=180)
  except (OSError,subprocess.TimeoutExpired):raise AuthRecoveryError('Isolated service command unavailable or timed out') from None
- if p.returncode:raise AuthRecoveryError('Isolated service command failed; private output suppressed')
+ if p.returncode:
+  stage='image download' if args[:2]==['docker','pull'] else ('database query' if 'psql' in args else 'container command')
+  detail=p.stderr.decode(errors='replace');reason='private output suppressed'
+  for pattern,label in [('manifest unknown','image tag unavailable'),('permission denied','permission denied'),('already exists','object already exists'),('does not exist','required object missing'),('connection refused','connection refused'),('syntax error','SQL syntax error')]:
+   if pattern in detail:reason=label;break
+  raise AuthRecoveryError('Isolated '+stage+' failed: '+reason)
  return p.stdout
 
 def rehearse(db,env,sql,check_business=False):
@@ -62,12 +67,14 @@ def rehearse(db,env,sql,check_business=False):
   if not json.loads(safe_run(['docker','network','inspect',network],env))[0]['Internal']:raise AuthRecoveryError('Internal network required')
   # Only isolated role passwords are replaced. No source config/credential is accepted.
   sql("ALTER ROLE supabase_auth_admin LOGIN PASSWORD '"+dbpass+"';ALTER ROLE authenticator LOGIN PASSWORD '"+restpass+"';")
+  print('Auth rehearsal: start service',file=__import__('sys').stderr)
   start_auth(jwt);ready('http://localhost:9999/health')
   for user in users:
    code,result=http('http://localhost:9999/signup','POST',user)
    if code!=200 or not isinstance(result,dict):raise AuthRecoveryError('Synthetic identity setup failed')
    user['id']=(result.get('user') or result).get('id')
    if not user['id']:raise AuthRecoveryError('Synthetic identity missing')
+  print('Auth rehearsal: synthetic identities created',file=__import__('sys').stderr)
   first=login({k:users[0][k] for k in ['email','password']})
   # Fixture has real Auth subjects, an actual owner policy and one row per synthetic user.
   sql("CREATE TABLE public.recovery_scope_probe(owner_id uuid NOT NULL, marker text NOT NULL);ALTER TABLE public.recovery_scope_probe ENABLE ROW LEVEL SECURITY;CREATE POLICY recovery_owner ON public.recovery_scope_probe TO authenticated USING (owner_id=auth.uid());GRANT SELECT ON public.recovery_scope_probe TO authenticated;INSERT INTO public.recovery_scope_probe VALUES ('"+users[0]['id']+"','owner-a'),('"+users[1]['id']+"','owner-b');")
@@ -80,6 +87,7 @@ def rehearse(db,env,sql,check_business=False):
   # Default schema initial privileges are not fully emitted by pg_dump.
   sql('GRANT USAGE ON SCHEMA public TO anon,authenticated;')
   # A new signing secret makes prior access tokens invalid. Password hashes remain usable.
+  print('Auth rehearsal: isolated database restored',file=__import__('sys').stderr)
   jwt=secrets.token_hex(32);start_auth(jwt);ready('http://localhost:9999/health')
   if http('http://localhost:9999/user',token=first['access_token'])[0]!=401:raise AuthRecoveryError('Prior signing-key token remained valid')
   tokens=[]
