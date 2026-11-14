@@ -146,7 +146,7 @@ def synthetic():
   sql('CREATE ROLE supabase_auth_admin LOGIN NOINHERIT CREATEROLE;CREATE SCHEMA auth AUTHORIZATION supabase_auth_admin;CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role BYPASSRLS;CREATE ROLE authenticator LOGIN NOINHERIT;GRANT anon,authenticated,service_role TO authenticator;GRANT ALL ON DATABASE postgres TO supabase_auth_admin;GRANT USAGE ON SCHEMA public TO anon,authenticated;')
   # Auth migrations must own/create uid(); precreating it as postgres prevents
   # the real service role from applying its initial CREATE OR REPLACE migration.
-  sql('GRANT USAGE ON SCHEMA auth TO anon,authenticated;')
+  sql('ALTER ROLE supabase_auth_admin SET search_path=auth;GRANT USAGE ON SCHEMA auth TO anon,authenticated;')
   result=rehearse(db,env,sql);print(json.dumps(result))
  finally:subprocess.run(['docker','rm','--force',db],env=env,capture_output=True,timeout=30)
 if __name__=='__main__':
