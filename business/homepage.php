@@ -101,7 +101,7 @@ function homepage_render(array $p,array $catalogue,string $zone,string $url,stri
 <?php if(array_filter($p['hours']??[])):?><details><summary>Opening hours</summary><p><?=esc(str_replace('_',' ',$zone))?></p><dl class="hours-list"><?php foreach(profile_days() as $i=>$day):?><div><dt><?=$day?></dt><dd><?=!empty($p['hours'][$i])?esc(implode(' – ',$p['hours'][$i])):'Closed'?></dd></div><?php endforeach;?></dl></details><?php endif;?></div>
 <div class="home-enquiry-slot"><?php if($enquire&&isset($GLOBALS['homepage_enquiry'])):call_user_func($GLOBALS['homepage_enquiry']);else:?><p>Enquiries are available on the published business page.</p><?php endif;?></div></section>
 <?php endif;?>
-<footer class="home-footer"><div><strong><?=esc($p['name'])?></strong><p><?=date('Y')?> · <a href="<?=esc(cfg()['base_url'].'/privacy.html#overview')?>">Privacy</a></p></div><nav aria-label="Footer navigation"><?php foreach(business_page_defaults() as $key=>$unused):?><a href="<?=esc($enquire?$url.'/'.$key:'profile.php?view=preview&section='.$key)?>"><?=esc($unused['label'])?></a><?php endforeach;?></nav><a href="#homepage">Back to top <?=homepage_icon('up')?></a><span>Powered by FaraiOS</span></footer>
+<?php business_footer($p,$url,$enquire);?>
 </div>
 <?php }
 
@@ -133,3 +133,16 @@ function business_pages_values(): array {
 function business_page_text_valid(string $value,int $limit): void {
  if(!preg_match('//u',$value)||mb_len($value)>$limit||preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/',$value))throw new RuntimeException('Check page content length and characters.');
 }
+
+function business_footer(array $p,string $url,bool $public=true): void { ?>
+<footer class="home-footer" aria-label="Business footer">
+ <div class="home-footer-top">
+  <div class="home-footer-business"><a class="home-footer-name" href="<?=esc($public?$url:'profile.php?view=preview')?>"><?=esc($p['name'])?></a>
+   <?php if(!empty($p['email'])||!empty($p['phone'])):?><div class="home-footer-contact"><?php if(!empty($p['email'])):?><a href="mailto:<?=esc($p['email'])?>"><?=esc($p['email'])?></a><?php endif;?><?php if(!empty($p['phone'])):?><a href="tel:<?=esc(preg_replace('/[^+0-9]/','',$p['phone']))?>"><?=esc($p['phone'])?></a><?php endif;?></div><?php endif;?>
+  </div>
+  <nav class="home-footer-navigation" aria-label="Footer navigation"><h2>Explore</h2><ul><?php foreach(business_page_defaults() as $key=>$item):?><li><a href="<?=esc($public?$url.'/'.$key:'profile.php?view=preview&section='.$key)?>"><?=esc($item['label'])?></a></li><?php endforeach;?></ul></nav>
+  <a class="home-footer-top-link" href="#homepage">Back to top <?=homepage_icon('up')?></a>
+ </div>
+ <div class="home-footer-bottom"><p>© <?=date('Y')?> <?=esc($p['name'])?></p><a href="<?=esc(cfg()['base_url'].'/privacy.html#overview')?>">Privacy</a><a class="home-footer-powered" href="<?=esc(rtrim(cfg()['base_url'],'/').'/')?>">Powered by <strong>FaraiOS</strong></a></div>
+</footer>
+<?php }
