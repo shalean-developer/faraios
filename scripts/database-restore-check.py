@@ -9,7 +9,11 @@ class RestoreError(Exception):pass
 def run(args,env,stdin=None,stage='restore'):
  try:p=subprocess.run(args,env=env,input=stdin,capture_output=True,timeout=600)
  except (OSError,subprocess.TimeoutExpired):raise RestoreError(stage+' unavailable or timed out') from None
- if p.returncode:raise RestoreError(stage+' failed; private output suppressed')
+ if p.returncode:
+  detail=p.stderr.decode(errors='replace');reason='private output suppressed'
+  for code,label in [('42704','missing role or object'),('42501','insufficient permission'),('42710','duplicate object'),('42601','SQL syntax'),('42P01','missing table'),('3F000','missing schema'),('58P01','missing extension file')]:
+   if code in detail:reason=label;break
+  raise RestoreError(stage+' failed: '+reason)
  return p.stdout
 
 def check(directory):
@@ -45,21 +49,21 @@ def check(directory):
    # No ports, no network, no writable host mount, no production credentials.
    run(['docker','run','--detach','--rm','--name',name,'--network=none','--memory=1g','--cpus=2','--mount','type=bind,src='+td+',dst=/backup,readonly','--tmpfs','/var/lib/postgresql/data:rw,size=768m','--env','POSTGRES_HOST_AUTH_METHOD=trust',IMAGE],env,stage='isolated target startup')
    def cmd(tool,args):return ['docker','exec','-i',name,tool,*args]
-   def sql(q):return run(cmd('psql',['-U','postgres','-d','postgres','-XAtq','-v','ON_ERROR_STOP=1']),env,q.encode(),'isolated SQL verification').decode().strip()
+   def sql(q,stage='isolated query'):return run(cmd('psql',['-U','postgres','-d','postgres','-XAtq','-v','ON_ERROR_STOP=1','-v','VERBOSITY=sqlstate']),env,q.encode(),stage).decode().strip()
    ready=False
    for _ in range(60):
     p=subprocess.run(cmd('pg_isready',['-U','postgres']),env=env,capture_output=True)
     if p.returncode==0:ready=True;break
     time.sleep(1)
    if not ready:raise RestoreError('Isolated target never became ready')
-   sql(roles);sql('DROP SCHEMA public;')
+   sql(roles,'isolated role bootstrap');sql('DROP SCHEMA public;','isolated empty-schema preparation')
    run(cmd('pg_restore',['-U','postgres','-d','postgres','--exit-on-error','/backup/database.dump']),env,stage='archive restore')
    # Schema initial privileges are not all emitted by pg_dump. Reapply recorded
    # effective source schema grants, without inventing provider role permissions.
    for grant in manifest.get('schema_grants',[{'schema':'public','grantee':'PUBLIC','privilege':'USAGE','grantable':False}]):
     if grant['privilege'] not in ('USAGE','CREATE'):raise RestoreError('Invalid schema privilege')
     role='PUBLIC' if grant['grantee']=='PUBLIC' else ident(grant['grantee'])
-    sql('GRANT '+grant['privilege']+' ON SCHEMA '+ident(grant['schema'])+' TO '+role+(' WITH GRANT OPTION' if grant['grantable'] else '')+';')
+    sql('GRANT '+grant['privilege']+' ON SCHEMA '+ident(grant['schema'])+' TO '+role+(' WITH GRANT OPTION' if grant['grantable'] else '')+';','isolated schema grants')
    actual=fingerprints(sql,manifest['schemas']);expected=manifest.get('table_fingerprints')
    if expected is not None and actual!=expected:raise RestoreError('Restored table fingerprints do not match snapshot')
    if sql("select count(*) from pg_constraint c join pg_namespace n on n.oid=c.connamespace where n.nspname in ('public','booking_private','invoice_private','quote_private') and not c.convalidated")!='0':raise RestoreError('Unvalidated business constraints')
