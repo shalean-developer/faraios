@@ -212,3 +212,7 @@
 .request-summary{top:calc(var(--booking-header-height) + 20px)}
 .request-layout legend,.f-picker__panel{scroll-margin-top:calc(var(--booking-header-height) + 16px)}
 @media(max-width:900px){.request-summary{top:0}.booking-header .booking-auth-button{padding:10px 14px}}
+
+/* Keep step legends for accessible group names and focus, without duplicate visible titles. */
+.request-layout fieldset[data-step]>legend{position:absolute;width:1px;height:1px;padding:0;margin:-1px;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.request-layout fieldset[data-step]>legend:focus-visible{outline:none}
