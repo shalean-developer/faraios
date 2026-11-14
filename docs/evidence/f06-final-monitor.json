@@ -1,0 +1,15 @@
+{
+  "schema": "faraios.external-monitor.v1",
+  "time": "2026-11-14T20:53:27+00:00",
+  "state": "healthy",
+  "home_available": true,
+  "home_status": 200,
+  "preview_available": true,
+  "preview_status": 200,
+  "auth_available": true,
+  "auth_status": 200,
+  "backup_restore_healthy": true,
+  "configuration_copy_recent": true,
+  "alert_sent": true,
+  "alert_decision": "recovery"
+}

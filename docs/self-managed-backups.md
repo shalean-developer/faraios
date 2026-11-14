@@ -1,5 +1,10 @@
 # Self-managed database backups
 
+**Current verified status and incident procedure: [F06 closeout](f06-closeout.md).**
+Historical setup/open-status statements below are superseded by that record.
+Daily encrypted export and weekly full Auth/API recovery are active once the
+operations closeout merges; no paid Supabase upgrade is required.
+
 Supabase remains on Free. No upgrade or production application deployment is included.
 
 The proposed GitHub Actions workflow exports the FaraiOS database using a read-only
