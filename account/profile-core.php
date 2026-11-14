@@ -12,7 +12,7 @@ function profile_logo(string $raw): array {
 function profile_form_values(array $old): array {
  // Display-only recovery after validation errors; never bypass profile_values() when saving.
  foreach(['name','description','email','phone','website','areas'] as $key)if(isset($_POST[$key])&&is_string($_POST[$key]))$old[$key]=substr($_POST[$key],0,8000);
- if(business_website_enabled(profile_env())){$old['homepage']=homepage_form_values();$old['pages']=business_pages_form_values();$old['seo']=business_seo_form_values();$old['presentation']=business_presentation_form_values($old['presentation']??[]);}
+ if(business_website_enabled(profile_env())){$old['homepage']=homepage_form_values()+['image'=>$old['homepage']['image']??null];$old['pages']=business_pages_form_values();$old['seo']=business_seo_form_values()+['image'=>$old['seo']['image']??null];$old['presentation']=business_presentation_form_values($old['presentation']??[]);}
  $old['hours']=[];foreach(profile_days() as $i=>$day)$old['hours'][]=isset($_POST['open_'.$i])?[(string)($_POST['from_'.$i]??''),(string)($_POST['to_'.$i]??'')]:null;
  return $old;
 }
