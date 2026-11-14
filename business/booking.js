@@ -83,11 +83,11 @@ const calculateOptions = service => {
   fields.email.setCustomValidity(!fields.email.value.trim() && !fields.phone.value.trim() ? 'Enter an email address or phone number.' : '');
   const phone = fields.phone.value.trim();
   fields.phone.setCustomValidity(phone && (!/^[+0-9 ()-]{5,40}$/.test(phone) || phone.replace(/\D/g, '').length < 5) ? 'Enter a valid phone number.' : '');
-  for (const [key, min] of [['name', 2], ['address', 5], ['requirements', 10]]) {
+  for (const [key, min] of [['name', 2], ['address', 5], ['requirements', 0]]) {
    fields[key].setCustomValidity(fields[key].value.trim().length < min ? `Enter at least ${min} characters.` : '');
   }
-  const noteLength=fields.requirements.value.trim().length+(fields.service_area?.value ? ('Service area: '+fields.service_area.value+'\n\n').length : 0);
-  if(noteLength>2000)fields.requirements.setCustomValidity('Shorten your requirements to fit the selected service area.');
+  const noteLength=(fields.requirements.value.trim() ? ('Notes or instructions: '+fields.requirements.value.trim()).length : 'No additional instructions.'.length)+(fields.service_area?.value ? ('Service area: '+fields.service_area.value+'\n\n').length : 0);
+  if(noteLength>2000)fields.requirements.setCustomValidity('Shorten your notes or instructions to fit the selected service area.');
   const parts = new Intl.DateTimeFormat('en-CA', {timeZone: zone, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hourCycle:'h23'}).formatToParts(new Date());
   const local = Object.fromEntries(parts.map(p => [p.type, p.value]));
   const today = `${local.year}-${local.month}-${local.day}`;
@@ -106,7 +106,7 @@ const calculateOptions = service => {
    area: fields.service_area?.value || 'Not selected',
    address: [fields.address.value.trim(), fields.unit.value.trim()].filter(Boolean).join(', ') || 'Not entered',
    schedule: [fields.date.value, fields.time.value].filter(Boolean).join(' · ') || 'Not selected',
-   requirements: fields.requirements.value.trim() || 'Not entered',
+   requirements: fields.requirements.value.trim() || 'None',
    name: fields.name.value.trim() || 'Not entered',
    email: fields.email.value.trim() || 'Not provided', phone: fields.phone.value.trim() || 'Not provided'
   };
