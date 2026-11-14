@@ -14,6 +14,12 @@ class BusinessHeader(SEO):
    self.sql('set role authenticated;set request.jwt.claim.sub='+lit(uid)+";set request.jwt.claims='{\"is_anonymous\":false}';select public.business_profile_save("+lit(bid)+",'preview',"+lit(slug)+','+lit(json.dumps(p))+"::jsonb,0);select public.business_profile_publish("+lit(bid)+",'preview',1)")
   before=self.sql("select md5(string_agg(row_to_json(t)::text,'' order by business_id,environment)) from public.business_profiles t")
   a='/preview/account/customer.php?slug=header-one';b='/preview/account/customer.php?slug=header-two'
+  # Match the host's exact entrypoint-based private configuration router.
+  original_config=self.preview_config
+  routed=original_config.replace('<?php return ', "<?php if(($_SERVER['SCRIPT_NAME']??'')!=='/preview/account/index.php')throw new RuntimeException('Account configuration is unavailable.');return ")
+  self.private_config.write_text(routed)
+  self.assertEqual(self.get(a)[0],200)
+  self.private_config.write_text(original_config)
   # Owner session alone must never appear in a customer header.
   self.post('/preview/account/index.php?page=signin',email='a@example.test',password='test-long-password')
   self.assertFalse(json.loads(self.get(a+'&mode=header')[1])['authenticated'])

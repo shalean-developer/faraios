@@ -1,5 +1,8 @@
 <?php
 declare(strict_types=1);
+// Use the existing account entrypoint's private environment-config routing.
+// Cookie identity and customer authorization remain business-scoped below.
+$_SERVER['SCRIPT_NAME']=preg_replace('~/account/customer\.php$~','/account/index.php',$_SERVER['SCRIPT_NAME']??'');
 require __DIR__.'/core.php';
 require __DIR__.'/profile-core.php';
 require dirname(__DIR__).'/business/homepage.php';
