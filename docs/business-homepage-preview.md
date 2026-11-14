@@ -33,3 +33,13 @@ PASS record preservation: all 15 public-table full-row count/fingerprints match 
 Enquiry form now opts into shared ui/select only on preview homepage; original public forms retain default behavior. PHP lint and native enquiry regression PASS after change. Booking assets unchanged.
 
 Decision: **PASS preview implementation and desktop hosted verification.** Owner review pending. Hosted mobile emulation limitation documented; local mobile tests PASS. **Production NO-GO — preview-only scope remains in force.**
+
+## Editable standalone pages — 14 November 2026
+
+Owner requested separate Services, How it works, Areas and Contact pages with owner editing. Extend this same preview-only PR. Routes: /b/{slug}/services, /how-it-works, /areas, /contact. Stable menu labels link to these routes with aria-current; brand returns home and Book now stays at the separate root booking flow. Published snapshot, tenant/environment query and public data allowlist remain unchanged. Unknown subpages/unpublished businesses fail closed. Each subpage has its own title, canonical and description; preview remains noindex.
+
+Profile → Website pages edits each title120/introduction600/body3000 and the three How-it-works step title120/description600 pairs. Empty fields use standard copy. Service cards/prices remain managed in Services & pricing; areas/contacts/hours remain existing public profile fields. Draft previews use saved draft content and draft catalogue with private navigation. Existing versioned Save draft / explicit Publish semantics preserved. Optional strictly validated pages object requires no backfill. Validator-only migration20261114064032; no new tables, grants, policies, gate or record changes. No rich HTML; text/steps escaped. Pending-confirmation notice remains fixed.
+
+Contact form keeps CSRF/origin/rate/field validation and shared dropdown. Contact POST errors and success return to /contact#enquire. Non-contact subpage POSTs return405. Booking assets and step behavior unchanged.
+
+PASS local native profile/homepage JSON/isolation suite5; preview HTTP editor save/reload, saved draft subpage preview, publication snapshot isolation, stale version rejection, field bounds, second owner isolation, all four routes and Contact submission/redirect. All on disposable PostgreSQL/PHP; no hosted fixture changes. PASS browser actual renderer: all four routes, navigation/reload, custom/default text and steps, escaping, correct content-only sections, contact action/dropdown and separate booking links at1280/390/320. PASS booking URL/history/recovery regression and PHP lint/whitespace. Hosted verification pending; preserve all existing records. Production NO-GO.

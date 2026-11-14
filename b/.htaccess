@@ -1,3 +1,4 @@
 Options -Indexes
 RewriteEngine On
+RewriteRule ^([a-z0-9]+(?:-[a-z0-9]+)*)/(services|how-it-works|areas|contact)/?$ index.php?slug=$1&page=$2 [QSA,L]
 RewriteRule ^([a-z0-9]+(?:-[a-z0-9]+)*)/?$ index.php?slug=$1 [QSA,L]
