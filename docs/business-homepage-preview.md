@@ -47,3 +47,64 @@ PASS local native profile/homepage JSON/isolation suite5; preview HTTP editor sa
 Hosted standalone-page verification PASS: application revision284a7d8fc11de590c4a8e978c1512d3f461945cf deployed only to manual accounts-preview; Plesk completed/Done. Services direct navigation/reload, How it works→Areas→Contact header navigation, distinct content per route, active links, correct standalone canonicals and Contact form target verified. Contact Book now opens root ?booking=1&step=service with all five progress steps. No hosted forms submitted or records saved. Screenshot docs/evidence/business-pages-preview.png. Native/local edit-save-publish evidence above remains the content-edit verification; no hosted edit claimed under record-preservation constraint.
 
 All15 public-table full-row counts/fingerprints exactly match pre-change baseline. Production main remains a8082fd4a561820a286f17601d29a55d1f93f450. PR22 stays draft/unmerged. PASS preview; production remains NO-GO under preview-only scope.
+
+## Business website SEO upgrade — 14 November 2026
+
+Continue draft PR22, same feature branch. **Candidate only: no production merge/deployment, publication, live intake activation, hosted profile save or existing-record change.** SEO migration is prepared and tested locally, **not installed in faraios-new**. Do not deploy this candidate editor before the optional validator migration is installed.
+
+### Implemented behavior
+
+- Profile → Search & sharing: separate title120/description300 for Home, Services, How it works, Areas and Contact. Advice recommends concise original titles (~50–60 characters) and descriptions (~140–160), without treating those recommendations as search-engine limits. Blank settings fall back to the selected page introduction plus genuine public business name; homepage uses its owner introduction/description/name. Unicode-safe whitespace normalization and truncation replace byte slicing. Text is escaped in HTML and JSON-LD.
+- Optional owner sharing image: raster PNG/JPEG/WebP, max150KB and2000×2000; required image description. Each page can use Auto (sharing image → hero → logo), Hero, Logo, or None. Image metadata includes genuine dimensions and alt text. No invented stock/business image is supplied. Uses the same draft save, stale-version rejection, explicit publication and snapshot isolation as existing profile content. No backfill, table, policy, grant or activation-gate changes.
+- Canonicals, Open Graph and Twitter metadata are absolute URLs from trusted deployment configuration, not request host/query input. Schema graph contains Organization, WebPage/CollectionPage/ContactPage and BreadcrumbList. Only public snapshot details appear; no private account name/email, fabricated address, ratings, reviews, credentials, geography coordinates, price range or LocalBusiness eligibility. A public street address is not currently collected. Visible subpage breadcrumbs agree with the graph.
+- Recognized content URLs normalize uppercase slug/page names, trailing slash, direct index.php queries, extraneous query parameters and a noncanonical request host/scheme (when the server exposes the scheme). Validated, environment-scoped snapshot lookup occurs before a301; unknown/unpublished pages return404. Backend failure returns503/Retry-After60 rather than a soft404. Query parameters cannot replace a pretty URL's business/page. Old slugs after republication return404; no historical redirect is fabricated because no slug-history table exists.
+- Booking/step queries stay excluded from indexing and are never normalized by the new content redirect logic. Their metadata has no content-page canonical, social tags or business schema. The five-step JS/CSS and request submission contracts are unchanged. POSTs never receive a content normalization redirect; non-contact standalone POSTs remain405.
+- Dynamic `/sitemap.xml` replaces the static file through the existing Apache rewrite surface. Live output retains the platform homepage and only currently published live snapshot roots. Preview output is an empty urlset and does not enumerate even live business slugs. Stable keyset pagination covers more than500 businesses. No private IDs, drafts, preview URLs, booking steps or fabricated lastmod dates. Failure returns503. **The existing standalone-page/homepage activation gate remains preview-only**, so `/services`, `/how-it-works`, `/areas`, `/contact` are deliberately omitted from a live sitemap until a separately authorized release makes them live/indexable. More than50,000 URLs fails closed and will need a sitemap index before scaling to that size.
+- PHP responses emit meta and HTTP noindex for preview/missing/private/booking pages. Apache adds noindex to all `/_accounts-preview/` responses, including static assets/landing pages. robots.txt remains crawlable so robots can see noindex; authentication continues to protect private content. Hosted Apache header/rewrite verification remains pending.
+- One visible H1 per page; service/process headings become H2 on standalone pages, retaining H3 within homepage H2 sections. Skip link now focuses the content target. Added44px header-navigation targets, visible focus and breadcrumbs. Service numbering is contiguous after hidden/archived filtering. All displayed images have descriptive alt text or are decorative branding; hero dimensions come from the actual uploaded image and its layout space remains reserved.
+- Darkened secondary text after axe measured4.12:1 card contrast,4.34:1 enquiry helper contrast and4.17:1 footer contrast (all below4.5:1). Changes are scoped to the homepage template. No booking styles changed.
+- Services/How it works/Areas avoid unnecessary enquiry sessions and select CSS/JS; Home/Contact keep the form assets. Hero uses high fetch priority, actual dimensions and async decoding. CSS uses system fonts and no external font/animation dependencies. Pinch zoom remains enabled.
+
+### Content guidance
+
+The owner editor now asks for original descriptions of actual services, inclusions/exclusions and useful coverage details. Keep one informative Areas page; do not create near-identical suburb pages or keyword lists. Service cards continue to use the published catalogue, prices and genuine owner descriptions. Separate detailed service/area routes are not auto-generated. Original business content and a suitable owner photo remain owner responsibilities; this preview does not claim a ranking, indexing or rich-result guarantee.
+
+### Verification
+
+PASS disposable native PostgreSQL17 and real PHP HTTP:
+
+- Existing homepage/profile suite5: legacy documents, content persistence, publish snapshots, bounds, logo handling, tenant denial.
+- Existing standalone-page edit/save/reload/private-draft/public-snapshot/stale-version/Contact submission suite1.
+- New SEO suite5: per-page metadata fallback/custom titles and descriptions; escaped script-like text; actual sharing-image multipart upload/save/reload/publish; image dimensions/alt/noindex; preview/private metadata isolation; second-owner denial; normalized routes/host/trailing slash/query pollution;404 and503; non-contact POST405; all booking variants noindex without schema/canonicals; live draft invisibility; live-only sitemap, unpublish removal, tenant-separated graphs; **501 synthetic businesses spanning sitemap batches**; legacy/valid/invalid native JSON validation.
+
+PASS actual Chromium renderer:
+
+- Existing homepage and four standalone-page suites at1280/390/320; custom/default copy, images, navigation/reload, visible published services/prices, auth identity, contact controls and booking entry.
+- Existing booking URL/history/recovery and header suites: guarded steps, Back/Forward, restored fields/options/custom controls, expiry and guest/auth header.
+- New accessibility scan: axe-core4.14.0 WCAG2A/AA,2.1AA,2.2AA tags; **15 page/viewport combinations, zero automated violations**. One visible H1, no heading skips, no horizontal overflow,44px navigation targets, and keyboard skip-link focus checks. Automated checks do not replace screen-reader or physical-device review.
+- Mobile synthetic lab:390×844,4× CPU slowdown,150ms network latency,1.6Mbps down/750Kbps up, three cold runs each for default and owner-image homepage. Owner image fixture is a1200×630 raster padded to the full150KB upload limit. Observed LCP **0.56–1.24s**, CLS **0**, actual tap interaction durations **32–40ms**. Exact rerun values are in `docs/evidence/business-seo-checks.json`; image `docs/evidence/business-seo-mobile.png` shows the tested local Services page. Pointer-hover events without an interactionId are retained in raw evidence but are not counted as INP interactions.
+
+These are **local fixture lab measurements**, not hosted/field Core Web Vitals or a Lighthouse100 score. Native HTTP tests exercise real PHP/database code with simulated Auth/PostgREST transports; browser fixtures exercise the actual template/CSS/JS with synthetic identities, catalogue and raster. Hosted API latency, real owner content/photos, Apache rewrites, social crawlers and Google indexing remain unverified for this candidate. No real customers or providers were contacted.
+
+Reproducible commands (set PHP_BIN,PG_BIN,PG_LIB,LD_LIBRARY_PATH,PLAYWRIGHT_MODULE,BROWSER_BIN for the available runtime):
+
+```sh
+python tests/homepage.py
+python tests/business-pages.py
+python tests/seo.py
+node tests/homepage-browser.cjs
+node tests/business-pages-browser.cjs
+node tests/booking-history-browser.cjs
+node tests/booking-header-browser.cjs
+AXE_MODULE=/path/to/@axe-core/playwright node tests/seo-browser.cjs
+```
+
+The axe browser test requires Playwright, `@axe-core/playwright@4.14.0`, Python with Pillow, Chromium and PHP. These are verification dependencies only; no runtime package/bundle is added to the website.
+
+### Hosted status and remaining gate
+
+Read-only review confirms the hosted Services page is still the preceding candidate (H3 cards, no JSON-LD), not this SEO build. Automatic approval review denied observation of the signed-in Plesk administration origin `https://so1.cloud-wex.com:8443` because admin-origin access was not explicit in the preview-only request. No alternate admin surface or deployment workaround was attempted. A specific owner authorization for that administration origin is needed to update **only** manual `faraios-accounts-preview.git` → `/faraios.com/_accounts-preview`, then verify hosted rendering, metadata, headers, redirects and sitemap. Production `faraios.git`/main and waitlist preview must remain untouched.
+
+Hosted Supabase access in this task was read-only: existing validator/table inventory, security advisor baseline and counts. All15 public-table counts match the previous documented checkpoint: requests5, assignments7, bookings13, customers2, enquiries9, invoice events22, invoice payments9, invoices5, profiles4, public pages1, quotes7, catalogues3, staff5, businesses3, waitlist subscribers2. No full-row fingerprint comparison is claimed for this SEO task; **no hosted schema/data write was executed**. Existing security-advisor warning about leaked-password protection is unchanged; its remediation remains https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection.
+
+After admin authorization: capture full-row preservation fingerprints; apply only the backwards-compatible pure JSON validator migration through Supabase; verify the validator and unchanged permissions; update only the manual preview application; test all hosted routes/headers/sitemap/booking entry without submitting forms or saving existing profiles; compare fingerprints; retain all test history. Do not publish a business or activate live intake. If blocked, leave this candidate in draft PR22 with this limitation. Production remains outside scope.
