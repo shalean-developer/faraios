@@ -68,7 +68,7 @@ function homepage_brand(array $p,string $url,string $logo): void { ?>
 // Preview supports confidential document links and guest requests, not customer accounts.
 function homepage_customer_identity(string $base,string $slug,string $return=''): void {
  $url=$base.'/account/customer.php?slug='.rawurlencode($slug).'&return='.rawurlencode($return);
- if((parse_url($base,PHP_URL_PATH)?:'')!==''){
+ if((parse_url($base,PHP_URL_PATH)?:'')!==''||(function_exists('foundation_enabled')&&foundation_enabled())){
   echo '<div class="booking-identity" data-customer-help><a class="booking-auth-button" href="'.esc($url).'">Customer help</a></div>';return;
  }
  echo '<div class="booking-identity" data-header-session="'.esc($base.'/account/customer.php?slug='.rawurlencode($slug).'&mode=header').'" data-account-url="'.esc($url).'"><a class="booking-auth-button" href="'.esc($url).'">Sign in</a></div>';

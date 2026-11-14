@@ -6,7 +6,7 @@ $_SERVER['SCRIPT_NAME']=preg_replace('~/account/customer\.php$~','/account/index
 require __DIR__.'/core.php';
 require __DIR__.'/profile-core.php';
 require dirname(__DIR__).'/business/homepage.php';
-if(profile_env()==='preview'){require __DIR__.'/customer-help.php';exit;}
+if(foundation_enabled()){require __DIR__.'/customer-help.php';exit;}
 header('Cache-Control: no-store, private');header('X-Robots-Tag: noindex, nofollow');header('Vary: Cookie');
 $slug=is_string($_GET['slug']??null)?$_GET['slug']:'';
 $header=($_GET['mode']??'')==='header';if($header&&$_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);header('Allow: GET');exit;}$p=null;$error='';$u=null;

@@ -2,7 +2,7 @@
 import json,os,subprocess,sys,time,re,platform
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'test-results/release';OUT.mkdir(parents=True,exist_ok=True)
-suites=['accounts','profiles','services','customers','staff','enquiries','quotes','bookings','invoices','dashboard','requests','rooms','area-pages','website-release','customer-access','business-header','enquiry-workflow','foundation','full-journey','enquiry-mail','enquiry-notifications','observability','ops-alerts','recovery']
+suites=['accounts','profiles','services','customers','staff','enquiries','quotes','bookings','invoices','dashboard','requests','rooms','area-pages','website-release','customer-access','business-header','enquiry-workflow','foundation','production-activation','full-journey','enquiry-mail','enquiry-notifications','observability','ops-alerts','recovery']
 def command(args):
  p=subprocess.run(args,cwd=ROOT,capture_output=True,text=True);return p.stdout.strip() or p.stderr.strip()
 env=dict(os.environ,RECOVERY_REPORT=str(OUT/'recovery.json'))

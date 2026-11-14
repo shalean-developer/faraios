@@ -2,6 +2,8 @@
 declare(strict_types=1);
 // Public fields are explicit; account metadata and private contact details never enter this payload.
 function profile_env(): string {return (parse_url(cfg()['base_url'],PHP_URL_PATH)?:'')===''?'live':'preview';}
+// Live activation is an explicit private configuration step after release authorization.
+function foundation_enabled(): bool {return profile_env()==='preview'||(cfg()['foundation_release']??false)===true;}
 function profile_rpc(string $name,array $args=[],bool $public=false): array {return api('/rest/v1/rpc/'.$name,$args,'POST',$public?null:$_SESSION['auth']['access_token']);}
 function profile_load(array $b): ?array {$r=api('/rest/v1/business_profiles?business_id=eq.'.rawurlencode($b['id']).'&environment=eq.'.profile_env().'&select=*',[],'GET',$_SESSION['auth']['access_token']);return $r[0]??null;}
 function profile_logo(string $raw): array {

@@ -10,7 +10,7 @@ class Access(SEO):
    self.scope(uid,'select public.business_profile_save('+','.join(map(lit,[bb,'preview',slug]))+','+lit(json.dumps(d))+"::jsonb,0);select public.business_profile_publish("+','.join(map(lit,[bb,'preview',1]))+')')
   catalogue=dict(currency='ZAR',items=[dict(id='1'*32,name='Assessment',description='',duration=60,mode='fixed',amount=25000,visible=True,archived=False)])
   self.scope(a,'select public.business_services_save('+','.join(map(lit,[bid,'preview']))+','+lit(json.dumps(catalogue))+"::jsonb,0);select public.business_services_publish("+','.join(map(lit,[bid,'preview',1]))+')')
-  path='/preview/account/customer.php?slug=access-one' 
+  path='/preview/account/customer.php?slug=access-one'
   def request(path,method='GET',data=None):
    req=urllib.request.Request(self.url+path,method=method,data=data)
    try:r=self.client.open(req)
