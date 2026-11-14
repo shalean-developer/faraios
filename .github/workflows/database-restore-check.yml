@@ -6,6 +6,11 @@ on:
         description: Successful encrypted backup workflow run ID
         required: false
         default: ''
+      auth_rehearsal:
+        description: Also test real Auth/API services in an internal-only disposable network
+        type: boolean
+        required: false
+        default: false
   schedule:
     - cron: '0 3 * * 0'
 permissions:
@@ -43,6 +48,7 @@ jobs:
           BACKUP_PASSPHRASE: ${{ secrets.FARAIOS_BACKUP_PASSPHRASE }}
           RESTORE_INPUT: ${{ runner.temp }}/restore-input
           RESTORE_REPORT: ${{ runner.temp }}/restore-evidence/report.json
+          RESTORE_AUTH_REHEARSAL: ${{ inputs.auth_rehearsal && 'true' || 'false' }}
         run: |
           mkdir -p "$(dirname "$RESTORE_REPORT")"
           python3 scripts/database-restore-check.py "$RESTORE_INPUT" > "$RESTORE_REPORT"
