@@ -38,11 +38,11 @@ function enquiry_submit(string $slug,array $services): void {
  unset($_SESSION['forms'][$slug]);$_SESSION['enquiry_sent']=$slug;
  header('Location: '.cfg()['base_url'].'/b/'.rawurlencode($slug).'#enquire',true,303);exit;
 }
-function enquiry_form(string $slug,array $services,string $error,bool $sent): void {
+function enquiry_form(string $slug,array $services,string $error,bool $sent,bool $custom=false): void {
  $ticket=enquiry_ticket($slug);echo '<section class="public-card enquiry-form" id="enquire"><h2>Enquire or request a quote</h2><p class="muted">Tell us what you need. The business will contact you directly.</p>';
  if($error!=='')echo '<p class="alert" role="alert">'.esc($error).'</p>';
  if($sent)echo '<p class="notice" role="status">Your enquiry has been sent. The business can now contact you.</p>';
- echo '<form method="post" action="'.esc(cfg()['base_url'].'/b/'.$slug).'#enquire"><input type="hidden" name="csrf" value="'.esc($ticket['csrf']).'"><div class="spam-field" aria-hidden="true"><label for="website">Leave blank</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div><label for="service">Service <span class="optional">optional</span></label><select id="service" name="service"><option value="">General enquiry</option>';
+ echo '<form method="post" action="'.esc(cfg()['base_url'].'/b/'.$slug).'#enquire"><input type="hidden" name="csrf" value="'.esc($ticket['csrf']).'"><div class="spam-field" aria-hidden="true"><label for="website">Leave blank</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div><label for="service">Service <span class="optional">optional</span></label><select id="service" name="service"'.($custom?' data-faraios-select':'').'><option value="">General enquiry</option>';
  foreach($services['items']??[] as $s)if($s['visible']&&!$s['archived'])echo '<option value="'.esc($s['id']).'"'.(($_POST['service']??'')===$s['id']?' selected':'').'>'.esc($s['name']).'</option>';
  echo '</select><label for="name">Your name</label><input id="name" name="name" autocomplete="name" minlength="2" maxlength="120" required value="'.esc(is_string($_POST['name']??null)?$_POST['name']:'').'">';
  foreach(['email'=>'Email address','phone'=>'Phone number'] as $key=>$label)echo '<label for="'.$key.'">'.$label.'</label><input id="'.$key.'" name="'.$key.'" type="'.($key==='phone'?'tel':'email').'" autocomplete="'.($key==='phone'?'tel':'email').'" maxlength="'.($key==='phone'?40:254).'" value="'.esc(is_string($_POST[$key]??null)?$_POST[$key]:'').'">';
