@@ -49,3 +49,5 @@ Branding settings and two-business customer isolation were exercised on disposab
 Decision: **PASS preview implementation and existing-account sign-in verification; ready for owner review. Production NO-GO until explicit authorization.** Shalean was not republished.
 
 Owner refinement: shortened guest introduction to “Sign in to your account.” and centred the Back link with24px separation beneath the full-width Sign in button. Auth capability limitations remain documented here; no authentication logic or records changed.
+
+Spacing refinement deployed to accounts-preview at0d75bbbe. Hosted1280/390px confirms shortened introduction, centred Back link,24px separation below Sign in and no overflow. Screenshot customer-signin-spacing.jpg. PHP lint/whitespace passed. Production, auth logic and records unchanged.
