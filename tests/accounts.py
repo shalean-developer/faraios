@@ -9,8 +9,9 @@ class Accounts(Journey):
   cls.sql("create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;grant usage on schema auth to authenticated;grant execute on all functions in schema auth to authenticated;")
   cls.sql(next((ROOT/'supabase/migrations').glob('*account_business_setup.sql')).read_text())
   cls.sql(next((ROOT/'supabase/migrations').glob('*business_location_details.sql')).read_text())
+  cls.sql(next((ROOT/'supabase/migrations').glob('*account_information_editing.sql')).read_text())
   cls.ids=[str(uuid.uuid4()),str(uuid.uuid4())];cls.sql('insert into auth.users values '+','.join("('%s')"%x for x in cls.ids))
-  cls.auth_calls=[];cls.confirmed=False;cls.used=False;cls.biz=[];cls.expired_login=False;cls.deny_refresh=False;cls.invalid_credentials=False;cls.biz_unavailable=False
+  cls.pending_email='';cls.email_verify_count=0;cls.edit_race=False;cls.reject_edit=False;cls.auth_calls=[];cls.confirmed=False;cls.used=False;cls.biz=[];cls.expired_login=False;cls.deny_refresh=False;cls.invalid_credentials=False;cls.biz_unavailable=False
   class Gateway(BaseHTTPRequestHandler):
    def log_message(self,*args):pass
    def call(self):
@@ -21,15 +22,24 @@ class Accounts(Journey):
      elif cls.invalid_credentials:status=400;data={'error_code':'invalid_credentials'}
      elif not cls.confirmed:status=400;data={'error_code':'email_not_confirmed'}
      else:data={'access_token':'test_access','refresh_token':'test_refresh','expires_in':(-1 if cls.expired_login and 'grant_type=password' in self.path else 3600),'user':{'id':cls.ids[0]}}
-    elif self.path=='/auth/v1/user':data={'id':cls.ids[0],'email':'owner@example.test','email_confirmed_at':'2026-11-12','user_metadata':{'name':cls.saved_name}}
+    elif self.path.startswith('/auth/v1/user'):
+     if self.command=='PUT':
+      if cls.reject_edit:status=503
+      elif 'data' in body:cls.saved_name=body['data']['name']
+      elif 'email' in body:cls.pending_email=body['email']
+     data={'id':cls.ids[0],'email':'owner@example.test','new_email':cls.pending_email,'email_confirmed_at':'2026-11-12','user_metadata':{'name':cls.saved_name}}
     elif self.path=='/auth/v1/verify':
-     if cls.used:status=403
+     if body.get('type')=='email_change':
+      cls.email_verify_count+=1;data={'msg':'Confirmation link accepted'} if cls.email_verify_count==1 else {'access_token':'email_change_access','refresh_token':'email_change_refresh'}
+     elif cls.used:status=403
      else:cls.used=True;cls.confirmed=True;data={'access_token':'test_access','refresh_token':'test_refresh'}
     elif self.path.startswith('/rest/v1/businesses'):
      if cls.biz_unavailable:status=503
      if self.command=='POST':cls.biz=[{'id':str(uuid.uuid4()),'name':body['name'],'business_type':body['business_type'],'country':body['country'],'time_zone':body['time_zone']}]
-     if self.command=='PATCH':cls.biz[0].update(body)
-     data=cls.biz
+     filters=urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+     matches=all(filters.get(k)==[('is.null' if cls.biz[0].get(k) is None else 'eq.'+cls.biz[0][k])] for k in ['name','business_type','country','time_zone'] if k in filters)
+     if self.command=='PATCH' and not cls.edit_race and matches:cls.biz[0].update(body)
+     data=[] if self.command=='PATCH' and (cls.edit_race or not matches) else cls.biz
     self.send_response(status);self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(json.dumps(data).encode())
    do_POST=call;do_GET=call;do_PUT=call;do_PATCH=call
   cls.account_gateway=ThreadingHTTPServer(('127.0.0.1',0),Gateway);threading.Thread(target=cls.account_gateway.serve_forever,daemon=True).start()
@@ -92,6 +102,50 @@ class Accounts(Journey):
   self.assertIn('Password updated',self.submit('reset',password='new-long-password',password_confirm='new-long-password'))
   self.assertIn('This email link is invalid',self.submit('confirm',token_hash='b'*64,type='recovery'))
   self.assertFalse(any('waitlist' in p for p,b in self.auth_calls))
+ def test_02_account_editing(self):
+  self.submit('signin',email='owner@example.test',password='long-test-password')
+  def version(edit):return re.search('name="version" value="([^"]+)"',self.getpage('welcome&edit='+edit))[1]
+  personal=version('personal')
+  self.assertIn('Enter a valid name',self.submit('welcome&edit=personal',action='save_personal',name='x',version=personal))
+  self.assertIn('Your name was saved',self.submit('welcome&edit=personal',action='save_personal',name='Edited Owner',version=personal))
+  self.assertIn('Edited Owner',self.getpage('welcome'))
+  self.assertIn('Your name changed',self.submit('welcome',action='save_personal',name='Stale Owner',version=personal))
+  type(self).reject_edit=True
+  self.assertNotIn('Your name was saved',self.submit('welcome',action='save_personal',name='Unstored Owner',version=version('personal')))
+  type(self).reject_edit=False
+  self.assertIn('Edited Owner',self.getpage('welcome'))
+  business_version=version('business')
+  data=dict(action='save_business',business_name='Edited Company',business_type='beauty-wellness',country='ZA',time_zone='Africa/Johannesburg',version=business_version)
+  self.assertIn('Choose your business type',self.submit('welcome',**dict(data,business_type='invalid')))
+  self.assertIn('Choose your country',self.submit('welcome',**dict(data,country='XX')))
+  self.assertIn('Business details saved',self.submit('welcome&edit=business',**data))
+  for text in ['Edited Company','Beauty &amp; wellness','South Africa']:self.assertIn(text,self.getpage('welcome'))
+  self.assertIn('Business details changed',self.submit('welcome',**data))
+  type(self).edit_race=True
+  self.assertIn('Business details changed',self.submit('welcome',**dict(data,version=version('business'))))
+  type(self).edit_race=False
+  self.assertEqual(self.biz[0]['name'],'Edited Company')
+  special='Edited, "Company" & Sons'
+  self.assertIn('Business details saved',self.submit('welcome',**dict(data,business_name=special,version=version('business'))))
+  self.assertEqual(self.biz[0]['name'],special)
+  self.submit('welcome',**dict(data,business_name='Fresh Company',business_type='cleaning',version=version('business')))
+  self.assertIn('Enter a different email',self.submit('welcome&edit=email',action='change_email',email='owner@example.test'))
+  self.assertIn('Enter a valid email',self.submit('welcome&edit=email',action='change_email',email='invalid'))
+  self.assertIn('Check both your current and new inboxes',self.submit('welcome&edit=email',action='change_email',email='new@example.test'))
+  page=self.getpage('welcome');self.assertIn('owner@example.test',page);self.assertIn('Pending email: new@example.test',page)
+  path,body=next((p,b) for p,b in reversed(self.auth_calls) if p.startswith('/auth/v1/user?'))
+  self.assertEqual(body,{'email':'new@example.test'})
+  self.assertEqual(urllib.parse.parse_qs(urllib.parse.urlparse(path).query)['redirect_to'],[self.accountbase+'/account/index.php?page=confirm'])
+  self.assertIn('Confirm the link in your other inbox',self.submit('confirm',token_hash='e'*64,type='email_change'))
+  self.assertIn('Email change confirmed',self.submit('confirm',token_hash='f'*64,type='email_change'))
+  self.assertTrue(any(p=='/auth/v1/logout?scope=local' for p,b in self.auth_calls))
+  self.assertIn('Edit your name',self.getpage('welcome'))
+  before=len(self.auth_calls)
+  r=type(self).client.open(urllib.request.Request(self.accountbase+'/account/index.php?page=welcome',data=b'action=save_personal&name=Forged'))
+  self.assertIn('form has expired',r.read().decode())
+  self.assertFalse(any('data' in b for p,b in self.auth_calls[before:]))
+  with self.assertRaises(urllib.error.HTTPError) as denied:self.client.open(self.accountbase+'/account/settings-core.php')
+  self.assertEqual(denied.exception.code,403)
  def test_02_csrf_and_headers(self):
   r=self.client.open(self.accountbase+'/account/index.php?page=signin');self.assertIn('no-store',r.headers['Cache-Control']);self.assertEqual(r.headers['Referrer-Policy'],'same-origin');self.assertIn("frame-ancestors 'none'",r.headers['Content-Security-Policy'])
   r=self.client.open(urllib.request.Request(self.accountbase+'/account/index.php?page=forgot',data=b'email=owner%40example.test'));self.assertIn('form has expired',r.read().decode())
@@ -99,7 +153,7 @@ class Accounts(Journey):
   body=urllib.parse.urlencode({'csrf':token,'token_hash':'c'*64,'type':'email'}).encode()
   r=type(self).client.open(urllib.request.Request(self.accountbase+'/account/index.php?page=confirm',data=body,headers={'Origin':'null'}));html=r.read().decode()
   self.assertIn('form has expired',html);self.assertIn('value="'+('c'*64)+'"',html)
-  self.assertIn('account.js?v=20261112-3',html)
+  self.assertIn('account.js?v=20261115-2',html)
  def test_04_session_refresh_and_errors(self):
   type(self).expired_login=True
   type(self).confirmed=True
@@ -141,10 +195,16 @@ class Accounts(Journey):
   with self.assertRaises(RuntimeError):scoped(a,"update public.businesses set owner_id='"+b+"'")
   scoped(b,"insert into public.businesses(owner_id,name,business_type,country,time_zone) values ('"+b+"','Native B','other','GB','Europe/London')")
   self.assertEqual(scoped(b,'select name from public.businesses'),'Native B')
-  for q in ["insert into public.businesses(owner_id,name,business_type) values ('"+a+"','Forge','other')","update public.businesses set name='Stolen'","delete from public.businesses"]:
+  for q in ["insert into public.businesses(owner_id,name,business_type) values ('"+a+"','Forge','other')","delete from public.businesses"]:
    with self.assertRaises(RuntimeError):scoped(b,q)
+  scoped(a,"update public.businesses set name='Updated A',business_type='other'")
+  scoped(b,"update public.businesses set name='Stolen' where owner_id='"+a+"'")
+  scoped(a,"update public.businesses set name='Anonymous'",True)
+  self.assertEqual(scoped(a,'select name from public.businesses'),'Updated A')
+  self.assertEqual(scoped(a,'select business_type from public.businesses'),'other')
+  with self.assertRaises(RuntimeError):scoped(a,"update public.businesses set id=gen_random_uuid()")
   with self.assertRaises(RuntimeError):self.sql('set role anon;select * from public.businesses')
   with self.assertRaises(RuntimeError):scoped(b,"insert into public.businesses(owner_id,name,business_type) values ('"+b+"','Anonymous','other')",True)
   with self.assertRaises(RuntimeError):scoped(a,"insert into public.businesses(owner_id,name,business_type) values ('"+a+"','Duplicate','other')")
 if __name__=='__main__':
- suite=unittest.TestSuite(Accounts(n) for n in ['test_01_account_journey','test_02_csrf_and_headers','test_03_rls','test_04_session_refresh_and_errors','test_05_idle_session_and_outage_logout']);result=unittest.TextTestRunner(verbosity=2).run(suite);sys.exit(not result.wasSuccessful())
+ suite=unittest.TestSuite(Accounts(n) for n in ['test_01_account_journey','test_02_account_editing','test_02_csrf_and_headers','test_03_rls','test_04_session_refresh_and_errors','test_05_idle_session_and_outage_logout']);result=unittest.TextTestRunner(verbosity=2).run(suite);sys.exit(not result.wasSuccessful())
