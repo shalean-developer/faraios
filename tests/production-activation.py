@@ -1,9 +1,9 @@
 """Native production activation/rollback rehearsal; entirely disposable, no hosted writes."""
 from invoices import Invoices
-from journey import ROOT,lit
+from journey import ROOT,lit,PHP
 from foundation import Foundation
 from concurrent.futures import ThreadPoolExecutor
-import unittest,json,datetime,uuid
+import unittest,json,datetime,uuid,subprocess,os,time
 class Activation(Foundation):
  def snapshot(self):
   tables=self.sql("select schemaname||'.'||tablename from pg_tables where schemaname in ('public','invoice_private','quote_private','booking_private','enquiry_private') order by 1").splitlines()
@@ -25,6 +25,14 @@ class Activation(Foundation):
    with self.assertRaises(RuntimeError):rpc(owner,'business_quote_send',**(ctx|dict(p_id=qid,p_version=1)|extra))
   config=self.private/'profiles/config.php';original_config=config.read_text()
   config.write_text(original_config.replace("'enabled'=>true", "'enabled'=>true,'foundation_release'=>true"))
+  self.assertIn("'foundation_release'=>true",config.read_text())
+  # Recycle the PHP worker after private configuration activation (including opcode caches).
+  self.proc.terminate();self.proc.wait()
+  private=self.private/'profiles'
+  type(self).proc=subprocess.Popen([PHP,'-d','session.save_path='+str(private),'-S',self.url.removeprefix('http://'),'-t',str(ROOT),str(private/'router.php')],env=dict(self.env,FARAIOS_ACCOUNT_DIR=str(private)),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+  for _ in range(80):
+   try:self.get('/account/index.php?page=signin');break
+   except OSError:time.sleep(.05)
   self.post('/account/index.php?page=signin',email='a@example.test',password='test-long-password')
   path='/account/quotes.php?id='+qid
   self.assertIn('deliberately a free quote',self.post(path,action='send',version=1,confirm_send='on'))

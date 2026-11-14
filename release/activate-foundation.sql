@@ -1,6 +1,14 @@
 -- MANUAL RELEASE STEP ONLY. Not applied by preview deployment.
 -- Requires explicit production authorization. Retains all rows, counters and history.
 begin;
+do $preflight$ begin
+ if md5(pg_get_functiondef('quote_private.guard_free()'::regprocedure)::text) is null then raise exception 'Missing release prerequisite';end if;
+ if (select md5(prosrc) from pg_proc where oid='quote_private.guard_free()'::regprocedure) not in ('01a4701c9b9ba20a9d0d020711cd2aaa','7aa04db6ead17f282e37c5285eb53ad6') then raise exception 'Release prerequisite changed: quote_private.guard_free';end if;
+ if md5(pg_get_functiondef('quote_private.send(uuid,text,uuid,integer,boolean)'::regprocedure)::text) is null then raise exception 'Missing release prerequisite';end if;
+ if (select md5(prosrc) from pg_proc where oid='quote_private.send(uuid,text,uuid,integer,boolean)'::regprocedure) not in ('1a42c729c916eb5d52a0043bfd320113','b40235fa50752360b78ce1ac4d06985a') then raise exception 'Release prerequisite changed: quote_private.send';end if;
+ if md5(pg_get_functiondef('invoice_private.write(uuid,text,uuid,integer,text,jsonb,date,uuid,text)'::regprocedure)::text) is null then raise exception 'Missing release prerequisite';end if;
+ if (select md5(prosrc) from pg_proc where oid='invoice_private.write(uuid,text,uuid,integer,text,jsonb,date,uuid,text)'::regprocedure) not in ('50b9936fe6d2d2fac062c3c0673216cb','51d4739e85a3e2b35de0072907a155f5') then raise exception 'Release prerequisite changed: invoice_private.write';end if;
+end $preflight$;
 create or replace function quote_private.guard_free() returns trigger language plpgsql set search_path='' as $$
 begin
  if new.document is distinct from old.document then new.free_confirmed_at=null;end if;
