@@ -1,0 +1,16 @@
+{
+  "format": 1,
+  "algorithm": "sha256-canonical-json-sorted-keys-compact-utf8",
+  "sections": {
+    "request": "ad28c296fce9e3029b3185fc06cf8a14558d3136ee4fc1a52aa410892ede4080",
+    "booking": "e8bdf13d4b4ebdd4958ad625c133649836dc6bbae2f054bd8b18d3c1fac9163c",
+    "quote": "d1819d18858f930a1ca4d52555ac844d71d24b43ffb8164946a8ac73237a4b15",
+    "invoices": "01996cee5dfcf62539b74f99dcc0d04cae471af8ed38d9865ba8219298b68832",
+    "payments": "d0aa92685d56fb321d76a9001017c7778870c8c579ec9f7c94c15f9d19b3b8e6",
+    "counter": "bcf30eef2ec3a9ee1ed538b1ee31b4c1a7fed1ecc26c637bb70750369e9ada2a",
+    "assignments": "09939ab18dcfc10c6859097cb9114edf988daef2b4aa95d17d68106297b1b5b9",
+    "staff": "74cb2a13c073865a99c85f9cf9a29bd4b9f9965d875b7cd0413d0b6d5b9e6715",
+    "publication": "c5596326dce08133ef88cb88bacedac24cdd165ac9950b66207dba8c77f601e2"
+  },
+  "fixture_sha256": "0d8385bea717a3698cdcef8a8b95c5755661a3372e3257dbfbff94d57f4d1490"
+}
