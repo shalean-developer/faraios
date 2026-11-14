@@ -19,6 +19,6 @@ jobs:
         env:
           PG_BIN: /usr/lib/postgresql/16/bin
         run: |
-          for suite in foundation enquiry-workflow enquiries quotes bookings invoices dashboard requests rooms; do
+          for suite in customer-access business-header foundation enquiry-workflow enquiries quotes bookings invoices dashboard requests rooms; do
             python3 tests/$suite.py || exit 1
           done

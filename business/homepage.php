@@ -65,12 +65,20 @@ function homepage_icon(string $name): string {
 function homepage_brand(array $p,string $url,string $logo): void { ?>
  <a class="home-brand logo-size-<?=esc(in_array($p['presentation']['logo_size']??'48',['32','48','64','80'],true)?($p['presentation']['logo_size']??'48'):'48')?>" aria-label="<?=esc($p['name'])?>" href="<?=esc($url)?>"><?php if(!empty($p['logo'])):?><img src="<?=esc($logo)?>" alt="" width="<?=($brandDims=@getimagesizefromstring(base64_decode($p['logo']['data'],true)?:''))?$brandDims[0]:160?>" height="<?=$brandDims?$brandDims[1]:48?>"><?php else:?><span class="home-mark" aria-hidden="true"><?=esc(homepage_initial($p['name']))?></span><?php endif;?><span<?=!empty($p['logo'])&&($p['presentation']['show_name']??'yes')==='no'?' class="home-sr"':''?>><?=esc($p['name'])?></span></a>
 <?php }
+// Preview supports confidential document links and guest requests, not customer accounts.
+function homepage_customer_identity(string $base,string $slug,string $return=''): void {
+ $url=$base.'/account/customer.php?slug='.rawurlencode($slug).'&return='.rawurlencode($return);
+ if((parse_url($base,PHP_URL_PATH)?:'')!==''){
+  echo '<div class="booking-identity" data-customer-help><a class="booking-auth-button" href="'.esc($url).'">Customer help</a></div>';return;
+ }
+ echo '<div class="booking-identity" data-header-session="'.esc($base.'/account/customer.php?slug='.rawurlencode($slug).'&mode=header').'" data-account-url="'.esc($url).'"><a class="booking-auth-button" href="'.esc($url).'">Sign in</a></div>';
+}
 function homepage_header(array $p,string $url,string $base,string $logo,string $page='',bool $draft=false,bool $booking=false): void { ?>
 <a class="home-skip" href="#homepage">Skip to content</a>
 <header class="home-header booking-header<?=esc(business_style_classes($p))?>">
  <?php homepage_brand($p,$draft?'profile.php?view=preview':$url,$logo);?>
  <nav aria-label="Business navigation"><?php foreach(business_page_defaults() as $key=>$content):?><a href="<?=esc($draft?'profile.php?view=preview&section='.$key:$url.'/'.$key)?>" <?=$page===$key?'aria-current="page"':''?>><?=esc($content['label'])?></a><?php endforeach;?></nav>
- <div class="home-header-actions"><div class="booking-identity" data-header-session="<?=esc($base.'/account/customer.php?slug='.rawurlencode(basename($url)).'&mode=header')?>" data-account-url="<?=esc($base.'/account/customer.php?slug='.rawurlencode(basename($url)).'&return='.rawurlencode($page))?>"><a class="booking-auth-button" href="<?=esc($base.'/account/customer.php?slug='.rawurlencode(basename($url)).'&return='.rawurlencode($page))?>">Sign in</a></div><a class="home-button" href="<?=esc(homepage_action($url,$booking))?>"><?= $booking?'Book now':'Enquire' ?><?=homepage_icon($booking?'calendar':'message')?></a></div>
+ <div class="home-header-actions"><?php if(!$draft)homepage_customer_identity($base,basename($url),$page);?><a class="home-button" href="<?=esc(homepage_action($url,$booking))?>"><?= $booking?'Book now':'Enquire' ?><?=homepage_icon($booking?'calendar':'message')?></a></div>
 </header>
 <?php }
 function homepage_render(array $p,array $catalogue,string $zone,string $url,string $image,bool $enquire=true,string $page='',bool $booking=false): void {
