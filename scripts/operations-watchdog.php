@@ -12,7 +12,13 @@ try{
  $receipt=json_decode(file_get_contents($bundle.'/receipt.json'),true,32,JSON_THROW_ON_ERROR);
  if(($receipt['status']??'')!=='private_configuration_restored'||($receipt['hashes_match']??false)!==true)throw new RuntimeException();
  $previous=is_file($bundle.'/monitor-state.json')?json_decode(file_get_contents($bundle.'/monitor-state.json'),true):[];
- $fetch=static function(string $url,array $headers=[]) : array {$headers=array_merge(['User-Agent: FaraiOS-OperationsMonitor/1.0','Accept: text/html,application/json'],$headers);$raw=@file_get_contents($url,false,stream_context_create(['http'=>['timeout'=>12,'ignore_errors'=>true,'follow_location'=>0,'header'=>implode("\r\n",$headers)],'ssl'=>['verify_peer'=>true,'verify_peer_name'=>true]]));preg_match('/\s(\d{3})\s/',$http_response_header[0]??'',$m);return [(int)($m[1]??0),$raw?:''];};
+ $fetch=static function(string $url,array $headers=[]) : array {
+  $args=['curl','--silent','--show-error','--proto','=https','--max-time','12','--max-filesize','2097152','--user-agent','Mozilla/5.0 (compatible; FaraiOSOperationsMonitor/1.0)','--header','Accept: text/html,application/json','--write-out',"\n%{http_code}"];
+  foreach($headers as $header){$args[]='--header';$args[]=$header;}$args[]=$url;
+  $p=proc_open($args,[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);
+  if(!is_resource($p))return [0,''];fclose($pipes[0]);$raw=stream_get_contents($pipes[1]);fclose($pipes[1]);stream_get_contents($pipes[2]);fclose($pipes[2]);$exit=proc_close($p);
+  if($exit!==0||!preg_match('/\n(\d{3})$/',$raw,$m))return [0,''];return [(int)$m[1],substr($raw,0,-4)];
+ };
  [$homeCode,$raw]=$fetch('https://www.faraios.com/');$home=$homeCode===200&&str_contains($raw,'FaraiOS');
  [$previewCode,$raw]=$fetch('https://www.faraios.com/_accounts-preview/account/index.php?page=signin');$preview=$previewCode===200&&str_contains($raw,'Sign in');
  $config=file_get_contents($root.'/faraios-account/production.php');
