@@ -1,7 +1,7 @@
 """Real Auth/PostgREST recovery on disposable Docker targets. No hosted connections.
 Only aggregate evidence leaves the runner. All HTTP bodies/tokens stay in memory.
 """
-import json,os,re,secrets,subprocess,time,uuid,pathlib
+import json,os,re,secrets,subprocess,time,uuid,pathlib,base64,hmac,hashlib
 AUTH_IMAGE='supabase/gotrue:v2.197.0'
 REST_IMAGE='postgrest/postgrest:v14.18'
 HTTP_IMAGE='curlimages/curl:8.17.0'
@@ -37,13 +37,15 @@ def rehearse(db,env,sql,check_business=False):
  network='faraios-auth-'+uuid.uuid4().hex;auth=network+'-auth';rest=network+'-rest'
  dbpass=secrets.token_hex(24);restpass=secrets.token_hex(24);jwt=secrets.token_hex(32);provider=os.environ.get('RESTORE_PROVIDER_LIBRARIES')=='true';api_role='authenticator' if provider else 'faraios_recovery_'+uuid.uuid4().hex[:12]
  users=[{'email':'recovery-'+uuid.uuid4().hex+'@example.invalid','password':secrets.token_urlsafe(32)} for _ in range(2)]
+ settings=json.loads((pathlib.Path(__file__).resolve().parents[1]/'config/auth-recovery-settings.json').read_text())
  # Images fetched before the isolated network exists. No credentials/data sent to registry.
  for image in [AUTH_IMAGE,REST_IMAGE,HTTP_IMAGE]:safe_run(['docker','pull',image],env)
  def start_auth(secret):
   values={'GOTRUE_API_HOST':'0.0.0.0','GOTRUE_API_PORT':'9999','API_EXTERNAL_URL':'http://'+auth+':9999',
    'GOTRUE_DB_DRIVER':'postgres','GOTRUE_DB_DATABASE_URL':'postgres://supabase_auth_admin:'+dbpass+'@'+db+':5432/postgres?sslmode=disable',
-   'GOTRUE_SITE_URL':'http://recovery.example.invalid','GOTRUE_URI_ALLOW_LIST':'http://recovery.example.invalid/**',
-   'GOTRUE_DISABLE_SIGNUP':'false','GOTRUE_EXTERNAL_EMAIL_ENABLED':'true','GOTRUE_MAILER_AUTOCONFIRM':'true',
+   'GOTRUE_SITE_URL':settings['site_url'],'GOTRUE_URI_ALLOW_LIST':','.join(settings['redirect_urls']),
+   'GOTRUE_DISABLE_SIGNUP':'false','GOTRUE_EXTERNAL_EMAIL_ENABLED':'true','GOTRUE_MAILER_AUTOCONFIRM':'false',
+   'GOTRUE_MAILER_OTP_EXP':str(settings['otp_expiry']),'GOTRUE_MAILER_OTP_LENGTH':str(settings['otp_length']),'GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED':'true',
    'GOTRUE_EXTERNAL_PHONE_ENABLED':'false','GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED':'false',
    'GOTRUE_JWT_SECRET':secret,'GOTRUE_JWT_AUD':'authenticated','GOTRUE_JWT_ADMIN_ROLES':'service_role',
    'GOTRUE_JWT_DEFAULT_GROUP_NAME':'authenticated','GOTRUE_JWT_EXP':'3600','GOTRUE_SMTP_HOST':'127.0.0.1',
@@ -103,11 +105,23 @@ def rehearse(db,env,sql,check_business=False):
   else:sql("CREATE ROLE "+api_role+" LOGIN NOINHERIT NOBYPASSRLS PASSWORD '"+restpass+"';GRANT anon,authenticated TO "+api_role+";ALTER ROLE "+api_role+" SET default_transaction_read_only=on;")
   print('Auth rehearsal: start service',file=__import__('sys').stderr)
   start_auth(jwt);ready('http://localhost:9999/health')
+  code,applied=http('http://localhost:9999/settings')
+  if code!=200 or applied.get('mailer_autoconfirm') is not False or applied.get('disable_signup') is not False or applied.get('external',{}).get('email') is not True or applied.get('external',{}).get('anonymous_users') is not False:raise AuthRecoveryError('Recovered Auth settings were not applied')
+  env_state=json.loads(safe_run(['docker','inspect',auth],env))[0]['Config']['Env']
+  if 'GOTRUE_SITE_URL='+settings['site_url'] not in env_state or 'GOTRUE_URI_ALLOW_LIST='+','.join(settings['redirect_urls']) not in env_state:raise AuthRecoveryError('Recovered callback configuration mismatch')
+  def encoded(data):return base64.urlsafe_b64encode(json.dumps(data,separators=(',',':')).encode()).rstrip(b'=')
+  signing=encoded({'alg':'HS256','typ':'JWT'})+b'.'+encoded({'aud':'authenticated','role':'service_role','sub':str(uuid.uuid4()),'exp':int(time.time())+3600})
+  admin=(signing+b'.'+base64.urlsafe_b64encode(hmac.new(jwt.encode(),signing,hashlib.sha256).digest()).rstrip(b'=')).decode()
   for user in users:
-   code,result=http('http://localhost:9999/signup','POST',user)
+   code,result=http('http://localhost:9999/admin/users','POST',user|{'email_confirm':True},admin)
    if code!=200 or not isinstance(result,dict):raise AuthRecoveryError('Synthetic identity setup failed')
    user['id']=(result.get('user') or result).get('id')
    if not user['id']:raise AuthRecoveryError('Synthetic identity missing')
+  unconfirmed={'email':'recovery-'+uuid.uuid4().hex+'@example.invalid','password':secrets.token_urlsafe(32)}
+  code,result=http('http://localhost:9999/admin/users','POST',unconfirmed|{'email_confirm':False},admin)
+  if code!=200:raise AuthRecoveryError('Unconfirmed synthetic identity setup failed')
+  code,result=http('http://localhost:9999/token?grant_type=password','POST',unconfirmed)
+  if code not in (400,403) or result.get('error_code')!='email_not_confirmed':raise AuthRecoveryError('Email confirmation policy bypassed')
   print('Auth rehearsal: synthetic identities created',file=__import__('sys').stderr)
   first=login({k:users[0][k] for k in ['email','password']})
   # Fixture has real Auth subjects, an actual owner policy and one row per synthetic user.
@@ -156,7 +170,7 @@ def rehearse(db,env,sql,check_business=False):
   if code not in (200,204):raise AuthRecoveryError('Recovered sign-out failed')
   if http('http://localhost:9999/token?grant_type=refresh_token','POST',{'refresh_token':users[0]['refresh_token']})[0] not in (400,401):raise AuthRecoveryError('Signed-out refresh remained usable')
   if sql("SELECT coalesce(rolconfig::text,'') FROM pg_roles WHERE rolname='authenticator'")!=original_api_settings:raise AuthRecoveryError('Managed API role settings changed')
-  return {'status':'auth_service_recovery_verified','auth_image':AUTH_IMAGE,'rest_image':REST_IMAGE,'synthetic_users':2,'password_sign_in':True,'refresh':True,'sign_out':True,'signed_out_refresh_denied':True,'old_signing_key_rejected':True,'real_jwt_tenant_isolation':True,'existing_invoice_scope_checked':check_business,'api_mode':'restored-authenticator-with-provider-libraries' if provider else 'temporary-read-only-authenticator','provider_delete_guard_checked':provider,'managed_authenticator_settings_preserved':True,'network':'internal-only','published_ports':0,'outbound_email':False,'production_credentials_forwarded':False,'limitations':['Self-hosted Auth/API rehearsal; hosted project configuration and SMTP delivery not restored','Fresh temporary signing keys and role passwords; existing users were not logged in','Provider libraries rebuilt from pinned source; exact managed server build is not claimed' if provider else 'API uses a temporary read-only login; managed supautils/safeupdate behavior not exercised']}
+  return {'status':'auth_service_recovery_verified','auth_image':AUTH_IMAGE,'rest_image':REST_IMAGE,'synthetic_users':3,'auth_configuration_reapplied':True,'email_confirmation_enforced':True,'callbacks_restored':2,'password_sign_in':True,'refresh':True,'sign_out':True,'signed_out_refresh_denied':True,'old_signing_key_rejected':True,'real_jwt_tenant_isolation':True,'existing_invoice_scope_checked':check_business,'api_mode':'restored-authenticator-with-provider-libraries' if provider else 'temporary-read-only-authenticator','provider_delete_guard_checked':provider,'managed_authenticator_settings_preserved':True,'network':'internal-only','published_ports':0,'outbound_email':False,'production_credentials_forwarded':False,'limitations':['Self-hosted Auth/API rehearsal; hosted project configuration and SMTP delivery not restored','Fresh temporary signing keys and role passwords; existing users were not logged in','Provider libraries rebuilt from pinned source; exact managed server build is not claimed' if provider else 'API uses a temporary read-only login; managed supautils/safeupdate behavior not exercised']}
  finally:
   for name in [network+'-http',auth,rest]:subprocess.run(['docker','rm','--force',name],env=env,capture_output=True,timeout=30)
   subprocess.run(['docker','network','disconnect','--force',network,db],env=env,capture_output=True,timeout=30)
