@@ -69,9 +69,10 @@ def rehearse(db,env,sql,check_business=False):
    if pattern in detail:labels.append(label)
   labels+=re.findall(r'SQLSTATE [0-9A-Z]{5}',detail)
   labels+=re.findall(r'PGRST[0-9]{3}',detail)
+  labels+=['missing '+x for x in re.findall(r'(?:relation|schema|type|function) "?([a-z_][a-z0-9_.]*)"?(?:\([^)]*\))? does not exist',detail.replace('\\"','"'))]
   provider_code=last_body.get('code') if isinstance(last_body,dict) else None
   if isinstance(provider_code,str) and re.fullmatch('[A-Z0-9]{5,10}',provider_code):labels.append(provider_code)
-  raise AuthRecoveryError('Isolated '+('API' if target==rest else 'Auth')+' service did not become ready (HTTP '+str(last_code)+'): '+(', '.join(labels) or 'private details suppressed'))
+  raise AuthRecoveryError('Isolated '+('API' if target==rest else 'Auth')+' service did not become ready (HTTP '+str(last_code)+'): '+(', '.join(dict.fromkeys(labels)) or 'private details suppressed'))
  def login(user):
   code,result=http('http://localhost:9999/token?grant_type=password','POST',user)
   if code!=200 or not isinstance(result,dict) or not result.get('access_token') or not result.get('refresh_token'):raise AuthRecoveryError('Restored password sign-in failed')
@@ -118,7 +119,7 @@ def rehearse(db,env,sql,check_business=False):
    tokens.append(refreshed['access_token'])
   if http('http://localhost:9999/token?grant_type=password','POST',{'email':users[0]['email'],'password':'incorrect-recovery-password'})[0] not in (400,401):raise AuthRecoveryError('Wrong password accepted')
   args=['docker','run','--detach','--name',rest,'--network',network,'--memory=256m','--cpus=1','--cap-drop=ALL','--security-opt=no-new-privileges']
-  values={'PGRST_DB_URI':'postgres://authenticator:'+restpass+'@'+db+':5432/postgres?sslmode=disable','PGRST_DB_SCHEMAS':'public','PGRST_DB_ANON_ROLE':'anon','PGRST_JWT_SECRET':jwt,'PGRST_DB_CONFIG':'false','PGRST_DB_EXTRA_SEARCH_PATH':'public,extensions','PGRST_DB_POOL':'2'}
+  values={'PGRST_DB_URI':'postgres://authenticator:'+restpass+'@'+db+':5432/postgres?sslmode=disable','PGRST_DB_SCHEMAS':'public','PGRST_DB_ANON_ROLE':'anon','PGRST_JWT_SECRET':jwt,'PGRST_DB_CONFIG':'false','PGRST_DB_EXTRA_SEARCH_PATH':'public','PGRST_DB_POOL':'2'}
   for k,v in values.items():args+=['--env',k+'='+v]
   safe_run(args+[REST_IMAGE],env);ready('http://'+rest+':3000/')
   for n,token in enumerate(tokens):
