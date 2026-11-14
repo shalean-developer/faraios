@@ -6,7 +6,7 @@ function quote_uuid(): string {$s=bin2hex(random_bytes(16));return substr($s,0,8
 function quote_status(array $q,array $b): string {return $q['status']==='Sent'&&$q['expires_on']<(new DateTimeImmutable('now',new DateTimeZone($q['sender']['time_zone']??$b['time_zone'])))->format('Y-m-d')?'Expired':$q['status'];}
 function quote_money(int $n,string $c): string {return $c.' '.number_format($n/100,in_array($c,['JPY','UGX','RWF'],true)?0:2,'.',',');}
 function quote_values(string $currency): array {
- $d=['currency'=>$currency];foreach(['name'=>120,'email'=>254,'phone'=>40,'notes'=>2000] as $k=>$max){$s=$_POST[$k]??'';if(!is_string($s)||!preg_match('//u',$s)||mb_len(trim($s))>$max||preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/',$s))throw new RuntimeException('Check customer details.');$d[$k]=trim($s);}
+ $d=['currency'=>$currency];foreach(['name'=>120,'email'=>254,'phone'=>40,'notes'=>4000] as $k=>$max){$s=$_POST[$k]??'';if(is_string($s)&&$k==='notes')$s=form_multiline($s);if(!is_string($s)||!preg_match('//u',$s)||mb_len(trim($s))>$max||preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/',$s))throw new RuntimeException('Check customer details.');$d[$k]=trim($s);}
  if(mb_len($d['name'])<2)throw new RuntimeException('Enter the customer name.');
  if(($d['email']===''&&$d['phone']==='')||($d['email']!==''&&!filter_var($d['email'],FILTER_VALIDATE_EMAIL))||($d['phone']!==''&&(!preg_match('/\A[+0-9 ()-]{5,40}\z/',$d['phone'])||strlen(preg_replace('/\D/','',$d['phone']))<5)))throw new RuntimeException('Enter a valid customer email or phone.');
  $d['items']=[];$total=0;

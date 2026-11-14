@@ -26,5 +26,11 @@ function invoice_payment_forms(array $b,array $q): void {
  echo '</article>';}
  echo '</section>';
  if($q['state']==='Issued'&&(int)$q['paid']===0){echo '<details class="quote-saved"><summary>Void invoice</summary><p>This keeps the number, customer link and audit history. The invoice can no longer receive payments.</p>';form_start();echo '<input type="hidden" name="action" value="void"><input type="hidden" name="version" value="'.(int)$q['version'].'"><label>Reason<input name="reason" minlength="5" maxlength="500" required></label><label class="check"><input type="checkbox" name="confirm_void" required> Void this invoice.</label><button class="button secondary">Void invoice</button></form></details>';}
- if($q['state']==='Void')echo '<p>Void reason: '.esc($q['void_reason']).'</p>';
+ if($q['state']==='Void'){echo '<p>Void reason: '.esc($q['void_reason']).'</p>';form_start();echo '<input type="hidden" name="action" value="replace"><input type="hidden" name="version" value="'.(int)$q['version'].'"><label>Replacement reason<input name="reason" minlength="5" maxlength="500" required></label><label class="check"><input type="checkbox" name="confirm_replace" required> Create or open a replacement draft; retain this original and its payment history.</label><button class="button secondary">Create / open replacement</button></form>'; }
+}
+
+function invoice_correction_links(array $b,array $q): void {
+ if(!empty($q['replaces_id']))echo '<p>Replaces <a href="invoices.php?id='.esc($q['replaces_id']).'">original invoice '.esc(strtoupper(substr($q['replaces_id'],0,8))).'</a>. The original invoice and its history are retained.</p>';
+ $children=api('/rest/v1/business_invoice_list?business_id=eq.'.rawurlencode($b['id']).'&environment=eq.'.profile_env().'&replaces_id=eq.'.rawurlencode($q['id']).'&select=id,number',[],'GET',$_SESSION['auth']['access_token']);
+ foreach($children as $child)echo '<p>Replacement: <a href="invoices.php?id='.esc($child['id']).'">'.esc($child['number']??'Draft '.strtoupper(substr($child['id'],0,8))).'</a></p>';
 }

@@ -15,7 +15,7 @@ function enquiry_ticket(string $slug): array {
  return $_SESSION['forms'][$slug];
 }
 function enquiry_text(string $key,int $min,int $max): string {
- $v=$_POST[$key]??'';if(!is_string($v))throw new RuntimeException('Check your details.');$v=trim($v);
+ $v=$_POST[$key]??'';if(!is_string($v))throw new RuntimeException('Check your details.');$v=trim($key==='requirements'?form_multiline($v):$v);
  if(!preg_match('//u',$v)||mb_len($v)<$min||mb_len($v)>$max||preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/',$v))throw new RuntimeException('Check your '.str_replace('_',' ',$key).'.');return $v;
 }
 function enquiry_ip_limit(): void {
@@ -25,7 +25,7 @@ function enquiry_ip_limit(): void {
 }
 function enquiry_submit(string $slug,array $services,string $page='',string $businessName=''): void {
  $ticket=enquiry_ticket($slug);$origin=parse_url(cfg()['base_url'],PHP_URL_SCHEME).'://'.parse_url(cfg()['base_url'],PHP_URL_HOST);if($port=parse_url(cfg()['base_url'],PHP_URL_PORT))$origin.=':'.$port;
- if((int)($_SERVER['CONTENT_LENGTH']??0)>20000)throw new RuntimeException('This form is too large.');
+ if((int)($_SERVER['CONTENT_LENGTH']??0)>65536)throw new RuntimeException('This form is too large.');
  if(!is_string($_POST['csrf']??null)||!hash_equals($ticket['csrf'],$_POST['csrf'])||(isset($_SERVER['HTTP_ORIGIN'])&&$_SERVER['HTTP_ORIGIN']!==$origin)||($_SERVER['HTTP_SEC_FETCH_SITE']??'')==='cross-site')throw new RuntimeException('This form has expired. Reload the page and try again.');
  if(($_POST['website']??'')!==''||time()-$ticket['time']<2)throw new RuntimeException('Please wait a moment and try again.');
  $name=enquiry_text('name',2,120);if(preg_match('/[\r\n\t]/',$name))throw new RuntimeException('Check your name.');
