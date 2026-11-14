@@ -69,10 +69,10 @@ function api(string $path,array $body=[],string $method='POST',?string $token=nu
  }
  return $data;
 }
-function csrf(): void {
+function csrf(int $maxBytes=8192): void {
  $c=cfg();$origin=parse_url($c['base_url'],PHP_URL_SCHEME).'://'.parse_url($c['base_url'],PHP_URL_HOST);$port=parse_url($c['base_url'],PHP_URL_PORT);if($port)$origin.=':'.$port;
  if (!hash_equals($_SESSION['csrf'],(string)($_POST['csrf']??'')) || (isset($_SERVER['HTTP_ORIGIN']) && $_SERVER['HTTP_ORIGIN']!==$origin)) throw new RuntimeException('This form has expired. Reload the page and try again.');
- if((int)($_SERVER['CONTENT_LENGTH']??0)>8192) throw new RuntimeException('This form is too large.');
+ if((int)($_SERVER['CONTENT_LENGTH']??0)>$maxBytes) throw new RuntimeException('This form is too large.');
 }
 function email(): string {$e=strtolower(trim((string)($_POST['email']??'')));if(strlen($e)>254||!filter_var($e,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Enter a valid email address.');return $e;}
 function password(): string {$p=(string)($_POST['password']??'');if(strlen($p)<12||strlen($p)>128)throw new RuntimeException('Use a password between 12 and 128 characters.');return $p;}

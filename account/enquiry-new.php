@@ -4,7 +4,7 @@ $_SERVER['SCRIPT_NAME']=preg_replace('~/account/enquiry-new.php$~','/account/ind
 $error='';$b=null;
 try{start();$u=user();$b=business();if(!$b)go('business');
  if($_SERVER['REQUEST_METHOD']==='POST'){
- csrf();$args=['p_business'=>$b['id'],'p_environment'=>profile_env(),'p_id'=>(string)($_POST['id']??'')];
+ csrf(65536);$args=['p_business'=>$b['id'],'p_environment'=>profile_env(),'p_id'=>(string)($_POST['id']??'')];
  foreach(['name','email','phone','requirements'] as $key){if(!is_string($_POST[$key]??null))throw new RuntimeException('Check enquiry details.');$args['p_'.$key]=trim($_POST[$key]);}
  if(!preg_match('/\A[0-9a-f-]{36}\z/',$args['p_id']))throw new RuntimeException('Reload this form.');
  $r=profile_rpc('business_enquiry_create',$args);unset($_SESSION['manual_enquiry_id']);$_SESSION['enquiry_notice']='Enquiry created. No notification sent.';header('Location: enquiries.php?id='.rawurlencode($r['id']),true,303);exit;
