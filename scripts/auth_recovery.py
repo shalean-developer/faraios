@@ -30,7 +30,7 @@ def rehearse(db,env,sql,check_business=False):
  for image in [AUTH_IMAGE,REST_IMAGE]:safe_run(['docker','pull',image],env)
  def start_auth(secret):
   values={'GOTRUE_API_HOST':'0.0.0.0','GOTRUE_API_PORT':'9999','API_EXTERNAL_URL':'http://'+auth+':9999',
-   'GOTRUE_DB_DRIVER':'postgres','GOTRUE_DB_DATABASE_URL':'postgres://supabase_auth_admin:'+dbpass+'@'+db+':5432/postgres',
+   'GOTRUE_DB_DRIVER':'postgres','GOTRUE_DB_DATABASE_URL':'postgres://supabase_auth_admin:'+dbpass+'@'+db+':5432/postgres?sslmode=disable',
    'GOTRUE_SITE_URL':'http://recovery.example.invalid','GOTRUE_URI_ALLOW_LIST':'http://recovery.example.invalid/**',
    'GOTRUE_DISABLE_SIGNUP':'false','GOTRUE_EXTERNAL_EMAIL_ENABLED':'true','GOTRUE_MAILER_AUTOCONFIRM':'true',
    'GOTRUE_EXTERNAL_PHONE_ENABLED':'false','GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED':'false',
@@ -56,7 +56,12 @@ def rehearse(db,env,sql,check_business=False):
   for _ in range(45):
    if http(url)[0]==200:return
    time.sleep(1)
-  raise AuthRecoveryError('Isolated service did not become ready')
+  logs=subprocess.run(['docker','logs',auth],env=env,capture_output=True,timeout=15)
+  detail=(logs.stdout+logs.stderr).decode(errors='replace');labels=[]
+  for pattern,label in [('SSL is not enabled','isolated database does not support TLS'),('uuid_generate_v4','UUID extension dependency'),('permission denied','migration permission'),('does not exist','missing migration dependency'),('failed to parse','configuration parse failure'),('migration','migration failure'),('connection refused','database connection refused')]:
+   if pattern in detail:labels.append(label)
+  labels+=re.findall(r'SQLSTATE [0-9A-Z]{5}',detail)
+  raise AuthRecoveryError('Isolated service did not become ready: '+(', '.join(labels) or 'private details suppressed'))
  def login(user):
   code,result=http('http://localhost:9999/token?grant_type=password','POST',user)
   if code!=200 or not isinstance(result,dict) or not result.get('access_token') or not result.get('refresh_token'):raise AuthRecoveryError('Restored password sign-in failed')
@@ -102,7 +107,7 @@ def rehearse(db,env,sql,check_business=False):
    tokens.append(refreshed['access_token'])
   if http('http://localhost:9999/token?grant_type=password','POST',{'email':users[0]['email'],'password':'incorrect-recovery-password'})[0] not in (400,401):raise AuthRecoveryError('Wrong password accepted')
   args=['docker','run','--detach','--rm','--name',rest,'--network',network,'--memory=256m','--cpus=1','--cap-drop=ALL','--security-opt=no-new-privileges']
-  values={'PGRST_DB_URI':'postgres://authenticator:'+restpass+'@'+db+':5432/postgres','PGRST_DB_SCHEMAS':'public','PGRST_DB_ANON_ROLE':'anon','PGRST_JWT_SECRET':jwt}
+  values={'PGRST_DB_URI':'postgres://authenticator:'+restpass+'@'+db+':5432/postgres?sslmode=disable','PGRST_DB_SCHEMAS':'public','PGRST_DB_ANON_ROLE':'anon','PGRST_JWT_SECRET':jwt}
   for k,v in values.items():args+=['--env',k+'='+v]
   safe_run(args+[REST_IMAGE],env);ready('http://'+rest+':3000/')
   for n,token in enumerate(tokens):

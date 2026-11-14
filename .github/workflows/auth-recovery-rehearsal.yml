@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - scripts/auth_recovery.py
+      - tests/auth-recovery-boundaries.py
       - scripts/database-restore-check.py
       - .github/workflows/auth-recovery-rehearsal.yml
   workflow_dispatch:
@@ -14,6 +15,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Fail closed on unsafe recovery targets
+        run: python3 tests/auth-recovery-boundaries.py
       - name: Real Auth and API recovery with synthetic identities
         run: python3 scripts/auth_recovery.py > auth-recovery-report.json
       - uses: actions/upload-artifact@v4
