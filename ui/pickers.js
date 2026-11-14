@@ -79,7 +79,10 @@
     if(type==='date'){const d=parse(source.value)||parse(source.min)||new Date();month=new Date(d.getFullYear(),d.getMonth(),1,12);calendar();}
     else{hour=source.value?Number(source.value.slice(0,2)):9;minute=source.value?Number(source.value.slice(3,5)):0;clock();}
     panel.hidden=false;trigger.setAttribute('aria-expanded','true');
-    const selected=panel.querySelector('button[aria-pressed="true"]:not(:disabled)')||panel.querySelector('[data-date]:not(:disabled)')||panel.querySelector('button:not(:disabled)');selected?.focus();selected?.scrollIntoView({block:'nearest'});
+    wrap.classList.remove('f-picker--up');
+    const rect=trigger.getBoundingClientRect(),height=panel.getBoundingClientRect().height;
+    if(innerHeight-rect.bottom<height+12 && rect.top>=height+12)wrap.classList.add('f-picker--up');
+    const selected=panel.querySelector('button[aria-pressed="true"]:not(:disabled)')||panel.querySelector('[data-date]:not(:disabled)')||panel.querySelector('button:not(:disabled)');selected?.focus();selected?.scrollIntoView({block:'nearest'});panel.scrollIntoView({block:'nearest'});
    });
    wrap.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();close(true);}});
    document.addEventListener('pointerdown',e=>{if(!wrap.contains(e.target))close();});

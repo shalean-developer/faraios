@@ -1,7 +1,9 @@
 .f-picker{position:relative;min-width:0;margin-bottom:20px}
 .f-picker__native{position:absolute!important;width:1px!important;height:1px!important;opacity:0;pointer-events:none;margin:0!important;padding:0!important}
 .f-picker__trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:12px 14px;border:1px solid #c5d2da;border-radius:8px;background:#fff;color:#172d3b;font:inherit;text-align:left;cursor:pointer}
-.f-picker__trigger::after{content:'⌄';color:#087c79}
+.f-picker__trigger::after{content:'';width:8px;height:8px;flex:none;border-right:1.8px solid currentColor;border-bottom:1.8px solid currentColor;transform:rotate(45deg);margin:0 3px 4px 0}
+.f-picker__trigger[aria-expanded=true]::after{transform:rotate(225deg);margin-top:5px}
+.f-picker__trigger[aria-expanded=true]{border-color:#087c79;box-shadow:0 0 0 2px #087c7914}
 .f-picker__trigger:focus-visible,.f-picker__panel button:focus-visible{outline:3px solid #8dccf1;outline-offset:2px}
 .f-picker__trigger[aria-invalid=true]{border-color:#b42318}
 .f-picker__panel{position:absolute;z-index:20;top:calc(100% + 6px);left:0;width:min(100%,340px);box-sizing:border-box;padding:16px;border:1px solid #dfe5ed;border-radius:10px;background:#fff;box-shadow:0 10px 28px #172d3b24}
@@ -21,3 +23,18 @@
 .f-picker__time-list button{display:block;width:100%}
 .f-picker__time+button{width:100%;background:#087c79;color:white}
 .f-picker__error{color:#b42318;font-size:12px;display:block;margin-top:6px}
+
+/* Explicit metrics prevent page button styles from stretching picker contents. */
+.f-picker__trigger{min-height:46px;font-size:14px;line-height:20px;margin:0;box-sizing:border-box}
+.f-picker__panel{max-height:calc(100dvh - 24px);overflow:auto;overscroll-behavior:contain}
+.f-picker--up .f-picker__panel{top:auto;bottom:calc(100% + 6px)}
+.f-picker__panel button{margin:0;padding:0;box-sizing:border-box;line-height:20px;font-size:14px;box-shadow:none}
+.f-picker__month button{width:36px;height:36px;font-size:24px;line-height:1}
+.f-picker__calendar{gap:4px}
+.f-picker__calendar button{height:36px;width:100%;min-height:36px;padding:0}
+.f-picker__calendar>span{height:24px;padding:2px 0;line-height:20px}
+.f-picker__time-list{height:160px;max-height:160px;scrollbar-width:thin;scrollbar-color:#b9c9cc transparent}
+.f-picker__time-list button{height:36px;min-height:36px}
+.f-picker__time+button{height:42px;min-height:42px;margin-top:4px;font-weight:600}
+.f-picker__panel>strong{font-size:14px}
+@media(max-width:600px){.f-picker__panel{width:100%;max-width:340px;padding:12px}.f-picker__calendar{gap:2px}}
