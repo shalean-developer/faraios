@@ -12,7 +12,7 @@ function profile_logo(string $raw): array {
 function profile_form_values(array $old): array {
  // Display-only recovery after validation errors; never bypass profile_values() when saving.
  foreach(['name','description','email','phone','website','areas'] as $key)if(isset($_POST[$key])&&is_string($_POST[$key]))$old[$key]=substr($_POST[$key],0,8000);
- if(business_website_enabled(profile_env())){$old['homepage']=homepage_form_values();$old['pages']=business_pages_form_values();$old['seo']=business_seo_form_values();}
+ if(business_website_enabled(profile_env())){$old['homepage']=homepage_form_values();$old['pages']=business_pages_form_values();$old['seo']=business_seo_form_values();$old['presentation']=business_presentation_form_values($old['presentation']??[]);}
  $old['hours']=[];foreach(profile_days() as $i=>$day)$old['hours'][]=isset($_POST['open_'.$i])?[(string)($_POST['from_'.$i]??''),(string)($_POST['to_'.$i]??'')]:null;
  return $old;
 }
@@ -25,7 +25,7 @@ function profile_values(array $old): array {
  $p['hours']=[];foreach(profile_days() as $i=>$day){if(!isset($_POST['open_'.$i])){$p['hours'][]=null;continue;}$from=(string)($_POST['from_'.$i]??'');$to=(string)($_POST['to_'.$i]??'');if(!preg_match('/\A(?:[01][0-9]|2[0-3]):[0-5][0-9]\z/',$from)||!preg_match('/\A(?:[01][0-9]|2[0-3]):[0-5][0-9]\z/',$to)||$from>=$to)throw new RuntimeException('Check '.$day.' hours. Closing time must be after opening time.');$p['hours'][]=[$from,$to];}
  $p['logo']=$old['logo']??null;if(isset($_POST['remove_logo']))$p['logo']=null;
  $f=$_FILES['logo']??null;if($f&&$f['error']!==UPLOAD_ERR_NO_FILE){if($f['error']!==UPLOAD_ERR_OK||!is_uploaded_file($f['tmp_name']))throw new RuntimeException('The logo could not upload. Choose a file up to 150 KB.');$p['logo']=profile_logo(file_get_contents($f['tmp_name']));}
- if(business_website_enabled(profile_env())){$p['homepage']=homepage_values($old['homepage']??[]);$p['pages']=business_pages_values();$p['seo']=business_seo_values($old['seo']??[]);}
+ if(business_website_enabled(profile_env())){$p['homepage']=homepage_values($old['homepage']??[]);$p['pages']=business_pages_values();$p['seo']=business_seo_values($old['seo']??[]);$p['presentation']=business_presentation_values($old['presentation']??[]);}
  return $p;
 }
 function mb_len(string $s): int {return preg_match_all('/./us',$s);}

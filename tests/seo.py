@@ -67,7 +67,10 @@ class SEO(profiles.Profiles):
    except urllib.error.HTTPError as e:r=e
    if method=='POST':self.assertEqual(r.code,405);self.assertIn('noindex',r.headers['X-Robots-Tag']);self.assertFalse(Head(r.read().decode()).canonical)
   for query in ['booking=1','booking=1&step=service','booking=1&step=address','booking=1&step=requirements','booking=1&step=schedule','booking=1&step=details','step=details']:
-   status,headers,html=self.request('/preview/b/seo-example?'+query);self.assertEqual(status,200);self.assertIn('noindex',headers['X-Robots-Tag']);head=Head(html);self.assertFalse(head.canonical);self.assertFalse(head.schemas);self.assertNotIn('og:url',head.meta)
+   status,headers,html=self.request('/preview/b/seo-example?'+query);
+   if query.startswith('booking=1'):
+    self.assertEqual(status,303);self.assertEqual(headers['Location'],self.url+'/preview/b/seo-example/contact#enquire');continue
+   self.assertEqual(status,200);self.assertIn('noindex',headers['X-Robots-Tag']);head=Head(html);self.assertFalse(head.canonical);self.assertFalse(head.schemas);self.assertNotIn('og:url',head.meta)
   status,headers,xml=self.request('/preview/sitemap.xml');self.assertEqual(status,200);self.assertEqual(len(ET.fromstring(xml)),0)
   # Simulated backend failure must return 503, not a missing business or an empty successful sitemap.
   self.sql('alter table public.business_public_pages rename to temporary_pages')

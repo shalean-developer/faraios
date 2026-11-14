@@ -35,7 +35,7 @@ for quality in range(80,4,-1):
   const axe=await new AxeBuilder({page:p}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();
   report.accessibility.push({width,page:page||'home',violations:axe.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}))});
   const sizes=await p.locator('.home-header nav a').evaluateAll(es=>es.map(e=>({text:e.textContent,height:e.getBoundingClientRect().height})));assert(sizes.every(s=>s.height>=44));
-  if(width===390&&page==='services')await p.screenshot({path:path.join(root,'docs/evidence/business-seo-mobile.png'),fullPage:true});
+  if(width===390&&page==='services')await p.screenshot({path:path.join(root,'docs/evidence/template-services-mobile.png'),fullPage:true});
   // Keyboard skip link must receive focus first and point at main content.
   await p.keyboard.press('Tab');assert.equal(await p.evaluate(()=>document.activeElement.textContent.trim()),'Skip to content');await p.keyboard.press('Enter');assert.equal(await p.evaluate(()=>document.activeElement.id),'homepage');
   await context.close();
@@ -50,7 +50,7 @@ for quality in range(80,4,-1):
   report.mobileLab.push({customHero:custom,run,...lab});assert(lab.cls<=0.1);assert(lab.lcp<2500);assert(Math.max(0,...lab.longTasks)<200);assert(Math.max(0,...lab.events.filter(e=>e.interactionId>0).map(e=>e.duration))<200);
   await p.close();
  }
- fs.writeFileSync(path.join(root,'docs/evidence/business-seo-checks.json'),JSON.stringify(report,null,2)+'\n');
+ fs.writeFileSync(path.join(root,'docs/evidence/template-performance.json'),JSON.stringify(report,null,2)+'\n');
  const failures=report.accessibility.filter(r=>r.violations.length);assert.deepEqual(failures,[],'Accessibility violations (see evidence JSON)');
  console.log(JSON.stringify({accessibilityPages:report.accessibility.length,violations:failures.length,mobileLab:report.mobileLab.map(x=>({customHero:x.customHero,run:x.run,lcp:x.lcp,cls:x.cls,maxTask:Math.max(0,...x.longTasks),maxInteraction:Math.max(0,...x.events.filter(e=>e.interactionId>0).map(e=>e.duration))}))},null,2));
  }finally{await browser.close();await new Promise(r=>server.close(r));fs.rmSync(fixtureDir,{recursive:true});}

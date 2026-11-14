@@ -1,0 +1,47 @@
+[
+  {
+    "width": 1280,
+    "mode": "empty",
+    "violations": []
+  },
+  {
+    "width": 1280,
+    "mode": "closed",
+    "violations": []
+  },
+  {
+    "width": 1280,
+    "mode": "wide",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "mode": "empty",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "mode": "closed",
+    "violations": []
+  },
+  {
+    "width": 390,
+    "mode": "wide",
+    "violations": []
+  },
+  {
+    "width": 320,
+    "mode": "empty",
+    "violations": []
+  },
+  {
+    "width": 320,
+    "mode": "closed",
+    "violations": []
+  },
+  {
+    "width": 320,
+    "mode": "wide",
+    "violations": []
+  }
+]
