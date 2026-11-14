@@ -1,0 +1,52 @@
+[
+  {
+    "path": "/b/shalean-cleaning-services",
+    "status": 200,
+    "sha256": "2cd32745a15b15dcd42b1041880956c1af170ec935070e4a31dbb236dea321b8"
+  },
+  {
+    "path": "/b/shalean-cleaning-services/services",
+    "status": 200,
+    "sha256": "86b418ec2da0a9c9e71870ae1653f44492f936341f67048d4b890fcd7a7256e5"
+  },
+  {
+    "path": "/b/shalean-cleaning-services/how-it-works",
+    "status": 200,
+    "sha256": "9a0cdffe7fd301e7abef7cc58888f23de224e379eceecf30a7feaeb536142972"
+  },
+  {
+    "path": "/b/shalean-cleaning-services/areas",
+    "status": 200,
+    "sha256": "fee54c2a14aa08b0c9f18dd5e714e8f0f68f3a313340f61a0cfe6e0159d5b6d3"
+  },
+  {
+    "path": "/b/shalean-cleaning-services/contact",
+    "status": 200,
+    "sha256": "2a0e2cc3eb02f8a0e6dd177e64c7f307d3c3ba58b0959d0b51f26e7ffa06945c"
+  },
+  {
+    "path": "/account/customer.php?slug=shalean-cleaning-services",
+    "status": 200,
+    "sha256": "cb9221e030adb4fe0b2c882adaefb1cbec07961ea01b29c295116fde7fdfca42"
+  },
+  {
+    "path": "/business/homepage.css",
+    "status": 200,
+    "sha256": "1ccfa334ccdc740c40701cbc14dfcce6801d44ca07a89ec0ca09a522c8bbc0a3"
+  },
+  {
+    "path": "/business/booking.css",
+    "status": 200,
+    "sha256": "e001b238fdf6f64365e410bfb40b134733e2d8c86f322eeec6c589d7fa9a4110"
+  },
+  {
+    "path": "/business/booking.js",
+    "status": 200,
+    "sha256": "2ceef3df2679b5db881e21ad62f76575f625f4efbb3433ae9fb48b8fab6b4a45"
+  },
+  {
+    "path": "/ui/booking-header.js",
+    "status": 200,
+    "sha256": "37d402757c5a80d30677141935da45d2a700dcc12f372c9c2dcdc791556c1987"
+  }
+]

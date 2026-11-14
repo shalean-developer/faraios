@@ -1,0 +1,17 @@
+# Business header production release — 14 November 2026
+
+Owner authorization: “Deploy”, following preview review and heading/spacing refinements. PR25 merged cbe8ac233f460247c184e20df6a085ee49110406. Plesk production automatic-main pulled and deployed /faraios.com, Done. No business save/publication or intake activation.
+
+Initial live customer route returned503 because the private host configuration selects production using an exact SCRIPT_NAME entrypoint. docs/accounts-release.md records the /account/index.php rule; the existing public business renderer already uses that entrypoint when loading configuration. Customer.php now normalizes only its configuration-routing SCRIPT_NAME to the same entrypoint. Its environment/business-scoped session cookies, snapshot lookup, CSRF, allowed return destinations and authorization are unchanged. No private host settings or permissions were changed.
+
+Regression test models the exact-entrypoint private router and passes. Correction deployed to accounts-preview24812987349ebb430598f127612f56951620a198; branded preview form remained available. PR26 merged6ea75a6caee6d07d7f16698e0036e06f86172d66, pulled and deployed production /faraios.com, Done. GitGuardian checks on both exact application heads passed. Final native PG17/PHP customer/isolation, template-audit and live website publication journeys passed (all disposable synthetic data). No assertion of a configured application CI pipeline.
+
+PASS10 GET-only production route/asset checks: five Shalean pages, customer sign-in and four changed assets; assets exactly match release source; dynamic pages retain no-store. Actual live browser: Shalean branded customer login; existing verified account successfully signs in and returns to Shalean; avatar opens branded account page; sign out returns to Shalean and guest header. No credentials extracted/changed and no business/customer/booking/enquiry created. Final actual live desktop screenshot has cleared fields, centred three intro lines and spaced centred Back link. No horizontal overflow observed. Live mobile viewport override did not take effect (reported1280), so no new live390px pass is claimed; prior preview390/320px evidence remains applicable to the same responsive source.
+
+All15 public-table full-row counts and fingerprints exactly equal pre-release baseline. Live booking request gate=false, preview=true unchanged. Existing published Shalean snapshot and test history preserved; no republish. No form intake submission or outbound email. Direct live booking remains unavailable by authoritative gate; public CTAs lead to Contact enquiries.
+
+Known scope remains existing verified-account sign-in, with separate browser customer sessions over shared Supabase identities. Customer registration, branded verification/recovery callbacks/emails, memberships, private history/profile/RLS/API and payments remain unavailable. No expanded customer authorization inferred from metadata or email. Owner administration is separate. Physical-device/screen-reader checks remain unverified.
+
+Evidence: docs/evidence/production-header-release.json, business-header-production-preservation.json, business-header-production.jpg. Application rollback baseline9e4c42d preserves records and installed additive validators. Prefer forward-compatible correction if new fields have since been saved; never erase snapshots/history to roll back.
+
+Decision: **PASS authorized application production deployment and existing-account sign-in/logout verification.**
