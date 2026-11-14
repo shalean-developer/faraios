@@ -1,0 +1,11 @@
+# Benefit cards — preview
+
+Owner authorized the proposed three-card Why choose us presentation and reusable editor. Application base main da07fe7776b5a9144bced4b3810d6b8f4b5f54b8. No production merge, deployment, existing content edits or Shalean republication in this task.
+
+Homepage renders up to six owner-authored cards with static decorative SVG icon, title and optional short description. Three equal-height columns on desktop; one column below650px. Existing legacy benefits become card titles without changing their saved text. No claims or descriptions are inferred. New optional homepage.benefit_section contains editable heading, visible boolean and cards. Missing configuration preserves legacy visibility/heading; empty cards or explicit hide omit the section. Hiding retains the saved text for later use.
+
+Profile → Homepage content → Why choose us has Show this section, heading and up to six collapsible icon/title/description groups. Fixed icon choices: House, Calendar, Message, Check, Heart, Star. Blank card rows are ignored; partially filled rows require a title; text is bounded and escaped. Existing benefits array remains retained when the new editor is saved. Normal versioned draft/save/preview/publish and owner checks remain authoritative. No booking changes.
+
+Backwards-compatible pure profile validator migration20261114123413 installed in faraios-new. No grants/policies/table/record changes. All16existing public-table counts and full-row fingerprints match before/after, including media. No profiles were edited or published. Live intake remains unchanged.
+
+PASS native PHP and PostgreSQL save/reload, old-content preservation, draft invisibility, explicit publish, hide/unhide storage, malformed payload rejection and second-owner denial. Existing homepage5-test profile/security/logo/content suite passes. Chromium12combinations at1280/390/320: equal desktop card heights, mobile stack, hidden/empty states, legacy strings, escaped HTML and no overflow. PHP lint/diff checks pass. Screenshot docs/evidence/benefit-cards-preview.png is a synthetic local rendering of the suggested copy, not a modification of Shalean's published content. Hosted preview verification follows.
