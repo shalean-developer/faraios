@@ -46,3 +46,5 @@ Decision: PASS local and hosted preview. Production merge/deployment remains out
 ## Account buttons refinement
 
 Owner requested Sign in as a button beside Create account. Moved Sign in out of the navigation into a shared account-action group, with an outlined secondary button and filled primary signup button. Desktop buttons share height/alignment; at740px and below the adjacent buttons occupy a full-width second header row beneath the logo/menu. Dropdown navigation anchors below the resulting header. Existing account URLs/flows unchanged. Local1280/390/320 checks confirm equal button y-position,44px minimum targets, no overflow and three axe scans with zero violations. No account, business or provider changes.
+
+Hosted button checkpoint: preview application6e51a44467e9ce1bd76d7da992fb43871c7eba5c pulled/deployed only to manual accounts-preview, Plesk Done. Actual desktop buttons share y17/height48; at320px share y64/height44, no horizontal overflow. Both retain correct account URLs. Viewport reset; screenshot platform-account-buttons-hosted.jpg. Production unchanged. No form submissions or business-record changes.
