@@ -56,17 +56,22 @@ def rehearse(db,env,sql,check_business=False):
   return code,body
  def ready(url):
   target=rest if url.startswith('http://'+rest+':') else auth
+  last_code=0;last_body=None
   for _ in range(15):
    state=subprocess.run(['docker','inspect','--format','{{.State.Running}}',target],env=env,capture_output=True,timeout=15)
    if state.stdout.strip()!=b'true':break
-   if http(url)[0]==200:return
+   last_code,last_body=http(url)
+   if last_code==200:return
    time.sleep(1)
   logs=subprocess.run(['docker','logs',target],env=env,capture_output=True,timeout=15)
   detail=(logs.stdout+logs.stderr).decode(errors='replace');labels=[]
   for pattern,label in [('SSL is not enabled','isolated database does not support TLS'),('uuid_generate_v4','UUID extension dependency'),('permission denied','migration permission'),('does not exist','missing migration dependency'),('failed to parse','configuration parse failure'),('migration','migration failure'),('connection refused','database connection refused')]:
    if pattern in detail:labels.append(label)
   labels+=re.findall(r'SQLSTATE [0-9A-Z]{5}',detail)
-  raise AuthRecoveryError('Isolated service did not become ready: '+(', '.join(labels) or 'private details suppressed'))
+  labels+=re.findall(r'PGRST[0-9]{3}',detail)
+  provider_code=last_body.get('code') if isinstance(last_body,dict) else None
+  if isinstance(provider_code,str) and re.fullmatch('[A-Z0-9]{5,10}',provider_code):labels.append(provider_code)
+  raise AuthRecoveryError('Isolated '+('API' if target==rest else 'Auth')+' service did not become ready (HTTP '+str(last_code)+'): '+(', '.join(labels) or 'private details suppressed'))
  def login(user):
   code,result=http('http://localhost:9999/token?grant_type=password','POST',user)
   if code!=200 or not isinstance(result,dict) or not result.get('access_token') or not result.get('refresh_token'):raise AuthRecoveryError('Restored password sign-in failed')
@@ -113,7 +118,7 @@ def rehearse(db,env,sql,check_business=False):
    tokens.append(refreshed['access_token'])
   if http('http://localhost:9999/token?grant_type=password','POST',{'email':users[0]['email'],'password':'incorrect-recovery-password'})[0] not in (400,401):raise AuthRecoveryError('Wrong password accepted')
   args=['docker','run','--detach','--name',rest,'--network',network,'--memory=256m','--cpus=1','--cap-drop=ALL','--security-opt=no-new-privileges']
-  values={'PGRST_DB_URI':'postgres://authenticator:'+restpass+'@'+db+':5432/postgres?sslmode=disable','PGRST_DB_SCHEMAS':'public','PGRST_DB_ANON_ROLE':'anon','PGRST_JWT_SECRET':jwt}
+  values={'PGRST_DB_URI':'postgres://authenticator:'+restpass+'@'+db+':5432/postgres?sslmode=disable','PGRST_DB_SCHEMAS':'public','PGRST_DB_ANON_ROLE':'anon','PGRST_JWT_SECRET':jwt,'PGRST_DB_CONFIG':'false','PGRST_DB_EXTRA_SEARCH_PATH':'public,extensions','PGRST_DB_POOL':'2'}
   for k,v in values.items():args+=['--env',k+'='+v]
   safe_run(args+[REST_IMAGE],env);ready('http://'+rest+':3000/')
   for n,token in enumerate(tokens):
