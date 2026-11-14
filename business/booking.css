@@ -202,3 +202,13 @@
 .booking-controls button{margin-top:0}
 .booking-controls .button{width:auto;max-width:calc(100% - 88px);margin-top:0;margin-left:auto}
 @media(max-width:600px){#booking.public-card .review-price-section{padding-top:14px}}
+
+/* Sticky booking header and account-aware identity. */
+.booking-header{position:sticky;top:0;z-index:50;background:#fff}
+.booking-header .booking-auth-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 18px;border:1px solid #087c79;border-radius:8px;background:#087c79;color:#fff;font-size:14px;font-weight:650;line-height:20px;text-decoration:none;white-space:nowrap}
+.booking-user-avatar{display:grid;place-items:center;width:40px;height:40px;flex:none;border-radius:50%;background:#e6f3f2;color:#087c79;text-decoration:none;font-size:15px;font-weight:700;line-height:1}
+.booking-auth-button:focus-visible,.booking-user-avatar:focus-visible{outline:3px solid #8dccf1;outline-offset:3px}
+:root{--booking-header-height:112px;scroll-padding-top:calc(var(--booking-header-height) + 16px)}
+.request-summary{top:calc(var(--booking-header-height) + 20px)}
+.request-layout legend,.f-picker__panel{scroll-margin-top:calc(var(--booking-header-height) + 16px)}
+@media(max-width:900px){.request-summary{top:0}.booking-header .booking-auth-button{padding:10px 14px}}
