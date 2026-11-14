@@ -59,3 +59,5 @@ html{scroll-padding-top:150px}.homepage-page{background:#fff;color:#193d38}.home
 .home-brand img{width:auto;height:auto;max-width:min(var(--logo-width,150px),24vw);max-height:var(--logo-height,48px)}
 @media(max-width:650px){.home-brand img{max-width:min(calc(var(--logo-width,150px) * .7),30vw);max-height:min(var(--logo-height,48px),48px)}}
 .customer-main{max-width:480px;margin:32px auto;padding:24px}.customer-main input{width:100%;box-sizing:border-box}.customer-main form{display:grid;gap:12px}.customer-main label{margin-top:12px}
+
+.customer-main .customer-back{margin:24px 0 0;text-align:center}.customer-main .customer-back a{display:inline-flex;align-items:center;justify-content:center;min-height:44px}

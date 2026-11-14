@@ -47,3 +47,5 @@ PASS existing standalone browser pages1280/390/320, booking sticky/guest/avatar 
 Branding settings and two-business customer isolation were exercised on disposable fixtures, preserving hosted profile records. Hosted cross-business membership/private-record access does not exist; no customer portal access claim is made. Branded registration/recovery/email callbacks and customer membership/record authorization remain outstanding. Physical-device/screen-reader checks unverified.
 
 Decision: **PASS preview implementation and existing-account sign-in verification; ready for owner review. Production NO-GO until explicit authorization.** Shalean was not republished.
+
+Owner refinement: shortened guest introduction to “Sign in to your account.” and centred the Back link with24px separation beneath the full-width Sign in button. Auth capability limitations remain documented here; no authentication logic or records changed.
