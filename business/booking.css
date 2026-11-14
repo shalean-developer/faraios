@@ -81,3 +81,17 @@
 
 /* Keep every Details section aligned with the address card. */
 .booking-details-content{width:100%;max-width:520px;min-width:0;margin-inline:auto}
+
+/* Compact optional extras: circular line icons and labels below. */
+.extra-task-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:18px 12px;margin:18px 0}
+.extra-task-grid .extra-task{display:block;border:0;padding:0;min-width:0}
+.extra-task-grid .extra-choice{display:flex;flex-direction:column;align-items:center;gap:6px;padding:0;width:100%;border:0;border-radius:6px;background:transparent;color:#526176;text-align:center}
+.extra-task-circle{display:grid;place-items:center;position:relative;width:48px;height:48px;flex:none;border:1px solid #168878;border-radius:50%;background:white;color:#087c79}
+.extra-task-circle svg{width:30px;height:30px}
+.extra-task-label{display:block;max-width:76px;min-height:32px;font-size:12px;line-height:16px;overflow-wrap:anywhere}
+.extra-task-grid .extra-choice:hover .extra-task-circle{background:#edf7f5}
+.extra-task-grid .extra-choice[aria-pressed="true"]{background:transparent;color:#075d57;font-weight:650}
+.extra-task-grid .extra-choice[aria-pressed="true"] .extra-task-circle{background:#e5f4ef;border:2px solid #087c79}
+.extra-task-grid .extra-choice[aria-pressed="true"] .extra-task-circle::after{content:"✓";position:absolute;right:-3px;top:-3px;display:grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#087c79;color:white;font-size:11px;border:2px solid white}
+.extra-task-grid .extra-choice:focus-visible{outline:3px solid #8dccf1;outline-offset:4px}
+.extra-task-hint{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip-path:inset(50%);white-space:nowrap}
