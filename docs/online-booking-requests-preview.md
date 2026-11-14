@@ -171,3 +171,9 @@ Owner approved the audit recommendation. Implemented per-service rooms/extras co
 PASS isolated native PG/PHP lifecycle/security tests and catalogue/quote/booking/customer/staff/invoice/dashboard regressions. PASS real local Chromium desktop/mobile and complete fictional submission. Screenshots use fictional test prices, not configured hosted prices.
 
 No hosted migration/deployment or records changed. Automatic approval review blocked the separate hosting account/preview-deployment path under the earlier deployment restriction. Candidate saved for review; preview-only deployment and additive migration remain pending authorization. No production merge/deployment/live-intake activation.
+
+### Rooms preview deployment approved and completed
+
+Owner approved additive migration and preview deployment. Hosted migration service_rooms_extras_pricing ledger20261114001631 applied; a55f38f deployed only to accounts-preview (Plesk completed/Done). Hosted calculator/security and desktop/mobile legacy-service checks PASS. All9 protected table fingerprints unchanged; request preview gate true/live false; live pages/requests0. No service prices/options or records changed. Full evidence in service-rooms-extras-preview.md.
+
+Owner session expired and Services redirects to sign-in. Signed-in editor verification remains pending; customer rooms/extras lifecycle is validated in isolated tests, not yet against a configured hosted service. Owner sign-in handoff retained. Production remains prohibited.
