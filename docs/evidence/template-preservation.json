@@ -1,0 +1,165 @@
+{
+  "before": [
+    {
+      "preservation": [
+        {
+          "n": 5,
+          "name": "business_booking_requests",
+          "fingerprint": "dd553dac9d50ebf6aa563dbe4b4a0191"
+        },
+        {
+          "n": 7,
+          "name": "business_booking_staff",
+          "fingerprint": "7aea359319a253b35ab9b4295ad443dc"
+        },
+        {
+          "n": 13,
+          "name": "business_bookings",
+          "fingerprint": "d44421528068cdd45bac3d3362d30633"
+        },
+        {
+          "n": 2,
+          "name": "business_customers",
+          "fingerprint": "cfe4416c6a790b9fea0979bea2500576"
+        },
+        {
+          "n": 9,
+          "name": "business_enquiries",
+          "fingerprint": "ea079125ae0844ec3cffdda165b607b9"
+        },
+        {
+          "n": 22,
+          "name": "business_invoice_events",
+          "fingerprint": "8cd8e6cbfe41b9a426a9890a9a77ddac"
+        },
+        {
+          "n": 9,
+          "name": "business_invoice_payments",
+          "fingerprint": "7910bb1702e42604adf4b73554148fb2"
+        },
+        {
+          "n": 5,
+          "name": "business_invoices",
+          "fingerprint": "4f08e531232797a9d2ed77a955728902"
+        },
+        {
+          "n": 4,
+          "name": "business_profiles",
+          "fingerprint": "095c45a0f4e0e7c5aa32bb16bf5550dc"
+        },
+        {
+          "n": 2,
+          "name": "business_public_pages",
+          "fingerprint": "39e026ae68c63be24e2cf934a4609eab"
+        },
+        {
+          "n": 7,
+          "name": "business_quotes",
+          "fingerprint": "18a530a47ebd0240522c660ae255d983"
+        },
+        {
+          "n": 3,
+          "name": "business_service_catalogues",
+          "fingerprint": "c4a73011bab63dda9bd91110ff589db5"
+        },
+        {
+          "n": 5,
+          "name": "business_staff",
+          "fingerprint": "6e334f199cfeb4419f7e01b9aa6cc6af"
+        },
+        {
+          "n": 3,
+          "name": "businesses",
+          "fingerprint": "d0c7418f31070a0c9a612c0205706ba6"
+        },
+        {
+          "n": 2,
+          "name": "waitlist_subscribers",
+          "fingerprint": "0b3e8a41e9076b4d4e6f4eb26dcdb6c6"
+        }
+      ]
+    }
+  ],
+  "after": [
+    {
+      "preservation": [
+        {
+          "n": 5,
+          "name": "business_booking_requests",
+          "fingerprint": "dd553dac9d50ebf6aa563dbe4b4a0191"
+        },
+        {
+          "n": 7,
+          "name": "business_booking_staff",
+          "fingerprint": "7aea359319a253b35ab9b4295ad443dc"
+        },
+        {
+          "n": 13,
+          "name": "business_bookings",
+          "fingerprint": "d44421528068cdd45bac3d3362d30633"
+        },
+        {
+          "n": 2,
+          "name": "business_customers",
+          "fingerprint": "cfe4416c6a790b9fea0979bea2500576"
+        },
+        {
+          "n": 9,
+          "name": "business_enquiries",
+          "fingerprint": "ea079125ae0844ec3cffdda165b607b9"
+        },
+        {
+          "n": 22,
+          "name": "business_invoice_events",
+          "fingerprint": "8cd8e6cbfe41b9a426a9890a9a77ddac"
+        },
+        {
+          "n": 9,
+          "name": "business_invoice_payments",
+          "fingerprint": "7910bb1702e42604adf4b73554148fb2"
+        },
+        {
+          "n": 5,
+          "name": "business_invoices",
+          "fingerprint": "4f08e531232797a9d2ed77a955728902"
+        },
+        {
+          "n": 4,
+          "name": "business_profiles",
+          "fingerprint": "095c45a0f4e0e7c5aa32bb16bf5550dc"
+        },
+        {
+          "n": 2,
+          "name": "business_public_pages",
+          "fingerprint": "39e026ae68c63be24e2cf934a4609eab"
+        },
+        {
+          "n": 7,
+          "name": "business_quotes",
+          "fingerprint": "18a530a47ebd0240522c660ae255d983"
+        },
+        {
+          "n": 3,
+          "name": "business_service_catalogues",
+          "fingerprint": "c4a73011bab63dda9bd91110ff589db5"
+        },
+        {
+          "n": 5,
+          "name": "business_staff",
+          "fingerprint": "6e334f199cfeb4419f7e01b9aa6cc6af"
+        },
+        {
+          "n": 3,
+          "name": "businesses",
+          "fingerprint": "d0c7418f31070a0c9a612c0205706ba6"
+        },
+        {
+          "n": 2,
+          "name": "waitlist_subscribers",
+          "fingerprint": "0b3e8a41e9076b4d4e6f4eb26dcdb6c6"
+        }
+      ]
+    }
+  ],
+  "identical": true
+}

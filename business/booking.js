@@ -36,6 +36,12 @@ const optionPanel = document.getElementById('booking-options');
   }else clearDraft();
  }catch{clearDraft();}
 
+// A new service-card entry overrides the saved choice, but never a rejected submission.
+const entryService=new URL(location.href).searchParams.get('service');
+if(!rejected&&!completed&&/^[a-f0-9]{32}$/.test(entryService||'')){
+ const choice=[...form.querySelectorAll('input[name="service"]')].find(input=>input.value===entryService);
+ if(choice){choice.checked=true;for(const key of Object.keys(remembered))delete remembered[key];}
+}
 let activeService = '';
 const money = n => `${catalogue.currency} ${(n / 100).toLocaleString('en',{minimumFractionDigits:['JPY','UGX','RWF'].includes(catalogue.currency)?0:2,maximumFractionDigits:2})}`;
 const optionInputs = new Map();
@@ -168,7 +174,7 @@ const calculateOptions = service => {
   }catch{}
  };
  const syncUrl=(index,mode)=>{
-  const url=new URL(location.href);url.searchParams.set('booking','1');url.searchParams.set('step',stepNames[index]);
+  const url=new URL(location.href);url.searchParams.delete('service');url.searchParams.set('booking','1');url.searchParams.set('step',stepNames[index]);
   const state={faraiosBooking:true,step:stepNames[index]};
   if(mode==='push' && url.href!==location.href)history.pushState(state,'',url);
   else if(mode==='replace')history.replaceState(state,'',url);

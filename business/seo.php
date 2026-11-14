@@ -33,10 +33,16 @@ function business_seo_metadata(array $p,string $page,string $url,string $root): 
  return ['title'=>business_seo_text($title,120),'description'=>business_seo_text($description,300),'url'=>$url,'image'=>$image?$root.'?'.$image.'=1':'','alt'=>$alt,'width'=>$dimensions?$dimensions[0]:null,'height'=>$dimensions?$dimensions[1]:null];
 }
 function business_schema(array $p,string $page,string $root,string $url,array $meta): array {
- // No address is collected. Organization avoids fabricating a LocalBusiness address or eligibility.
+ // Only genuine explicitly published address fields permit LocalBusiness markup.
  $org=['@type'=>'Organization','@id'=>$root.'#business','name'=>$p['name'],'url'=>$root];
  foreach(['description'=>'description','email'=>'email','phone'=>'telephone','areas'=>'areaServed'] as $field=>$property)if(trim($p[$field]??'')!=='')$org[$property]=$p[$field];
  if(!empty($p['logo']))$org['logo']=$root.'?logo=1';if($meta['image']!=='')$org['image']=$meta['image'];
+ $o=$p['presentation']??[];
+ if(!empty($o['street'])&&!empty($o['city'])&&!empty($o['country'])){
+  $org['@type']='LocalBusiness';$org['address']=['@type'=>'PostalAddress','streetAddress'=>$o['street'],'addressLocality'=>$o['city'],'addressCountry'=>$o['country']];
+  foreach(['region'=>'addressRegion','postal'=>'postalCode'] as $field=>$property)if(!empty($o[$field]))$org['address'][$property]=$o[$field];
+  foreach($p['hours']??[] as $i=>$hours)if($hours)$org['openingHoursSpecification'][]=['@type'=>'OpeningHoursSpecification','dayOfWeek'=>'https://schema.org/'.profile_days()[$i],'opens'=>$hours[0],'closes'=>$hours[1]];
+ }
  $crumbs=[['@type'=>'ListItem','position'=>1,'name'=>$p['name'],'item'=>$root]];
  if($page!=='')$crumbs[]=['@type'=>'ListItem','position'=>2,'name'=>business_page_content($p,$page)['title'],'item'=>$url];
  return ['@context'=>'https://schema.org','@graph'=>[$org,['@type'=>'BreadcrumbList','@id'=>$url.'#breadcrumbs','itemListElement'=>$crumbs],['@type'=>$page==='contact'?'ContactPage':($page==='services'?'CollectionPage':'WebPage'),'@id'=>$url.'#page','url'=>$url,'name'=>$meta['title'],'description'=>$meta['description'],'about'=>['@id'=>$root.'#business'],'breadcrumb'=>['@id'=>$url.'#breadcrumbs']]]];
@@ -48,7 +54,7 @@ function business_seo_head(?array $p,string $page,string $base,string $slug,bool
  echo '<title>'.esc($booking?'Request a booking | '.$p['name']:$meta['title']).'</title>';
  if($booking)return; // Booking URLs have no content-page canonical, social metadata or schema.
  echo '<meta name="description" content="'.esc($meta['description']).'"><link rel="canonical" href="'.esc($url).'">';
- foreach(['og:type'=>'website','og:site_name'=>$p['name'],'og:title'=>$meta['title'],'og:description'=>$meta['description'],'og:url'=>$url,'twitter:card'=>$meta['image']!==''?'summary_large_image':'summary','twitter:title'=>$meta['title'],'twitter:description'=>$meta['description']] as $key=>$value)echo '<meta '.(str_starts_with($key,'og:')?'property':'name').'="'.$key.'" content="'.esc($value).'">';
+ foreach(['og:type'=>'website','og:site_name'=>$p['name'],'og:title'=>$meta['title'],'og:description'=>$meta['description'],'og:url'=>$url,'twitter:card'=>($meta['width']??0)>=600&&($meta['height']??0)>=300?'summary_large_image':'summary','twitter:title'=>$meta['title'],'twitter:description'=>$meta['description']] as $key=>$value)echo '<meta '.(str_starts_with($key,'og:')?'property':'name').'="'.$key.'" content="'.esc($value).'">';
  if($meta['image']!==''){foreach(['og:image'=>$meta['image'],'og:image:alt'=>$meta['alt'],'twitter:image'=>$meta['image'],'twitter:image:alt'=>$meta['alt']] as $key=>$value)echo '<meta '.(str_starts_with($key,'og:')?'property':'name').'="'.$key.'" content="'.esc($value).'">';if($meta['width'])echo '<meta property="og:image:width" content="'.$meta['width'].'"><meta property="og:image:height" content="'.$meta['height'].'">';}
  echo '<script type="application/ld+json">'.json_encode(business_schema($p,$page,$root,$url,$meta),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR).'</script>';
 }

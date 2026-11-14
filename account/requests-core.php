@@ -8,6 +8,8 @@ function request_progress(): void {
  echo '<nav class="booking-progress" aria-label="Booking progress"><ol><li aria-current="step">1<span>Service</span></li><li>2<span>Details</span></li><li>3<span>Schedule</span></li><li>4<span>Contact</span></li><li>5<span>Review</span></li></ol></nav>';
 }
 function request_form(string $slug,array $row,string $error,bool $sent): void {
+ // A query can preselect only a visible service in this business snapshot. POST stays authoritative.
+ if(($_SERVER['REQUEST_METHOD']??'GET')==='GET'&&is_string($_GET['service']??null))foreach($row['services']['items']??[] as $candidate)if(!empty($candidate['visible'])&&empty($candidate['archived'])&&$candidate['id']===$_GET['service'])$_POST['service']=$candidate['id'];
  $key=$slug.':booking';$ticket=enquiry_ticket($key);
  if($_SERVER['REQUEST_METHOD']==='GET'||!isset($_SESSION['forms'][$key]['snapshot']))$_SESSION['forms'][$key]['snapshot']=['services'=>$row['services'],'zone'=>$row['time_zone'],'areas'=>request_areas((string)($row['document']['areas']??''))];
  $catalogue=$_SESSION['forms'][$key]['snapshot']['services'];$zone=$_SESSION['forms'][$key]['snapshot']['zone'];
