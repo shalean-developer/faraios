@@ -8,7 +8,7 @@ const fs=require('fs');
  await page.getByRole('group',{name:'Bedrooms',exact:true}).getByRole('button',{name:'2',exact:true}).click();
  await page.getByRole('group',{name:'Bathrooms',exact:true}).getByRole('button',{name:'2',exact:true}).click();
  await page.getByRole('button',{name:'Inside oven · +ZAR 100.00',exact:true}).click();
- await page.getByLabel('Street address',{exact:true}).fill('123 Fictional Preview Road');await page.getByLabel('Requirements',{exact:true}).fill('Fictional isolated UI verification.');await page.getByLabel('Service area',{exact:true}).selectOption('Cape Town');
+ await page.getByLabel('Street address',{exact:true}).fill('123 Fictional Preview Road');await page.getByLabel('Requirements',{exact:true}).fill('Fictional isolated UI verification.');await page.getByRole('combobox',{name:'Service area',exact:true}).click();await page.getByRole('option',{name:'Cape Town',exact:true}).click();
  let text=await page.locator('.request-summary').innerText();if(!text.includes('745.00')||!text.includes('185 minutes'))throw Error(text);
  await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:process.env.EVIDENCE_DIR+'/rooms-desktop.png',fullPage:true});
  await page.getByRole('group',{name:'Bedrooms',exact:true}).getByRole('button',{name:'3+ Custom',exact:true}).click();await page.locator('#quantity-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa').fill('4');
