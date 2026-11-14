@@ -61,3 +61,5 @@ html{scroll-padding-top:150px}.homepage-page{background:#fff;color:#193d38}.home
 .customer-main{max-width:480px;margin:32px auto;padding:24px}.customer-main input{width:100%;box-sizing:border-box}.customer-main form{display:grid;gap:12px}.customer-main label{margin-top:12px}
 
 .customer-main .customer-back{margin:24px 0 0;text-align:center}.customer-main .customer-back a{display:inline-flex;align-items:center;justify-content:center;min-height:44px}
+
+.customer-main .customer-intro{text-align:center}
