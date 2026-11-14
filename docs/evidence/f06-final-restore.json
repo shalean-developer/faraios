@@ -1,0 +1,45 @@
+{
+  "status": "restore_verified",
+  "project": "rxelmugnucfajrqmphhe",
+  "backup_created_utc": "2026-11-14T18:25:03.122778+00:00",
+  "source_commit": "a6ac25329366a7a980f940c3bd7ce4c9e2f58fea",
+  "table_count": 69,
+  "snapshot_fingerprints_match": true,
+  "owner_scopes_checked": 3,
+  "network": "none during snapshot verification; internal-only during optional Auth test",
+  "published_ports": 0,
+  "production_credentials_forwarded": false,
+  "auth_rehearsal": {
+    "status": "auth_service_recovery_verified",
+    "auth_image": "supabase/gotrue:v2.197.0",
+    "rest_image": "postgrest/postgrest:v14.18",
+    "synthetic_users": 3,
+    "auth_configuration_reapplied": true,
+    "email_confirmation_enforced": true,
+    "callbacks_restored": 2,
+    "password_sign_in": true,
+    "refresh": true,
+    "sign_out": true,
+    "signed_out_refresh_denied": true,
+    "old_signing_key_rejected": true,
+    "real_jwt_tenant_isolation": true,
+    "existing_invoice_scope_checked": true,
+    "api_mode": "restored-authenticator-with-provider-libraries",
+    "provider_delete_guard_checked": true,
+    "managed_authenticator_settings_preserved": true,
+    "network": "internal-only",
+    "published_ports": 0,
+    "outbound_email": false,
+    "production_credentials_forwarded": false,
+    "limitations": [
+      "Self-hosted Auth/API rehearsal; hosted project configuration and SMTP delivery not restored",
+      "Fresh temporary signing keys and role passwords; existing users were not logged in",
+      "Provider libraries rebuilt from pinned source; exact managed server build is not claimed"
+    ]
+  },
+  "elapsed_seconds": 46.35,
+  "limitations": [
+    "Standalone PostgreSQL rehearsal; hosted Supabase configuration and Storage bytes not exercised",
+    "No recovery-time service guarantee established"
+  ]
+}

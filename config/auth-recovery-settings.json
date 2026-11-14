@@ -1,0 +1,11 @@
+{
+  "site_url": "https://www.faraios.com",
+  "redirect_urls": ["https://www.faraios.com/_accounts-preview/account/index.php?page=confirm", "https://www.faraios.com/account/index.php?page=confirm"],
+  "signup_enabled": true,
+  "email_confirmation_required": true,
+  "email_enabled": true,
+  "anonymous_enabled": false,
+  "otp_expiry": 3600,
+  "otp_length": 8,
+  "secure_email_change": true
+}

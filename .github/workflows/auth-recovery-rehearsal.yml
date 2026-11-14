@@ -11,6 +11,8 @@ permissions:
   contents: read
 jobs:
   auth:
+    env:
+      RESTORE_PROVIDER_LIBRARIES: true
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

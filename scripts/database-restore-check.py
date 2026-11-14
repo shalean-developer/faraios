@@ -49,10 +49,12 @@ def check(directory):
   # Recreate effective memberships using that bootstrap grantor, not a hosted grantor.
   roles=re.sub(r' GRANTED BY [a-z_][a-z_0-9]*;', ';',roles)
   name='faraios-restore-'+uuid.uuid4().hex
-  run(['docker','pull',IMAGE],env,stage='approved image download')
+  from auth_recovery import database_image,AuthRecoveryError
+  try:image=database_image(env)
+  except AuthRecoveryError as error:raise RestoreError(str(error)) from None
   try:
    # No ports, no network, no writable host mount, no production credentials.
-   run(['docker','run','--detach','--rm','--name',name,'--network=none','--memory=1g','--cpus=2','--mount','type=bind,src='+td+',dst=/backup,readonly','--tmpfs','/var/lib/postgresql/data:rw,size=768m','--env','POSTGRES_HOST_AUTH_METHOD=trust',IMAGE],env,stage='isolated target startup')
+   run(['docker','run','--detach','--rm','--name',name,'--network=none','--memory=1g','--cpus=2','--mount','type=bind,src='+td+',dst=/backup,readonly','--tmpfs','/var/lib/postgresql/data:rw,size=768m','--env','POSTGRES_HOST_AUTH_METHOD=trust',image],env,stage='isolated target startup')
    def cmd(tool,args):return ['docker','exec','-i',name,tool,*args]
    def sql(q,stage='isolated query'):return run(cmd('psql',['-U','postgres','-d','postgres','-XAtq','-v','ON_ERROR_STOP=1','-v','VERBOSITY=terse']),env,q.encode(),stage).decode().strip()
    ready=False

@@ -1,6 +1,8 @@
 # F06 Auth and configuration recovery
 
-Scope: faraios-new, 14 November 2026. Operations-only draft, based on main.
+Scope: faraios-new, 14 November 2026. Historical rehearsal evidence.
+**Current F06 completion and incident runbook: [f06-closeout.md](f06-closeout.md).**
+The earlier open items below describe intermediate runs, superseded by that closeout.
 No application deployment, paid service, hosted restore or production cutover.
 
 ## What this rehearsal proves
