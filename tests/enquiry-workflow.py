@@ -6,7 +6,7 @@ class Workflow(Profiles):
  def test_workflow(self):
   a,b=self.ids;bid=self.bids[0];eid=str(uuid.uuid4())
   self.sql("update enquiry_private.ingress set enabled=true where environment='live';update quote_private.ingress set enabled=true where environment='live'")
-  prefix='Verified customer requirements.\n';req=(prefix*129)[:3999]+'.'
+  prefix='Verified customer requirements.\né';req=(prefix*129)[:3999]+'.'
   self.scope(a,"select public.business_enquiry_create("+','.join(map(lit,[bid,'live',eid,'Fictional Enquiry','a@example.test','',req]))+")")
   self.post('/account/index.php?page=signin',email='a@example.test',password='test-long-password')
   path='/account/enquiries.php?id='+eid
