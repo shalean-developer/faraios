@@ -28,7 +28,8 @@ class Activation(Foundation):
   self.post('/account/index.php?page=signin',email='a@example.test',password='test-long-password')
   path='/account/quotes.php?id='+qid
   self.assertIn('deliberately a free quote',self.post(path,action='send',version=1,confirm_send='on'))
-  self.assertIn('Quote marked sent',self.post(path,action='send',version=1,confirm_send='on',confirm_free='on'))
+  sent=self.post(path,action='send',version=1,confirm_send='on',confirm_free='on')
+  self.assertTrue('Quote marked sent' in sent,repr(self.rpc_requests[-2:]))
   self.assertEqual(self.scope(a,f"select status from public.business_quotes where id='{qid}'"),'Sent')
   iid=self.scope(a,"select id from public.business_invoices where state='Void' limit 1")
   version=int(self.scope(a,'select version from public.business_invoices where id='+lit(iid)))
