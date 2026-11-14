@@ -30,3 +30,17 @@ Shalean's published service descriptions in prose are content, not published cat
 ## Preview gate
 
 Hosted preview deployment and read-only verification pending. Production remains NO-GO until owner reviews the tested preview and explicitly authorizes release. Application rollback is the previous preview feature/business-homepage-20261114; keep the additive validator/RPC so no optional saved data is invalidated. No rollback should erase records or replace published snapshots.
+
+## Hosted checkpoint — 14 November 2026
+
+Draft PR25, application candidate02832f36e6ffa17b4307c5d1160c269a3e3809cb. Plesk manual faraios-accounts-preview.git now selects feature/business-template-audit-20261114 and its Deploy now completed / Done. Production automatic-main and waitlist-preview targets are unchanged. A transient branch-selector interaction selected an old manual-preview branch before deployment; it was corrected to the exact tested candidate before Deploy now. No old candidate was deployed.
+
+PASS12 GET-only HTTP checks (`python tests/template-hosted.py`, evidence template-hosted-checks.json): five routes/canonicals/noindex/no-store/business-only graph; preview CSS/booking JS exactly match candidate; production CSS/booking JS exactly match base main; unknown business including booking query404; unknown subpage404; live Shalean slug not exposed in preview404; valid published demo service preselected in booking; production Shalean page remains on its preceding application.
+
+PASS actual hosted browser: five pages at390px, correct page titles/canonicals/noindex and no overflow; Deep cleaning card opens root booking with that exact service selected and all five progress stages. No submission. Reset viewport and left hosted homepage open for review. Screenshot template-hosted-desktop.jpg shows the actual hosted demo, not Shalean content. Empty/disabled service states, wide logos, custom branding/address/WhatsApp editor save/reload/publish and ownership denial were tested with isolated synthetic data; no hosted existing profile edit or publication was performed.
+
+PASS preservation: all15 public-table full-row counts AND fingerprints exactly match pre-change baseline, including Shalean's live snapshot and all test history. Evidence template-preservation.json. Booking requests5/bookings13/enquiries9/public pages2 unchanged. Live request gate remainsfalse, previewtrue. New optional fields were not populated in existing profiles. After the private lookup/invoker wrapper adjustment, security advisors match the preceding baseline:13 existing deny-all INFO findings and existing leaked-password-protection WARN, no new finding. Existing warning guidance: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection.
+
+The application in preview uses the existing demo snapshot. Shalean's live snapshot was deliberately not imported/copied to preview. Its empty-service/disabled-intake behavior is verified through the equivalent isolated fixtures. Screenshot/mobile capture quality and fixture measurements do not establish physical-device/screen-reader results, hosted load performance or field Core Web Vitals. Public social-crawler behavior remains unverified. Owner content gaps remain listed above.
+
+Decision: **PASS preview implementation and verification; ready for owner review. Production merge/deployment remains NO-GO until separately authorized.**

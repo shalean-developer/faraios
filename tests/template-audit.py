@@ -34,5 +34,14 @@ class TemplateAudit(SEO):
   self.sql(prefix+'select public.business_profile_save('+lit(bid)+",'preview','template-audit',"+lit(json.dumps(p))+"::jsonb,1)")
   self.assertNotIn('PRIVATE DRAFT STREET',self.request('/preview/b/template-audit')[2])
   with self.assertRaises(RuntimeError):self.sql('set role authenticated;set request.jwt.claim.sub='+lit(self.ids[1])+';select public.business_profile_save('+lit(bid)+",'preview','template-audit',"+lit(json.dumps(p))+"::jsonb,2)")
+  # Real editor path: custom fields save/reload privately and require explicit publication.
+  self.post('/preview/account/index.php?page=signin',email='a@example.test',password='test-long-password')
+  data={k:p[k] for k in ['name','description','email','phone','website','areas']};data.update(action='save',version=2,slug='template-audit')
+  for k,v in p['presentation'].items():data['presentation['+k+']']=v
+  self.assertIn('Draft saved',self.post('/preview/account/profile.php',**data))
+  editor=self.get('/preview/account/profile.php')[1];self.assertIn('value="PRIVATE DRAFT STREET"',editor);self.assertIn('value="27825550123"',editor)
+  self.assertNotIn('PRIVATE DRAFT STREET',self.request('/preview/b/template-audit')[2])
+  self.assertIn('is published',self.post('/preview/account/profile.php',action='publish',version=3,confirm_public='on'))
+  self.assertIn('PRIVATE DRAFT STREET',self.request('/preview/b/template-audit')[2])
 if __name__=='__main__':
  result=unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite([TemplateAudit('test_template_options_and_availability')]));raise SystemExit(not result.wasSuccessful())

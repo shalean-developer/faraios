@@ -1,0 +1,67 @@
+[
+  {
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning",
+    "status": 200,
+    "noindex": true,
+    "noStore": true,
+    "canonical": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning"
+  },
+  {
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/services",
+    "status": 200,
+    "noindex": true,
+    "noStore": true,
+    "canonical": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/services"
+  },
+  {
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/how-it-works",
+    "status": 200,
+    "noindex": true,
+    "noStore": true,
+    "canonical": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/how-it-works"
+  },
+  {
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/areas",
+    "status": 200,
+    "noindex": true,
+    "noStore": true,
+    "canonical": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/areas"
+  },
+  {
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/contact",
+    "status": 200,
+    "noindex": true,
+    "noStore": true,
+    "canonical": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/contact"
+  },
+  {
+    "asset": "business/homepage.css",
+    "previewMatchesCandidate": true,
+    "productionMatchesBase": true
+  },
+  {
+    "asset": "business/booking.js",
+    "previewMatchesCandidate": true,
+    "productionMatchesBase": true
+  },
+  {
+    "path": "/b/unknown?booking=1",
+    "status": 404
+  },
+  {
+    "path": "/b/faraios-demo-cleaning/unknown",
+    "status": 404
+  },
+  {
+    "path": "/b/shalean-cleaning-services",
+    "status": 404
+  },
+  {
+    "bookingServicePreselection": true,
+    "noindex": true
+  },
+  {
+    "productionShaleanUnchangedApplication": true,
+    "status": 200
+  }
+]
