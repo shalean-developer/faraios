@@ -9,9 +9,33 @@ if (form) {
  const send = document.getElementById('booking-send');
  const zone = document.getElementById('summary-zone').textContent;
  let current = 0;
+ const stepNames=['service','details','schedule','contact','review'];
+ const draftKey='faraios-booking:'+location.pathname;
+ const draftAge=30*60*1000;
+ const clearDraft=()=>{try{sessionStorage.removeItem(draftKey);}catch{}};
+ const completed=!!document.querySelector('#booking .notice[role="status"]');
+
 const catalogue = JSON.parse(document.getElementById('booking-catalogue').textContent);
 const remembered = JSON.parse(document.getElementById('booking-selections').textContent);
 const optionPanel = document.getElementById('booking-options');
+ const rejected = document.querySelector('#booking [role="alert"]');
+ // Keep personal draft values in this tab only, never in URLs or history state.
+ if(completed)clearDraft();
+ else if(!rejected)try{
+  const draft=JSON.parse(sessionStorage.getItem(draftKey)||'null');
+  if(draft && Date.now()-draft.savedAt>=0 && Date.now()-draft.savedAt<draftAge && draft.catalogue===JSON.stringify(catalogue)){
+   const service=form.querySelector('input[name="service"][value="'+draft.service+'"]');
+   if(service)service.checked=true;
+   for(const name of ['address','unit','requirements','service_area','date','time','name','email','phone']){
+    if(fields[name] && typeof draft.values?.[name]==='string'){
+     fields[name].value=draft.values[name].slice(0,name==='requirements'?1900:name==='address'?1000:254);
+     fields[name].dispatchEvent(new Event('change',{bubbles:true}));
+    }
+   }
+   if(draft.options && typeof draft.options==='object')for(const [id,q] of Object.entries(draft.options))if(/^[a-f0-9]{32}$/.test(id)&&typeof q==='string'&&/^[0-9]{1,4}$/.test(q))remembered[id]=q;
+  }else clearDraft();
+ }catch{clearDraft();}
+
 let activeService = '';
 const money = n => `${catalogue.currency} ${(n / 100).toLocaleString('en',{minimumFractionDigits:['JPY','UGX','RWF'].includes(catalogue.currency)?0:2,maximumFractionDigits:2})}`;
 const optionInputs = new Map();
@@ -134,9 +158,24 @@ const calculateOptions = service => {
   put('review-schedule',document.getElementById('summary-schedule').textContent);
   document.getElementById('review-notes-section').hidden=!fields.requirements.value.trim();
   constraints();
+  saveDraft();
  };
- const show = (index, focus = true) => {
+ const saveDraft=()=>{
+  if(completed)return;
+  try{
+   const values={};for(const name of ['address','unit','requirements','service_area','date','time','name','email','phone'])if(fields[name])values[name]=fields[name].value;
+   sessionStorage.setItem(draftKey,JSON.stringify({savedAt:Date.now(),catalogue:JSON.stringify(catalogue),service:form.querySelector('input[name="service"]:checked')?.value||'',values,options:Object.fromEntries([...optionInputs].map(([id,input])=>[id,input.value]))}));
+  }catch{}
+ };
+ const syncUrl=(index,mode)=>{
+  const url=new URL(location.href);url.searchParams.set('booking','1');url.searchParams.set('step',stepNames[index]);
+  const state={faraiosBooking:true,step:stepNames[index]};
+  if(mode==='push' && url.href!==location.href)history.pushState(state,'',url);
+  else if(mode==='replace')history.replaceState(state,'',url);
+ };
+ const show = (index, focus = true, historyMode='push') => {
   current = index;
+  syncUrl(index,historyMode);
   document.querySelector('.request-summary').hidden = current === 0;
   document.querySelector('.request-layout').classList.toggle('service-selection', current === 0);
   steps.forEach((step, i) => { step.hidden = i !== current; });
@@ -148,6 +187,7 @@ const calculateOptions = service => {
   next.hidden = current === 0 || current === steps.length - 1;
   send.hidden = current !== steps.length - 1;
   put('step-status', `Step ${current + 1} of 5 · ${steps[current].querySelector('legend').textContent}`);
+  saveDraft();
   if (focus) steps[current].querySelector('legend').focus();
  };
  const valid = (index, report = true) => {
@@ -164,8 +204,8 @@ const calculateOptions = service => {
  form.querySelectorAll('input[name="service"]').forEach(card => {
   card.addEventListener('click', () => { if (current === 0 && valid(0)) show(1); });
  });
- form.addEventListener('input', update);
- form.addEventListener('change', update);
+ form.addEventListener('input', () => {update();saveDraft();});
+ form.addEventListener('change', () => {update();saveDraft();});
  form.addEventListener('submit', event => {
   if (current !== 4) { event.preventDefault(); if (valid(current)) show(current + 1); return; }
   for (let i = 0; i < 4; i++) if (!valid(i)) { event.preventDefault(); return; }
@@ -184,7 +224,16 @@ const calculateOptions = service => {
  const resize = () => { details.open = !media.matches; };
  media.addEventListener('change', resize);
  resize(); update();
- // After a server rejection, retain every field and return to the first invalid step.
- const rejected = document.querySelector('#booking [role="alert"]');
- show(rejected ? Math.max(0, steps.findIndex((step, i) => !valid(i, false))) : 0, false);
+ const requestedStep=()=>Math.max(0,stepNames.indexOf(new URL(location.href).searchParams.get('step')));
+ const reachable=target=>{
+  for(let i=0;i<target;i++)if(!valid(i,false))return i;
+  return target;
+ };
+ // Server rejection wins over a stored draft. Links and history cannot skip required fields.
+ const initial=completed?0:rejected?Math.max(0,steps.findIndex((step,i)=>!valid(i,false))):reachable(requestedStep());
+ show(initial,false,'replace');
+ window.addEventListener('popstate',()=>{
+  const requested=requestedStep(),target=reachable(requested);
+  show(target,true,target===requested?'none':'replace');
+ });
 }
