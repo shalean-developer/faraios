@@ -54,4 +54,4 @@ Before F06 closure: choose/fund/configure the backup path; prove an actual retai
 
 Local report: docs/evidence/release-recovery-local.json. CI retains per-suite logs, runtime/source metadata and restore report for 14 days under foundation-regression-evidence. Only synthetic data enters these artifacts. Browser inventory was read-only; no restore/download/upgrade action was taken.
 
-F05: pending latest-head CI for the expanded gate. F06: local rehearsal and preview observability implementation PASS; production recovery readiness **NO-GO** until the above backup and operational gates are resolved. This is not a statement that hosting snapshots are absent; their inventory is recorded separately.
+F05: expanded gate PASS in runtime-head CI run 43620342721 (PG16), in addition to local PG17 verification. F06: local rehearsal and preview observability implementation PASS; production recovery readiness **NO-GO** until the above backup and operational gates are resolved. This is not a statement that hosting snapshots are absent; their inventory is recorded separately.
