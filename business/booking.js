@@ -75,7 +75,7 @@ const calculateOptions = service => {
  const invalid=total>999999999||minutes>10080;
  for(const input of optionInputs.values())input.setCustomValidity(invalid?'Selected scope exceeds supported price or duration.':'');
  const price=service.mode==='quote'?'Quote required':`${service.mode==='from'?'From ':''}${money(total)}`;
- return {price,options:selected.join(', ')||'None selected',breakdown:lines.join('\n'),duration:`${minutes} minutes`};
+ return {price,options:selected.join(', ')||'None selected',breakdown:lines.join('\n'),duration:[Math.floor(minutes/60)?`${Math.floor(minutes/60)} hr`:'',minutes%60?`${minutes%60} min`:''].filter(Boolean).join(' ') || '0 min'};
 };
 
  const put = (id, value) => { document.getElementById(id).textContent = value; };
@@ -113,6 +113,16 @@ const calculateOptions = service => {
   for (const key of ['service', 'address', 'schedule', 'area']) put(`summary-${key}`, values[key]);
   for (const id of ['selected-price', 'summary-price', 'summary-total']) put(id, price);
   for (const node of form.querySelectorAll('[data-review]')) node.textContent = values[node.dataset.review];
+  document.getElementById('summary-where-row').hidden = !fields.address.value.trim() && !fields.service_area?.value;
+  document.getElementById('summary-what-row').hidden = !service;
+  document.getElementById('summary-when-row').hidden = !fields.date.value && !fields.time.value;
+  put('summary-address', [fields.address.value.trim(), fields.unit.value.trim()].filter(Boolean).join(', '));
+  put('summary-area', fields.service_area?.value || '');
+  document.getElementById('summary-options').hidden = calculated.options === 'None selected';
+  if(fields.date.value) {
+   const date = new Date(fields.date.value+'T12:00:00');
+   put('summary-schedule', [new Intl.DateTimeFormat('en-ZA',{weekday:'short',day:'numeric',month:'short'}).format(date),fields.time.value].filter(Boolean).join(' · '));
+  }
   constraints();
  };
  const show = (index, focus = true) => {
@@ -150,7 +160,16 @@ const calculateOptions = service => {
   if (current !== 4) { event.preventDefault(); if (valid(current)) show(current + 1); return; }
   for (let i = 0; i < 4; i++) if (!valid(i)) { event.preventDefault(); return; }
  });
- const details = document.querySelector('.request-summary details');
+ document.querySelectorAll('[data-summary-edit]').forEach(button => button.addEventListener('click', () => {
+  show(Number(button.dataset.summaryEdit));
+ }));
+ const costToggle = document.getElementById('summary-cost-toggle');
+ costToggle.addEventListener('click', () => {
+  const expanded = costToggle.getAttribute('aria-expanded') !== 'true';
+  costToggle.setAttribute('aria-expanded', String(expanded));
+  document.getElementById('summary-cost-details').hidden = !expanded;
+ });
+ const details = document.querySelector('.summary-shell');
  const media = window.matchMedia('(max-width: 900px)');
  const resize = () => { details.open = !media.matches; };
  media.addEventListener('change', resize);

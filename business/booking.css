@@ -100,3 +100,28 @@
 
 /* Align Details navigation with the cards above. */
 .request-layout form:has(fieldset[data-step="1"]:not([hidden])) .booking-controls{width:100%;max-width:520px;min-width:0;box-sizing:border-box;margin-inline:auto}
+
+/* Compact editable booking summary. */
+.request-summary{padding:0;background:#fff;overflow:hidden}
+.request-summary .summary-shell>summary{padding:18px 16px;list-style:none;font-size:17px;cursor:default}
+.summary-shell>summary::-webkit-details-marker{display:none}
+.request-summary #summary-price{display:none}
+.summary-rows{display:grid;gap:8px;padding:0 12px 16px}
+.summary-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:10px 12px;border:1px solid #dfe5ed;border-radius:7px;background:#fff;text-align:left;font:inherit;color:#172d3b;cursor:pointer;min-width:0}
+.summary-row-copy{display:grid;gap:3px;min-width:0;overflow-wrap:anywhere;font-size:13px}
+.summary-label{font-size:11px;color:#637682}
+.summary-row small{font-size:12px;color:#637682;line-height:1.4}
+.summary-edit{color:#087c79;font-size:21px;flex:none}
+.summary-row:hover{background:#f5faf9;border-color:#087c79}
+.summary-row:focus-visible,#summary-cost-toggle:focus-visible{outline:3px solid #8dccf1;outline-offset:-3px}
+.summary-cost-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#123d43;color:#fff;padding:14px 16px;font-size:14px}
+#summary-cost-toggle{background:transparent;color:inherit;border:0;border-left:1px solid #ffffff50;padding:4px 0 4px 16px;font:inherit;cursor:pointer}
+#summary-cost-details{padding:0 16px 12px;border-bottom:1px solid #e1e8ed}
+#summary-cost-details h3{font-size:14px;margin:16px 0 8px}
+#summary-cost-details p{font-size:12px;line-height:1.6;margin:8px 0}
+.request-summary .summary-notice{font-size:11px;color:#637682;padding:12px 16px;margin:0}
+@media(max-width:900px){
+ .request-summary .summary-shell>summary{cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;list-style:disclosure-closed}
+ .request-summary .summary-shell:not([open]) #summary-price{display:inline;margin:0;font-size:13px}
+ .request-summary .summary-shell[open]{max-height:50vh}
+}
