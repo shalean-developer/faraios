@@ -11,6 +11,16 @@ on:
         type: boolean
         required: false
         default: false
+      configuration_action:
+        description: Private configuration action (none, key, import)
+        required: false
+        default: none
+      configuration_key_run:
+        description: Successful encrypted configuration key run ID (import only)
+        required: false
+      configuration_packet:
+        description: Sealed configuration packet, base64 ciphertext only (import only)
+        required: false
   schedule:
     - cron: '0 3 * * 0'
 permissions:
@@ -21,6 +31,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   restore:
+    if: ${{ !inputs.configuration_action || inputs.configuration_action == 'none' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -63,3 +74,54 @@ jobs:
       - name: Remove private runner inputs and evidence
         if: always()
         run: rm -rf -- "${{ runner.temp }}/restore-input" "${{ runner.temp }}/restore-evidence"
+  configuration:
+    if: ${{ inputs.configuration_action == 'key' || inputs.configuration_action == 'import' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y php-cli
+      - name: Encrypted key and restore regression
+        run: php tests/private-config.php
+      - name: Generate encrypted recovery key
+        if: inputs.configuration_action == 'key'
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.FARAIOS_BACKUP_PASSPHRASE }}
+        run: php scripts/private-config-recovery.php --action=key --out="$RUNNER_TEMP/config-key"
+      - uses: actions/upload-artifact@v4
+        if: inputs.configuration_action == 'key'
+        with:
+          name: faraios-private-config-key
+          path: ${{ runner.temp }}/config-key/
+          retention-days: 30
+      - uses: actions/download-artifact@v4
+        if: inputs.configuration_action == 'import'
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.configuration_key_run }}
+          name: faraios-private-config-key
+          path: ${{ runner.temp }}/config-key/
+      - name: Decode ciphertext packet
+        if: inputs.configuration_action == 'import'
+        env:
+          SEALED_PACKET: ${{ inputs.configuration_packet }}
+        run: |
+          mkdir -m 700 "$RUNNER_TEMP/config-bundle"
+          php -r '$s=getenv("SEALED_PACKET");if(strlen($s)>500000)exit(1);$b=base64_decode($s,true);if($b===false)exit(1);file_put_contents(getenv("RUNNER_TEMP")."/config-bundle/configuration.packet",$b);'
+          cp "$RUNNER_TEMP/config-key/"*.pem "$RUNNER_TEMP/config-bundle/"
+      - name: Restore private files and verify recovered SMTP
+        if: inputs.configuration_action == 'import'
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.FARAIOS_BACKUP_PASSPHRASE }}
+        run: |
+          php scripts/private-config-recovery.php --action=restore --key-dir="$RUNNER_TEMP/config-bundle" --packet="$RUNNER_TEMP/config-bundle/configuration.packet" --out="$RUNNER_TEMP/restored-private" --smtp-test > "$RUNNER_TEMP/config-bundle/receipt.json"
+          cat "$RUNNER_TEMP/config-bundle/receipt.json"
+      - uses: actions/upload-artifact@v4
+        if: inputs.configuration_action == 'import'
+        with:
+          name: faraios-private-config
+          path: ${{ runner.temp }}/config-bundle/
+          retention-days: 30
+      - name: Remove private temporary configuration
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/restored-private" "$RUNNER_TEMP/config-key" "$RUNNER_TEMP/config-bundle"
