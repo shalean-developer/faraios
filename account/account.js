@@ -1,7 +1,21 @@
 'use strict';
 document.querySelectorAll('.show').forEach(button=>button.addEventListener('click',()=>{const input=document.getElementById(button.getAttribute('aria-controls'));const show=input.type==='password';input.type=show?'text':'password';button.textContent=show?'Hide':'Show';button.setAttribute('aria-pressed',String(show));}));
 const confirm=document.getElementById('confirm-button');
-if(confirm){const params=new URLSearchParams(location.hash.slice(1));const hash=params.get('token_hash')||document.getElementById('token_hash').value||'';const type=params.get('type')||document.getElementById('type').value||'';history.replaceState(null,'',location.pathname+location.search);if(/^[a-f0-9]{40,128}$/i.test(hash)&&['email','recovery'].includes(type)){document.getElementById('token_hash').value=hash;document.getElementById('type').value=type;confirm.disabled=false;document.getElementById('link-status').textContent='Your link is ready.';}else{document.getElementById('link-status').textContent='This link is incomplete. Request a new email below.';}}
+if(confirm){
+ const params=new URLSearchParams(location.hash.slice(1));
+ const hash=params.get('token_hash')||document.getElementById('token_hash').value||'';
+ const type=params.get('type')||document.getElementById('type').value||'';
+ // Native Auth email-change links confirm upstream. Never import URL sessions.
+ history.replaceState(null,'',location.pathname+location.search);
+ if(/^[a-f0-9]{40,128}$/i.test(hash)&&['email','recovery','email_change'].includes(type)){
+  document.getElementById('token_hash').value=hash;document.getElementById('type').value=type;confirm.disabled=false;document.getElementById('link-status').textContent='Your link is ready.';
+ }else if(type==='email_change'||params.get('message')==='Confirmation link accepted. Please proceed to confirm link sent to the other email'){
+  confirm.hidden=true;document.getElementById('link-status').textContent='Email link processed. Confirm the links in both inboxes, then sign in with your new email.';
+ }else{
+  document.getElementById('link-status').textContent='This link is incomplete or expired. Request a new email below.';
+ }
+}
+
 document.querySelectorAll('form').forEach(form=>form.addEventListener('submit',()=>{const button=form.querySelector('button:not([type="button"])');if(button){button.disabled=true;button.textContent='Please wait…';}}));
 
 const country=document.getElementById('country');
