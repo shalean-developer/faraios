@@ -59,6 +59,7 @@ jobs:
           BACKUP_PASSPHRASE: ${{ secrets.FARAIOS_BACKUP_PASSPHRASE }}
           RESTORE_INPUT: ${{ runner.temp }}/restore-input
           RESTORE_REPORT: ${{ runner.temp }}/restore-evidence/report.json
+          RESTORE_PROVIDER_LIBRARIES: true
           RESTORE_AUTH_REHEARSAL: ${{ inputs.auth_rehearsal && 'true' || 'false' }}
         run: |
           mkdir -p "$(dirname "$RESTORE_REPORT")"
