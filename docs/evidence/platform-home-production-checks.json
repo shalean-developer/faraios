@@ -1,0 +1,46 @@
+[
+  {
+    "path": "/",
+    "status": 200,
+    "canonical": "https://www.faraios.com/",
+    "robots": "index,follow",
+    "headerRobots": null,
+    "matchesTested": true,
+    "sha256": "3dd1bcbd12c312040f12d4c1eff8c41cbca1997cc52a775f2966f8e171f43aca"
+  },
+  {
+    "path": "/account/index.php?page=signin",
+    "status": 200,
+    "canonical": null,
+    "robots": "noindex,nofollow",
+    "headerRobots": "noindex, nofollow"
+  },
+  {
+    "path": "/account/index.php?page=signup",
+    "status": 200,
+    "canonical": null,
+    "robots": "noindex,nofollow",
+    "headerRobots": "noindex, nofollow"
+  },
+  {
+    "path": "/waitlist.html",
+    "status": 200,
+    "canonical": "https://www.faraios.com/waitlist.html",
+    "robots": null,
+    "headerRobots": null
+  },
+  {
+    "path": "/b/shalean-cleaning-services",
+    "status": 200,
+    "canonical": "https://www.faraios.com/b/shalean-cleaning-services",
+    "robots": "index,follow",
+    "headerRobots": null
+  },
+  {
+    "path": "/_accounts-preview/",
+    "status": 200,
+    "canonical": "https://www.faraios.com/",
+    "robots": "index,follow",
+    "headerRobots": "noindex, nofollow"
+  }
+]
