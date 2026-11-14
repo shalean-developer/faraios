@@ -33,7 +33,7 @@ class Access(SEO):
   for step in ['service','details','schedule','contact','review']:
    html=request(path+'&return=booking-'+step)[2];self.assertIn('?booking=1&amp;step='+step,html)
   self.sql("update request_private.ingress set enabled=false where environment='preview'")
-  html=request(path+'&return=booking-details')[2];self.assertNotIn('>Request a booking</a>',html);self.assertIn('/contact#enquire',html)
+  html=request(path+'&return=booking-details')[2];self.assertIn('Online booking requests are currently unavailable',html);self.assertNotIn('You can request a booking as a guest',html);self.assertNotIn('>Request a booking</a>',html);self.assertIn('/contact#enquire',html)
   self.sql("update request_private.ingress set enabled=true where environment='preview'")
   # Owner authentication grants no additional help data and is not consumed or changed.
   self.post('/preview/account/index.php?page=signin',email='a@example.test',password='test-long-password')
