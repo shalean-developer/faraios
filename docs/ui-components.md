@@ -38,3 +38,9 @@ Scope: plain single-select fields. Multiple selects and optgroups remain native 
 Check click selection, arrow/Enter, type-to-find, Home/End, Escape, outside click, Tab, required validation, disabled options, reset, original form submission value, navigation retention, summary updates and popup overflow. Do not replace the underlying named form field with an unrelated hidden string or bypass existing server validation.
 
 The first integration is the public booking Service area field. Future custom dropdowns should reuse this component rather than duplicating its markup or CSS.
+
+
+## Date and time pickers
+Load `ui/pickers.css` and deferred `ui/pickers.js`. Add `data-faraios-picker` to a labelled native `input type="date"` or `input type="time"`, with a unique id. The component progressively enhances it; native fields remain as the no-JavaScript fallback and retain their names, ISO values, required/min/max validity and form submission.
+Calendar: previous/next month, disabled dates outside min/max, selected/today markers, arrow keys and Home/End navigation. Time: 24-hour hour/minute columns, arrow/Home/End navigation, explicit Use time confirmation. Escape, outside click or focus departure closes. Required validation focuses the visible trigger. Form reset is supported.
+Use `FaraiOSPicker.enhance(container)` for inserted fields and `FaraiOSPicker.refresh(input)` after programmatic value changes (or dispatch input/change). Do not treat these controls as availability or reservation checks. Server validation remains authoritative.

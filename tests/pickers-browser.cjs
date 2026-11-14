@@ -1,0 +1,21 @@
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+const fs=require('fs'),path=require('path'),assert=require('assert');
+(async()=>{
+ const browser=await chromium.launch({executablePath:process.env.BROWSER_BIN||undefined,headless:true,args:['--no-sandbox']});
+ const page=await browser.newPage({viewport:{width:390,height:844}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const root=process.env.PICKER_ROOT||path.resolve(__dirname,'..');
+ await page.setContent('<style>*{box-sizing:border-box}body{font:15px system-ui;margin:24px}label{display:block;margin:16px 0 8px}</style><form><label for="date">Preferred date</label><input type="date" id="date" name="date" data-faraios-picker required min="2026-11-14" max="2027-01-31"><label for="time">Preferred time</label><input type="time" id="time" name="time" data-faraios-picker required><button>Continue</button><button type="reset">Reset</button></form>');
+ await page.addStyleTag({path:path.join(root,'ui/pickers.css')});await page.addScriptTag({path:path.join(root,'ui/pickers.js')});
+ const date=page.getByRole('button',{name:'Preferred date',exact:true}),time=page.getByRole('button',{name:'Preferred time',exact:true});
+ await page.getByRole('button',{name:'Continue',exact:true}).click();assert.equal(await date.getAttribute('aria-invalid'),'true');
+ await date.click();assert.equal(await page.getByRole('button',{name:/Friday.*13 November 2026/,exact:true}).isEnabled(),false);
+ await page.getByRole('button',{name:/Saturday.*14 November 2026/,exact:true}).press('ArrowRight');await page.keyboard.press('Enter');assert.equal(await page.locator('#date').inputValue(),'2026-11-15');
+ await date.click();await page.getByRole('button',{name:'Next month',exact:true}).click();await page.getByRole('button',{name:/Tuesday.*1 December 2026/,exact:true}).click();assert.equal(await page.locator('#date').inputValue(),'2026-12-01');
+ await time.click();await page.getByRole('button',{name:'Hour 10',exact:true}).click();await page.getByRole('button',{name:'Minute 35',exact:true}).click();await page.getByRole('button',{name:'Use time',exact:true}).click();assert.equal(await page.locator('#time').inputValue(),'10:35');
+ assert.deepEqual(await page.evaluate(()=>[...new FormData(document.querySelector('form'))]),[['date','2026-12-01'],['time','10:35']]);
+ await time.click();await page.keyboard.press('Escape');assert.equal(await time.getAttribute('aria-expanded'),'false');
+ await date.click();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ await page.keyboard.press('Escape');await page.getByRole('button',{name:'Reset',exact:true}).click();assert.equal(await page.locator('#date').inputValue(),'');assert.equal(await page.locator('#time').inputValue(),'');
+ await page.setViewportSize({width:1280,height:900});await date.click();assert.deepEqual(errors,[]);
+ await browser.close();console.log('PASS required validation, date limits, keyboard date selection, month navigation, exact minute selection, form values, Escape, reset and mobile overflow');
+})().catch(e=>{console.error(e);process.exit(1)});

@@ -125,3 +125,12 @@
  .request-summary .summary-shell:not([open]) #summary-price{display:inline;margin:0;font-size:13px}
  .request-summary .summary-shell[open]{max-height:50vh}
 }
+
+/* Schedule shares the Details card width and navigation alignment. */
+.booking-schedule-content{width:100%;max-width:520px;min-width:0;margin-inline:auto}
+.schedule-entry{padding:24px;border:1px solid #e1e8ed;border-radius:10px;background:#fff;box-shadow:0 3px 12px #172d3b0a}
+.schedule-entry h2{text-align:center;font-size:20px;font-weight:500;margin:0 0 26px}
+.schedule-entry label{font-size:14px;margin:0 0 9px}
+.schedule-entry small{font-size:12px;line-height:1.6}
+.request-layout form:has(fieldset[data-step="2"]:not([hidden])) .booking-controls{width:100%;max-width:520px;min-width:0;box-sizing:border-box;margin-inline:auto}
+@media(max-width:600px){.schedule-entry{padding:20px 16px}.schedule-entry h2{font-size:19px}}
