@@ -42,3 +42,7 @@ PASS hosted real browser at1280/390/320: current feature copy, single H1, no hor
 GET-only hash checks in platform-home-hosted-checks.json confirm preview HTML exactly matches the candidate, preview HTTP noindex and production homepage exactly matches the unchanged main baseline. No schema, data, intake-gate, credentials, mail configuration or provider action performed. No full database fingerprint comparison claimed for this static homepage task.
 
 Decision: PASS local and hosted preview. Production merge/deployment remains outside authorization until owner reviews and requests release.
+
+## Account buttons refinement
+
+Owner requested Sign in as a button beside Create account. Moved Sign in out of the navigation into a shared account-action group, with an outlined secondary button and filled primary signup button. Desktop buttons share height/alignment; at740px and below the adjacent buttons occupy a full-width second header row beneath the logo/menu. Dropdown navigation anchors below the resulting header. Existing account URLs/flows unchanged. Local1280/390/320 checks confirm equal button y-position,44px minimum targets, no overflow and three axe scans with zero violations. No account, business or provider changes.
