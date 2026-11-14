@@ -42,6 +42,16 @@ function business_style_classes(array $p): string {
 function homepage_action(string $url,bool $booking,?string $service=null): string {
  return $booking?$url.'?booking=1'.($service!==null?'&service='.rawurlencode($service):''):$url.'/contact#enquire';
 }
+// Homepage excerpts are presentation only; the saved description remains intact.
+function homepage_service_summary(string $description): string {
+ $text=trim(preg_replace('/\s+/u',' ',$description)??'');
+ $sentence=preg_split('/(?<=[.!?])\s+/u',$text,2)[0]??$text;
+ preg_match_all('/./us',$sentence,$chars);
+ if(count($chars[0])<=120)return $sentence;
+ $short=implode('',array_slice($chars[0],0,117));
+ $short=preg_replace('/\s+\S*$/u','',$short)??$short;
+ return rtrim($short,' ,;:').'…';
+}
 function homepage_heading(array $p,string $key,string $fallback): string {return trim($p['pages'][$key]['title']??'')?:$fallback;}
 function homepage_initial(string $name): string {preg_match('/./us',$name,$m);return strtoupper($m[0]??'');}
 function homepage_icon(string $name): string {
@@ -72,7 +82,9 @@ function homepage_render(array $p,array $catalogue,string $zone,string $url,stri
 </section>
 <?php endif;?>
 <?php if($page===''||$page==='services'):?><section class="home-section" id="services"><div class="home-section-heading"><div><p class="home-eyebrow">OUR SERVICES</p><h2><?=esc(homepage_heading($p,'services','Our services'))?></h2></div><p>Explore our services, then tell us what you need.</p></div>
- <?php if($items):?><div class="home-service-grid"><?php foreach($items as $i=>$s):?><article class="home-service-card"><span class="home-service-number" aria-hidden="true"><?=str_pad((string)($i+1),2,'0',STR_PAD_LEFT)?></span><<?=$page!==''?'h2':'h3'?>><?=esc($s['name'])?></<?=$page!==''?'h2':'h3'?>><p><?=nl2br(esc($s['description']??''))?></p><div class="home-service-bottom"><strong><?=esc($s['mode']==='quote'?'Quote required':services_price($s,$catalogue['currency']))?></strong><span><?=(int)$s['duration']?> minutes</span></div><?php if(!empty($s['options'])):?><small>Rooms and extras may change your total.</small><?php endif;?><a class="home-text-link" href="<?=esc(homepage_action($url,$booking,$s['id']))?>"><?= $booking?'Choose service':'Enquire about service' ?> <?=homepage_icon('arrow')?><span class="home-sr">: <?=esc($s['name'])?></span></a></article><?php endforeach;?></div><?php else:?><p>Contact us to discuss the service you need.</p><a class="home-text-link" href="<?=esc($url.'/contact#enquire')?>">Make an enquiry <?=homepage_icon('arrow')?></a><?php endif;?>
+ <?php if($items):?><div class="home-service-grid"><?php foreach($items as $i=>$s):
+ $details=($enquire?$url.'/services':'profile.php?view=preview&section=services').'#service-'.rawurlencode($s['id']);
+ ?><article class="home-service-card"<?=$page==='services'?' id="service-'.esc($s['id']).'"':''?>><span class="home-service-number" aria-hidden="true"><?=str_pad((string)($i+1),2,'0',STR_PAD_LEFT)?></span><<?=$page!==''?'h2':'h3'?>><?=esc($s['name'])?></<?=$page!==''?'h2':'h3'?>><p><?= $page===''?esc(homepage_service_summary($s['description']??'')):nl2br(esc($s['description']??'')) ?></p><div class="home-service-bottom"><strong><?=esc($s['mode']==='quote'?'Quote required':services_price($s,$catalogue['currency']))?></strong><?php if($page!==''):?><span><?=(int)$s['duration']?> minutes</span><?php endif;?></div><?php if($page!==''&&!empty($s['options'])):?><small>Rooms and extras may change your total.</small><?php endif;?><a class="home-text-link" href="<?=esc($page===''?$details:homepage_action($url,$booking,$s['id']))?>"><?= $page===''?'View details':($booking?'Choose service':'Enquire about service') ?> <?=homepage_icon('arrow')?><span class="home-sr">: <?=esc($s['name'])?></span></a></article><?php endforeach;?></div><?php if($page===''&&array_filter($items,fn($s)=>!empty($s['options']))):?><p class="home-note home-service-pricing-note">Final prices depend on rooms and extras.</p><?php endif;?><?php else:?><p>Contact us to discuss the service you need.</p><a class="home-text-link" href="<?=esc($url.'/contact#enquire')?>">Make an enquiry <?=homepage_icon('arrow')?></a><?php endif;?>
 <?php if($page===''):?><a class="home-text-link" href="<?=esc($enquire?$url.'/services':'profile.php?view=preview&section=services')?>">All services <?=homepage_icon('arrow')?></a><?php endif;?></section>
 <?php endif;?>
 <?php if($page===''&&!empty($h['benefits'])):?><section class="home-section home-benefits"><p class="home-eyebrow">WHY CHOOSE US</p><h2>What makes us different.</h2><ul><?php foreach($h['benefits'] as $benefit):?><li><span aria-hidden="true">✓</span><?=esc($benefit)?></li><?php endforeach;?></ul></section><?php endif;?>
