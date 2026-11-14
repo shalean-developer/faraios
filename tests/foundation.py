@@ -69,6 +69,8 @@ class Foundation(Invoices):
   self.call(a,'write',**ctx,p_id=child,p_version=3,p_action='void',p_reason='Further correction required')
   grandchild=self.call(a,'write',**ctx,p_id=child,p_version=4,p_action='replace',p_reason='Further correction required')['id']
   self.assertEqual(self.scope(a,f"select replaces_id from public.business_invoices where id='{grandchild}'"),child)
+  hosted=(Path(__file__).parent/'foundation-hosted.sql').read_text().replace("where name='FaraiOS Preview Test Business'","where id='"+bid+"'")
+  self.assertIn('PASS:',self.sql(hosted))
   # Real form journey: zero total requires an extra confirmation, then shares normally.
   private=self.private/'profiles';config=private/'config.php';config.write_text(config.read_text().replace(self.url,self.url+'/preview'))
   (private/'router.php').write_text("<?php $path=preg_replace('~^/preview~','',parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));$_SERVER['SCRIPT_NAME']=$path;$_SERVER['SCRIPT_FILENAME']="+repr(str(Path(__file__).resolve().parents[1]))+".$path;require $_SERVER['SCRIPT_FILENAME'];return true;")

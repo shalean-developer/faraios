@@ -20,9 +20,21 @@ PASS: new foundation behavioral suite (free confirmation and bypass denial, owne
 
 PASS: existing enquiry-workflow, enquiries, quotes, bookings, invoices, dashboard, requests, rooms, profiles (4), services, customers, staff, area-pages and website-release suites: 18 test methods total including foundation. PHP syntax and git diff checks pass. First regression run exposed the new preview-only send endpoint being used by the live-mode PHP harness; the UI now keeps the legacy live path, and affected suites pass. Test-only preview router normalizes Origin separately from the URL path.
 
-Hosted schema applied; all 17 original public-table fingerprints/counts must match before retained new preview fixtures. Baseline booking intake preview=true/live=false; enquiry mail preview=false/live=true. These gates must not change.
+Hosted migration 20261114161953 installed (source file generated locally as 20261114161207). All 17 original public-table fingerprints/counts match before/after, excluding only the two new default-null columns from row serialization. No retained fixtures were added. Baseline booking intake preview=true/live=false; enquiry mail preview=false/live=true. These gates must not change.
 
-Hosted deployment/browser verification pending. Production remains NO-GO pending tested preview demonstration and explicit release authorization.
+Runtime 33e4554b9942704612d36b0d3b8e4fd3b4332bb0 deployed through Plesk faraios-accounts-preview.git, manual feature/foundation-batch1-20261114 → /faraios.com/_accounts-preview. Production main and waitlist repository untouched. Git tree exactly matches the locally tested candidate c28b71c649cac2c136da738dda96b86963d3dc72. Draft PR #35 includes PR #34; neither merged.
+
+GitHub Foundation regression run 43615208573 PASS (PostgreSQL 16/PHP). Native PostgreSQL 17 local tests also PASS. Hosted tests/foundation-hosted.sql PASS: free-quote legacy bypass/missing confirmation rejection, confirmed send/acceptance, payment/void prerequisite, idempotent replacement, corrected issuance, original invoice and ledger equality, outsider and anonymous denial. Entire hosted probe transaction rolled back; no test rows/payment changes retained. Existing Security Advisor warnings unchanged (mail-status definer and leaked-password protection); no new finding.
+
+Real authenticated owner browser checks PASS after session renewal. Fictional quote 78ce6bc0-9b05-8342-24b5-8efa1e5b3971: missing price rejected with fields retained; explicit 0 saved; browser required separate free checkbox before sending; confirmed Sent and share link. No email composed/sent.
+
+Fictional invoice 4a8af093-d765-fff6-20d4-337a7047b8f2 / INV-000004: saved 2 × ZAR 125.25 = ZAR 250.50; issued; recorded explicitly fictional ZAR 100 ledger entry; Part Paid balance 150.50; full reversal retained original and reason; void retained number/token/document/history. Created linked replacement 99b8e44f-45dd-4126-8cff-eb95fdf6e76b; edited to 3 × ZAR 100 = ZAR 300, saved/reloaded and issued INV-000005. Original customer link still shows INV-000004, Void, original 250.50 and no payment due. Two synthetic invoices and one synthetic quote retained for review; two new payment/reversal ledger entries retained. No real money moved.
+
+A browser timeout occurred around corrected-draft save/reload. Read-only SQL confirmed version 2 and corrected items before continuing; no repeated mutation was issued. Mobile owner replacement/original pages at 390px have scrollWidth 375, no horizontal overflow; customer original document at desktop also fits. Corrected one misleading post-issue helper sentence before final preview refresh. Concurrency and hostile writes use native tests, not browser session attacks.
+
+All 17 original public-table fingerprints matched immediately after migration. A later read observed one additional empty live service catalogue row for another existing business, unrelated to the preview fixture writes; excluding exactly that additive row reproduces the original catalogue hash. It was preserved. Evidence records the full snapshots rather than claiming the whole database was frozen during concurrent use.
+
+PASS for owner preview review; production remains NO-GO until explicit release authorization and reviewed activation migration. This is technical verification, not owner acceptance.
 
 ## Rollback and next priority
 

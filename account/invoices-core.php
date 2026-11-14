@@ -30,7 +30,7 @@ function invoice_payment_forms(array $b,array $q): void {
 }
 
 function invoice_correction_links(array $b,array $q): void {
- if(!empty($q['replaces_id']))echo '<p>Replaces <a href="invoices.php?id='.esc($q['replaces_id']).'">original invoice '.esc(strtoupper(substr($q['replaces_id'],0,8))).'</a>. Correct the draft before issuing; the original is retained.</p>';
+ if(!empty($q['replaces_id']))echo '<p>Replaces <a href="invoices.php?id='.esc($q['replaces_id']).'">original invoice '.esc(strtoupper(substr($q['replaces_id'],0,8))).'</a>. The original invoice and its history are retained.</p>';
  $children=api('/rest/v1/business_invoice_list?business_id=eq.'.rawurlencode($b['id']).'&environment=eq.'.profile_env().'&replaces_id=eq.'.rawurlencode($q['id']).'&select=id,number',[],'GET',$_SESSION['auth']['access_token']);
  foreach($children as $child)echo '<p>Replacement: <a href="invoices.php?id='.esc($child['id']).'">'.esc($child['number']??'Draft '.strtoupper(substr($child['id'],0,8))).'</a></p>';
 }
