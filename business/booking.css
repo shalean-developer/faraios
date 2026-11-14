@@ -169,3 +169,36 @@
 .review-privacy{font-size:11px;color:#637682;line-height:1.6;margin:16px 0 0}
 .request-layout form:has(fieldset[data-step="4"]:not([hidden])) .booking-controls{width:100%;max-width:520px;min-width:0;box-sizing:border-box;margin-inline:auto}
 @media(max-width:600px){.review-entry{padding:20px 16px}.review-entry h2{font-size:19px}.review-price-section{padding:14px}.review-total{flex-wrap:wrap}}
+
+/* Shared public typography scale, aligned with the FaraiOS home page. */
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:16px;--booking-body:16px;--booking-control:14px;--booking-helper:13px;--booking-heading:22px;line-height:1.65}
+.request-layout{font-size:var(--booking-body)}
+.request-layout legend{font-size:24px;line-height:1.3;font-weight:650}
+.address-entry h2,.schedule-entry h2,.contact-entry h2,.review-entry h2{font-size:var(--booking-heading);line-height:1.3;font-weight:650}
+.booking-option-group h3{font-size:18px;line-height:1.4;font-weight:650}
+.request-layout label,.service-card-name{font-size:var(--booking-control);line-height:20px}
+.request-layout input,.request-layout textarea,.request-layout select{font-family:inherit;font-size:var(--booking-control);line-height:20px}
+.request-layout small,.address-entry small,.schedule-entry small,.contact-entry small,.review-entry small,.booking-option small{font-size:var(--booking-helper);line-height:1.6}
+.booking-controls button,.booking-controls .button{font-size:var(--booking-control);line-height:20px;font-weight:650;min-height:48px}
+.quantity-presets button{font-family:inherit;font-size:14px;line-height:20px}
+.extra-task-label{font-size:13px;line-height:18px}
+.request-summary .summary-shell>summary{font-size:18px;line-height:1.4;font-weight:650}
+.summary-row-copy{font-size:14px;line-height:1.5}
+.summary-label,.summary-row small,.request-summary .summary-notice{font-size:13px;line-height:1.6}
+.summary-cost-bar{font-size:14px;line-height:20px}
+#summary-cost-details h3,.review-entry h3{font-size:16px;line-height:1.4;font-weight:650}
+#summary-cost-details p,#summary-breakdown,.review-intro,.review-section .review-secondary,.review-confirmation p,.review-privacy{font-size:13px;line-height:1.6}
+.review-price-line,.review-section p{font-size:14px;line-height:1.6}
+.review-total{font-size:16px;line-height:1.4}
+.review-section-heading button{font-size:14px;line-height:20px;min-height:32px}
+.review-confirmation{font-size:14px;line-height:1.6}
+.booking-header .booking-progress li span{font-size:12px;line-height:16px}
+@media(max-width:600px){.address-entry h2,.schedule-entry h2,.contact-entry h2,.review-entry h2{font-size:22px}}
+@media(max-width:900px){.request-summary .summary-shell>summary{font-size:14px;line-height:20px}}
+
+#booking.public-card .review-section{border-top:0;margin-top:0;padding-top:18px}
+#booking.public-card .review-price-section{margin-top:0;padding-top:18px}
+.booking-controls{align-items:center;flex-wrap:nowrap}
+.booking-controls button{margin-top:0}
+.booking-controls .button{width:auto;max-width:calc(100% - 88px);margin-top:0;margin-left:auto}
+@media(max-width:600px){#booking.public-card .review-price-section{padding-top:14px}}
