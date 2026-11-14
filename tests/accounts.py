@@ -67,9 +67,15 @@ class Accounts(Journey):
   self.assertIn('Choose a valid time zone',self.submit('business',business_name='Fresh Company',business_type='cleaning',country='ZA',time_zone='Invalid/Zone'))
   page=self.submit('business',business_name='Fresh Company',business_type='cleaning',country='ZA',time_zone='Africa/Johannesburg')
   for value in ['Fresh Company','Owner','South Africa','Africa/Johannesburg','Complete']:self.assertIn(value,page)
+  self.assertIn('<title>Account | FaraiOS</title>',page)
+  self.assertIn('Business navigation',page);self.assertIn('Requests',page)
+  self.assertNotIn('Your account and business setup is complete.',page)
+  self.assertNotIn('class="primary link-button"',page)
+  with self.assertRaises(urllib.error.HTTPError) as denied:self.client.open(self.accountbase+'/account/account-view.php')
+  self.assertEqual(denied.exception.code,403)
   type(self).biz[0].update(country=None,time_zone=None)
   self.assertIn('Needs details',self.getpage('welcome'))
-  self.assertIn('Check your country',self.getpage('business'))
+  self.assertIn('Check your country',self.submit('signin',email='owner@example.test',password='long-test-password'));self.assertIn('page=business',self.last_url)
   self.assertIn('South Africa',self.submit('business',country='ZA',time_zone='Africa/Johannesburg'))
   self.assertEqual(len(self.biz),1)
   self.assertEqual(self.biz[0]['name'],'Fresh Company')
@@ -97,7 +103,7 @@ class Accounts(Journey):
  def test_04_session_refresh_and_errors(self):
   type(self).expired_login=True
   type(self).confirmed=True
-  self.assertIn('Fresh Company',self.submit('signin',email='owner@example.test',password='long-test-password'))
+  self.assertIn('Fresh Company',self.submit('signin',email='owner@example.test',password='long-test-password'));self.assertTrue(self.last_url.endswith('/account/dashboard.php'))
   self.assertTrue(any('grant_type=refresh_token' in p for p,b in self.auth_calls))
   self.submit('welcome',action='logout')
   type(self).deny_refresh=True
