@@ -1,0 +1,157 @@
+{
+  "before": [
+    {
+      "name": "business_booking_requests",
+      "count": 5,
+      "fingerprint": "51af8b290955a8b58cdffdb067805065"
+    },
+    {
+      "name": "business_booking_staff",
+      "count": 7,
+      "fingerprint": "db7dc2eeb0e769da81c3768ef81763a8"
+    },
+    {
+      "name": "business_bookings",
+      "count": 13,
+      "fingerprint": "02a5087e38c002f2d93b0d52be8f8aeb"
+    },
+    {
+      "name": "business_customers",
+      "count": 2,
+      "fingerprint": "f658145e516872f4c1d9284a2d59e514"
+    },
+    {
+      "name": "business_enquiries",
+      "count": 9,
+      "fingerprint": "a9acc9792414d2f2963d748fa5ef2d0a"
+    },
+    {
+      "name": "business_invoice_events",
+      "count": 22,
+      "fingerprint": "0924f7462a8b82f08c8c821980ba38eb"
+    },
+    {
+      "name": "business_invoice_payments",
+      "count": 9,
+      "fingerprint": "37789d4f7c3ae4bf7a7f831a32fe57dd"
+    },
+    {
+      "name": "business_invoices",
+      "count": 5,
+      "fingerprint": "74925701dba50667f000f9cdff5ac737"
+    },
+    {
+      "name": "business_profiles",
+      "count": 4,
+      "fingerprint": "b9f970d5e27b12da9ecdb14034ad772d"
+    },
+    {
+      "name": "business_public_pages",
+      "count": 2,
+      "fingerprint": "d6b34849807e8f89946b28b1bfde517c"
+    },
+    {
+      "name": "business_quotes",
+      "count": 7,
+      "fingerprint": "fae0b987eb255f8f759a65e9457b970e"
+    },
+    {
+      "name": "business_service_catalogues",
+      "count": 3,
+      "fingerprint": "be54b48fd6692ea3437bb65335bc699d"
+    },
+    {
+      "name": "business_staff",
+      "count": 5,
+      "fingerprint": "9c2ea5a2b5cc12a8996348fe2192f76c"
+    },
+    {
+      "name": "businesses",
+      "count": 3,
+      "fingerprint": "64bf4f9ecbc37308addd2722f4e1162e"
+    },
+    {
+      "name": "waitlist_subscribers",
+      "count": 2,
+      "fingerprint": "8b389c1da8a017d0ac7345a14d78c2ee"
+    }
+  ],
+  "after": [
+    {
+      "name": "business_booking_requests",
+      "count": 5,
+      "fingerprint": "51af8b290955a8b58cdffdb067805065"
+    },
+    {
+      "name": "business_booking_staff",
+      "count": 7,
+      "fingerprint": "db7dc2eeb0e769da81c3768ef81763a8"
+    },
+    {
+      "name": "business_bookings",
+      "count": 13,
+      "fingerprint": "02a5087e38c002f2d93b0d52be8f8aeb"
+    },
+    {
+      "name": "business_customers",
+      "count": 2,
+      "fingerprint": "f658145e516872f4c1d9284a2d59e514"
+    },
+    {
+      "name": "business_enquiries",
+      "count": 9,
+      "fingerprint": "a9acc9792414d2f2963d748fa5ef2d0a"
+    },
+    {
+      "name": "business_invoice_events",
+      "count": 22,
+      "fingerprint": "0924f7462a8b82f08c8c821980ba38eb"
+    },
+    {
+      "name": "business_invoice_payments",
+      "count": 9,
+      "fingerprint": "37789d4f7c3ae4bf7a7f831a32fe57dd"
+    },
+    {
+      "name": "business_invoices",
+      "count": 5,
+      "fingerprint": "74925701dba50667f000f9cdff5ac737"
+    },
+    {
+      "name": "business_profiles",
+      "count": 4,
+      "fingerprint": "b9f970d5e27b12da9ecdb14034ad772d"
+    },
+    {
+      "name": "business_public_pages",
+      "count": 2,
+      "fingerprint": "d6b34849807e8f89946b28b1bfde517c"
+    },
+    {
+      "name": "business_quotes",
+      "count": 7,
+      "fingerprint": "fae0b987eb255f8f759a65e9457b970e"
+    },
+    {
+      "name": "business_service_catalogues",
+      "count": 3,
+      "fingerprint": "be54b48fd6692ea3437bb65335bc699d"
+    },
+    {
+      "name": "business_staff",
+      "count": 5,
+      "fingerprint": "9c2ea5a2b5cc12a8996348fe2192f76c"
+    },
+    {
+      "name": "businesses",
+      "count": 3,
+      "fingerprint": "64bf4f9ecbc37308addd2722f4e1162e"
+    },
+    {
+      "name": "waitlist_subscribers",
+      "count": 2,
+      "fingerprint": "8b389c1da8a017d0ac7345a14d78c2ee"
+    }
+  ],
+  "unchanged": true
+}
