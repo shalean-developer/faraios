@@ -123,6 +123,16 @@ const calculateOptions = service => {
    const date = new Date(fields.date.value+'T12:00:00');
    put('summary-schedule', [new Intl.DateTimeFormat('en-ZA',{weekday:'short',day:'numeric',month:'short'}).format(date),fields.time.value].filter(Boolean).join(' · '));
   }
+  const breakdown=document.getElementById('review-breakdown');breakdown.replaceChildren();
+  if(service?.mode==='quote'){const p=document.createElement('p');p.textContent='The business will provide a quote for your selected service, rooms and extras.';breakdown.append(p);}
+  else for(const line of calculated.breakdown.split('\n')){
+   const row=document.createElement('div');row.className='review-price-line';const split=line.lastIndexOf(': ');
+   const label=document.createElement('span'),amount=document.createElement('span');label.textContent=split<0?line:line.slice(0,split);amount.textContent=split<0?'':line.slice(split+2);row.append(label,amount);breakdown.append(row);
+  }
+  put('review-total-label',service?.mode==='quote'?'Pricing':service?.mode==='from'?'Estimated total from':'Estimated total');
+  put('review-duration',calculated.duration);
+  put('review-schedule',document.getElementById('summary-schedule').textContent);
+  document.getElementById('review-notes-section').hidden=!fields.requirements.value.trim();
   constraints();
  };
  const show = (index, focus = true) => {
