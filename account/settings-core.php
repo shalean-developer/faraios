@@ -18,7 +18,7 @@ function save_account_details(array $u,array $b,string $redirect): void {
   if(!hash_equals(account_business_version($b),(string)($_POST['version']??'')))throw new RuntimeException('Business details changed. Reload before saving.');
   $path='/rest/v1/businesses?id=eq.'.rawurlencode($b['id']);
   // Atomic compare-and-set also catches changes between the read and PATCH.
-  foreach(['name','business_type','country','time_zone'] as $key)$path.='&'.$key.'='.(isset($b[$key])?'eq.'.rawurlencode('"'.str_replace(['\\','"'],['\\\\','\\"'],$b[$key]).'"'):'is.null');
+  foreach(['name','business_type','country','time_zone'] as $key)$path.='&'.$key.'='.(isset($b[$key])?'eq.'.rawurlencode($b[$key]):'is.null');
   $saved=api($path,array_merge(['name'=>$name,'business_type'=>$type],$details),'PATCH',$token);
   if(!$saved)throw new RuntimeException('Business details changed. Reload before saving.');
   $_SESSION['notice']='Business details saved. Published pages and issued documents were preserved.';

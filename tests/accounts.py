@@ -36,8 +36,10 @@ class Accounts(Journey):
     elif self.path.startswith('/rest/v1/businesses'):
      if cls.biz_unavailable:status=503
      if self.command=='POST':cls.biz=[{'id':str(uuid.uuid4()),'name':body['name'],'business_type':body['business_type'],'country':body['country'],'time_zone':body['time_zone']}]
-     if self.command=='PATCH' and not cls.edit_race:cls.biz[0].update(body)
-     data=[] if self.command=='PATCH' and cls.edit_race else cls.biz
+     filters=urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+     matches=all(filters.get(k)==[('is.null' if cls.biz[0].get(k) is None else 'eq.'+cls.biz[0][k])] for k in ['name','business_type','country','time_zone'] if k in filters)
+     if self.command=='PATCH' and not cls.edit_race and matches:cls.biz[0].update(body)
+     data=[] if self.command=='PATCH' and (cls.edit_race or not matches) else cls.biz
     self.send_response(status);self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(json.dumps(data).encode())
    do_POST=call;do_GET=call;do_PUT=call;do_PATCH=call
   cls.account_gateway=ThreadingHTTPServer(('127.0.0.1',0),Gateway);threading.Thread(target=cls.account_gateway.serve_forever,daemon=True).start()
@@ -123,6 +125,9 @@ class Accounts(Journey):
   self.assertIn('Business details changed',self.submit('welcome',**dict(data,version=version('business'))))
   type(self).edit_race=False
   self.assertEqual(self.biz[0]['name'],'Edited Company')
+  special='Edited, "Company" & Sons'
+  self.assertIn('Business details saved',self.submit('welcome',**dict(data,business_name=special,version=version('business'))))
+  self.assertEqual(self.biz[0]['name'],special)
   self.submit('welcome',**dict(data,business_name='Fresh Company',business_type='cleaning',version=version('business')))
   self.assertIn('Enter a different email',self.submit('welcome&edit=email',action='change_email',email='owner@example.test'))
   self.assertIn('Enter a valid email',self.submit('welcome&edit=email',action='change_email',email='invalid'))
