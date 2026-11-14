@@ -1,0 +1,16 @@
+[
+  {
+    "url": "https://www.faraios.com/_accounts-preview/",
+    "status": 200,
+    "sha256": "aa30d30eed4876e7c33e83f9090022ccabe5d767aa83f4c7d55f18bee1bea9c4",
+    "matchesExpected": true,
+    "robots": "noindex, nofollow"
+  },
+  {
+    "url": "https://www.faraios.com/",
+    "status": 200,
+    "sha256": "daebc68ced0b558d741b92058f62c26f7222c3f59b743eda5ab11842bc37dfa9",
+    "matchesExpected": true,
+    "robots": null
+  }
+]

@@ -28,3 +28,17 @@ Evidence: docs/evidence/platform-home-checks.json; platform-home-desktop.png is 
 Automatic approval review denied access to https://so1.cloud-wex.com:8443 because the homepage-update request did not grant authority to this private production-capable administration origin. No alternate admin route or workaround attempted. Specific owner authorization is needed for a manual hosted preview deployment. Do not merge or deploy to production before review. Inspect the preview target and preserve any unrelated active candidate before changing its branch.
 
 Decision: PASS local copy/layout validation. Hosted preview blocked on administration-origin authorization; production NO-GO.
+
+## Hosted checkpoint — owner authorized
+
+Owner replied Ready to the explicit Plesk-access/preview-deployment request. Access is now authorized; the earlier origin-approval block above is resolved. The initial browser call timed out after its prior session reset; reconnected before proceeding. No production action occurred.
+
+The existing manual accounts-preview target was serving feature/enquiry-ui-email-20261114. Preserved its current remote head1652c5cf209c4f7299079a864b11f34d5c4d2e19 in temporary preview/platform-homepage-with-enquiries-20261114; candidateb6b282370148b7219acb3188ab920fa2f53caa52 overlays only index.html. GitHub compare confirms exactly one changed file. This temporary combined branch must not be merged as the homepage release: PR31 remains the independent homepage-only change. Existing enquiry work and configuration are preserved. Previous preview branch remains available for subsequent enquiry work/rollback.
+
+Plesk confirmed the temporary branch, manual target /faraios.com/_accounts-preview, candidate commit and completed Deploy now / Done. Production automatic-main and waitlist-preview targets unchanged.
+
+PASS hosted real browser at1280/390/320: current feature copy, single H1, no horizontal overflow, SEO/Business tab switching, mobile menu and Sign in visibility. Create account opens the existing preview registration form (Create your account heading, /_accounts-preview/account/index.php?page=signup). No form submitted, sign-in performed or account/business record changed. Reset viewport; left homepage open for owner review. Hosted screenshot platform-home-hosted.jpg is the actual preview, separate from the earlier local render. Existing local three axe scans remain the automated accessibility evidence; no hosted axe result is claimed.
+
+GET-only hash checks in platform-home-hosted-checks.json confirm preview HTML exactly matches the candidate, preview HTTP noindex and production homepage exactly matches the unchanged main baseline. No schema, data, intake-gate, credentials, mail configuration or provider action performed. No full database fingerprint comparison claimed for this static homepage task.
+
+Decision: PASS local and hosted preview. Production merge/deployment remains outside authorization until owner reviews and requests release.
