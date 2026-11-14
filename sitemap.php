@@ -6,6 +6,7 @@ try {
  $base=rtrim(cfg()['base_url'],'/');$environment=profile_env();$urls=[];
  if($environment==='live') {
   $urls[]=$base.'/';
+  $urls[]=$base.'/about.html';$urls[]=$base.'/contact.html';
   // Enumerate the public snapshot slug allowlist with stable keyset pagination. No drafts or IDs.
   $last='';$seen=[];
   do {
