@@ -14,7 +14,7 @@ try{
  if($_SERVER['REQUEST_METHOD']==='POST'){
  csrf();if(!$q||!$edit)throw new RuntimeException('Sent quotes cannot be edited.');$action=(string)($_POST['action']??'');
  if($action==='send'&&!isset($_POST['confirm_send']))throw new RuntimeException('Confirm the saved quote is ready to share.');
- $d=$action==='save'?quote_values($currency):$q['document'];$expiry=$action==='save'?(string)($_POST['expires_on']??''):$q['expires_on'];
+ $d=$action==='save'?quote_values($currency):$q['document'];if(isset($q['document']['scope']))$d['scope']=$q['document']['scope'];$expiry=$action==='save'?(string)($_POST['expires_on']??''):$q['expires_on'];
  if(!preg_match('/\A\d{4}-\d{2}-\d{2}\z/',$expiry)||!($date=DateTimeImmutable::createFromFormat('!Y-m-d',$expiry))||$date->format('Y-m-d')!==$expiry)throw new RuntimeException('Choose a valid expiry date.');
  $args=['p_business'=>$b['id'],'p_environment'=>profile_env(),'p_id'=>$q['id'],'p_version'=>(int)($_POST['version']??-1),'p_action'=>$action,'p_document'=>$d,'p_expiry'=>$expiry,'p_enquiry'=>$q['enquiry_id']];if($q['version']===0&&($customer||($source['customer_id']??null))){$args['p_customer']=$customer['id']??null;$r=profile_rpc('business_customer_quote_create',$args);}else{$r=profile_rpc('business_quote_write',$args);}
  unset($_SESSION['new_quote_id']);$_SESSION['quote_notice']=$action==='save'?'Draft saved.':'Quote marked sent. Share the customer link below; no email was sent.';header('Location: quotes.php?id='.rawurlencode($r['id']),true,303);exit;
@@ -22,6 +22,10 @@ try{
  if(!$q){if(!in_array($filter,['','Draft','Sent','Accepted','Declined','Expired'],true))throw new RuntimeException('Choose a valid status.');$rows=api(str_replace('business_quotes?','business_quote_list?',$prefix).($filter!==''?'&effective_status=eq.'.rawurlencode($filter):'').'&select=*&order=created_at.desc,id.desc&limit=21&offset='.(($page-1)*20),[],'GET',$_SESSION['auth']['access_token']);}
 }catch(AccountSessionExpired $e){$_SESSION=['csrf'=>bin2hex(random_bytes(32)),'notice'=>$e->getMessage()];session_regenerate_id(true);go('signin');}
 catch(Throwable $e){$error=$e instanceof RuntimeException?$e->getMessage():'Quotes unavailable. Please try again.';}
+
+if($q&&$edit&&$q['version']===0&&$q['enquiry_id']&&$b){
+ try{$request=api('/rest/v1/business_booking_requests?business_id=eq.'.rawurlencode($b['id']).'&environment=eq.'.profile_env().'&id=eq.'.rawurlencode($q['enquiry_id']).'&select=*',[],'GET',$_SESSION['auth']['access_token']);if(!empty($request[0]['scope'])){$q['document']['scope']=$request[0]['scope'];$q['document']['items']=$request[0]['scope']['items'];}}catch(Throwable $ex){$error='Requested scope could not load. Reload before creating this quote.';$q=null;}
+}
 ?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quotes | FaraiOS</title><link rel="icon" href="../favicon.svg"><link rel="stylesheet" href="../business/profile.css?v=quotes-20261113"><link rel="stylesheet" href="layout.css?v=20261113-4"><script src="layout.js?v=20261113-2" defer></script><link rel="stylesheet" href="private.css?v=20261113-3"></head><body class="business-page"><?php require_once __DIR__.'/layout.php';app_layout('Quotes',$b);?><main id="app-main" tabindex="-1" class="editor-main">
 <?php if(profile_env()==='preview'):?><p class="preview-banner">Isolated preview · Fictional quotes only</p><?php endif;?>
 <?php if($error):?><p class="alert" role="alert"><?=esc($error)?></p><?php endif;?><?php if($notice):?><p class="notice" role="status"><?=esc($notice)?></p><?php endif;?>

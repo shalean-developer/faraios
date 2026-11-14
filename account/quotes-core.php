@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/service-options.php';
 if(realpath($_SERVER['SCRIPT_FILENAME']??'')===__FILE__){http_response_code(403);exit;}
 function quote_uuid(): string {$s=bin2hex(random_bytes(16));return substr($s,0,8).'-'.substr($s,8,4).'-'.substr($s,12,4).'-'.substr($s,16,4).'-'.substr($s,20);}
 function quote_status(array $q,array $b): string {return $q['status']==='Sent'&&$q['expires_on']<(new DateTimeImmutable('now',new DateTimeZone($q['sender']['time_zone']??$b['time_zone'])))->format('Y-m-d')?'Expired':$q['status'];}
@@ -18,5 +19,5 @@ function quote_values(string $currency): array {
 }
 function quote_render(array $d): void {
  $total=0;echo '<div class="quote-items">';foreach($d['items'] as $s){$line=$s['quantity']*$s['price'];$total+=$line;echo '<article class="service-card"><h3>'.esc($s['name']).'</h3><p>'.(int)$s['quantity'].' × '.esc(quote_money($s['price'],$d['currency'])).'</p><strong>'.esc(quote_money($line,$d['currency'])).'</strong></article>';}
- echo '</div><p class="quote-total">Total '.esc(quote_money($total,$d['currency'])).'</p>';if($d['notes']!=='')echo '<h3>Notes</h3><p class="description">'.nl2br(esc($d['notes'])).'</p>';
+ echo '</div><p class="quote-total">Total '.esc(quote_money($total,$d['currency'])).'</p>';if($d['notes']!=='')echo '<h3>Notes</h3><p class="description">'.nl2br(esc($d['notes'])).'</p>';scope_render($d);
 }
