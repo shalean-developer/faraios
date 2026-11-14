@@ -223,3 +223,6 @@
 .booking-header .logo-size-32{--logo-height:32px;--logo-width:100px}.booking-header .logo-size-48{--logo-height:48px;--logo-width:150px}.booking-header .logo-size-64{--logo-height:64px;--logo-width:200px}.booking-header .logo-size-80{--logo-height:80px;--logo-width:250px}
 .booking-header .home-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
 @media(max-width:650px){.booking-header .home-brand img{max-width:min(calc(var(--logo-width,150px) * .7),30vw);max-height:min(var(--logo-height,48px),48px)}}
+
+/* Centre service cards, including incomplete rows, without changing card sizes. */
+.booking-services{display:flex;flex-wrap:wrap;justify-content:center}
