@@ -87,3 +87,28 @@ image records live in public.business_service_images, whose image JSON is includ
 in the verified logical backup scope. This is an inventory at observation time,
 not a guarantee that future external Storage objects need no backup. Hosted Auth
 login/configuration recovery and private runtime-secret restoration remain unproven.
+
+Hosted alert evidence, 14 November 2026: runtime source
+`fcf0873a0029f9c56968be1756992fc46473745b`, tree
+`20210ba5f22179f7191b98702ad9c43be41f27cc`, deployed only to accounts-preview.
+The one-time test was accepted as `01a1db7b-c20c-74ac-8408-293e220a34c8`;
+FaraiOS Resend dashboard confirms **delivered**, sender/recipient/reply-to and
+fixed verification content. Repeating the command returned `already_verified`,
+`alert_sent=false`, proving the hosted repeat guard without a second message.
+Provider delivery does not prove the owner has opened/read the message.
+
+Manual `--alerts` run at 19:16:10 UTC returned healthy, page/Auth/heartbeat=true,
+zero error counts, partial_logs=false, alert_sent=false, alert_state=quiet.
+Task 265 now remains active every five minutes with `--alerts`; Plesk's own
+notification option remains Do not notify, preventing unsanitized cron output
+mail. Existing waitlist and customer-mail tasks are unchanged. The manual test
+form was cancelled without saving an additional task. No hosted outage was
+induced. Failure/recovery transport is exercised offline with fake provider
+responses, not claimed as a hosted failure simulation.
+
+Complete local gate PASS: 24 suites, 33 Python methods plus PHP assertions.
+Published-head CI [43630883738](https://github.com/shalean-developer/faraios/actions/runs/43630883738)
+PASS. No database schema/data writes or customer queue consumption were added.
+No production application deployment, live intake activation or publication.
+
+Hosted `alert-state.json` and `alert.lock` mode 0600 verified in File Manager.
