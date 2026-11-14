@@ -1,0 +1,157 @@
+{
+  "before": [
+    {
+      "table_name": "business_booking_requests",
+      "records": 5,
+      "fingerprint": "dd553dac9d50ebf6aa563dbe4b4a0191"
+    },
+    {
+      "table_name": "business_booking_staff",
+      "records": 7,
+      "fingerprint": "7aea359319a253b35ab9b4295ad443dc"
+    },
+    {
+      "table_name": "business_bookings",
+      "records": 13,
+      "fingerprint": "d44421528068cdd45bac3d3362d30633"
+    },
+    {
+      "table_name": "business_customers",
+      "records": 2,
+      "fingerprint": "cfe4416c6a790b9fea0979bea2500576"
+    },
+    {
+      "table_name": "business_enquiries",
+      "records": 9,
+      "fingerprint": "ea079125ae0844ec3cffdda165b607b9"
+    },
+    {
+      "table_name": "business_invoice_events",
+      "records": 22,
+      "fingerprint": "8cd8e6cbfe41b9a426a9890a9a77ddac"
+    },
+    {
+      "table_name": "business_invoice_payments",
+      "records": 9,
+      "fingerprint": "7910bb1702e42604adf4b73554148fb2"
+    },
+    {
+      "table_name": "business_invoices",
+      "records": 5,
+      "fingerprint": "4f08e531232797a9d2ed77a955728902"
+    },
+    {
+      "table_name": "business_profiles",
+      "records": 4,
+      "fingerprint": "bb21f387cd124d2e1425f3f24e1ad674"
+    },
+    {
+      "table_name": "business_public_pages",
+      "records": 1,
+      "fingerprint": "16f3093302ab94f80396e85ea1258871"
+    },
+    {
+      "table_name": "business_quotes",
+      "records": 7,
+      "fingerprint": "18a530a47ebd0240522c660ae255d983"
+    },
+    {
+      "table_name": "business_service_catalogues",
+      "records": 3,
+      "fingerprint": "c4a73011bab63dda9bd91110ff589db5"
+    },
+    {
+      "table_name": "business_staff",
+      "records": 5,
+      "fingerprint": "6e334f199cfeb4419f7e01b9aa6cc6af"
+    },
+    {
+      "table_name": "businesses",
+      "records": 3,
+      "fingerprint": "d0c7418f31070a0c9a612c0205706ba6"
+    },
+    {
+      "table_name": "waitlist_subscribers",
+      "records": 2,
+      "fingerprint": "0b3e8a41e9076b4d4e6f4eb26dcdb6c6"
+    }
+  ],
+  "after": [
+    {
+      "table_name": "business_booking_requests",
+      "records": 5,
+      "fingerprint": "dd553dac9d50ebf6aa563dbe4b4a0191"
+    },
+    {
+      "table_name": "business_booking_staff",
+      "records": 7,
+      "fingerprint": "7aea359319a253b35ab9b4295ad443dc"
+    },
+    {
+      "table_name": "business_bookings",
+      "records": 13,
+      "fingerprint": "d44421528068cdd45bac3d3362d30633"
+    },
+    {
+      "table_name": "business_customers",
+      "records": 2,
+      "fingerprint": "cfe4416c6a790b9fea0979bea2500576"
+    },
+    {
+      "table_name": "business_enquiries",
+      "records": 9,
+      "fingerprint": "ea079125ae0844ec3cffdda165b607b9"
+    },
+    {
+      "table_name": "business_invoice_events",
+      "records": 22,
+      "fingerprint": "8cd8e6cbfe41b9a426a9890a9a77ddac"
+    },
+    {
+      "table_name": "business_invoice_payments",
+      "records": 9,
+      "fingerprint": "7910bb1702e42604adf4b73554148fb2"
+    },
+    {
+      "table_name": "business_invoices",
+      "records": 5,
+      "fingerprint": "4f08e531232797a9d2ed77a955728902"
+    },
+    {
+      "table_name": "business_profiles",
+      "records": 4,
+      "fingerprint": "bb21f387cd124d2e1425f3f24e1ad674"
+    },
+    {
+      "table_name": "business_public_pages",
+      "records": 1,
+      "fingerprint": "16f3093302ab94f80396e85ea1258871"
+    },
+    {
+      "table_name": "business_quotes",
+      "records": 7,
+      "fingerprint": "18a530a47ebd0240522c660ae255d983"
+    },
+    {
+      "table_name": "business_service_catalogues",
+      "records": 3,
+      "fingerprint": "c4a73011bab63dda9bd91110ff589db5"
+    },
+    {
+      "table_name": "business_staff",
+      "records": 5,
+      "fingerprint": "6e334f199cfeb4419f7e01b9aa6cc6af"
+    },
+    {
+      "table_name": "businesses",
+      "records": 3,
+      "fingerprint": "d0c7418f31070a0c9a612c0205706ba6"
+    },
+    {
+      "table_name": "waitlist_subscribers",
+      "records": 2,
+      "fingerprint": "0b3e8a41e9076b4d4e6f4eb26dcdb6c6"
+    }
+  ],
+  "match": true
+}

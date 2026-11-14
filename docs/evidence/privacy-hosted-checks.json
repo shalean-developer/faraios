@@ -1,0 +1,146 @@
+[
+  {
+    "url": "https://www.faraios.com/_accounts-preview/privacy.html",
+    "kind": "notice",
+    "section": null,
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "sha256": "d64da4a632935ae3d497d5a8e6070aefe5a7389c268571d4c5fa38ab7fedb90e",
+    "pass": true
+  },
+  {
+    "url": "https://www.faraios.com/_waitlist-preview/privacy.html",
+    "kind": "notice",
+    "section": null,
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "sha256": "d64da4a632935ae3d497d5a8e6070aefe5a7389c268571d4c5fa38ab7fedb90e",
+    "pass": true
+  },
+  {
+    "url": "https://www.faraios.com/_accounts-preview/privacy.css?v=20261114",
+    "kind": "asset",
+    "section": null,
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "sha256": null,
+    "pass": true
+  },
+  {
+    "url": "https://www.faraios.com/_waitlist-preview/privacy.css?v=20261114",
+    "kind": "asset",
+    "section": null,
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "sha256": null,
+    "pass": true
+  },
+  {
+    "url": "https://www.faraios.com/privacy.html",
+    "kind": "production",
+    "section": null,
+    "status": 200,
+    "robots": null,
+    "sha256": "4c56926534f63a6a92be666160b9fa27130af5910f3879e446a4c6ef00ecbc6f",
+    "pass": true
+  },
+  {
+    "url": "https://www.faraios.com/_accounts-preview/account/index.php?page=signup",
+    "kind": "form",
+    "section": "accounts",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "sha256": null,
+    "pass": true
+  },
+  {
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning",
+    "kind": "form",
+    "section": "enquiries",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "sha256": null,
+    "pass": true
+  },
+  {
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/contact",
+    "kind": "form",
+    "section": "enquiries",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "sha256": null,
+    "pass": true
+  },
+  {
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning?booking=1",
+    "kind": "form",
+    "section": "bookings",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "sha256": null,
+    "pass": true
+  },
+  {
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/services",
+    "kind": "footer",
+    "section": "overview",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "sha256": null,
+    "pass": true
+  },
+  {
+    "url": "https://www.faraios.com/_accounts-preview/waitlist.html",
+    "kind": "form",
+    "section": "waitlist",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "sha256": null,
+    "pass": true
+  },
+  {
+    "url": "https://www.faraios.com/_waitlist-preview/waitlist.html",
+    "kind": "form",
+    "section": "waitlist",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "sha256": null,
+    "pass": true
+  },
+  {
+    "url": "https://www.faraios.com/_waitlist-preview/waitlist/confirm.php",
+    "kind": "footer",
+    "section": "waitlist",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "sha256": null,
+    "pass": true
+  },
+  {
+    "url": "https://www.faraios.com/_waitlist-preview/waitlist/unsubscribe.php",
+    "kind": "footer",
+    "section": "waitlist",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "sha256": null,
+    "pass": true
+  },
+  {
+    "url": "https://www.faraios.com/_accounts-preview/",
+    "kind": "footer",
+    "section": "overview",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "sha256": null,
+    "pass": true
+  },
+  {
+    "url": "https://www.faraios.com/_waitlist-preview/",
+    "kind": "footer",
+    "section": "overview",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "sha256": null,
+    "pass": true
+  }
+]

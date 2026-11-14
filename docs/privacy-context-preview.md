@@ -8,7 +8,7 @@ One reusable privacy notice with stable sections: overview, accounts, enquiries,
 
 The notice now distinguishes FaraiOS platform/account/security/waitlist processing from the selected service business's use of customer service records. It identifies submitted booking information, required versus optional details, review/confirmation purpose, price/time-zone snapshots, necessary sessions, provider categories/location, retention differences, rights/contact routes and the Information Regulator. It describes actual sessionStorage draft behavior: restore only within30 minutes; expiry checked on reopening rather than an automatic background timer; successful submission clears the draft. Waitlist withdrawal does not cancel a booking or delete an account.
 
-Enquiry/booking notices name the business from the selected public snapshot (escaped), never from an account/private table or query-supplied name. Existing callers without a public name keep the “this business” fallback. These notices and signup/waitlist form-level links open a new tab with noopener/noreferrer and announce that behavior. Opening the notice neither submits the form nor copies the parent's booking draft into the policy tab.
+Enquiry/booking notices name the business from the selected public snapshot (escaped), never from an account/private table or query-supplied name. Existing callers without a public name keep the “this business” fallback. These notices and signup/waitlist form-level links open a new tab with noopener/noreferrer and announce that behavior. The booking notice sits outside the hidden step panels, so its link is available from Service through Review, before address/contact entry. Opening the notice neither submits the form nor copies the parent's booking draft into the policy tab.
 
 Waitlist HTML and plain-text email privacy URLs now use the configured environment's base URL plus /privacy.html#waitlist. HTML URLs are escaped. Existing consent wording/version, token links, subjects, providers, retry/idempotency/suppression and data handling are unchanged. No real email was sent.
 
@@ -33,3 +33,15 @@ This is an implementation-grounded notice improvement, not a full legal complian
 Primary reference checked: POPIA sections18,20–21 at https://www.justice.gov.za/legislation/acts/2013-004.pdf and Information Regulator guidance/contact route https://inforegulator.org.za/popia/. No statutory text copied. Notices reflect actual source behavior; no new collection, tracking or marketing-consent mechanism introduced.
 
 Hosted preview checks and record-preservation checkpoint will be appended after deployment.
+
+## Hosted checkpoint — 14 November 2026
+
+PASS accounts-preview application e805febcb8ccd0fd8438d611f856c80986f8786b deployed through only the scoped manual accounts card. PASS waitlist privacy-only application c5dedb892c0fbcb19544822eea7a5e20502bf344 deployed through only the scoped manual waitlist card, now selecting fix/waitlist-privacy-20261114. Both Plesk tasks completed/Done. Production card remains automatic main/PR21; no production pull, deployment or merge.
+
+PASS16 GET-only hosted checks in tests/privacy-hosted.py, evidence docs/evidence/privacy-hosted-checks.json. Both preview policy responses exactly match the new source bytes and each other. Both preview CSS/policy responses are200/noindex. Signup → accounts; homepage/Contact enquiry → enquiries; booking → bookings; general footers → overview; waitlist forms and confirm/unsubscribe GET pages → waitlist. Form-level new-tab/noopener/noreferrer attributes and actual selected public business name verified. Production privacy SHA256 remains4c56926534f63a6a92be666160b9fa27130af5910f3879e446a4c6ef00ecbc6f (unchanged old live release).
+
+PASS hosted browser: section navigation focuses the Booking requests section; the policy fits390px and320px without horizontal overflow. Screenshot docs/evidence/privacy-hosted-bookings-mobile.png shows the actual hosted policy section at390px. Viewport reset; policy left open for owner review. Personal-form preservation/opener/sessionStorage separation was tested locally, not by entering or submitting hosted customer data.
+
+PASS all15 public-table full-row counts/fingerprints match before/after both deployments and hosted checks. Evidence docs/evidence/privacy-preservation.json. No migration, existing-record update, publication, booking/enquiry submission, waitlist signup/transition, cleanup task or real email send. All history retained.
+
+Draft PR22 contains the primary website/SEO/privacy work; draft PR23 contains the independent waitlist-preview patch and targets feature/waitlist-20261112, not main. Preview policy copies are aligned; production retains the previous release intentionally. A production release and confirmation of the missing legal identity/address/Information Officer/business-specific facts remain separate owner steps.
