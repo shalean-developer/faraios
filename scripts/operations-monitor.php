@@ -10,7 +10,7 @@ try{
  $c=require $root.'/config.php';if(!is_array($c)||!($c['enabled']??false)||!ops_preview($c))throw new RuntimeException();
  if(($c['environment']??'')!=='test'&&(($c['base_url']??'')!=='https://www.faraios.com/_accounts-preview'||($c['supabase_url']??'')!=='https://rxelmugnucfajrqmphhe.supabase.co'))throw new RuntimeException();
  $c['_ops_root']=$root;$dir=ops_private_dir($c);if(!$dir)throw new RuntimeException();
- if(isset($o['canary'])){ops_event($c,'monitor_canary','other',200);echo '{"state":"private_canary_stored","environment":"preview"}'."\n";exit(0);}
+ if(isset($o['canary'])){if(!ops_event($c,'monitor_canary','other',200))throw new RuntimeException();echo '{"state":"private_canary_stored","environment":"preview"}'."\n";exit(0);}
  $page=false;$auth=false;
  if(!isset($o['status-only'])){
   $fetch=static function(string $url,array $headers=[]): array {
@@ -28,7 +28,7 @@ try{
   while(($line=fgets($stream,8192))!==false){$r=json_decode($line,true);if(!is_array($r)||($r['schema']??'')!=='faraios.ops.v1'||($r['environment']??'')!=='preview'||!array_key_exists($r['event']??'',$counts))continue;$at=strtotime((string)($r['time']??''));if($at!==false&&$at<=$now+60&&$at>=$now-900)$counts[$r['event']]++;}fclose($stream);
  }
  $beat=$dir.'/application-heartbeat.json';$heartbeat=is_file($beat)&&!is_link($beat)?json_decode(file_get_contents($beat),true):null;
- $at=is_array($heartbeat)?strtotime((string)($heartbeat['time']??'')):false;$recent=$at!==false&&$at<=$now+60&&$at>=$now-600;
+ $at=is_array($heartbeat)?strtotime((string)($heartbeat['time']??'')):false;$recent=($heartbeat['schema']??'')==='faraios.ops.heartbeat.v1'&&($heartbeat['environment']??'')==='preview'&&$at!==false&&$at<=$now+60&&$at>=$now-600;
  $state=$partial||!$recent||isset($o['status-only'])?'unknown':(($counts['php_fatal']>0||array_sum($counts)>=5||!$page||!$auth)?'attention':'healthy');
  $report=['schema'=>'faraios.ops.monitor.v1','time'=>gmdate('c'),'environment'=>'preview','state'=>$state,'page_available'=>$page,'auth_available'=>$auth,'application_heartbeat_recent'=>$recent,'counts'=>$counts,'partial_logs'=>$partial,'alert_sent'=>false];
  $lock=ops_lock($dir);if(!$lock)throw new RuntimeException();

@@ -43,3 +43,20 @@ Proposed alert payload is a fixed state summary only: environment, time, page/Au
 availability, heartbeat freshness and event counts, with no customer data. No
 recipient or operator is assumed; real test sending and alert scheduling require
 the owner to specify the destination. No custom alert has been sent.
+
+Hosted evidence, 14 November 2026: initial runtime 8f771c262b2b843158b782825351d147369878d0
+passed manual private canary and actual page/Auth monitor via Plesk PHP 8.4.27.
+At 18:49:17 UTC state=healthy, page/Auth/heartbeat=true, error counts zero,
+partial_logs=false and alert_sent=false. Private directory mode 0700 and four
+files mode 0600 verified in File Manager. CLI script and observability include
+return HTTP403; preview sign-in returns HTTP200. Active Plesk task 265 runs
+`*/5 * * * *` with Do not notify. No existing worker was changed or invoked.
+Initial-head CI 43628438231 PASS (23 suites / 30 Python methods plus PHP assertions).
+A final guard makes failed private canaries return unknown and validates heartbeat
+schema/environment; local privacy/monitor regression passed after that guard.
+
+Read-only recovery inventory: Supabase Storage buckets=0, objects=0; seven service
+image records live in public.business_service_images, whose image JSON is included
+in the verified logical backup scope. This is an inventory at observation time,
+not a guarantee that future external Storage objects need no backup. Hosted Auth
+login/configuration recovery and private runtime-secret restoration remain unproven.

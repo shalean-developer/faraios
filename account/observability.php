@@ -6,14 +6,14 @@ function ops_preview(array $c): bool {
  $path=parse_url((string)($c['base_url']??''),PHP_URL_PATH)?:'';
  return $path==='/_accounts-preview'||(($c['environment']??'')==='test'&&$path==='/preview');
 }
-function ops_event(array $c,string $event,string $operation,int $status): void {
- if(!ops_preview($c)||!in_array($event,['upstream_failure','workflow_failure','php_fatal','monitor_canary'],true))return;
+function ops_event(array $c,string $event,string $operation,int $status): bool {
+ if(!ops_preview($c)||!in_array($event,['upstream_failure','workflow_failure','php_fatal','monitor_canary'],true))return false;
  if(!in_array($operation,['auth','invoice','quote','booking','enquiry','publication','other','php'],true))$operation='other';
  static $id=null;$id??=bin2hex(random_bytes(12));
  $record=['schema'=>'faraios.ops.v1','time'=>gmdate('c'),'environment'=>'preview','event'=>$event,'operation'=>$operation,'status'=>$status>=0&&$status<=599?$status:0,'request_id'=>$id];
  $line=json_encode($record,JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR);
- if(isset($c['_ops_root'])){if(!ops_private_write($c,$line))error_log('{"schema":"faraios.ops.v1","environment":"preview","event":"sink_unavailable"}');}
- else error_log($line);
+ if(isset($c['_ops_root'])){if(ops_private_write($c,$line))return true;error_log('{"schema":"faraios.ops.v1","environment":"preview","event":"sink_unavailable"}');return false;}
+ return error_log($line);
 }
 function ops_operation(string $path): string {
  if(str_starts_with($path,'/auth/'))return 'auth';

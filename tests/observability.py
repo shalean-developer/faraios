@@ -74,6 +74,7 @@ class Observability(SEO):
    # A malicious pre-existing log symlink must never be followed.
    target=root/'untouched';target.write_text('sentinel');log.unlink();log.symlink_to(target)
    subprocess.run([PHP,str(fixture)],capture_output=True);self.assertEqual(target.read_text(),'sentinel')
+   canary=subprocess.run([PHP,str(ROOT/'scripts/operations-monitor.php'),'--config-dir='+str(root),'--canary'],capture_output=True,text=True);self.assertEqual(canary.returncode,2)
    # CLI rejects missing config and a live configuration.
    (root/'config.php').write_text("<?php return ['enabled'=>true,'base_url'=>'https://www.faraios.com','environment'=>'live'];")
    self.assertEqual(monitor().returncode,2)
