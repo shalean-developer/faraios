@@ -44,3 +44,11 @@ PASS preservation: all15 public-table full-row counts AND fingerprints exactly m
 The application in preview uses the existing demo snapshot. Shalean's live snapshot was deliberately not imported/copied to preview. Its empty-service/disabled-intake behavior is verified through the equivalent isolated fixtures. Screenshot/mobile capture quality and fixture measurements do not establish physical-device/screen-reader results, hosted load performance or field Core Web Vitals. Public social-crawler behavior remains unverified. Owner content gaps remain listed above.
 
 Decision: **PASS preview implementation and verification; ready for owner review. Production merge/deployment remains NO-GO until separately authorized.**
+
+## Button icons and typography refinement
+
+Owner requested alignment with shalean.co.za. Read-only computed-style inspection at1280/390px: navigation/buttons14px, body16px, desktop lead18px/28px, service headings24px and primary hero48px desktop/24px mobile; section headings approximately46px desktop/32px mobile. Applied that scale to the reusable template with a local system sans-serif stack; Shalean's Geist font is not downloaded or claimed to be identical. Explicit owner serif choice remains supported. Helpers increase to14px and mobile inputs remain16px.
+
+Replaced platform-dependent Unicode action arrows with consistent18px SVG icons (16px in compact mobile header): calendar for booking, message for enquiry, arrow for onward/send actions, external-link for website and up-arrow for top. Icons inherit text colour, reserve space and are hidden from accessible names; labels remain visible. Button/icon gaps normalized,44px targets retained. Booking flow typography and business records unchanged. CSS version advanced to template-type-2 for public and private preview references.
+
+PASS PHP lint, whitespace, existing standalone-page browser suite and empty/closed/wide-logo checks at1280/390/320;24 automated axe scans zero violations. Latest synthetic mobile LCP0.58–1.26s, CLS0, observed interactions32–48ms. Initial audit screenshots/performance evidence above remain historical; final typography screenshot is captured from hosted preview after deployment. No field-performance claim or production release.
