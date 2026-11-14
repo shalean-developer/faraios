@@ -20,4 +20,9 @@ class Boundaries(unittest.TestCase):
   with patch.object(m.subprocess,'run',return_value=result):
    with self.assertRaises(m.AuthRecoveryError) as e:m.safe_run(['docker','exec','private','psql'],{})
    self.assertNotIn('PRIVATE',str(e.exception));self.assertNotIn('PASSWORD',str(e.exception));self.assertIn('permission denied',str(e.exception))
+ def test_extra_network_rejected_even_if_initial_mode_was_none(self):
+  info={'HostConfig':{'NetworkMode':'none','PortBindings':{}},'NetworkSettings':{'Networks':{'none':{},'bridge':{}}}}
+  with patch.object(m,'safe_run',return_value=json.dumps([info]).encode()) as run:
+   with self.assertRaises(m.AuthRecoveryError):m.rehearse('faraios-restore-'+'b'*32,{},lambda q:None)
+   self.assertEqual(run.call_count,1)
 if __name__=='__main__':unittest.main()

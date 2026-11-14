@@ -4,6 +4,7 @@ Only aggregate evidence leaves the runner. All HTTP bodies/tokens stay in memory
 import json,os,re,secrets,subprocess,time,uuid
 AUTH_IMAGE='supabase/gotrue:v2.197.0'
 REST_IMAGE='postgrest/postgrest:v14.18'
+HTTP_IMAGE='curlimages/curl:8.17.0'
 DB_IMAGE='postgres:17.11'
 class AuthRecoveryError(Exception):pass
 
@@ -22,12 +23,12 @@ def rehearse(db,env,sql,check_business=False):
  # Fail closed: no arbitrary host/project, no published ports or pre-existing network.
  if not re.fullmatch(r'faraios-(?:restore|auth)-[a-f0-9]{32}',db):raise AuthRecoveryError('Disposable target required')
  info=json.loads(safe_run(['docker','inspect',db],env))[0]
- if info['HostConfig']['NetworkMode']!='none' or info['HostConfig'].get('PortBindings'):raise AuthRecoveryError('Target isolation prerequisite failed')
+ if info['HostConfig']['NetworkMode']!='none' or info['HostConfig'].get('PortBindings') or set(info.get('NetworkSettings',{}).get('Networks',{}))!={'none'}:raise AuthRecoveryError('Target isolation prerequisite failed')
  network='faraios-auth-'+uuid.uuid4().hex;auth=network+'-auth';rest=network+'-rest'
  dbpass=secrets.token_hex(24);restpass=secrets.token_hex(24);jwt=secrets.token_hex(32)
  users=[{'email':'recovery-'+uuid.uuid4().hex+'@example.invalid','password':secrets.token_urlsafe(32)} for _ in range(2)]
  # Images fetched before the isolated network exists. No credentials/data sent to registry.
- for image in [AUTH_IMAGE,REST_IMAGE]:safe_run(['docker','pull',image],env)
+ for image in [AUTH_IMAGE,REST_IMAGE,HTTP_IMAGE]:safe_run(['docker','pull',image],env)
  def start_auth(secret):
   values={'GOTRUE_API_HOST':'0.0.0.0','GOTRUE_API_PORT':'9999','API_EXTERNAL_URL':'http://'+auth+':9999',
    'GOTRUE_DB_DRIVER':'postgres','GOTRUE_DB_DATABASE_URL':'postgres://supabase_auth_admin:'+dbpass+'@'+db+':5432/postgres?sslmode=disable',
@@ -41,15 +42,16 @@ def rehearse(db,env,sql,check_business=False):
   for k,v in values.items():args+=['--env',k+'='+v]
   safe_run(args+[AUTH_IMAGE],env)
  def http(url,method='GET',payload=None,token=None):
-  # wget inside the Auth container reaches only the internal network. Never prints bodies.
-  args=['docker','exec','-i',auth,'wget','-S','-O','-','-T','10','--header=Content-Type: application/json']
-  if token:args+=['--header=Authorization: Bearer '+token]
-  if method=='POST':args+=['--post-data='+json.dumps(payload or {})]
+  # Dedicated client avoids depending on utilities inside a service image.
+  url=url.replace('http://localhost:9999','http://'+auth+':9999')
+  args=['docker','run','--rm','-i','--name',network+'-http','--network',network,'--memory=64m','--cpus=1','--cap-drop=ALL','--security-opt=no-new-privileges',HTTP_IMAGE,'--silent','--show-error','--max-time','10','--write-out','\\n%{http_code}','--header','Content-Type: application/json']
+  if token:args+=['--header','Authorization: Bearer '+token]
+  if method=='POST':args+=['--request','POST','--data-binary','@-']
   args+=[url]
-  try:p=subprocess.run(args,env=env,capture_output=True,timeout=15)
+  try:p=subprocess.run(args,env=env,input=json.dumps(payload or {}).encode() if method=='POST' else None,capture_output=True,timeout=20)
   except (OSError,subprocess.TimeoutExpired):return 0,None
-  codes=re.findall(rb'HTTP/\S+\s+(\d{3})',p.stderr);code=int(codes[-1]) if codes else 0
-  try:body=json.loads(p.stdout)
+  raw,_,status=p.stdout.rpartition(b'\n');code=int(status) if status.isdigit() else 0
+  try:body=json.loads(raw)
   except ValueError:body=None
   return code,body
  def ready(url):
@@ -122,7 +124,7 @@ def rehearse(db,env,sql,check_business=False):
   if http('http://localhost:9999/token?grant_type=refresh_token','POST',{'refresh_token':users[0]['refresh_token']})[0] not in (400,401):raise AuthRecoveryError('Signed-out refresh remained usable')
   return {'status':'auth_service_recovery_verified','auth_image':AUTH_IMAGE,'rest_image':REST_IMAGE,'synthetic_users':2,'password_sign_in':True,'refresh':True,'sign_out':True,'signed_out_refresh_denied':True,'old_signing_key_rejected':True,'real_jwt_tenant_isolation':True,'existing_invoice_scope_checked':check_business,'network':'internal-only','published_ports':0,'outbound_email':False,'production_credentials_forwarded':False,'limitations':['Self-hosted Auth/API rehearsal; hosted project configuration and SMTP delivery not restored','Fresh temporary signing keys and role passwords; existing users were not logged in']}
  finally:
-  for name in [auth,rest]:subprocess.run(['docker','rm','--force',name],env=env,capture_output=True,timeout=30)
+  for name in [network+'-http',auth,rest]:subprocess.run(['docker','rm','--force',name],env=env,capture_output=True,timeout=30)
   subprocess.run(['docker','network','disconnect','--force',network,db],env=env,capture_output=True,timeout=30)
   subprocess.run(['docker','network','connect','none',db],env=env,capture_output=True,timeout=30)
   subprocess.run(['docker','network','rm',network],env=env,capture_output=True,timeout=30)
