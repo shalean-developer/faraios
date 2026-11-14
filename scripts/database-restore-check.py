@@ -47,7 +47,7 @@ def check(directory):
   roles=re.sub(r'^ALTER ROLE postgres WITH .*;\s*$', '',roles, flags=re.M)
   # Standalone cluster starts with built-in role memberships granted by postgres.
   # Recreate effective memberships using that bootstrap grantor, not a hosted grantor.
-  roles=re.sub(r' GRANTED BY [a-z_][a-z_0-9]*;', ' GRANTED BY postgres;',roles)
+  roles=re.sub(r' GRANTED BY [a-z_][a-z_0-9]*;', ';',roles)
   name='faraios-restore-'+uuid.uuid4().hex
   run(['docker','pull',IMAGE],env,stage='approved image download')
   try:
