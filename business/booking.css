@@ -95,3 +95,5 @@
 .extra-task-grid .extra-choice[aria-pressed="true"] .extra-task-circle::after{content:"✓";position:absolute;right:-3px;top:-3px;display:grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#087c79;color:white;font-size:11px;border:2px solid white}
 .extra-task-grid .extra-choice:focus-visible{outline:3px solid #8dccf1;outline-offset:4px}
 .extra-task-hint{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip-path:inset(50%);white-space:nowrap}
+
+.coverage-note label{margin:0 0 8px}.coverage-note select{display:block;max-width:100%;min-height:46px;padding:10px 12px;border:1px solid #c5d2da;border-radius:8px;background:white;color:#172d3b;font:inherit}

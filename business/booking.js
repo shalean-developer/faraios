@@ -86,6 +86,8 @@ const calculateOptions = service => {
   for (const [key, min] of [['name', 2], ['address', 5], ['requirements', 10]]) {
    fields[key].setCustomValidity(fields[key].value.trim().length < min ? `Enter at least ${min} characters.` : '');
   }
+  const noteLength=fields.requirements.value.trim().length+(fields.service_area?.value ? ('Service area: '+fields.service_area.value+'\n\n').length : 0);
+  if(noteLength>2000)fields.requirements.setCustomValidity('Shorten your requirements to fit the selected service area.');
   const parts = new Intl.DateTimeFormat('en-CA', {timeZone: zone, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hourCycle:'h23'}).formatToParts(new Date());
   const local = Object.fromEntries(parts.map(p => [p.type, p.value]));
   const today = `${local.year}-${local.month}-${local.day}`;
@@ -101,13 +103,14 @@ const calculateOptions = service => {
   put('summary-options',calculated.options);put('summary-breakdown',calculated.breakdown);put('summary-duration',calculated.duration);
   const values = {
    service: option ? option.dataset.name : 'Not selected', price, options:calculated.options,
+   area: fields.service_area?.value || 'Not selected',
    address: [fields.address.value.trim(), fields.unit.value.trim()].filter(Boolean).join(', ') || 'Not entered',
    schedule: [fields.date.value, fields.time.value].filter(Boolean).join(' · ') || 'Not selected',
    requirements: fields.requirements.value.trim() || 'Not entered',
    name: fields.name.value.trim() || 'Not entered',
    email: fields.email.value.trim() || 'Not provided', phone: fields.phone.value.trim() || 'Not provided'
   };
-  for (const key of ['service', 'address', 'schedule']) put(`summary-${key}`, values[key]);
+  for (const key of ['service', 'address', 'schedule', 'area']) put(`summary-${key}`, values[key]);
   for (const id of ['selected-price', 'summary-price', 'summary-total']) put(id, price);
   for (const node of form.querySelectorAll('[data-review]')) node.textContent = values[node.dataset.review];
   constraints();
