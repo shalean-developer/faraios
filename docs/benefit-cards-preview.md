@@ -19,3 +19,9 @@ Immediately after validator migration all16public-table fingerprints matched. Af
 ## Signed-in editor checkpoint
 
 Owner resumed the authenticated preview in the selected browser. Inspected Profile → Homepage content → Why choose us read-only. Confirmed Show this section, current heading, six collapsible card slots, six fixed icon choices, title and short-description fields. Opened Benefit1 to inspect its actual controls. No fields were changed, forms submitted or publications made. The signed-in account was the owner's currently selected Pure Quality business; the controls are reusable and no Shalean record was accessed or edited for this check. Editor left open for owner review. Hosted editor-inspection limitation is resolved; persistence/isolation remains verified in disposable native tests rather than modifying existing hosted data. PR29 remains draft and production application unchanged.
+
+## Areas layout refinement
+
+Owner requested repair of the large blank left column and low coverage link. Heading/introduction and coverage link now share one compact introduction row; owner-authored area groups use a full-width bordered panel below. Original chip text, order and group boundaries remain intact. No fabricated region labels or business data changes. Mobile introduction stacks, chips wrap and no horizontal scrolling is added. CSS version benefit-areas-1.
+
+PASS existing four standalone-page browser suite at1280/390/320. A representative43-area/five-group fixture verifies all names/group counts, coverage link position and no overflow at the same widths; screenshot areas-layout-preview.png is the local fixture. Hosted accounts-preview confirms new CSS, link inside intro,1131px panel across1132px section, original demo groups and no overflow. Preview only; no production change or profile save/publication. PR29 now includes both benefit cards and areas layout.
