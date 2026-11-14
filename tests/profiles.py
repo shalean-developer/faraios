@@ -28,7 +28,7 @@ class Profiles(Journey):
       else:
        table=url.path.rsplit('/',1)[-1];assert table in ['businesses','business_profiles','business_public_pages','business_service_catalogues','business_enquiries','business_quotes','business_quote_list','business_bookings','business_customers','business_staff','business_booking_schedule','business_invoice_list','business_invoice_payments','business_booking_requests'];cols=q.get('select',['*'])[0];assert re.fullmatch(r'[a-z_,*]+',cols);conditions=[]
        for key,vs in q.items():
-        if key in ['business_id','environment','slug','id','status','effective_status','quote_id','customer_id','booking_id','invoice_id']:conditions.append(key+'='+lit(vs[0].removeprefix('eq.')))
+        if key in ['business_id','environment','slug','id','status','effective_status','quote_id','customer_id','booking_id','invoice_id']:conditions.append(key+('>' if key=='slug' and vs[0].startswith('gt.') else '=')+lit(vs[0][3:]))
         if key=='staff_ids':
          assert vs[0].startswith('cs.');conditions.append('staff_ids @> '+lit(vs[0][3:])+'::uuid[]')
         if key=='starts_at':
@@ -39,6 +39,7 @@ class Profiles(Journey):
        if table in ['business_booking_requests','business_enquiries','business_quote_list','business_quotes','business_invoice_list']:query+=' order by created_at desc,id desc limit '+str(int(q.get('limit',[21])[0]))+' offset '+str(int(q.get('offset',[0])[0]))
        if table in ['business_bookings','business_booking_schedule']:query+=' order by starts_at asc,id asc limit '+str(int(q.get('limit',[101])[0]))+' offset '+str(int(q.get('offset',[0])[0]))
        if table=='business_invoice_payments':query+=' order by created_at,id limit '+str(int(q.get('limit',[100])[0]))+' offset '+str(int(q.get('offset',[0])[0]))
+       if table=='business_public_pages' and q.get('order')==['slug.asc']:query+=' order by slug asc limit '+str(int(q.get('limit',[500])[0]))
        if table=='business_staff':query+=' order by name,id limit '+str(int(q.get('limit',[100])[0]))+' offset '+str(int(q.get('offset',[0])[0]))
        data=json.loads(cls.sql(prefix+"select coalesce(jsonb_agg(to_jsonb(t)),'[]'::jsonb) from ("+query+') t'))
     except Exception as e:status=400;data={'code':'23505' if 'unique constraint' in str(e) else 'P0001','message':str(e).split('ERROR:  ')[-1].split('\n')[0]}

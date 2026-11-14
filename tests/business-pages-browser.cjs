@@ -1,0 +1,16 @@
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright'),fs=require('fs'),path=require('path'),assert=require('assert'),cp=require('child_process');
+(async()=>{const root=path.resolve(__dirname,'..'),browser=await chromium.launch({executablePath:process.env.BROWSER_BIN,headless:true,args:['--no-sandbox']});
+for(const width of [1280,390,320])for(const custom of [false,true]){
+ const p=await browser.newPage({viewport:{width,height:844}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
+ await p.route('https://example.test/**',r=>{const u=new URL(r.request().url());if(u.pathname.endsWith('header-session.php'))return r.fulfill({json:custom?{authenticated:true,initials:'FC'}:{authenticated:false}});
+ if(/\.(css|js)$/.test(u.pathname))return r.fulfill({contentType:u.pathname.endsWith('.css')?'text/css':'application/javascript',body:fs.readFileSync(path.join(root,u.pathname),'utf8')});
+ const key=u.pathname.split('/')[3]||'';let html=cp.execFileSync(process.env.PHP_BIN||'php',[path.join(root,'tests/homepage-fixture.php'),custom?'custom':'legacy',key],{encoding:'utf8'});html=['business/profile.css','business/homepage.css','ui/select.css'].map(f=>'<link rel="stylesheet" href="/'+f+'">').join('')+html+['ui/booking-header.js','ui/select.js'].map(f=>'<script src="/'+f+'"></script>').join('');return r.fulfill({contentType:'text/html',body:html});});
+ await p.goto('https://example.test/b/example/services');
+ for(const [key,label,title] of [['services','Services','Services'],['how-it-works','How it works','How it works'],['areas','Areas','Service areas'],['contact','Contact','Contact us']]){
+  if(key!=='services')await p.getByRole('link',{name:label,exact:true}).click();
+  assert.equal(p.url(),'https://example.test/b/example/'+key);assert.equal(await p.getByRole('heading',{level:1}).innerText(),custom?'Custom '+label:title);assert.equal(await p.locator('.home-header nav [aria-current=page]').innerText(),label);assert.equal(await p.locator('.home-hero').count(),0);assert.equal(await p.locator('.home-service-card').count(),key==='services'?3:0);assert.equal(await p.locator('.home-how').count(),key==='how-it-works'?1:0);assert.equal(await p.locator('.home-areas').count(),key==='areas'?1:0);assert.equal(await p.locator('.home-contact').count(),key==='contact'?1:0);assert.equal(await p.locator('.home-page-body script').count(),0);
+  if(custom&&key==='how-it-works')assert(await p.getByRole('heading',{name:'Custom step one'}).isVisible());
+  assert.equal(await p.getByRole('link',{name:'Book now',exact:true}).getAttribute('href'),'https://example.test/b/example?booking=1');assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await p.reload();assert.equal(await p.getByRole('heading',{level:1}).count(),1);
+ }
+ assert.equal(await p.locator('form').getAttribute('action'),'https://example.test/b/example/contact#enquire');await p.getByRole('combobox',{name:'Service optional'}).click();await p.getByRole('option',{name:'Deep cleaning',exact:true}).click();assert.deepEqual(errors,[]);await p.close();
+}await browser.close();console.log('PASS four standalone routes, navigation/reload, editable/fallback text/steps, escaped content, contact form target, booking links and layout at1280/390/320');})().catch(e=>{console.error(e);process.exit(1)});

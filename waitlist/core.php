@@ -147,11 +147,12 @@ function wl_message(array $row): array {
     } else {
         $to = $p['to'];
         $subject = 'Confirm your FaraiOS waitlist request';
+        $privacy = rtrim($c['base_url'], '/') . '/privacy.html#waitlist';
         $confirm = $c['base_url'] . '/waitlist/confirm.php#token=' . $p['confirm'];
         $withdraw = $c['base_url'] . '/waitlist/unsubscribe.php#token=' . $p['withdraw'];
-        $text = "Confirm your FaraiOS waitlist request\n\nPlease confirm that you want FaraiOS waitlist, launch and early-access updates about your selected interests.\n\nConfirm your email (expires in 24 hours):\n$confirm\n\nYou are not on the active waitlist until you confirm. If you did not request this, ignore this email.\n\nCancel this request or unsubscribe later:\n$withdraw\n\nQuestions or privacy requests: hello@faraios.com\nFaraiOS — Build. Grow. Manage.\n";
+        $text = "Confirm your FaraiOS waitlist request\n\nPlease confirm that you want FaraiOS waitlist, launch and early-access updates about your selected interests.\n\nConfirm your email (expires in 24 hours):\n$confirm\n\nYou are not on the active waitlist until you confirm. If you did not request this, ignore this email.\n\nCancel this request or unsubscribe later:\n$withdraw\n\nWaitlist privacy notice:\n$privacy\n\nQuestions or privacy requests: hello@faraios.com\nFaraiOS — Build. Grow. Manage.\n";
     }
-    return ['from' => 'FaraiOS <' . $c['sender'] . '>', 'to' => [$to], 'reply_to' => $c['reply_to'], 'subject' => $subject, 'text' => $text] + ($row['kind'] === 'owner' ? [] : ['html' => wl_confirmation_html($confirm, $withdraw)]);
+    return ['from' => 'FaraiOS <' . $c['sender'] . '>', 'to' => [$to], 'reply_to' => $c['reply_to'], 'subject' => $subject, 'text' => $text] + ($row['kind'] === 'owner' ? [] : ['html' => wl_confirmation_html($confirm, $withdraw, $privacy)]);
 }
 
 function wl_send(array $message, string $id): array {

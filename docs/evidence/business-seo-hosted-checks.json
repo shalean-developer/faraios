@@ -1,0 +1,177 @@
+[
+  {
+    "kind": "page",
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "page",
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/services",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "page",
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/how-it-works",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "page",
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/areas",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "page",
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/contact",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "redirect",
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/",
+    "status": 301,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "redirect",
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/services/",
+    "status": 301,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "redirect",
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning?utm_source=seo-check",
+    "status": 301,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "redirect",
+    "url": "https://www.faraios.com/_accounts-preview/b/FARAIOS-DEMO-CLEANING/SERVICES",
+    "status": 301,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "redirect",
+    "url": "https://www.faraios.com/_accounts-preview/b/index.php?slug=faraios-demo-cleaning",
+    "status": 301,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "redirect",
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning?slug=another-business&page=contact",
+    "status": 301,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "missing",
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning/not-a-page",
+    "status": 404,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "missing",
+    "url": "https://www.faraios.com/_accounts-preview/b/nonexistent-seo-verification-business",
+    "status": 404,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "booking",
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning?booking=1",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "booking",
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning?booking=1&step=service",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "booking",
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning?booking=1&step=details",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "booking",
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning?booking=1&step=schedule",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "booking",
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning?booking=1&step=contact",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "booking",
+    "url": "https://www.faraios.com/_accounts-preview/b/faraios-demo-cleaning?booking=1&step=review",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "sitemap",
+    "url": "https://www.faraios.com/_accounts-preview/sitemap.xml",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "private",
+    "url": "https://www.faraios.com/_accounts-preview/account/profile.php",
+    "status": 303,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "private",
+    "url": "https://www.faraios.com/_accounts-preview/account/index.php?page=signin",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "asset",
+    "url": "https://www.faraios.com/_accounts-preview/business/homepage.css?v=seo-1",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "asset",
+    "url": "https://www.faraios.com/_accounts-preview/",
+    "status": 200,
+    "robots": "noindex, nofollow",
+    "pass": true
+  },
+  {
+    "kind": "production-sitemap",
+    "url": "https://www.faraios.com/sitemap.xml",
+    "status": 200,
+    "robots": null,
+    "pass": true
+  }
+]
