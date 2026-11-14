@@ -50,7 +50,7 @@ All15 public-table full-row counts/fingerprints exactly match pre-change baselin
 
 ## Business website SEO upgrade — 14 November 2026
 
-Continue draft PR22, same feature branch. **Candidate only: no production merge/deployment, publication, live intake activation, hosted profile save or existing-record change.** SEO migration is prepared and tested locally, **not installed in faraios-new**. Do not deploy this candidate editor before the optional validator migration is installed.
+Initial candidate checkpoint (superseded by the hosted checkpoint below): continue draft PR22, same feature branch. **Candidate only: no production merge/deployment, publication, live intake activation, hosted profile save or existing-record change.** SEO migration is prepared and tested locally, **not installed in faraios-new**. Do not deploy this candidate editor before the optional validator migration is installed.
 
 ### Implemented behavior
 
@@ -101,10 +101,30 @@ AXE_MODULE=/path/to/@axe-core/playwright node tests/seo-browser.cjs
 
 The axe browser test requires Playwright, `@axe-core/playwright@4.14.0`, Python with Pillow, Chromium and PHP. These are verification dependencies only; no runtime package/bundle is added to the website.
 
-### Hosted status and remaining gate
+### Initial hosted status and gate — superseded by the checkpoint below
 
 Read-only review confirms the hosted Services page is still the preceding candidate (H3 cards, no JSON-LD), not this SEO build. Automatic approval review denied observation of the signed-in Plesk administration origin `https://so1.cloud-wex.com:8443` because admin-origin access was not explicit in the preview-only request. No alternate admin surface or deployment workaround was attempted. A specific owner authorization for that administration origin is needed to update **only** manual `faraios-accounts-preview.git` → `/faraios.com/_accounts-preview`, then verify hosted rendering, metadata, headers, redirects and sitemap. Production `faraios.git`/main and waitlist preview must remain untouched.
 
 Hosted Supabase access in this task was read-only: existing validator/table inventory, security advisor baseline and counts. All15 public-table counts match the previous documented checkpoint: requests5, assignments7, bookings13, customers2, enquiries9, invoice events22, invoice payments9, invoices5, profiles4, public pages1, quotes7, catalogues3, staff5, businesses3, waitlist subscribers2. No full-row fingerprint comparison is claimed for this SEO task; **no hosted schema/data write was executed**. Existing security-advisor warning about leaked-password protection is unchanged; its remediation remains https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection.
 
 After admin authorization: capture full-row preservation fingerprints; apply only the backwards-compatible pure JSON validator migration through Supabase; verify the validator and unchanged permissions; update only the manual preview application; test all hosted routes/headers/sitemap/booking entry without submitting forms or saving existing profiles; compare fingerprints; retain all test history. Do not publish a business or activate live intake. If blocked, leave this candidate in draft PR22 with this limitation. Production remains outside scope.
+
+### Hosted SEO checkpoint — authorized and verified, 14 November 2026
+
+Owner explicitly authorized `https://so1.cloud-wex.com:8443` access to complete the preview deployment. The earlier access block is resolved. **Application candidate9ea17d008c5e6475508bbf9ead11226285e74409 is deployed only to the manual accounts-preview target.** Plesk preview Pull now retrieved “Add preview business website SEO and isolated verification”; the scoped preview Deploy now completed with “Deployment task has completed / Done”. Production card remains automatic main/PR21, unchanged; waitlist target unchanged. PR22 remains draft/unmerged.
+
+The pure backwards-compatible validator was installed in faraios-new through the migration tool, recorded version **20261114071849** (`business_website_seo`). The repository migration filename now matches that version. Verification against existing documents without saving them: invalid_existing0, accepts_seo true, rejects_invalid true. Function ACL, SECURITY INVOKER and empty search_path are unchanged. No tables, policies, privileges, business snapshots or activation gates changed.
+
+**PASS25 read-only hosted HTTP checks**, recorded in `docs/evidence/business-seo-hosted-checks.json`. Reproduce with `python -u tests/seo-hosted.py` (GET only):
+
+- Home and all four standalone pages200; distinct titles, useful descriptions, exact canonicals/og:url, noindex in meta and HTTP headers; Organization/page/breadcrumb graphs use the published demo business only. No fabricated ratings or address. Services/How it works/Areas do not load select.js.
+- Six normalization/pollution URLs301 to their correct business/page canonical; trailing slash, uppercase, direct index and query pollution cannot select another business.
+- Unknown page and business404, noindex and no misleading canonical/schema.
+- Booking root and all five step query URLs200/noindex, with no content canonical, social URL or business schema.
+- Preview sitemap200 and empty, no business or live enumeration. Static preview landing/CSS have noindex headers. Private Profile303 and Sign in200 are noindex. Unchanged production sitemap still contains only the platform homepage; **the candidate's dynamic live-mode implementation remains locally verified and undeployed to production**.
+
+**PASS hosted browser mobile checks at390×844:** this turn's viewport override took effect (innerWidth390). Home and all four standalone pages fit without horizontal overflow; active navigation, distinct content and single H1 confirmed. Services and process pages now have H2 child headings. Contact Book now opens root service selection with all five progress stages (Service, Details, Schedule, Contact, Review). No form submitted, no existing profile saved, no publication or live intake activated. Temporary viewport was reset and the tested homepage was left open for review. Screenshot `docs/evidence/business-seo-hosted-mobile.png` is the actual hosted mobile homepage, not a local fixture.
+
+**PASS record preservation:** all15 public-table counts **and full-row fingerprints** are identical before/after migration and hosted testing. Evidence `docs/evidence/business-seo-preservation.json`. Requests5, assignments7, bookings13, customers2, enquiries9, invoice events22, invoice payments9, invoices5, profiles4, public pages1, quotes7, catalogues3, staff5, businesses3, waitlist subscribers2. Public snapshots remain preview1/live0. All test history retained. Security advisor unchanged (13 existing deny-all private-table INFO findings, existing leaked-password protection WARN; remediation https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
+
+Remaining limitations: custom SEO/image edit-save-publish behavior and second-owner denial were tested with disposable local identities; no hosted edits were performed under the record-preservation constraint. Live-mode dynamic sitemap and standalone website activation are not production-released. Lab accessibility/performance evidence remains separate from field Core Web Vitals, physical-device/screen-reader testing and social crawler behavior. No indexing/ranking/rich-result guarantee. Decision: **PASS preview SEO implementation and hosted verification. Production merge/deployment/publication remains outside scope.**
