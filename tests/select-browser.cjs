@@ -1,0 +1,25 @@
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const fs=require('fs'),assert=require('assert'),path=require('path');
+const root=process.env.SELECT_ROOT || path.resolve(__dirname,'..');
+const evidence=process.env.EVIDENCE_DIR || require('os').tmpdir();
+(async()=>{
+ const browser=await chromium.launch({executablePath:process.env.BROWSER_BIN || undefined,headless:true,args:['--no-sandbox']});
+ const page=await browser.newPage({viewport:{width:390,height:844}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const html=fs.readFileSync(path.join(root,'ui','select-demo.html'),'utf8').replace(/<link[^>]*>/g,'').replace(/<script[^>]*><\/script>/g,'');
+ await page.setContent(html);await page.addStyleTag({content:'*{box-sizing:border-box}body{font:15px system-ui;margin:20px}main{max-width:520px;margin:auto}label{display:block;margin:18px 0 8px}button{font:inherit}h1{font-size:24px}'});await page.addStyleTag({path:path.join(root,'ui','select.css')});await page.addScriptTag({path:path.join(root,'ui','select.js')});
+ const control=page.getByRole('combobox',{name:'Service area',exact:true});
+ assert.equal(await page.getByRole('combobox').count(),2);assert.equal(await page.getByRole('combobox',{name:'Disabled control',exact:true}).isEnabled(),false);
+ await page.getByRole('button',{name:'Check required field',exact:true}).click();assert.equal(await control.getAttribute('aria-invalid'),'true');assert(await page.locator('.f-select__error').first().isVisible());
+ await control.press('ArrowDown');assert.equal(await control.getAttribute('aria-expanded'),'true');await control.press('ArrowDown');await control.press('Enter');assert.equal(await page.locator('#demo-area').inputValue(),'Newlands');assert.equal(await control.getAttribute('aria-invalid'),null);
+ await control.press('r');await control.press('Enter');assert.equal(await page.locator('#demo-area').inputValue(),'Rondebosch');
+ await control.click();await control.press('Home');await control.press('Enter');assert.equal(await page.locator('#demo-area').inputValue(),'Claremont');
+ await control.click();await control.press('End');await control.press('Enter');assert.equal(await page.locator('#demo-area').inputValue(),'Southern Suburbs');
+ await control.click();await control.press('Escape');assert.equal(await control.getAttribute('aria-expanded'),'false');
+ await control.click();await page.getByRole('heading',{name:'Dropdown reference'}).click();assert.equal(await control.getAttribute('aria-expanded'),'false');
+ await control.click();await page.getByRole('option',{name:'Newlands',exact:true}).click();assert.equal(await page.locator('#demo-area').inputValue(),'Newlands');assert.equal(await page.evaluate(()=>new FormData(document.querySelector('form')).get('service_area')),'Newlands');
+ await control.click();await control.press('Tab');assert.equal(await control.getAttribute('aria-expanded'),'false');
+ await page.getByRole('button',{name:'Reset example',exact:true}).click();assert.equal(await page.locator('#demo-area').inputValue(),'');
+ await control.click();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.screenshot({path:path.join(evidence,'custom-select-mobile.png'),fullPage:true});await control.press('Escape');
+ await page.setViewportSize({width:1280,height:900});await control.click();await page.screenshot({path:path.join(evidence,'custom-select-desktop.png'),fullPage:true});
+ assert.deepEqual(errors,[]);console.log('PASS required validation, disabled control/options, arrows/Enter, typeahead, Home/End, Escape, outside click, Tab, pointer selection, original FormData value, reset, mobile overflow and no page errors');await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});
