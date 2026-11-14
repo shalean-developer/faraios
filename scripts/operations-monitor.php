@@ -2,14 +2,15 @@
 declare(strict_types=1);
 if(PHP_SAPI!=='cli'){http_response_code(403);exit;}
 require dirname(__DIR__).'/account/observability.php';
-// No dispatch, queue updates, raw log output, recipient lookup or credential output.
+// No customer dispatch, queue updates, raw log output, recipient lookup or credential output.
 try{
- $o=getopt('',['config-dir:','canary','status-only']);$root=realpath((string)($o['config-dir']??''));$web=realpath(dirname(__DIR__));
+ $o=getopt('',['config-dir:','canary','status-only','alerts','test-alert','mail-config:']);$root=realpath((string)($o['config-dir']??''));$web=realpath(dirname(__DIR__));
  if(!$root||$root===$web||str_starts_with($root,$web.'/')||!is_file($root.'/config.php'))throw new RuntimeException();
  $_SERVER['SCRIPT_NAME']='/_accounts-preview/account/index.php';$_SERVER['REQUEST_URI']='/_accounts-preview/account/index.php?page=signin';
  $c=require $root.'/config.php';if(!is_array($c)||!($c['enabled']??false)||!ops_preview($c))throw new RuntimeException();
  if(($c['environment']??'')!=='test'&&(($c['base_url']??'')!=='https://www.faraios.com/_accounts-preview'||($c['supabase_url']??'')!=='https://rxelmugnucfajrqmphhe.supabase.co'))throw new RuntimeException();
  $c['_ops_root']=$root;$dir=ops_private_dir($c);if(!$dir)throw new RuntimeException();
+ if(isset($o['test-alert'])){require dirname(__DIR__).'/notifications/ops-alerts.php';$result=ops_alert_dispatch($dir,[],ops_alert_transport((string)($o['mail-config']??'/var/www/vhosts/shalean.com/private/faraios-enquiry-mail/config.php')),true);echo json_encode($result)."\n";exit(in_array($result['state'],['accepted','already_verified'],true)?0:2);}
  if(isset($o['canary'])){if(!ops_event($c,'monitor_canary','other',200))throw new RuntimeException();echo '{"state":"private_canary_stored","environment":"preview"}'."\n";exit(0);}
  $page=false;$auth=false;
  if(!isset($o['status-only'])){
@@ -33,5 +34,6 @@ try{
  $report=['schema'=>'faraios.ops.monitor.v1','time'=>gmdate('c'),'environment'=>'preview','state'=>$state,'page_available'=>$page,'auth_available'=>$auth,'application_heartbeat_recent'=>$recent,'counts'=>$counts,'partial_logs'=>$partial,'alert_sent'=>false];
  $lock=ops_lock($dir);if(!$lock)throw new RuntimeException();
  try{if(is_link($dir.'/monitor-state.json')||file_put_contents($dir.'/monitor-state.json',json_encode($report))===false)throw new RuntimeException();chmod($dir.'/monitor-state.json',0600);}finally{flock($lock,LOCK_UN);fclose($lock);}
+ if(isset($o['alerts'])){require dirname(__DIR__).'/notifications/ops-alerts.php';$result=ops_alert_dispatch($dir,$report,ops_alert_transport((string)($o['mail-config']??'/var/www/vhosts/shalean.com/private/faraios-enquiry-mail/config.php')));$report['alert_sent']=$result['alert_sent'];$report['alert_state']=$result['state'];}
  echo json_encode($report)."\n";exit($state==='healthy'?0:($state==='attention'?1:2));
 }catch(Throwable $e){fwrite(STDERR,"Private preview monitoring unavailable; check configuration and filesystem access.\n");exit(2);}

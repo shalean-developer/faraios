@@ -39,10 +39,37 @@ and the existing complete application regression gate. Hosted sink/mode/probe an
 scheduler results must be recorded separately; synthetic tests do not establish
 hosted evidence.
 
-Proposed alert payload is a fixed state summary only: environment, time, page/Auth
-availability, heartbeat freshness and event counts, with no customer data. No
-recipient or operator is assumed; real test sending and alert scheduling require
-the owner to specify the destination. No custom alert has been sent.
+The owner selected the recommended simplest setup: `alerts@faraios.com` is an
+alias on the existing `hello@faraios.com` mailbox, preserving `support@faraios.com`.
+No additional mailbox, password or paid plan is needed. Preview operator mail
+uses the existing FaraiOS sender `notifications@notify.faraios.com`; it does not
+consume enquiry jobs or change customer mail gates. The connected Resend plugin
+belongs to another domain, so it is not used for FaraiOS sending.
+
+Run the monitor with `--alerts` to send one fixed attention notification, reminders
+at most hourly while unhealthy, and a recovery after an accepted failure alert.
+Healthy initial runs are quiet. `--test-alert` sends one verification message;
+repeating it after acceptance returns `already_verified`. Only the fixed preview
+environment, generic state and sign-in link appear in mail; no business records,
+raw errors, tokens or customer information. Provider acceptance is not delivery.
+
+Transport loads only the sender and Resend key from the existing external private
+enquiry-mail config, never prints credentials, and posts over verified TLS with a
+12-second timeout. Optional `--mail-config` must resolve outside the website.
+Private `alert.lock` and atomically replaced `alert-state.json` use mode 0600.
+The lock serializes cron/manual overlap without blocking application event writes.
+A persisted state/key pair survives crashes and ambiguous sends. Retries use the
+same message and provider key with 5/10/20/40/60-minute backoff; hard rejections
+or pending sends older than 23 hours require operator review before another send,
+avoiding automatic duplicates after the provider idempotency window expires.
+This monitor runs on the same host: a complete host outage needs an independent
+external monitor and is not covered by this delivery.
+
+Offline regression adds three methods covering privacy, fixed recipient/sender,
+unknown/stale evidence, failure/reminder/recovery, concurrent deduplication,
+timeout retries, hard rejection, retry expiry, filesystem modes, symlink refusal
+and CLI live-configuration denial. Hosted sending/scheduling evidence follows
+only after deployment and a real delivery check.
 
 Hosted evidence, 14 November 2026: initial runtime 8f771c262b2b843158b782825351d147369878d0
 passed manual private canary and actual page/Auth monitor via Plesk PHP 8.4.27.
