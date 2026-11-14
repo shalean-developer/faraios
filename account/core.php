@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/observability.php';
 class AccountSessionExpired extends RuntimeException {}
 function cfg(): array {
  static $c; if ($c !== null) return $c;
@@ -10,7 +11,7 @@ function cfg(): array {
  if (!$test && (($c['supabase_url']??'')!=='https://rxelmugnucfajrqmphhe.supabase.co' || !str_starts_with($c['base_url']??'', 'https://www.faraios.com'))) throw new RuntimeException('Account configuration is unavailable.');
  if (!$test && !str_starts_with($_SERVER['SCRIPT_NAME']??'', (parse_url($c['base_url'],PHP_URL_PATH)?:'').'/account/')) throw new RuntimeException('Account configuration is unavailable.');
  if (empty($c['publishable_key'])) throw new RuntimeException('Account configuration is unavailable.');
- return $c;
+ ops_install($c);return $c;
 }
 function esc(string $s): string {return htmlspecialchars($s,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
 function start(): void {
@@ -32,6 +33,8 @@ function api(string $path,array $body=[],string $method='POST',?string $token=nu
  $raw=@file_get_contents($c['supabase_url'].$path,false,stream_context_create($opts));
  preg_match('/\s(\d{3})\s/',$http_response_header[0]??'', $m); $status=(int)($m[1]??0);
  $data=json_decode($raw?:'{}',true); if(!is_array($data)) $data=[];
+ if($status===0||$status>=500)ops_event($c,'upstream_failure',ops_operation($path),$status);
+ elseif($status>=400&&preg_match('/^(?:42(?!501)|XX|PGRST2)/',(string)($data['code']??'')))ops_event($c,'workflow_failure',ops_operation($path),$status);
  if ($status<200||$status>=300) {
   if(str_starts_with($path,'/rest/v1/rpc/business_invoice_')){$safe=['Void the original invoice before replacing it','Open the active invoice for this booking','Check correction reason', 'Invoices unavailable', 'Check invoice details', 'Invoice unavailable', 'Invoice changed. Reload before saving.', 'Invoice changed or unavailable', 'Issued invoices cannot be edited', 'Choose a valid due date', 'Booking unavailable or cancelled', 'Business currency changed. Reload.', 'Invoice currency cannot be changed', 'Add valid items with a positive total', 'Invoice already issued or void', 'Update the due date before issuing', 'Only issued invoices can be voided', 'Reverse recorded payments before voiding. A reversal does not refund money.', 'Enter a correction reason from 5 to 500 characters', 'Payments unavailable', 'Payment submission changed. Reload before saving.', 'Payments require an issued invoice', 'Check amount, payment date and reference', 'Use whole currency amounts', 'Payment already reversed or correction invalid', 'Correction reason only applies to reversals', 'This payment is already recorded', 'Payment exceeds the outstanding balance'];if(in_array($data['message']??'', $safe,true))throw new RuntimeException($data['message']);}
   if(str_starts_with($path,'/rest/v1/rpc/business_staff_')){$safe=['Staff unavailable.','Check staff details.','Staff changed or unavailable. Reload before saving.','Assignments changed or unavailable. Reload before saving.','Choose up to 100 staff members.','Choose valid staff members.','Choose active staff from this business. Existing inactive assignments may be retained.'];if(in_array($data['message']??'', $safe,true))throw new RuntimeException($data['message']);}
