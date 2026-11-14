@@ -69,6 +69,8 @@ function api(string $path,array $body=[],string $method='POST',?string $token=nu
  }
  return $data;
 }
+// Browsers submit textarea line breaks as CRLF; character limits use canonical LF.
+function form_multiline(string $value): string {return str_replace(["\r\n","\r"],"\n",$value);}
 function csrf(int $maxBytes=8192): void {
  $c=cfg();$origin=parse_url($c['base_url'],PHP_URL_SCHEME).'://'.parse_url($c['base_url'],PHP_URL_HOST);$port=parse_url($c['base_url'],PHP_URL_PORT);if($port)$origin.=':'.$port;
  if (!hash_equals($_SESSION['csrf'],(string)($_POST['csrf']??'')) || (isset($_SERVER['HTTP_ORIGIN']) && $_SERVER['HTTP_ORIGIN']!==$origin)) throw new RuntimeException('This form has expired. Reload the page and try again.');

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 if(realpath($_SERVER['SCRIPT_FILENAME']??'')===__FILE__){http_response_code(403);exit;}
 function enquiry_workflow_fields(): array {
- $notes=$_POST['private_notes']??'';$due=$_POST['follow_up_on']??'';
+ $notes=$_POST['private_notes']??'';$due=$_POST['follow_up_on']??'';if(is_string($notes))$notes=form_multiline($notes);
  if(!is_string($notes)||!is_string($due)||!preg_match('//u',$notes)||mb_len($notes)>2000||preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/',$notes))throw new RuntimeException('Use up to 2000 characters for your private notes.');
  if($due!==''&&(!preg_match('/\A20[0-9]{2}-[0-9]{2}-[0-9]{2}\z/',$due)||!($d=DateTimeImmutable::createFromFormat('!Y-m-d',$due))||$d->format('Y-m-d')!==$due))throw new RuntimeException('Choose a valid follow-up date from 2000 to 2099.');
  return ['p_notes'=>$notes,'p_follow_up'=>$due?:null];

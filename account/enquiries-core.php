@@ -15,7 +15,7 @@ function enquiry_ticket(string $slug): array {
  return $_SESSION['forms'][$slug];
 }
 function enquiry_text(string $key,int $min,int $max): string {
- $v=$_POST[$key]??'';if(!is_string($v))throw new RuntimeException('Check your details.');$v=trim($v);
+ $v=$_POST[$key]??'';if(!is_string($v))throw new RuntimeException('Check your details.');$v=trim($key==='requirements'?form_multiline($v):$v);
  if(!preg_match('//u',$v)||mb_len($v)<$min||mb_len($v)>$max||preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/',$v))throw new RuntimeException('Check your '.str_replace('_',' ',$key).'.');return $v;
 }
 function enquiry_ip_limit(): void {

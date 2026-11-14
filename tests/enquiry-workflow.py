@@ -6,11 +6,13 @@ class Workflow(Profiles):
  def test_workflow(self):
   a,b=self.ids;bid=self.bids[0];eid=str(uuid.uuid4())
   self.sql("update enquiry_private.ingress set enabled=true where environment='live';update quote_private.ingress set enabled=true where environment='live'")
-  prefix='Verified customer requirements. ';req=prefix+('é'*(4000-len(prefix)))
+  prefix='Verified customer requirements.\n';req=(prefix*129)[:3999]+'.'
   self.scope(a,"select public.business_enquiry_create("+','.join(map(lit,[bid,'live',eid,'Fictional Enquiry','a@example.test','',req]))+")")
   self.post('/account/index.php?page=signin',email='a@example.test',password='test-long-password')
   path='/account/enquiries.php?id='+eid
   self.assertIn('Private notes',self.get(path)[1])
+  # A browser POST normalizes textarea newlines to CRLF. Manual intake must keep its 4000-character promise.
+  self.assertIn('Enquiry created',self.post('/account/enquiry-new.php',id=str(uuid.uuid4()),name='Multiline test',email='multiline@example.test',phone='',requirements=req.replace('\n','\r\n')))
   fields=dict(id=eid,version=1,status='Contacted',private_notes='PRIVATE <script>internal</script>',follow_up_on='2026-11-14')
   self.assertIn('Enquiry saved',self.post(path,**fields))
   html=self.get(path)[1];self.assertIn('PRIVATE &lt;script&gt;',html);self.assertNotIn('PRIVATE <script>',html)
@@ -21,7 +23,7 @@ class Workflow(Profiles):
   dashboard=json.loads(self.scope(a,f"select public.business_dashboard('{bid}','live',null)"));self.assertEqual(dashboard['followups_due'],1)
   quote='/account/quotes.php?new=1&enquiry='+eid
   self.assertIn(req,self.get(quote)[1]);self.assertNotIn('PRIVATE',self.get(quote)[1])
-  data=dict(action='save',version=0,enquiry=eid,name='Fictional Enquiry',email='a@example.test',phone='',notes=req,expires_on='2026-11-28',item_name_0='Service',quantity_0='1',price_0='500')
+  data=dict(action='save',version=0,enquiry=eid,name='Fictional Enquiry',email='a@example.test',phone='',notes=req.replace('\n','\r\n'),expires_on='2026-11-28',item_name_0='Service',quantity_0='1',price_0='500')
   saved=self.post(quote,**data);self.assertTrue('Draft saved' in saved,re.findall(r'<p class="alert"[^>]*>(.*?)</p>',saved))
   q=json.loads(self.scope(a,f"select to_jsonb(q) from public.business_quotes q where enquiry_id='{eid}'"));qid=q['id']
   self.assertEqual(q['document']['notes'],req);self.assertEqual(len(req),4000)
