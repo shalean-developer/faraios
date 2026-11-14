@@ -1,0 +1,29 @@
+[
+  {
+    "width": 1280,
+    "login": true,
+    "avatar": true,
+    "logout": true,
+    "businessIsolation": true,
+    "returnNavigation": true,
+    "axeViolations": 0
+  },
+  {
+    "width": 390,
+    "login": true,
+    "avatar": true,
+    "logout": true,
+    "businessIsolation": true,
+    "returnNavigation": true,
+    "axeViolations": 0
+  },
+  {
+    "width": 320,
+    "login": true,
+    "avatar": true,
+    "logout": true,
+    "businessIsolation": true,
+    "returnNavigation": true,
+    "axeViolations": 0
+  }
+]

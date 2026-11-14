@@ -53,3 +53,9 @@ html{scroll-padding-top:150px}.homepage-page{background:#fff;color:#193d38}.home
 .home-contact :is(input,textarea,select){font-size:16px}.home-contact .enquiry-form h2{font-size:24px;line-height:1.25}
 .font-serif :is(.home-hero h1,.home-page-intro h1,.home-section>h2,.home-section-heading h2){font-family:Georgia,serif;font-weight:400}
 @media(max-width:650px){.home-hero h1,.home-page-intro h1{font-size:24px;line-height:1.2;letter-spacing:-.5px}.home-section h2{font-size:32px}.home-intro{font-size:16px;line-height:26px}.home-header .home-button{font-size:14px;line-height:20px;padding:10px 12px;gap:8px}.home-header nav{gap:18px}.home-header nav a,.booking-auth-button{font-size:14px}.home-service-card h3,.business-standalone .home-service-card h2{font-size:20px}.home-how h3,.business-standalone .home-how h2{font-size:20px}.home-contact .enquiry-form h2{font-size:24px}.home-header-actions{gap:8px}.home-header .home-icon{width:16px;height:16px}}
+
+/* Bounded owner sizing; intrinsic dimensions preserve image proportions. */
+.home-brand.logo-size-32{--logo-height:32px;--logo-width:100px}.home-brand.logo-size-48{--logo-height:48px;--logo-width:150px}.home-brand.logo-size-64{--logo-height:64px;--logo-width:200px}.home-brand.logo-size-80{--logo-height:80px;--logo-width:250px}
+.home-brand img{width:auto;height:auto;max-width:min(var(--logo-width,150px),24vw);max-height:var(--logo-height,48px)}
+@media(max-width:650px){.home-brand img{max-width:min(calc(var(--logo-width,150px) * .7),30vw);max-height:min(var(--logo-height,48px),48px)}}
+.customer-main{max-width:480px;margin:32px auto;padding:24px}.customer-main input{width:100%;box-sizing:border-box}.customer-main form{display:grid;gap:12px}.customer-main label{margin-top:12px}

@@ -13,7 +13,7 @@ for suffix in ['', '/services','/how-it-works','/areas','/contact']:
  assert status==200 and 'noindex' in h['X-Robots-Tag'] and 'no-store' in h['Cache-Control']
  assert head.canonical==[url] and head.meta['og:url']==url
  assert head.schemas[0]['@graph'][0]['name']=='Bright & Co Cleaning'
- assert 'template-type-2' in html and 'Footer navigation' in html
+ assert 'header-branding-1' in html and 'Footer navigation' in html
  report.append({'url':url,'status':status,'noindex':True,'noStore':True,'canonical':head.canonical[0]})
 for name in ['business/homepage.css','business/booking.js']:
  status,h,raw=get(preview+'/'+name);expected=(ROOT/name).read_bytes();assert status==200 and raw==expected

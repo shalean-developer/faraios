@@ -2,7 +2,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright'),fs=require
 (async()=>{const root=path.resolve(__dirname,'..'),browser=await chromium.launch({executablePath:process.env.BROWSER_BIN,headless:true,args:['--no-sandbox']});
 for(const width of [1280,390,320])for(const custom of [false,true]){
  const p=await browser.newPage({viewport:{width,height:844}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
- await p.route('https://example.test/**',r=>{const u=new URL(r.request().url());if(u.pathname.endsWith('header-session.php'))return r.fulfill({json:custom?{authenticated:true,initials:'FC'}:{authenticated:false}});
+ await p.route('https://example.test/**',r=>{const u=new URL(r.request().url());if(u.pathname.endsWith('customer.php')&&u.searchParams.get('mode')==='header')return r.fulfill({json:custom?{authenticated:true,initials:'FC'}:{authenticated:false}});
  if(/\.(css|js)$/.test(u.pathname))return r.fulfill({contentType:u.pathname.endsWith('.css')?'text/css':'application/javascript',body:fs.readFileSync(path.join(root,u.pathname),'utf8')});
  const key=u.pathname.split('/')[3]||'';let html=cp.execFileSync(process.env.PHP_BIN||'php',[path.join(root,'tests/homepage-fixture.php'),custom?'custom':'legacy',key],{encoding:'utf8'});html=['business/profile.css','business/homepage.css','ui/select.css'].map(f=>'<link rel="stylesheet" href="/'+f+'">').join('')+html+['ui/booking-header.js','ui/select.js'].map(f=>'<script src="/'+f+'"></script>').join('');return r.fulfill({contentType:'text/html',body:html});});
  await p.goto('https://example.test/b/example/services');

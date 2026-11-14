@@ -21,7 +21,7 @@ function homepage_image_response(?array $image): never {
  try{$raw=base64_decode($image['data'],true);$valid=profile_logo($raw?:'');header('Content-Type: '.$valid['mime']);header('X-Content-Type-Options: nosniff');echo $raw;}catch(Throwable $e){http_response_code(404);}exit;
 }
 function business_presentation_form_values(array $old=[]): array {
- foreach(['accent','font','whatsapp','street','city','region','postal','country'] as $key)if(is_string($_POST['presentation'][$key]??null))$old[$key]=substr($_POST['presentation'][$key],0,800);return $old;
+ foreach(['accent','font','whatsapp','street','city','region','postal','country','logo_size','show_name'] as $key)if(is_string($_POST['presentation'][$key]??null))$old[$key]=substr($_POST['presentation'][$key],0,800);return $old;
 }
 function business_presentation_values(array $old=[]): array {
  $out=[];foreach(['accent'=>12,'font'=>8,'whatsapp'=>16,'street'=>200,'city'=>100,'region'=>100,'postal'=>20,'country'=>2] as $key=>$limit){
@@ -29,6 +29,7 @@ function business_presentation_values(array $old=[]): array {
  }
  if(!in_array($out['accent'],['','forest','navy','plum'],true)||!in_array($out['font'],['','serif','sans'],true))throw new RuntimeException('Choose a website style.');
  if($out['whatsapp']!==''&&!preg_match('/\A[1-9][0-9]{6,14}\z/',$out['whatsapp']))throw new RuntimeException('Use a WhatsApp country code and number, digits only.');
+ foreach(['logo_size'=>['32','48','64','80'],'show_name'=>['yes','no']] as $key=>$choices){$v=$_POST['presentation'][$key]??($old[$key]??($key==='logo_size'?'48':'yes'));if(!is_string($v)||!in_array($v,$choices,true))throw new RuntimeException('Choose valid header branding.');$out[$key]=$v;}
  if($out['country']!==''&&!preg_match('/\A[A-Z]{2}\z/',$out['country']))throw new RuntimeException('Use a two-letter uppercase country code.');return $out;
 }
 function business_booking_available(string $slug): bool {
@@ -47,12 +48,15 @@ function homepage_icon(string $name): string {
  $paths=['arrow'=>'M5 12h14m-6-6 6 6-6 6','up'=>'M12 19V5m-6 6 6-6 6 6','external'=>'M14 3h7v7m0-7L10 14M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5','calendar'=>'M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2','message'=>'M21 11a8 8 0 0 1-8 8H7l-5 3 2-6a8 8 0 0 1-1-4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6'];
  return '<svg class="home-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="'.($paths[$name]??$paths['arrow']).'"/></svg>';
 }
+function homepage_brand(array $p,string $url,string $logo): void { ?>
+ <a class="home-brand logo-size-<?=esc(in_array($p['presentation']['logo_size']??'48',['32','48','64','80'],true)?($p['presentation']['logo_size']??'48'):'48')?>" aria-label="<?=esc($p['name'])?>" href="<?=esc($url)?>"><?php if(!empty($p['logo'])):?><img src="<?=esc($logo)?>" alt="" width="<?=($brandDims=@getimagesizefromstring(base64_decode($p['logo']['data'],true)?:''))?$brandDims[0]:160?>" height="<?=$brandDims?$brandDims[1]:48?>"><?php else:?><span class="home-mark" aria-hidden="true"><?=esc(homepage_initial($p['name']))?></span><?php endif;?><span<?=!empty($p['logo'])&&($p['presentation']['show_name']??'yes')==='no'?' class="home-sr"':''?>><?=esc($p['name'])?></span></a>
+<?php }
 function homepage_header(array $p,string $url,string $base,string $logo,string $page='',bool $draft=false,bool $booking=false): void { ?>
 <a class="home-skip" href="#homepage">Skip to content</a>
 <header class="home-header booking-header<?=esc(business_style_classes($p))?>">
- <a class="home-brand" href="<?=esc($draft?'profile.php?view=preview':$url)?>"><?php if(!empty($p['logo'])):?><img src="<?=esc($logo)?>" alt="" width="<?=($brandDims=@getimagesizefromstring(base64_decode($p['logo']['data'],true)?:''))?$brandDims[0]:160?>" height="<?=$brandDims?$brandDims[1]:48?>"><?php else:?><span class="home-mark" aria-hidden="true"><?=esc(homepage_initial($p['name']))?></span><?php endif;?><span><?=esc($p['name'])?></span></a>
+ <?php homepage_brand($p,$draft?'profile.php?view=preview':$url,$logo);?>
  <nav aria-label="Business navigation"><?php foreach(business_page_defaults() as $key=>$content):?><a href="<?=esc($draft?'profile.php?view=preview&section='.$key:$url.'/'.$key)?>" <?=$page===$key?'aria-current="page"':''?>><?=esc($content['label'])?></a><?php endforeach;?></nav>
- <div class="home-header-actions"><div class="booking-identity" data-header-session="<?=esc($base.'/account/header-session.php')?>" data-account-url="<?=esc($base.'/account/index.php')?>"><a class="booking-auth-button" href="<?=esc($base.'/account/index.php?page=signin')?>">Sign in</a></div><a class="home-button" href="<?=esc(homepage_action($url,$booking))?>"><?= $booking?'Book now':'Enquire' ?><?=homepage_icon($booking?'calendar':'message')?></a></div>
+ <div class="home-header-actions"><div class="booking-identity" data-header-session="<?=esc($base.'/account/customer.php?slug='.rawurlencode(basename($url)).'&mode=header')?>" data-account-url="<?=esc($base.'/account/customer.php?slug='.rawurlencode(basename($url)).'&return='.rawurlencode($page))?>"><a class="booking-auth-button" href="<?=esc($base.'/account/customer.php?slug='.rawurlencode(basename($url)).'&return='.rawurlencode($page))?>">Sign in</a></div><a class="home-button" href="<?=esc(homepage_action($url,$booking))?>"><?= $booking?'Book now':'Enquire' ?><?=homepage_icon($booking?'calendar':'message')?></a></div>
 </header>
 <?php }
 function homepage_render(array $p,array $catalogue,string $zone,string $url,string $image,bool $enquire=true,string $page='',bool $booking=false): void {

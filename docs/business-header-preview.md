@@ -1,0 +1,35 @@
+# Business header branding and customer login — preview
+
+Owner request 14 November 2026, draft PR25 / feature/business-template-audit-20261114. No production merge/deployment or Shalean republish authorized. Existing business records, content, test history and intake gates must remain unchanged.
+
+## Implementation
+
+Owner Profile → Website style & public address offers four proportional logo sizes (32/48/64/80px height bounds, corresponding width bounds) and Show/Hide company name. Desktop and mobile caps preserve intrinsic aspect ratio. Hidden names remain accessible. Without a logo, the visible business name always remains. Defaults retain Medium/Show. Controls follow existing draft/save/explicit publish/version and ownership checks; no automatic edits/publication. Business identity also replaces the FaraiOS home link in the separate booking header; five steps and calculation/submission logic remain unchanged.
+
+Optional string fields presentation.logo_size and presentation.show_name are validated in PHP and native Postgres. Existing documents remain valid. The additive validator replacement is SECURITY INVOKER, immutable, empty search_path; existing ACL remains. No table, policy, record or intake gate changed. CLI-created migration 20261114092535_business_header_branding.sql prepared and tested locally; hosted migration name business_header_branding applied successfully.
+
+The audited old business Sign in linked to /account/index.php?page=signin and /account/header-session.php, which represented FaraiOS owner administration. Public home/standalone/booking headers now use /account/customer.php?slug=…. Every request resolves the published environment-scoped business first; draft/unpublished/unknown businesses fail closed. No user-supplied URL is used as a return destination. Allowed subpages and booking steps are enumerated. Booking links capture the current step on click; the existing same-tab booking draft restores entered values.
+
+Customer sessions have a separate cookie name for each base URL/environment and business slug. Cookies remain Secure (hosted), HttpOnly, SameSite=Lax, scoped to /account/. Session fixation protection, server-side tokens, verified /auth/v1/user, refresh, 30-minute idle expiry, CSRF/origin checking, no-store and noindex retained. Only a minimal initials/authenticated header response is exposed. Customer logout uses Supabase scope=local and clears only this customer browser session. Owner login routes and owner RLS are unchanged. Customer pages never load business() or create an owner business, customer record, membership, booking or enquiry.
+
+## Capabilities and limitations
+
+Existing verified email/password identities can sign in in the business context. Supabase identity accounts are still shared within the project: this is session/UI separation, not a separate identity provider or a customer-membership authorization system. An owner identity may independently authenticate as a customer without exposing its owner browser session. No business membership is inferred from an email or editable metadata.
+
+Customer signup, business-branded verification/recovery email/callbacks, customer membership/invitations, record linking, private booking history, profile editing, customer-specific RLS/API and payments are not implemented. The page explicitly states registration/recovery and history/profile limitations. No private customer data is exposed. Existing public quote/invoice capability links remain unchanged. Future customer records need explicit business+user authorization before access. There is no production-ready claim for a full customer portal.
+
+## Local evidence
+
+PASS tests/business-header.py: native PG17 validator acceptance/rejection; two published synthetic businesses; real PHP sign-in, header, logout, CSRF, unknown business, environment and owner-cookie isolation; unchanged profile fingerprint during customer auth; owner draft/save/reload/explicit publish. Auth and PostgREST transports are simulated locally; no emails/providers/hosted writes used in these journeys.
+
+PASS tests/customer-login-browser.cjs real PHP browser journeys at1280/390/320: login → correct business → avatar → branded account → different business stays signed out → logout → Contact. Six axe scans zero violations. Screenshot docs/evidence/customer-login-local.png is synthetic fixture evidence.
+
+PASS tests/header-branding-browser.cjs 24 combinations (four sizes × logo/no-logo ×1280/390/320), proportional wide logo, accessible name, hidden-name/no-logo fallback, no overflow and zero axe violations. Evidence header-branding-browser.json. Hosted business profiles were not edited to exercise controls.
+
+PASS existing homepage5, SEO5, account5 and request lifecycle1 native PG/PHP regressions. New customer session implementation reuses the already tested owner API transport/refresh helpers without reading its session cookie.
+
+Hosted provider-backed successful customer sign-in, actual email delivery, physical-device and screen-reader checks require separate evidence; local simulated Auth is not claimed as a real Supabase password test. No new hosted user or business record is created for testing.
+
+## Release boundary
+
+Accounts-preview deployment/read-only verification pending. Production NO-GO pending owner review/authorization. Application rollback: previous preview branch head2841630e49d4079e74fc285ffbf70cbc7fd864a1. Keep additive validator support if any future drafts use these fields; never overwrite snapshots/erase records as rollback.
