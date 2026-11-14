@@ -60,7 +60,7 @@ function business_seo_head(?array $p,string $page,string $base,string $slug,bool
 }
 // Only GET/HEAD content URLs normalize. Never redirect POSTs or alter booking state/query strings.
 function business_normalize_url(string $base,string $slug,string $page,array $query,string $uri,string $method,string $authority='',string $scheme=''): ?string {
- if(!in_array($method,['GET','HEAD'],true)||isset($query['booking'])||isset($query['step'])||isset($query['hero'])||isset($query['logo'])||isset($query['social']))return null;
+ if(!in_array($method,['GET','HEAD'],true)||isset($query['booking'])||isset($query['step'])||isset($query['hero'])||isset($query['logo'])||isset($query['social'])||isset($query['service_image']))return null;
  $url=business_page_url($base,$slug,$page);$path=parse_url($uri,PHP_URL_PATH);$canonicalPath=parse_url($url,PHP_URL_PATH);
  $expectedAuthority=parse_url($base,PHP_URL_HOST).(($port=parse_url($base,PHP_URL_PORT))?':'.$port:'');
  if(($authority!==''&&$authority!==$expectedAuthority)||($scheme!==''&&$scheme!==parse_url($base,PHP_URL_SCHEME))||$path!==$canonicalPath||parse_url($uri,PHP_URL_QUERY)!==null)return $url;return null;

@@ -1,0 +1,469 @@
+{
+  "records": {
+    "before": [
+      {
+        "name": "business_booking_requests",
+        "count": 5,
+        "fingerprint": "51af8b290955a8b58cdffdb067805065"
+      },
+      {
+        "name": "business_booking_staff",
+        "count": 7,
+        "fingerprint": "db7dc2eeb0e769da81c3768ef81763a8"
+      },
+      {
+        "name": "business_bookings",
+        "count": 13,
+        "fingerprint": "02a5087e38c002f2d93b0d52be8f8aeb"
+      },
+      {
+        "name": "business_customers",
+        "count": 2,
+        "fingerprint": "f658145e516872f4c1d9284a2d59e514"
+      },
+      {
+        "name": "business_enquiries",
+        "count": 9,
+        "fingerprint": "a9acc9792414d2f2963d748fa5ef2d0a"
+      },
+      {
+        "name": "business_invoice_events",
+        "count": 22,
+        "fingerprint": "0924f7462a8b82f08c8c821980ba38eb"
+      },
+      {
+        "name": "business_invoice_payments",
+        "count": 9,
+        "fingerprint": "37789d4f7c3ae4bf7a7f831a32fe57dd"
+      },
+      {
+        "name": "business_invoices",
+        "count": 5,
+        "fingerprint": "74925701dba50667f000f9cdff5ac737"
+      },
+      {
+        "name": "business_profiles",
+        "count": 4,
+        "fingerprint": "89550590b836b7378cd0fb986d2c3922"
+      },
+      {
+        "name": "business_public_pages",
+        "count": 2,
+        "fingerprint": "12be8c916c97ba49af9a810080663077"
+      },
+      {
+        "name": "business_quotes",
+        "count": 7,
+        "fingerprint": "fae0b987eb255f8f759a65e9457b970e"
+      },
+      {
+        "name": "business_service_catalogues",
+        "count": 4,
+        "fingerprint": "0d392edcbd28a7b86686a554dd26abd1"
+      },
+      {
+        "name": "business_staff",
+        "count": 5,
+        "fingerprint": "9c2ea5a2b5cc12a8996348fe2192f76c"
+      },
+      {
+        "name": "businesses",
+        "count": 3,
+        "fingerprint": "64bf4f9ecbc37308addd2722f4e1162e"
+      },
+      {
+        "name": "waitlist_subscribers",
+        "count": 2,
+        "fingerprint": "8b389c1da8a017d0ac7345a14d78c2ee"
+      }
+    ],
+    "after": [
+      {
+        "name": "business_booking_requests",
+        "count": 5,
+        "fingerprint": "51af8b290955a8b58cdffdb067805065"
+      },
+      {
+        "name": "business_booking_staff",
+        "count": 7,
+        "fingerprint": "db7dc2eeb0e769da81c3768ef81763a8"
+      },
+      {
+        "name": "business_bookings",
+        "count": 13,
+        "fingerprint": "02a5087e38c002f2d93b0d52be8f8aeb"
+      },
+      {
+        "name": "business_customers",
+        "count": 2,
+        "fingerprint": "f658145e516872f4c1d9284a2d59e514"
+      },
+      {
+        "name": "business_enquiries",
+        "count": 9,
+        "fingerprint": "a9acc9792414d2f2963d748fa5ef2d0a"
+      },
+      {
+        "name": "business_invoice_events",
+        "count": 22,
+        "fingerprint": "0924f7462a8b82f08c8c821980ba38eb"
+      },
+      {
+        "name": "business_invoice_payments",
+        "count": 9,
+        "fingerprint": "37789d4f7c3ae4bf7a7f831a32fe57dd"
+      },
+      {
+        "name": "business_invoices",
+        "count": 5,
+        "fingerprint": "74925701dba50667f000f9cdff5ac737"
+      },
+      {
+        "name": "business_profiles",
+        "count": 4,
+        "fingerprint": "89550590b836b7378cd0fb986d2c3922"
+      },
+      {
+        "name": "business_public_pages",
+        "count": 2,
+        "fingerprint": "12be8c916c97ba49af9a810080663077"
+      },
+      {
+        "name": "business_quotes",
+        "count": 7,
+        "fingerprint": "fae0b987eb255f8f759a65e9457b970e"
+      },
+      {
+        "name": "business_service_catalogues",
+        "count": 4,
+        "fingerprint": "0d392edcbd28a7b86686a554dd26abd1"
+      },
+      {
+        "name": "business_staff",
+        "count": 5,
+        "fingerprint": "9c2ea5a2b5cc12a8996348fe2192f76c"
+      },
+      {
+        "name": "businesses",
+        "count": 3,
+        "fingerprint": "64bf4f9ecbc37308addd2722f4e1162e"
+      },
+      {
+        "name": "waitlist_subscribers",
+        "count": 2,
+        "fingerprint": "8b389c1da8a017d0ac7345a14d78c2ee"
+      }
+    ],
+    "equal": true
+  },
+  "advisors": {
+    "before": [
+      {
+        "name": "rls_enabled_no_policy",
+        "title": "RLS Enabled No Policy",
+        "level": "INFO",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects cases where row level security (RLS) has been enabled on a table but no RLS policies have been created.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy",
+        "count": 13,
+        "findings": [
+          {
+            "detail": "Table \\`booking_private.ingress\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ingress",
+              "type": "table",
+              "schema": "booking_private"
+            },
+            "observed_at": "2026-11-14T11:29:42.967Z"
+          },
+          {
+            "detail": "Table \\`customer_private.ingress\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ingress",
+              "type": "table",
+              "schema": "customer_private"
+            },
+            "observed_at": "2026-11-14T11:29:42.967Z"
+          },
+          {
+            "detail": "Table \\`enquiry_private.ingress\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ingress",
+              "type": "table",
+              "schema": "enquiry_private"
+            },
+            "observed_at": "2026-11-14T11:29:42.967Z"
+          },
+          {
+            "detail": "Table \\`enquiry_private.rate_limits\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "rate_limits",
+              "type": "table",
+              "schema": "enquiry_private"
+            },
+            "observed_at": "2026-11-14T11:29:42.967Z"
+          },
+          {
+            "detail": "Table \\`invoice_private.counters\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "counters",
+              "type": "table",
+              "schema": "invoice_private"
+            },
+            "observed_at": "2026-11-14T11:29:42.967Z"
+          },
+          {
+            "detail": "Table \\`invoice_private.ingress\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ingress",
+              "type": "table",
+              "schema": "invoice_private"
+            },
+            "observed_at": "2026-11-14T11:29:42.967Z"
+          },
+          {
+            "detail": "Table \\`public.waitlist_subscribers\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "waitlist_subscribers",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-14T11:29:42.967Z"
+          },
+          {
+            "detail": "Table \\`quote_private.ingress\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ingress",
+              "type": "table",
+              "schema": "quote_private"
+            },
+            "observed_at": "2026-11-14T11:29:42.967Z"
+          },
+          {
+            "detail": "Table \\`request_private.ingress\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ingress",
+              "type": "table",
+              "schema": "request_private"
+            },
+            "observed_at": "2026-11-14T11:29:42.967Z"
+          },
+          {
+            "detail": "Table \\`staff_private.ingress\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ingress",
+              "type": "table",
+              "schema": "staff_private"
+            },
+            "observed_at": "2026-11-14T11:29:42.967Z"
+          },
+          {
+            "detail": "Table \\`waitlist_private.delivery_events\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "delivery_events",
+              "type": "table",
+              "schema": "waitlist_private"
+            },
+            "observed_at": "2026-11-14T11:29:42.967Z"
+          },
+          {
+            "detail": "Table \\`waitlist_private.outbox\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "outbox",
+              "type": "table",
+              "schema": "waitlist_private"
+            },
+            "observed_at": "2026-11-14T11:29:42.967Z"
+          },
+          {
+            "detail": "Table \\`waitlist_private.rate_limits\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "rate_limits",
+              "type": "table",
+              "schema": "waitlist_private"
+            },
+            "observed_at": "2026-11-14T11:29:42.967Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "title": "Leaked Password Protection Disabled",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Leaked password protection is currently disabled.",
+        "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "Supabase Auth prevents the use of compromised passwords by checking against HaveIBeenPwned.org. Enable this feature to enhance security.",
+            "metadata": {
+              "type": "auth",
+              "entity": "Auth"
+            }
+          }
+        ]
+      }
+    ],
+    "after": [
+      {
+        "name": "rls_enabled_no_policy",
+        "title": "RLS Enabled No Policy",
+        "level": "INFO",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects cases where row level security (RLS) has been enabled on a table but no RLS policies have been created.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy",
+        "count": 13,
+        "findings": [
+          {
+            "detail": "Table \\`booking_private.ingress\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ingress",
+              "type": "table",
+              "schema": "booking_private"
+            },
+            "observed_at": "2026-11-14T11:30:32.671Z"
+          },
+          {
+            "detail": "Table \\`customer_private.ingress\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ingress",
+              "type": "table",
+              "schema": "customer_private"
+            },
+            "observed_at": "2026-11-14T11:30:32.671Z"
+          },
+          {
+            "detail": "Table \\`enquiry_private.ingress\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ingress",
+              "type": "table",
+              "schema": "enquiry_private"
+            },
+            "observed_at": "2026-11-14T11:30:32.671Z"
+          },
+          {
+            "detail": "Table \\`enquiry_private.rate_limits\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "rate_limits",
+              "type": "table",
+              "schema": "enquiry_private"
+            },
+            "observed_at": "2026-11-14T11:30:32.671Z"
+          },
+          {
+            "detail": "Table \\`invoice_private.counters\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "counters",
+              "type": "table",
+              "schema": "invoice_private"
+            },
+            "observed_at": "2026-11-14T11:30:32.671Z"
+          },
+          {
+            "detail": "Table \\`invoice_private.ingress\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ingress",
+              "type": "table",
+              "schema": "invoice_private"
+            },
+            "observed_at": "2026-11-14T11:30:32.671Z"
+          },
+          {
+            "detail": "Table \\`public.waitlist_subscribers\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "waitlist_subscribers",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-14T11:30:32.671Z"
+          },
+          {
+            "detail": "Table \\`quote_private.ingress\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ingress",
+              "type": "table",
+              "schema": "quote_private"
+            },
+            "observed_at": "2026-11-14T11:30:32.671Z"
+          },
+          {
+            "detail": "Table \\`request_private.ingress\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ingress",
+              "type": "table",
+              "schema": "request_private"
+            },
+            "observed_at": "2026-11-14T11:30:32.671Z"
+          },
+          {
+            "detail": "Table \\`staff_private.ingress\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ingress",
+              "type": "table",
+              "schema": "staff_private"
+            },
+            "observed_at": "2026-11-14T11:30:32.671Z"
+          },
+          {
+            "detail": "Table \\`waitlist_private.delivery_events\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "delivery_events",
+              "type": "table",
+              "schema": "waitlist_private"
+            },
+            "observed_at": "2026-11-14T11:30:32.671Z"
+          },
+          {
+            "detail": "Table \\`waitlist_private.outbox\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "outbox",
+              "type": "table",
+              "schema": "waitlist_private"
+            },
+            "observed_at": "2026-11-14T11:30:32.671Z"
+          },
+          {
+            "detail": "Table \\`waitlist_private.rate_limits\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "rate_limits",
+              "type": "table",
+              "schema": "waitlist_private"
+            },
+            "observed_at": "2026-11-14T11:30:32.671Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "title": "Leaked Password Protection Disabled",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Leaked password protection is currently disabled.",
+        "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "Supabase Auth prevents the use of compromised passwords by checking against HaveIBeenPwned.org. Enable this feature to enhance security.",
+            "metadata": {
+              "type": "auth",
+              "entity": "Auth"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

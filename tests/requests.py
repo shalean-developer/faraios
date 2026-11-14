@@ -11,6 +11,8 @@ class Requests(Profiles):
   fixed=dict(id='1'*32,name='Fixed clean',description='',duration=90,mode='fixed',amount=87525,visible=True,archived=False)
   quoted=fixed|dict(id='2'*32,name='Quoted clean',mode='quote',amount=None)
   starting=fixed|dict(id='3'*32,name='Starting clean',mode='from',amount=50000)
+  # Presentation references must not alter booking calculations or lifecycle.
+  fixed['photo']={'id':'f'*32,'alt':'Service photograph'}
   cat=dict(currency='ZAR',items=[fixed,quoted,starting])
   self.scope(a,f"select public.business_profile_save('{bid}','live','request-demo',"+lit(json.dumps(profile))+"::jsonb,0)")
   self.scope(a,f"select public.business_services_save('{bid}','live',"+lit(json.dumps(cat))+"::jsonb,0)")

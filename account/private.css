@@ -70,3 +70,5 @@
 @media(max-width:600px){.business-page .page-heading-actions{flex-direction:column;align-items:flex-end;gap:8px}.business-page .editor-heading>.page-create{font-size:12px}.business-page .editor-heading>.page-create{width:auto}}
 
 .option-editor{border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin:10px 0}.option-editor summary{cursor:pointer;font-weight:600}.option-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.service-options{margin:24px 0}.saved-scope{margin:20px 0}@media(max-width:500px){.option-fields{grid-template-columns:1fr}}
+
+.service-photo{display:block;width:100%;max-width:400px;height:auto;aspect-ratio:8/5;object-fit:cover;border-radius:8px;margin:12px 0 20px}
