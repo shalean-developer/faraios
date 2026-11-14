@@ -48,7 +48,7 @@ function api(string $path,array $body=[],string $method='POST',?string $token=nu
    if(in_array($data['message']??'', $safe,true))throw new RuntimeException($data['message']);
   }
   if(str_starts_with($path,'/rest/v1/rpc/business_enquiry_')){
-   $safe=['Too many enquiries. Please try again later.','Enquiry changed or unavailable. Reload before updating.'];
+   $safe=['Too many enquiries. Please try again later.','Enquiry changed or unavailable. Reload before updating.','Enquiries unavailable','Enquiry unavailable','Check enquiry details','Enquiry submission changed','Choose a valid activity page'];
    if(in_array($data['message']??'', $safe,true))throw new RuntimeException($data['message']);
    if($path==='/rest/v1/rpc/business_enquiry_submit')throw new RuntimeException('We could not send your enquiry. Check the selected service or try again shortly.');
   }
