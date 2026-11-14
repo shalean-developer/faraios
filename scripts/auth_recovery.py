@@ -63,6 +63,7 @@ def rehearse(db,env,sql,check_business=False):
   return result
  try:
   safe_run(['docker','network','create','--internal',network],env)
+  safe_run(['docker','network','disconnect','none',db],env)
   safe_run(['docker','network','connect',network,db],env)
   if not json.loads(safe_run(['docker','network','inspect',network],env))[0]['Internal']:raise AuthRecoveryError('Internal network required')
   # Only isolated role passwords are replaced. No source config/credential is accepted.
@@ -118,6 +119,7 @@ def rehearse(db,env,sql,check_business=False):
  finally:
   for name in [auth,rest]:subprocess.run(['docker','rm','--force',name],env=env,capture_output=True,timeout=30)
   subprocess.run(['docker','network','disconnect','--force',network,db],env=env,capture_output=True,timeout=30)
+  subprocess.run(['docker','network','connect','none',db],env=env,capture_output=True,timeout=30)
   subprocess.run(['docker','network','rm',network],env=env,capture_output=True,timeout=30)
 
 def synthetic():
