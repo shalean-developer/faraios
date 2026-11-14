@@ -20,6 +20,7 @@ function business_seo_text(string $text,int $limit): string {
 }
 function business_page_url(string $base,string $slug,string $page=''): string {return rtrim($base,'/').'/b/'.$slug.($page!==''?'/'.$page:'');}
 function business_seo_metadata(array $p,string $page,string $url,string $root): array {
+ $area=$p['area_pages'][area_page_key($page)]??null;if($area){$p['pages'][$page]=['title'=>$area['title'],'introduction'=>$area['introduction'],'body'=>''];$p['seo']['pages'][$page]=['title'=>$area['seo_title'],'description'=>$area['seo_description'],'image'=>'auto'];}
  $key=$page?:'home';$content=$page!==''?business_page_content($p,$page):null;$settings=$p['seo']['pages'][$key]??[];
  $title=trim($settings['title']??'')?:($content?$content['title'].' | '.$p['name']:$p['name']);
  $description=trim($settings['description']??'')?:($content?$content['introduction'].' '.$p['name'].'.':(trim($p['homepage']['introduction']??'')?:($p['description']??'')));
@@ -44,7 +45,8 @@ function business_schema(array $p,string $page,string $root,string $url,array $m
   foreach($p['hours']??[] as $i=>$hours)if($hours)$org['openingHoursSpecification'][]=['@type'=>'OpeningHoursSpecification','dayOfWeek'=>'https://schema.org/'.profile_days()[$i],'opens'=>$hours[0],'closes'=>$hours[1]];
  }
  $crumbs=[['@type'=>'ListItem','position'=>1,'name'=>$p['name'],'item'=>$root]];
- if($page!=='')$crumbs[]=['@type'=>'ListItem','position'=>2,'name'=>business_page_content($p,$page)['title'],'item'=>$url];
+ if(area_page_key($page)!=='')$crumbs[]=['@type'=>'ListItem','position'=>2,'name'=>'Areas','item'=>$root.'/areas'];
+ if($page!=='')$crumbs[]=['@type'=>'ListItem','position'=>count($crumbs)+1,'name'=>business_page_content($p,$page)['title'],'item'=>$url];
  return ['@context'=>'https://schema.org','@graph'=>[$org,['@type'=>'BreadcrumbList','@id'=>$url.'#breadcrumbs','itemListElement'=>$crumbs],['@type'=>$page==='contact'?'ContactPage':($page==='services'?'CollectionPage':'WebPage'),'@id'=>$url.'#page','url'=>$url,'name'=>$meta['title'],'description'=>$meta['description'],'about'=>['@id'=>$root.'#business'],'breadcrumb'=>['@id'=>$url.'#breadcrumbs']]]];
 }
 function business_seo_head(?array $p,string $page,string $base,string $slug,bool $indexable,bool $booking=false): void {
@@ -71,5 +73,6 @@ function business_sitemap_urls(array $rows,string $base,string $environment): ar
  $urls[]=business_page_url($base,$slug);
  // Only reachable live website routes are included; preview environments return above.
  if(business_website_enabled($environment))foreach(business_page_defaults() as $key=>$unused)$urls[]=business_page_url($base,$slug,$key);
+ foreach(area_pages($row['document']??[]) as $a)$urls[]=business_page_url($base,$slug,'areas/'.$a['slug']);
  }return array_values(array_unique($urls));
 }

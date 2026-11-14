@@ -11,6 +11,7 @@ function profile_logo(string $raw): array {
 }
 function profile_form_values(array $old): array {
  // Display-only recovery after validation errors; never bypass profile_values() when saving.
+ if(isset($_POST['area_editor'])&&is_array($_POST['area_pages']??null)){$old['area_pages']=[];foreach(array_slice($_POST['area_pages'],0,20) as $row){if(!is_array($row))continue;$a=[];foreach(['slug','name','title','introduction','coverage','seo_title','seo_description','action'] as $key)$a[$key]=is_string($row[$key]??null)?substr($row[$key],0,12000):'';$a['published']=isset($row['published']);$a['services']=array_values(array_filter(is_array($row['services']??null)?$row['services']:[],'is_string'));$old['area_pages'][]=$a;}}
  foreach(['name','description','email','phone','website','areas'] as $key)if(isset($_POST[$key])&&is_string($_POST[$key]))$old[$key]=substr($_POST[$key],0,8000);
  if(business_website_enabled(profile_env())){$old['homepage']=homepage_form_values()+['image'=>$old['homepage']['image']??null];$old['pages']=business_pages_form_values();$old['seo']=business_seo_form_values()+['image'=>$old['seo']['image']??null];$old['presentation']=business_presentation_form_values($old['presentation']??[]);}
  $old['hours']=[];foreach(profile_days() as $i=>$day)$old['hours'][]=isset($_POST['open_'.$i])?[(string)($_POST['from_'.$i]??''),(string)($_POST['to_'.$i]??'')]:null;
@@ -23,6 +24,7 @@ function profile_values(array $old): array {
  if($p['phone']!==''&&!preg_match('/\A[+0-9 ()-]{5,40}\z/',$p['phone']))throw new RuntimeException('Enter a valid public phone number.');
  if($p['website']!==''&&(!filter_var($p['website'],FILTER_VALIDATE_URL)||parse_url($p['website'],PHP_URL_SCHEME)!=='https'||parse_url($p['website'],PHP_URL_USER)!==null))throw new RuntimeException('Enter a website starting with https://.');
  $p['hours']=[];foreach(profile_days() as $i=>$day){if(!isset($_POST['open_'.$i])){$p['hours'][]=null;continue;}$from=(string)($_POST['from_'.$i]??'');$to=(string)($_POST['to_'.$i]??'');if(!preg_match('/\A(?:[01][0-9]|2[0-3]):[0-5][0-9]\z/',$from)||!preg_match('/\A(?:[01][0-9]|2[0-3]):[0-5][0-9]\z/',$to)||$from>=$to)throw new RuntimeException('Check '.$day.' hours. Closing time must be after opening time.');$p['hours'][]=[$from,$to];}
+ $areaPages=area_pages_values($old);if($areaPages)$p['area_pages']=$areaPages;
  $p['logo']=$old['logo']??null;if(isset($_POST['remove_logo']))$p['logo']=null;
  $f=$_FILES['logo']??null;if($f&&$f['error']!==UPLOAD_ERR_NO_FILE){if($f['error']!==UPLOAD_ERR_OK||!is_uploaded_file($f['tmp_name']))throw new RuntimeException('The logo could not upload. Choose a file up to 150 KB.');$p['logo']=profile_logo(file_get_contents($f['tmp_name']));}
  if(business_website_enabled(profile_env())){$p['homepage']=homepage_values($old['homepage']??[]);$p['pages']=business_pages_values();$p['seo']=business_seo_values($old['seo']??[]);$p['presentation']=business_presentation_values($old['presentation']??[]);}

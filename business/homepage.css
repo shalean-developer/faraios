@@ -90,3 +90,5 @@ html{scroll-padding-top:150px}.homepage-page{background:#fff;color:#193d38}.home
 .home-areas .home-area-list{margin:0;padding:0}
 .home-areas .home-area-list+.home-area-list{margin-top:14px;padding-top:14px;border-top:1px solid #e1e8e1}
 @media(max-width:650px){.home-areas-intro{display:block;margin-bottom:18px}.home-areas-intro>.home-text-link{margin-top:12px}.home-areas>.home-area-groups{padding:16px}.home-areas .home-area-list{gap:8px}}
+
+.home-area-list a{color:inherit;text-decoration:underline;text-underline-offset:3px}.home-area-list a:focus-visible{outline:3px solid currentColor;outline-offset:4px}.business-standalone .home-page-intro{overflow-wrap:anywhere}
