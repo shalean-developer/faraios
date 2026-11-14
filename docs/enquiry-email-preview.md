@@ -44,3 +44,11 @@ Decision: CONDITIONAL PASS for preview. Outbound activation remains blocked on v
 ## Approved addresses
 
 Owner selected notifications@notify.faraios.com as automated sender, support@faraios.com for platform support/replies and each verified business-owner email for admin alerts. The earlier hello@shalean.com test destination is withdrawn and must not be used. Browser confirmed the separate FaraiOS Resend account with notify.faraios.com verified. Plesk support alias was saved on the existing hello@faraios.com mailbox, with no password change. Customer-specific Reply-To continues to use the relevant business/customer address; missing reply addresses fall back to support@faraios.com. New sending-only domain-scoped enquiry key and private worker/schedule setup remain pending; do not claim outbound mail is enabled.
+
+## Private worker setup checkpoint
+
+Owner explicitly approved creating the FaraiOS Enquiries — Plesk sending-only key restricted to notify.faraios.com. Key created; value was masked from automation and owner confirmed saving it in the browser password manager. No secret is recorded in this repository.
+
+Plesk /private/faraios-enquiry-mail/config.php is saved (550 bytes), mode 0600, and read-back confirms the key placeholder, approved sender and enabled=false. It references the existing project database credential server-side through the private waitlist configuration, without altering that file or reusing its Resend key. Earlier Permission denied/stale editor state resolved; actual saved contents and owner-only mode verified. Owner handoff: replace PASTE_NEW_RESEND_KEY_HERE only, preserve quotes and enabled=false, then save.
+
+Plesk scheduled task 264 is saved INACTIVE: faraios.com/_accounts-preview/scripts/enquiry-mail-worker.php, PHP 8.2.35, every minute. Run Now completed successfully with Enquiry mail disabled. Existing waitlist task 263 unchanged. No email sent, no dispatch activation and no production merge. Delivery testing to support@faraios.com follows key entry.
