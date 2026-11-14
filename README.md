@@ -13,3 +13,5 @@ Local verification: `PHP_BIN=php PG_BIN=/path/to/postgres/bin python3 tests/jour
 Account and business setup is prepared on `feature/accounts-20261112`, isolated from the existing waitlist. Read [account preview and release instructions](docs/accounts-release.md). No main merge or production release is authorized before owner preview acceptance. Local account checks: `PHP_BIN=php PG_BIN=/path/to/postgres/bin python3 tests/accounts.py`; Auth is simulated while ownership policies execute in disposable PostgreSQL.
 
 Customer enquiries: see [preview and release evidence](docs/customer-enquiries-preview.md). New intake starts enabled only for preview. Production requires later owner approval. Local checks: `PHP_BIN=php PG_BIN=/path/to/postgres/bin python3 tests/enquiries.py`.
+
+Shared interface controls: see [FaraiOS UI components](docs/ui-components.md). Reuse `ui/select.css` and `ui/select.js` for custom single-select dropdowns on future pages; an interactive reference lives at `ui/select-demo.html`.

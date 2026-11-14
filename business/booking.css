@@ -78,3 +78,127 @@
 .booking-option-group{margin:24px 0}.booking-option{padding:14px 0;border-bottom:1px solid #e2e8f0;display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between}.booking-option>label{margin:0}.booking-option small{flex-basis:100%;margin:0}.quantity-controls{display:flex;align-items:center;gap:8px}.quantity-controls input{width:76px!important;text-align:center;margin:0!important}.quantity-controls button{width:40px;height:40px;border:1px solid #cbd5e1;border-radius:50%;background:#fff;font-size:22px}.extra-choice{padding:16px;border:1px solid #cbd5e1;border-radius:10px;background:white;width:100%;text-align:left}.extra-choice[aria-pressed="true"]{border-color:#5260ef;background:#eef2ff}#summary-breakdown{white-space:pre-line;font-size:13px}
 
 .quantity-presets{display:flex;gap:6px;flex-wrap:wrap}.quantity-presets button{min-width:40px;min-height:40px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;background:white}.quantity-presets button[aria-pressed="true"]{border-color:#5260ef;background:#eef2ff}.quantity-controls[hidden]{display:none}
+
+/* Keep every Details section aligned with the address card. */
+.booking-details-content{width:100%;max-width:520px;min-width:0;margin-inline:auto}
+
+/* Compact optional extras: circular line icons and labels below. */
+.extra-task-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:18px 12px;margin:18px 0}
+.extra-task-grid .extra-task{display:block;border:0;padding:0;min-width:0}
+.extra-task-grid .extra-choice{display:flex;flex-direction:column;align-items:center;gap:6px;padding:0;width:100%;border:0;border-radius:6px;background:transparent;color:#526176;text-align:center}
+.extra-task-circle{display:grid;place-items:center;position:relative;width:48px;height:48px;flex:none;border:1px solid #168878;border-radius:50%;background:white;color:#087c79}
+.extra-task-circle svg{width:30px;height:30px}
+.extra-task-label{display:block;max-width:76px;min-height:32px;font-size:12px;line-height:16px;overflow-wrap:anywhere}
+.extra-task-grid .extra-choice:hover .extra-task-circle{background:#edf7f5}
+.extra-task-grid .extra-choice[aria-pressed="true"]{background:transparent;color:#075d57;font-weight:650}
+.extra-task-grid .extra-choice[aria-pressed="true"] .extra-task-circle{background:#e5f4ef;border:2px solid #087c79}
+.extra-task-grid .extra-choice[aria-pressed="true"] .extra-task-circle::after{content:"✓";position:absolute;right:-3px;top:-3px;display:grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#087c79;color:white;font-size:11px;border:2px solid white}
+.extra-task-grid .extra-choice:focus-visible{outline:3px solid #8dccf1;outline-offset:4px}
+.extra-task-hint{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip-path:inset(50%);white-space:nowrap}
+
+.coverage-note label{margin:0 0 8px}.coverage-note select{display:block;max-width:100%;min-height:46px;padding:10px 12px;border:1px solid #c5d2da;border-radius:8px;background:white;color:#172d3b;font:inherit}
+
+/* Align Details navigation with the cards above. */
+.request-layout form:has(fieldset[data-step="1"]:not([hidden])) .booking-controls{width:100%;max-width:520px;min-width:0;box-sizing:border-box;margin-inline:auto}
+
+/* Compact editable booking summary. */
+.request-summary{padding:0;background:#fff;overflow:hidden}
+.request-summary .summary-shell>summary{padding:18px 16px;list-style:none;font-size:17px;cursor:default}
+.summary-shell>summary::-webkit-details-marker{display:none}
+.request-summary #summary-price{display:none}
+.summary-rows{display:grid;gap:8px;padding:0 12px 16px}
+.summary-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:10px 12px;border:1px solid #dfe5ed;border-radius:7px;background:#fff;text-align:left;font:inherit;color:#172d3b;cursor:pointer;min-width:0}
+.summary-row-copy{display:grid;gap:3px;min-width:0;overflow-wrap:anywhere;font-size:13px}
+.summary-label{font-size:11px;color:#637682}
+.summary-row small{font-size:12px;color:#637682;line-height:1.4}
+.summary-edit{color:#087c79;font-size:21px;flex:none}
+.summary-row:hover{background:#f5faf9;border-color:#087c79}
+.summary-row:focus-visible,#summary-cost-toggle:focus-visible{outline:3px solid #8dccf1;outline-offset:-3px}
+.summary-cost-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#123d43;color:#fff;padding:14px 16px;font-size:14px}
+#summary-cost-toggle{background:transparent;color:inherit;border:0;border-left:1px solid #ffffff50;padding:4px 0 4px 16px;font:inherit;cursor:pointer}
+#summary-cost-details{padding:0 16px 12px;border-bottom:1px solid #e1e8ed}
+#summary-cost-details h3{font-size:14px;margin:16px 0 8px}
+#summary-cost-details p{font-size:12px;line-height:1.6;margin:8px 0}
+.request-summary .summary-notice{font-size:11px;color:#637682;padding:12px 16px;margin:0}
+@media(max-width:900px){
+ .request-summary .summary-shell>summary{cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;list-style:disclosure-closed}
+ .request-summary .summary-shell:not([open]) #summary-price{display:inline;margin:0;font-size:13px}
+ .request-summary .summary-shell[open]{max-height:50vh}
+}
+
+/* Schedule shares the Details card width and navigation alignment. */
+.booking-schedule-content{width:100%;max-width:520px;min-width:0;margin-inline:auto}
+.schedule-entry{padding:24px;border:1px solid #e1e8ed;border-radius:10px;background:#fff;box-shadow:0 3px 12px #172d3b0a}
+.schedule-entry h2{text-align:center;font-size:20px;font-weight:500;margin:0 0 26px}
+.schedule-entry label{font-size:14px;margin:0 0 9px}
+.schedule-entry small{font-size:12px;line-height:1.6}
+.request-layout form:has(fieldset[data-step="2"]:not([hidden])) .booking-controls{width:100%;max-width:520px;min-width:0;box-sizing:border-box;margin-inline:auto}
+@media(max-width:600px){.schedule-entry{padding:20px 16px}.schedule-entry h2{font-size:19px}}
+
+/* Contact follows the Details and Schedule card layout. */
+.booking-contact-content{width:100%;max-width:520px;min-width:0;margin-inline:auto}
+.contact-entry{padding:24px;border:1px solid #e1e8ed;border-radius:10px;background:#fff;box-shadow:0 3px 12px #172d3b0a}
+.contact-entry h2{text-align:center;font-size:20px;font-weight:500;margin:0 0 26px}
+.contact-entry label{font-size:14px;margin:0 0 9px}
+.contact-entry input{min-height:46px;border-radius:8px;padding:12px 14px;font-size:14px;margin:0 0 20px}
+.contact-entry small{font-size:12px;line-height:1.6}
+.request-layout form:has(fieldset[data-step="3"]:not([hidden])) .booking-controls{width:100%;max-width:520px;min-width:0;box-sizing:border-box;margin-inline:auto}
+@media(max-width:600px){.contact-entry{padding:20px 16px}.contact-entry h2{font-size:19px}}
+
+/* Review follows the shared booking card and separates costs from request details. */
+.booking-review-content{width:100%;max-width:520px;min-width:0;margin-inline:auto}
+.review-entry{padding:24px;border:1px solid #e1e8ed;border-radius:10px;background:#fff;box-shadow:0 3px 12px #172d3b0a}
+.review-entry h2{text-align:center;font-size:20px;font-weight:500;margin:0 0 8px}
+.review-intro{text-align:center;font-size:13px;color:#637682;margin:0 0 26px}
+.review-entry h3{font-size:14px;margin:0;font-weight:650}
+.review-price-section{padding:18px;background:#f6faf9;border:1px solid #dce9e6;border-radius:8px}
+.review-price-section h3{margin-bottom:16px}
+.review-price-line{display:flex;justify-content:space-between;gap:16px;margin:10px 0;font-size:13px;line-height:1.5}
+.review-price-line>span:last-child{white-space:nowrap}
+.review-total{display:flex;justify-content:space-between;gap:16px;padding-top:16px;margin:16px 0 10px;border-top:1px solid #d5e3df;font-size:14px}
+.review-total strong{color:#075d57;text-align:right}
+.review-entry small{font-size:12px;color:#637682;line-height:1.6}
+.review-section{padding:18px 0;border-bottom:1px solid #e1e8ed}
+.review-section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.review-section-heading button{border:0;background:transparent;color:#087c79;font:inherit;font-size:12px;padding:5px 0;margin:0;cursor:pointer}
+.review-section-heading button:focus-visible{outline:3px solid #8dccf1;outline-offset:3px}
+.review-section p{font-size:14px;line-height:1.6;margin:4px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.review-section .review-secondary{font-size:12px;color:#637682}
+.review-confirmation{padding:14px;margin-top:20px;background:#f6f8fb;border-radius:8px;font-size:13px}
+.review-confirmation p{font-size:12px;line-height:1.6;margin:6px 0 0}
+.review-privacy{font-size:11px;color:#637682;line-height:1.6;margin:16px 0 0}
+.request-layout form:has(fieldset[data-step="4"]:not([hidden])) .booking-controls{width:100%;max-width:520px;min-width:0;box-sizing:border-box;margin-inline:auto}
+@media(max-width:600px){.review-entry{padding:20px 16px}.review-entry h2{font-size:19px}.review-price-section{padding:14px}.review-total{flex-wrap:wrap}}
+
+/* Shared public typography scale, aligned with the FaraiOS home page. */
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:16px;--booking-body:16px;--booking-control:14px;--booking-helper:13px;--booking-heading:22px;line-height:1.65}
+.request-layout{font-size:var(--booking-body)}
+.request-layout legend{font-size:24px;line-height:1.3;font-weight:650}
+.address-entry h2,.schedule-entry h2,.contact-entry h2,.review-entry h2{font-size:var(--booking-heading);line-height:1.3;font-weight:650}
+.booking-option-group h3{font-size:18px;line-height:1.4;font-weight:650}
+.request-layout label,.service-card-name{font-size:var(--booking-control);line-height:20px}
+.request-layout input,.request-layout textarea,.request-layout select{font-family:inherit;font-size:var(--booking-control);line-height:20px}
+.request-layout small,.address-entry small,.schedule-entry small,.contact-entry small,.review-entry small,.booking-option small{font-size:var(--booking-helper);line-height:1.6}
+.booking-controls button,.booking-controls .button{font-size:var(--booking-control);line-height:20px;font-weight:650;min-height:48px}
+.quantity-presets button{font-family:inherit;font-size:14px;line-height:20px}
+.extra-task-label{font-size:13px;line-height:18px}
+.request-summary .summary-shell>summary{font-size:18px;line-height:1.4;font-weight:650}
+.summary-row-copy{font-size:14px;line-height:1.5}
+.summary-label,.summary-row small,.request-summary .summary-notice{font-size:13px;line-height:1.6}
+.summary-cost-bar{font-size:14px;line-height:20px}
+#summary-cost-details h3,.review-entry h3{font-size:16px;line-height:1.4;font-weight:650}
+#summary-cost-details p,#summary-breakdown,.review-intro,.review-section .review-secondary,.review-confirmation p,.review-privacy{font-size:13px;line-height:1.6}
+.review-price-line,.review-section p{font-size:14px;line-height:1.6}
+.review-total{font-size:16px;line-height:1.4}
+.review-section-heading button{font-size:14px;line-height:20px;min-height:32px}
+.review-confirmation{font-size:14px;line-height:1.6}
+.booking-header .booking-progress li span{font-size:12px;line-height:16px}
+@media(max-width:600px){.address-entry h2,.schedule-entry h2,.contact-entry h2,.review-entry h2{font-size:22px}}
+@media(max-width:900px){.request-summary .summary-shell>summary{font-size:14px;line-height:20px}}
+
+#booking.public-card .review-section{border-top:0;margin-top:0;padding-top:18px}
+#booking.public-card .review-price-section{margin-top:0;padding-top:18px}
+.booking-controls{align-items:center;flex-wrap:nowrap}
+.booking-controls button{margin-top:0}
+.booking-controls .button{width:auto;max-width:calc(100% - 88px);margin-top:0;margin-left:auto}
+@media(max-width:600px){#booking.public-card .review-price-section{padding-top:14px}}

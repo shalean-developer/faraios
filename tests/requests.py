@@ -60,7 +60,7 @@ class Requests(Profiles):
   path='/b/index.php?slug=request-demo&booking=1';html=self.get(path)[1]
   self.assertIn('aria-label="Booking request"',html);self.assertIn('Quote required',html);self.assertIn('request-summary',html)
   self.assertEqual(self.get('/account/requests-core.php')[0],403)
-  fields=dict(name='Fictional HTTP',email='http@example.test',phone='',service=fixed['id'],address='456 Example Street',unit='Unit 2A, Example Court',date='2090-06-01',time='09:15',requirements='Please clean this example home.',website='')
+  fields=dict(name='Fictional HTTP',email='http@example.test',phone='',service=fixed['id'],address='456 Example Street',unit='Unit 2A, Example Court',service_area='Cape Town',date='2090-06-01',time='09:15',requirements='Please clean this example home.',website='')
   token=re.search('name="csrf" value="([^"]+)"',html)[1];fields['snapshot_hash']=re.search('name="snapshot_hash" value="([^"]+)"',html)[1]
   def send(fields):
    request=urllib.request.Request(self.url+path,data=urllib.parse.urlencode(fields).encode(),headers={'Origin':self.url})
