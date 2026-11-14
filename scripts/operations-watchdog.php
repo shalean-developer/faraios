@@ -12,15 +12,15 @@ try{
  $receipt=json_decode(file_get_contents($bundle.'/receipt.json'),true,32,JSON_THROW_ON_ERROR);
  if(($receipt['status']??'')!=='private_configuration_restored'||($receipt['hashes_match']??false)!==true)throw new RuntimeException();
  $previous=is_file($bundle.'/monitor-state.json')?json_decode(file_get_contents($bundle.'/monitor-state.json'),true):[];
- $fetch=static function(string $url,array $headers=[]) : array {$raw=@file_get_contents($url,false,stream_context_create(['http'=>['timeout'=>12,'ignore_errors'=>true,'follow_location'=>0,'header'=>implode("\r\n",$headers)],'ssl'=>['verify_peer'=>true,'verify_peer_name'=>true]]));preg_match('/\s(\d{3})\s/',$http_response_header[0]??'',$m);return [(int)($m[1]??0),$raw?:''];};
- [$code,$raw]=$fetch('https://www.faraios.com/');$home=$code===200&&str_contains($raw,'FaraiOS');
- [$code,$raw]=$fetch('https://www.faraios.com/_accounts-preview/account/index.php?page=signin');$preview=$code===200&&str_contains($raw,'Sign in');
+ $fetch=static function(string $url,array $headers=[]) : array {$headers=array_merge(['User-Agent: FaraiOS-OperationsMonitor/1.0','Accept: text/html,application/json'],$headers);$raw=@file_get_contents($url,false,stream_context_create(['http'=>['timeout'=>12,'ignore_errors'=>true,'follow_location'=>0,'header'=>implode("\r\n",$headers)],'ssl'=>['verify_peer'=>true,'verify_peer_name'=>true]]));preg_match('/\s(\d{3})\s/',$http_response_header[0]??'',$m);return [(int)($m[1]??0),$raw?:''];};
+ [$homeCode,$raw]=$fetch('https://www.faraios.com/');$home=$homeCode===200&&str_contains($raw,'FaraiOS');
+ [$previewCode,$raw]=$fetch('https://www.faraios.com/_accounts-preview/account/index.php?page=signin');$preview=$previewCode===200&&str_contains($raw,'Sign in');
  $config=file_get_contents($root.'/faraios-account/production.php');
  if(!preg_match('/[\'"]publishable_key[\'"]\s*=>\s*[\'"]([A-Za-z0-9_.-]{20,700})[\'"]/',$config,$m))throw new RuntimeException();
  [$code,$raw]=$fetch('https://rxelmugnucfajrqmphhe.supabase.co/auth/v1/health',['apikey: '.$m[1]]);$data=json_decode($raw,true);$auth=$code===200&&is_array($data)&&isset($data['name']);unset($config,$m,$raw,$data);
  $backup=json_decode(getenv('BACKUP_HEALTH_JSON')?:'{}',true);$backupOk=($backup['backup']??'')==='ok'&&($backup['restore']??'')==='ok';
  $captured=strtotime((string)($receipt['captured_utc']??''));$fresh=$captured!==false&&$captured<=$now+60&&$captured>=$now-30*86400;
- $r=['schema'=>'faraios.external-monitor.v1','time'=>gmdate('c'),'state'=>$home&&$preview&&$auth&&$backupOk&&$fresh?'healthy':'attention','home_available'=>$home,'preview_available'=>$preview,'auth_available'=>$auth,'backup_restore_healthy'=>$backupOk,'configuration_copy_recent'=>$fresh,'alert_sent'=>false];
+ $r=['schema'=>'faraios.external-monitor.v1','time'=>gmdate('c'),'state'=>$home&&$preview&&$auth&&$backupOk&&$fresh?'healthy':'attention','home_available'=>$home,'home_status'=>$homeCode,'preview_available'=>$preview,'preview_status'=>$previewCode,'auth_available'=>$auth,'auth_status'=>$code,'backup_restore_healthy'=>$backupOk,'configuration_copy_recent'=>$fresh,'alert_sent'=>false];
  $decision=watchdog_decision($r,$previous,$now);$id='faraios-external/'.getenv('GITHUB_RUN_ID');
  if(isset($previous['pending'])){
   if($now-(int)$previous['pending']['created_at']>=82800)throw new RuntimeException();
