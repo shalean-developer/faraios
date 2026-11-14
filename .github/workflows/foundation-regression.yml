@@ -1,0 +1,24 @@
+name: Foundation regression
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  application:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native test runtimes
+        run: sudo apt-get update && sudo apt-get install -y postgresql-16 php-cli php-curl php-sqlite3
+      - name: PHP syntax
+        run: find account business b invoice quote notifications scripts -name '*.php' -print0 | xargs -0 -n 1 php -l
+      - name: Native financial, isolation and application regression
+        env:
+          PG_BIN: /usr/lib/postgresql/16/bin
+        run: |
+          for suite in foundation enquiry-workflow enquiries quotes bookings invoices dashboard requests rooms; do
+            python3 tests/$suite.py || exit 1
+          done
