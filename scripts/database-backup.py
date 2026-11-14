@@ -8,7 +8,12 @@ class BackupError(Exception):pass
 def run(args,env,stdin=None):
  try:p=subprocess.run(args,env=env,input=stdin,capture_output=True,timeout=900)
  except (OSError,subprocess.TimeoutExpired):raise BackupError('Backup command unavailable or timed out') from None
- if p.returncode:raise BackupError('Backup command failed; no usable backup was published')
+ if p.returncode:
+  detail=p.stderr.decode(errors='replace').lower();reason='command failure'
+  for pattern,label in [('password authentication failed','database password rejected'),('certificate verify failed','TLS certificate verification failed'),('server version:','PostgreSQL client/server version mismatch'),('permission denied','database or filesystem permission denied'),('manifest unknown','PostgreSQL container image unavailable'),('could not translate host name','DNS resolution failed'),('connection timed out','database connection timed out'),('connection refused','database connection refused'),('read-only transaction','dump operation conflicts with read-only session')]:
+   if pattern in detail:reason=label;break
+  stage=next((x for x in ['pg_dumpall','pg_dump','pg_restore','psql','gpg'] if x in args or any(a.endswith('/'+x) for a in args)),'client')
+  raise BackupError('Backup '+stage+' failed: '+reason+'; no usable backup was published')
  return p.stdout
 
 def backup():
@@ -63,4 +68,5 @@ def backup():
   return target
 if __name__=='__main__':
  try:backup()
- except (BackupError,ValueError,json.JSONDecodeError,OSError):print('Backup failed. Check private connection, client, permissions and encryption settings; no plaintext is published.',file=sys.stderr);sys.exit(1)
+ except BackupError as error:print(str(error),file=sys.stderr);sys.exit(1)
+ except (ValueError,OSError):print('Backup failed: invalid configuration or private filesystem unavailable; no plaintext is published.',file=sys.stderr);sys.exit(1)
