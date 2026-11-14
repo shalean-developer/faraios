@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 // Snapshot-only SEO. No credentials, private records or request host values enter output.
-function business_website_enabled(string $environment): bool {return $environment==='preview';}
+function business_website_enabled(string $environment): bool {return in_array($environment,['preview','live'],true);}
 function business_seo_keys(): array {return ['home'=>'Homepage']+array_map(fn($v)=>$v['label'],business_page_defaults());}
 function business_seo_form_values(): array {
  $s=['pages'=>[],'image_alt'=>is_string($_POST['seo']['image_alt']??null)?substr($_POST['seo']['image_alt'],0,800):''];
@@ -63,7 +63,7 @@ function business_sitemap_urls(array $rows,string $base,string $environment): ar
  if($environment!=='live')return [];
  $urls=[];foreach($rows as $row){$slug=$row['slug']??'';if(!is_string($slug)||!preg_match('/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/',$slug)||strlen($slug)<3||strlen($slug)>64)continue;
  $urls[]=business_page_url($base,$slug);
- // Standalone pages stay preview-only until separately authorized for live release.
+ // Only reachable live website routes are included; preview environments return above.
  if(business_website_enabled($environment))foreach(business_page_defaults() as $key=>$unused)$urls[]=business_page_url($base,$slug,$key);
  }return array_values(array_unique($urls));
 }

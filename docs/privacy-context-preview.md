@@ -1,3 +1,5 @@
+> Production application release is now owner-authorized. See [business-website-release.md](business-website-release.md). The preview-only checkpoints below are historical.
+
 # Contextual privacy links — preview only
 
 Owner instruction: “FIX THEM SO THAT THEY DO CORRECT JOB”, following the audit of privacy URLs and repeated links. Continue PR22 and its preview-only/no-record-change scope. No production merge/deployment or business publication.

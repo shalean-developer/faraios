@@ -13,7 +13,7 @@ def read(task):
  if kind=='notice':
   assert hashlib.sha256(raw).hexdigest()==EXPECTED,url
   assert set(['overview','accounts','enquiries','bookings','business-records','waitlist','cookies','storage','rights']).issubset(d.ids)
- elif kind=='production':assert hashlib.sha256(raw).hexdigest()=='4c56926534f63a6a92be666160b9fa27130af5910f3879e446a4c6ef00ecbc6f'
+ elif kind=='production':assert hashlib.sha256(raw).hexdigest()==EXPECTED
  elif kind=='asset':assert 'privacy-card' in html
  else:
   matches=[a for a in d.links if a.get('href','').endswith('privacy.html#'+fragment)];assert matches,(url,fragment)

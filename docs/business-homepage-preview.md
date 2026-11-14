@@ -1,3 +1,5 @@
+> Production application release is now owner-authorized. See [business-website-release.md](business-website-release.md). The preview-only checkpoints below are historical.
+
 # Business homepage upgrade — preview only
 
 Owner scope: 14 November 2026. Base main a8082fd4a561820a286f17601d29a55d1f93f450 (PR18–21 included). No production merge/deployment, publication, intake activation or existing-record changes authorized.

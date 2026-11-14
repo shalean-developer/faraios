@@ -19,11 +19,11 @@ $bookingVariant=isset($_GET['booking'])||isset($_GET['step']);
 $indexable=$p&&profile_env()==='live'&&!$bookingVariant;
 if($indexable)header_remove('X-Robots-Tag');
 if($p&&($redirect=business_normalize_url(cfg()['base_url'],$slug,$page,$_GET,$_SERVER['REQUEST_URI']??'',$_SERVER['REQUEST_METHOD']??'GET',$_SERVER['HTTP_HOST']??'',$_SERVER['REQUEST_SCHEME']??(isset($_SERVER['HTTPS'])?($_SERVER['HTTPS']==='on'?'https':'http'):'')))!==null){header('Location: '.$redirect,true,301);exit;}
-if(($_GET['social']??'')==='1'&&profile_env()==='preview'){homepage_image_response($p['seo']['image']??null);}
-if(($_GET['hero']??'')==='1'&&profile_env()==='preview'){homepage_image_response($p['homepage']['image']??null);}
+if(($_GET['social']??'')==='1'&&business_website_enabled(profile_env())){homepage_image_response($p['seo']['image']??null);}
+if(($_GET['hero']??'')==='1'&&business_website_enabled(profile_env())){homepage_image_response($p['homepage']['image']??null);}
 if(($_GET['logo']??'')==='1') {if(!$p||!$p['logo']){http_response_code(404);exit;}try{$raw=base64_decode($p['logo']['data'],true);$logo=profile_logo($raw?:'');header('Content-Type: '.$logo['mime']);echo $raw;}catch(Throwable $e){http_response_code(404);}exit;}
 if(!$p||profile_env()==='preview'||($_GET['booking']??'')==='1')header('X-Robots-Tag: noindex,nofollow');
-$base=cfg()['base_url'];$enquiry_error='';$sent=false;$enquiry_ready=false;$booking=$page===''&&($_GET['booking']??'')==='1';$homepage=$p&&!$booking&&profile_env()==='preview';
+$base=cfg()['base_url'];$enquiry_error='';$sent=false;$enquiry_ready=false;$booking=$page===''&&($_GET['booking']??'')==='1';$homepage=$p&&!$booking&&business_website_enabled(profile_env());
 if($p&&$_SERVER['REQUEST_METHOD']==='POST'&&!$booking&&$page!==''&&$page!=='contact'){http_response_code(405);header('Allow: GET, HEAD');header('X-Robots-Tag: noindex,nofollow');$indexable=false;}
 if($p&&($booking||$page===''||$page==='contact')){try{enquiry_session();$enquiry_ready=true;
  if($_SERVER['REQUEST_METHOD']==='POST'){if($booking){if(!isset($_POST['configure_options']))request_submit($slug,$row);}elseif($page===''||$page==='contact')enquiry_submit($slug,$row['services']??['items'=>[]],$page);else{http_response_code(405);header('Allow: GET');throw new RuntimeException('Use the Contact page to send an enquiry.');}}
