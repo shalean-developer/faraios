@@ -30,8 +30,8 @@ Private config example (placeholders only):
  'supabase_url'=>'https://rxelmugnucfajrqmphhe.supabase.co',
  'service_key'=>'FROM_PRIVATE_SECRET_STORE',
  'resend_key'=>'FROM_PRIVATE_SECRET_STORE',
- 'sender'=>'VERIFIED_FARAIOS_SENDER',
- 'allow_recipients'=>['OWNER_APPROVED_TEST_MAILBOX'],
+ 'sender'=>'notifications@notify.faraios.com',
+ 'allow_recipients'=>['support@faraios.com'],
 ];
 ```
 
@@ -41,8 +41,6 @@ Rollback: disable mail_settings for affected environment and private worker enab
 
 Decision: CONDITIONAL PASS for preview. Outbound activation remains blocked on verified FaraiOS sender, private worker setup, scheduler and owner-mailbox delivery verification. Production change requires explicit authorization after preview review.
 
-## Hosted checkpoint
+## Approved addresses
 
-Candidate dad093337 deployed only to Plesk accounts-preview from feature/enquiry-ui-email-20261114; production main remains 6eee87b. Hosted demo Contact page confirms Send an enquiry, custom service selector, paired email/phone fields, new stylesheet enquiry-contact-1 and no horizontal overflow. Screenshot enquiry-contact-hosted.jpg records the test demo; no form submitted.
-
-Migration installed with both preview/live mail_settings.enabled=false, outbox count zero. All five profile and three public-page fingerprints remain identical to the prior checkpoint (900880e9d77aef77a45f5e4beb6ea1d9 and e3cc885f940357f9e12813ca0ab2bfce). No hosted business data, enquiry, booking gate or publication changed. Mail activation prerequisites remain unresolved; do not present email delivery as live or verified.
+Owner selected notifications@notify.faraios.com as automated sender, support@faraios.com for platform support/replies and each verified business-owner email for admin alerts. The earlier hello@shalean.com test destination is withdrawn and must not be used. Browser confirmed the separate FaraiOS Resend account with notify.faraios.com verified. Plesk support alias was saved on the existing hello@faraios.com mailbox, with no password change. Customer-specific Reply-To continues to use the relevant business/customer address; missing reply addresses fall back to support@faraios.com. New sending-only domain-scoped enquiry key and private worker/schedule setup remain pending; do not claim outbound mail is enabled.
