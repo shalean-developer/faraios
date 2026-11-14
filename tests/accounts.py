@@ -134,11 +134,9 @@ class Accounts(Journey):
   self.assertIn('Confirm the link in your other inbox',self.submit('confirm',token_hash='e'*64,type='email_change'))
   self.assertIn('Email change confirmed',self.submit('confirm',token_hash='f'*64,type='email_change'))
   self.assertTrue(any(p=='/auth/v1/logout?scope=local' for p,b in self.auth_calls))
-  # Confirmation returns to sign-in; test the protected edit endpoint with a fresh session.
-  self.submit('signin',email='owner@example.test',password='long-test-password')
   self.assertIn('Edit your name',self.getpage('welcome'))
   before=len(self.auth_calls)
-  r=self.client.open(urllib.request.Request(self.accountbase+'/account/index.php?page=welcome',data=b'action=save_personal&name=Forged'))
+  r=type(self).client.open(urllib.request.Request(self.accountbase+'/account/index.php?page=welcome',data=b'action=save_personal&name=Forged'))
   self.assertIn('form has expired',r.read().decode())
   self.assertFalse(any('data' in b for p,b in self.auth_calls[before:]))
   with self.assertRaises(urllib.error.HTTPError) as denied:self.client.open(self.accountbase+'/account/settings-core.php')
