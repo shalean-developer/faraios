@@ -178,7 +178,7 @@ def synthetic():
   # Auth migrations must own/create uid(); precreating it as postgres prevents
   # the real service role from applying its initial CREATE OR REPLACE migration.
   sql('ALTER ROLE supabase_auth_admin SET search_path=auth;GRANT USAGE ON SCHEMA auth TO anon,authenticated;')
-  if os.environ.get('RESTORE_PROVIDER_LIBRARIES')=='true':sql("ALTER ROLE authenticator SET session_preload_libraries='supautils, safeupdate';")
+  if os.environ.get('RESTORE_PROVIDER_LIBRARIES')=='true':sql('ALTER ROLE authenticator SET session_preload_libraries TO supautils, safeupdate;')
   result=rehearse(db,env,sql);print(json.dumps(result))
  finally:subprocess.run(['docker','rm','--force',db],env=env,capture_output=True,timeout=30)
 if __name__=='__main__':
