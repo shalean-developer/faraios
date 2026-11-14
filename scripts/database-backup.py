@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Read-only FaraiOS logical export; only encrypted output is retained. Never restores."""
-import os,sys,json,subprocess,tempfile,pathlib,datetime,hashlib,tarfile,uuid,re
+import os,sys,json,subprocess,tempfile,pathlib,datetime,hashlib,tarfile,uuid,re,select
+from database_recovery import fingerprints,schema_grants
 PROJECT='rxelmugnucfajrqmphhe'
 SCHEMAS=['public','auth','extensions','booking_private','customer_private','enquiry_private','invoice_private','quote_private','request_private','staff_private','waitlist_private']
 ROOT=pathlib.Path(__file__).resolve().parents[1]
@@ -43,19 +44,35 @@ def backup():
   (tmp/'gnupg').mkdir(mode=0o700);gpg_env['GNUPGHOME']=str(tmp/'gnupg')
   def cmd(binary,args):
    if image:
-    return ['docker','run','--rm','--network=host','--read-only','--user',str(os.getuid())+':'+str(os.getgid()),'--mount','type=bind,src='+td+',dst='+td,'--mount','type=bind,src=/etc/ssl/certs/ca-certificates.crt,dst=/etc/ssl/certs/ca-certificates.crt,readonly',*sum((['--env',k] for k in ['PGHOST','PGPORT','PGUSER','PGPASSWORD','PGDATABASE','PGSSLMODE','PGSSLROOTCERT','PGOPTIONS']),[]),image,binary,*args]
+    return ['docker','run','--rm','-i','--network=host','--read-only','--user',str(os.getuid())+':'+str(os.getgid()),'--mount','type=bind,src='+td+',dst='+td,'--mount','type=bind,src=/etc/ssl/certs/ca-certificates.crt,dst=/etc/ssl/certs/ca-certificates.crt,readonly',*sum((['--env',k] for k in ['PGHOST','PGPORT','PGUSER','PGPASSWORD','PGDATABASE','PGSSLMODE','PGSSLROOTCERT','PGOPTIONS']),[]),image,binary,*args]
    return [str(pathlib.Path(pg)/binary),*args]
-  query="select coalesce(json_agg(nspname order by nspname),'[]'::json) from pg_namespace where nspname in ('supabase_migrations','storage')"
-  optional=json.loads(run(cmd('psql',['-XAtq','-v','ON_ERROR_STOP=1','-c',query]),env))
-  schemas=SCHEMAS+optional
-  args=['--format=custom','--no-owner','--strict-names','--lock-wait-timeout=5000','--file='+str(tmp/'database.dump')]
-  for schema in schemas:args+=['--schema='+schema]
-  run(cmd('pg_dump',args),env)
-  # Catalog metadata only; custom-role password hashes are explicitly excluded.
-  (tmp/'roles.sql').write_bytes(run(cmd('pg_dumpall',['--roles-only','--no-role-passwords']),env))
-  listing=run(cmd('pg_restore',['--list',str(tmp/'database.dump')]),env)
-  if not listing or not (tmp/'database.dump').stat().st_size:raise BackupError('Empty archive rejected')
-  manifest=dict(format='faraios-logical-backup-v1',project=PROJECT,created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),schemas=schemas,source_commit=os.environ.get('GITHUB_SHA','local'),database_sha256=hashlib.sha256((tmp/'database.dump').read_bytes()).hexdigest(),roles_sha256=hashlib.sha256((tmp/'roles.sql').read_bytes()).hexdigest(),limitations=['Storage object bytes and external runtime secrets are not included','Vault/Realtime/provider internals excluded; provider-supported Auth/role restore needs isolated verification','No custom-role passwords; secrets must be recovered separately'])
+  # Hold one read-only MVCC snapshot for metadata and pg_dump; source never mutates.
+  keeper=subprocess.Popen(cmd('psql',['-XAtq','-v','ON_ERROR_STOP=1']),env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+  try:
+   keeper.stdin.write(b'begin isolation level repeatable read read only;select pg_export_snapshot();\n');keeper.stdin.flush()
+   if not select.select([keeper.stdout],[],[],60)[0]:raise BackupError('Snapshot connection timed out')
+   snapshot=keeper.stdout.readline().decode().strip()
+   if not re.fullmatch(r'[0-9A-Fa-f-]+',snapshot):raise BackupError('Read-only snapshot unavailable')
+   query="select coalesce(json_agg(nspname order by nspname),'[]'::json) from pg_namespace where nspname in ('supabase_migrations','storage')"
+   def sql(query):
+    return run(cmd('psql',['-XAtq','-v','ON_ERROR_STOP=1','-c',"begin isolation level repeatable read read only;set transaction snapshot '"+snapshot+"';"+query+';commit']),env).decode().strip()
+   optional=json.loads(sql(query))
+   schemas=SCHEMAS+optional
+   recorded=fingerprints(sql,schemas);grants=schema_grants(sql,schemas)
+   args=['--snapshot='+snapshot,'--format=custom','--no-owner','--strict-names','--lock-wait-timeout=5000','--file='+str(tmp/'database.dump')]
+   for schema in schemas:args+=['--schema='+schema]
+   run(cmd('pg_dump',args),env)
+   # Catalog metadata only; custom-role password hashes are explicitly excluded.
+   (tmp/'roles.sql').write_bytes(run(cmd('pg_dumpall',['--roles-only','--no-role-passwords']),env))
+   listing=run(cmd('pg_restore',['--list',str(tmp/'database.dump')]),env)
+   if not listing or not (tmp/'database.dump').stat().st_size:raise BackupError('Empty archive rejected')
+   manifest=dict(format='faraios-logical-backup-v2',table_fingerprints=recorded,schema_grants=grants,project=PROJECT,created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),schemas=schemas,source_commit=os.environ.get('GITHUB_SHA','local'),database_sha256=hashlib.sha256((tmp/'database.dump').read_bytes()).hexdigest(),roles_sha256=hashlib.sha256((tmp/'roles.sql').read_bytes()).hexdigest(),limitations=['Storage object bytes and external runtime secrets are not included','Vault/Realtime/provider internals excluded; provider-supported Auth/role restore needs isolated verification','No custom-role passwords; secrets must be recovered separately'])
+  finally:
+   if keeper.poll() is None:
+    keeper.terminate()
+    try:keeper.wait(timeout=10)
+    except subprocess.TimeoutExpired:keeper.kill();keeper.wait()
+   for stream in (keeper.stdin,keeper.stdout,keeper.stderr):stream.close()
   (tmp/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
   bundle=tmp/'backup.tar'
   with tarfile.open(bundle,'w') as tar:

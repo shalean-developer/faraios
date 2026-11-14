@@ -1,0 +1,59 @@
+name: Isolated database restore check
+on:
+  workflow_dispatch:
+    inputs:
+      backup_run_id:
+        description: Successful encrypted backup workflow run ID
+        required: true
+        default: '43624732439'
+  schedule:
+    - cron: '0 3 * * 0'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: faraios-isolated-restore
+  cancel-in-progress: false
+jobs:
+  restore:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select a successful backup
+        id: source
+        env:
+          BACKUP_RUN_INPUT: ${{ inputs.backup_run_id }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PYTHON'
+          import os,re,subprocess
+          run_id=os.environ.get('BACKUP_RUN_INPUT') or subprocess.check_output(['python3','scripts/backup-health.py','latest'],text=True).strip()
+          if not re.fullmatch(r'[0-9]+',run_id):raise SystemExit('Invalid backup run ID')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as output:output.write('run_id='+run_id+'\n')
+          PYTHON
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.source.outputs.run_id }}
+          name: faraios-encrypted-backup-${{ steps.source.outputs.run_id }}
+          path: ${{ runner.temp }}/restore-input
+      - name: Restore and verify in a database with no network
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.FARAIOS_BACKUP_PASSPHRASE }}
+          RESTORE_INPUT: ${{ runner.temp }}/restore-input
+          RESTORE_REPORT: ${{ runner.temp }}/restore-evidence/report.json
+        run: |
+          mkdir -p "$(dirname "$RESTORE_REPORT")"
+          python3 scripts/database-restore-check.py "$RESTORE_INPUT" > "$RESTORE_REPORT"
+          cat "$RESTORE_REPORT"
+          echo 'Isolated restore passed. See the aggregate report artifact; no database contents are retained.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: isolated-restore-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}/restore-evidence/report.json
+          retention-days: 30
+          if-no-files-found: error
+      - name: Remove private runner inputs and evidence
+        if: always()
+        run: rm -rf -- "${{ runner.temp }}/restore-input" "${{ runner.temp }}/restore-evidence"

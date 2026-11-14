@@ -33,6 +33,10 @@ class Backup(Profiles):
   with tarfile.open(plain) as tar:
    self.assertEqual(set(tar.getnames()),{'database.dump','roles.sql','manifest.json'})
    dump.write_bytes(tar.extractfile('database.dump').read());manifest=json.loads(tar.extractfile('manifest.json').read());roles=tar.extractfile('roles.sql').read()
+  self.assertEqual(manifest['format'],'faraios-logical-backup-v2');self.assertEqual({k:v['rows']+':'+v['fingerprint'] for k,v in manifest['table_fingerprints'].items()},before)
+  if os.environ.get('BACKUP_DOCKER_RESTORE')=='1':
+   check=subprocess.run(['python3',str(ROOT/'scripts/database-restore-check.py'),str(output)],env=dict(os.environ,BACKUP_PASSPHRASE=key),capture_output=True,text=True)
+   self.assertEqual(check.returncode,0,check.stderr);report=json.loads(check.stdout);self.assertTrue(report['snapshot_fingerprints_match']);self.assertEqual(report['network'],'none')
   self.assertNotIn(b'PASSWORD',roles);self.assertEqual(manifest['database_sha256'],hashlib.sha256(dump.read_bytes()).hexdigest())
   conn=['-h','127.0.0.1','-p',str(self.pgport)]
   subprocess.run([str(PGBIN/'createdb'),*conn,'backup_verification'],env=self.env,check=True,capture_output=True)
