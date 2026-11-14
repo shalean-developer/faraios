@@ -28,8 +28,22 @@ PASS tests/header-branding-browser.cjs 24 combinations (four sizes × logo/no-lo
 
 PASS existing homepage5, SEO5, account5 and request lifecycle1 native PG/PHP regressions. New customer session implementation reuses the already tested owner API transport/refresh helpers without reading its session cookie.
 
-Hosted provider-backed successful customer sign-in, actual email delivery, physical-device and screen-reader checks require separate evidence; local simulated Auth is not claimed as a real Supabase password test. No new hosted user or business record is created for testing.
+At the local checkpoint, hosted provider-backed sign-in still required separate evidence; it was subsequently verified below. Actual email delivery, physical-device and screen-reader checks remain unverified; local simulated Auth is not claimed as a real Supabase password test. No new hosted user or business record is created for testing.
 
 ## Release boundary
 
-Accounts-preview deployment/read-only verification pending. Production NO-GO pending owner review/authorization. Application rollback: previous preview branch head2841630e49d4079e74fc285ffbf70cbc7fd864a1. Keep additive validator support if any future drafts use these fields; never overwrite snapshots/erase records as rollback.
+Accounts-preview deployment/read-only verification completed below. Production NO-GO pending owner review/authorization. Application rollback: previous preview branch head2841630e49d4079e74fc285ffbf70cbc7fd864a1. Keep additive validator support if any future drafts use these fields; never overwrite snapshots/erase records as rollback.
+
+## Hosted checkpoint — 14 November 2026
+
+Application683d8ff39093abe9e89a205c2fc840f810168e5d pulled and deployed to the existing manual accounts-preview target; Plesk completed / Done. Production automatic-main and waitlist-preview targets untouched. Git CLI push lacked credentials, so the GitHub connector uploaded the tested tree; its tree SHA exactly matches the tested local commit. No production merge.
+
+PASS12 GET-only template-hosted checks and10 customer-header-hosted checks: deployed preview assets match candidate, production assets match main9e4c42d; five page canonicals/noindex/no-store, unknown business/subpages404, service preselection, customer route/guest JSON/return sanitization, production new customer endpoint404. Actual hosted browser at390px: branded form has no horizontal overflow; successful provider-backed password sign-in using the browser's existing account returned to demo homepage; avatar opened Your account; Sign out returned to the business and restored guest header. Credentials were not extracted or changed, no new user/customer/business record was created. Screenshot customer-login-hosted.jpg has fields cleared.
+
+Actual separate booking page still shows five stages and now business branding. Selecting Deep cleaning advanced to Details; Sign in captured return=booking-details and Back to business points to the correct booking step. The optional final hosted Back click hit a browser connection error; returned-step restoration remains proven in the local booking-history/browser suite, not claimed as an additional hosted pass. Browser left on the branded preview sign-in for review. No booking/enquiry submission.
+
+PASS existing standalone browser pages1280/390/320, booking sticky/guest/avatar checks and URL/history/refresh/draft recovery. PASS all15 public-table full-row counts/fingerprints identical before and after (header-preservation.json). Live intake=false / preview=true unchanged, all published documents validate. Security advisor unchanged:13 existing deny-all INFO findings and existing leaked-password WARN; no new finding. Existing warning remediation: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection . No setting altered in this task.
+
+Branding settings and two-business customer isolation were exercised on disposable fixtures, preserving hosted profile records. Hosted cross-business membership/private-record access does not exist; no customer portal access claim is made. Branded registration/recovery/email callbacks and customer membership/record authorization remain outstanding. Physical-device/screen-reader checks unverified.
+
+Decision: **PASS preview implementation and existing-account sign-in verification; ready for owner review. Production NO-GO until explicit authorization.** Shalean was not republished.

@@ -1,0 +1,47 @@
+[
+  {
+    "customerRoute": "",
+    "status": 200,
+    "privateNoStore": true
+  },
+  {
+    "customerRoute": "&return=services",
+    "status": 200,
+    "privateNoStore": true
+  },
+  {
+    "customerRoute": "&return=booking-details",
+    "status": 200,
+    "privateNoStore": true
+  },
+  {
+    "customerRoute": "&return=https://example.invalid",
+    "status": 200,
+    "privateNoStore": true
+  },
+  {
+    "guestHeader": true
+  },
+  {
+    "url": "https://www.faraios.com/_accounts-preview/account/customer.php?slug=unknown",
+    "status": 404
+  },
+  {
+    "url": "https://www.faraios.com/_accounts-preview/account/customer.php?slug=shalean-cleaning-services",
+    "status": 404
+  },
+  {
+    "url": "https://www.faraios.com/account/customer.php?slug=shalean-cleaning-services",
+    "status": 404
+  },
+  {
+    "asset": "ui/booking-header.js",
+    "previewMatchesCandidate": true,
+    "productionMatchesBase": true
+  },
+  {
+    "asset": "business/booking.css",
+    "previewMatchesCandidate": true,
+    "productionMatchesBase": true
+  }
+]
