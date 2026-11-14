@@ -2,7 +2,8 @@
 declare(strict_types=1);
 
 /** Table-based, self-contained confirmation email; no tracking or external assets. */
-function wl_confirmation_html(string $confirm, string $withdraw): string {
+function wl_confirmation_html(string $confirm, string $withdraw, string $privacy): string {
+    $privacy = htmlspecialchars($privacy, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $confirm = htmlspecialchars($confirm, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $withdraw = htmlspecialchars($withdraw, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     return <<<HTML
@@ -27,7 +28,7 @@ function wl_confirmation_html(string $confirm, string $withdraw): string {
 <p style="margin:16px 0 0;font-size:13px;line-height:21px;color:#60747a;">Button not working? <a href="$confirm" style="color:#076c69;text-decoration:underline;">Open the confirmation page</a>.</p>
 </td></tr></table>
 </td></tr></table></td></tr>
-<tr><td align="center" style="padding:24px 16px 0;font-size:12px;line-height:20px;color:#60747a;">Questions? <a href="mailto:hello@faraios.com" style="color:#076c69;text-decoration:underline;">hello@faraios.com</a><br><a href="$withdraw" style="color:#53676d;text-decoration:underline;">Cancel request or unsubscribe</a><span style="color:#a0aeac;"> &nbsp;·&nbsp; </span><a href="https://www.faraios.com/privacy.html" style="color:#53676d;text-decoration:underline;">Privacy notice</a><p style="margin:14px 0 0;font-size:11px;color:#60747a;">FaraiOS — Build. Grow. Manage.</p></td></tr>
+<tr><td align="center" style="padding:24px 16px 0;font-size:12px;line-height:20px;color:#60747a;">Questions? <a href="mailto:hello@faraios.com" style="color:#076c69;text-decoration:underline;">hello@faraios.com</a><br><a href="$withdraw" style="color:#53676d;text-decoration:underline;">Cancel request or unsubscribe</a><span style="color:#a0aeac;"> &nbsp;·&nbsp; </span><a href="$privacy" style="color:#53676d;text-decoration:underline;">Waitlist privacy notice</a><p style="margin:14px 0 0;font-size:11px;color:#60747a;">FaraiOS — Build. Grow. Manage.</p></td></tr>
 </table>
 <!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table></body></html>
