@@ -20,7 +20,7 @@ def main():
  if os.environ.get('FARAIOS_HOSTED_SC04_CONFIRM')!='rxelmugnucfajrqmphhe:two-registered-preview-businesses':raise RuntimeError('Explicit synthetic execution scope required')
  scope="""do $$begin
  if (select count(*) from authorization_private.preview_businesses)<>2 or exists(select 1 from authorization_private.preview_businesses where business_id not in ('%s','%s')) then raise exception 'Scope drift';end if;
- if (select count(*) from public.business_memberships m join auth.users u on u.id=m.user_id where business_id in ('%s','%s') and environment='preview' and role<>'owner' and u.email like '%%@example.test')<>4 then raise exception 'Fixture drift';end if;
+ if (select count(*) from public.business_memberships m join auth.users u on u.id=m.user_id where m.business_id in ('%s','%s') and environment='preview' and m.role<>'owner' and u.email like '%%@example.test')<>4 then raise exception 'Fixture drift';end if;
  if not exists(select 1 from public.businesses where id='%s' and owner_id='%s') then raise exception 'Owner drift';end if;
  if (select count(*) from public.business_memberships where business_id in ('%s','%s') and environment='preview' and role<>'owner')<>4 then raise exception 'Actor count drift';end if;
  if exists(select 1 from public.business_memberships where business_id='%s' and environment='preview' and role<>'owner' and user_id not in ('%s','%s','%s')) then raise exception 'Actor drift';end if;
