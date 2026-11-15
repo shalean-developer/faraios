@@ -7,12 +7,21 @@ class Readiness(base.Shared):
  sc04_report_name="sc04-readiness.json"
  matrix_count=6
  @classmethod
+ def restart_php(cls):
+  args=cls.proc.args;cls.proc.terminate();cls.proc.wait(timeout=10)
+  cls.proc=subprocess.Popen(args,env=dict(__import__('os').environ,**cls.env,FARAIOS_ACCOUNT_DIR=str(cls.private/'profiles')),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+  for attempt in range(80):
+   try:cls.get('/account/index.php?page=signin');break
+   except OSError:time.sleep(.05)
+  else:raise RuntimeError('Staged PHP server did not restart')
+ @classmethod
  def setUpClass(cls):
   super().setUpClass()
   cls.sql((ROOT/'docs/sc04/live-readiness.sql').read_text())
   spec=importlib.util.spec_from_file_location('readiness',ROOT/'docs/sc04/readiness.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
   ready=m.stage(cls.staged.name+'/readiness');shutil.copytree(ready,cls.webroot,dirs_exist_ok=True)
   if 'Join a business' not in (cls.webroot/'account/index.php').read_text():raise AssertionError('Staged join entry missing')
+  cls.restart_php()
  def test_01_independent_live_gate(self):
   self.enable();u=self.newuser();b=self.bids[0]
   self.sql('insert into public.business_memberships values('+','.join(map(lit,[b,'live',u,'manager',True]))+')')
@@ -86,7 +95,7 @@ class Readiness(base.Shared):
   try:
    config.write_text(oldconfig.replace(self.url,self.url+'/preview'))
    router.write_text("<?php $path=preg_replace('~^/preview~','',parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));$_SERVER['SCRIPT_NAME']=$path;$_SERVER['SCRIPT_FILENAME']="+repr(str(self.webroot))+".$path;if(preg_match('~\\.(css|js|svg)$~',$path,$m)){header('Content-Type: '.['css'=>'text/css','js'=>'application/javascript','svg'=>'image/svg+xml'][$m[1]]);readfile($_SERVER['SCRIPT_FILENAME']);return true;}require $_SERVER['SCRIPT_FILENAME'];return true;")
-   type(self).url+='/preview';type(self).sc04_login_user=self.ids[0]
+   self.restart_php();type(self).url+='/preview';type(self).sc04_login_user=self.ids[0]
    self.post('/account/index.php?page=signin',email='a@example.test',password='test-long-password')
    html=self.post('/account/access.php',action='invite',recipient=recipient,role='worker')
    token=re.search('id="invite-code" readonly value="([a-f0-9]{64})"',html)[1]
@@ -105,7 +114,7 @@ class Readiness(base.Shared):
    self.assertIn('No active business access',self.get('/account/delegated.php')[1])
    self.assertEqual(self.sql('select count(*) from public.businesses'),count_before)
   finally:
-   type(self).sc04_login_user=None;type(self).url=oldurl;config.write_text(oldconfig);router.write_text(oldrouter);self.enable(False)
+   type(self).sc04_login_user=None;type(self).url=oldurl;config.write_text(oldconfig);router.write_text(oldrouter);self.restart_php();self.enable(False)
  def test_07_candidate_php_syntax(self):
   for p in (ROOT/'docs/sc04').glob('*.php'):
    r=subprocess.run([__import__('journey').PHP,'-l',str(p)],capture_output=True,text=True);self.assertEqual(r.returncode,0,r.stdout+r.stderr)
@@ -124,7 +133,7 @@ class Readiness(base.Shared):
   try:
    config.write_text(oldconfig.replace(self.url,self.url+'/preview'))
    router.write_text("<?php $path=preg_replace('~^/preview~','',parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));$_SERVER['SCRIPT_NAME']=$path;$_SERVER['SCRIPT_FILENAME']="+repr(str(self.webroot))+".$path;if(preg_match('~\\.(css|js|svg)$~',$path,$m)){header('Content-Type: '.['css'=>'text/css','js'=>'application/javascript','svg'=>'image/svg+xml'][$m[1]]);readfile($_SERVER['SCRIPT_FILENAME']);return true;}require $_SERVER['SCRIPT_FILENAME'];return true;")
-   type(self).url+='/preview'
+   self.restart_php();type(self).url+='/preview'
    with sync_playwright() as playwright:
     browser=playwright.chromium.launch()
     try:
@@ -144,7 +153,7 @@ class Readiness(base.Shared):
     finally:browser.close()
    (out/'sc04-browser-layout.json').write_text(json.dumps(dict(status='PASS',checks=checks,source='exact staged native PHP; simulated Auth/REST; disposable database',physical_phone=False),indent=2)+'\n')
   finally:
-   type(self).sc04_login_user=None;type(self).url=oldurl;config.write_text(oldconfig);router.write_text(oldrouter);self.enable(False)
+   type(self).sc04_login_user=None;type(self).url=oldurl;config.write_text(oldconfig);router.write_text(oldrouter);self.restart_php();self.enable(False)
 
 if __name__=='__main__':
  names=[n for n in Readiness.__dict__ if n.startswith('test_') and (n!='test_09_browser_layout' or __import__('os').environ.get('FARAIOS_MOBILE_BROWSER_CHECK')=='true')]
