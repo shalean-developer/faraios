@@ -158,7 +158,7 @@ class Readiness(base.Shared):
    router.write_text("<?php $path=preg_replace('~^/preview~','',parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));$_SERVER['SCRIPT_NAME']=$path;$_SERVER['SCRIPT_FILENAME']="+repr(str(self.webroot))+".$path;if(preg_match('~\\.(css|js|svg)$~',$path,$m)){header('Content-Type: '.['css'=>'text/css','js'=>'application/javascript','svg'=>'image/svg+xml'][$m[1]]);readfile($_SERVER['SCRIPT_FILENAME']);return true;}require $_SERVER['SCRIPT_FILENAME'];return true;")
    self.restart_php();type(self).url+='/preview'
    with sync_playwright() as playwright:
-    def launch_browser():return playwright.chromium.launch(**({'executable_path':os.environ['FARAIOS_CHROMIUM']} if os.environ.get('FARAIOS_CHROMIUM') else {}),args=['--no-sandbox']+(['--single-process','--no-zygote','--use-gl=angle','--use-angle=swiftshader'] if os.environ.get('FARAIOS_BROWSER_SINGLE_PROCESS')=='true' else []))
+    def launch_browser():return playwright.chromium.launch(**({'executable_path':os.environ['FARAIOS_CHROMIUM']} if os.environ.get('FARAIOS_CHROMIUM') else {}),args=['--no-sandbox']+(['--single-process','--no-zygote','--disable-gpu','--disable-software-rasterizer'] if os.environ.get('FARAIOS_BROWSER_SINGLE_PROCESS')=='true' else []))
     browser=launch_browser()
     try:
      for width in [390,1280]:
