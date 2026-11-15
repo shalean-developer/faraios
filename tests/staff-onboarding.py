@@ -45,6 +45,9 @@ class Onboarding(base.Readiness):
   with self.assertRaises(RuntimeError):self.accept(u,i,t)
   self.assertEqual(self.sql('select count(*) from public.business_memberships where user_id='+lit(u)),'0')
   self.sql('update public.business_staff set email=(select email from auth.users where id='+lit(u)+') where id='+lit(s))
+  self.assertEqual(self.sql('select revoked_at is not null from authorization_private.staff_invites where id='+lit(i)),'t')
+  t=uuid.uuid4().hex+uuid.uuid4().hex
+  i=json.loads(self.invoke(self.ids[0],'business_staff_invite',p_staff=s,p_role='worker',p_hash=hashlib.sha256(t.encode()).hexdigest(),p_sealed='x'*150))['id']
   def attempt(_):
    try:self.accept(u,i,t);return True
    except RuntimeError:return False
@@ -76,6 +79,9 @@ class Onboarding(base.Readiness):
   self.assertEqual(json.loads(self.sql("set role service_role;select public.business_staff_mail_claim('preview')")),{})
   self.sql('set role service_role;select public.business_staff_mail_finish('+','.join(map(lit,[i,j['lease'],'provider-test',False]))+')')
   self.assertEqual(self.sql('select delivery from authorization_private.staff_invites where id='+lit(i)),'provider_accepted')
+  self.sql("update authorization_private.staff_invites set delivery='sending',attempts=6,lease_until=now()-interval '1 minute' where id="+lit(i))
+  self.assertEqual(json.loads(self.sql("set role service_role;select public.business_staff_mail_claim('preview')")),{})
+  self.assertEqual(self.sql('select delivery from authorization_private.staff_invites where id='+lit(i)),'failed')
  def test_onboard_08_php_invite_accept_and_stale_session(self):
   self.enable();private=self.private/'profiles';config=private/'config.php';router=private/'router.php';oldconfig=config.read_text();oldrouter=router.read_text();oldurl=type(self).url
   try:

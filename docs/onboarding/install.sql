@@ -46,14 +46,14 @@ begin
  return jsonb_build_object('id',i);
 end$$;
 create function public.business_staff_invite_accept(p_id uuid,p_environment text,p_token text) returns jsonb language plpgsql security definer set search_path='' as $$
-declare i authorization_private.staff_invites; s public.business_staff; b uuid; e text; verified text;
+declare i authorization_private.staff_invites; s public.business_staff; b uuid; e text; sid uuid; verified text;
 begin
- select business_id,environment into b,e from authorization_private.staff_invites where id=p_id;
+ select business_id,environment,staff_id into b,e,sid from authorization_private.staff_invites where id=p_id;
  perform 1 from public.businesses where id=b for update;
+ select * into s from public.business_staff where id=sid and business_id=b and environment=e for update;
  select * into i from authorization_private.staff_invites where id=p_id for update;
  select lower(email) into verified from auth.users where id=auth.uid() and email_confirmed_at is not null for share;
  if p_environment is null or i.environment is distinct from p_environment or i.id is null or verified is null or verified<>i.email or coalesce((auth.jwt()->>'is_anonymous')::boolean,true) or p_token is null or p_token!~'^[a-f0-9]{64}$' or i.token_hash<>extensions.digest(p_token,'sha256') or i.accepted_at is not null or i.revoked_at is not null or i.expires_at<=clock_timestamp() or not authorization_private.staff_onboarding_scope(b,e) then raise exception 'Invitation unavailable or wrong account';end if;
- select * into s from public.business_staff where id=i.staff_id and business_id=b and environment=e for update;
  if not s.active or lower(btrim(s.email))<>i.email then raise exception 'Staff details changed; request a new invitation';end if;
  insert into public.business_memberships values(b,e,auth.uid(),i.role,true) on conflict(business_id,environment,user_id) do update set active=true,role=excluded.role where not public.business_memberships.active and public.business_memberships.role<>'owner';
  if not found then raise exception 'Membership already active';end if;
@@ -79,6 +79,7 @@ end$$;
 create function public.business_staff_mail_claim(p_environment text) returns jsonb language plpgsql security definer set search_path='' as $$
 declare i authorization_private.staff_invites;
 begin
+ update authorization_private.staff_invites set delivery='failed',lease_until=null where environment=p_environment and delivery='sending' and attempts>=6 and lease_until<clock_timestamp();
  select q.* into i from authorization_private.staff_invites q where q.environment=p_environment and q.revoked_at is null and q.accepted_at is null and q.expires_at>clock_timestamp() and authorization_private.staff_onboarding_scope(q.business_id,q.environment) and q.attempts<6 and q.next_attempt<=clock_timestamp() and (q.delivery='queued' or (q.delivery='sending' and q.lease_until<clock_timestamp())) order by q.created_at for update skip locked limit 1;
  if not found then return '{}';end if;
  update authorization_private.staff_invites set delivery='sending',attempts=attempts+1,lease=gen_random_uuid(),lease_until=clock_timestamp()+interval '2 minutes' where id=i.id returning * into i;
@@ -112,4 +113,16 @@ begin
 end$$;
 revoke all on function public.business_staff_invite_preview(uuid,text,text),public.business_staff_offboard(uuid,text,uuid) from public,anon,authenticated,service_role;
 grant execute on function public.business_staff_invite_preview(uuid,text,text),public.business_staff_offboard(uuid,text,uuid) to authenticated;
+create function authorization_private.staff_invite_profile_change() returns trigger language plpgsql security definer set search_path='' as $$
+declare i uuid;
+begin
+ if lower(btrim(new.email)) is distinct from lower(btrim(old.email)) or not new.active then
+  for i in update authorization_private.staff_invites set revoked_at=clock_timestamp(),delivery=case when delivery='provider_accepted' then delivery else 'cancelled' end where staff_id=new.id and business_id=new.business_id and environment=new.environment and accepted_at is null and revoked_at is null returning id loop
+   insert into authorization_private.events(business_id,environment,actor,action,subject) values(new.business_id,new.environment,auth.uid(),'staff.invite.profile_changed',i);
+  end loop;
+ end if;
+ return new;
+end$$;
+revoke all on function authorization_private.staff_invite_profile_change() from public,anon,authenticated,service_role;
+create trigger staff_invitation_profile_change after update of email,active on public.business_staff for each row execute function authorization_private.staff_invite_profile_change();
 commit;
