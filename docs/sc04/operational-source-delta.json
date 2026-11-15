@@ -1,0 +1,10 @@
+{
+  ".github/workflows/database-backup.yml": {
+    "baseline_sha256": "4b3e65ad68be7c07e5d04c4a85488276983dbbedb4e7df50816b8254dfb563dd",
+    "candidate_sha256": "b3b11bdef17ce6cf3ad388cc505cc50d0e1bfe3c9a216ad4fafddefdfe204de3"
+  },
+  ".github/workflows/database-restore-check.yml": {
+    "baseline_sha256": "92634f9ffc1a50ba5fba0b5d3873baaf389ac9c5526a9a97190f13c6f4d2362e",
+    "candidate_sha256": "f5058050c5ef4c9ff5b5345f91f6d25cce10934883b15636c2955420554b5145"
+  }
+}
