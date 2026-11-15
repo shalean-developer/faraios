@@ -19,7 +19,22 @@ class Baseline(unittest.TestCase):
 
     def test_01_inventory_reproducible_and_complete(self):
         self.assertEqual(self.inventory,build())
-        self.assertEqual(json.loads((ROOT/'docs/sc02/preservation-manifest.json').read_text()),manifest())
+        # Preserve the historical SC-02 manifest. Only these reviewed operational
+        # workflow bytes may differ; every other original file remains exact.
+        expected=copy.deepcopy(json.loads((ROOT/'docs/sc02/preservation-manifest.json').read_text()))
+        delta=json.loads((ROOT/'docs/sc04/operational-source-delta.json').read_text())
+        self.assertEqual(set(delta),{'.github/workflows/database-backup.yml',
+                                     '.github/workflows/database-restore-check.yml'})
+        found=set()
+        for entry in expected['files']:
+            if entry['path'] in delta:
+                change=delta[entry['path']]
+                self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
+                self.assertEqual(entry['sha256'],change['baseline_sha256'])
+                entry['sha256']=change['candidate_sha256']
+                found.add(entry['path'])
+        self.assertEqual(found,set(delta))
+        self.assertEqual(expected,manifest())
         self.assertEqual(len(self.inventory['files']),31)
         self.assertEqual({r['name'] for r in self.inventory['sql'] if r['kind']=='view'},
             {'public.business_quote_list','public.business_booking_schedule','public.business_invoice_list'})

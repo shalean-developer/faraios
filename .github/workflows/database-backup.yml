@@ -24,7 +24,9 @@ jobs:
           BACKUP_PASSPHRASE: ${{ secrets.FARAIOS_BACKUP_PASSPHRASE }}
           BACKUP_PG_IMAGE: postgres:17.11
           BACKUP_OUTPUT: ${{ runner.temp }}/faraios-encrypted-backups
-        run: python3 scripts/database-backup.py
+        run: |
+          python3 docs/sc04/shared.py "$RUNNER_TEMP/sc04-backup-runtime"
+          python3 "$RUNNER_TEMP/sc04-backup-runtime/application/scripts/database-backup.py"
       - name: Retain only encrypted backup and checksum
         uses: actions/upload-artifact@v4
         with:
