@@ -57,6 +57,14 @@ class Baseline(unittest.TestCase):
             self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
             self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
             original[path]={'path':path,'sha256':change['candidate_sha256']}
+        walkthrough=json.loads((ROOT/'docs/walkthrough/source-delta.json').read_text())
+        self.assertEqual(set(walkthrough),{'.htaccess','sitemap.php','index.html',
+            'about.html','pricing.html','guides/enquiry-to-invoice.html',
+            'walkthrough.css','release/walkthrough/walkthrough-preview.zip'})
+        for path,change in walkthrough.items():
+            self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
+            self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
+            original[path]={'path':path,'sha256':change['candidate_sha256']}
         expected['files']=[original[path] for path in sorted(original,key=Path)]
         self.assertEqual(expected,manifest())
         self.assertEqual(len(self.inventory['files']),31)

@@ -11161,7 +11161,7 @@
     },
     {
       "path": "sitemap.php",
-      "line": 15,
+      "line": 16,
       "text": "$rows=api('/rest/v1/business_public_pages?environment=eq.live&select=slug,document&order=slug.asc&limit=500'.($last!==''?'&slug=gt.'.rawurlencode($last):''),[],'GET');",
       "literal_rpcs": [],
       "methods": [
