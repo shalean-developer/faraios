@@ -1,0 +1,80 @@
+{
+  "preview": false,
+  "passed": true,
+  "checks": 7,
+  "results": [
+    {
+      "path": "/guides/enquiry-to-invoice",
+      "checks": {
+        "200": true,
+        "exact_bytes": true,
+        "one_h1": true,
+        "canonical": true,
+        "description": true,
+        "preview_header": true,
+        "anchors": true,
+        "unique_ids": true,
+        "article": true,
+        "no_form": true
+      },
+      "passed": true
+    },
+    {
+      "path": "/pricing",
+      "checks": {
+        "200": true,
+        "exact_bytes": true,
+        "one_h1": true,
+        "canonical": true,
+        "description": true,
+        "preview_header": true,
+        "anchors": true,
+        "unique_ids": true
+      },
+      "passed": true
+    },
+    {
+      "path": "/about.html",
+      "checks": {
+        "200": true,
+        "exact_bytes": true,
+        "one_h1": true,
+        "canonical": true,
+        "description": true,
+        "preview_header": true,
+        "anchors": true,
+        "unique_ids": true
+      },
+      "passed": true
+    },
+    {
+      "path": "/",
+      "checks": {
+        "200": true,
+        "exact_bytes": true,
+        "one_h1": true,
+        "canonical": true,
+        "description": true,
+        "preview_header": true,
+        "anchors": true,
+        "unique_ids": true
+      },
+      "passed": true
+    },
+    {
+      "path": "/guides/enquiry-to-invoice.html",
+      "status": 301,
+      "passed": true
+    },
+    {
+      "path": "/guides/enquiry-to-invoice/",
+      "status": 301,
+      "passed": true
+    },
+    {
+      "path": "/guides/not-a-real-guide",
+      "status": 404,
+      "passed": true
+    }
+  ]
+}

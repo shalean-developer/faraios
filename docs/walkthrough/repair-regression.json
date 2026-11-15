@@ -1,0 +1,279 @@
+{
+  "preview": false,
+  "base": "https://www.faraios.com",
+  "passed": true,
+  "checks": 35,
+  "results": [
+    {
+      "path": "/terms",
+      "checks": {
+        "status_200": true,
+        "one_h1": true,
+        "canonical": true,
+        "description": true,
+        "exact_bytes": true,
+        "preview_excluded": true
+      },
+      "sha256": "01eb247698701e7b8a3820647d727295065750d22b5772d0ab54b4f710a8954e",
+      "passed": true
+    },
+    {
+      "path": "/pricing",
+      "checks": {
+        "status_200": true,
+        "one_h1": true,
+        "canonical": true,
+        "description": true,
+        "exact_bytes": true,
+        "preview_excluded": true
+      },
+      "sha256": "a9833a001f8bc06f672f4cedadabc28ff5cb364768dd7eac858fd76b64a371b0",
+      "passed": true
+    },
+    {
+      "path": "/marketplace",
+      "checks": {
+        "status_200": true,
+        "one_h1": true,
+        "canonical": true,
+        "description": true,
+        "exact_bytes": true,
+        "preview_excluded": true
+      },
+      "sha256": "a111029b70484b62c69e2a472706d7b34cc9ab7e4448e5b665ecfbecf824ef9c",
+      "passed": true
+    },
+    {
+      "path": "/industries/electrical",
+      "checks": {
+        "status_200": true,
+        "one_h1": true,
+        "canonical": true,
+        "description": true,
+        "exact_bytes": true,
+        "preview_excluded": true
+      },
+      "sha256": "01fae49343a420648811d89303f7747aef356d0d47d90493bb1e424d114cdaa9",
+      "passed": true
+    },
+    {
+      "path": "/industries/security",
+      "checks": {
+        "status_200": true,
+        "one_h1": true,
+        "canonical": true,
+        "description": true,
+        "exact_bytes": true,
+        "preview_excluded": true
+      },
+      "sha256": "f1f974afdefda46ba80817d8f0de541efac5e539fdd92b5cfbff24090a28326c",
+      "passed": true
+    },
+    {
+      "path": "/industries/beauty-spa",
+      "checks": {
+        "status_200": true,
+        "one_h1": true,
+        "canonical": true,
+        "description": true,
+        "exact_bytes": true,
+        "preview_excluded": true
+      },
+      "sha256": "94ba3d415f55641efb052fb38dd844310028171c070851887920bc0792344ffc",
+      "passed": true
+    },
+    {
+      "path": "/industries/cleaning",
+      "checks": {
+        "status_200": true,
+        "one_h1": true,
+        "canonical": true,
+        "description": true,
+        "exact_bytes": true,
+        "preview_excluded": true
+      },
+      "sha256": "a29e2aa359b78a741977aae4ec57cfbc4de25ff38ee620eeffee00f33481d075",
+      "passed": true
+    },
+    {
+      "path": "/industries/fitness",
+      "checks": {
+        "status_200": true,
+        "one_h1": true,
+        "canonical": true,
+        "description": true,
+        "exact_bytes": true,
+        "preview_excluded": true
+      },
+      "sha256": "c86e0fd10ef3610d91c1dca46d8529234714e118d25ed3a08fb164c67f413470",
+      "passed": true
+    },
+    {
+      "path": "/industries/consulting",
+      "checks": {
+        "status_200": true,
+        "one_h1": true,
+        "canonical": true,
+        "description": true,
+        "exact_bytes": true,
+        "preview_excluded": true
+      },
+      "sha256": "eaec0941de0dc418ebef6aaea81b266b44dde5e45182fa78f01fecbb2c653e2c",
+      "passed": true
+    },
+    {
+      "path": "/terms.html",
+      "status": 301,
+      "location": "https://www.faraios.com/terms",
+      "passed": true
+    },
+    {
+      "path": "/terms/",
+      "status": 301,
+      "location": "https://www.faraios.com/terms",
+      "passed": true
+    },
+    {
+      "path": "/pricing.html",
+      "status": 301,
+      "location": "https://www.faraios.com/pricing",
+      "passed": true
+    },
+    {
+      "path": "/pricing/",
+      "status": 301,
+      "location": "https://www.faraios.com/pricing",
+      "passed": true
+    },
+    {
+      "path": "/marketplace.html",
+      "status": 301,
+      "location": "https://www.faraios.com/marketplace",
+      "passed": true
+    },
+    {
+      "path": "/marketplace/",
+      "status": 301,
+      "location": "https://www.faraios.com/marketplace",
+      "passed": true
+    },
+    {
+      "path": "/industries/electrical.html",
+      "status": 301,
+      "location": "https://www.faraios.com/industries/electrical",
+      "passed": true
+    },
+    {
+      "path": "/industries/electrical/",
+      "status": 301,
+      "location": "https://www.faraios.com/industries/electrical",
+      "passed": true
+    },
+    {
+      "path": "/industries/security.html",
+      "status": 301,
+      "location": "https://www.faraios.com/industries/security",
+      "passed": true
+    },
+    {
+      "path": "/industries/security/",
+      "status": 301,
+      "location": "https://www.faraios.com/industries/security",
+      "passed": true
+    },
+    {
+      "path": "/industries/beauty-spa.html",
+      "status": 301,
+      "location": "https://www.faraios.com/industries/beauty-spa",
+      "passed": true
+    },
+    {
+      "path": "/industries/beauty-spa/",
+      "status": 301,
+      "location": "https://www.faraios.com/industries/beauty-spa",
+      "passed": true
+    },
+    {
+      "path": "/industries/cleaning.html",
+      "status": 301,
+      "location": "https://www.faraios.com/industries/cleaning",
+      "passed": true
+    },
+    {
+      "path": "/industries/cleaning/",
+      "status": 301,
+      "location": "https://www.faraios.com/industries/cleaning",
+      "passed": true
+    },
+    {
+      "path": "/industries/fitness.html",
+      "status": 301,
+      "location": "https://www.faraios.com/industries/fitness",
+      "passed": true
+    },
+    {
+      "path": "/industries/fitness/",
+      "status": 301,
+      "location": "https://www.faraios.com/industries/fitness",
+      "passed": true
+    },
+    {
+      "path": "/industries/consulting.html",
+      "status": 301,
+      "location": "https://www.faraios.com/industries/consulting",
+      "passed": true
+    },
+    {
+      "path": "/industries/consulting/",
+      "status": 301,
+      "location": "https://www.faraios.com/industries/consulting",
+      "passed": true
+    },
+    {
+      "path": "/privacy",
+      "status": 301,
+      "location": "https://www.faraios.com/privacy.html",
+      "passed": true
+    },
+    {
+      "path": "/privacy/",
+      "status": 301,
+      "location": "https://www.faraios.com/privacy.html",
+      "passed": true
+    },
+    {
+      "path": "/platform/about",
+      "status": 301,
+      "location": "https://www.faraios.com/about.html",
+      "passed": true
+    },
+    {
+      "path": "/platform/about/",
+      "status": 301,
+      "location": "https://www.faraios.com/about.html",
+      "passed": true
+    },
+    {
+      "path": "/marketplace/shalean-cleaning-services",
+      "status": 301,
+      "location": "https://www.faraios.com/b/shalean-cleaning-services",
+      "passed": true
+    },
+    {
+      "path": "/marketplace/shalean-cleaning-services/",
+      "status": 301,
+      "location": "https://www.faraios.com/b/shalean-cleaning-services",
+      "passed": true
+    },
+    {
+      "path": "/industries/not-a-real-industry",
+      "status": 404,
+      "passed": true
+    },
+    {
+      "path": "/not-a-real-page",
+      "status": 404,
+      "passed": true
+    }
+  ]
+}
