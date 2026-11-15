@@ -140,3 +140,20 @@
 .ui-business .customer-main h1{font-size:32px;line-height:1.2;letter-spacing:-1px;font-weight:600}
 .ui-business .customer-main h2{font-size:24px;line-height:1.3}
 @media(max-width:800px){.site-header nav{margin:0}}
+
+/* Action buttons use the homepage scale in every platform page family. */
+.ui-page.ui-content .button,
+.ui-page.ui-workspace :is(.button,.button.secondary,.app-create,.page-create,.create-menu summary,.account-save,.account-dashboard-link,.account-signout),
+.ui-page.ui-auth :is(.primary,.wl-submit),
+.ui-page.ui-document .button,
+.ui-page.ui-business .home-button{
+ display:inline-flex;align-items:center;justify-content:center;gap:22px;
+ min-height:50px;padding:12px 22px;border-radius:var(--f-control-radius);
+ font-family:var(--f-font);font-size:16px;font-weight:650;line-height:1.5;
+ text-align:center;text-decoration:none;white-space:normal;max-width:100%;cursor:pointer;
+}
+.ui-page.ui-auth a.primary{color:white}
+.ui-page.ui-workspace :is(.text-button,.quick-links a,.booking-views a){font-size:16px;line-height:1.5;min-height:44px}
+.ui-page.ui-workspace .text-button{color:var(--f-teal);cursor:pointer}
+.ui-page :is(.button,.primary,.wl-submit,.app-create,.page-create,.account-save,.account-dashboard-link,.account-signout,.home-button) :is(.icon,.home-icon){width:20px;height:20px;flex:none}
+.ui-page :is(button,.button,.primary)[disabled],.ui-page [aria-disabled=true]{cursor:not-allowed}
