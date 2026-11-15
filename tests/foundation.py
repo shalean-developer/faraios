@@ -73,7 +73,7 @@ class Foundation(Invoices):
   self.assertIn('PASS:',self.sql(hosted))
   # Real form journey: zero total requires an extra confirmation, then shares normally.
   private=self.private/'profiles';config=private/'config.php';config.write_text(config.read_text().replace(self.url,self.url+'/preview'))
-  (private/'router.php').write_text("<?php $path=preg_replace('~^/preview~','',parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));$_SERVER['SCRIPT_NAME']=$path;$_SERVER['SCRIPT_FILENAME']="+repr(str(Path(__file__).resolve().parents[1]))+".$path;require $_SERVER['SCRIPT_FILENAME'];return true;")
+  (private/'router.php').write_text("<?php $path=preg_replace('~^/preview~','',parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));$_SERVER['SCRIPT_NAME']=$path;$_SERVER['SCRIPT_FILENAME']="+repr(str(getattr(self,'webroot',Path(__file__).resolve().parents[1])))+".$path;require $_SERVER['SCRIPT_FILENAME'];return true;")
   type(self).url+='/preview'
   self.post('/account/index.php?page=signin',email='a@example.test',password='test-long-password')
   html=self.post('/account/quotes.php?new=1',action='save',version=0,name=doc['name'],email=doc['email'],phone='',notes='',expires_on=due,item_name_0='Free consultation',quantity_0='1',price_0='0')

@@ -1,0 +1,40 @@
+{
+  "status": "PASS isolated candidate; no rollout",
+  "base": "43609483cd04a24b86061b943042d52e07961274",
+  "main": "e0d45923b441d7833e048faa041a3f0e16cfe1e2",
+  "postgres": "postgres (PostgreSQL) 17.11 (Debian 17.11-0+deb13u1)",
+  "php": "PHP 8.4.27 (cli) (built: Oct 21 2026 07:53:46) (NTS)",
+  "full_regression": {
+    "passed": true,
+    "suites": 29,
+    "methods": 58
+  },
+  "sc04_final_native": {
+    "recovery_owner_outsider_scopes": 24,
+    "denial_matrix_cases": 252,
+    "legacy_issued_documents_and_ledger_seeded": true,
+    "publication_and_private_revision_seeded": true,
+    "original_rows_preserved": true,
+    "rollback_preserves_every_row": true,
+    "guarded_functions": 42,
+    "synthetic_only": true,
+    "hosted_changes": false,
+    "delegation_enabled": false,
+    "encrypted_export": true,
+    "triggers_schema_grants_audit_sequence_equal": true,
+    "restored_table_count": 39,
+    "all_row_fingerprints_equal": true,
+    "policies_function_bodies_effective_acls_equal": true,
+    "postgres": "17.11 (Debian 17.11-0+deb13u1)",
+    "archive_sha256": "d43ed378ed0937935f63b801d4587ec3524d81dd05dbd2408c66d91b70058edf"
+  },
+  "syntax_and_compilation": "PASS",
+  "frozen_SC02_baseline": "PASS unchanged",
+  "remote_CI": "Not run: branch push blocked by automatic approval review under no-republication restriction; no draft PR or remote SC04 branch",
+  "limitations": [
+    "Disposable PostgreSQL; simulated Auth/REST",
+    "No hosted drift, real-record or managed provider equivalence claim",
+    "No delegation activation; separate rollout gate"
+  ],
+  "implementation_commit": "4935919"
+}
