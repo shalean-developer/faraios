@@ -1,6 +1,11 @@
 Options -Indexes
 <IfModule mod_rewrite.c>
 RewriteEngine On
+# Public product walkthrough; keep canonical aliases bounded.
+RewriteCond %{THE_REQUEST} "\s/+[^?\ ]*guides/enquiry-to-invoice\.html[?\ ]" [NC]
+RewriteRule ^guides/enquiry-to-invoice\.html$ guides/enquiry-to-invoice [R=301,L]
+RewriteRule ^guides/enquiry-to-invoice/$ guides/enquiry-to-invoice [R=301,L]
+RewriteRule ^guides/enquiry-to-invoice$ guides/enquiry-to-invoice.html [L]
 # Exact legacy equivalents; never redirect unknown pages to the homepage.
 RewriteRule ^privacy/?$ privacy.html [R=301,L]
 RewriteRule ^platform/about/?$ about.html [R=301,L]
