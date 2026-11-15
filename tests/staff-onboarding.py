@@ -164,6 +164,13 @@ class Onboarding(base.Readiness):
   with self.assertRaises(RuntimeError):self.invoke(self.ids[0],'business_staff_offboard',p_staff=s)
   self.sql('update authorization_private.staff_onboarding_businesses set enabled=true')
   self.accept(u,i,t)
+ def test_onboard_13_role_history_is_not_current_access(self):
+  u,s,i,t=self.fixture('manager');self.accept(u,i,t)
+  self.invoke(self.ids[0],'business_membership_revoke',p_user=u)
+  token=uuid.uuid4().hex+uuid.uuid4().hex
+  second=json.loads(self.invoke(self.ids[0],'business_staff_invite',p_staff=s,p_role='receptionist',p_hash=hashlib.sha256(token.encode()).hexdigest(),p_sealed='x'*150))['id'];self.accept(u,second,token)
+  rows={x['id']:x for x in json.loads(self.invoke(self.ids[0],'business_staff_invite_list'))}
+  self.assertEqual(rows[i]['status'],'Revoked');self.assertEqual(rows[second]['status'],'Active')
 if __name__=='__main__':
  suite=unittest.TestSuite(Onboarding(n) for n in sorted(dir(Onboarding)) if n.startswith('test_onboard_') and (n!='test_onboard_11_mobile_desktop_browser' or os.environ.get('FARAIOS_ONBOARDING_BROWSER')=='true'))
  result=unittest.TextTestRunner(verbosity=2).run(suite);raise SystemExit(not result.wasSuccessful())

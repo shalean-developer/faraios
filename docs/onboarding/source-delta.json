@@ -25,11 +25,11 @@
   },
   "notifications/staff-invitation.php": {
     "baseline_sha256": null,
-    "candidate_sha256": "7b6b66015f988ed9d90fccf58ab2e5948104981e6149b41661262e4b1c811429"
+    "candidate_sha256": "3a270bd1d729c5b114a86ea88047abdb8ed79c790326e2640abc25ba69ddadb8"
   },
   "scripts/staff-invitation-worker.php": {
     "baseline_sha256": null,
-    "candidate_sha256": "6e8a36de5e2df41951735f5b15655673a766ee656cc395f3fa95c1f983a67e48"
+    "candidate_sha256": "90872bdf15810a037c1f87b208aed2cc27149a8326d2c4b79cf2edd443c2890a"
   },
   "scripts/staff-invitation-keygen.php": {
     "baseline_sha256": null,

@@ -8,7 +8,7 @@ function mail_http(string $url,array $body,array $headers): array {
  preg_match('/\s(\d{3})\s/',$http_response_header[0]??'',$m);return ['status'=>(int)($m[1]??0),'body'=>json_decode($raw?:'{}',true)];
 }
 function mail_rpc(array $c,string $name,array $args): array {
- $r=mail_http($c['supabase_url'].'/rest/v1/rpc/'.$name,$args,['apikey: '.$c['service_key'],'Authorization: Bearer '.$c['service_key']]);if($r['status']!==200||!is_array($r['body']))throw new RuntimeException('Mail queue unavailable');return $r['body'];
+ $r=mail_http($c['supabase_url'].'/rest/v1/rpc/'.$name,$args,['apikey: '.$c['service_key'],'Authorization: Bearer '.$c['service_key']]);return staff_mail_rpc_result($name,$r);
 }
 try {
  $path=getenv('FARAIOS_STAFF_MAIL_CONFIG')?:'/var/www/vhosts/shalean.com/private/faraios-staff-invite/worker.php';

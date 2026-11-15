@@ -11155,7 +11155,7 @@
     },
     {
       "path": "notifications/staff-invitation.php",
-      "line": 16,
+      "line": 21,
       "text": "$j=$rpc('business_staff_mail_claim',['p_environment'=>$c['environment']]);if(empty($j['id']))break;",
       "literal_rpcs": [
         "business_staff_mail_claim"
@@ -11164,7 +11164,7 @@
     },
     {
       "path": "notifications/staff-invitation.php",
-      "line": 24,
+      "line": 29,
       "text": "$rpc('business_staff_mail_finish',['p_id'=>$j['id'],'p_lease'=>$j['lease'],'p_provider'=>$provider,'p_retry'=>$retry]);$n++;",
       "literal_rpcs": [
         "business_staff_mail_finish"
@@ -11223,7 +11223,7 @@
     {
       "path": "scripts/staff-invitation-worker.php",
       "line": 11,
-      "text": "$r=mail_http($c['supabase_url'].'/rest/v1/rpc/'.$name,$args,['apikey: '.$c['service_key'],'Authorization: Bearer '.$c['service_key']]);if($r['status']!==200||!is_array($r['body']))throw new RuntimeException('Mail queue unavailable');return $r['body'];",
+      "text": "$r=mail_http($c['supabase_url'].'/rest/v1/rpc/'.$name,$args,['apikey: '.$c['service_key'],'Authorization: Bearer '.$c['service_key']]);return staff_mail_rpc_result($name,$r);",
       "literal_rpcs": [],
       "methods": []
     },

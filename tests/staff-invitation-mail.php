@@ -1,6 +1,8 @@
 <?php
 require __DIR__.'/../notifications/staff-invitation.php';
 function check($x){if(!$x)throw new RuntimeException('Invitation mail assertion failed');}
+check(staff_mail_rpc_result('business_staff_mail_finish',['status'=>204,'body'=>null])===[]);
+$denied=false;try{staff_mail_rpc_result('business_staff_mail_claim',['status'=>204,'body'=>null]);}catch(RuntimeException $e){$denied=true;}check($denied);
 $pair=sodium_crypto_box_keypair();$public=sodium_crypto_box_publickey($pair);$secret=sodium_crypto_box_secretkey($pair);$token=str_repeat('a',64);
 $c=['environment'=>'preview','base_url'=>'https://www.faraios.com/_accounts-preview','sender'=>'notifications@notify.faraios.com','public_key'=>bin2hex($public),'secret_key'=>bin2hex($secret),'allow_recipients'=>['invitee@example.test']];
 $j=['id'=>'11111111-1111-1111-1111-111111111111','lease'=>'test-lease','recipient'=>'invitee@example.test','role'=>'worker','environment'=>'preview','business'=>'Synthetic <script>','expires_at'=>'2026-11-16','sealed_token'=>base64_encode(sodium_crypto_box_seal($token,$public))];

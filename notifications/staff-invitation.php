@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 if(realpath($_SERVER['SCRIPT_FILENAME']??'')===__FILE__){http_response_code(403);exit;}
+function staff_mail_rpc_result(string $name,array $response): array {
+ if($name==='business_staff_mail_finish'&&$response['status']===204)return [];
+ if($response['status']===200&&is_array($response['body']))return $response['body'];
+ throw new RuntimeException('Invitation mail queue unavailable');
+}
 function staff_mail_message(array $job,array $c): array {
  $sealed=base64_decode($job['sealed_token'],true);$pair=sodium_crypto_box_keypair_from_secretkey_and_publickey(hex2bin($c['secret_key']),hex2bin($c['public_key']));
  $token=$sealed===false?false:sodium_crypto_box_seal_open($sealed,$pair);
