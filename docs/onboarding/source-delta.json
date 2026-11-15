@@ -38,5 +38,9 @@
   "account/staff-onboarding.css": {
     "baseline_sha256": null,
     "candidate_sha256": "552005426dd07c55b9e802e70f3f5ce167b163208b6fdc079725e561f5efb10d"
+  },
+  "scripts/private_config.php": {
+    "baseline_sha256": "4b29f0cba38995d6362c404a0966db7d92681a420370dbcad0fb7f7f20446284",
+    "candidate_sha256": "37f21d0935ba82674fa54a73f191347688e3017db111cef4ce85970028430c5c"
   }
 }

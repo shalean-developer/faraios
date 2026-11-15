@@ -11565,7 +11565,7 @@
     },
     {
       "path": "scripts/private_config.php",
-      "line": 6,
+      "line": 7,
       "text": "function pc_write(string $path,string $bytes): void {if(is_link($path)||file_put_contents($path,$bytes,LOCK_EX)===false||!chmod($path,0600))throw new RuntimeException();}"
     },
     {
