@@ -10,8 +10,8 @@ if (search) {
       if (!row.hidden) count++;
     }
     document.getElementById('matches').textContent = count
-      ? `${count} staff found`
-      : 'No matching staff in this business and environment.';
+      ? `${count} ${count === 1 ? 'person' : 'people'}`
+      : 'No matching staff.';
   }
   search.addEventListener('input', filterStaff);
   filterStaff();
