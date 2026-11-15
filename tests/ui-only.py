@@ -17,7 +17,7 @@ class UIOnly(unittest.TestCase):
   for path in ['account/index.php','account/account-view.php','b/index.php','quote/index.php','invoice/index.php']:
    self.assertIn('ui/design-system.css',(ROOT/path).read_text())
  def test_shared_navigation_and_asset_paths(self):
-  for p in list(ROOT.glob('*.html'))+list((ROOT/'industries').glob('*.html')):
+  for p in list(ROOT.glob('*.html'))+list((ROOT/'industries').glob('*.html'))+list((ROOT/'guides').glob('*.html')):
    s=p.read_text();self.assertIn('ui/design-system.css',s)
    if 'ui-content' in s:
     self.assertEqual(s.count('class="site-header"'),1,p.name);self.assertEqual(s.count('class="site-footer"'),1,p.name)

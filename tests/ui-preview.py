@@ -54,6 +54,8 @@ try:
  snapshot('/preview/account/index.php?page=welcome&edit=personal','account/welcome-edit.html')
  for page in ['','services','how-it-works','areas','contact']:
   snapshot('/preview/b/journey-field-service'+('/'+page if page else ''),'business-example/'+(page or 'index')+'.html')
+ snapshot('/preview/account/customer.php?slug=journey-field-service','account/customer.html')
+ snapshot('/preview/account/customer-help.php?slug=journey-field-service','account/customer-help.html')
  for kind,table,idkey in [('quote','business_quotes','quote'),('invoice','business_invoices','invoice')]:
   token=case.scope(case.ids[0],'select share_token from public.'+table+' where id='+lit(ids[idkey]))
   snapshot('/'+kind+'/index.php?token='+token,kind+'/index.html')
@@ -71,10 +73,11 @@ RewriteRule ^ - [F,L]
 RewriteCond %{QUERY_STRING} ^page=(signup|signin|forgot|verify|confirm|welcome|business)(?:&|$)
 RewriteRule ^account/index\\.php$ account/%1.html [R=302,L,QSD]
 RewriteRule ^account/index\\.php$ account/signin.html [R=302,L,QSD]
+RewriteRule ^guides/enquiry-to-invoice$ guides/enquiry-to-invoice.html [L]
 RewriteRule ^(features|hosting|industries|pricing|marketplace|terms|industries/(?:tourism|gardening|technology|construction|cleaning|electrical|security|beauty-spa|fitness|consulting))$ $1.html [L]
 </IfModule>
 ''')
-links=['index.html','features','about.html','contact.html','privacy.html','terms','pricing','marketplace','industries','waitlist.html']+[x['snapshot'] for x in records]
+links=['index.html','features','about.html','contact.html','privacy.html','terms','pricing','marketplace','industries','waitlist.html','guides/enquiry-to-invoice']+[x['snapshot'] for x in records]
 (base/'review.html').write_text('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>FaraiOS UI review</title><link rel="stylesheet" href="ui/design-system.css"></head><body class="ui-page"><main style="max-width:960px;margin:40px auto;padding:24px"><h1>FaraiOS UI preview</h1><p>Homepage-derived styling. Account, business and document examples use disposable synthetic data. Forms cannot submit.</p><ul>'+''.join('<li style="padding:8px"><a href="'+p+'">'+p+'</a></li>' for p in links)+'</ul></main></body></html>')
 (OUT/'rendered-views.json').write_text(json.dumps(records,indent=2)+'\n')
 with zipfile.ZipFile(OUT/'preview.zip','w',zipfile.ZIP_DEFLATED) as z:
