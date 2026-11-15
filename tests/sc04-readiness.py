@@ -85,7 +85,7 @@ class Readiness(base.Shared):
   self.enable();recipient=self.newuser();oldurl=type(self).url;private=self.private/'profiles';config=private/'config.php';router=private/'router.php';oldconfig=config.read_text();oldrouter=router.read_text()
   try:
    config.write_text(oldconfig.replace(self.url,self.url+'/preview'))
-   router.write_text("<?php $path=preg_replace('~^/preview~','',parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));$_SERVER['SCRIPT_NAME']=$path;$_SERVER['SCRIPT_FILENAME']="+repr(str(self.webroot))+".$path;require $_SERVER['SCRIPT_FILENAME'];return true;")
+   router.write_text("<?php $path=preg_replace('~^/preview~','',parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));$_SERVER['SCRIPT_NAME']=$path;$_SERVER['SCRIPT_FILENAME']="+repr(str(self.webroot))+".$path;if(preg_match('~\\.(css|js|svg)$~',$path,$m)){header('Content-Type: '.['css'=>'text/css','js'=>'application/javascript','svg'=>'image/svg+xml'][$m[1]]);readfile($_SERVER['SCRIPT_FILENAME']);return true;}require $_SERVER['SCRIPT_FILENAME'];return true;")
    type(self).url+='/preview';type(self).sc04_login_user=self.ids[0]
    self.post('/account/index.php?page=signin',email='a@example.test',password='test-long-password')
    html=self.post('/account/access.php',action='invite',recipient=recipient,role='worker')
@@ -123,7 +123,7 @@ class Readiness(base.Shared):
   out=ROOT/'test-results/release';out.mkdir(parents=True,exist_ok=True)
   try:
    config.write_text(oldconfig.replace(self.url,self.url+'/preview'))
-   router.write_text("<?php $path=preg_replace('~^/preview~','',parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));$_SERVER['SCRIPT_NAME']=$path;$_SERVER['SCRIPT_FILENAME']="+repr(str(self.webroot))+".$path;require $_SERVER['SCRIPT_FILENAME'];return true;")
+   router.write_text("<?php $path=preg_replace('~^/preview~','',parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));$_SERVER['SCRIPT_NAME']=$path;$_SERVER['SCRIPT_FILENAME']="+repr(str(self.webroot))+".$path;if(preg_match('~\\.(css|js|svg)$~',$path,$m)){header('Content-Type: '.['css'=>'text/css','js'=>'application/javascript','svg'=>'image/svg+xml'][$m[1]]);readfile($_SERVER['SCRIPT_FILENAME']);return true;}require $_SERVER['SCRIPT_FILENAME'];return true;")
    type(self).url+='/preview'
    with sync_playwright() as playwright:
     browser=playwright.chromium.launch()
