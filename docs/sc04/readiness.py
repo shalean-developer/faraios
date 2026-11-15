@@ -39,6 +39,6 @@ def stage(destination):
  s=s.replace("$_SESSION=[];session_regenerate_id(true);$_SESSION['csrf']","$pending=$_SESSION['staff_join']??null;$_SESSION=[];if($pending)$_SESSION['staff_join']=$pending;session_regenerate_id(true);$_SESSION['csrf']")
  s=s.replace("$_SESSION=['csrf'=>bin2hex(random_bytes(32)),'notice'=>$e->getMessage()];", "$pending=$_SESSION['staff_join']??null;$_SESSION=['csrf'=>bin2hex(random_bytes(32)),'notice'=>$e->getMessage()];if($pending)$_SESSION['staff_join']=$pending;")
  p.write_text(s)
- p=target/'account/delegated.php';s=p.read_text();start=s.index('<style>');end=s.index('</style>',start)+len('</style>');s=s[:start]+'<link rel="stylesheet" href="workspace.css">'+s[end:];s=s.replace('<main>','<main class="role-workspace">',1);p.write_text(s)
+ # Delegated workspace already uses its role-aware shell and external stylesheet.
  return target
 if __name__=='__main__':stage(Path(sys.argv[1]))

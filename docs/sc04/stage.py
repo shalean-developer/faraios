@@ -40,7 +40,7 @@ def stage(destination):
  new="api('/rest/v1/rpc/business_context_create',['p_name'=>$name,'p_type'=>$type,'p_country'=>$details['country'],'p_zone'=>$details['time_zone']],'POST',$_SESSION['auth']['access_token']);unset($_SESSION['business_context']);"
  if s.count(old)!=1:raise ValueError('Business creation source drift')
  index.write_text(s.replace(old,new))
- for name in ['context.php','delegated.php']:
+ for name in ['context.php','delegated.php','workspace.css']:
   shutil.copyfile(ROOT/'docs/sc04'/name,destination/'account'/name)
  # The private authorization schema must travel with its tables, functions and ACLs.
  p=destination/'scripts/database-backup.py';s=p.read_text();marker="schemas=SCHEMAS+optional"
