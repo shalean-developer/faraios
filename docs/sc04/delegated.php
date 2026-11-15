@@ -1,6 +1,7 @@
 <?php
 if(!is_file(__DIR__.'/core.php')){http_response_code(404);exit;}
 require __DIR__.'/core.php';require __DIR__.'/quotes-core.php';
+$_SERVER['SCRIPT_NAME']=preg_replace('~/account/delegated\.php$~','/account/index.php',$_SERVER['SCRIPT_NAME']);
 $error='';$notice='';$exactInvoice=null;$rows=[];$b=null;$role='';$resources=[];$resource=(string)($_GET['view']??'');
 function work_amount(string $value,string $currency): int {
  if(!preg_match(in_array($currency,['JPY','UGX','RWF'],true)?'/\A[0-9]{1,7}\z/':'/\A[0-9]{1,7}(?:\.[0-9]{1,2})?\z/',$value))throw new RuntimeException('Check the amount.');

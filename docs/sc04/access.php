@@ -1,6 +1,7 @@
 <?php
 if(!is_file(__DIR__.'/core.php')){http_response_code(404);exit;}
 require __DIR__.'/core.php';require __DIR__.'/layout.php';
+$_SERVER['SCRIPT_NAME']=preg_replace('~/account/access\.php$~','/account/index.php',$_SERVER['SCRIPT_NAME']);
 $error='';$notice='';$secret=null;$data=['members'=>[],'invitations'=>[]];$staff=[];$b=null;
 try{
  start();user();$b=business();if(!$b){header('Location: context.php',true,303);exit;}
