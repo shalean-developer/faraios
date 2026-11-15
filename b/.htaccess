@@ -1,5 +1,0 @@
-Options -Indexes
-RewriteEngine On
-# Case and slash normalization happens after an environment-scoped snapshot lookup.
-RewriteRule ^index\.php$ - [L]
-RewriteRule ^ index.php [L]
