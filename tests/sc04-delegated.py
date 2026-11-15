@@ -233,8 +233,8 @@ class Delegated(base.SC04):
   self.enable(False)
   # Preserve a fully exercised nonempty delegated catalogue as well as legacy data.
   base.SC04.test_recovery(self)
-  report=json.loads((ROOT/'test-results/release/sc04-delegated.json').read_text());report.update(delegated_positive_negative_tests=True,gate_default_off=True,delegated_restore_revalidated=True)
-  (ROOT/'test-results/release/sc04-delegated.json').write_text(json.dumps(report,indent=2)+'\n')
+  report=json.loads((ROOT/'test-results/release'/self.sc04_report_name).read_text());report.update(delegated_positive_negative_tests=True,gate_default_off=True,delegated_restore_revalidated=True)
+  (ROOT/'test-results/release'/self.sc04_report_name).write_text(json.dumps(report,indent=2)+'\n')
  def verify_delegated_deactivated(self,sql):
   self.assertEqual(sql('select enabled from authorization_private.delegation_gate'),'f')
   for signature in ['business_delegate_command(uuid,text,text,jsonb)','business_delegate_read(uuid,text,text,uuid)','business_worker_link(uuid,text,uuid,uuid)']:
