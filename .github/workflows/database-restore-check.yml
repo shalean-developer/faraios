@@ -1,5 +1,7 @@
 name: Isolated database restore check
 on:
+  pull_request:
+    branches: [main]
   workflow_call:
     inputs:
       configuration_action:
@@ -51,7 +53,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   restore:
-    if: ${{ !inputs.configuration_action || inputs.configuration_action == 'none' }}
+    if: ${{ (!inputs.configuration_action || inputs.configuration_action == 'none') && (github.event_name != 'pull_request' || (github.head_ref == 'feature/sc04-live-role-preparation-20261115' && github.event.pull_request.head.repo.full_name == github.repository)) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -243,7 +245,7 @@ jobs:
         run: rm -rf -- "${{ runner.temp }}/profile-old" "${{ runner.temp }}/profile-current" "${{ runner.temp }}/profile-runtime"
 
   sc04_browser_layout:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.configuration_action == 'sc04-browser-layout' && github.ref == 'refs/heads/feature/sc04-live-role-preparation-20261115' }}
+    if: ${{ (github.event_name == 'pull_request' && github.head_ref == 'feature/sc04-live-role-preparation-20261115' && github.event.pull_request.head.repo.full_name == github.repository) || (github.event_name == 'workflow_dispatch' && inputs.configuration_action == 'sc04-browser-layout' && github.ref == 'refs/heads/feature/sc04-live-role-preparation-20261115') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -263,5 +265,28 @@ jobs:
         with:
           name: sc04-browser-layout-evidence
           path: test-results/release/sc04-*
+          retention-days: 30
+          if-no-files-found: warn
+
+  hosted_closeout_readonly:
+    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'feature/sc04-live-role-preparation-20261115' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client-16
+      - name: Closed-state and original-record read-only verification
+        env:
+          PGHOST: ${{ vars.FARAIOS_BACKUP_HOST }}
+          PGPORT: '5432'
+          PGUSER: ${{ vars.FARAIOS_BACKUP_USER }}
+          PGDATABASE: postgres
+          PGPASSWORD: ${{ secrets.FARAIOS_BACKUP_DB_PASSWORD }}
+        run: python3 docs/sc04/hosted-closeout.py > hosted-closeout.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sc04-hosted-closeout-readonly
+          path: hosted-closeout.json
           retention-days: 30
           if-no-files-found: warn
