@@ -103,8 +103,9 @@ class Onboarding(base.Readiness):
    self.assertNotIn(token,page);self.assertNotIn(i['sealed_token'],page)
    # A fresh browser session captures fragment-derived POST, then signs in and returns.
    type(self).client=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()));type(self).sc04_login_user=u
+   page=self.post('/account/staff-join.php',action='capture',invitation=i['id'],token=token,entry='signup');self.assertIn('Create your account',page);self.assertEqual(self.sql('select count(*) from public.business_memberships where user_id='+lit(u)),'0')
    page=self.post('/account/staff-join.php',action='capture',invitation=i['id'],token=token);self.assertIn('Welcome back',page)
-   page=self.post('/account/index.php?page=signin',email='new@example.test',password='test-long-password');self.assertIn('Accept invitation',page);self.assertIn('worker',page)
+   page=self.post('/account/index.php?page=signin',email='new@example.test',password='test-long-password');self.assertIn('Accept invitation',page);self.assertIn('Worker / cleaner',page)
    page=self.post('/account/staff-join.php',action='accept');self.assertIn('Choose business',page)
    page=self.post('/account/context.php',context=self.bids[0]+':preview');self.assertIn('Jobs',page)
    self.invoke(self.ids[0],'business_membership_revoke',p_user=u)
@@ -136,16 +137,22 @@ class Onboarding(base.Readiness):
    router.write_text("<?php $path=preg_replace('~^/preview~','',parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));$_SERVER['SCRIPT_NAME']=$path;$_SERVER['SCRIPT_FILENAME']="+repr(str(self.webroot))+".$path;if(preg_match('~\\.(css|js|svg)$~',$path,$m)){header('Content-Type: '.['css'=>'text/css','js'=>'application/javascript','svg'=>'image/svg+xml'][$m[1]]);readfile($_SERVER['SCRIPT_FILENAME']);return true;}require $_SERVER['SCRIPT_FILENAME'];return true;")
    self.restart_php();type(self).url+='/preview';checks=[]
    with sync_playwright() as pw:
-    def launch_browser():return pw.chromium.launch(**({'executable_path':os.environ['FARAIOS_CHROMIUM']} if os.environ.get('FARAIOS_CHROMIUM') else {}),args=['--no-sandbox']+(['--single-process','--no-zygote','--use-gl=angle','--use-angle=swiftshader'] if os.environ.get('FARAIOS_BROWSER_SINGLE_PROCESS')=='true' else []))
+    def launch_browser():return pw.chromium.launch(**({'executable_path':os.environ['FARAIOS_CHROMIUM']} if os.environ.get('FARAIOS_CHROMIUM') else {}),args=['--no-sandbox']+(['--single-process','--no-zygote','--disable-gpu','--disable-software-rasterizer'] if os.environ.get('FARAIOS_BROWSER_SINGLE_PROCESS')=='true' else []))
     browser=launch_browser()
     try:
      for width in [390,1280]:
       u,sid,i,t=self.fixture();type(self).sc04_login_user=u
       ctx=browser.new_context(viewport={'width':width,'height':844});page=ctx.new_page()
+      page.goto(self.url+'/account/staff-join.php');page.get_by_role('heading',name='Open your invitation email',exact=True).wait_for();page.screenshot(path=str(ROOT/f'test-results/release/worker-join-missing-{width}.png'))
       page.goto(self.url+'/account/staff-join.php#id='+i+'&token='+t)
-      page.get_by_role('button',name='Continue securely',exact=True).click(force=os.environ.get('FARAIOS_BROWSER_SINGLE_PROCESS')=='true')
+      self.assertTrue(page.get_by_role('button',name='Create account',exact=True).is_enabled());page.screenshot(path=str(ROOT/f'test-results/release/worker-join-start-{width}.png'))
+      if width==390:
+       page.get_by_role('button',name='Create account',exact=True).click(force=True);page.get_by_role('heading',name='Create your account',exact=True).wait_for();page.get_by_role('link',name='Sign in',exact=True).click(force=True)
+      else:page.get_by_role('button',name='Sign in',exact=True).click(force=True)
       page.get_by_label('Email address',exact=True).fill('new@example.test');page.get_by_label('Password',exact=True).fill('test-long-password');page.get_by_role('button',name='Sign in',exact=True).click(force=os.environ.get('FARAIOS_BROWSER_SINGLE_PROCESS')=='true')
       page.get_by_role('button',name='Accept invitation',exact=True).wait_for()
+      self.assertIn('Worker / cleaner',page.locator('.join-team').text_content());page.screenshot(path=str(ROOT/f'test-results/release/worker-join-accept-{width}.png'))
+      page.goto(self.url+'/account/staff-join.php#id='+i+'&token='+t);self.assertFalse(page.locator('.join-current').is_visible());page.get_by_role('button',name='Sign in',exact=True).click(force=True);page.get_by_role('button',name='Accept invitation',exact=True).wait_for()
       metrics=page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');self.assertLessEqual(metrics['scroll'],width);checks.append(dict(page='join',**metrics))
       page.get_by_role('button',name='Accept invitation',exact=True).click(force=os.environ.get('FARAIOS_BROWSER_SINGLE_PROCESS')=='true');page.get_by_label('Business and environment',exact=True).select_option(self.bids[0]+':preview');page.get_by_role('button',name='Continue',exact=True).click(force=os.environ.get('FARAIOS_BROWSER_SINGLE_PROCESS')=='true');page.get_by_role('heading',name='Fresh Test',exact=True).wait_for();ctx.close();browser.close();browser=launch_browser()
       type(self).sc04_login_user=None;ctx=browser.new_context(viewport={'width':width,'height':844});page=ctx.new_page();page.goto(self.url+'/account/index.php?page=signin');page.get_by_label('Email address',exact=True).fill('a@example.test');page.get_by_label('Password',exact=True).fill('test-long-password');page.get_by_role('button',name='Sign in',exact=True).click(force=os.environ.get('FARAIOS_BROWSER_SINGLE_PROCESS')=='true');page.goto(self.url+'/account/staff-access.php')
