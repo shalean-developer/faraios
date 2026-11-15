@@ -48,6 +48,24 @@ Preview and production evidence are separate files; no live success is implied b
 a preview test. Live sitemap XML, mobile layout and existing site/account smoke
 checks must also pass before closeout.
 
+### Completed acceptance
+
+- Hosted preview: https://www.faraios.com/_recovery-preview/industries/cleaning
+- Website terms for owner review: https://www.faraios.com/_recovery-preview/terms
+- `hosted-preview.json`: all 35 URL/content/redirect/404 checks PASS.
+- `browser-checks.json`: 19 layout checks PASS, with no horizontal overflow or
+  broken images. All nine additions, hub and homepage checked at 390px; cleaning,
+  pricing, marketplace and terms also checked at 320px and 768px.
+- `desktop.jpg` and `mobile.jpg` retain visual evidence of the cleaning page.
+- `live-preservation.json`: seven existing live public files remain byte-identical
+  to current main after preview installation.
+- Eight local SC-02 baseline methods PASS. Full source candidate 6755ab55 passed
+  Foundation regression 43691458913, Database backup regression 43691458854 and
+  Private configuration recovery regression 43691458881.
+
+PR #62 remains draft. Only the isolated noindex preview is installed. Production
+still awaits publication of this repair; no live success or recrawl is claimed.
+
 SC-02 preserves both historical manifests. A second explicit 14-file old/new hash
 delta accounts only for this repair, on top of the first marketing repair. All
 other runtime/configuration/asset bytes must remain exact. Inventory is refreshed

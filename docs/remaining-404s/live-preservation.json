@@ -1,0 +1,44 @@
+[
+  {
+    "path": "index.html",
+    "status": 200,
+    "matches_existing_main": true,
+    "sha256": "a925d443ec35b806880bb417ecb5a01dbd93a92328e8238ab570cab784f57508"
+  },
+  {
+    "path": "features.html",
+    "status": 200,
+    "matches_existing_main": true,
+    "sha256": "aaaf488c54c132b410c3b730ad9b83680fa0076540cd5ffc0a2702d4e5967b43"
+  },
+  {
+    "path": "hosting.html",
+    "status": 200,
+    "matches_existing_main": true,
+    "sha256": "ddf1406a19e7660df618e7f028d58fb39bf1f917882b6facf64185922c511d72"
+  },
+  {
+    "path": "privacy.html",
+    "status": 200,
+    "matches_existing_main": true,
+    "sha256": "bd1d29a19ec751ecf011d96a69c443ae02d1f3be78ee1282a4843b93c265e5a4"
+  },
+  {
+    "path": "about.html",
+    "status": 200,
+    "matches_existing_main": true,
+    "sha256": "5b35b9ce7948a76b035dae046dcd25921ea8bab1a1598a5c62caaef577cc25fd"
+  },
+  {
+    "path": "industries.html",
+    "status": 200,
+    "matches_existing_main": true,
+    "sha256": "f6274bb389ef6ebe9c516bf4c311f97dafdd90ae1ea9fadab742382f9cedc7ba"
+  },
+  {
+    "path": "marketing.css",
+    "status": 200,
+    "matches_existing_main": true,
+    "sha256": "48d9734f236a27cadb9cd46848c059f8c91b2ac545c18ec84d71584dc1ae1a3a"
+  }
+]

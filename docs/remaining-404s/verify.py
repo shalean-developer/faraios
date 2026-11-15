@@ -32,16 +32,23 @@ def page(p):
 def redirect(source,target,status):
     code,h,b=fetch(source);location=urllib.parse.urljoin(BASE+PREFIX+source,h.get('location',''))
     return {'path':source,'status':code,'location':location,'passed':code==status and location==target}
-results=list(concurrent.futures.ThreadPoolExecutor(max_workers=5).map(page,PAGES))
+tasks=[('page',p) for p in PAGES]
 for p in PAGES:
     for suffix in ['.html','/']:
-        results.append(redirect('/'+p+suffix,BASE+PREFIX+'/'+p,301))
+        tasks.append(('redirect','/'+p+suffix,BASE+PREFIX+'/'+p,301))
 legacy=[('/privacy','/privacy.html'),('/platform/about','/about.html'),('/marketplace/shalean-cleaning-services','/b/shalean-cleaning-services')]
 for p,target in legacy:
     for suffix in ['','/']:
-        results.append(redirect(p+suffix,BASE+PREFIX+target,301))
+        tasks.append(('redirect',p+suffix,BASE+PREFIX+target,301))
 for p in ['/industries/not-a-real-industry','/not-a-real-page']:
-    code,h,b=fetch(p);results.append({'path':p,'status':code,'passed':code==404})
+    tasks.append(('missing',p))
+def exercise(task):
+    try:
+        if task[0]=='page':return page(task[1])
+        if task[0]=='redirect':return redirect(*task[1:])
+        code,h,b=fetch(task[1]);return {'path':task[1],'status':code,'passed':code==404}
+    except Exception as e:return {'path':task[1],'error':str(e),'passed':False}
+results=list(concurrent.futures.ThreadPoolExecutor(max_workers=8).map(exercise,tasks))
 report={'preview':PREVIEW,'base':BASE+PREFIX,'passed':all(r['passed'] for r in results),'checks':len(results),'results':results}
 out=ROOT/'docs/remaining-404s'/('hosted-preview.json' if PREVIEW else 'live.json');out.write_text(json.dumps(report,indent=2)+'\n')
 print(json.dumps({'passed':report['passed'],'checks':len(results),'failed':[r for r in results if not r['passed']]}));sys.exit(not report['passed'])
