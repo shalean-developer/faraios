@@ -13,7 +13,7 @@
   },
   "account/staff-join.php": {
     "baseline_sha256": null,
-    "candidate_sha256": "e4c3ddf1c0a8d13af5aae19c6bfd8ab0e3e003dc7e8f2fc7e70fa63b13fabdd2"
+    "candidate_sha256": "a693381502e184831de2dd019cac6cad3db0d7f48d67cc2922308b6ee744e6c0"
   },
   "account/staff-join.js": {
     "baseline_sha256": null,
