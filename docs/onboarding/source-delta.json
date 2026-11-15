@@ -33,7 +33,7 @@
   },
   "scripts/staff-invitation-keygen.php": {
     "baseline_sha256": null,
-    "candidate_sha256": "4202a0283333dc3f2fea72793cf6a456c6c80faa460829f5fdb4d8c079a4a2ea"
+    "candidate_sha256": "58ead1c0d9402d2637c0a3347cff903a45dedf30aff04bf374d78094e2da8b93"
   },
   "account/staff-onboarding.css": {
     "baseline_sha256": null,

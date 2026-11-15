@@ -2,8 +2,8 @@
 // Local/operator CLI: creates only encryption keys, never prints private material.
 declare(strict_types=1);
 if(PHP_SAPI!=='cli')exit(1);
-$directory=$argv[1]??'';$root=realpath(dirname(__DIR__));
-if($directory===''||$directory[0]!=='/'||is_dir($directory)||str_starts_with($directory,$root.'/')){fwrite(STDERR,"Choose a new absolute private directory outside the website.\n");exit(1);}
+$directory=$argv[1]??'';$root=realpath(dirname(__DIR__));$parent=realpath(dirname($directory));
+if($directory===''||$directory[0]!=='/'||!$parent||$directory!==$parent.'/'.basename($directory)||file_exists($directory)||is_link($directory)||str_starts_with($directory,$root.'/')){fwrite(STDERR,"Choose a new absolute private directory outside the website.\n");exit(1);}
 if(!mkdir($directory,0700,true))exit(1);
 $p=sodium_crypto_box_keypair();$public=bin2hex(sodium_crypto_box_publickey($p));$secret=bin2hex(sodium_crypto_box_secretkey($p));
 $web="<?php return ['enabled'=>false,'public_key'=>'{$public}'];\n";
