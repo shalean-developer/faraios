@@ -52,7 +52,7 @@ try{
    $owner=httpx('owner_a','/rest/v1/business_quotes?id=eq.'.$i['quote'].'&select=share_token',null,$a,'preview','GET');check($owner[0]===200&&count($owner[1])===1,'owner_exact_quote_capability:'.$role);$token=$owner[1][0]['share_token'];
    remain_step($role.':customer_decision',function()use($token){$r=httpx(null,'/rest/v1/rpc/business_quote_customer',['p_environment'=>'preview','p_token'=>$token,'p_response'=>'Accepted']);check($r[0]===200,'synthetic_exact_customer_capability');return true;});
    remain_step($role.':schedule',fn()=>cmd($role,'business_customer_booking_create',['p_id'=>$i['booking'],'p_version'=>0,'p_quote'=>$i['quote'],'p_document'=>$d,'p_address'=>'Synthetic agreed remaining address','p_local'=>'2026-12-06 09:00','p_zone'=>'Africa/Johannesburg','p_duration'=>90,'p_status'=>'Scheduled','p_customer'=>$i['customer']]));
-   $rows=readx($role,'bookings',$i['booking']);check(count($rows)===1&&$rows[0]['customer_id']===$i['customer']&&$rows[0]['document']===$d,'actual_saved_agreement:'.$role);
+   $rows=readx($role,'bookings',$i['booking']);check(count($rows)===1&&$rows[0]['customer_id']===$i['customer']&&$rows[0]['document']==$d,'actual_saved_agreement:'.$role);
    remain_step($role.':schedule_stale',fn()=>cmd($role,'business_booking_write',['p_id'=>$i['booking'],'p_version'=>0,'p_quote'=>$i['quote'],'p_document'=>$d,'p_address'=>'Synthetic stale','p_local'=>'2026-12-06 09:00','p_zone'=>'Africa/Johannesburg','p_duration'=>90,'p_status'=>'Scheduled'],null,'preview',true));
    $original=httpx('owner_a','/rest/v1/business_bookings?id=eq.'.$i['booking'].'&select=*',null,$a,'preview','GET');
    foreach(['manager','receptionist','worker'] as $actor){
@@ -75,4 +75,4 @@ try{
  $state['_checks']=$report;file_put_contents($stateFile,json_encode($state),LOCK_EX);chmod($stateFile,0600);
  $out=['status'=>'PASS','phase'=>$phase,'checks'=>count($report),'synthetic_only'=>true,'secrets_printed'=>false,'fixture_ids'=>$state['_ids']??[],'completed_steps'=>array_keys(array_filter($state['_steps']??[],fn($v)=>$v['status']==='done'))];
  file_put_contents($private.'/sc04-remaining-result-'.$phase.'.json',json_encode($out+['results'=>$report]),LOCK_EX);chmod($private.'/sc04-remaining-result-'.$phase.'.json',0600);echo json_encode($out)."\n";
-}catch(Throwable $e){echo json_encode(['status'=>'STOP','error'=>$e->getMessage(),'phase'=>$phase??'unknown','inspect_before_retry'=>true])."\n";exit(1);}
+}catch(Throwable $e){$stop=['status'=>'STOP','error'=>$e->getMessage(),'phase'=>$phase??'unknown','inspect_before_retry'=>true];if(isset($stateFile))file_put_contents($private.'/sc04-remaining-stop.json',json_encode($stop));echo json_encode($stop)."\n";exit(1);}

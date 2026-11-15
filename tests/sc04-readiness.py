@@ -4,6 +4,8 @@ from concurrent.futures import ThreadPoolExecutor
 from journey import ROOT,lit,PGBIN
 spec=importlib.util.spec_from_file_location('shared_tests',ROOT/'tests/sc04-shared.py');base=importlib.util.module_from_spec(spec);spec.loader.exec_module(base)
 class Readiness(base.Shared):
+ sc04_report_name="sc04-readiness.json"
+ matrix_count=6
  @classmethod
  def setUpClass(cls):
   super().setUpClass()
@@ -99,6 +101,8 @@ class Readiness(base.Shared):
  def test_07_candidate_php_syntax(self):
   for p in (ROOT/'docs/sc04').glob('*.php'):
    r=subprocess.run([__import__('journey').PHP,'-l',str(p)],capture_output=True,text=True);self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+ def test_08_encrypted_recovery_upgrade(self):
+  self.test_10_recovery_and_preservation()
 if __name__=='__main__':
  names=[n for n in Readiness.__dict__ if n.startswith('test_')]
  result=unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(Readiness(n) for n in names));raise SystemExit(not result.wasSuccessful())
