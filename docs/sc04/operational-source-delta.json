@@ -5,6 +5,6 @@
   },
   ".github/workflows/database-restore-check.yml": {
     "baseline_sha256": "92634f9ffc1a50ba5fba0b5d3873baaf389ac9c5526a9a97190f13c6f4d2362e",
-    "candidate_sha256": "e8f990e7cd0dbc7966d981942086e3521034ff0efb8f99b94fc44ed725712806"
+    "candidate_sha256": "810ca26e42ef5869b9d66d7f0e53711d4ef2fd200ac7cdf5833390b8a530cfb5"
   }
 }
