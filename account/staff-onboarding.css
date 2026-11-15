@@ -15,3 +15,49 @@
  .role-workspace p{margin:10px 0;line-height:1.5}
  #staff-search-scope{font-size:13px;line-height:1.45;margin:8px 0}
 }
+
+/* Staff access uses the same owner workspace shell as Staff. */
+.staff-access-page .staff-access-main{max-width:1180px}
+.staff-access-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 20px}
+.staff-access-heading h1{font-size:24px;line-height:1.25;margin:5px 0 8px;letter-spacing:-.4px}
+.staff-back,.staff-settings-link{font-size:13px;text-decoration:none;min-height:32px;display:inline-flex;align-items:center}
+.staff-scope{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:13px;color:var(--f-muted);margin:0}
+.staff-scope-tag{font-size:11px;line-height:1.5;padding:2px 8px;border-radius:5px;background:#eaf2f6;color:#3e6175;text-transform:capitalize}
+.staff-access-page .staff-access-toolbar{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
+.staff-search-field{width:min(440px,100%)}
+.staff-search-field label{font-size:13px;margin:0 0 5px}
+.staff-search-field #staff-search-scope{font-size:12px;line-height:1.4;margin:6px 0 0;color:var(--f-muted)}
+.staff-access-toolbar #matches{font-size:13px;line-height:1.4;margin:0;color:var(--f-muted);text-align:right}
+.staff-access-list{display:grid;gap:14px}
+.staff-access-page .staff-access-card{padding:20px;box-shadow:none;border-radius:12px;min-width:0}
+.staff-card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.staff-card-heading>div:first-child{min-width:0}
+.staff-access-card h2{font-size:18px;line-height:1.35;margin:0 0 5px;letter-spacing:0;overflow-wrap:anywhere}
+.staff-access-card .staff-email,.staff-invite-recipient{font-size:13px;line-height:1.5;margin:0;color:var(--f-muted);overflow-wrap:anywhere}
+.staff-card-badges,.staff-invite-tags{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.staff-card-badges{justify-content:flex-end}
+.staff-status{display:inline-flex;align-items:center;font-size:11px;line-height:1.5;padding:3px 8px;border-radius:20px;white-space:nowrap;background:#f1f4f5;color:#53656e}
+.staff-status.is-active{background:#eaf5ee;color:#2b6543}.staff-status.is-inactive{background:#f2f3f4;color:#68747b}.staff-status.is-access{background:#eef3f8;color:#466078}
+.staff-access-card .staff-access-note{font-size:13px;line-height:1.5;margin:12px 0 0;color:var(--f-muted)}
+.staff-invite-compose{margin-top:16px;padding-top:14px;border-top:1px solid var(--f-line)}
+.staff-role-field{max-width:300px}.staff-role-field label{font-size:13px;margin:0}.staff-role-field select{display:block;width:100%;font:inherit;margin-top:5px;padding:10px 12px;border:1px solid #c5d2da;border-radius:8px;background:white;min-height:44px}
+.staff-access-card .staff-invite-scope{font-size:12px;line-height:1.5;color:var(--f-muted);margin:9px 0}
+.staff-access-page .staff-confirm{display:flex;align-items:flex-start;gap:8px;font-size:13px;font-weight:500;line-height:1.5;margin:12px 0}
+.staff-access-page input[type=checkbox]{width:17px;height:17px;min-height:0;flex:none;margin:2px 0 0;accent-color:var(--f-teal)}
+.staff-access-page .staff-access-main .button{display:inline-flex;align-items:center;justify-content:center;width:auto;min-height:44px;font-size:13px;line-height:1.4;padding:9px 14px;margin:0;border:1px solid var(--f-teal);border-radius:8px;background:var(--f-teal);color:white;font-weight:600;text-decoration:none;cursor:pointer;white-space:normal}
+.staff-access-page .staff-access-main .staff-secondary{background:#fff;color:var(--f-teal);border-color:#b7ccc5}
+.staff-access-page .staff-access-main .staff-danger{background:#fff;color:#a33e42;border-color:#dfbfc0}
+.staff-access-page .staff-access-main .staff-danger:hover{background:#fff4f3}.staff-access-page .staff-access-main .staff-secondary:hover{background:#f0f6f3}
+.staff-invitation-list:empty{display:none}
+.staff-invite-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:14px;padding:12px 0;border-top:1px solid var(--f-line)}
+.staff-invite-info{min-width:0}.staff-role{text-transform:capitalize;font-size:13px;font-weight:600}.staff-delivery{font-size:12px;color:var(--f-muted);text-transform:capitalize}.staff-invite-recipient{margin-top:5px}
+.staff-invite-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.staff-invite-actions form{display:inline-flex;margin:0}
+.staff-access-card .staff-management{margin-top:12px;padding-top:8px}.staff-access-card .staff-management summary{font-size:13px;min-height:36px}.staff-access-card .staff-management summary:after{content:'+';font-size:18px;margin-left:auto}.staff-access-card .staff-management[open] summary:after{content:'−'}
+.staff-access-card .staff-management p{font-size:12px;margin:8px 0 12px}
+@media(max-width:600px){
+ .staff-access-heading{align-items:flex-start;gap:10px;margin-bottom:16px}.staff-access-heading h1{font-size:22px}.staff-settings-link{font-size:12px;flex:none}
+ .staff-access-page .staff-access-toolbar{padding:14px;align-items:flex-start;flex-direction:column;gap:8px}.staff-search-field{width:100%}.staff-access-toolbar #matches{text-align:left;font-size:12px}
+ .staff-access-page .staff-access-card{padding:16px}.staff-card-heading{gap:10px;flex-direction:column}.staff-card-badges{justify-content:flex-start}.staff-access-card h2{font-size:17px}
+ .staff-role-field{max-width:none}.staff-invite-row{align-items:flex-start;gap:10px}.staff-invite-actions{width:100%;gap:8px}.staff-access-page .staff-access-main .staff-invite-actions .button{width:auto;font-size:12px;padding:9px 12px}
+ .staff-access-card .staff-management summary{min-height:44px}
+}

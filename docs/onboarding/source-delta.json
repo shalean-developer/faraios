@@ -5,7 +5,7 @@
   },
   "account/staff-access.php": {
     "baseline_sha256": null,
-    "candidate_sha256": "400794b58f9c6dfd5ba3b8dcdfe67c9a6bd95d3980a3fb51b51783f59a728992"
+    "candidate_sha256": "69adb17514d015b587f54fa286eba1c8ba514fc14a4d444158d371151cbbda34"
   },
   "account/staff-invite-core.php": {
     "baseline_sha256": null,
@@ -37,7 +37,7 @@
   },
   "account/staff-onboarding.css": {
     "baseline_sha256": null,
-    "candidate_sha256": "6024fb27367adfd489ad04d68d517cd52e68ca6505f7eb34789e1f4027f402b2"
+    "candidate_sha256": "025d5b0b7076a0d818fff9732c1687b01dac4c2581ee52bbb5b6f1cd572dcf78"
   },
   "scripts/private_config.php": {
     "baseline_sha256": "4b29f0cba38995d6362c404a0966db7d92681a420370dbcad0fb7f7f20446284",
