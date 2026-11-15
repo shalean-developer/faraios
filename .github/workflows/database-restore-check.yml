@@ -83,7 +83,8 @@ jobs:
           RESTORE_AUTH_REHEARSAL: ${{ (github.event_name == 'schedule' || inputs.auth_rehearsal) && 'true' || 'false' }}
         run: |
           mkdir -p "$(dirname "$RESTORE_REPORT")"
-          python3 scripts/database-restore-check.py "$RESTORE_INPUT" > "$RESTORE_REPORT"
+          python3 docs/sc04/shared.py "$RUNNER_TEMP/sc04-restore-runtime"
+          python3 "$RUNNER_TEMP/sc04-restore-runtime/application/scripts/database-restore-check.py" "$RESTORE_INPUT" > "$RESTORE_REPORT"
           cat "$RESTORE_REPORT"
           echo 'Isolated restore passed. See the aggregate report artifact; no database contents are retained.' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
