@@ -1,0 +1,60 @@
+[
+  {
+    "path": "/sitemap.xml",
+    "status": 200,
+    "url": "https://www.faraios.com/sitemap.xml",
+    "count": 30,
+    "missing": [],
+    "preview_leak": false,
+    "shalean_present": true,
+    "legacy_sources_present": []
+  },
+  {
+    "path": "/",
+    "status": 200,
+    "url": "https://www.faraios.com/",
+    "matches_approved_source": true
+  },
+  {
+    "path": "/features",
+    "status": 200,
+    "url": "https://www.faraios.com/features"
+  },
+  {
+    "path": "/hosting",
+    "status": 200,
+    "url": "https://www.faraios.com/hosting"
+  },
+  {
+    "path": "/industries",
+    "status": 200,
+    "url": "https://www.faraios.com/industries",
+    "matches_approved_source": true
+  },
+  {
+    "path": "/privacy.html",
+    "status": 200,
+    "url": "https://www.faraios.com/privacy.html"
+  },
+  {
+    "path": "/about.html",
+    "status": 200,
+    "url": "https://www.faraios.com/about.html"
+  },
+  {
+    "path": "/b/shalean-cleaning-services",
+    "status": 200,
+    "url": "https://www.faraios.com/b/shalean-cleaning-services"
+  },
+  {
+    "path": "/account/index.php?page=signin",
+    "status": 200,
+    "url": "https://www.faraios.com/account/index.php?page=signin"
+  },
+  {
+    "path": "/_recovery-preview/terms",
+    "status": 200,
+    "url": "https://www.faraios.com/_recovery-preview/terms",
+    "noindex": true
+  }
+]

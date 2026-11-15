@@ -1,0 +1,56 @@
+[
+  {
+    "path": "industries/cleaning",
+    "brokenImages": [],
+    "overflow": false,
+    "width": 390
+  },
+  {
+    "path": "industries/electrical",
+    "brokenImages": [],
+    "overflow": false,
+    "width": 390
+  },
+  {
+    "path": "industries/security",
+    "brokenImages": [],
+    "overflow": false,
+    "width": 390
+  },
+  {
+    "path": "industries/beauty-spa",
+    "brokenImages": [],
+    "overflow": false,
+    "width": 390
+  },
+  {
+    "path": "industries/fitness",
+    "brokenImages": [],
+    "overflow": false,
+    "width": 390
+  },
+  {
+    "path": "industries/consulting",
+    "brokenImages": [],
+    "overflow": false,
+    "width": 390
+  },
+  {
+    "path": "pricing",
+    "brokenImages": [],
+    "overflow": false,
+    "width": 390
+  },
+  {
+    "path": "marketplace",
+    "brokenImages": [],
+    "overflow": false,
+    "width": 390
+  },
+  {
+    "path": "terms",
+    "brokenImages": [],
+    "overflow": false,
+    "width": 390
+  }
+]
