@@ -1,0 +1,178 @@
+{
+  "about.html": {
+    "baseline": "d14effd6031a10a2797927e754928d205cd630ea02a17b389f22ad2cb5a4ed12",
+    "candidate": "370d75a4aee38ed780a2bc9309dde2a88ae4cde1dc8e2903e8516b8c1c14b781"
+  },
+  "account/account-view.php": {
+    "baseline": "430e6808f2031aa3aac13c21af01be4908801e7f77b8910a9f2ef3b9e18d69e5",
+    "candidate": "e83e4f1a8140ff91066c8e35b64b4d6792ca65b507050c4b8c863f6345d3b33b"
+  },
+  "account/bookings.php": {
+    "baseline": "e4b8786cec21a610243457919bd5a9607ecbf9f55a046f42f8b26139e1dd51aa",
+    "candidate": "2c895d06e29ac048bb9fd9baf0c07fc45669dd438e0f10ddf036f176bd244935"
+  },
+  "account/customer-help.php": {
+    "baseline": "dd8e25d760566490232c8d38dfed0cb76cb021e243cebfdff5e47247d935ae2b",
+    "candidate": "c3c9c5983607abd87e00bfe8e1d29925c53444a0677f7509f13b35a8d371e37a"
+  },
+  "account/customer.php": {
+    "baseline": "71f5cc1b9c08ef0a127dac56490874d8370618ed6a1e2099eb5b3b1d534ab9c8",
+    "candidate": "9667ecebe833b690a89c8cc7bb8dee65f4ea1481e8fce071578704f0d9b5cf3b"
+  },
+  "account/customers.php": {
+    "baseline": "5a7a87d663335649abc181d4877e700afe5e7842675f45c9e7ff0800c8bfdcd6",
+    "candidate": "df4fcfbe8ac478a60298a87fe670053a6b2ba07d0d20b3d1b2bd83402565d749"
+  },
+  "account/dashboard.php": {
+    "baseline": "e39ae097b0632313d949b0436efc0ddc067291194096088d2fa901f65eb0dfbd",
+    "candidate": "2a40ba184c5d7f1ead94b01ca8a95f2c743f18e9723aa530e7944bbd467623ca"
+  },
+  "account/enquiries.php": {
+    "baseline": "950b3276b458ddb23382155bbd90c2c4598017aee5f4dbff559ccf102a5f2680",
+    "candidate": "c61f592e07ff7ba16b2dfbe325a3654c7cdf990c4b3dd27d57f504ba195235d5"
+  },
+  "account/enquiry-new.php": {
+    "baseline": "a5e67049c8048f85be267562e53ddeeba60bf7362a7f58acd0cb36c3dc534f04",
+    "candidate": "5f36e37087ab41516380030d0e340edf56b157ffd4f86ecb62acc581c2db2cfe"
+  },
+  "account/index.php": {
+    "baseline": "15eac2e8af1b2deb95fb98def0a417032f618ac22ccd9efc949e5dab416c2128",
+    "candidate": "8eb41cea063187220e27f788c553bd87dff28814bd4b3604614e8e2bef1e005e"
+  },
+  "account/invoices.php": {
+    "baseline": "843737415b3bf1d267ee9a4f8a19eccaa12124158b5c3514394ae588b4f8832b",
+    "candidate": "12aee76d298b5406b8175441d19e31ae6d6e62f09e8776dec829623b6fc9ae6e"
+  },
+  "account/layout.php": {
+    "baseline": "9fa813b340b6629cc69be58f9174fb29c39bc950581ec9be2f51b0f162d194f3",
+    "candidate": "9ceb88a33e8fa060ff273079c725a2120ee4dc925559f40a26a45342b46dcce6"
+  },
+  "account/profile.php": {
+    "baseline": "5ad654a4b7470a88a1ac745b139ef6b3be2c48faec281de759912f59f140bdd4",
+    "candidate": "2dfd6a3f60739f26775bd7ef5a0bdbecc9a3289c34211140c6a251b9b75ee5fe"
+  },
+  "account/quotes.php": {
+    "baseline": "c6023fc2116a0396b430a731ffd3f40e1b796632d29381889ca3e56f11f42c20",
+    "candidate": "b4a2b039486a7eb6ebf418eb8788d3bc1e059366eaceb01f36137969fe929bae"
+  },
+  "account/requests.php": {
+    "baseline": "5386d27b1234f95cbca8d73aa117b28bd3ac8de0396bff2d07d86c5aaa9f65a3",
+    "candidate": "0bcf3dbc45460507829dfc89180673ea0a088fd40abfa4c07c60ec78195d9145"
+  },
+  "account/services.php": {
+    "baseline": "544584edf6f5822f3b67b218cd5ba8de30a905126a8fa2b41f377d4acaa9fcf1",
+    "candidate": "6d44cd557145ee6402dbd2f79bd37d26f7f0f2aec80ee571d399c14eb5a04a09"
+  },
+  "account/staff.php": {
+    "baseline": "b2e8b005218ea0d734b5f7601fb65fb5b601fff133b619fe580ab7ec466b265c",
+    "candidate": "3a1f1a2c4643584314629d256cf162d13e6c490e840df2b9de21a52ea7be903d"
+  },
+  "b/index.php": {
+    "baseline": "6fbed561b3f59fbd5c3f727f1a2f4b5a2619fa6b8e41c4ae00ed4198bd6d44fd",
+    "candidate": "220eedda2330b4f3de0575c8a7fbe7113b08d41f6d1a47a655a984d0ffc1052a"
+  },
+  "contact.html": {
+    "baseline": "24931066dd944759c23e1d5a0db6fac43dd59c44d6e0c9772ba3ab7f39c5b04b",
+    "candidate": "c9b65242e39b7f52c19cba91060d7216f0f3f3923c1121c1d5a41e36232bea51"
+  },
+  "features.html": {
+    "baseline": "aaaf488c54c132b410c3b730ad9b83680fa0076540cd5ffc0a2702d4e5967b43",
+    "candidate": "36c436b82db9d78f87060740b040213aba3329151b6866390fbe916bcfde9434"
+  },
+  "guides/enquiry-to-invoice.html": {
+    "baseline": "5a460b45c8ced8f92acf7298fc70f135fc8309f656dc6ef795f29b34ec2dbeac",
+    "candidate": "77e39e6464ce95514019ca3a6e83fae9e66bcd379332f287ae596cd1a36cac1f"
+  },
+  "hosting.html": {
+    "baseline": "ddf1406a19e7660df618e7f028d58fb39bf1f917882b6facf64185922c511d72",
+    "candidate": "0d4c8f5737b0ddb41f8cca8e0fcc1a252ce01ebea5aef7365ee00fb91b76e6ee"
+  },
+  "index.html": {
+    "baseline": "0ac342115cdb5957f51aaf871bda1bccfbb20a52834741a45c6a089cd056f44f",
+    "candidate": "0978d395e7cedb8ecdf392f2990b6f2611eebe968084b1b3b9e809e4ccb170d1"
+  },
+  "industries.html": {
+    "baseline": "ac3780ff6617406e2bebca784f0b64ea578bd8ffa3c123ffffc130213a6325a3",
+    "candidate": "2cb67a75d57d04635d0fe7365de980eb41eb21bc591176b822a181b620fe7af0"
+  },
+  "industries/beauty-spa.html": {
+    "baseline": "94ba3d415f55641efb052fb38dd844310028171c070851887920bc0792344ffc",
+    "candidate": "bcad8d9ed32ec0e956308888537a2177ba0952cfa16879da659a67b7a833bdb5"
+  },
+  "industries/cleaning.html": {
+    "baseline": "a29e2aa359b78a741977aae4ec57cfbc4de25ff38ee620eeffee00f33481d075",
+    "candidate": "0cbf5abb0c5f5562ef27c2c71aa05158049c96be748a6227b067d0cd26d7a2ee"
+  },
+  "industries/construction.html": {
+    "baseline": "2ee6a7a50250708cc7d42fd7a34ca933af54f301f32a27e8b4423fb311fd189d",
+    "candidate": "124d31fe1f9d3f914a471c7a8f23cdab8796c43eae5912b7c5be148195b85879"
+  },
+  "industries/consulting.html": {
+    "baseline": "eaec0941de0dc418ebef6aaea81b266b44dde5e45182fa78f01fecbb2c653e2c",
+    "candidate": "c70dac600076bad22f18d8d2974e8c64bea0c57b20123e10c018cb75c96b3694"
+  },
+  "industries/electrical.html": {
+    "baseline": "01fae49343a420648811d89303f7747aef356d0d47d90493bb1e424d114cdaa9",
+    "candidate": "17007ea7bf52199089c5035ede50d650d9362d650dd6cf084eaf31083f7dd078"
+  },
+  "industries/fitness.html": {
+    "baseline": "c86e0fd10ef3610d91c1dca46d8529234714e118d25ed3a08fb164c67f413470",
+    "candidate": "5073ea9762ad3cb525458a85484144367591d7c316ca8fe9e705084bf8b6792d"
+  },
+  "industries/gardening.html": {
+    "baseline": "f3df29c9a15282cd6f59db35c37c5cc4adf1fb77900e87bec133ea014e8b704e",
+    "candidate": "2981d7771fde0af26a3c94734b9f1a40f8733d4ed295ae0a854ff74d0da57471"
+  },
+  "industries/security.html": {
+    "baseline": "f1f974afdefda46ba80817d8f0de541efac5e539fdd92b5cfbff24090a28326c",
+    "candidate": "ab70563b299098cb8d5e3d76ff5fa29473fdf145b56ac5873057671ae6d79346"
+  },
+  "industries/technology.html": {
+    "baseline": "8389518100848dac109c275368e232ab91e22d1df5a87aa062c8e80b74e39432",
+    "candidate": "12cf7ee9566d071a457cb74c151afb673fbdeaa0b01c3ca1e01ed3ef4b6addd8"
+  },
+  "industries/tourism.html": {
+    "baseline": "9b16d726919eaa3912fa7a6a329aa81fed57f40342c1138f8d576a7f38d1b3f2",
+    "candidate": "998de8174adf5dbaa7b5619470a77901a4f32e682c9e75b6dda80d2a6e96a793"
+  },
+  "invoice/index.php": {
+    "baseline": "6b22ffcce480d620821b5998992d08f1dd67425e410284b35d31be81c8339063",
+    "candidate": "ccf6885269a98bc068f1c80bdd5e65345c6627409a05209b8f52f22d8a368b04"
+  },
+  "marketplace.html": {
+    "baseline": "a111029b70484b62c69e2a472706d7b34cc9ab7e4448e5b665ecfbecf824ef9c",
+    "candidate": "8b177b921b14ab81147b7e8dbe8afc1eb0bab1b47e5be5f9d942c9a17d02c544"
+  },
+  "pricing.html": {
+    "baseline": "a9833a001f8bc06f672f4cedadabc28ff5cb364768dd7eac858fd76b64a371b0",
+    "candidate": "079bbb887ac34d236d90889f64e492978b4286614214df764c36685cde7b8843"
+  },
+  "privacy.html": {
+    "baseline": "bd1d29a19ec751ecf011d96a69c443ae02d1f3be78ee1282a4843b93c265e5a4",
+    "candidate": "0109ee3adb191469f899d497a239200a2c1dc922e29840170bbed85eecddd08a"
+  },
+  "quote/index.php": {
+    "baseline": "cfa7cf35ddae9f4e073f0438d84c9dc0ca3a43774790c45e0eb6df16426d7494",
+    "candidate": "e0f4f9926cb7cc334c24d5e1c173f85b69bbe71cde15da6451b72f7abcf1366d"
+  },
+  "terms.html": {
+    "baseline": "01eb247698701e7b8a3820647d727295065750d22b5772d0ab54b4f710a8954e",
+    "candidate": "061a76d64e6a729afbaf7dcb5f7282f79613640cdd67e4d74a44b53bb1731be5"
+  },
+  "waitlist.html": {
+    "baseline": "fd4c01fc77311c9eec108f84a5645e9ca0233d7af77327d2d9d236156e9476ef",
+    "candidate": "3b97b2566bd1e68b41eaac87989edc411986f681ed9afd02fae5f2055da3b56f"
+  },
+  "waitlist/action-page.php": {
+    "baseline": "d73bd8c177ffd998cb40c8395579ba4db7b8ca5c00ff75a1fc27342f6e26e57d",
+    "candidate": "348fc1326febeddc9754b9ce9506cb09db02ed04c8a051726f5a341e7e1c98b5"
+  },
+  "ui/design-system.css": {
+    "baseline": null,
+    "candidate": "f7c0f0158f98c4cc194a03e54034c3cdf3efaa4c19b48b9f9854845dc36b6354"
+  },
+  "ui/site-menu.js": {
+    "baseline": null,
+    "candidate": "90b1aa76c4f2f081613ae0e3eea2db5990e04a60d554c01ebbe87c1bcd88de00"
+  }
+}

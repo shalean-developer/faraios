@@ -1,0 +1,1 @@
+<?php if(PHP_SAPI!=='cli'){http_response_code(404);exit;}require __DIR__.'/ui-release-3c569b0.php';try{ui_release('verify');}catch(Throwable $e){echo json_encode(['status'=>'FAIL','error'=>$e->getMessage()]).PHP_EOL;exit(1);}
