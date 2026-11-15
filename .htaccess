@@ -1,6 +1,13 @@
 Options -Indexes
 <IfModule mod_rewrite.c>
 RewriteEngine On
+# Restore indexed marketing routes without a catch-all that masks genuine 404s.
+# Relative substitutions keep the same rules safe in the isolated preview directory.
+RewriteRule ^(?:platform/contact|contact)/?$ contact.html [R=301,L]
+RewriteCond %{THE_REQUEST} "\s/+[^?\ ]*(?:features|hosting|industries(?:/(?:tourism|gardening|technology|construction))?)\.html[?\ ]" [NC]
+RewriteRule ^(features|hosting|industries(?:/(?:tourism|gardening|technology|construction))?)\.html$ $1 [R=301,L]
+RewriteRule ^(features|hosting|industries(?:/(?:tourism|gardening|technology|construction))?)/$ $1 [R=301,L]
+RewriteRule ^(features|hosting|industries(?:/(?:tourism|gardening|technology|construction))?)$ $1.html [L]
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
 # Account preview must never reuse the live waitlist configuration.
 RewriteCond %{REQUEST_URI} ^/_accounts-preview/waitlist/ [NC]

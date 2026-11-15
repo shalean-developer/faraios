@@ -7,6 +7,7 @@ try {
  if($environment==='live') {
   $urls[]=$base.'/';
   $urls[]=$base.'/about.html';$urls[]=$base.'/contact.html';
+  foreach(['features','hosting','industries','industries/tourism','industries/gardening','industries/technology','industries/construction'] as $page)$urls[]=$base.'/'.$page;
   // Enumerate the public snapshot slug allowlist with stable keyset pagination. No drafts or IDs.
   $last='';$seen=[];
   do {

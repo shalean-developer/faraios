@@ -20,7 +20,8 @@ class Baseline(unittest.TestCase):
     def test_01_inventory_reproducible_and_complete(self):
         self.assertEqual(self.inventory,build())
         # Preserve the historical SC-02 manifest. Only these reviewed operational
-        # workflow bytes may differ; every other original file remains exact.
+        # workflow bytes and the bounded marketing repair below may differ.
+        # Every other original file remains exact; keep both historical baselines.
         expected=copy.deepcopy(json.loads((ROOT/'docs/sc02/preservation-manifest.json').read_text()))
         delta=json.loads((ROOT/'docs/sc04/operational-source-delta.json').read_text())
         self.assertEqual(set(delta),{'.github/workflows/database-backup.yml',
@@ -34,6 +35,18 @@ class Baseline(unittest.TestCase):
                 entry['sha256']=change['candidate_sha256']
                 found.add(entry['path'])
         self.assertEqual(found,set(delta))
+        marketing=json.loads((ROOT/'docs/marketing-recovery/source-delta.json').read_text())
+        self.assertEqual(set(marketing),{'.htaccess','index.html','sitemap.php',
+            'features.html','hosting.html','industries.html','marketing.css',
+            'industries/tourism.html','industries/gardening.html',
+            'industries/technology.html','industries/construction.html',
+            'release/marketing-recovery/preview.zip'})
+        original={entry['path']:entry for entry in expected['files']}
+        for path,change in marketing.items():
+            self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
+            self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
+            original[path]={'path':path,'sha256':change['candidate_sha256']}
+        expected['files']=[original[path] for path in sorted(original,key=Path)]
         self.assertEqual(expected,manifest())
         self.assertEqual(len(self.inventory['files']),31)
         self.assertEqual({r['name'] for r in self.inventory['sql'] if r['kind']=='view'},
