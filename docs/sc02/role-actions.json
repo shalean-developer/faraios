@@ -1,0 +1,427 @@
+{
+  "format": 1,
+  "baseline_commit": "e0d45923b441d7833e048faa041a3f0e16cfe1e2",
+  "authority": "SC-01 section D; planned fixed bundles, no permission changes",
+  "actions": [
+    {
+      "id": "business.configure",
+      "target": {
+        "owner": "Yes",
+        "manager": "No",
+        "receptionist": "No",
+        "worker": "No",
+        "customer": "No",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "businesses PATCH; profile/services publication RPCs",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "customers.manage",
+      "target": {
+        "owner": "Yes",
+        "manager": "Yes",
+        "receptionist": "Yes",
+        "worker": "No directory",
+        "customer": "Own submitted fields only",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "business_customer_search/write/link",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "enquiry.internal",
+      "target": {
+        "owner": "Yes",
+        "manager": "Yes",
+        "receptionist": "Yes",
+        "worker": "No",
+        "customer": "No",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "business_enquiry_workspace/workflow_save/create/status",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "quote.draft",
+      "target": {
+        "owner": "Yes",
+        "manager": "Yes",
+        "receptionist": "Catalogue prices only",
+        "worker": "No",
+        "customer": "No",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "business_quote_write; business_customer_quote_create",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "quote.override",
+      "target": {
+        "owner": "Yes",
+        "manager": "Reason required",
+        "receptionist": "No",
+        "worker": "No",
+        "customer": "No",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "business_quote_write/send; explicit free confirmation",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "quote.decide",
+      "target": {
+        "owner": "No impersonation",
+        "manager": "No impersonation",
+        "receptionist": "No impersonation",
+        "worker": "No",
+        "customer": "Exact valid quote capability",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "business_quote_customer",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "booking.schedule",
+      "target": {
+        "owner": "Yes",
+        "manager": "Yes",
+        "receptionist": "Within agreement/policy",
+        "worker": "No",
+        "customer": "Submit; future own change request",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "business_booking_request_submit/action; business_booking_write; business_customer_booking_create",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "assignment.manage",
+      "target": {
+        "owner": "Yes",
+        "manager": "Yes",
+        "receptionist": "Scheduling only; no staff identity edits",
+        "worker": "Own availability request only",
+        "customer": "No",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "business_staff_assign; business_booking_schedule",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "visit.execute",
+      "target": {
+        "owner": "Yes",
+        "manager": "Yes",
+        "receptionist": "No",
+        "worker": "Currently assigned visit only",
+        "customer": "No",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "Future visits; current booking_write owner-only",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "terminal.correct",
+      "target": {
+        "owner": "Reason required",
+        "manager": "Reason required",
+        "receptionist": "No",
+        "worker": "No",
+        "customer": "Own offered variation consent only",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "Future guarded correction; preserve existing booking_write behavior",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "booking.amounts",
+      "target": {
+        "owner": "Yes",
+        "manager": "Yes",
+        "receptionist": "Yes",
+        "worker": "No",
+        "customer": "Own agreed document only",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "business_bookings/schedule; quote/invoice document links",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "finance.bulk",
+      "target": {
+        "owner": "Yes",
+        "manager": "Yes",
+        "receptionist": "No",
+        "worker": "No",
+        "customer": "No",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "business_invoice_list/payments/events; business_dashboard",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "invoice.issue",
+      "target": {
+        "owner": "Yes",
+        "manager": "Yes",
+        "receptionist": "Unchanged agreed amounts only",
+        "worker": "No",
+        "customer": "Read exact issued document only",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "business_invoice_write/customer",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "payment.record",
+      "target": {
+        "owner": "Yes",
+        "manager": "Yes",
+        "receptionist": "No",
+        "worker": "No",
+        "customer": "No",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "business_invoice_payment",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "payment.reverse",
+      "target": {
+        "owner": "Yes",
+        "manager": "No",
+        "receptionist": "No",
+        "worker": "No",
+        "customer": "No",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "business_invoice_payment reversal",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "invoice.void_replace",
+      "target": {
+        "owner": "Yes",
+        "manager": "No",
+        "receptionist": "No",
+        "worker": "No",
+        "customer": "No",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "business_invoice_write void/replace; manual activation override",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "staff.manage",
+      "target": {
+        "owner": "Yes",
+        "manager": "Yes",
+        "receptionist": "No",
+        "worker": "No",
+        "customer": "No",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "business_staff_write",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "membership.admin",
+      "target": {
+        "owner": "Owner only; transfer gated",
+        "manager": "No",
+        "receptionist": "No",
+        "worker": "No",
+        "customer": "No",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "Future membership/invitations; no current RPC",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "publication.read",
+      "target": {
+        "owner": "Published projection",
+        "manager": "Published projection",
+        "receptionist": "Published projection",
+        "worker": "Published projection",
+        "customer": "Published projection",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "business_public_pages allowed columns; business_service_image",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    },
+    {
+      "id": "platform.recovery",
+      "target": {
+        "owner": "Separately controlled owner operation",
+        "manager": "No",
+        "receptionist": "No",
+        "worker": "No",
+        "customer": "No",
+        "outsider": "No private access; published projection only"
+      },
+      "source_surface": "scripts/database-backup.py; database-restore-check.py; private_config.php",
+      "current": "Owner-only business access; customer scoped/public capability only; delegated roles unavailable",
+      "tests": [
+        "foreign business ID",
+        "preview/live mismatch",
+        "stale version",
+        "anonymous claims",
+        "direct API bypass",
+        "revocation when implemented"
+      ]
+    }
+  ]
+}
