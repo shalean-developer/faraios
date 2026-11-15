@@ -115,6 +115,27 @@ class Readiness(base.Shared):
    self.assertEqual(self.sql('select count(*) from public.businesses'),count_before)
   finally:
    type(self).sc04_login_user=None;type(self).url=oldurl;config.write_text(oldconfig);router.write_text(oldrouter);self.restart_php();self.enable(False)
+ def test_10_existing_private_config_router(self):
+  private=self.private/'profiles';config=private/'config.php';oldconfig=config.read_text();oldurl=type(self).url
+  production=private/'production.php';preview=private/'preview-routed.php';router=private/'router.php';oldrouter=router.read_text()
+  try:
+   production.write_text(oldconfig);preview.write_text(oldconfig.replace(self.url,self.url+'/preview'))
+   config.write_text("<?php return require __DIR__.((($_SERVER['SCRIPT_NAME']??'')==='/account/index.php')?'/production.php':'/preview-routed.php');")
+   # This is the existing host's exact-entry config contract, not a host config change.
+   self.restart_php();type(self).sc04_login_user=None
+   self.post('/account/index.php?page=signin',email='a@example.test',password='test-long-password')
+   html=self.get('/account/join.php')[1];self.assertIn('<h1>Join business</h1>',html);self.assertNotIn('configuration is unavailable',html)
+   html=self.get('/account/context.php')[1];self.assertIn(':live',html);self.assertNotIn(':preview',html)
+   html=self.post('/account/context.php',context=self.bids[0]+':live');self.assertIn('Good ',html);self.assertNotIn('could not load',html)
+   html=self.get('/account/access.php')[1];self.assertIn('<h1>Access</h1>',html);self.assertIn(' · live',html)
+   html=self.get('/account/delegated.php')[1];self.assertIn('Good ',html);self.assertNotIn('configuration is unavailable',html)
+   self.post('/account/index.php?page=welcome',action='logout')
+   # Production routing also preserves the signed-out Join return contract.
+   self.assertIn('Welcome back',self.get('/account/join.php')[1])
+   self.assertIn('<h1>Join business</h1>',self.post('/account/index.php?page=signin',email='a@example.test',password='test-long-password'))
+  finally:
+   type(self).url=oldurl;config.write_text(oldconfig);router.write_text(oldrouter)
+   production.unlink(missing_ok=True);preview.unlink(missing_ok=True);self.restart_php()
  def test_07_candidate_php_syntax(self):
   for p in (ROOT/'docs/sc04').glob('*.php'):
    r=subprocess.run([__import__('journey').PHP,'-l',str(p)],capture_output=True,text=True);self.assertEqual(r.returncode,0,r.stdout+r.stderr)

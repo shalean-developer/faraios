@@ -1,6 +1,7 @@
 <?php
 if(!is_file(__DIR__.'/core.php')){http_response_code(404);exit;}
 require __DIR__.'/core.php';
+$_SERVER['SCRIPT_NAME']=preg_replace('~/account/context\.php$~','/account/index.php',$_SERVER['SCRIPT_NAME']);
 $error='';$contexts=[];
 try {
  start();user();$contexts=api('/rest/v1/rpc/business_contexts',['p_discovery'=>true],'POST',$_SESSION['auth']['access_token']);
