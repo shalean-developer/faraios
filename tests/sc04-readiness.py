@@ -46,13 +46,13 @@ class Readiness(base.Shared):
    # Positive owner control: identical payload is valid; rollback avoids altering fixture.
    self.sql('begin;set role authenticated;set request.jwt.claim.sub='+lit(self.ids[0])+";set request.jwt.claims='{\"is_anonymous\":false}';reset request.headers;"+q+';rollback;')
    with self.assertRaises(RuntimeError):self.legacy(u,q)
-   self.assertEqual(self.legacy(u,'update public.business_bookings set address=\'Synthetic bypass\' where id='+lit(b)+' returning id'),'')
+   with self.assertRaisesRegex(RuntimeError,'permission denied for table business_bookings'):self.legacy(u,'update public.business_bookings set address=\'Synthetic bypass\' where id='+lit(b)+' returning id')
    self.assertEqual(self.sql('select to_jsonb(b) from public.business_bookings b where id='+lit(b)),before)
   self.enable(False)
  def test_04_stale_customer_write_is_atomic(self):
   self.enable()
   for role in ['manager','receptionist']:
-   u=self.member(role);i=str(uuid.uuid4());a=dict(p_id=i,p_version=0,p_details=dict(name='Synthetic stale',email='',phone='',address='',notes=''),p_confirm=True)
+   u=self.member(role);i=str(uuid.uuid4());a=dict(p_id=i,p_version=0,p_details=dict(name='Synthetic stale',email='stale@example.test',phone='',address='',notes=''),p_confirm=True)
    self.command(u,'business_customer_write',a)
    before=self.sql('select to_jsonb(c) from public.business_customers c where id='+lit(i))
    with self.assertRaises(RuntimeError):self.command(u,'business_customer_write',a|dict(p_details=a['p_details']|dict(name='Stale overwrite')))
@@ -96,6 +96,9 @@ class Readiness(base.Shared):
    self.assertIn('No active business access',self.get('/account/delegated.php')[1])
   finally:
    type(self).sc04_login_user=None;type(self).url=oldurl;config.write_text(oldconfig);router.write_text(oldrouter);self.enable(False)
+ def test_07_candidate_php_syntax(self):
+  for p in (ROOT/'docs/sc04').glob('*.php'):
+   r=subprocess.run([__import__('journey').PHP,'-l',str(p)],capture_output=True,text=True);self.assertEqual(r.returncode,0,r.stdout+r.stderr)
 if __name__=='__main__':
  names=[n for n in Readiness.__dict__ if n.startswith('test_')]
  result=unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(Readiness(n) for n in names));raise SystemExit(not result.wasSuccessful())
