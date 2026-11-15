@@ -241,3 +241,27 @@ jobs:
       - name: Remove local ciphertext and generated runtime
         if: always()
         run: rm -rf -- "${{ runner.temp }}/profile-old" "${{ runner.temp }}/profile-current" "${{ runner.temp }}/profile-runtime"
+
+  sc04_browser_layout:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.configuration_action == 'sc04-browser-layout' && github.ref == 'refs/heads/feature/sc04-live-role-preparation-20261115' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install isolated native browser test runtimes
+        run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-16 php-cli php-curl php-sqlite3
+          python3 -m pip install playwright==1.56.0
+          python3 -m playwright install --with-deps chromium
+      - name: Native role pages at desktop and mobile widths
+        env:
+          PG_BIN: /usr/lib/postgresql/16/bin
+          FARAIOS_MOBILE_BROWSER_CHECK: true
+        run: python3 tests/sc04-readiness.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sc04-browser-layout-evidence
+          path: test-results/release/sc04-*
+          retention-days: 30
+          if-no-files-found: warn

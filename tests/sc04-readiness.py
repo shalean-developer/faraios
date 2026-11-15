@@ -111,6 +111,41 @@ class Readiness(base.Shared):
    r=subprocess.run([__import__('journey').PHP,'-l',str(p)],capture_output=True,text=True);self.assertEqual(r.returncode,0,r.stdout+r.stderr)
  def test_08_encrypted_recovery_upgrade(self):
   self.test_10_recovery_and_preservation()
+ def test_09_browser_layout(self):
+  from playwright.sync_api import sync_playwright
+  import os
+  self.enable();oldurl=type(self).url;private=self.private/'profiles';config=private/'config.php';router=private/'router.php';oldconfig=config.read_text();oldrouter=router.read_text();checks=[]
+  actors={role:self.member(role) for role in ['manager','receptionist','worker']}
+  manager=actors['manager'];worker=actors['worker'];sid=str(uuid.uuid4());booking=self.booking()
+  self.command(manager,'business_staff_write',dict(p_id=sid,p_version=0,p_name='Synthetic mobile worker',p_email='private@example.test',p_phone='',p_active=True))
+  self.invoke(self.ids[0],'business_worker_link',p_user=worker,p_staff=sid)
+  self.command(manager,'business_staff_assign',dict(p_booking=booking,p_version=0,p_staff=[sid]))
+  out=ROOT/'test-results/release';out.mkdir(parents=True,exist_ok=True)
+  try:
+   config.write_text(oldconfig.replace(self.url,self.url+'/preview'))
+   router.write_text("<?php $path=preg_replace('~^/preview~','',parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));$_SERVER['SCRIPT_NAME']=$path;$_SERVER['SCRIPT_FILENAME']="+repr(str(self.webroot))+".$path;require $_SERVER['SCRIPT_FILENAME'];return true;")
+   type(self).url+='/preview'
+   with sync_playwright() as playwright:
+    browser=playwright.chromium.launch()
+    try:
+     for width in [390,1280]:
+      for role,actor in actors.items():
+       type(self).sc04_login_user=actor
+       ctx=browser.new_context(viewport={'width':width,'height':844});page=ctx.new_page()
+       page.goto(self.url+'/account/join.php');page.get_by_label('Email address',exact=True).fill('new@example.test');page.get_by_label('Password',exact=True).fill('test-long-password');page.get_by_role('button',name='Sign in',exact=True).click();page.get_by_role('heading',name='Join business',exact=True).wait_for()
+       for label,path in [('join','join.php'),('context','context.php')]:
+        page.goto(self.url+'/account/'+path);page.get_by_role('heading',level=1).wait_for();metrics=page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');self.assertEqual(metrics['width'],width);self.assertLessEqual(metrics['scroll'],width);checks.append(dict(role=role,page=label,**metrics));page.screenshot(path=str(out/f'sc04-{role}-{label}-{width}.png'),full_page=True)
+       page.get_by_label('Business and environment',exact=True).select_option(self.bids[0]+':preview');page.get_by_role('button',name='Continue',exact=True).click();page.get_by_role('heading',name='Fresh Test',exact=True).wait_for()
+       self.assertIn(role+' · preview',page.locator('body').inner_text());metrics=page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');self.assertEqual(metrics['width'],width);self.assertLessEqual(metrics['scroll'],width);checks.append(dict(role=role,page='workspace',**metrics))
+       if role=='worker':self.assertEqual(page.get_by_role('link',name='Payments',exact=True).count(),0);self.assertNotIn('50500',page.locator('body').inner_text())
+       page.screenshot(path=str(out/f'sc04-{role}-workspace-{width}.png'),full_page=True);ctx.close()
+      type(self).sc04_login_user=None
+      ctx=browser.new_context(viewport={'width':width,'height':844});page=ctx.new_page();page.goto(self.url+'/account/index.php?page=signin');page.get_by_label('Email address',exact=True).fill('a@example.test');page.get_by_label('Password',exact=True).fill('test-long-password');page.get_by_role('button',name='Sign in',exact=True).click();page.goto(self.url+'/account/access.php');page.get_by_role('heading',name='Access',exact=True).wait_for();metrics=page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');self.assertEqual(metrics['width'],width);self.assertLessEqual(metrics['scroll'],width);checks.append(dict(role='owner',page='access',**metrics));page.screenshot(path=str(out/f'sc04-owner-access-{width}.png'),full_page=True);ctx.close()
+    finally:browser.close()
+   (out/'sc04-browser-layout.json').write_text(json.dumps(dict(status='PASS',checks=checks,source='exact staged native PHP; simulated Auth/REST; disposable database',physical_phone=False),indent=2)+'\n')
+  finally:
+   type(self).sc04_login_user=None;type(self).url=oldurl;config.write_text(oldconfig);router.write_text(oldrouter);self.enable(False)
+
 if __name__=='__main__':
- names=[n for n in Readiness.__dict__ if n.startswith('test_')]
+ names=[n for n in Readiness.__dict__ if n.startswith('test_') and (n!='test_09_browser_layout' or __import__('os').environ.get('FARAIOS_MOBILE_BROWSER_CHECK')=='true')]
  result=unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(Readiness(n) for n in names));raise SystemExit(not result.wasSuccessful())
