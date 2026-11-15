@@ -1,5 +1,7 @@
 name: Isolated database restore check
 on:
+  pull_request:
+    branches: [main]
   workflow_call:
     inputs:
       configuration_action:
@@ -51,7 +53,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   restore:
-    if: ${{ !inputs.configuration_action || inputs.configuration_action == 'none' }}
+    if: ${{ (!inputs.configuration_action || inputs.configuration_action == 'none') && (github.event_name != 'pull_request' || (github.head_ref == 'feature/sc04-live-role-preparation-20261115' && github.event.pull_request.head.repo.full_name == github.repository)) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -183,3 +185,108 @@ jobs:
       - name: Remove private temporary files
         if: always()
         run: rm -rf -- "$RUNNER_TEMP/restored-private" "$RUNNER_TEMP/config-bundle"
+
+  hosted_sc04:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.configuration_action == 'sc04-remaining' && github.ref == 'refs/heads/feature/sc04-live-role-preparation-20261115' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client-16
+      - name: Fenced synthetic hosted concurrency acceptance
+        env:
+          PGHOST: ${{ vars.FARAIOS_BACKUP_HOST }}
+          PGPORT: '5432'
+          PGUSER: ${{ vars.FARAIOS_BACKUP_USER }}
+          PGDATABASE: postgres
+          PGPASSWORD: ${{ secrets.FARAIOS_BACKUP_DB_PASSWORD }}
+          FARAIOS_HOSTED_SC04_CONFIRM: rxelmugnucfajrqmphhe:two-registered-preview-businesses
+        run: python3 docs/sc04/hosted-concurrency.py > sc04-hosted-concurrency.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sc04-hosted-concurrency-evidence
+          path: sc04-hosted-concurrency.json
+          retention-days: 30
+
+  profile_reconciliation:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.configuration_action == 'sc04-profile-reconcile' && github.ref == 'refs/heads/feature/sc04-live-role-preparation-20261115' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: '43686079364'
+          name: faraios-encrypted-backup-43686079364
+          path: ${{ runner.temp }}/profile-old
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: '43693294531'
+          name: faraios-encrypted-backup-43693294531
+          path: ${{ runner.temp }}/profile-current
+      - name: Reconcile publication metadata in verified isolated snapshots
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.FARAIOS_BACKUP_PASSPHRASE }}
+          RESTORE_PROVIDER_LIBRARIES: true
+          RESTORE_AUTH_REHEARSAL: false
+        run: |
+          python3 docs/sc04/shared.py "$RUNNER_TEMP/profile-runtime"
+          python3 docs/sc04/profile-reconciliation.py "$RUNNER_TEMP/profile-runtime/application/scripts/database-restore-check.py" "$RUNNER_TEMP/profile-old" "$RUNNER_TEMP/profile-current" > profile-reconciliation.json
+          cat profile-reconciliation.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sc04-profile-reconciliation
+          path: profile-reconciliation.json
+          retention-days: 30
+      - name: Remove local ciphertext and generated runtime
+        if: always()
+        run: rm -rf -- "${{ runner.temp }}/profile-old" "${{ runner.temp }}/profile-current" "${{ runner.temp }}/profile-runtime"
+
+  sc04_browser_layout:
+    if: ${{ (github.event_name == 'pull_request' && github.head_ref == 'feature/sc04-live-role-preparation-20261115' && github.event.pull_request.head.repo.full_name == github.repository) || (github.event_name == 'workflow_dispatch' && inputs.configuration_action == 'sc04-browser-layout' && github.ref == 'refs/heads/feature/sc04-live-role-preparation-20261115') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install isolated native browser test runtimes
+        run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-16 php-cli php-curl php-sqlite3
+          python3 -m pip install playwright==1.56.0
+          python3 -m playwright install --with-deps chromium
+      - name: Native role pages at desktop and mobile widths
+        env:
+          PG_BIN: /usr/lib/postgresql/16/bin
+          FARAIOS_MOBILE_BROWSER_CHECK: true
+        run: python3 tests/sc04-readiness.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sc04-browser-layout-evidence
+          path: test-results/release/sc04-*
+          retention-days: 30
+          if-no-files-found: warn
+
+  hosted_closeout_readonly:
+    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'feature/sc04-live-role-preparation-20261115' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client-16
+      - name: Closed-state and original-record read-only verification
+        env:
+          PGHOST: ${{ vars.FARAIOS_BACKUP_HOST }}
+          PGPORT: '5432'
+          PGUSER: ${{ vars.FARAIOS_BACKUP_USER }}
+          PGDATABASE: postgres
+          PGPASSWORD: ${{ secrets.FARAIOS_BACKUP_DB_PASSWORD }}
+        run: python3 docs/sc04/hosted-closeout.py > hosted-closeout.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sc04-hosted-closeout-readonly
+          path: hosted-closeout.json
+          retention-days: 30
+          if-no-files-found: warn
