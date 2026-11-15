@@ -1,0 +1,146 @@
+[
+  {
+    "path": "industries/cleaning",
+    "brokenImages": [],
+    "h1": "From the first enquiry to a completed clean.",
+    "overflow": false,
+    "scrollWidth": 375,
+    "width": 390
+  },
+  {
+    "path": "industries/electrical",
+    "brokenImages": [],
+    "h1": "Give every electrical enquiry a clear next step.",
+    "overflow": false,
+    "scrollWidth": 375,
+    "width": 390
+  },
+  {
+    "path": "industries/security",
+    "brokenImages": [],
+    "h1": "Keep installation and service work organised.",
+    "overflow": false,
+    "scrollWidth": 375,
+    "width": 390
+  },
+  {
+    "path": "industries/beauty-spa",
+    "brokenImages": [],
+    "h1": "A clear introduction to your services.",
+    "overflow": false,
+    "scrollWidth": 375,
+    "width": 390
+  },
+  {
+    "path": "industries/fitness",
+    "brokenImages": [],
+    "h1": "Less scattered service administration.",
+    "overflow": false,
+    "scrollWidth": 375,
+    "width": 390
+  },
+  {
+    "path": "industries/consulting",
+    "brokenImages": [],
+    "h1": "Turn an enquiry into clearly agreed work.",
+    "overflow": false,
+    "scrollWidth": 375,
+    "width": 390
+  },
+  {
+    "path": "pricing",
+    "brokenImages": [],
+    "h1": "Discuss the right setup for your business.",
+    "overflow": false,
+    "scrollWidth": 375,
+    "width": 390
+  },
+  {
+    "path": "marketplace",
+    "brokenImages": [],
+    "h1": "Discover a business on FaraiOS.",
+    "overflow": false,
+    "scrollWidth": 375,
+    "width": 390
+  },
+  {
+    "path": "terms",
+    "brokenImages": [],
+    "h1": "Using the FaraiOS website.",
+    "overflow": false,
+    "scrollWidth": 375,
+    "width": 390
+  },
+  {
+    "path": "industries",
+    "brokenImages": [],
+    "h1": "Different services. A shared foundation.",
+    "overflow": false,
+    "scrollWidth": 375,
+    "width": 390
+  },
+  {
+    "path": "",
+    "brokenImages": [],
+    "h1": "Your website. Your business.Better together.",
+    "overflow": false,
+    "scrollWidth": 375,
+    "width": 390
+  },
+  {
+    "path": "industries/cleaning",
+    "brokenImages": [],
+    "overflow": false,
+    "scrollWidth": 305,
+    "width": 320
+  },
+  {
+    "path": "pricing",
+    "brokenImages": [],
+    "overflow": false,
+    "scrollWidth": 305,
+    "width": 320
+  },
+  {
+    "path": "marketplace",
+    "brokenImages": [],
+    "overflow": false,
+    "scrollWidth": 305,
+    "width": 320
+  },
+  {
+    "path": "terms",
+    "brokenImages": [],
+    "overflow": false,
+    "scrollWidth": 305,
+    "width": 320
+  },
+  {
+    "path": "industries/cleaning",
+    "brokenImages": [],
+    "overflow": false,
+    "scrollWidth": 753,
+    "width": 768
+  },
+  {
+    "path": "pricing",
+    "brokenImages": [],
+    "overflow": false,
+    "scrollWidth": 753,
+    "width": 768
+  },
+  {
+    "path": "marketplace",
+    "brokenImages": [],
+    "overflow": false,
+    "scrollWidth": 753,
+    "width": 768
+  },
+  {
+    "path": "terms",
+    "brokenImages": [],
+    "overflow": false,
+    "scrollWidth": 753,
+    "width": 768
+  }
+]

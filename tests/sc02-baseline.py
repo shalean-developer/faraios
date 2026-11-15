@@ -46,6 +46,17 @@ class Baseline(unittest.TestCase):
             self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
             self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
             original[path]={'path':path,'sha256':change['candidate_sha256']}
+        recovery=json.loads((ROOT/'docs/remaining-404s/source-delta.json').read_text())
+        self.assertEqual(set(recovery),{'.htaccess','sitemap.php','index.html',
+            'industries.html','terms.html','pricing.html','marketplace.html',
+            'industries/cleaning.html','industries/electrical.html',
+            'industries/security.html','industries/beauty-spa.html',
+            'industries/fitness.html','industries/consulting.html',
+            'release/remaining-404s/preview.zip'})
+        for path,change in recovery.items():
+            self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
+            self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
+            original[path]={'path':path,'sha256':change['candidate_sha256']}
         expected['files']=[original[path] for path in sorted(original,key=Path)]
         self.assertEqual(expected,manifest())
         self.assertEqual(len(self.inventory['files']),31)

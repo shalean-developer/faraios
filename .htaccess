@@ -1,6 +1,15 @@
 Options -Indexes
 <IfModule mod_rewrite.c>
 RewriteEngine On
+# Exact legacy equivalents; never redirect unknown pages to the homepage.
+RewriteRule ^privacy/?$ privacy.html [R=301,L]
+RewriteRule ^platform/about/?$ about.html [R=301,L]
+RewriteRule ^marketplace/shalean-cleaning-services/?$ b/shalean-cleaning-services [R=301,L]
+# Remaining historical public URLs: allowlisted static pages only.
+RewriteCond %{THE_REQUEST} "\s/+[^?\ ]*(?:terms|pricing|marketplace|industries/(?:cleaning|electrical|security|beauty-spa|fitness|consulting))\.html[?\ ]" [NC]
+RewriteRule ^(terms|pricing|marketplace|industries/(?:cleaning|electrical|security|beauty-spa|fitness|consulting))\.html$ $1 [R=301,L]
+RewriteRule ^(terms|pricing|marketplace|industries/(?:cleaning|electrical|security|beauty-spa|fitness|consulting))/$ $1 [R=301,L]
+RewriteRule ^(terms|pricing|marketplace|industries/(?:cleaning|electrical|security|beauty-spa|fitness|consulting))$ $1.html [L]
 # Restore indexed marketing routes without a catch-all that masks genuine 404s.
 # Relative substitutions keep the same rules safe in the isolated preview directory.
 RewriteRule ^(?:platform/contact|contact)/?$ contact.html [R=301,L]
