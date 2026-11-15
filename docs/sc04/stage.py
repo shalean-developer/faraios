@@ -11,11 +11,15 @@ def stage(destination):
  new="""function business(): ?array {
  $environment=(parse_url(cfg()['base_url'],PHP_URL_PATH)?:'')===''?'live':'preview';
  $contexts=api('/rest/v1/rpc/business_contexts',['p_discovery'=>true],'POST',$_SESSION['auth']['access_token']);
- $contexts=array_values(array_filter($contexts,fn($c)=>($c['environment']??null)===$environment&&($c['role']??null)==='owner'));
+ $contexts=array_values(array_filter($contexts,fn($c)=>($c['environment']??null)===$environment));
  $selected=$_SESSION['business_context']??null;
  $matches=array_values(array_filter($contexts,fn($c)=>$selected&&$c['business_id']===($selected['business_id']??null)&&$c['environment']===($selected['environment']??null)));
- if(!$matches){unset($_SESSION['business_context']);if(!$contexts)return null;if(count($contexts)!==1)throw new RuntimeException('Choose a business context.');$matches=$contexts;}
+ if(!$matches){unset($_SESSION['business_context']);if(!$contexts)return null;if(count($contexts)!==1||$contexts[0]['role']!=='owner'){header('Location: context.php',true,303);exit;}$matches=$contexts;}
  $_SESSION['business_context']=$matches[0];
+ if($matches[0]['role']!=='owner'){
+  if(!in_array(basename($_SERVER['SCRIPT_FILENAME']??''),['delegated.php','context.php'],true)){header('Location: delegated.php',true,303);exit;}
+  return ['id'=>$matches[0]['business_id']]+$matches[0];
+ }
  $b=api('/rest/v1/businesses?id=eq.'.rawurlencode($matches[0]['business_id']).'&select=id,name,business_type,country,time_zone',[],'GET',$_SESSION['auth']['access_token']);
  if(count($b)!==1){unset($_SESSION['business_context']);throw new RuntimeException('Business context unavailable.');}return $b[0];
 }"""
@@ -36,6 +40,8 @@ def stage(destination):
  new="api('/rest/v1/rpc/business_context_create',['p_name'=>$name,'p_type'=>$type,'p_country'=>$details['country'],'p_zone'=>$details['time_zone']],'POST',$_SESSION['auth']['access_token']);unset($_SESSION['business_context']);"
  if s.count(old)!=1:raise ValueError('Business creation source drift')
  index.write_text(s.replace(old,new))
+ for name in ['context.php','delegated.php']:
+  shutil.copyfile(ROOT/'docs/sc04'/name,destination/'account'/name)
  # The private authorization schema must travel with its tables, functions and ACLs.
  p=destination/'scripts/database-backup.py';s=p.read_text();marker="schemas=SCHEMAS+optional"
  if s.count(marker)!=1:raise ValueError('Backup source drift')

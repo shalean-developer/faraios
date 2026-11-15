@@ -160,15 +160,17 @@ class SC04(Foundation):
    with self.assertRaises(RuntimeError):restored('set role authenticated;select * from '+table)
   spec=importlib.util.spec_from_file_location('sc04recovery',self.webroot/'scripts/sc04_recovery.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
   checked_scopes=m.verify_owner_scopes(restored);self.assertGreater(checked_scopes,0)
+  if hasattr(self,'verify_delegated_restore'):self.verify_delegated_restore(restored)
   # Operator deactivation restores captured original RPC definitions and ACLs,
   # retaining every old/new row. No destructive down-migration is used.
   restored((ROOT/'docs/sc04/deactivate.sql').read_text())
   self.assertEqual(before,fingerprints(restored,schemas))
+  if hasattr(self,'verify_delegated_deactivated'):self.verify_delegated_deactivated(restored)
   definitions=json.loads(restored('select jsonb_agg(jsonb_build_array(identity,definition)) from authorization_private.legacy_functions'))
   for identity,definition in definitions:self.assertEqual(restored('select pg_get_functiondef('+lit(identity)+'::regprocedure)'),definition.strip())
   self.assertEqual(restored("select count(*) from pg_policies where policyname like 'sc04_%'"),'0')
   report=dict(recovery_owner_outsider_scopes=checked_scopes,denial_matrix_cases=self.matrix_count,legacy_issued_documents_and_ledger_seeded=True,publication_and_private_revision_seeded=True,original_rows_preserved=self.original_rows_preserved,rollback_preserves_every_row=True,guarded_functions=len(definitions),synthetic_only=True,hosted_changes=False,delegation_enabled=False,encrypted_export=True,triggers_schema_grants_audit_sequence_equal=True,restored_table_count=len(before),all_row_fingerprints_equal=True,policies_function_bodies_effective_acls_equal=True,postgres=self.sql('show server_version'),archive_sha256=hashlib.sha256(archive.read_bytes()).hexdigest())
-  target=ROOT/'test-results/release';target.mkdir(parents=True,exist_ok=True);(target/'sc04-native.json').write_text(json.dumps(report,indent=2)+'\n')
+  target=ROOT/'test-results/release';target.mkdir(parents=True,exist_ok=True);(target/getattr(self,'sc04_report_name','sc04-native.json')).write_text(json.dumps(report,indent=2)+'\n')
  def test_backfill_context(self):
   self.assertTrue(self.original_rows_preserved)
   self.assertEqual(self.before,self.sql('select jsonb_agg(to_jsonb(b) order by id) from public.businesses b'))
