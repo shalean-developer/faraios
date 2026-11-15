@@ -1,11 +1,11 @@
 {
   "account/staff.php": {
     "baseline_sha256": "3a1f1a2c4643584314629d256cf162d13e6c490e840df2b9de21a52ea7be903d",
-    "candidate_sha256": "893fc29f555ba2a72e0a67268b797502f6e88242b46f8d642dba499d612a4028"
+    "candidate_sha256": "2717c46e4e6ea43c99f2decfbcb60dcc18ca15f1b9d7dbfcf902ff31ed5f3956"
   },
   "account/staff-access.php": {
     "baseline_sha256": null,
-    "candidate_sha256": "4493ac2242caab0eee1fa5939f9e5bdcdba278ed3fc17ce39bddbb69bdb8f8be"
+    "candidate_sha256": "5774d4ce5cf49bf75fedd983478c4d712732a197f821447cf4b91a1d310c2e7b"
   },
   "account/staff-invite-core.php": {
     "baseline_sha256": null,
@@ -21,7 +21,7 @@
   },
   "account/staff-search.js": {
     "baseline_sha256": null,
-    "candidate_sha256": "eca4c3a207b046e36ff18031cca64f8db07ca4408a684b528ac78aa644f73918"
+    "candidate_sha256": "0b8daf03b9e218bf721362383693719431743e459d88d02598912d5210641b97"
   },
   "notifications/staff-invitation.php": {
     "baseline_sha256": null,
@@ -37,7 +37,7 @@
   },
   "account/staff-onboarding.css": {
     "baseline_sha256": null,
-    "candidate_sha256": "552005426dd07c55b9e802e70f3f5ce167b163208b6fdc079725e561f5efb10d"
+    "candidate_sha256": "54695e832195e32b0c3f95f07dbc270ec1bf5b7765e1f401dc45e07a109f60ce"
   },
   "scripts/private_config.php": {
     "baseline_sha256": "4b29f0cba38995d6362c404a0966db7d92681a420370dbcad0fb7f7f20446284",

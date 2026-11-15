@@ -151,7 +151,12 @@ class Onboarding(base.Readiness):
       type(self).sc04_login_user=None;ctx=browser.new_context(viewport={'width':width,'height':844});page=ctx.new_page();page.goto(self.url+'/account/index.php?page=signin');page.get_by_label('Email address',exact=True).fill('a@example.test');page.get_by_label('Password',exact=True).fill('test-long-password');page.get_by_role('button',name='Sign in',exact=True).click(force=os.environ.get('FARAIOS_BROWSER_SINGLE_PROCESS')=='true');page.goto(self.url+'/account/staff-access.php')
       page.get_by_label('Find staff by name or email',exact=True).fill('no-such-person');self.assertEqual(page.locator('.staff-result:visible').count(),0)
       page.get_by_label('Find staff by name or email',exact=True).fill('Synthetic invitee');self.assertGreater(page.locator('.staff-result:visible').count(),0)
-      metrics=page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');self.assertLessEqual(metrics['scroll'],width);checks.append(dict(page='staff-search',**metrics));ctx.close();browser.close();browser=launch_browser()
+      metrics=page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');self.assertLessEqual(metrics['scroll'],width);checks.append(dict(page='staff-search',**metrics))
+      self.assertIn('Live and preview staff are separate',page.locator('#staff-search-scope').inner_text())
+      page.goto(self.url+'/account/staff.php');page.get_by_label('Find staff by name or email',exact=True).fill('no-such-person');self.assertEqual(page.locator('.staff-result:visible').count(),0);self.assertIn('No matching staff',page.locator('#matches').inner_text())
+      page.get_by_label('Find staff by name or email',exact=True).fill('  SYNTHETIC INVITEE  ');self.assertGreater(page.locator('.staff-result:visible').count(),0)
+      sample_email=page.locator('.staff-result').first.get_attribute('data-search').split(' ')[-1];page.get_by_label('Find staff by name or email',exact=True).fill(sample_email);self.assertGreater(page.locator('.staff-result:visible').count(),0)
+      metrics=page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');self.assertLessEqual(metrics['scroll'],width);checks.append(dict(page='staff-directory-search',**metrics));ctx.close();browser.close();browser=launch_browser()
     finally:browser.close()
    (ROOT/'test-results/release/staff-onboarding-browser.json').write_text(json.dumps(dict(checks=checks,physical_phone=False,synthetic_only=True),indent=2))
   finally:

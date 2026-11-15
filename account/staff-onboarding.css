@@ -2,4 +2,4 @@
 .role-workspace input[type=checkbox]{width:auto;min-height:auto;margin-right:8px;accent-color:#087f78}
 .role-workspace .button{cursor:pointer;font:inherit;min-height:48px;border-radius:9px;padding:11px 18px;border:1px solid #087f78;background:#087f78;color:white}
 .role-workspace .button.secondary{background:white;color:#08736d;border-color:#b9cbc3}
-.role-workspace [hidden]{display:none!important}
+.role-workspace [hidden],.staff-result[hidden]{display:none!important}
