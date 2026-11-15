@@ -30,7 +30,28 @@
   },
   "syntax_and_compilation": "PASS",
   "frozen_SC02_baseline": "PASS unchanged",
-  "remote_CI": "Pending authorized branch update; previous-head evidence is historical",
+  "remote_CI": {
+    "implementation_head": "8432eeaf37e8589892e560bacf8b8fb07cef6fb6",
+    "implementation_tree": "c3b790039f75c2364137e9e410d1e45713a32b3e",
+    "foundation": {
+      "run": 43659872616,
+      "result": "success",
+      "suites": 30,
+      "methods": 70,
+      "job": 132646562612
+    },
+    "database_backup": {
+      "run": 43659872741,
+      "result": "success"
+    },
+    "private_configuration_recovery": {
+      "run": 43659872593,
+      "result": "success"
+    },
+    "artifact": 14139702064,
+    "artifact_retention_days": 14,
+    "latest_documentation_head": "See PR #56 and Foundation Plan for independently verified final-head status; this object records its exact tested implementation ancestor."
+  },
   "limitations": [
     "Disposable PostgreSQL; simulated Auth/REST",
     "No hosted drift, real-record or managed provider equivalence claim",

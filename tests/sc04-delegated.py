@@ -1,4 +1,10 @@
-"""Positive and hostile delegated API tests. Disposable loopback PostgreSQL only."""
+"""Positive and hostile delegated API tests. Disposable loopback PostgreSQL only.
+
+Reuse SC04's synthetic source fixtures, real PHP/local REST transport and retaining
+recovery assertions; do not inherit its unrelated test selection. Twelve explicit
+methods emit independent delegated and 315-attempt surface-matrix reports. Gate
+opening is an operator fixture only, never an application/API permission.
+"""
 import importlib.util,json,uuid,unittest
 from pathlib import Path
 from journey import ROOT,lit

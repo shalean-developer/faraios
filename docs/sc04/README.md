@@ -160,3 +160,17 @@ Latest-head remote CI is recorded in `validation.json` and the draft PR.
 Managed Auth/PostgREST/provider drift, hosted real-record census, operational
 load/Free headroom and preview/pilot acceptance remain separate rollout gates.
 No hosted-equivalence, RTO/RPO or production readiness claim is made.
+
+## Remote implementation evidence
+
+Implementation head `8432eeaf37e8589892e560bacf8b8fb07cef6fb6`, tree
+`c3b790039f75c2364137e9e410d1e45713a32b3e` (exactly the locally tested tree):
+
+- [Foundation regression 43659872616](https://github.com/shalean-developer/faraios/actions/runs/43659872616): PASS, all 30 suites / 70 methods, PostgreSQL 16. Job 132646562612 independently confirms PASS sc04-delegated and passed=true/tests=70.
+- [Database backup regression 43659872741](https://github.com/shalean-developer/faraios/actions/runs/43659872741): PASS.
+- [Private configuration recovery 43659872593](https://github.com/shalean-developer/faraios/actions/runs/43659872593): PASS.
+- [Aggregate artifact 14139702064](https://github.com/shalean-developer/faraios/actions/runs/43659872616/artifacts/14139702064), fourteen-day retention.
+
+The final documentation head is verified separately in draft PR #56 and the
+Foundation Plan. This committed evidence identifies the exact implementation
+ancestor; no self-referential commit hash or hosted acceptance is implied.
