@@ -91,11 +91,18 @@ class Readiness(base.Shared):
    token=re.search('id="invite-code" readonly value="([a-f0-9]{64})"',html)[1]
    type(self).sc04_login_user=recipient
    self.post('/account/index.php?page=signin',email='new@example.test',password='test-long-password')
-   html=self.get('/account/join.php')[1];self.assertIn(recipient,html)
+   self.assertIn('Join a business',self.get('/account/index.php?page=business')[1])
+   self.post('/account/index.php?page=welcome',action='logout')
+   self.assertIn('Welcome back',self.get('/account/join.php')[1])
+   html=self.post('/account/index.php?page=signin',email='new@example.test',password='test-long-password')
+   self.assertIn('Join business',html);self.assertIn(recipient,html)
+   self.assertNotIn('Tell us about your business',html)
+   count_before=self.sql('select count(*) from public.businesses')
    self.post('/account/join.php',business=self.bids[0],token=token)
    html=self.post('/account/context.php',context=self.bids[0]+':preview');self.assertIn('Jobs',html);self.assertNotIn('Record payment',html)
    self.invoke(self.ids[0],'business_membership_revoke',p_user=recipient)
    self.assertIn('No active business access',self.get('/account/delegated.php')[1])
+   self.assertEqual(self.sql('select count(*) from public.businesses'),count_before)
   finally:
    type(self).sc04_login_user=None;type(self).url=oldurl;config.write_text(oldconfig);router.write_text(oldrouter);self.enable(False)
  def test_07_candidate_php_syntax(self):

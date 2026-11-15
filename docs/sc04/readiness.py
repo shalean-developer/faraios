@@ -25,6 +25,15 @@ def stage(destination):
 """
  if needle not in s:raise ValueError('API error source drift')
  p.write_text(s.replace(needle,safe+needle,1))
+ p=target/'account/index.php';s=p.read_text()
+ signin="store_session($s);user();go('business');"
+ if s.count(signin)!=1:raise ValueError('Sign-in return source drift')
+ s=s.replace(signin,"store_session($s);user();if(($_SESSION['after_signin']??null)==='join'){unset($_SESSION['after_signin']);header('Location: join.php',true,303);exit;}go('business');",1)
+ business="<?php form_start();if(!$b):input('business_name'"
+ if s.count(business)!=1:raise ValueError('Join entry source drift')
+ s=s.replace(business,'<?php if(!$b):?><p><a href="join.php">Join a business</a></p><?php endif;form_start();if(!$b):input(\'business_name\'',1)
+ s=s.replace('<a href="?page=signup">Create an account</a></p>','<a href="?page=signup">Create an account</a> · <a href="join.php">Join a business</a></p>',1)
+ p.write_text(s)
  p=target/'account/delegated.php';s=p.read_text();start=s.index('<style>');end=s.index('</style>',start)+len('</style>');s=s[:start]+'<link rel="stylesheet" href="workspace.css">'+s[end:];s=s.replace('<main>','<main class="role-workspace">',1);p.write_text(s)
  return target
 if __name__=='__main__':stage(Path(sys.argv[1]))

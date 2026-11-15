@@ -205,3 +205,39 @@ jobs:
           name: sc04-hosted-concurrency-evidence
           path: sc04-hosted-concurrency.json
           retention-days: 30
+
+  profile_reconciliation:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.configuration_action == 'sc04-profile-reconcile' && github.ref == 'refs/heads/feature/sc04-live-role-preparation-20261115' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: '43686079364'
+          name: faraios-encrypted-backup-43686079364
+          path: ${{ runner.temp }}/profile-old
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: '43693294531'
+          name: faraios-encrypted-backup-43693294531
+          path: ${{ runner.temp }}/profile-current
+      - name: Reconcile publication metadata in verified isolated snapshots
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.FARAIOS_BACKUP_PASSPHRASE }}
+          RESTORE_PROVIDER_LIBRARIES: true
+          RESTORE_AUTH_REHEARSAL: false
+        run: |
+          python3 docs/sc04/shared.py "$RUNNER_TEMP/profile-runtime"
+          python3 docs/sc04/profile-reconciliation.py "$RUNNER_TEMP/profile-runtime/application/scripts/database-restore-check.py" "$RUNNER_TEMP/profile-old" "$RUNNER_TEMP/profile-current" > profile-reconciliation.json
+          cat profile-reconciliation.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sc04-profile-reconciliation
+          path: profile-reconciliation.json
+          retention-days: 30
+      - name: Remove local ciphertext and generated runtime
+        if: always()
+        run: rm -rf -- "${{ runner.temp }}/profile-old" "${{ runner.temp }}/profile-current" "${{ runner.temp }}/profile-runtime"
