@@ -6,6 +6,7 @@ suites=['sc02-baseline','sc02-native','sc03-native','sc04-native','sc04-delegate
 def command(args):
  p=subprocess.run(args,cwd=ROOT,capture_output=True,text=True);return p.stdout.strip() or p.stderr.strip()
 env=dict(os.environ,RECOVERY_REPORT=str(OUT/'recovery.json'))
+suites.insert(suites.index('sc04-delegated')+1,'sc04-shared')
 report={'source':command(['git','rev-parse','HEAD']),'worktree_dirty':bool(command(['git','status','--porcelain'])),'python':platform.python_version(),'php':command([os.environ.get('PHP_BIN','php'),'-v']).splitlines()[0],'postgres':command([str(Path(os.environ.get('PG_BIN','/usr/lib/postgresql/17/bin'))/'postgres'),'--version']),'scope':'disposable native database + PHP HTTP; simulated Auth/REST; no hosted writes or provider sends','suites':[]}
 for name in suites:
  started=time.monotonic()
