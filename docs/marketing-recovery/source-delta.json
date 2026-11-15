@@ -1,0 +1,50 @@
+{
+  ".htaccess": {
+    "baseline_sha256": "b41575432f9cbe11b77acac82954abd61b06c493a26d0f50eb389029846170b6",
+    "candidate_sha256": "8072fa9fe38b7562387d866c2692c21b5b252646f43a00394340adf53689c95f"
+  },
+  "features.html": {
+    "baseline_sha256": null,
+    "candidate_sha256": "aaaf488c54c132b410c3b730ad9b83680fa0076540cd5ffc0a2702d4e5967b43"
+  },
+  "hosting.html": {
+    "baseline_sha256": null,
+    "candidate_sha256": "ddf1406a19e7660df618e7f028d58fb39bf1f917882b6facf64185922c511d72"
+  },
+  "index.html": {
+    "baseline_sha256": "35097a2cb953fae0a95a4179dd7b80f4aa039ef75ed1eeab9df06e958008ca2c",
+    "candidate_sha256": "a925d443ec35b806880bb417ecb5a01dbd93a92328e8238ab570cab784f57508"
+  },
+  "industries.html": {
+    "baseline_sha256": null,
+    "candidate_sha256": "f6274bb389ef6ebe9c516bf4c311f97dafdd90ae1ea9fadab742382f9cedc7ba"
+  },
+  "industries/construction.html": {
+    "baseline_sha256": null,
+    "candidate_sha256": "2ee6a7a50250708cc7d42fd7a34ca933af54f301f32a27e8b4423fb311fd189d"
+  },
+  "industries/gardening.html": {
+    "baseline_sha256": null,
+    "candidate_sha256": "f3df29c9a15282cd6f59db35c37c5cc4adf1fb77900e87bec133ea014e8b704e"
+  },
+  "industries/technology.html": {
+    "baseline_sha256": null,
+    "candidate_sha256": "8389518100848dac109c275368e232ab91e22d1df5a87aa062c8e80b74e39432"
+  },
+  "industries/tourism.html": {
+    "baseline_sha256": null,
+    "candidate_sha256": "9b16d726919eaa3912fa7a6a329aa81fed57f40342c1138f8d576a7f38d1b3f2"
+  },
+  "marketing.css": {
+    "baseline_sha256": null,
+    "candidate_sha256": "48d9734f236a27cadb9cd46848c059f8c91b2ac545c18ec84d71584dc1ae1a3a"
+  },
+  "release/marketing-recovery/preview.zip": {
+    "baseline_sha256": null,
+    "candidate_sha256": "6a12c6a142ad7963a5381c88963e0685f95784f947a3577a201a41052a0c87f4"
+  },
+  "sitemap.php": {
+    "baseline_sha256": "bc5610e252e7e14f36ffc59d402c9e157550bda268755513b6d069971f098322",
+    "candidate_sha256": "71adf7d0bf5478d60d88a1a996e85e67e53a28f59c11910f086f72480570cdf1"
+  }
+}

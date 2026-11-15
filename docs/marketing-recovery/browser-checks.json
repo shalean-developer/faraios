@@ -1,0 +1,51 @@
+{
+  "desktop": {
+    "path": "/_marketing-preview/features",
+    "width": 1280,
+    "overflow": false
+  },
+  "mobile": [
+    {
+      "path": "/_marketing-preview/features",
+      "width": 390,
+      "overflow": false,
+      "broken_images": 0
+    },
+    {
+      "path": "/_marketing-preview/hosting",
+      "width": 390,
+      "overflow": false,
+      "broken_images": 0
+    },
+    {
+      "path": "/_marketing-preview/industries",
+      "width": 390,
+      "overflow": false,
+      "broken_images": 0
+    },
+    {
+      "path": "/_marketing-preview/industries/tourism",
+      "width": 390,
+      "overflow": false,
+      "broken_images": 0
+    },
+    {
+      "path": "/_marketing-preview/industries/gardening",
+      "width": 390,
+      "overflow": false,
+      "broken_images": 0
+    },
+    {
+      "path": "/_marketing-preview/industries/technology",
+      "width": 390,
+      "overflow": false,
+      "broken_images": 0
+    },
+    {
+      "path": "/_marketing-preview/industries/construction",
+      "width": 390,
+      "overflow": false,
+      "broken_images": 0
+    }
+  ]
+}
