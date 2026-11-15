@@ -1,0 +1,42 @@
+{
+  "account/staff.php": {
+    "baseline_sha256": "3a1f1a2c4643584314629d256cf162d13e6c490e840df2b9de21a52ea7be903d",
+    "candidate_sha256": "893fc29f555ba2a72e0a67268b797502f6e88242b46f8d642dba499d612a4028"
+  },
+  "account/staff-access.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "4493ac2242caab0eee1fa5939f9e5bdcdba278ed3fc17ce39bddbb69bdb8f8be"
+  },
+  "account/staff-invite-core.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "0f51083536b03f33ffba79aa55393ad3390eaf7e78c2f0f935e373161afd42c5"
+  },
+  "account/staff-join.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "e4c3ddf1c0a8d13af5aae19c6bfd8ab0e3e003dc7e8f2fc7e70fa63b13fabdd2"
+  },
+  "account/staff-join.js": {
+    "baseline_sha256": null,
+    "candidate_sha256": "53398673a72b5da5efc543f1e904bf809cf7cc9895d435c4fbc346ce5259876f"
+  },
+  "account/staff-search.js": {
+    "baseline_sha256": null,
+    "candidate_sha256": "eca4c3a207b046e36ff18031cca64f8db07ca4408a684b528ac78aa644f73918"
+  },
+  "notifications/staff-invitation.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "7b6b66015f988ed9d90fccf58ab2e5948104981e6149b41661262e4b1c811429"
+  },
+  "scripts/staff-invitation-worker.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "6e8a36de5e2df41951735f5b15655673a766ee656cc395f3fa95c1f983a67e48"
+  },
+  "scripts/staff-invitation-keygen.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "4202a0283333dc3f2fea72793cf6a456c6c80faa460829f5fdb4d8c079a4a2ea"
+  },
+  "account/staff-onboarding.css": {
+    "baseline_sha256": null,
+    "candidate_sha256": "552005426dd07c55b9e802e70f3f5ce167b163208b6fdc079725e561f5efb10d"
+  }
+}

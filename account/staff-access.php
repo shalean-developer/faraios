@@ -1,0 +1,27 @@
+<?php
+require __DIR__.'/core.php';require __DIR__.'/profile-core.php';require __DIR__.'/staff-core.php';require __DIR__.'/staff-invite-core.php';
+$_SERVER['SCRIPT_NAME']=preg_replace('~/account/staff-access\.php$~','/account/index.php',$_SERVER['SCRIPT_NAME']);
+$error='';$notice='';$b=null;$staff=[];$invitations=[];
+try{
+ start();user();$b=business();if(!$b)go('business');
+ if(($_SESSION['business_context']['role']??'')!=='owner')throw new RuntimeException('Only the owner can manage access.');
+ $scope=['p_business'=>$b['id'],'p_environment'=>profile_env()];
+ if($_SERVER['REQUEST_METHOD']==='POST'){
+  csrf();$action=(string)($_POST['action']??'invite');
+  if($action==='invite'){
+   staff_invite_send($scope,staff_id((string)($_POST['staff']??'')),(string)($_POST['role']??''),($_POST['replace']??'')!==''?staff_id((string)$_POST['replace']):null);
+   $notice='Invitation queued. Provider acceptance and inbox delivery are separate.';
+  }elseif($action==='revoke'){
+   api('/rest/v1/rpc/business_staff_invite_revoke',$scope+['p_id'=>staff_id((string)($_POST['id']??''))],'POST',$_SESSION['auth']['access_token']);$notice='Invitation revoked.';
+  }elseif($action==='offboard'){api('/rest/v1/rpc/business_staff_offboard',$scope+['p_staff'=>staff_id((string)($_POST['staff']??''))],'POST',$_SESSION['auth']['access_token']);$notice='Staff deactivated and business access revoked. History retained.';}else throw new RuntimeException('Choose a valid action.');
+ }
+ $staff=staff_rows($b);if(isset($_GET['staff'])){$selected=staff_id((string)$_GET['staff']);$staff=array_values(array_filter($staff,fn($s)=>$s['id']===$selected));}$invitations=api('/rest/v1/rpc/business_staff_invite_list',$scope,'POST',$_SESSION['auth']['access_token']);
+}catch(AccountSessionExpired $e){go('signin');}catch(Throwable $e){$error=$e instanceof RuntimeException?$e->getMessage():'Staff invitations unavailable. Check details and configuration before retrying.';}
+?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Staff access | FaraiOS</title><link rel="stylesheet" href="account.css"><link rel="stylesheet" href="workspace.css"><link rel="stylesheet" href="staff-onboarding.css"><link rel="stylesheet" href="../ui/design-system.css"></head><body class="ui-page ui-workspace"><main class="role-workspace"><a href="staff.php">Staff</a> · <a href="staff-access.php">All staff access</a> · <a href="access.php">Access</a><h1>Staff access</h1><p><?=esc($b['name']??'')?> · <?=esc($scope['p_environment']??'')?></p>
+<?php if($error):?><p role="alert"><?=esc($error)?></p><?php endif;if($notice):?><p role="status"><?=esc($notice)?></p><?php endif;?>
+<label for="search">Find staff by name or email</label><input id="search" type="search" autocomplete="off"><p id="matches" role="status"></p>
+<?php foreach($staff as $s):$current=null;foreach($invitations as $i)if($i['staff_id']===$s['id']&&in_array($i['status'],['Pending','Active'])){$current=$i;break;}?><section class="panel staff-result" data-search="<?=esc(strtolower($s['name'].' '.$s['email']))?>"><h2><?=esc($s['name'])?></h2><p><?=esc($s['email']?:'No email saved')?> · <?=$s['active']?'Active staff':'Inactive staff'?></p>
+<?php if($s['active']&&$s['email']!==''&&!$current):form_start();?><input type="hidden" name="staff" value="<?=esc($s['id'])?>"><label>Role<select name="role" required><option value="">Choose role</option><option value="worker">Worker — assigned jobs</option><option value="receptionist">Receptionist</option><option value="manager">Manager</option></select></label><p>Invite this email to <?=esc($b['name'])?> · <?=esc($scope['p_environment'])?>. Creating staff alone grants no access.</p><label><input type="checkbox" required> I checked the recipient, role and business.</label><button class="button">Send invitation</button></form><?php elseif($current):?><p>Access: <?=esc($current['status'])?>. Manage the existing invitation below or revoke active access under Access.</p><?php else:?><p>Add an email and activate this staff profile before inviting.</p><?php endif;?>
+<?php if(!$current):?><p>No active access or pending email invitation.</p><?php endif;form_start();?><input type="hidden" name="action" value="offboard"><input type="hidden" name="staff" value="<?=esc($s['id'])?>"><label><input type="checkbox" required> Deactivate staff, cancel pending invitations and revoke business access</label><button class="button">Deactivate and revoke access</button></form>
+<?php foreach($invitations as $i):if($i['staff_id']===$s['id']):?><article><p><?=esc($i['role'].' · '.$i['status'].' · Email: '.$i['delivery'])?></p><p>Recipient: <?=esc($i['email'])?></p><?php if($i['status']==='Pending'):form_start();?><input type="hidden" name="action" value="revoke"><input type="hidden" name="id" value="<?=esc($i['id'])?>"><button class="button">Revoke invitation</button></form><?php endif;if(in_array($i['status'],['Pending','Expired'])):form_start();?><input type="hidden" name="action" value="invite"><input type="hidden" name="staff" value="<?=esc($s['id'])?>"><input type="hidden" name="role" value="<?=esc($i['role'])?>"><input type="hidden" name="replace" value="<?=esc($i['id'])?>"><button class="button">Resend — replace previous link</button></form><?php endif;?></article><?php endif;endforeach;?></section><?php endforeach;?>
+<script src="staff-search.js" defer></script></main></body></html>

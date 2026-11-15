@@ -71,6 +71,12 @@ class Baseline(unittest.TestCase):
             self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
             self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
             original[path]={'path':path,'sha256':change['candidate_sha256']}
+        onboarding=json.loads((ROOT/'docs/onboarding/source-delta.json').read_text())
+        self.assertEqual(set(onboarding),{'account/staff.php','account/staff-access.php','account/staff-invite-core.php','account/staff-join.php','account/staff-join.js','account/staff-search.js','notifications/staff-invitation.php','scripts/staff-invitation-worker.php','scripts/staff-invitation-keygen.php','account/staff-onboarding.css'})
+        for path,change in onboarding.items():
+            self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
+            self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
+            original[path]={'path':path,'sha256':change['candidate_sha256']}
         expected['files']=[original[path] for path in sorted(original,key=Path)]
         self.assertEqual(expected,manifest())
         self.assertEqual(len(self.inventory['files']),31)
