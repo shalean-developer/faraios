@@ -1,7 +1,7 @@
 {
   ".github/workflows/foundation-regression.yml": {
     "baseline_sha256": "4a319f48de42dc2b6d51ec10c6cf4ccd1272603d89e19b97142ab32499914251",
-    "candidate_sha256": "5d260d0bae1be5c54bf6284e035219ebc85bc3082434313f925bea5bb110e7fc"
+    "candidate_sha256": "72838e7ab7e5de525ad23e1adb560720ae930f084429498b71cb81539f6a9152"
   },
   "about.html": {
     "baseline_sha256": "d14effd6031a10a2797927e754928d205cd630ea02a17b389f22ad2cb5a4ed12",
@@ -173,7 +173,7 @@
   },
   "ui/design-system.css": {
     "baseline_sha256": null,
-    "candidate_sha256": "6c580083bdb24fcffabc87aa44188cf3d2c739df57f9601131bb9d9831468ec6"
+    "candidate_sha256": "7f1d16dd2c87b40ff7f780fff9078e1a34077b5fb7ed3b3fe3ede5fb9bd2227b"
   },
   "ui/site-menu.js": {
     "baseline_sha256": null,

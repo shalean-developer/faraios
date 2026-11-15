@@ -55,7 +55,6 @@ try:
  for page in ['','services','how-it-works','areas','contact']:
   snapshot('/preview/b/journey-field-service'+('/'+page if page else ''),'business-example/'+(page or 'index')+'.html')
  snapshot('/preview/account/customer.php?slug=journey-field-service','account/customer.html')
- snapshot('/preview/account/customer-help.php?slug=journey-field-service','account/customer-help.html')
  for kind,table,idkey in [('quote','business_quotes','quote'),('invoice','business_invoices','invoice')]:
   token=case.scope(case.ids[0],'select share_token from public.'+table+' where id='+lit(ids[idkey]))
   snapshot('/'+kind+'/index.php?token='+token,kind+'/index.html')
