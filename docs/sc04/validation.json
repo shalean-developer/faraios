@@ -1,0 +1,106 @@
+{
+  "status": "PASS isolated delegated candidate; no hosted enablement or rollout",
+  "base": "43609483cd04a24b86061b943042d52e07961274",
+  "main": "e0d45923b441d7833e048faa041a3f0e16cfe1e2",
+  "postgres": "postgres (PostgreSQL) 17.11 (Debian 17.11-0+deb13u1)",
+  "php": "PHP 8.4.27 (cli) (built: Oct 21 2026 07:53:46) (NTS)",
+  "full_regression": {
+    "passed": true,
+    "suites": 30,
+    "methods": 70
+  },
+  "sc04_final_native": {
+    "recovery_owner_outsider_scopes": 24,
+    "denial_matrix_cases": 252,
+    "legacy_issued_documents_and_ledger_seeded": true,
+    "publication_and_private_revision_seeded": true,
+    "original_rows_preserved": true,
+    "rollback_preserves_every_row": true,
+    "guarded_functions": 42,
+    "synthetic_only": true,
+    "hosted_changes": false,
+    "delegation_enabled": false,
+    "encrypted_export": true,
+    "triggers_schema_grants_audit_sequence_equal": true,
+    "restored_table_count": 39,
+    "all_row_fingerprints_equal": true,
+    "policies_function_bodies_effective_acls_equal": true,
+    "postgres": "17.11 (Debian 17.11-0+deb13u1)",
+    "archive_sha256": "a75fbfa6a1f9b7a0de6d314dd16a2471d3f79109f35246cad83aa2f342df9b1d"
+  },
+  "syntax_and_compilation": "PASS",
+  "frozen_SC02_baseline": "PASS unchanged",
+  "remote_CI": {
+    "implementation_head": "8432eeaf37e8589892e560bacf8b8fb07cef6fb6",
+    "implementation_tree": "c3b790039f75c2364137e9e410d1e45713a32b3e",
+    "foundation": {
+      "run": 43659872616,
+      "result": "success",
+      "suites": 30,
+      "methods": 70,
+      "job": 132646562612
+    },
+    "database_backup": {
+      "run": 43659872741,
+      "result": "success"
+    },
+    "private_configuration_recovery": {
+      "run": 43659872593,
+      "result": "success"
+    },
+    "artifact": 14139702064,
+    "artifact_retention_days": 14,
+    "latest_documentation_head": "See PR #56 and Foundation Plan for independently verified final-head status; this object records its exact tested implementation ancestor."
+  },
+  "limitations": [
+    "Disposable PostgreSQL; simulated Auth/REST",
+    "No hosted drift, real-record or managed provider equivalence claim",
+    "No delegation activation; separate rollout gate"
+  ],
+  "audited_previous_head": "751b2c00a1d7340fb6034769ed5f03dae47afe1f",
+  "sc04_delegated": {
+    "recovery_owner_outsider_scopes": 12,
+    "denial_matrix_cases": 315,
+    "legacy_issued_documents_and_ledger_seeded": true,
+    "publication_and_private_revision_seeded": true,
+    "original_rows_preserved": true,
+    "rollback_preserves_every_row": true,
+    "guarded_functions": 42,
+    "synthetic_only": true,
+    "hosted_changes": false,
+    "delegation_enabled": false,
+    "encrypted_export": true,
+    "triggers_schema_grants_audit_sequence_equal": true,
+    "restored_table_count": 43,
+    "all_row_fingerprints_equal": true,
+    "policies_function_bodies_effective_acls_equal": true,
+    "postgres": "17.11 (Debian 17.11-0+deb13u1)",
+    "archive_sha256": "0667699737f7d319f408064765392615dcd979c9a0d104e38bce7a4e84b8d7cf",
+    "delegated_positive_negative_tests": true,
+    "gate_default_off": true,
+    "delegated_restore_revalidated": true
+  },
+  "delegated_hostile_matrix": {
+    "legacy_rpc_denials": 126,
+    "cross_scope_command_denials": 126,
+    "revoked_command_denials": 63,
+    "total": 315,
+    "legacy_functions": 42,
+    "operations": 21
+  },
+  "role_catalogue": "docs/sc02/role-actions.json: fixed bundles; candidate current operational surfaces",
+  "gate_default": false,
+  "historical_previous_candidate": {
+    "head": "751b2c00a1d7340fb6034769ed5f03dae47afe1f",
+    "suites": 29,
+    "methods": 58,
+    "meaning": "Owner compatibility and delegated denial only"
+  },
+  "local_additional_checks": [
+    "PHP syntax and Python compilation",
+    "git diff --check",
+    "native encrypted backup regression",
+    "private configuration encryption/recovery and independent watchdog",
+    "frozen SC02 source/fixture/calculator baseline"
+  ]
+}

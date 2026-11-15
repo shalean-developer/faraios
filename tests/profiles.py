@@ -17,13 +17,14 @@ class Profiles(Journey):
    def call(self):
     body=json.loads(self.rfile.read(int(self.headers.get('Content-Length',0))) or '{}');url=urllib.parse.urlparse(self.path);q=urllib.parse.parse_qs(url.query);uid=self.headers.get('Authorization','').removeprefix('Bearer ');status=200;data={}
     try:
-     if url.path.startswith('/auth/v1/token'):uid=cls.ids[0 if body.get('email')=='a@example.test' else 1];data={'access_token':uid,'refresh_token':uid,'expires_in':3600}
+     if url.path.startswith('/auth/v1/token'):uid=(cls.sc04_login_user if getattr(cls,'sc04_login_user',None) and body.get('email')=='new@example.test' else cls.ids[0 if body.get('email')=='a@example.test' else 1]);data={'access_token':uid,'refresh_token':uid,'expires_in':3600}
      elif url.path=='/auth/v1/user':data={'id':uid,'email':'PRIVATE-ACCOUNT@example.test','email_confirmed_at':'2026-11-12','user_metadata':{'name':'PRIVATE-PERSON'}}
      elif url.path.startswith('/rest/v1/'):
-      prefix="set role authenticated;set request.jwt.claim.sub="+lit(uid)+";set request.jwt.claims='{\"is_anonymous\":false}';" if uid in cls.ids else 'set role anon;'
+      prefix="set role authenticated;set request.jwt.claim.sub="+lit(uid)+";set request.jwt.claims='{\"is_anonymous\":false}';" if uid in cls.ids+[getattr(cls,'sc04_login_user',None)] else 'set role anon;'
+      if getattr(cls,'sc04',False):prefix+='set request.headers='+lit(json.dumps({'x-faraios-business':self.headers.get('x-faraios-business'),'x-faraios-environment':self.headers.get('x-faraios-environment')}))+';'
       if '/rpc/' in url.path:
-       name=url.path.rsplit('/',1)[-1];cls.rpc_requests.append((name,body));assert name in ['business_services_save_image','business_service_image','business_booking_available','business_profile_save','business_profile_publish','business_profile_unpublish','business_services_save','business_services_publish','business_enquiry_submit','business_enquiry_status','business_enquiry_workflow_save','business_enquiry_workspace','business_quote_send','business_quote_write','business_quote_customer','business_booking_write','business_customer_search','business_customer_write','business_customer_link','business_customer_quote_create','business_customer_booking_create','business_staff_write','business_staff_assign','business_invoice_write','business_invoice_payment','business_invoice_customer','business_dashboard','business_enquiry_create','business_booking_request_submit','business_booking_request_action'];parts=[]
-       for k,v in body.items():parts.append(k+'=>'+(lit(json.dumps(v))+'::jsonb' if k in ['p_image','p_draft','p_document','p_details','p_staff','p_service_snapshot','p_selections'] else lit(v)))
+       name=url.path.rsplit('/',1)[-1];cls.rpc_requests.append((name,body));assert name in (['business_contexts','business_context_create','business_delegate_read','business_delegate_command'] if getattr(cls,'sc04',False) else [])+['business_services_save_image','business_service_image','business_booking_available','business_profile_save','business_profile_publish','business_profile_unpublish','business_services_save','business_services_publish','business_enquiry_submit','business_enquiry_status','business_enquiry_workflow_save','business_enquiry_workspace','business_quote_send','business_quote_write','business_quote_customer','business_booking_write','business_customer_search','business_customer_write','business_customer_link','business_customer_quote_create','business_customer_booking_create','business_staff_write','business_staff_assign','business_invoice_write','business_invoice_payment','business_invoice_customer','business_dashboard','business_enquiry_create','business_booking_request_submit','business_booking_request_action'];parts=[]
+       for k,v in body.items():parts.append(k+'=>'+(lit(json.dumps(v))+'::jsonb' if k in ['p_image','p_draft','p_document','p_details','p_staff','p_service_snapshot','p_selections','p_arguments'] else lit(v)))
        data=json.loads(cls.sql(prefix+'select public.'+name+'('+','.join(parts)+')'))
       else:
        table=url.path.rsplit('/',1)[-1];assert table in ['business_service_images','businesses','business_profiles','business_public_pages','business_service_catalogues','business_enquiries','business_quotes','business_quote_list','business_bookings','business_customers','business_staff','business_booking_schedule','business_invoice_list','business_invoice_payments','business_booking_requests'];cols=q.get('select',['*'])[0];assert re.fullmatch(r'[a-z_,*]+',cols);conditions=[]
@@ -45,13 +46,15 @@ class Profiles(Journey):
        if table=='business_public_pages' and q.get('order')==['slug.asc']:query+=' order by slug asc limit '+str(int(q.get('limit',[500])[0]))
        if table=='business_staff':query+=' order by name,id limit '+str(int(q.get('limit',[100])[0]))+' offset '+str(int(q.get('offset',[0])[0]))
        data=json.loads(cls.sql(prefix+"select coalesce(jsonb_agg(to_jsonb(t)),'[]'::jsonb) from ("+query+') t'))
-    except Exception as e:status=400;data={'code':'23505' if 'unique constraint' in str(e) else 'P0001','message':str(e).split('ERROR:  ')[-1].split('\n')[0]}
+    except Exception as e:
+     if getattr(cls,'sc04',False):cls.sc04_errors.append((self.path,str(e)))
+     status=400;data={'code':'23505' if 'unique constraint' in str(e) else 'P0001','message':str(e).split('ERROR:  ')[-1].split('\n')[0]}
     raw=json.dumps(data).encode();self.send_response(status);self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(raw)
    do_POST=call;do_GET=call
   cls.rpc_requests=[];cls.gw=ThreadingHTTPServer(('127.0.0.1',0),Gateway);threading.Thread(target=cls.gw.serve_forever,daemon=True).start()
   cls.url='http://127.0.0.1:'+str(port());private=cls.private/'profiles';private.mkdir();(private/'config.php').write_text("<?php return ['enabled'=>true,'environment'=>'test','base_url'=>'"+cls.url+"','supabase_url'=>'http://127.0.0.1:"+str(cls.gw.server_port)+"','publishable_key'=>'test'];")
   router=private/'router.php';router.write_text("<?php $path=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);if(preg_match('~^/b/([a-z0-9-]+)$~',$path,$m)){$_GET['slug']=$m[1];require "+repr(str(ROOT/'b/index.php'))+";return true;}return false;")
-  cls.proc=subprocess.Popen([PHP,'-d','session.save_path='+str(private),'-S',cls.url.removeprefix('http://'),'-t',str(ROOT),str(router)],env=dict(cls.env,FARAIOS_ACCOUNT_DIR=str(private)),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+  cls.proc=subprocess.Popen([PHP,'-d','session.save_path='+str(private),'-S',cls.url.removeprefix('http://'),'-t',str(getattr(cls,'webroot',ROOT)),str(router)],env=dict(cls.env,FARAIOS_ACCOUNT_DIR=str(private)),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
   cls.client=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
   for _ in range(80):
    try:cls.get('/account/index.php?page=signin');break
