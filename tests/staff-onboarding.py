@@ -143,7 +143,7 @@ class Onboarding(base.Readiness):
      for width in [390,1280]:
       u,sid,i,t=self.fixture();type(self).sc04_login_user=u
       ctx=browser.new_context(viewport={'width':width,'height':844});page=ctx.new_page()
-      page.goto(self.url+'/account/staff-join.php');page.get_by_role('heading',name='Open your invitation email',exact=True).wait_for();page.screenshot(path=str(ROOT/f'test-results/release/worker-join-missing-{width}.png'))
+      page.goto(self.url+'/account/staff-join.php');page.get_by_role('heading',name='Open your invitation email',exact=True).wait_for();self.assertEqual(page.get_by_role('link',name='Create account',exact=True).count(),0);page.screenshot(path=str(ROOT/f'test-results/release/worker-join-missing-{width}.png'))
       page.goto(self.url+'/account/staff-join.php#id='+i+'&token='+t)
       self.assertTrue(page.get_by_role('button',name='Create account',exact=True).is_enabled());page.screenshot(path=str(ROOT/f'test-results/release/worker-join-start-{width}.png'))
       if width==390:
