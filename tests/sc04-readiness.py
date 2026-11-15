@@ -12,6 +12,7 @@ class Readiness(base.Shared):
   cls.sql((ROOT/'docs/sc04/live-readiness.sql').read_text())
   spec=importlib.util.spec_from_file_location('readiness',ROOT/'docs/sc04/readiness.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
   ready=m.stage(cls.staged.name+'/readiness');shutil.copytree(ready,cls.webroot,dirs_exist_ok=True)
+  if 'Join a business' not in (cls.webroot/'account/index.php').read_text():raise AssertionError('Staged join entry missing')
  def test_01_independent_live_gate(self):
   self.enable();u=self.newuser();b=self.bids[0]
   self.sql('insert into public.business_memberships values('+','.join(map(lit,[b,'live',u,'manager',True]))+')')

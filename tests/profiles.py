@@ -54,7 +54,7 @@ class Profiles(Journey):
   cls.rpc_requests=[];cls.gw=ThreadingHTTPServer(('127.0.0.1',0),Gateway);threading.Thread(target=cls.gw.serve_forever,daemon=True).start()
   cls.url='http://127.0.0.1:'+str(port());private=cls.private/'profiles';private.mkdir();(private/'config.php').write_text("<?php return ['enabled'=>true,'environment'=>'test','base_url'=>'"+cls.url+"','supabase_url'=>'http://127.0.0.1:"+str(cls.gw.server_port)+"','publishable_key'=>'test'];")
   router=private/'router.php';router.write_text("<?php $path=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);if(preg_match('~^/b/([a-z0-9-]+)$~',$path,$m)){$_GET['slug']=$m[1];require "+repr(str(ROOT/'b/index.php'))+";return true;}return false;")
-  cls.proc=subprocess.Popen([PHP,'-d','session.save_path='+str(private),'-S',cls.url.removeprefix('http://'),'-t',str(getattr(cls,'webroot',ROOT)),str(router)],env=dict(cls.env,FARAIOS_ACCOUNT_DIR=str(private)),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+  cls.proc=subprocess.Popen([PHP,'-d','opcache.enable_cli=0','-d','session.save_path='+str(private),'-S',cls.url.removeprefix('http://'),'-t',str(getattr(cls,'webroot',ROOT)),str(router)],env=dict(cls.env,FARAIOS_ACCOUNT_DIR=str(private)),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
   cls.client=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
   for _ in range(80):
    try:cls.get('/account/index.php?page=signin');break
