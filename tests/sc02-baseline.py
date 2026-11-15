@@ -57,6 +57,12 @@ class Baseline(unittest.TestCase):
             self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
             self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
             original[path]={'path':path,'sha256':change['candidate_sha256']}
+        ui=json.loads((ROOT/'docs/ui-consistency/source-delta.json').read_text())
+        self.assertEqual(set(ui),{'account/index.php', 'account/bookings.php', 'ui/site-menu.js', 'account/staff.php', 'industries/construction.html', 'industries/consulting.html', 'industries/electrical.html', 'industries.html', 'pricing.html', 'terms.html', 'index.html', 'privacy.html', 'industries/technology.html', 'account/customers.php', 'waitlist.html', 'account/invoices.php', 'account/profile.php', 'account/dashboard.php', 'industries/gardening.html', 'invoice/index.php', '.github/workflows/foundation-regression.yml', 'contact.html', 'industries/fitness.html', 'ui/design-system.css', 'account/requests.php', 'account/account-view.php', 'b/index.php', 'account/layout.php', 'account/services.php', 'industries/cleaning.html', 'waitlist/action-page.php', 'industries/beauty-spa.html', 'account/customer-help.php', 'features.html', 'industries/security.html', 'industries/tourism.html', 'marketplace.html', 'quote/index.php', 'hosting.html', 'account/enquiries.php', 'about.html', 'account/customer.php', 'account/enquiry-new.php', 'account/quotes.php'})
+        for path,change in ui.items():
+            self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
+            self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
+            original[path]={'path':path,'sha256':change['candidate_sha256']}
         expected['files']=[original[path] for path in sorted(original,key=Path)]
         self.assertEqual(expected,manifest())
         self.assertEqual(len(self.inventory['files']),31)
