@@ -63,38 +63,38 @@
 .ui-auth :is(.wl-choices label,.saved){border-color:var(--f-line);border-radius:9px}
 .ui-auth input[type=checkbox]{accent-color:var(--f-teal)}
 /* Business workspace keeps its functional density, with one type and spacing scale. */
-.ui-workspace{font-size:16px}
-.ui-workspace :is(.editor-main,.dashboard-main){max-width:1400px;margin:32px auto;padding:0 32px}
-.ui-workspace :is(.editor-heading,.dashboard-main .editor-heading){margin:0 0 24px;gap:20px}
-.ui-workspace :is(.editor-heading h1,.editor-main>h1,.dashboard-main h1){font-size:28px;line-height:1.2;letter-spacing:-.7px;font-weight:600;margin:0 0 12px}
-.ui-workspace :is(.editor-main,.dashboard-main) h2{font-size:20px;line-height:1.3;letter-spacing:-.3px;font-weight:600}
-.ui-workspace :is(.editor-main,.dashboard-main) h3{font-size:18px;line-height:1.4;font-weight:600}
-.ui-workspace :is(.editor-main,.dashboard-main) :is(p,.description,.dashboard-intro){font-size:16px;line-height:1.65}
-.ui-workspace :is(.editor-main,.dashboard-main) :is(.muted,small,.optional,.snapshot-time){font-size:14px;line-height:1.6;color:var(--f-muted)}
-.ui-workspace :is(.panel,.public-card,.summary-strip a,.booking-list-card){background:white;border:1px solid var(--f-line);border-radius:var(--f-card-radius);box-shadow:none}
-.ui-workspace :is(.editor-main,.dashboard-main) .panel{padding:24px}
-.ui-workspace :is(.overview-grid,.editor-grid,.account-settings-grid){gap:24px}
-.ui-workspace .app-sidebar{background:white;border-color:var(--f-line);padding:24px 12px 0}
-.ui-workspace .app-brand{padding:0 8px 24px;border-color:var(--f-line)}
-.ui-workspace .app-brand img{width:153px;height:45px;object-fit:contain}
-.ui-workspace .app-sidebar nav a{font-size:15px;font-weight:600;min-height:44px;gap:12px;padding:10px 12px;border-radius:9px;color:var(--f-muted)}
-.ui-workspace .app-sidebar nav a:hover{background:#f1f6f0}
-.ui-workspace :is(.app-sidebar nav a[aria-current],.sidebar-account[aria-current=page]){background:var(--f-mint);color:var(--f-teal)}
-.ui-workspace :is(.sidebar-account,.app-topbar,.account-session,.account-details>div){border-color:var(--f-line)}
-.ui-workspace .account-avatar{background:var(--f-mint);color:var(--f-teal);border-radius:9px}
-.ui-workspace .sidebar-account strong{font-size:14px;color:var(--f-ink)}
-.ui-workspace .sidebar-account small{font-size:12px;color:var(--f-muted)}
-.ui-workspace a{color:var(--f-teal)}
-.ui-workspace :is(.button,.app-create,.page-create,.create-menu summary,.account-save){min-height:48px;border-radius:9px;background:var(--f-teal);border:1px solid var(--f-teal);color:white;font-size:15px;font-weight:650;line-height:1.5;padding:11px 18px;box-shadow:none}
-.ui-workspace :is(.button.secondary,.secondary,.account-dashboard-link,.account-signout,.quick-links a,.booking-views a){border:1px solid #b9cbc3;border-radius:9px;background:white;color:var(--f-teal);font-size:15px;min-height:44px;padding:10px 16px}
-.ui-workspace :is(.button,.app-create,.page-create,.account-save):hover{background:var(--f-teal-hover);color:white}
-.ui-workspace .secondary:hover{background:var(--f-mint);color:var(--f-teal)}
-.ui-workspace :is(.editor-main,.dashboard-main) label{font-size:14px;font-weight:600;line-height:1.5;margin:16px 0 8px}
-.ui-workspace :is(.editor-main,.dashboard-main) :is(input:not([type=checkbox]):not([type=hidden]),select,textarea){min-height:46px;font-size:16px;border:1px solid #b9cbc3;border-radius:9px;padding:10px 12px;color:var(--f-ink);background:white}
-.ui-workspace input[type=checkbox]{accent-color:var(--f-teal)}
-.ui-workspace :is(.badge,.calendar-event){background:var(--f-mint);color:#24634a;border-color:var(--f-teal);font-size:13px}
-.ui-workspace :is(.quote-line,.quote-items,.option-editor,.benefit-editor-card,.enquiry-filter){border-color:var(--f-line);border-radius:9px;background:white}
-.ui-workspace .drawer-open .icon{width:24px;height:24px}
+.ui-page.ui-workspace{font-size:16px}
+.ui-page.ui-workspace :is(.editor-main,.dashboard-main){max-width:1400px;margin:32px auto;padding:0 32px}
+.ui-page.ui-workspace :is(.editor-heading,.dashboard-main .editor-heading){margin:0 0 24px;gap:20px}
+.ui-page.ui-workspace :is(.editor-heading h1,.editor-main>h1,.dashboard-main h1){font-size:28px;line-height:1.2;letter-spacing:-.7px;font-weight:600;margin:0 0 12px}
+.ui-page.ui-workspace :is(.editor-main,.dashboard-main) h2{font-size:20px;line-height:1.3;letter-spacing:-.3px;font-weight:600}
+.ui-page.ui-workspace :is(.editor-main,.dashboard-main) h3{font-size:18px;line-height:1.4;font-weight:600}
+.ui-page.ui-workspace :is(.editor-main,.dashboard-main) :is(p,.description,.dashboard-intro){font-size:16px;line-height:1.65}
+.ui-page.ui-workspace :is(.editor-main,.dashboard-main) :is(.muted,small,.optional,.snapshot-time){font-size:14px;line-height:1.6;color:var(--f-muted)}
+.ui-page.ui-workspace :is(.panel,.public-card,.summary-strip a,.booking-list-card){background:white;border:1px solid var(--f-line);border-radius:var(--f-card-radius);box-shadow:none}
+.ui-page.ui-workspace :is(.editor-main,.dashboard-main) .panel{padding:24px}
+.ui-page.ui-workspace :is(.overview-grid,.editor-grid,.account-settings-grid){gap:24px}
+.ui-page.ui-workspace .app-sidebar{background:white;border-color:var(--f-line);padding:24px 12px 0}
+.ui-page.ui-workspace .app-brand{padding:0 8px 24px;border-color:var(--f-line)}
+.ui-page.ui-workspace .app-brand img{width:153px;height:45px;object-fit:contain}
+.ui-page.ui-workspace .app-sidebar nav a{font-size:15px;font-weight:600;min-height:44px;gap:12px;padding:10px 12px;border-radius:9px;color:var(--f-muted)}
+.ui-page.ui-workspace .app-sidebar nav a:hover{background:#f1f6f0}
+.ui-page.ui-workspace :is(.app-sidebar nav a[aria-current],.sidebar-account[aria-current=page]){background:var(--f-mint);color:var(--f-teal)}
+.ui-page.ui-workspace :is(.sidebar-account,.app-topbar,.account-session,.account-details>div){border-color:var(--f-line)}
+.ui-page.ui-workspace .account-avatar{background:var(--f-mint);color:var(--f-teal);border-radius:9px}
+.ui-page.ui-workspace .sidebar-account strong{font-size:14px;color:var(--f-ink)}
+.ui-page.ui-workspace .sidebar-account small{font-size:12px;color:var(--f-muted)}
+.ui-page.ui-workspace a{color:var(--f-teal)}
+.ui-page.ui-workspace :is(.button,.app-create,.page-create,.create-menu summary,.account-save){min-height:48px;border-radius:9px;background:var(--f-teal);border:1px solid var(--f-teal);color:white;font-size:15px;font-weight:650;line-height:1.5;padding:11px 18px;box-shadow:none}
+.ui-page.ui-workspace :is(.button.secondary,.secondary,.account-dashboard-link,.account-signout,.quick-links a,.booking-views a){border:1px solid #b9cbc3;border-radius:9px;background:white;color:var(--f-teal);font-size:15px;min-height:44px;padding:10px 16px}
+.ui-page.ui-workspace :is(.button,.app-create,.page-create,.account-save):hover{background:var(--f-teal-hover);color:white}
+.ui-page.ui-workspace .secondary:hover{background:var(--f-mint);color:var(--f-teal)}
+.ui-page.ui-workspace :is(.editor-main,.dashboard-main) label{font-size:14px;font-weight:600;line-height:1.5;margin:16px 0 8px}
+.ui-page.ui-workspace :is(.editor-main,.dashboard-main) :is(input:not([type=checkbox]):not([type=hidden]),select,textarea){min-height:46px;font-size:16px;border:1px solid #b9cbc3;border-radius:9px;padding:10px 12px;color:var(--f-ink);background:white}
+.ui-page.ui-workspace input[type=checkbox]{accent-color:var(--f-teal)}
+.ui-page.ui-workspace :is(.badge,.calendar-event){background:var(--f-mint);color:#24634a;border-color:var(--f-teal);font-size:13px}
+.ui-page.ui-workspace :is(.quote-line,.quote-items,.option-editor,.benefit-editor-card,.enquiry-filter){border-color:var(--f-line);border-radius:9px;background:white}
+.ui-page.ui-workspace .drawer-open .icon{width:24px;height:24px}
 /* Shared customer documents; business-selected colours and fonts stay on business websites. */
 .ui-document .topbar{min-height:88px;height:auto;background:var(--f-canvas);border-color:var(--f-line)}
 .ui-document .topbar img{width:153px;height:45px;object-fit:contain}
@@ -112,21 +112,21 @@
 .ui-business :is(.home-service-card,.enquiry-form,.public-card){border-radius:13px}
 .ui-business .home-button{border-radius:9px;min-height:48px;font-size:16px}
 .ui-business .home-icon{width:20px;height:20px}
-@media(max-width:1100px){.ui-workspace :is(.overview-grid,.editor-grid){grid-template-columns:1fr}.site-header .nav{gap:20px}.site-header nav{gap:15px}.site-header .account{gap:12px}}
+@media(max-width:1100px){.ui-page.ui-workspace :is(.overview-grid,.editor-grid){grid-template-columns:1fr}.site-header .nav{gap:20px}.site-header nav{gap:15px}.site-header .account{gap:12px}}
 @media(max-width:800px){.site-header .wrap,.site-footer .wrap{width:calc(100% - 40px)}.site-header .nav{min-height:76px;flex-wrap:wrap;padding:12px 0;gap:12px}.site-header .logo img{width:132px;height:39px}.site-header .menu{display:flex;order:2;margin-left:auto}.site-header .account{margin-left:auto}.site-header .account .btn{min-height:44px;padding:9px 13px}.site-header .account>a:first-child{display:flex;align-items:center;min-height:44px}.site-header nav{display:none;order:3;width:100%;margin:0;flex-direction:column;padding:10px 0;gap:0}.site-header nav.open{display:flex}.site-header nav a{width:100%;min-height:44px;padding:10px 0}.site-footer .footer-links{gap:30px}.ui-content .privacy-card{margin:32px 20px;padding:28px}.ui-content .privacy-card h1{font-size:36px}.ui-content h1{font-size:49px;letter-spacing:-2px}}
-@media(max-width:700px){.ui-workspace :is(.editor-main,.dashboard-main){padding:0 16px;margin:24px auto}.ui-workspace :is(.editor-main,.dashboard-main) .panel{padding:20px}.ui-workspace :is(.editor-heading h1,.editor-main>h1,.dashboard-main h1){font-size:26px}.ui-workspace :is(.overview-grid,.editor-grid,.account-settings-grid){gap:20px}.ui-workspace .app-sidebar nav a{min-height:44px}.ui-workspace .drawer-open{display:flex;align-items:center;justify-content:center}.ui-workspace .account-settings-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.ui-page.ui-workspace :is(.editor-main,.dashboard-main){padding:0 16px;margin:24px auto}.ui-page.ui-workspace :is(.editor-main,.dashboard-main) .panel{padding:20px}.ui-page.ui-workspace :is(.editor-heading h1,.editor-main>h1,.dashboard-main h1){font-size:26px}.ui-page.ui-workspace :is(.overview-grid,.editor-grid,.account-settings-grid){gap:20px}.ui-page.ui-workspace .app-sidebar nav a{min-height:44px}.ui-page.ui-workspace .drawer-open{display:flex;align-items:center;justify-content:center}.ui-page.ui-workspace .account-settings-grid{grid-template-columns:1fr}}
 @media(max-width:560px){.site-header .wrap,.site-footer .wrap{width:calc(100% - 32px)}.site-header .nav{gap:8px}.site-header .logo img{width:124px}.site-header .account{gap:10px;font-size:12px}.site-header .account .btn{font-size:12px;padding:8px 11px;gap:8px}.site-header .menu{width:40px;min-width:40px}.site-header nav{font-size:16px}.site-footer .footer-main{flex-direction:column;gap:23px}.site-footer .footer-links{justify-content:space-between;padding-right:20px;gap:24px}.site-footer .footer-bottom{flex-direction:column;gap:9px}.site-footer .footer-brand p{max-width:300px}.ui-content h1{font-size:43px;line-height:1.09;letter-spacing:-2.2px}.ui-content .privacy-card{margin:24px 16px;padding:24px 20px}.ui-content .privacy-card h1{font-size:32px;letter-spacing:-1px}.ui-auth header,.ui-auth .wl-page-header{min-height:76px;padding:16px 20px}.ui-auth header img,.ui-auth .wl-page-header img{width:132px;height:39px}.ui-auth :is(.card,.wl-card,#waitlist.wl-signup-page){padding:24px 20px}.ui-auth :is(h1,#waitlist-title){font-size:28px!important}.ui-auth main{padding-top:24px;padding-bottom:24px}.ui-document .public-card{padding:24px 20px}}
 @media(max-width:359px){.site-header .logo img{width:105px}.site-header .account{gap:8px}.site-header .account .btn{padding:8px;font-size:11px}.site-header .menu{min-width:36px;width:36px}.ui-content h1{font-size:38px}.site-footer .footer-links{gap:16px;padding-right:0}}
 @media(prefers-reduced-motion:reduce){.ui-page{scroll-behavior:auto}.ui-page *{scroll-behavior:auto}}
 /* Preserve alert meaning and avoid nested card padding in the existing overview. */
-.ui-auth .alert,.ui-workspace .alert{background:#fff1ec;border-color:#efd0c4;color:#853422}
-.ui-auth .notice,.ui-workspace .notice{background:#e9f4ee;border-color:#b8dccb;color:#205a43}
-.ui-workspace .overview-grid>.panel{padding:0}
-.ui-workspace .overview-grid :is(.section-title,.dashboard-row,.stat-link,.panel>h2){border-color:var(--f-line)}
-.ui-workspace .overview-grid .panel>h2{font-size:20px}
-.ui-workspace .today .empty-state{padding:32px 24px!important}
-.ui-workspace .money-grid{border-color:var(--f-line);border-radius:9px}
-.ui-workspace .money-grid>div{border-color:var(--f-line)}
+.ui-auth .alert,.ui-page.ui-workspace .alert{background:#fff1ec;border-color:#efd0c4;color:#853422}
+.ui-auth .notice,.ui-page.ui-workspace .notice{background:#e9f4ee;border-color:#b8dccb;color:#205a43}
+.ui-page.ui-workspace .overview-grid>.panel{padding:0}
+.ui-page.ui-workspace .overview-grid :is(.section-title,.dashboard-row,.stat-link,.panel>h2){border-color:var(--f-line)}
+.ui-page.ui-workspace .overview-grid .panel>h2{font-size:20px}
+.ui-page.ui-workspace .today .empty-state{padding:32px 24px!important}
+.ui-page.ui-workspace .money-grid{border-color:var(--f-line);border-radius:9px}
+.ui-page.ui-workspace .money-grid>div{border-color:var(--f-line)}
 
 .ui-home .btn .icon,.ui-home .text-link .icon{width:20px;height:20px}
 .ui-content .walkthrough :is(p,li){font-size:16px;line-height:1.75}
