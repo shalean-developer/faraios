@@ -5,7 +5,7 @@
   },
   "about.html": {
     "baseline_sha256": "d14effd6031a10a2797927e754928d205cd630ea02a17b389f22ad2cb5a4ed12",
-    "candidate_sha256": "370d75a4aee38ed780a2bc9309dde2a88ae4cde1dc8e2903e8516b8c1c14b781"
+    "candidate_sha256": "fd9f21ec9c85e86595d15f7f6f1fcec2ca363c8251919e46d7f0bc3bc48e62b2"
   },
   "account/account-view.php": {
     "baseline_sha256": "749fc19b19574406243b02edc5dc888b5ca94cc6b7e01e2999923dbae2f52fe4",
@@ -77,67 +77,67 @@
   },
   "contact.html": {
     "baseline_sha256": "24931066dd944759c23e1d5a0db6fac43dd59c44d6e0c9772ba3ab7f39c5b04b",
-    "candidate_sha256": "c9b65242e39b7f52c19cba91060d7216f0f3f3923c1121c1d5a41e36232bea51"
+    "candidate_sha256": "c27d7af9a1bbc9e28b891814d60cc9333a6ebd75dcc4b68bc5f56b869245d217"
   },
   "features.html": {
     "baseline_sha256": "aaaf488c54c132b410c3b730ad9b83680fa0076540cd5ffc0a2702d4e5967b43",
-    "candidate_sha256": "36c436b82db9d78f87060740b040213aba3329151b6866390fbe916bcfde9434"
+    "candidate_sha256": "bcd89e6841164e9debdac5d146de84eeb755ff08063e6044ebf479712f78a413"
   },
   "guides/enquiry-to-invoice.html": {
     "baseline_sha256": "5a460b45c8ced8f92acf7298fc70f135fc8309f656dc6ef795f29b34ec2dbeac",
-    "candidate_sha256": "77e39e6464ce95514019ca3a6e83fae9e66bcd379332f287ae596cd1a36cac1f"
+    "candidate_sha256": "c66c4b0941b7bfe9080a370a151139df11afbf2a6a6d01b785a81f9982c78f43"
   },
   "hosting.html": {
     "baseline_sha256": "ddf1406a19e7660df618e7f028d58fb39bf1f917882b6facf64185922c511d72",
-    "candidate_sha256": "0d4c8f5737b0ddb41f8cca8e0fcc1a252ce01ebea5aef7365ee00fb91b76e6ee"
+    "candidate_sha256": "e23a5bce2c7d13b0bd1d146fd8927d79780fca2438491d7e9748d7a6179b06d7"
   },
   "index.html": {
     "baseline_sha256": "0ac342115cdb5957f51aaf871bda1bccfbb20a52834741a45c6a089cd056f44f",
-    "candidate_sha256": "0978d395e7cedb8ecdf392f2990b6f2611eebe968084b1b3b9e809e4ccb170d1"
+    "candidate_sha256": "7842009b943d51af8f668b07bd4530dce257dd768901d28a50a67490223762e6"
   },
   "industries.html": {
     "baseline_sha256": "ac3780ff6617406e2bebca784f0b64ea578bd8ffa3c123ffffc130213a6325a3",
-    "candidate_sha256": "2cb67a75d57d04635d0fe7365de980eb41eb21bc591176b822a181b620fe7af0"
+    "candidate_sha256": "999d0b534fde1753558a370d7b3460d107924137c45ff8fadcccce0983537e43"
   },
   "industries/beauty-spa.html": {
     "baseline_sha256": "94ba3d415f55641efb052fb38dd844310028171c070851887920bc0792344ffc",
-    "candidate_sha256": "bcad8d9ed32ec0e956308888537a2177ba0952cfa16879da659a67b7a833bdb5"
+    "candidate_sha256": "51bb7b2b63646575d7188880d9d227e28cfa59864d18bc7e7e3bb43a60418177"
   },
   "industries/cleaning.html": {
     "baseline_sha256": "a29e2aa359b78a741977aae4ec57cfbc4de25ff38ee620eeffee00f33481d075",
-    "candidate_sha256": "0cbf5abb0c5f5562ef27c2c71aa05158049c96be748a6227b067d0cd26d7a2ee"
+    "candidate_sha256": "dc7be91008cf50df083889155fc87d6d73e77838404f0fc9775d9767f1022123"
   },
   "industries/construction.html": {
     "baseline_sha256": "2ee6a7a50250708cc7d42fd7a34ca933af54f301f32a27e8b4423fb311fd189d",
-    "candidate_sha256": "124d31fe1f9d3f914a471c7a8f23cdab8796c43eae5912b7c5be148195b85879"
+    "candidate_sha256": "ac74f43aadbc99b8a669557651d6174574a2a99d3cbcc24736fff30d51d782a6"
   },
   "industries/consulting.html": {
     "baseline_sha256": "eaec0941de0dc418ebef6aaea81b266b44dde5e45182fa78f01fecbb2c653e2c",
-    "candidate_sha256": "c70dac600076bad22f18d8d2974e8c64bea0c57b20123e10c018cb75c96b3694"
+    "candidate_sha256": "d8e0289c70503a20b4085846ebaa1820210a915313a16879f184c6896e05d082"
   },
   "industries/electrical.html": {
     "baseline_sha256": "01fae49343a420648811d89303f7747aef356d0d47d90493bb1e424d114cdaa9",
-    "candidate_sha256": "17007ea7bf52199089c5035ede50d650d9362d650dd6cf084eaf31083f7dd078"
+    "candidate_sha256": "d5aa600314da676e3f8711e8a1c302d94dcd5fcc70568a9cdc974bf10e3fcd1e"
   },
   "industries/fitness.html": {
     "baseline_sha256": "c86e0fd10ef3610d91c1dca46d8529234714e118d25ed3a08fb164c67f413470",
-    "candidate_sha256": "5073ea9762ad3cb525458a85484144367591d7c316ca8fe9e705084bf8b6792d"
+    "candidate_sha256": "351b37fb580d5e2ebf4bc88d3d9eaefe878d64b38a2fa6830edf28b4fc1bbde9"
   },
   "industries/gardening.html": {
     "baseline_sha256": "f3df29c9a15282cd6f59db35c37c5cc4adf1fb77900e87bec133ea014e8b704e",
-    "candidate_sha256": "2981d7771fde0af26a3c94734b9f1a40f8733d4ed295ae0a854ff74d0da57471"
+    "candidate_sha256": "ffbc3bb63d15d00fd211bb256032d8fcd435cba534de2050fdb2e74ba6614fcf"
   },
   "industries/security.html": {
     "baseline_sha256": "f1f974afdefda46ba80817d8f0de541efac5e539fdd92b5cfbff24090a28326c",
-    "candidate_sha256": "ab70563b299098cb8d5e3d76ff5fa29473fdf145b56ac5873057671ae6d79346"
+    "candidate_sha256": "b647c9fbd04e5b0a796f46c9743c4f8cf78f90f9d625728974d0c891c468a286"
   },
   "industries/technology.html": {
     "baseline_sha256": "8389518100848dac109c275368e232ab91e22d1df5a87aa062c8e80b74e39432",
-    "candidate_sha256": "12cf7ee9566d071a457cb74c151afb673fbdeaa0b01c3ca1e01ed3ef4b6addd8"
+    "candidate_sha256": "a610ea4c4f7aaae0c6446edddc3aa4f36eb070072825e86f567f231da45d7973"
   },
   "industries/tourism.html": {
     "baseline_sha256": "9b16d726919eaa3912fa7a6a329aa81fed57f40342c1138f8d576a7f38d1b3f2",
-    "candidate_sha256": "998de8174adf5dbaa7b5619470a77901a4f32e682c9e75b6dda80d2a6e96a793"
+    "candidate_sha256": "f8ecb0aaa3bdfd816573dcfcf4045f42ee1f6a268443e43b37973f283a3002af"
   },
   "invoice/index.php": {
     "baseline_sha256": "6b22ffcce480d620821b5998992d08f1dd67425e410284b35d31be81c8339063",
@@ -145,15 +145,15 @@
   },
   "marketplace.html": {
     "baseline_sha256": "a111029b70484b62c69e2a472706d7b34cc9ab7e4448e5b665ecfbecf824ef9c",
-    "candidate_sha256": "8b177b921b14ab81147b7e8dbe8afc1eb0bab1b47e5be5f9d942c9a17d02c544"
+    "candidate_sha256": "e8a0e993da673324371f734a6c4b08f5b1c7cde97de66662ee7a5719422cf268"
   },
   "pricing.html": {
     "baseline_sha256": "a9833a001f8bc06f672f4cedadabc28ff5cb364768dd7eac858fd76b64a371b0",
-    "candidate_sha256": "079bbb887ac34d236d90889f64e492978b4286614214df764c36685cde7b8843"
+    "candidate_sha256": "a90e8ecd99488874dcb44db77b1dafa54d929d8f7869db79554343fdd0126436"
   },
   "privacy.html": {
     "baseline_sha256": "bd1d29a19ec751ecf011d96a69c443ae02d1f3be78ee1282a4843b93c265e5a4",
-    "candidate_sha256": "0109ee3adb191469f899d497a239200a2c1dc922e29840170bbed85eecddd08a"
+    "candidate_sha256": "3b847449e1b0eee2fae032e9bf6d685afb6686543219fdcd2c20b3697a4b09d3"
   },
   "quote/index.php": {
     "baseline_sha256": "cfa7cf35ddae9f4e073f0438d84c9dc0ca3a43774790c45e0eb6df16426d7494",
@@ -161,7 +161,7 @@
   },
   "terms.html": {
     "baseline_sha256": "01eb247698701e7b8a3820647d727295065750d22b5772d0ab54b4f710a8954e",
-    "candidate_sha256": "061a76d64e6a729afbaf7dcb5f7282f79613640cdd67e4d74a44b53bb1731be5"
+    "candidate_sha256": "ffe6bdfaad2ded839352e7e4bce625d7867ed1ae283e65f5bd17dc8eac1ae93c"
   },
   "waitlist.html": {
     "baseline_sha256": "fd4c01fc77311c9eec108f84a5645e9ca0233d7af77327d2d9d236156e9476ef",
@@ -173,7 +173,7 @@
   },
   "ui/design-system.css": {
     "baseline_sha256": null,
-    "candidate_sha256": "f7c0f0158f98c4cc194a03e54034c3cdf3efaa4c19b48b9f9854845dc36b6354"
+    "candidate_sha256": "10bc1185deae1db723b394c7b0e4dd80878a587f3b56bd5abf316e775cd216a7"
   },
   "ui/site-menu.js": {
     "baseline_sha256": null,
