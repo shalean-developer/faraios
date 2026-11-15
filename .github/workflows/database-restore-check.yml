@@ -80,7 +80,7 @@ jobs:
           RESTORE_INPUT: ${{ runner.temp }}/restore-input
           RESTORE_REPORT: ${{ runner.temp }}/restore-evidence/report.json
           RESTORE_PROVIDER_LIBRARIES: true
-          RESTORE_AUTH_REHEARSAL: ${{ (github.event_name == 'schedule' || inputs.auth_rehearsal) && 'true' || 'false' }}
+          RESTORE_AUTH_REHEARSAL: ${{ inputs.auth_rehearsal && 'true' || 'false' }}
         run: |
           mkdir -p "$(dirname "$RESTORE_REPORT")"
           python3 docs/sc04/shared.py "$RUNNER_TEMP/sc04-restore-runtime"
