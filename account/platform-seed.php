@@ -19,7 +19,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
       "blocking": true,
       "release": "v1.0.0",
       "summary": "The repaired pagination, time zones, record selectors, forms and staff joining are still preview-only.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 01 of 20.",
       "evidence_note": "PR68 final-release-review.md; Foundation Plan v71.",
       "evidence_url": "https://github.com/shalean-developer/faraios/pull/68",
       "checks": [
@@ -48,7 +48,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
       "blocking": true,
       "release": "v1.0.0",
       "summary": "Existing-account invitations passed; a genuinely new account signup and verification phone journey remains unaccepted.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 02 of 20.",
       "evidence_note": "Foundation Plan v71, final review.",
       "evidence_url": "https://github.com/shalean-developer/faraios/pull/68",
       "checks": [
@@ -77,7 +77,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
       "blocking": true,
       "release": "v1.0.0",
       "summary": "Automated safeguards exist; deliberate physical-phone stale-version and interrupted-submit cases remain open.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 03 of 20.",
       "evidence_note": "Foundation Plan v71.",
       "evidence_url": "https://github.com/shalean-developer/faraios/pull/68",
       "checks": [
@@ -106,7 +106,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
       "blocking": true,
       "release": "v1.0.0",
       "summary": "Basic phone payment and selection passed; deliberate replay and cross-page assignment acceptance remain open.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 04 of 20.",
       "evidence_note": "PR68 acceptance evidence.",
       "evidence_url": "https://github.com/shalean-developer/faraios/pull/68",
       "checks": [
@@ -135,7 +135,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
       "blocking": true,
       "release": "v1.0.0",
       "summary": "Current assignment code reports overlapping jobs after assignment; complete atomic availability is a planned shared-core package.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 05 of 20.",
       "evidence_note": "staff_booking_assignment.sql staff_private.assign and business_booking_schedule; SC08 planned.",
       "evidence_url": "https://github.com/shalean-developer/faraios/blob/main/supabase/migrations/20261113103036_staff_booking_assignment.sql",
       "checks": [
@@ -166,7 +166,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
       "blocking": true,
       "release": "v1.0.0",
       "summary": "Use request-first service management, guest document links and manual payment recording as the proposed initial scope. Cross-industry expansion needs separate pilot proof.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 06 of 20.",
       "evidence_note": "Foundation Plan SC01 and this audit recommendation.",
       "evidence_url": "https://chatgpt.com/library?file_id=libfile_5f8898a27afc81919b224c0039a9a738&account_id=personal",
       "checks": [
@@ -195,7 +195,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
       "blocking": true,
       "release": "v1.0.0",
       "summary": "Features says booking intake is excluded and live access is owner-only. Live booking entry and the owner Access screen both expose those capabilities. Public claims are stale.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 07 of 20.",
       "evidence_note": "Observed /features on 16 November; Foundation Plan current intake section.",
       "evidence_url": "https://www.faraios.com/features",
       "checks": [
@@ -224,7 +224,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
       "blocking": true,
       "release": "v1.0.0",
       "summary": "Preview role tests are substantial; final live release acceptance must remain distinct from source implementation and marketing claims.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 08 of 20.",
       "evidence_note": "PR68 final release scope; source/main and hosted runtime differ.",
       "evidence_url": "https://github.com/shalean-developer/faraios/pull/68",
       "checks": [
@@ -253,7 +253,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
       "blocking": true,
       "release": "v1.0.0",
       "summary": "Empty live screens load successfully, but that does not establish the whole operational journey.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 09 of 20.",
       "evidence_note": "Read-only live Bokkie account screens; no business records mutated.",
       "evidence_url": "https://www.faraios.com/account/dashboard.php",
       "checks": [
@@ -288,7 +288,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
       "blocking": true,
       "release": "v1.0.0",
       "summary": "Enquiry and invitation transport exist; quote/invoice screens use manual customer-link sharing. Full lifecycle communications remain SC10.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 10 of 20.",
       "evidence_note": "account/quotes.php and invoices.php; Foundation Plan SC10.",
       "evidence_url": "https://github.com/shalean-developer/faraios/blob/main/account/quotes.php",
       "checks": [
@@ -319,7 +319,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
       "blocking": true,
       "release": "v1.0.0",
       "summary": "Fixed, from and quote pricing exist. Generic capability profiles and typed intake across models remain planned.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 11 of 20.",
       "evidence_note": "account/services.php; SC05 planned.",
       "evidence_url": "https://github.com/shalean-developer/faraios/blob/main/account/services.php",
       "checks": [
@@ -343,14 +343,14 @@ return json_decode(<<<'PLATFORM_AUDIT'
     },
     {
       "id": "V1-012",
-      "title": "Verify financial correction and document privacy",
+      "title": "Financial safeguards",
       "kind": "Verification",
       "priority": "Critical",
       "status": "To do",
       "blocking": true,
       "release": "v1.0.0",
       "summary": "Existing regression covers financial controls; final release needs evidence for its exact deployed candidate.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 12 of 20.",
       "evidence_note": "F02/F03/F04 history and PR68.",
       "evidence_url": "https://github.com/shalean-developer/faraios/pull/68",
       "checks": [
@@ -363,7 +363,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
           "done": false
         },
         {
-          "text": "Customer links expose only the intended document",
+          "text": "Verify invoice numbering, totals, balances, reversals and duplicate prevention",
           "done": false
         }
       ],
@@ -400,7 +400,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
       "blocking": true,
       "release": "v1.0.0",
       "summary": "Backups/monitoring have implementation evidence. Release readiness still needs agreed ownership, recovery targets and a usable support route.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 15 of 20.",
       "evidence_note": "Foundation Plan F06; operational evidence.",
       "evidence_url": "https://chatgpt.com/library?file_id=libfile_5f8898a27afc81919b224c0039a9a738&account_id=personal",
       "checks": [
@@ -429,7 +429,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
       "blocking": true,
       "release": "v1.0.0",
       "summary": "Initial customer access uses secure guest links. Account restriction, export and retention behavior need explicit launch decisions. This is a readiness gap, not a legal certification.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 16 of 20.",
       "evidence_note": "Foundation Plan platform operations boundary.",
       "evidence_url": "https://www.faraios.com/privacy.html",
       "checks": [
@@ -458,7 +458,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
       "blocking": true,
       "release": "v1.0.0",
       "summary": "Marketing headers passed; this does not accept all application forms. Test full launch journeys at320/390/768/1280.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 17 of 20.",
       "evidence_note": "Header release PR70; PR68 partial phone acceptance.",
       "evidence_url": "https://github.com/shalean-developer/faraios/pull/70",
       "checks": [
@@ -487,7 +487,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
       "blocking": true,
       "release": "v1.0.0",
       "summary": "Main Git source and the deliberately transformed hosted account runtime are not identical. A whole-repository pull must not replace staged role files.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 18 of 20.",
       "evidence_note": "Current deployment method; PR68 exact scope.",
       "evidence_url": "https://github.com/shalean-developer/faraios/pull/68",
       "checks": [
@@ -520,7 +520,7 @@ return json_decode(<<<'PLATFORM_AUDIT'
       "blocking": true,
       "release": "v1.0.0",
       "summary": "Dashboard is being built with deny-by-default owner access. The platform-owner sign-in email has not yet been supplied. Business ownership never grants platform access.",
-      "notes": "",
+      "notes": "Owner v1.0.0 checklist item 19 of 20.",
       "evidence_note": "This work package.",
       "evidence_url": "",
       "checks": [
@@ -538,6 +538,10 @@ return json_decode(<<<'PLATFORM_AUDIT'
         },
         {
           "text": "Accept preview before any live dashboard release",
+          "done": false
+        },
+        {
+          "text": "Include private task history in encrypted recovery and prove restore",
           "done": false
         }
       ],
@@ -622,6 +626,101 @@ return json_decode(<<<'PLATFORM_AUDIT'
       ],
       "dependencies": [],
       "updated_at": "2026-11-16T10:35:00Z"
+    },
+    {
+      "id": "V1-022",
+      "title": "Customer document privacy",
+      "kind": "Verification",
+      "priority": "Critical",
+      "status": "To do",
+      "blocking": true,
+      "release": "v1.0.0",
+      "summary": "Ensure guest links expose only the intended document and permitted customer actions.",
+      "notes": "Owner v1.0.0 checklist item 13 of 20.",
+      "evidence_note": "v1.0.0 checklist approved for entry by the owner, 16 November 2026.",
+      "evidence_url": "",
+      "checks": [
+        {
+          "text": "Quote and invoice links reveal only their intended document",
+          "done": false
+        },
+        {
+          "text": "Another business or guessed record cannot expose customer history",
+          "done": false
+        },
+        {
+          "text": "Private notes and staff/finance fields remain restricted",
+          "done": false
+        }
+      ],
+      "dependencies": [],
+      "updated_at": "2026-11-16T00:00:00Z"
+    },
+    {
+      "id": "V1-023",
+      "title": "Final release backup and recovery",
+      "kind": "Verification",
+      "priority": "High",
+      "status": "To do",
+      "blocking": true,
+      "release": "v1.0.0",
+      "summary": "Retain the successful database restore as evidence, then verify the exact final release including private configuration and dashboard task history.",
+      "notes": "Owner v1.0.0 checklist item 14 of 20.",
+      "evidence_note": "v1.0.0 checklist approved for entry by the owner, 16 November 2026.",
+      "evidence_url": "",
+      "checks": [
+        {
+          "text": "Retain successful database restore evidence",
+          "done": false
+        },
+        {
+          "text": "Include private dashboard state in encrypted backup or verified recovery export",
+          "done": false
+        },
+        {
+          "text": "Restore the final release safely and record recovery targets",
+          "done": false
+        }
+      ],
+      "dependencies": [],
+      "updated_at": "2026-11-16T00:00:00Z"
+    },
+    {
+      "id": "V1-024",
+      "title": "Pilot acceptance and v1.0.0 launch",
+      "kind": "Verification",
+      "priority": "High",
+      "status": "To do",
+      "blocking": true,
+      "release": "v1.0.0",
+      "summary": "Resolve serious findings from the complete independent-business pilot, accept documented limits, authorize rollout and verify live operation.",
+      "notes": "Owner v1.0.0 checklist item 20 of 20.",
+      "evidence_note": "v1.0.0 checklist approved for entry by the owner, 16 November 2026.",
+      "evidence_url": "",
+      "checks": [
+        {
+          "text": "Complete happy-path and rejected-path pilot journeys",
+          "done": false
+        },
+        {
+          "text": "Resolve critical security, data-loss and financial defects",
+          "done": false
+        },
+        {
+          "text": "Owner accepts documented launch limitations",
+          "done": false
+        },
+        {
+          "text": "Authorize bounded rollout and verify the live release",
+          "done": false
+        }
+      ],
+      "dependencies": [
+        "V1-009",
+        "V1-017",
+        "V1-023"
+      ],
+      "updated_at": "2026-11-16T00:00:00Z"
     }
   ],
   "history": []

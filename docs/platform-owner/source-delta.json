@@ -9,7 +9,7 @@
   },
   "account/platform-seed.php": {
     "baseline_sha256": null,
-    "candidate_sha256": "a6a0ff1d56749a7093157d785801910894c00e2cc8cbada85f57e1e92dd40aac"
+    "candidate_sha256": "283d5c1fdba87305e4515fe7e005550b4f726a16131aab13584ddfa6dc305da7"
   },
   "account/platform.css": {
     "baseline_sha256": null,

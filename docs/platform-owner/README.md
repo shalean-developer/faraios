@@ -27,7 +27,7 @@ Add this private directory to the existing encrypted application-state backup al
 
 Overview, Tasks, Defects, Releases and History. Search/status/priority filters; ten task cards per page; create/review/edit tasks; release blockers; acceptance checklist; dependencies; evidence links/notes and export. Release progress is a task count, not an estimated percentage of software completion. Only Verified counts as verified. Completing all checklist items, entering evidence and verifying dependencies is required. Dependency cycles reject; reopen verified dependents first. Changing checklist wording requires saving and accepting it again. Updating a task does not deploy or independently validate a feature.
 
-Seed: 19 v1.0.0 tasks plus2 explicitly deferred tasks. Verified baseline entries have cited existing evidence. The audit scope and date are visible; future status changes are owner assessments. Source seed refreshes never overwrite persisted owner edits.
+Seed: all20 owner checklist requirements, plus2 retained verification records and2 explicitly deferred tasks (24 stable task records). See checklist-map.md. Verified baseline entries have cited existing evidence. The audit scope and date are visible; future status changes are owner assessments. Source seed refreshes never overwrite persisted owner edits.
 
 ## Validation and deployment
 
