@@ -1,8 +1,7 @@
 {
-  "source": "a4db8705e4640f78657490d69d42d42f7d5e35bb",
   "files": {
     "account/core.php": "2605bab2badc357880bdefdf1370357fb9827645df10536a9825e3d82f3b1f03",
-    "account/delegated.php": "492914882e0c894d4c1bfd46ede3c29274ad7cb137c85ba56e4a7869d045e972"
+    "account/delegated.php": "6573206110b0570f4b7c58075864eaef072fd4c8304241970a74e8dcae9a8bb5"
   },
   "businesses": [
     "2f16e658-e031-4c4a-930a-2731ec1d1492",
@@ -47,5 +46,19 @@
   "synthetic_delegates_active_at_close": 0,
   "physical_phone_accepted": false,
   "network_fault_testing": "Disposable local gateway only; no fault injected into shared hosting",
-  "private_receipt": "private/faraios-account/defect-preview-20261116/closeout.json"
+  "private_receipt": "private/faraios-account/defect-preview-20261116/closeout.json",
+  "original_source": "a4db8705e4640f78657490d69d42d42f7d5e35bb",
+  "phone_followup": {
+    "reason": "Owner phone acceptance found missing bottom pagination and excessive 50-customer pages",
+    "customer_page_size": 10,
+    "navigation": "Top and bottom, explicit per-page count, existing secondary button style",
+    "before_delegated_sha256": "492914882e0c894d4c1bfd46ede3c29274ad7cb137c85ba56e4a7869d045e972",
+    "after_delegated_sha256": "6573206110b0570f4b7c58075864eaef072fd4c8304241970a74e8dcae9a8bb5",
+    "database_change": false,
+    "live_changed": false,
+    "physical_phone_retry_pending": true,
+    "private_receipts": "private/faraios-account/phone-navigation-20261116/",
+    "local_gate": "37 suites /125 reported tests PASS; 390/1280 browser checks PASS",
+    "manager_preview_access": "Registered synthetic Manager temporarily active for owner phone acceptance"
+  }
 }

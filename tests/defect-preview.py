@@ -29,7 +29,7 @@ class Preview(base.Workflow):
    self.assertEqual(self.sql("select has_function_privilege('anon',p.oid,'execute') or has_function_privilege('service_role',p.oid,'execute') from pg_proc p where proname="+lit(name)),'f')
   self.enable(False)
 # Run only independent boundary test and existing meaningful repair scenarios on copied RPCs.
-selected=['test_preview_boundaries','test_d02_business_zone_and_dst','test_d03_validation_csrf_stale_and_revoke','test_d03_network_no_automatic_replay','test_d04_scoped_selection_and_stale','test_d05_edit_stale_denial_and_identity','test_d06_reference_and_idempotency','test_d01_pages_and_projection','test_d01_assignment_across_pages']
+selected=['test_preview_boundaries','test_d02_business_zone_and_dst','test_d03_validation_csrf_stale_and_revoke','test_d03_network_no_automatic_replay','test_d04_scoped_selection_and_stale','test_d05_edit_stale_denial_and_identity','test_d06_reference_and_idempotency','test_d01_pages_and_projection','test_d01_assignment_across_pages','test_d01_customer_navigation_at_list_end']
 if __name__=='__main__':
  if os.environ.get('FARAIOS_MOBILE_BROWSER_CHECK')=='true':selected.insert(0,'test_browser_flows')
  suite=unittest.TestSuite(Preview(n) for n in selected);result=unittest.TextTestRunner(verbosity=2).run(suite);raise SystemExit(not result.wasSuccessful())

@@ -1,6 +1,6 @@
 """Generate a synthetic-only hosted preview overlay without replacing live RPCs."""
 from pathlib import Path
-import hashlib,importlib.util,json,sys
+import hashlib,importlib.util,json,sys,subprocess
 ROOT=Path(__file__).resolve().parents[2]
 BUSINESSES=('2f16e658-e031-4c4a-930a-2731ec1d1492','4627f805-8243-4890-bf18-a14fdf3fd21b')
 ALIASES={n:n+'_preview_d0106' for n in ('business_delegate_command','business_delegate_page')}
@@ -35,6 +35,6 @@ def stage(dest):
  spec=importlib.util.spec_from_file_location('ready',ROOT/'docs/sc04/readiness.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
  path=m.stage(str(dest));hashes=overlay(path)
  (path/'preview-defect-rpcs.sql').write_text(sql())
- (path/'preview-defect-manifest.json').write_text(json.dumps({'source':'a4db8705e4640f78657490d69d42d42f7d5e35bb','files':hashes,'businesses':BUSINESSES,'aliases':ALIASES,'sql_sha256':hashlib.sha256(sql().encode()).hexdigest(),'production_install':False},indent=2)+'\n')
+ (path/'preview-defect-manifest.json').write_text(json.dumps({'source':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'worktree_dirty':bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),'files':hashes,'businesses':BUSINESSES,'aliases':ALIASES,'sql_sha256':hashlib.sha256(sql().encode()).hexdigest(),'production_install':False},indent=2)+'\n')
  return path
 if __name__=='__main__':print(stage(sys.argv[1]))

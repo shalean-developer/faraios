@@ -63,6 +63,21 @@ class Repairs(base.Readiness):
   self.invoke(self.ids[0],'business_membership_revoke',p_user=worker)
   with self.assertRaises(RuntimeError):self.page(worker,'visits',2)
   self.enable(False)
+ def test_d01_customer_navigation_at_list_end(self):
+  from html.parser import HTMLParser
+  class ListPage(HTMLParser):
+   def __init__(self):super().__init__();self.ids=[];self.nav=[];self.bottom_after_cards=False;self.bottom_link=None;self.current_nav=None
+   def handle_starttag(self,tag,attrs):
+    attrs=dict(attrs)
+    if tag=='nav':self.current_nav=attrs.get('aria-label');self.nav.append(self.current_nav);self.bottom_after_cards=self.bottom_after_cards or (self.current_nav=='Record pages end' and len(self.ids)==10)
+    if tag=='article':self.ids.append(None)
+    if tag=='input' and attrs.get('name')=='id' and self.ids:self.ids[-1]=attrs.get('value')
+    if tag=='a' and self.current_nav=='Record pages end' and 'page=2' in attrs.get('href',''):self.bottom_link=attrs['href']
+   def handle_endtag(self,tag):
+    if tag=='nav':self.current_nav=None
+  self.enable();u=self.member('manager');self.login(u)
+  first=ListPage();first.feed(self.get('/account/delegated.php?view=customers')[1]);self.assertEqual(len(first.ids),10);self.assertTrue(first.bottom_after_cards);self.assertIn('Record pages',first.nav);self.assertIn('Record pages end',first.nav);self.assertTrue(first.bottom_link)
+  second=ListPage();second.feed(self.get('/account/delegated.php'+first.bottom_link)[1]);self.assertEqual(len(second.ids),10);self.assertFalse(set(first.ids)&set(second.ids));self.enable(False)
  def test_d02_business_zone_and_dst(self):
   self.enable();u=self.member('worker');b=lit(self.bids[0]);self.sql("alter database postgres set timezone='UTC'")
   for zone,local,expected in [('UTC','2026-12-05T09:00','09:00'),('Africa/Johannesburg','2026-12-05T09:00','07:00'),('Europe/London','2026-07-05T09:00','08:00'),('Europe/London','2026-12-05T09:00','09:00')]:
@@ -116,8 +131,12 @@ class Repairs(base.Readiness):
       page.goto(self.url+'/account/index.php?page=signin');page.get_by_label('Email address',exact=True).fill('new@example.test');page.get_by_label('Password',exact=True).fill('test-long-password');page.get_by_role('button',name='Sign in',exact=True).click()
       page.goto(self.url+'/account/context.php');page.get_by_label('Business and environment',exact=True).select_option(self.bids[0]+':preview');page.get_by_role('button',name='Continue',exact=True).click();page.get_by_role('heading',name='Fresh Test',exact=True).wait_for()
       if role=='manager':
-       page.goto(self.url+'/account/delegated.php?view=customers&page=2');self.assertEqual(page.locator('article').count(),50)
-       page.get_by_role('link',name='Next',exact=True).click();self.assertIn('page=3',page.url)
+       page.goto(self.url+'/account/delegated.php?view=customers&page=2');self.assertEqual(page.locator('article').count(),10)
+       end=page.get_by_role('navigation',name='Record pages end',exact=True);end.scroll_into_view_if_needed();self.assertGreaterEqual(end.get_by_role('link',name='Next',exact=True).bounding_box()['height'],44)
+       out=ROOT/'test-results/release';out.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(out/('customer-pagination-bottom-'+str(width)+'.png')))
+       end.get_by_role('link',name='Next',exact=True).click();self.assertIn('page=3',page.url)
+       page.get_by_role('navigation',name='Record pages end',exact=True).get_by_role('link',name='Previous',exact=True).click();self.assertIn('page=2',page.url)
+       page.get_by_role('navigation',name='Record pages',exact=True).get_by_role('link',name='Next',exact=True).click();self.assertIn('page=3',page.url)
        page.locator('summary').filter(has_text='Create customer').click();form=page.locator('form').filter(has=page.locator('input[name="action"][value="customer"]')).first
        form.locator('input[name="name"]').fill('Synthetic phone retained');form.locator('input[name="email"]').fill('bad-email');form.get_by_role('button',name='Save',exact=True).click();page.get_by_role('heading',name='Unsaved changes',exact=True).wait_for()
        self.assertEqual(page.locator('section.panel input[name="name"]').input_value(),'Synthetic phone retained');self.assertTrue(page.get_by_role('alert').is_visible())

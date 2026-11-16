@@ -1,5 +1,20 @@
 # D01–D06 hosted preview — 16 November 2026
 
+## Phone acceptance follow-up — customer navigation
+
+The owner entered synthetic A's Manager workspace on a physical phone and reported one long customer page with no Next at the bottom. **D01 phone acceptance failed at this step.** The original navigation was only above the50-row list, so reaching the end did not offer a next-page action. Earlier API/local-browser passes did not cover that usability requirement.
+
+The fix requests10 customers per page in the PHP UI, adds a second **Record pages end** navigation after the last card, states the number of records on the current page, and uses the existing secondary-button style. Other resource/staff page sizes and all SQL functions, roles, session/revocation controls and data remain unchanged. No new CSS/runtime dependency or dashboard.
+
+Meaningful regression: parse a rendered customer list and require10 cards, a bottom navigation after the last card, follow its next-page link and prove10 different customer IDs. The optional390/1280 browser run scrolls to the bottom, checks44px+ touch targets, clicks bottom Next, bottom Previous and top Next, with no horizontal overflow. Canonical8 methods including browser PASS; preview alias10 native methods PASS; full37 suites /125 reported tests PASS. Phone acceptance needs the owner's retry after refreshing.
+
+A fresh hosted hash check matched the original preview before replacement. Only `_accounts-preview/account/delegated.php` was atomically replaced, with original bytes retained privately. Before/after full1,053-file maps and original private configuration are checked by `phone-navigation.php`; no database DDL or business-record mutation is performed. A separate real PHP session verifies pages1–3 contain10 distinct customers each, navigation after the last card, and returning to Page2. The earlier494-assertion closeout is retained as historical evidence; current hashes and follow-up receipts are in `d01-d06-preview-scope.json`.
+
+The owner initially used a live-only account; that account's permissions were not changed. The registered synthetic Manager alone was reopened for this phone acceptance window. Receptionist/worker remain closed. Revoke the Manager after acceptance, cancellation or handoff closeout; preserve live access and all synthetic financial/audit history. The prepared worker-join patch remains separate.
+
+
+## Original hosted verification before phone follow-up
+
 **Preview verification passed; physical-phone acceptance and live authorization remain open.** Draft PR68 remains stacked on PR66. Application source is a4db8705e4640f78657490d69d42d42f7d5e35bb. The later operational overlay changes only RPC names and adds stronger preview guards; no new product behaviour is introduced. Main remains c75377d2e2adfdf6c173c0ad750687d80e6138b7 and PR66 remains d5f6f6c2c9c4e917253d5239ea40be78386f791b.
 
 ## Installed scope
