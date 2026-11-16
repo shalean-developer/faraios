@@ -1,0 +1,51 @@
+{
+  "scope": "isolated candidate; no deployment or hosted business mutation",
+  "baseline_commit": "ad6824e90c9c95e9f105c7b5daa246f4a7d9d7de",
+  "baseline_runtime_sha256": "3fbef90675627660b3b2df17054b3f1c0059fbf21d0840bb408839258e145a50",
+  "files": [
+    {
+      "path": "account/bookings.php",
+      "baseline_sha256": "335f1f386dfcc775964ffc1b0011299129cf53cbd1202614a33bca3fbd32ef59",
+      "candidate_sha256": "c2cfb7f2f597a66bbadcc97dcb40c6740ef6fadfc8b8133b167bbb3c8511099b"
+    },
+    {
+      "path": "account/core.php",
+      "baseline_sha256": "9c7566f83dccbf023b622de3f1fb935349234e263ee934d1a957a25a9df686da",
+      "candidate_sha256": "086b76d2aa91999a71d8dee39c670602daf375c752a720711dc39f97c6a158d8"
+    },
+    {
+      "path": "account/delegated.php",
+      "baseline_sha256": "760ad191d34f03cc558cbb908b5db301c775c121569e56338d61a17c72cf4ff6",
+      "candidate_sha256": "d68ab9eca2b5acf1217b85e93356b4e98bdcdac63758c9d248a0d241c7aabddd"
+    },
+    {
+      "path": "account/schedule.php",
+      "baseline_sha256": null,
+      "candidate_sha256": "b30cece7a462fd553e3d6d40afc7d5d6455461d7865f7efa821dbc8bf9812c86"
+    }
+  ],
+  "sql_sha256": "1a25bccc3d1d2bed7fa4181fdccb2e6e540501292adfc113e7af50869c4ecff1",
+  "changed_functions": [
+    "authorization_private.copy_booking_private_owner_write(uuid,text,uuid,integer,uuid,jsonb,text,timestamp without time zone,text,integer,text)",
+    "authorization_private.copy_staff_private_assign(uuid,text,uuid,integer,jsonb)",
+    "authorization_private.copy_staff_private_write(uuid,text,uuid,integer,text,text,text,boolean)",
+    "booking_private.owner_write(uuid,text,uuid,integer,uuid,jsonb,text,timestamp without time zone,text,integer,text)",
+    "business_delegate_command_preview_d0106(uuid,text,text,jsonb)",
+    "business_delegate_command(uuid,text,text,jsonb)",
+    "staff_private.assign(uuid,text,uuid,integer,jsonb)",
+    "staff_private.write(uuid,text,uuid,integer,text,text,text,boolean)",
+    "authorization_private.copy_customer_private_booking_create(uuid,text,uuid,integer,uuid,jsonb,text,timestamp without time zone,text,integer,text,uuid)",
+    "authorization_private.copy_request_private_action(uuid,text,uuid,integer,text)",
+    "customer_private.booking_create(uuid,text,uuid,integer,uuid,jsonb,text,timestamp without time zone,text,integer,text,uuid)",
+    "request_private.action(uuid,text,uuid,integer,text)"
+  ],
+  "new_tables": [
+    "authorization_private.scheduling_policies",
+    "authorization_private.scheduling_legacy",
+    "authorization_private.scheduling_history",
+    "authorization_private.scheduling_scope_versions",
+    "authorization_private.scheduling_time_off_resolutions"
+  ],
+  "activation": "No scope enabled by installation; explicit owner opt-in only; preserve legacy obligations",
+  "rollback": "Keep additive tables/history/functions; forbid UI downgrade while any strict policy enabled; stop on file drift; forward repair preferred"
+}
