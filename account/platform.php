@@ -1,5 +1,5 @@
 <?php
-require __DIR__.'/core.php';require __DIR__.'/platform-core.php';
+require (is_file(__DIR__.'/platform-session.php')?__DIR__.'/platform-session.php':__DIR__.'/core.php');require __DIR__.'/platform-core.php';
 $allowed=false;$error='';$store=null;$edit=null;$u=[];$values=[];
 try{
  start();$u=user();
