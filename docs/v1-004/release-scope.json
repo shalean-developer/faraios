@@ -1,0 +1,20 @@
+{
+  "task": "V1-004",
+  "base_main": "4cea37e553edd3d6b1faae277a3286f7134c3801",
+  "deployable_files": {
+    "account/bookings.php": {
+      "baseline_sha256": "2c895d06e29ac048bb9fd9baf0c07fc45669dd438e0f10ddf036f176bd244935",
+      "candidate_sha256": "335f1f386dfcc775964ffc1b0011299129cf53cbd1202614a33bca3fbd32ef59"
+    }
+  },
+  "database_changes": [],
+  "scope": "Replace account/bookings.php only after exact prior hash guard and retaining its original bytes. Never deploy the branch or directory.",
+  "rollback": "Restore only the retained owner bookings.php if its hash still matches this candidate. Preserve database/history and all other overlays; stop on drift.",
+  "installed_accepted_seven_file_overlay_matches": true,
+  "guest_quote_privacy_sha256": "f26cc02d4101d38c860c3f4bc0476a62d80114782b9df6462d1afa0d19de922c",
+  "status": "deployed_and_verified",
+  "launch": "HOLD",
+  "deployed_source": "9a35e54a4abbd09fac8776ff06c9e532c66a3a20",
+  "installed_at": "2026-11-16T16:44:37+00:00",
+  "verified_at": "2026-11-16T16:47:00+00:00"
+}

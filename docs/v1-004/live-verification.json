@@ -1,0 +1,47 @@
+{
+  "task": "V1-004",
+  "status": "PASS",
+  "checks": 140,
+  "check_count_scope": "30 installation plus110 additional verification checks; cumulative",
+  "synthetic_booking": "747c8427-0dad-446d-a987-ce6db9b8d492",
+  "stale_cases": [
+    {
+      "selected_count": 1,
+      "repeat": 0,
+      "passed": true
+    },
+    {
+      "selected_count": 1,
+      "repeat": 1,
+      "passed": true
+    },
+    {
+      "selected_count": 0,
+      "repeat": 0,
+      "passed": true
+    },
+    {
+      "selected_count": 0,
+      "repeat": 1,
+      "passed": true
+    }
+  ],
+  "saved_assignment_version": 2,
+  "saved_staff_count": 2,
+  "live_row_preservation_comparisons": 11,
+  "preview_payment_and_assignment_history_preserved": true,
+  "only_one_runtime_file_changed": true,
+  "private_configuration_preserved": true,
+  "synthetic_roles_still_closed": true,
+  "no_access_activation": true,
+  "messages": false,
+  "payments": false,
+  "verified_at": "2026-11-16T16:47:00+00:00",
+  "task_status": "Verified",
+  "accepted_items": 3,
+  "overview_verified": 13,
+  "overview_total": 30,
+  "remaining_blockers": 15,
+  "launch": "HOLD",
+  "original_schedules_preserved": 4
+}

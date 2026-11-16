@@ -1,0 +1,19 @@
+{
+  "task": "V1-004",
+  "status": "REPRODUCED",
+  "stale_rejected": true,
+  "saved_row_exactly_preserved": true,
+  "submitted_choices_retained": false,
+  "original_version_retained": false,
+  "runtime_sha256": "2c895d06e29ac048bb9fd9baf0c07fc45669dd438e0f10ddf036f176bd244935",
+  "synthetic_booking": "a2b033a4-fb48-40c4-ab38-c64bcb5bbafe",
+  "synthetic_staff": [
+    "f42659ec-f30b-4a35-ad65-b46462c8bdd1",
+    "1a4007c1-57e1-4144-a111-59d6a5ffbee1"
+  ],
+  "access_changed": false,
+  "messages": false,
+  "payments": false,
+  "time": "2026-11-16T16:26:03+00:00",
+  "all_web_files_preserved": true
+}
