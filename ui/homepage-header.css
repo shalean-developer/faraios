@@ -1,0 +1,31 @@
+/* Homepage header: reference proportions, FaraiOS identity and destinations. */
+.ui-home .homepage-header{background:rgba(255,255,255,.96);border-bottom:1px solid #e8eeeb;box-shadow:0 1px 3px #112f3208;backdrop-filter:blur(16px)}
+.ui-home .homepage-header .nav{min-height:96px;gap:24px;flex-wrap:nowrap;padding:12px 0}
+.ui-home .homepage-header .logo img{width:170px;height:50px}
+.ui-home .homepage-header nav{margin:0 0 0 16px;gap:4px;font-size:15px;font-weight:500;align-items:center}
+.ui-home .homepage-header nav a{display:inline-flex;align-items:center;min-height:44px;padding:10px 12px;border-radius:24px;line-height:1.5;color:#405153;white-space:nowrap;text-decoration:none}
+.ui-home .homepage-header nav a:hover{background:#edf5f1;color:var(--f-teal)}
+.ui-home .homepage-header .account{margin-left:auto;gap:12px;font-size:15px;font-weight:500;flex:none}
+.ui-home .homepage-header .account>a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 8px;line-height:1.5;white-space:nowrap}
+.ui-home .homepage-header .account>.btn{min-height:44px;padding:10px 20px;border-radius:999px;font-size:15px;font-weight:600;gap:0}
+.ui-home .homepage-header .mobile-signin{display:none}
+.ui-home .homepage-header .menu{border-radius:999px;min-width:44px;min-height:44px;margin:0;flex:none}
+@media(max-width:1050px){
+ .ui-home .homepage-header .nav{min-height:80px;flex-wrap:wrap;gap:12px}
+ .ui-home .homepage-header .logo img{width:153px;height:45px}
+ .ui-home .homepage-header .menu{display:inline-flex;order:2}
+ .ui-home .homepage-header .account{order:1;margin-left:auto;width:auto}
+ .ui-home .homepage-header nav{display:none;order:3;flex-basis:100%;width:100%;margin:0;padding:12px 0 4px;gap:4px;align-items:stretch;max-height:calc(100dvh - 100px);overflow-y:auto}
+ .ui-home .homepage-header nav.open{display:flex;flex-direction:column}
+ .ui-home .homepage-header nav a{width:100%;padding:12px 16px;white-space:normal}
+ .ui-home .homepage-header nav .mobile-signin{display:none}
+}
+@media(max-width:560px){
+ .ui-home .homepage-header .nav{min-height:76px;gap:10px;padding:12px 0}
+ .ui-home .homepage-header .logo img{width:132px;height:39px}
+ .ui-home .homepage-header .account{order:1;flex:none;gap:0}
+ .ui-home .homepage-header .account>a:first-child{display:none}
+ .ui-home .homepage-header .account>.btn{flex:none;min-height:44px;padding:10px 15px;font-size:14px}
+ .ui-home .homepage-header nav .mobile-signin{display:inline-flex}
+}
+@media(max-width:359px){.ui-home .homepage-header .nav{gap:8px}.ui-home .homepage-header .logo img{width:112px;height:34px}.ui-home .homepage-header .account>.btn{padding:10px 12px;font-size:13px}}

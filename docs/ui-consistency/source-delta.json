@@ -93,7 +93,7 @@
   },
   "index.html": {
     "baseline_sha256": "0ac342115cdb5957f51aaf871bda1bccfbb20a52834741a45c6a089cd056f44f",
-    "candidate_sha256": "7842009b943d51af8f668b07bd4530dce257dd768901d28a50a67490223762e6"
+    "candidate_sha256": "7e047285ade67009a4ddd3a15d66a84e0c5f4874750cb642edc8c07bd88cf75d"
   },
   "industries.html": {
     "baseline_sha256": "ac3780ff6617406e2bebca784f0b64ea578bd8ffa3c123ffffc130213a6325a3",
@@ -178,5 +178,9 @@
   "ui/site-menu.js": {
     "baseline_sha256": null,
     "candidate_sha256": "90b1aa76c4f2f081613ae0e3eea2db5990e04a60d554c01ebbe87c1bcd88de00"
+  },
+  "ui/homepage-header.css": {
+    "baseline_sha256": null,
+    "candidate_sha256": "c0b4ea06abfba9ca885247b8c8965e52b451b2e42773aa1c997d887ca2360880"
   }
 }
