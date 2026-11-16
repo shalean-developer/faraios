@@ -45,7 +45,7 @@
   "schema_table_policy_changes": false,
   "fresh_backup_run": 43843151079,
   "isolated_restore_run": 43843901476,
-  "isolated_restore_status": "queued",
+  "isolated_restore_status": "PASS",
   "private_configuration_recovery": {
     "actual_files": 6,
     "hashes_match": true,
@@ -68,9 +68,28 @@
     "verification": "36 suites passed in combined run; baseline 8 methods passed after removing receipt from source inventory; focused browser 8+13 passed"
   },
   "closed_synthetic_access": true,
-  "enabled_synthetic_onboarding": false,
+  "enabled_synthetic_onboarding": true,
   "phone_acceptance": "Manager/Worker/Receptionist listed scenarios PASS, including worker/receptionist retained-session revocation; new-account signup/verification phone case remains open",
   "release_authorized": false,
   "production_deployed": false,
-  "private_receipts": "private/faraios-account/final-checks-20261116/"
+  "private_receipts": "private/faraios-account/final-checks-20261116/",
+  "isolated_restore_report": {
+    "status": "restore_verified",
+    "table_count": 84,
+    "snapshot_fingerprints_match": true,
+    "owner_scopes_checked": 28,
+    "network": "none",
+    "production_credentials_forwarded": false
+  },
+  "new_account_phone_test": {
+    "recipient": "faraic3@gmail.com",
+    "business": "2f16e658-e031-4c4a-930a-2731ec1d1492",
+    "environment": "preview",
+    "invitation_id": "ce301dfb-8ad8-47b5-b7eb-262b180d9fd4",
+    "staff_id": "a56d5621-36bd-419d-b5f1-be288c1799c0",
+    "status": "provider_accepted_phone_pending",
+    "account_absent_preflight": true,
+    "membership_not_activated": true,
+    "delivery_attempts": 1
+  }
 }

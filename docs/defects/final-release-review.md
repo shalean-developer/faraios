@@ -1,5 +1,8 @@
 # D01–D06 and worker joining: final release review — 16 November 2026
 
+Current update: isolated restore43843901476 PASS (84 tables, snapshot fingerprints match,28 owner scopes, no network/production credentials). All three evidence-head04c3368 CI checks PASS. Owner supplied previously unregistered faraic3@gmail.com. Exactly one synthetic A/preview worker invitationce301dfb-8ad8-47b5-b7eb-262b180d9fd4 is provider_accepted after one attempt. New synthetic staffa56d5621-36bd-419d-b5f1-be288c1799c0; no membership pre-activation. A preview onboarding temporarily enabled for this test; B/previous delegates remain closed. Phone signup/verification not yet observed. No live deployment. This update supersedes earlier queued/closed-test-window states below. Temporary hosting task cancelled.
+
+
 Status: HOLD for live release. No merge, main changes or production deployment authorized or performed.
 
 ## Compatibility
