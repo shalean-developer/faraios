@@ -1,5 +1,20 @@
 # D01–D06 and worker joining: final release review — 16 November 2026
 
+## New-account phone PASS; actual offline navigation defect fixed in preview — 16 November 2026
+
+Read-only Auth/invitation checks confirm faraic3@gmail.com account created, email confirmed, invitationce301dfb-8ad8-47b5-b7eb-262b180d9fd4 accepted and A/preview Worker membership active. Owner confirms Worker Workspace/Preview and Jobs-only menu. Record new-account signup, verification, acceptance and worker landing phone PASS; no owner business creation inferred.
+
+Physical-phone connection test FAILED: while offline, Send request navigated to Chrome offline/game page; Back returned to email custom tab. Input retention was not proved. Fresh read-only query finds zero availability requests for this new worker in A/preview. D03 reopened for client-to-PHP connection loss; earlier server-to-API connection tests did not cover this failure.
+
+Corrective progressive enhancement now intercepts delegated workspace POSTs: known offline sends nothing and retains the live form; fetch/timeout failure retains input with explicit ambiguous-save/check-records warning; reconnect never resends. Submit is disabled while one request is pending. Normal same-origin PHP response is rendered through existing CSRF/session/revocation/validation logic; no browser draft storage or new API grant. Seven-file canonical release scope now includes new account/workspace.js (previous six-file scope superseded).
+
+Focused native/browser8 methods PASS at390/1280 with Manager/Receptionist/Worker, known-offline no-navigation, post-online-check network abort, input retention, zero database writes/no automatic replay and server invalid-range retained form. Broad run36 suites PASS; preview suite initially caught source-manifest drift during iteration and passed10 methods after refreshing exact candidate hashes. Prior snapshot/current-main compatibility applies to prior candidate; final combined-source/latest-head CI must be refreshed before release.
+
+Guarded CLI installer updated exactly preview account/delegated.php (32fa09137178b078b90845c37548ba67cc06ee2327c578bc30824e680376b155) and new workspace.js (f624642cefd9b676c0eeca33bc425c165da0edc4d77f479c01ef7ff9e5333098). Full web census confirms all other files/live unchanged; private configuration unchanged; served script SHA matches. No SQL/Auth/business-record mutations in this installation. Private before/verified receipts and rollback copy: offline-preview-20261116. Temporary hosting task cancelled.
+
+Next phone retry: reconnect, reopen newest original Preview invitation, sign in with faraic3@gmail.com, select A/Preview if prompted; do not create a business. Refresh Worker Workspace while online to load repaired script. Request time off25 November2026 09:00–10:00; offline→Send request once must keep form/times visible with offline error. Reconnect without submitting; no automatic save. Report actual result. A preview onboarding and only the newly accepted worker remain open for controlled acceptance; B/previous roles remain closed. Close these afterward, preserving all history. No merge/live deployment.
+
+
 Current update: isolated restore43843901476 PASS (84 tables, snapshot fingerprints match,28 owner scopes, no network/production credentials). All three evidence-head04c3368 CI checks PASS. Owner supplied previously unregistered faraic3@gmail.com. Exactly one synthetic A/preview worker invitationce301dfb-8ad8-47b5-b7eb-262b180d9fd4 is provider_accepted after one attempt. New synthetic staffa56d5621-36bd-419d-b5f1-be288c1799c0; no membership pre-activation. A preview onboarding temporarily enabled for this test; B/previous delegates remain closed. Phone signup/verification not yet observed. No live deployment. This update supersedes earlier queued/closed-test-window states below. Temporary hosting task cancelled.
 
 

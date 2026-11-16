@@ -1,8 +1,9 @@
 {
   "files": {
     "account/core.php": "2605bab2badc357880bdefdf1370357fb9827645df10536a9825e3d82f3b1f03",
-    "account/delegated.php": "dcb569b8c55cc6e92fed89bb97a6307ee3b5a7ee401ba5ae84f5c8d4d22070c1",
-    "account/workspace.css": "34604c14652214ac3ef10577d084ce9ae9cd960725523b89ce7dcbb013d49f1d"
+    "account/delegated.php": "32fa09137178b078b90845c37548ba67cc06ee2327c578bc30824e680376b155",
+    "account/workspace.css": "34604c14652214ac3ef10577d084ce9ae9cd960725523b89ce7dcbb013d49f1d",
+    "account/workspace.js": "f624642cefd9b676c0eeca33bc425c165da0edc4d77f479c01ef7ff9e5333098"
   },
   "businesses": [
     "2f16e658-e031-4c4a-930a-2731ec1d1492",
@@ -166,5 +167,6 @@
     "staff_count": 107,
     "hosted_result": "PASS",
     "main_observed": "1c8144e45a5d658dfb327f52694c3d2d01dd35b4"
-  }
+  },
+  "offline_phone_followup": "Native/browser and hosted hash PASS; physical-phone retry pending"
 }

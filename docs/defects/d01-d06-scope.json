@@ -6,7 +6,7 @@
     {
       "path": "account/delegated.php",
       "baseline_sha256": "24b154b919951dbfaf748e8ffaaee92c5eced15d954fb7614846e690fc882f9f",
-      "candidate_sha256": "e52548106677cda60160d50e19848b6dc730ad642624b8d712e63b8566c7c50b"
+      "candidate_sha256": "d64c427e6a52568da4a6f07b9e0f55a863cc7b21c7b1f9a02e34b0eaf01617c9"
     },
     {
       "path": "account/core.php",
@@ -17,6 +17,11 @@
       "path": "account/workspace.css",
       "baseline_sha256": "9abe04ffbc6e9ee006fdda64f53d488b5cd989274ab9126cf727efd956900b54",
       "candidate_sha256": "34604c14652214ac3ef10577d084ce9ae9cd960725523b89ce7dcbb013d49f1d"
+    },
+    {
+      "path": "account/workspace.js",
+      "baseline_sha256": null,
+      "candidate_sha256": "f624642cefd9b676c0eeca33bc425c165da0edc4d77f479c01ef7ff9e5333098"
     }
   ],
   "database_delta": [
