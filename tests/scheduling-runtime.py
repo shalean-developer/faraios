@@ -139,7 +139,7 @@ class Runtime(base.Installed):
     for width in [320,390,768,1280]:
      ctx=browser.new_context(viewport={'width':width,'height':900});page=ctx.new_page();page.goto(self.url+'/account/index.php?page=signin');page.get_by_label('Email address',exact=True).fill('new@example.test');page.get_by_label('Password',exact=True).fill('test-long-password');page.get_by_role('button',name='Sign in',exact=True).click()
      page.goto(self.url+'/account/context.php');page.get_by_label('Business and environment',exact=True).select_option(b+':preview');page.get_by_role('button',name='Continue',exact=True).click();page.goto(self.url+'/account/schedule.php')
-     self.assertIn('Working hours & buffers',page.locator('body').inner_text());self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),width)
+     self.assertIn('Working hours & buffers',page.locator('body').inner_text());self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),width);self.assertGreaterEqual(page.locator('#start_1').bounding_box()['width'],95)
      version=int(page.locator('[name="version"]').input_value());self.settings(u,b,version)
      page.locator('#start_1').fill('07:15');page.get_by_role('button',name='Save scheduling settings',exact=True).click();self.assertIn('settings changed',page.get_by_role('alert').inner_text());self.assertEqual(page.locator('#start_1').input_value(),'07:15');self.assertEqual(page.locator('[name="version"]').input_value(),str(version))
      self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),width)
