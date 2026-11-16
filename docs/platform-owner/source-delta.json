@@ -1,7 +1,7 @@
 {
   "account/platform.php": {
     "baseline_sha256": null,
-    "candidate_sha256": "ef4362c614ec480f20f544061e0e3b0e1d779527fa2ff5842f57d39995c1ea5e"
+    "candidate_sha256": "8c6c0f029be0521ceabea32316edc62ed914da1acc23e51b8fd08a60e5faee6d"
   },
   "account/platform-core.php": {
     "baseline_sha256": null,
@@ -13,7 +13,7 @@
   },
   "account/platform.css": {
     "baseline_sha256": null,
-    "candidate_sha256": "0f9284f4d46da912af57d0ffb8b53f05963f94837cacebf451da64631ed3b8c5"
+    "candidate_sha256": "c96183f1ef3d55e228171d318a8216823b39bdd6ea326b4e8a30600272407c80"
   },
   "account/platform.js": {
     "baseline_sha256": null,
