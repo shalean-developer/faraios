@@ -1,0 +1,36 @@
+{
+  "date": "2026-11-16",
+  "base": "4cea37e553edd3d6b1faae277a3286f7134c3801",
+  "pr66": "d5f6f6c2c9c4e917253d5239ea40be78386f791b",
+  "pr68": "9fd4c0a6ec5192d570ef4efa4036459efb205cd8",
+  "deployed_overlay": "f89d616b7a9e76612214d70dd845440c97fdbef2",
+  "runtime_files": [
+    {
+      "path": "quote/index.php",
+      "baseline_sha256": "e0f4f9926cb7cc334c24d5e1c173f85b69bbe71cde15da6451b72f7abcf1366d",
+      "candidate_sha256": "f26cc02d4101d38c860c3f4bc0476a62d80114782b9df6462d1afa0d19de922c"
+    }
+  ],
+  "sql": {
+    "path": "docs/v1-022/customer-document-privacy.sql",
+    "sha256": "3c325fa5e2203b600be47f2691f2035d3dd712ec0679ccdf656e54fea4ad2e01",
+    "functions": [
+      "quote_private.customer(p_environment text,p_token text,p_response text default '')",
+      "invoice_private.customer(p_environment text,p_token text)"
+    ]
+  },
+  "hosted_changes": "none except authorized task assessment",
+  "merge": false,
+  "deployment": false,
+  "supabase_project": "rxelmugnucfajrqmphhe",
+  "plan": "Free",
+  "preserved_live_overlay_files": [
+    "account/core.php",
+    "account/delegated.php",
+    "account/workspace.css",
+    "account/workspace.js",
+    "account/staff-join.php",
+    "account/staff-join.js",
+    "account/staff-join.css"
+  ]
+}

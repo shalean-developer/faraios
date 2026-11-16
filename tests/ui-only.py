@@ -5,6 +5,12 @@ ROOT=Path(__file__).resolve().parents[1]
 class UIOnly(unittest.TestCase):
  def test_original_php_logic_is_preserved(self):
   data=json.loads((ROOT/'docs/ui-consistency/php-logic-baseline.json').read_text())
+  # Keep the original UI-only proof frozen; allow only V1-022's reviewed first quote fragment.
+  privacy=json.loads((ROOT/'docs/v1-022/logic-delta.json').read_text())
+  self.assertEqual(set(privacy),{'quote/index.php'})
+  change=privacy['quote/index.php']
+  self.assertEqual(data['quote/index.php'][0],change['baseline_first_fragment_sha256'])
+  data['quote/index.php'][0]=change['candidate_first_fragment_sha256']
   for path,before in data.items():
    i=0
    for code in re.findall(r'<\?(?:php|=)(.*?)(?:\?>|\Z)',(ROOT/path).read_text(),re.S):

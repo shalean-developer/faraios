@@ -1,0 +1,32 @@
+test_01_projection_and_preservation (__main__.Privacy.test_01_projection_and_preservation) ... FAIL
+test_02_altered_links_and_direct_tables (__main__.Privacy.test_02_altered_links_and_direct_tables) ... ok
+test_03_http_policy_and_actions (__main__.Privacy.test_03_http_policy_and_actions) ... FAIL
+test_04_browser (__main__.Privacy.test_04_browser) ... skipped 'optional local browser'
+
+======================================================================
+FAIL: test_01_projection_and_preservation (__main__.Privacy.test_01_projection_and_preservation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repository>/tests/document-privacy.py", line 36, in test_01_projection_and_preservation
+    data=self.rpc(kind,f[kind]);self.assertEqual(set(data['document']),{'name','items','notes','currency'})
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Items in the first set but not the second:
+'email'
+'phone'
+
+======================================================================
+FAIL: test_03_http_policy_and_actions (__main__.Privacy.test_03_http_policy_and_actions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repository>/tests/document-privacy.py", line 64, in test_03_http_policy_and_actions
+    self.assertEqual(status,200);self.assertEqual(h['Referrer-Policy'],'no-referrer');self.assertIn('no-store',h['Cache-Control']);self.assertIn('noindex',h['X-Robots-Tag']);self.assertIn("frame-ancestors 'none'",h['Content-Security-Policy'])
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'same-origin' != 'no-referrer'
+- same-origin
++ no-referrer
+
+
+----------------------------------------------------------------------
+Ran 4 tests in 3.284s
+
+FAILED (failures=2, skipped=1)
