@@ -30,8 +30,9 @@
     "recipient": "support@faraios.com",
     "delivery": "provider_accepted",
     "inbox_delivery_unverified": true,
-    "accepted": false,
-    "expires_at": "2026-11-17T08:28:08Z"
+    "accepted": true,
+    "expires_at": "2026-11-17T08:28:08Z",
+    "worker_membership_revoked": true
   },
   "test_window": {
     "onboarding_A_preview": true,
@@ -46,5 +47,16 @@
     "real_staff_invites": "908b3ccdcfb21da343dd33f894f25119",
     "real_memberships": "fb988a4b70c9e98d021e1e461a29dfb2",
     "private_configs_unchanged": true
+  },
+  "receptionist_phone": {
+    "invitation": "21ddced9-c7b6-4379-b110-b578b651c7f3",
+    "recipient": "support@faraios.com",
+    "business": "2f16e658-e031-4c4a-930a-2731ec1d1492",
+    "environment": "preview",
+    "delivery": "provider_accepted",
+    "attempts": 1,
+    "accepted": false,
+    "expires_at": "2026-11-17T09:04:17Z",
+    "private_receipts": "private/faraios-account/receptionist-phone-20261116/"
   }
 }
