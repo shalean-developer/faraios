@@ -1,7 +1,7 @@
 {
   "account/platform.php": {
     "baseline_sha256": null,
-    "candidate_sha256": "8c6c0f029be0521ceabea32316edc62ed914da1acc23e51b8fd08a60e5faee6d"
+    "candidate_sha256": "d7ac087c3568b7032214118130f173bdc963d6568d84c0715f3d3aa30fb0128b"
   },
   "account/platform-core.php": {
     "baseline_sha256": null,
