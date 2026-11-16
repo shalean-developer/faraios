@@ -1,0 +1,57 @@
+{
+  "task": "V1-007",
+  "status": "Verified",
+  "deployed_source": "e959997e2fa788cbd28222223b2487f409e6217b",
+  "deployed_tree": "5b28033d730bb5a53c7b98a75147ce3cb8e64d02",
+  "deployed_at_utc": "2026-11-16T15:23:29+00:00",
+  "runtime_files": {
+    "index.html": {
+      "baseline_sha256": "25133070d09e8add4df80841778e6c0d260049f42627b0fcaf6714883377d407",
+      "candidate_sha256": "8085d2d90aaf776ea0ef32776aa406658adbf3933c0e9de746eaf29fe9e9460f"
+    },
+    "features.html": {
+      "baseline_sha256": "2dcd22bfd4420b46ef75f3fffc99235aca4d41165c2e0b81f26d2c31cd20fc66",
+      "candidate_sha256": "6f2b13c933c35b00412cd53578171aa6b582a5d6130ed3fa0e475d02b31b9c9a"
+    },
+    "about.html": {
+      "baseline_sha256": "2ebea339da6aa4932714a9516aea51d66f6859b53c9591ecc35e8a18d01de025",
+      "candidate_sha256": "249e686aded27294d99930d576cef70cbc2981e4df289672c53ae9300b0129eb"
+    },
+    "pricing.html": {
+      "baseline_sha256": "09037cbbec0787b48429831d0ac5398e5221deb1dee8f2c529607991ae8d875b",
+      "candidate_sha256": "0656dd13e98170f2601eb264edba027764c59553ed785a108e3d03058215f816"
+    },
+    "guides/enquiry-to-invoice.html": {
+      "baseline_sha256": "5bd9f01b6d79b6a1e4f623fb90c6c5cb4c1e23745e8d51dac6d75d0ed1c612e1",
+      "candidate_sha256": "f267cfc9cceb3876c525073ae9129b62d42ba5d1b7649647b09d70ec137daba8"
+    }
+  },
+  "all_other_regular_web_files_preserved": true,
+  "original_private_files_preserved": true,
+  "database_writes": false,
+  "main_changed": false,
+  "merged": false,
+  "canonical_http_exact_candidate_checks": 5,
+  "distinct_http_link_asset_targets": 22,
+  "http_failures": 0,
+  "hosted_responsive_widths": [
+    390,
+    1280
+  ],
+  "hosted_public_page_views": 10,
+  "local_responsive_views": 15,
+  "live_booking_review_reached": true,
+  "booking_request_submitted": false,
+  "original_schedules_retained": 4,
+  "ci": {
+    "foundation": 43893185076,
+    "database_backup_regression": 43893185333,
+    "private_configuration_regression": 43893185642
+  },
+  "overview": {
+    "verified": 11,
+    "release_tasks": 30,
+    "open_blockers": 17,
+    "launch": "on_hold"
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "passed": true,
+  "views": [
+    {
+      "path": "index.html",
+      "width": 320,
+      "overflow": false,
+      "h1": 1,
+      "mobile_menu": true
+    },
+    {
+      "path": "features.html",
+      "width": 320,
+      "overflow": false,
+      "h1": 1,
+      "mobile_menu": true
+    },
+    {
+      "path": "about.html",
+      "width": 320,
+      "overflow": false,
+      "h1": 1,
+      "mobile_menu": true
+    },
+    {
+      "path": "pricing.html",
+      "width": 320,
+      "overflow": false,
+      "h1": 1,
+      "mobile_menu": true
+    },
+    {
+      "path": "guides/enquiry-to-invoice.html",
+      "width": 320,
+      "overflow": false,
+      "h1": 1,
+      "mobile_menu": true
+    },
+    {
+      "path": "index.html",
+      "width": 390,
+      "overflow": false,
+      "h1": 1,
+      "mobile_menu": true
+    },
+    {
+      "path": "features.html",
+      "width": 390,
+      "overflow": false,
+      "h1": 1,
+      "mobile_menu": true
+    },
+    {
+      "path": "about.html",
+      "width": 390,
+      "overflow": false,
+      "h1": 1,
+      "mobile_menu": true
+    },
+    {
+      "path": "pricing.html",
+      "width": 390,
+      "overflow": false,
+      "h1": 1,
+      "mobile_menu": true
+    },
+    {
+      "path": "guides/enquiry-to-invoice.html",
+      "width": 390,
+      "overflow": false,
+      "h1": 1,
+      "mobile_menu": true
+    },
+    {
+      "path": "index.html",
+      "width": 1280,
+      "overflow": false,
+      "h1": 1,
+      "mobile_menu": false
+    },
+    {
+      "path": "features.html",
+      "width": 1280,
+      "overflow": false,
+      "h1": 1,
+      "mobile_menu": false
+    },
+    {
+      "path": "about.html",
+      "width": 1280,
+      "overflow": false,
+      "h1": 1,
+      "mobile_menu": false
+    },
+    {
+      "path": "pricing.html",
+      "width": 1280,
+      "overflow": false,
+      "h1": 1,
+      "mobile_menu": false
+    },
+    {
+      "path": "guides/enquiry-to-invoice.html",
+      "width": 1280,
+      "overflow": false,
+      "h1": 1,
+      "mobile_menu": false
+    }
+  ],
+  "seo_heads_preserved": true,
+  "all_link_and_asset_targets_preserved": true
+}

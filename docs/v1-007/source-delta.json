@@ -1,0 +1,22 @@
+{
+  "index.html": {
+    "baseline_sha256": "25133070d09e8add4df80841778e6c0d260049f42627b0fcaf6714883377d407",
+    "candidate_sha256": "8085d2d90aaf776ea0ef32776aa406658adbf3933c0e9de746eaf29fe9e9460f"
+  },
+  "features.html": {
+    "baseline_sha256": "2dcd22bfd4420b46ef75f3fffc99235aca4d41165c2e0b81f26d2c31cd20fc66",
+    "candidate_sha256": "6f2b13c933c35b00412cd53578171aa6b582a5d6130ed3fa0e475d02b31b9c9a"
+  },
+  "about.html": {
+    "baseline_sha256": "2ebea339da6aa4932714a9516aea51d66f6859b53c9591ecc35e8a18d01de025",
+    "candidate_sha256": "249e686aded27294d99930d576cef70cbc2981e4df289672c53ae9300b0129eb"
+  },
+  "pricing.html": {
+    "baseline_sha256": "09037cbbec0787b48429831d0ac5398e5221deb1dee8f2c529607991ae8d875b",
+    "candidate_sha256": "0656dd13e98170f2601eb264edba027764c59553ed785a108e3d03058215f816"
+  },
+  "guides/enquiry-to-invoice.html": {
+    "baseline_sha256": "5bd9f01b6d79b6a1e4f623fb90c6c5cb4c1e23745e8d51dac6d75d0ed1c612e1",
+    "candidate_sha256": "f267cfc9cceb3876c525073ae9129b62d42ba5d1b7649647b09d70ec137daba8"
+  }
+}

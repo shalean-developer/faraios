@@ -27,7 +27,13 @@ class PublicSEO(unittest.TestCase):
   for path in delta:
    if not path.endswith('.html') or path=='ui/marketing-header.html':continue
    before=subprocess.check_output(['git','show','4cea37e:'+path],cwd=ROOT,text=True).split('</head>',1)[1]
-   after=(ROOT/path).read_text().split('</head>',1)[1]
+   current=(ROOT/path).read_text()
+   availability=json.loads((ROOT/'docs/v1-007/source-delta.json').read_text())
+   if path in availability:
+    import hashlib
+    self.assertEqual(hashlib.sha256(current.encode()).hexdigest(),availability[path]['candidate_sha256'])
+    current=subprocess.check_output(['git','show','66ae7dc8b667a218685ef23313d9124027cdb307:'+path],cwd=ROOT,text=True)
+   after=current.split('</head>',1)[1]
    normalize=lambda s:re.sub(r'href="((?:\./|\.\./)?)index\.html(?=[#"])',lambda m:'href="'+(m[1] or './'),s)
    self.assertEqual(after,normalize(before),path)
  def test_business_owner_metadata_preserved(self):

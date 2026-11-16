@@ -77,6 +77,11 @@ class Baseline(unittest.TestCase):
             self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
             self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
             original[path]={'path':path,'sha256':change['candidate_sha256']}
+        availability=json.loads((ROOT/'docs/v1-007/source-delta.json').read_text())
+        self.assertEqual(set(availability), {'index.html','features.html','about.html','pricing.html','guides/enquiry-to-invoice.html'})
+        for path,change in availability.items():
+            self.assertEqual(change['baseline_sha256'],original[path]['sha256'])
+            original[path]={'path':path,'sha256':change['candidate_sha256']}
         expected['files']=[original[path] for path in sorted(original,key=Path)]
         self.assertEqual(expected,manifest())
         self.assertEqual(len(self.inventory['files']),31)
