@@ -1,0 +1,26 @@
+{
+  "base": "d5f6f6c2c9c4e917253d5239ea40be78386f791b",
+  "main_observed": "c75377d2e2adfdf6c173c0ad750687d80e6138b7",
+  "application_delta": [
+    {
+      "path": "account/delegated.php",
+      "baseline_sha256": "24b154b919951dbfaf748e8ffaaee92c5eced15d954fb7614846e690fc882f9f",
+      "candidate_sha256": "7121045e2e302eedc8cd806371bd0d4b12454bc6a14a7e4a07a512b10af81b68"
+    },
+    {
+      "path": "account/core.php",
+      "baseline_sha256": "20de2c9c307a14255494dcd46cecf6b838990215592989023236190cda7c164d",
+      "candidate_sha256": "0304ceb7cb5927e2cd38bf7e655033d247923edc84fe4aa4cb54dfb52ee97c76"
+    }
+  ],
+  "database_delta": [
+    "public.business_delegate_command(uuid,text,text,jsonb)",
+    "public.business_delegate_page(uuid,text,text,uuid,integer,integer)"
+  ],
+  "database_patch": "docs/sc04/defect-repairs.sql",
+  "database_patch_sha256": "45e3fb98c778c5cf79f9a9249110825888fff7bb0c15c60c257e4e227bcd24a9",
+  "hosted_deployed": false,
+  "hosted_test_mutations": false,
+  "historical_updates": false,
+  "worker_join_patch": "Inherited unchanged; separately prepared only"
+}

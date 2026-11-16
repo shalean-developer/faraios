@@ -1,0 +1,14 @@
+<?php
+// CLI-only one-use version conflict for the dedicated synthetic preview customer.
+declare(strict_types=1);
+if(PHP_SAPI!=='cli'){http_response_code(403);exit;}
+$private='/var/www/vhosts/shalean.com/private/faraios-account';$target=$private.'/manager-recovery-phone-20261116';
+try{
+ $helper=$private.'/defect-preview-20261116/acceptance.php';if(hash_file('sha256',$helper)!=='ac894f7456eeafab9e1270dbed5adf0b8cd31fa5d2e5b13f07fe65f629154a89')throw new RuntimeException('Helper drift');$source=file_get_contents($helper);eval(substr($source,5,strpos($source,'try{')-5));
+ $dir=$target;ck(is_file($dir.'/phone-invitation.json')&&!file_exists($dir.'/bump-attempt.json'),'prepared_not_bumped');$_SERVER['SCRIPT_NAME']='/_accounts-preview/account/index.php';$c=require $private.'/config.php';$f=json_decode(file_get_contents($private.'/sc04-acceptance.json'),true);$a='2f16e658-e031-4c4a-930a-2731ec1d1492';ck($f['_business_a']===$a&&$f['owner_a']['id']==='8a68ef34-a924-4035-be53-6af84b8fe1f9','registered_owner');
+ [$s,$auth]=hx(null,'/auth/v1/token?grant_type=password',['email'=>$f['owner_a']['email'],'password'=>$f['owner_a']['password']]);ck($s===200&&($auth['user']['id']??'')===$f['owner_a']['id'],'owner_auth');$state['owner_a']=['token'=>$auth['access_token']];$scope=['p_business'=>$a,'p_environment'=>'preview'];$id='00000000-0000-4000-8000-000000000126';
+ $members=rpc('owner_a','business_access_list',$scope);$target=array_values(array_filter($members['members'],fn($m)=>$m['user_id']==='f356bc93-6d64-4e4e-9004-0b2e0fd8ac51'));ck(count($target)===1&&$target[0]['active']&&$target[0]['role']==='manager','manager_accepted');
+ [$s,$rows]=hx('owner_a','/rest/v1/business_customers?id=eq.'.$id.'&business_id=eq.'.$a.'&environment=eq.preview&select=id,version,details',null,$a);ck($s===200&&count($rows)===1&&$rows[0]['version']===1&&$rows[0]['details']['name']==='Synthetic manager recovery check'&&$rows[0]['details']['notes']==='Baseline recovery note','old_customer_version_current');$details=$rows[0]['details'];$details['notes']='Synthetic other-writer update';putj($dir.'/bump-attempt.json',['customer'=>$id,'before'=>$rows[0],'at'=>gmdate('c')]);
+ rpc('owner_a','business_customer_write',$scope+['p_id'=>$id,'p_version'=>1,'p_details'=>$details,'p_confirm'=>false]);
+ [$s,$after]=hx('owner_a','/rest/v1/business_customers?id=eq.'.$id.'&business_id=eq.'.$a.'&environment=eq.preview&select=id,version,details',null,$a);ck($s===200&&count($after)===1&&$after[0]['version']===2&&$after[0]['details']===$details,'only_expected_update');putj($dir.'/bumped.json',['status'=>'PASS','customer'=>$id,'version'=>2,'details'=>$details,'at'=>gmdate('c')]);echo json_encode(['status'=>'PASS','manager_customer_conflict_ready'=>true,'version'=>2,'customer'=>$id,'only_synthetic_preview'=>true]);
+}catch(Throwable $e){fwrite(STDERR,json_encode(['status'=>'STOP','error'=>$e->getMessage()])."\n");exit(1);}

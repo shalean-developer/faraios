@@ -1,0 +1,38 @@
+{
+  "repair": "1951efd1d9facac18b90edbe72a406dab700492c",
+  "main": "4cea37e553edd3d6b1faae277a3286f7134c3801",
+  "method": "disposable source snapshot; no merge or ref update",
+  "main_files_retained": {
+    ".github/workflows/foundation-regression.yml": "eeffe96d931fbd3ef0b9f6b4f8c9c744b9e86f350d6ec2393e9a125b7ed7d8c3",
+    "about.html": "39f8281e52faf0415b3d2d55a494a9a1d5961510a741c60b3a8eb676b2662b60",
+    "contact.html": "198580e50fafa30b5aa521ff1ea6fc04d73c2248cbec206ebc0647708f44a64d",
+    "docs/ui-consistency/build-marketing-header.py": "eacae0939147368f4c8ec523c50a84864821f40d6c82d2359e5bfa4333167866",
+    "features.html": "4f5e104c11f6686797b1c8c046652efecf4068496f6abe76d3061e5cbfe25e9a",
+    "guides/enquiry-to-invoice.html": "1ccdc50a223a53dee57a2858691eda05d5e3abf6aa75a39000080dfa64b43753",
+    "hosting.html": "faef34c1e9c9a926059453fc723689072e6aef9f253aa5d34bb60c7c7a3a908b",
+    "index.html": "d7487068fc016808163fab9a70f4c59806be590977046817a807aeeb7b51a258",
+    "industries.html": "c5984eadeba14358fccb89f0657fc6a6c590351105b539bf15c4b25b2e521b34",
+    "industries/beauty-spa.html": "9403cd637598152750d11df7c8586ef04ac3029d08f4b6395f68f83dd2e21449",
+    "industries/cleaning.html": "4bea804a4e51318c8687f2768a0276ad1e604d28efedafa66f7f2588a1d727d8",
+    "industries/construction.html": "cbd3e62fd5bbd69eed3756f9b6b0f617f446c01e7a71f92ad2ded43190de191a",
+    "industries/consulting.html": "21829b01647dd05cfa5c319a49147d20946354fcd2898d4fb063621513ae48ee",
+    "industries/electrical.html": "e494548e2a9aac8bf79b49f4f85592ffbca5ddad3f6bea4a117318e2e6261f60",
+    "industries/fitness.html": "3aed7bb95baacc87981c0cdf2bcf828a438f6fe85337242945c84e0ac00168bd",
+    "industries/gardening.html": "da670582740e2a33807648e0025cf99b0c2f7edffabfec5f10b2ec709ba58d1d",
+    "industries/security.html": "e877737195d4482dd35597865d4ad4d9841323f4df0eba4a6b7ac1dcaf7a15e9",
+    "industries/technology.html": "52cdf107012d6b95d591df62075c3423b17e7c8f4860c4762ab7e2fff099be19",
+    "industries/tourism.html": "3ef7fe23c47d6e46cba412f4b8493ef73136739b98a79f64732ac79ee0cfb672",
+    "marketplace.html": "108bc6168e4c42514f57250221b9284dde285d7596b3447d0f2d805cbe69be82",
+    "pricing.html": "63ad8476c228eb4b4cb77d74009397bfb258c6d6c10442c04c5182942d47f9d1",
+    "privacy.html": "be9fc99af56579b75a4a43f43f8e9c79a30ad283495e09fb60ff98554f5711e7",
+    "terms.html": "519d9492fd08f401354e7ab68da4d2afdcd86f670c4e2e485a48a238cc22ad76",
+    "ui/homepage-header.css": "a645501eb7e526351f9ddc67a2da05c508161589cb6954669061f0e838c6ae2c",
+    "ui/marketing-header.html": "02103e77050bd971240e02552d6303b03b0cd614da25bc20af5212dbc21f096e",
+    "ui/site-menu.js": "db10bd10a6f55ca1eed3e24b049d29a90a99eb1030a4852c8efaff61ae4249ee"
+  },
+  "fixture_files_reconciled": {
+    "tests/sc02-baseline.py": "8c2bb9a49b452cd6550683b6374c3e706547164f1035b13318cab9f4ce0a791a",
+    "tests/ui-only.py": "5ef3adb0f01a390951b6ac38893ad5face7e26f8e395a9b165df0b1707859994",
+    "docs/ui-consistency/source-delta.json": "fb9472b33733fa9565f78d98c318e131f4c4944e24651050404cfa538d2b14c0"
+  }
+}

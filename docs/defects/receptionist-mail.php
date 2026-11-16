@@ -1,0 +1,17 @@
+<?php
+declare(strict_types=1);
+if(PHP_SAPI!=='cli'){http_response_code(403);exit;}
+$dir='/var/www/vhosts/shalean.com/private/faraios-account/receptionist-phone-20261116';
+function tx(string $url,array $body,array $headers):array{$raw=@file_get_contents($url,false,stream_context_create(['http'=>['method'=>'POST','header'=>implode("\r\n",array_merge(['Content-Type: application/json'],$headers)),'content'=>json_encode($body,JSON_THROW_ON_ERROR),'timeout'=>20,'ignore_errors'=>true,'follow_location'=>0],'ssl'=>['verify_peer'=>true,'verify_peer_name'=>true]]));preg_match('/\s(\d{3})\s/',$http_response_header[0]??'',$m);return ['status'=>(int)($m[1]??0),'body'=>json_decode($raw?:'{}',true)];}
+try{
+ if(file_exists($dir.'/phone-mail.json'))throw new RuntimeException('Mail phase already recorded; inspect, never blindly replay');$i=json_decode(file_get_contents($dir.'/phone-invitation.json'),true);if($i['business']!=='2f16e658-e031-4c4a-930a-2731ec1d1492'||$i['environment']!=='preview'||$i['recipient']!=='support@faraios.com'||$i['role']!=='receptionist')throw new RuntimeException('Registered fixture scope');
+ $c=require '/var/www/vhosts/shalean.com/private/faraios-staff-invite/worker.php';$c['environment']='preview';$c['base_url']='https://www.faraios.com/_accounts-preview';$c['allow_recipients']=['support@faraios.com'];if($c['supabase_url']!=='https://rxelmugnucfajrqmphhe.supabase.co'||$c['sender']!=='notifications@notify.faraios.com')throw new RuntimeException('Configured transport drift');
+ require '/var/www/vhosts/shalean.com/faraios.com/notifications/staff-invitation.php';
+ $rpc=function(string $name,array $args)use($c){return staff_mail_rpc_result($name,tx($c['supabase_url'].'/rest/v1/rpc/'.$name,$args,['apikey: '.$c['service_key'],'Authorization: Bearer '.$c['service_key']]));};
+ $j=$rpc('business_staff_mail_claim',['p_environment'=>'preview']);if(($j['id']??'')!==$i['id']||$j['recipient']!=='support@faraios.com'||$j['environment']!=='preview'||$j['role']!=='receptionist')throw new RuntimeException('Unexpected queued invitation; stop');
+ $message=staff_mail_message($j,$c);if($message['to']!==['support@faraios.com']||!str_starts_with($message['subject'],'[Preview]'))throw new RuntimeException('Recipient guard');
+ // Persist the attempt before contacting the provider. A failed/ambiguous attempt is inspected, not replayed.
+ $receipt=['status'=>'attempting','id'=>$i['id'],'recipient'=>'support@faraios.com','environment'=>'preview','at'=>gmdate('c')];file_put_contents($dir.'/phone-mail.json',json_encode($receipt),LOCK_EX);chmod($dir.'/phone-mail.json',0600);
+ $r=tx('https://api.resend.com/emails',$message,['Authorization: Bearer '.$c['resend_key'],'Idempotency-Key: staff-invitation/'.$j['id']]);$provider=($r['status']>=200&&$r['status']<300&&is_string($r['body']['id']??null))?$r['body']['id']:'';
+ $rpc('business_staff_mail_finish',['p_id'=>$j['id'],'p_lease'=>$j['lease'],'p_provider'=>$provider,'p_retry'=>false]);$receipt['status']=$provider!==''?'provider_accepted':'failed';$receipt['provider_id']=$provider;file_put_contents($dir.'/phone-mail.json',json_encode($receipt),LOCK_EX);if($provider==='')throw new RuntimeException('Mail not accepted; inspect private receipt');echo json_encode(['status'=>'PASS','preview_receptionist_invitation'=>'provider_accepted','recipient'=>'support@faraios.com','inbox_delivery_unverified'=>true,'configuration_unchanged'=>true]);
+}catch(Throwable $e){fwrite(STDERR,json_encode(['status'=>'STOP','error'=>$e->getMessage()])."\n");exit(1);}

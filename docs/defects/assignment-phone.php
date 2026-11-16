@@ -1,0 +1,18 @@
+<?php
+// CLI-only, one-use synthetic cross-page staff assignment fixture. No invoices or messages.
+declare(strict_types=1);
+if(PHP_SAPI!=='cli'){http_response_code(403);exit;}
+$private='/var/www/vhosts/shalean.com/private/faraios-account';$target=$private.'/assignment-phone-20261116';
+try{
+ $helper=$private.'/defect-preview-20261116/acceptance.php';if(hash_file('sha256',$helper)!=='ac894f7456eeafab9e1270dbed5adf0b8cd31fa5d2e5b13f07fe65f629154a89')throw new RuntimeException('Helper drift');$source=file_get_contents($helper);eval(substr($source,5,strpos($source,'try{')-5));
+ $dir=$target;if(!is_dir($dir))mkdir($dir,0700,true);chmod($dir,0700);$_SERVER['SCRIPT_NAME']='/_accounts-preview/account/index.php';$c=require $private.'/config.php';$f=json_decode(file_get_contents($private.'/sc04-acceptance.json'),true);$a='2f16e658-e031-4c4a-930a-2731ec1d1492';ck($f['_business_a']===$a&&$f['owner_a']['id']==='8a68ef34-a924-4035-be53-6af84b8fe1f9','registered_owner');
+ [$s,$auth]=hx(null,'/auth/v1/token?grant_type=password',['email'=>$f['owner_a']['email'],'password'=>$f['owner_a']['password']]);ck($s===200&&($auth['user']['id']??'')===$f['owner_a']['id'],'owner_auth');$state['owner_a']=['token'=>$auth['access_token']];$scope=['p_business'=>$a,'p_environment'=>'preview'];$sid='01060001-0000-4000-8000-000000000001';$second='01060001-0000-4000-8000-000000000051';
+ $members=rpc('owner_a','business_access_list',$scope);$man=array_values(array_filter($members['members'],fn($m)=>$m['user_id']==='f356bc93-6d64-4e4e-9004-0b2e0fd8ac51'));ck(count($man)===1&&$man[0]['role']==='manager'&&$man[0]['active'],'controlled_manager_active');
+ foreach([0=>$sid,50=>$second]as $offset=>$expected){[$s,$rows]=hx('owner_a','/rest/v1/business_staff?business_id=eq.'.$a.'&environment=eq.preview&select=id,name,active&order=id&limit=1&offset='.$offset,null,$a);ck($s===200&&count($rows)===1&&$rows[0]['id']===$expected&&$rows[0]['active']&&str_starts_with($rows[0]['name'],'Synthetic'),'stable_staff_page:'.$offset);}
+
+  ck(!file_exists($dir.'/attempt.json'),'not_prepared');$sourceId='5df81e47-7eef-413c-a306-db88d0858a3f';[$s,$rows]=hx('owner_a','/rest/v1/business_bookings?id=eq.'.$sourceId.'&business_id=eq.'.$a.'&environment=eq.preview&select=*',null,$a);ck($s===200&&count($rows)===1&&$rows[0]['status']==='Completed'&&$rows[0]['version']===3&&str_contains(json_encode($rows[0]['document']),'Synthetic onboarding customer'),'completed_synthetic_template');
+  $r=$rows[0];$id='00000000-0000-4000-8000-000000000128';[$status,$existing]=hx('owner_a','/rest/v1/business_bookings?id=eq.'.$id.'&select=id',null,$a);ck($status===200&&count($existing)===0,'new_assignment_booking');$args=$scope+['p_id'=>$id,'p_version'=>0,'p_quote'=>null,'p_document'=>$r['document'],'p_address'=>'Synthetic cross-page staff assignment','p_local'=>'2026-11-28 09:00','p_zone'=>'Africa/Johannesburg','p_duration'=>60,'p_status'=>'Scheduled'];putj($dir.'/attempt.json',['booking'=>$id,'staff'=>$sid,'args'=>$args,'source'=>$r]);
+  rpc('owner_a','business_booking_write',$args);rpc('owner_a','business_staff_assign',$scope+['p_booking'=>$id,'p_version'=>0,'p_staff'=>[$sid]]);
+  [$s,$after]=hx('owner_a','/rest/v1/business_bookings?id=eq.'.$sourceId.'&select=*',null,$a);ck($s===200&&$after===$rows,'historical_template_preserved');putj($dir.'/prepared.json',['status'=>'PASS','booking'=>$id,'staff'=>$sid,'version'=>1,'phase'=>'prepare','second_page_staff'=>$second,'at'=>gmdate('c')]);echo json_encode(['status'=>'PASS','phase'=>'prepare','booking'=>$id,'address'=>$args['p_address'],'new_synthetic_job'=>true,'previous_history_unchanged'=>true]);
+
+}catch(Throwable $e){fwrite(STDERR,json_encode(['status'=>'STOP','error'=>$e->getMessage()])."\n");exit(1);}

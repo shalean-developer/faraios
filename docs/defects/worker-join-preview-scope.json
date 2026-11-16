@@ -1,0 +1,62 @@
+{
+  "source": "d5f6f6c2c9c4e917253d5239ea40be78386f791b",
+  "files": {
+    "staff-join.php": {
+      "before": "a693381502e184831de2dd019cac6cad3db0d7f48d67cc2922308b6ee744e6c0",
+      "after": "c2a3845160440a8d7a9eadc5233a9bc0b1ed372478c0b331255570b7de3f5eb9"
+    },
+    "staff-join.js": {
+      "before": "53398673a72b5da5efc543f1e904bf809cf7cc9895d435c4fbc346ce5259876f",
+      "after": "18ff7b76c4616c21c43f055706314cbe2350fdf20dc71d10ca5771f61c5e3cdb"
+    },
+    "staff-join.css": {
+      "before": null,
+      "after": "2a9fdf109418be3c686737e51544d09527ede4aebb20181eb552cdc149626644"
+    }
+  },
+  "hosted_installed": true,
+  "hosted_verified": true,
+  "production_installed": false,
+  "web_files_before": 1098,
+  "web_files_after": 1099,
+  "only_three_preview_files_changed": true,
+  "local_join_methods": 13,
+  "physical_phone_accepted": false,
+  "invitation": {
+    "id": "4c22754f-6106-4870-a0a3-b079ce5559bf",
+    "business_id": "2f16e658-e031-4c4a-930a-2731ec1d1492",
+    "environment": "preview",
+    "role": "worker",
+    "recipient": "support@faraios.com",
+    "delivery": "provider_accepted",
+    "inbox_delivery_unverified": true,
+    "accepted": true,
+    "expires_at": "2026-11-17T08:28:08Z",
+    "worker_membership_revoked": true
+  },
+  "test_window": {
+    "onboarding_A_preview": true,
+    "onboarding_B_preview": false,
+    "synthetic_manager_active": true,
+    "worker_and_receptionist_memberships_active": false,
+    "pilot_staff_active": true,
+    "closeout_required": true
+  },
+  "private_receipts": "private/faraios-account/worker-join-20261116/",
+  "preservation": {
+    "real_staff_invites": "908b3ccdcfb21da343dd33f894f25119",
+    "real_memberships": "fb988a4b70c9e98d021e1e461a29dfb2",
+    "private_configs_unchanged": true
+  },
+  "receptionist_phone": {
+    "invitation": "21ddced9-c7b6-4379-b110-b578b651c7f3",
+    "recipient": "support@faraios.com",
+    "business": "2f16e658-e031-4c4a-930a-2731ec1d1492",
+    "environment": "preview",
+    "delivery": "provider_accepted",
+    "attempts": 1,
+    "accepted": false,
+    "expires_at": "2026-11-17T09:04:17Z",
+    "private_receipts": "private/faraios-account/receptionist-phone-20261116/"
+  }
+}

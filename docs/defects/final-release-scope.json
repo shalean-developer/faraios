@@ -1,0 +1,147 @@
+{
+  "application_source": "1951efd1d9facac18b90edbe72a406dab700492c",
+  "main_compatibility": "4cea37e553edd3d6b1faae277a3286f7134c3801",
+  "pr66": "d5f6f6c2c9c4e917253d5239ea40be78386f791b",
+  "runtime_files": [
+    {
+      "path": "account/delegated.php",
+      "baseline_sha256": "24b154b919951dbfaf748e8ffaaee92c5eced15d954fb7614846e690fc882f9f",
+      "candidate_sha256": "451d51d8790e4131d74861fefbf874954a6caa419b6fb950ff9de12076725aae"
+    },
+    {
+      "path": "account/core.php",
+      "baseline_sha256": "20de2c9c307a14255494dcd46cecf6b838990215592989023236190cda7c164d",
+      "candidate_sha256": "9c7566f83dccbf023b622de3f1fb935349234e263ee934d1a957a25a9df686da"
+    },
+    {
+      "path": "account/workspace.css",
+      "baseline_sha256": "9abe04ffbc6e9ee006fdda64f53d488b5cd989274ab9126cf727efd956900b54",
+      "candidate_sha256": "34604c14652214ac3ef10577d084ce9ae9cd960725523b89ce7dcbb013d49f1d"
+    },
+    {
+      "path": "account/staff-join.php",
+      "baseline_sha256": "a693381502e184831de2dd019cac6cad3db0d7f48d67cc2922308b6ee744e6c0",
+      "candidate_sha256": "c2a3845160440a8d7a9eadc5233a9bc0b1ed372478c0b331255570b7de3f5eb9"
+    },
+    {
+      "path": "account/staff-join.js",
+      "baseline_sha256": "53398673a72b5da5efc543f1e904bf809cf7cc9895d435c4fbc346ce5259876f",
+      "candidate_sha256": "18ff7b76c4616c21c43f055706314cbe2350fdf20dc71d10ca5771f61c5e3cdb"
+    },
+    {
+      "path": "account/staff-join.css",
+      "baseline_sha256": null,
+      "candidate_sha256": "2a9fdf109418be3c686737e51544d09527ede4aebb20181eb552cdc149626644"
+    },
+    {
+      "path": "account/workspace.js",
+      "baseline_sha256": null,
+      "candidate_sha256": "f624642cefd9b676c0eeca33bc425c165da0edc4d77f479c01ef7ff9e5333098"
+    }
+  ],
+  "sql_patch": "docs/sc04/defect-repairs.sql",
+  "sql_sha256": "017d5df36dbe4161754ed9944e9818cf63f588b52e657334e07001b21ee1ca9a",
+  "database_functions": [
+    "public.business_delegate_command(uuid,text,text,jsonb)",
+    "public.business_delegate_page(uuid,text,text,uuid,integer,integer)"
+  ],
+  "current_shared_command_md5": "2c2aeb980f2b7cf6e3be2d0410551020",
+  "preview_aliases_must_not_be_deployed": true,
+  "schema_table_policy_changes": false,
+  "fresh_backup_run": 43872691752,
+  "isolated_restore_run": 43873154699,
+  "isolated_restore_status": "PASS",
+  "private_configuration_recovery": {
+    "actual_files": 6,
+    "hashes_match": true,
+    "private_modes": true,
+    "smtp_test": false,
+    "plaintext_copies_removed": true
+  },
+  "compatibility_tests": {
+    "status": "PASS",
+    "suites": 37,
+    "reported_tests": 125,
+    "repair_browser_methods": 8,
+    "workflow_browser_methods": 4,
+    "join_browser_methods": 13,
+    "widths": [
+      390,
+      1280
+    ],
+    "source_snapshot_manifest": "compatibility-snapshot.json",
+    "method": "Disposable combined source; all current-main public header bytes preserved; only three preservation fixtures reconciled; no merge/ref update"
+  },
+  "closed_synthetic_access": true,
+  "enabled_synthetic_onboarding": false,
+  "phone_acceptance": "Listed Manager/Worker/Receptionist scenarios PASS, including new-account verification/join, offline retention/reconnect/explicit save, worker and Manager stale recovery, duplicate-payment rejection, cross-page assignment and retained-session revocation",
+  "release_authorized": true,
+  "production_deployed": true,
+  "private_receipts": "private/faraios-account/live-d0106-20261116/",
+  "isolated_restore_report": {
+    "status": "restore_verified",
+    "table_count": 84,
+    "snapshot_fingerprints_match": true,
+    "owner_scopes_checked": 32,
+    "network": "none",
+    "production_credentials_forwarded": false
+  },
+  "new_account_phone_test": {
+    "recipient": "faraic3@gmail.com",
+    "business": "2f16e658-e031-4c4a-930a-2731ec1d1492",
+    "environment": "preview",
+    "invitation_id": "ce301dfb-8ad8-47b5-b7eb-262b180d9fd4",
+    "staff_id": "a56d5621-36bd-419d-b5f1-be288c1799c0",
+    "status": "signup_verified_accepted_worker_workspace_phone_PASS",
+    "account_absent_preflight": true,
+    "membership_not_activated": false,
+    "delivery_attempts": 1
+  },
+  "phone_connection_recovery": "PASS: known-offline retains dates/times, reconnect does not resend, explicit online save creates exactly one correctly zoned request",
+  "current_test_window": "Closed: all A/B preview delegates inactive, onboarding disabled; new pilot inactive version2",
+  "manager_typed_field_phone": "PASS: stale version1 rejected; typed Name/Notes retained; saved version2 other-writer values unchanged",
+  "invoice_labels": "Number-first heading installed in preview; owner proceeded to exact INV-000004 duplicate test",
+  "payment_duplicate_phone": "PASS: exact original one payment1000 minor, invoice Issued/version3 unchanged",
+  "cross_page_assignment_phone": "PASS: add staff051 preserved001; confirmed page2 removal preserved001, final assignmentversion5",
+  "manager_revocation_phone": "PASS: retained phone session refreshed to Choose Business",
+  "latest_verified_ci": {
+    "source": "f89d616b7a9e76612214d70dd845440c97fdbef2",
+    "foundation": 43870752337,
+    "database_regression": 43870752344,
+    "private_configuration_regression": 43870752385,
+    "status": "PASS"
+  },
+  "hosted_final": {
+    "checks": 10,
+    "preview_files": 7,
+    "live_baselines_match": true,
+    "private_configs_preserved": true,
+    "no_business_record_mutation": true,
+    "receipt": "final-closeout-20261116/hosted-final.json",
+    "temporary_task_cancelled": true
+  },
+  "physical_phone_limits": [
+    "Mid-flight ambiguous-save connection loss is native/browser-tested, not separately phone-accepted",
+    "Not an assertion that every possible role/action/device combination was physically tested"
+  ],
+  "final_review_status": "Owner authorized; exact seven-file/two-function live release installed and verified; no merge",
+  "reviewed_release_commit": "f89d616b7a9e76612214d70dd845440c97fdbef2",
+  "release_date": "2026-11-16",
+  "live_release": {
+    "migration": "reviewed_d0106_live_functions_20261116",
+    "runtime_hashes_match": true,
+    "changed_web_files": 7,
+    "all_other_web_files_unchanged": true,
+    "private_configs_preserved": true,
+    "http_asset_checks": 7,
+    "permission_checks": 16,
+    "preservation_fingerprints_match": true,
+    "active_synthetic_delegates": 0,
+    "synthetic_onboarding_enabled": false,
+    "main_changed": false,
+    "merged": false,
+    "temporary_hosting_task_cancelled": true,
+    "command_prosrc_md5": "244ea2a34b99082b9429c85f2c0bb981",
+    "page_prosrc_md5": "b89d3db6188427d4234e24979b4b9d93"
+  }
+}

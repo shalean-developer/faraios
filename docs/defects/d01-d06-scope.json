@@ -1,0 +1,43 @@
+{
+  "base_pr66": "d5f6f6c2c9c4e917253d5239ea40be78386f791b",
+  "prior_d01_d03": "73f23e927b40d0fce24c1fc343c08f1444013cf8",
+  "main_observed": "c75377d2e2adfdf6c173c0ad750687d80e6138b7",
+  "application_delta": [
+    {
+      "path": "account/delegated.php",
+      "baseline_sha256": "24b154b919951dbfaf748e8ffaaee92c5eced15d954fb7614846e690fc882f9f",
+      "candidate_sha256": "451d51d8790e4131d74861fefbf874954a6caa419b6fb950ff9de12076725aae"
+    },
+    {
+      "path": "account/core.php",
+      "baseline_sha256": "20de2c9c307a14255494dcd46cecf6b838990215592989023236190cda7c164d",
+      "candidate_sha256": "9c7566f83dccbf023b622de3f1fb935349234e263ee934d1a957a25a9df686da"
+    },
+    {
+      "path": "account/workspace.css",
+      "baseline_sha256": "9abe04ffbc6e9ee006fdda64f53d488b5cd989274ab9126cf727efd956900b54",
+      "candidate_sha256": "34604c14652214ac3ef10577d084ce9ae9cd960725523b89ce7dcbb013d49f1d"
+    },
+    {
+      "path": "account/workspace.js",
+      "baseline_sha256": null,
+      "candidate_sha256": "f624642cefd9b676c0eeca33bc425c165da0edc4d77f479c01ef7ff9e5333098"
+    }
+  ],
+  "database_delta": [
+    "public.business_delegate_command(uuid,text,text,jsonb)",
+    "public.business_delegate_page(uuid,text,text,uuid,integer,integer)"
+  ],
+  "d04_d06_database_delta": [
+    "public.business_delegate_command(uuid,text,text,jsonb)"
+  ],
+  "database_patch": "docs/sc04/defect-repairs.sql",
+  "database_patch_sha256": "017d5df36dbe4161754ed9944e9818cf63f588b52e657334e07001b21ee1ca9a",
+  "observed_hosted_command_md5": "2c2aeb980f2b7cf6e3be2d0410551020",
+  "hosted_mutations": true,
+  "worker_join": "Inherited unchanged from PR66; separately prepared only",
+  "hosted_status": "Guarded synthetic-only preview overlay verified; canonical live payload not installed",
+  "hosted_preview_manifest": "docs/defects/d01-d06-preview-scope.json",
+  "canonical_live_payload_installed": false,
+  "hosted_preview_installed": true
+}
