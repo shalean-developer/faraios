@@ -1,0 +1,42 @@
+{
+  "status": "Verified",
+  "task": "V1-008",
+  "hosted_checks": 229,
+  "initial_hosted_checks": 179,
+  "catalogue_supplement_checks": 50,
+  "failures": 0,
+  "roles": [
+    "Owner",
+    "Manager",
+    "Receptionist",
+    "Worker"
+  ],
+  "receptionist_catalogue_quote": {
+    "id": "504e924e-3bfa-4f47-ac65-aeb9e576c840",
+    "state": "Sent",
+    "version": 2,
+    "price_minor": 50500,
+    "normal_php_create_and_send": true,
+    "php_price_override_ignored": true,
+    "direct_api_price_override_denied": true,
+    "original_saved_document_unchanged": true
+  },
+  "temporary_access_closed": true,
+  "active_synthetic_delegates": 0,
+  "original_live_delegates_preserved": 1,
+  "public_business_pages_published": false,
+  "real_payments": false,
+  "provider_sends": false,
+  "application_deployment": false,
+  "main_changed": false,
+  "merged": false,
+  "original_schedules_retained": 4,
+  "report_sha256": "5fca8b609b1fc9b91a2f734a24851b107f955f9b4d4da463139593f9c0458566",
+  "catalogue_and_quote_test_history_retained": true,
+  "overview": {
+    "verified": 12,
+    "release_tasks": 30,
+    "open_blockers": 16,
+    "launch": "on hold"
+  }
+}

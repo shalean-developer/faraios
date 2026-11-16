@@ -1,0 +1,44 @@
+[
+  {
+    "path": "account/delegated.php",
+    "expected": "451d51d8790e4131d74861fefbf874954a6caa419b6fb950ff9de12076725aae",
+    "actual": "451d51d8790e4131d74861fefbf874954a6caa419b6fb950ff9de12076725aae",
+    "match": true
+  },
+  {
+    "path": "account/core.php",
+    "expected": "9c7566f83dccbf023b622de3f1fb935349234e263ee934d1a957a25a9df686da",
+    "actual": "9c7566f83dccbf023b622de3f1fb935349234e263ee934d1a957a25a9df686da",
+    "match": true
+  },
+  {
+    "path": "account/workspace.css",
+    "expected": "34604c14652214ac3ef10577d084ce9ae9cd960725523b89ce7dcbb013d49f1d",
+    "actual": "34604c14652214ac3ef10577d084ce9ae9cd960725523b89ce7dcbb013d49f1d",
+    "match": true
+  },
+  {
+    "path": "account/staff-join.php",
+    "expected": "c2a3845160440a8d7a9eadc5233a9bc0b1ed372478c0b331255570b7de3f5eb9",
+    "actual": "c2a3845160440a8d7a9eadc5233a9bc0b1ed372478c0b331255570b7de3f5eb9",
+    "match": true
+  },
+  {
+    "path": "account/staff-join.js",
+    "expected": "18ff7b76c4616c21c43f055706314cbe2350fdf20dc71d10ca5771f61c5e3cdb",
+    "actual": "18ff7b76c4616c21c43f055706314cbe2350fdf20dc71d10ca5771f61c5e3cdb",
+    "match": true
+  },
+  {
+    "path": "account/staff-join.css",
+    "expected": "2a9fdf109418be3c686737e51544d09527ede4aebb20181eb552cdc149626644",
+    "actual": "2a9fdf109418be3c686737e51544d09527ede4aebb20181eb552cdc149626644",
+    "match": true
+  },
+  {
+    "path": "account/workspace.js",
+    "expected": "f624642cefd9b676c0eeca33bc425c165da0edc4d77f479c01ef7ff9e5333098",
+    "actual": "f624642cefd9b676c0eeca33bc425c165da0edc4d77f479c01ef7ff9e5333098",
+    "match": true
+  }
+]

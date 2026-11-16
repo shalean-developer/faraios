@@ -1,0 +1,43 @@
+{
+  "status": "PASS",
+  "scope": "disposable native SQL/PHP, simulated Auth/REST; not hosted acceptance",
+  "roles": [
+    {
+      "role": "owner",
+      "customer": true,
+      "enquiry": true,
+      "quote": true,
+      "booking": true,
+      "assignment": true,
+      "invoice": true,
+      "manual_payment": true
+    },
+    {
+      "role": "manager",
+      "customer": true,
+      "enquiry": true,
+      "quote": true,
+      "booking": true,
+      "assignment": true,
+      "invoice": true,
+      "manual_payment": true
+    },
+    {
+      "role": "receptionist",
+      "customer": true,
+      "enquiry": true,
+      "quote": true,
+      "booking": true,
+      "assignment": true,
+      "invoice": true,
+      "manual_payment": false
+    },
+    {
+      "role": "worker",
+      "assigned_only": true,
+      "availability": true,
+      "start": true,
+      "complete": true
+    }
+  ]
+}

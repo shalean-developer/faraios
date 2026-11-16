@@ -1,0 +1,14 @@
+{
+  "v1008": "closed",
+  "checks": 179,
+  "failures": 0,
+  "roles": [
+    "owner_a",
+    "manager",
+    "receptionist",
+    "worker"
+  ],
+  "memberships_closed": true,
+  "report_sha256": "65c0b23fec4fe32f58420ce41fbd5afc796130d146bb45aa7a62d79bbe6545ea",
+  "catalogue_quote_positive": "pending_no_publication"
+}
