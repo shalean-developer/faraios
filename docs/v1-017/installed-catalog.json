@@ -1,0 +1,5643 @@
+{
+  "views": [
+    {
+      "name": "business_booking_schedule",
+      "schema": "public",
+      "definition": " SELECT id,\n    business_id,\n    environment,\n    quote_id,\n    document,\n    address,\n    starts_at,\n    time_zone,\n    duration_minutes,\n    status,\n    version,\n    created_at,\n    updated_at,\n    customer_id,\n    assignment_version,\n    COALESCE(( SELECT jsonb_agg(jsonb_build_object('id', s.id, 'name', s.name, 'active', s.active) ORDER BY (lower(s.name)), s.id) AS jsonb_agg\n           FROM (business_booking_staff a\n             JOIN business_staff s ON ((s.id = a.staff_id)))\n          WHERE (a.booking_id = b.id)), '[]'::jsonb) AS assigned_staff,\n    COALESCE(( SELECT array_agg(a.staff_id) AS array_agg\n           FROM business_booking_staff a\n          WHERE (a.booking_id = b.id)), '{}'::uuid[]) AS staff_ids,\n    COALESCE(( SELECT jsonb_agg(DISTINCT jsonb_build_object('booking_id', o.id, 'staff_id', s.id, 'name', s.name, 'starts_at', o.starts_at, 'duration_minutes', o.duration_minutes)) AS jsonb_agg\n           FROM (((business_booking_staff a\n             JOIN business_booking_staff a2 ON ((a2.staff_id = a.staff_id)))\n             JOIN business_bookings o ON ((o.id = a2.booking_id)))\n             JOIN business_staff s ON ((s.id = a.staff_id)))\n          WHERE ((a.booking_id = b.id) AND (o.id <> b.id) AND (o.business_id = b.business_id) AND (o.environment = b.environment) AND (b.status = ANY (ARRAY['Scheduled'::text, 'In Progress'::text])) AND (o.status = ANY (ARRAY['Scheduled'::text, 'In Progress'::text])) AND (b.starts_at < (o.starts_at + ((o.duration_minutes)::double precision * '00:01:00'::interval))) AND (o.starts_at < (b.starts_at + ((b.duration_minutes)::double precision * '00:01:00'::interval))))), '[]'::jsonb) AS conflicts\n   FROM business_bookings b;"
+    },
+    {
+      "name": "business_invoice_list",
+      "schema": "public",
+      "definition": " SELECT i.id,\n    i.business_id,\n    i.environment,\n    i.booking_id,\n    i.document,\n    i.due_on,\n    i.state,\n    i.version,\n    i.number,\n    i.share_token,\n    i.sender,\n    i.created_at,\n    i.issued_at,\n    i.voided_at,\n    i.void_reason,\n    invoice_private.total(i.document) AS total,\n    COALESCE(p.paid, (0)::numeric) AS paid,\n    ((invoice_private.total(i.document))::numeric - COALESCE(p.paid, (0)::numeric)) AS balance,\n        CASE\n            WHEN (i.state = 'Draft'::text) THEN 'Draft'::text\n            WHEN (i.state = 'Void'::text) THEN 'Void'::text\n            WHEN (COALESCE(p.paid, (0)::numeric) = (invoice_private.total(i.document))::numeric) THEN 'Paid'::text\n            WHEN (COALESCE(p.paid, (0)::numeric) > (0)::numeric) THEN 'Part Paid'::text\n            ELSE 'Unpaid'::text\n        END AS status,\n    i.replaces_id\n   FROM (business_invoices i\n     LEFT JOIN LATERAL ( SELECT sum(\n                CASE\n                    WHEN (business_invoice_payments.reversal_of IS NULL) THEN business_invoice_payments.amount\n                    ELSE (- business_invoice_payments.amount)\n                END) AS paid\n           FROM business_invoice_payments\n          WHERE (business_invoice_payments.invoice_id = i.id)) p ON (true));"
+    },
+    {
+      "name": "business_quote_list",
+      "schema": "public",
+      "definition": " SELECT id,\n    business_id,\n    environment,\n    enquiry_id,\n    document,\n    expires_on,\n    status,\n    version,\n    share_token,\n    sender,\n    created_at,\n    sent_at,\n    responded_at,\n        CASE\n            WHEN ((status = 'Sent'::text) AND (expires_on < ((now() AT TIME ZONE (sender ->> 'time_zone'::text)))::date)) THEN 'Expired'::text\n            ELSE status\n        END AS effective_status\n   FROM business_quotes q;"
+    }
+  ],
+  "columns": [
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "availability_requests",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "availability_requests",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "availability_requests",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "user_id",
+      "type": "uuid",
+      "table": "availability_requests",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "starts_at",
+      "type": "timestamp with time zone",
+      "table": "availability_requests",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "ends_at",
+      "type": "timestamp with time zone",
+      "table": "availability_requests",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "availability_requests",
+      "schema": "authorization_private",
+      "default": "clock_timestamp()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "identity",
+      "type": "text",
+      "table": "delegate_functions",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "copy_name",
+      "type": "text",
+      "table": "delegate_functions",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "singleton",
+      "type": "boolean",
+      "table": "delegation_gate",
+      "schema": "authorization_private",
+      "default": "true",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "enabled",
+      "type": "boolean",
+      "table": "delegation_gate",
+      "schema": "authorization_private",
+      "default": "false",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "bigint",
+      "table": "events",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "events",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "events",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "actor",
+      "type": "uuid",
+      "table": "events",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "action",
+      "type": "text",
+      "table": "events",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "subject",
+      "type": "uuid",
+      "table": "events",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "recorded_at",
+      "type": "timestamp with time zone",
+      "table": "events",
+      "schema": "authorization_private",
+      "default": "clock_timestamp()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "detail",
+      "type": "jsonb",
+      "table": "events",
+      "schema": "authorization_private",
+      "default": "'{}'::jsonb",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "default": "gen_random_uuid()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "recipient",
+      "type": "uuid",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "role",
+      "type": "text",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "token_hash",
+      "type": "bytea",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "expires_at",
+      "type": "timestamp with time zone",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_by",
+      "type": "uuid",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "accepted_at",
+      "type": "timestamp with time zone",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "revoked_at",
+      "type": "timestamp with time zone",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "identity",
+      "type": "text",
+      "table": "legacy_functions",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "definition",
+      "type": "text",
+      "table": "legacy_functions",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "live_businesses",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "enabled",
+      "type": "boolean",
+      "table": "live_businesses",
+      "schema": "authorization_private",
+      "default": "false",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "preview_businesses",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": "gen_random_uuid()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "staff_id",
+      "type": "uuid",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "email",
+      "type": "text",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "role",
+      "type": "text",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "token_hash",
+      "type": "bytea",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "sealed_token",
+      "type": "text",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_by",
+      "type": "uuid",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": "clock_timestamp()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "expires_at",
+      "type": "timestamp with time zone",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": "(clock_timestamp() + '24:00:00'::interval)",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "accepted_at",
+      "type": "timestamp with time zone",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "revoked_at",
+      "type": "timestamp with time zone",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "user_id",
+      "type": "uuid",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "delivery",
+      "type": "text",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": "'queued'::text",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "attempts",
+      "type": "integer",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": "0",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "next_attempt",
+      "type": "timestamp with time zone",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": "clock_timestamp()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "lease",
+      "type": "uuid",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "lease_until",
+      "type": "timestamp with time zone",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "provider_id",
+      "type": "text",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "staff_onboarding_businesses",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "staff_onboarding_businesses",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "enabled",
+      "type": "boolean",
+      "table": "staff_onboarding_businesses",
+      "schema": "authorization_private",
+      "default": "false",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "worker_identities",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "worker_identities",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "user_id",
+      "type": "uuid",
+      "table": "worker_identities",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "staff_id",
+      "type": "uuid",
+      "table": "worker_identities",
+      "schema": "authorization_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "ingress",
+      "schema": "booking_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "enabled",
+      "type": "boolean",
+      "table": "ingress",
+      "schema": "booking_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "ingress",
+      "schema": "customer_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "enabled",
+      "type": "boolean",
+      "table": "ingress",
+      "schema": "customer_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "ingress",
+      "schema": "enquiry_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "enabled",
+      "type": "boolean",
+      "table": "ingress",
+      "schema": "enquiry_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": "gen_random_uuid()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "enquiry_id",
+      "type": "uuid",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "kind",
+      "type": "text",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "recipient",
+      "type": "text",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "reply_to",
+      "type": "text",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": "''::text",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "payload",
+      "type": "jsonb",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "status",
+      "type": "text",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": "'pending'::text",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "attempts",
+      "type": "integer",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": "0",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "available_at",
+      "type": "timestamp with time zone",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "lease",
+      "type": "uuid",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "leased_until",
+      "type": "timestamp with time zone",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "first_attempt_at",
+      "type": "timestamp with time zone",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "provider_id",
+      "type": "text",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "last_error",
+      "type": "text",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": "''::text",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "mail_settings",
+      "schema": "enquiry_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "enabled",
+      "type": "boolean",
+      "table": "mail_settings",
+      "schema": "enquiry_private",
+      "default": "false",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "key",
+      "type": "text",
+      "table": "rate_limits",
+      "schema": "enquiry_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "window_start",
+      "type": "timestamp with time zone",
+      "table": "rate_limits",
+      "schema": "enquiry_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "attempts",
+      "type": "integer",
+      "table": "rate_limits",
+      "schema": "enquiry_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "counters",
+      "schema": "invoice_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "counters",
+      "schema": "invoice_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "value",
+      "type": "bigint",
+      "table": "counters",
+      "schema": "invoice_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "ingress",
+      "schema": "invoice_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "enabled",
+      "type": "boolean",
+      "table": "ingress",
+      "schema": "invoice_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "service",
+      "type": "jsonb",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "currency",
+      "type": "text",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "time_zone",
+      "type": "text",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "address",
+      "type": "text",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "preferred_at",
+      "type": "timestamp with time zone",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "status",
+      "type": "text",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "default": "'Pending'::text",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "quote_id",
+      "type": "uuid",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "booking_id",
+      "type": "uuid",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "version",
+      "type": "integer",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "default": "1",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "scope",
+      "type": "jsonb",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "quote_id",
+      "type": "uuid",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "document",
+      "type": "jsonb",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "address",
+      "type": "text",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "starts_at",
+      "type": "timestamp with time zone",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "time_zone",
+      "type": "text",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "duration_minutes",
+      "type": "integer",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "status",
+      "type": "text",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "version",
+      "type": "integer",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "customer_id",
+      "type": "uuid",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "assignment_version",
+      "type": "integer",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "assigned_staff",
+      "type": "jsonb",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "staff_ids",
+      "type": "uuid[]",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "conflicts",
+      "type": "jsonb",
+      "table": "business_booking_schedule",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "booking_id",
+      "type": "uuid",
+      "table": "business_booking_staff",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "staff_id",
+      "type": "uuid",
+      "table": "business_booking_staff",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_booking_staff",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_booking_staff",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "business_bookings",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_bookings",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_bookings",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "quote_id",
+      "type": "uuid",
+      "table": "business_bookings",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "document",
+      "type": "jsonb",
+      "table": "business_bookings",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "address",
+      "type": "text",
+      "table": "business_bookings",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "starts_at",
+      "type": "timestamp with time zone",
+      "table": "business_bookings",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "time_zone",
+      "type": "text",
+      "table": "business_bookings",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "duration_minutes",
+      "type": "integer",
+      "table": "business_bookings",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "status",
+      "type": "text",
+      "table": "business_bookings",
+      "schema": "public",
+      "default": "'Scheduled'::text",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "version",
+      "type": "integer",
+      "table": "business_bookings",
+      "schema": "public",
+      "default": "1",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "business_bookings",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "business_bookings",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "customer_id",
+      "type": "uuid",
+      "table": "business_bookings",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "assignment_version",
+      "type": "integer",
+      "table": "business_bookings",
+      "schema": "public",
+      "default": "0",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "business_customers",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_customers",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_customers",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "details",
+      "type": "jsonb",
+      "table": "business_customers",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "version",
+      "type": "integer",
+      "table": "business_customers",
+      "schema": "public",
+      "default": "1",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "business_customers",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "business_customers",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": "gen_random_uuid()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "request_id",
+      "type": "uuid",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "page_slug",
+      "type": "text",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "service_id",
+      "type": "text",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": "''::text",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "service_name",
+      "type": "text",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": "''::text",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "customer_name",
+      "type": "text",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "email",
+      "type": "text",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "phone",
+      "type": "text",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "requirements",
+      "type": "text",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": [
+        "authenticated=w/postgres"
+      ],
+      "name": "status",
+      "type": "text",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": "'New'::text",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "version",
+      "type": "integer",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": "1",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "customer_id",
+      "type": "uuid",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": [
+        "authenticated=w/postgres"
+      ],
+      "name": "private_notes",
+      "type": "text",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": "''::text",
+      "not_null": true
+    },
+    {
+      "acl": [
+        "authenticated=w/postgres"
+      ],
+      "name": "follow_up_on",
+      "type": "date",
+      "table": "business_enquiries",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "business_enquiry_activity",
+      "schema": "public",
+      "default": "gen_random_uuid()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "enquiry_id",
+      "type": "uuid",
+      "table": "business_enquiry_activity",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "business_enquiry_activity",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "actor_id",
+      "type": "uuid",
+      "table": "business_enquiry_activity",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "event",
+      "type": "text",
+      "table": "business_enquiry_activity",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "status",
+      "type": "text",
+      "table": "business_enquiry_activity",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "private_notes",
+      "type": "text",
+      "table": "business_enquiry_activity",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "follow_up_on",
+      "type": "date",
+      "table": "business_enquiry_activity",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "bigint",
+      "table": "business_invoice_events",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "invoice_id",
+      "type": "uuid",
+      "table": "business_invoice_events",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_invoice_events",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_invoice_events",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "action",
+      "type": "text",
+      "table": "business_invoice_events",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "actor",
+      "type": "uuid",
+      "table": "business_invoice_events",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "business_invoice_events",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "detail",
+      "type": "jsonb",
+      "table": "business_invoice_events",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "booking_id",
+      "type": "uuid",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "document",
+      "type": "jsonb",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "due_on",
+      "type": "date",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "state",
+      "type": "text",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "version",
+      "type": "integer",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "number",
+      "type": "text",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "share_token",
+      "type": "text",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "sender",
+      "type": "jsonb",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "issued_at",
+      "type": "timestamp with time zone",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "voided_at",
+      "type": "timestamp with time zone",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "void_reason",
+      "type": "text",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "total",
+      "type": "bigint",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "paid",
+      "type": "numeric",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "balance",
+      "type": "numeric",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "status",
+      "type": "text",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "replaces_id",
+      "type": "uuid",
+      "table": "business_invoice_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "invoice_id",
+      "type": "uuid",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "amount",
+      "type": "bigint",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "paid_on",
+      "type": "date",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "reference",
+      "type": "text",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_by",
+      "type": "uuid",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "reversal_of",
+      "type": "uuid",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "reason",
+      "type": "text",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "default": "''::text",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "business_invoices",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_invoices",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_invoices",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "booking_id",
+      "type": "uuid",
+      "table": "business_invoices",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "document",
+      "type": "jsonb",
+      "table": "business_invoices",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "due_on",
+      "type": "date",
+      "table": "business_invoices",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "state",
+      "type": "text",
+      "table": "business_invoices",
+      "schema": "public",
+      "default": "'Draft'::text",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "version",
+      "type": "integer",
+      "table": "business_invoices",
+      "schema": "public",
+      "default": "1",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "number",
+      "type": "text",
+      "table": "business_invoices",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "share_token",
+      "type": "text",
+      "table": "business_invoices",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "sender",
+      "type": "jsonb",
+      "table": "business_invoices",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "business_invoices",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "issued_at",
+      "type": "timestamp with time zone",
+      "table": "business_invoices",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "voided_at",
+      "type": "timestamp with time zone",
+      "table": "business_invoices",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "void_reason",
+      "type": "text",
+      "table": "business_invoices",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "replaces_id",
+      "type": "uuid",
+      "table": "business_invoices",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_memberships",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_memberships",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "user_id",
+      "type": "uuid",
+      "table": "business_memberships",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "role",
+      "type": "text",
+      "table": "business_memberships",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "active",
+      "type": "boolean",
+      "table": "business_memberships",
+      "schema": "public",
+      "default": "true",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_profiles",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_profiles",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "slug",
+      "type": "text",
+      "table": "business_profiles",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "draft",
+      "type": "jsonb",
+      "table": "business_profiles",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "version",
+      "type": "integer",
+      "table": "business_profiles",
+      "schema": "public",
+      "default": "1",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "published_at",
+      "type": "timestamp with time zone",
+      "table": "business_profiles",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "published_slug",
+      "type": "text",
+      "table": "business_profiles",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_public_pages",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": [
+        "anon=r/postgres"
+      ],
+      "name": "environment",
+      "type": "text",
+      "table": "business_public_pages",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": [
+        "anon=r/postgres"
+      ],
+      "name": "slug",
+      "type": "text",
+      "table": "business_public_pages",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": [
+        "anon=r/postgres"
+      ],
+      "name": "document",
+      "type": "jsonb",
+      "table": "business_public_pages",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": [
+        "anon=r/postgres"
+      ],
+      "name": "time_zone",
+      "type": "text",
+      "table": "business_public_pages",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": [
+        "anon=r/postgres"
+      ],
+      "name": "services",
+      "type": "jsonb",
+      "table": "business_public_pages",
+      "schema": "public",
+      "default": "'{\"items\": [], \"currency\": \"ZAR\"}'::jsonb",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "business_quote_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_quote_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_quote_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "enquiry_id",
+      "type": "uuid",
+      "table": "business_quote_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "document",
+      "type": "jsonb",
+      "table": "business_quote_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "expires_on",
+      "type": "date",
+      "table": "business_quote_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "status",
+      "type": "text",
+      "table": "business_quote_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "version",
+      "type": "integer",
+      "table": "business_quote_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "share_token",
+      "type": "text",
+      "table": "business_quote_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "sender",
+      "type": "jsonb",
+      "table": "business_quote_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "business_quote_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "sent_at",
+      "type": "timestamp with time zone",
+      "table": "business_quote_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "responded_at",
+      "type": "timestamp with time zone",
+      "table": "business_quote_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "effective_status",
+      "type": "text",
+      "table": "business_quote_list",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "business_quotes",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_quotes",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_quotes",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "enquiry_id",
+      "type": "uuid",
+      "table": "business_quotes",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "document",
+      "type": "jsonb",
+      "table": "business_quotes",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "expires_on",
+      "type": "date",
+      "table": "business_quotes",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "status",
+      "type": "text",
+      "table": "business_quotes",
+      "schema": "public",
+      "default": "'Draft'::text",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "version",
+      "type": "integer",
+      "table": "business_quotes",
+      "schema": "public",
+      "default": "1",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "share_token",
+      "type": "text",
+      "table": "business_quotes",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "sender",
+      "type": "jsonb",
+      "table": "business_quotes",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "business_quotes",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "sent_at",
+      "type": "timestamp with time zone",
+      "table": "business_quotes",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "responded_at",
+      "type": "timestamp with time zone",
+      "table": "business_quotes",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "customer_id",
+      "type": "uuid",
+      "table": "business_quotes",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "free_confirmed_at",
+      "type": "timestamp with time zone",
+      "table": "business_quotes",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_service_catalogues",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_service_catalogues",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "draft",
+      "type": "jsonb",
+      "table": "business_service_catalogues",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "version",
+      "type": "integer",
+      "table": "business_service_catalogues",
+      "schema": "public",
+      "default": "1",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "published",
+      "type": "jsonb",
+      "table": "business_service_catalogues",
+      "schema": "public",
+      "default": "'{\"items\": [], \"currency\": \"ZAR\"}'::jsonb",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "published_version",
+      "type": "integer",
+      "table": "business_service_catalogues",
+      "schema": "public",
+      "default": "0",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "business_service_images",
+      "schema": "public",
+      "default": "gen_random_uuid()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_service_images",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_service_images",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "image",
+      "type": "jsonb",
+      "table": "business_service_images",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "business_service_images",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "business_staff",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "business_staff",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "business_staff",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "name",
+      "type": "text",
+      "table": "business_staff",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "email",
+      "type": "text",
+      "table": "business_staff",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "phone",
+      "type": "text",
+      "table": "business_staff",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "active",
+      "type": "boolean",
+      "table": "business_staff",
+      "schema": "public",
+      "default": "true",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "version",
+      "type": "integer",
+      "table": "business_staff",
+      "schema": "public",
+      "default": "1",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "business_staff",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "business_staff",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "businesses",
+      "schema": "public",
+      "default": "gen_random_uuid()",
+      "not_null": true
+    },
+    {
+      "acl": [
+        "authenticated=a/postgres"
+      ],
+      "name": "owner_id",
+      "type": "uuid",
+      "table": "businesses",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": [
+        "authenticated=aw/postgres"
+      ],
+      "name": "name",
+      "type": "text",
+      "table": "businesses",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": [
+        "authenticated=aw/postgres"
+      ],
+      "name": "business_type",
+      "type": "text",
+      "table": "businesses",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "businesses",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": [
+        "authenticated=aw/postgres"
+      ],
+      "name": "country",
+      "type": "text",
+      "table": "businesses",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": [
+        "authenticated=aw/postgres"
+      ],
+      "name": "time_zone",
+      "type": "text",
+      "table": "businesses",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "shared_core_aggregates",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "shared_core_aggregates",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "kind",
+      "type": "text",
+      "table": "shared_core_aggregates",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "shared_core_aggregates",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "version",
+      "type": "bigint",
+      "table": "shared_core_aggregates",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "snapshot",
+      "type": "jsonb",
+      "table": "shared_core_aggregates",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "shared_core_commands",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "shared_core_commands",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "idempotency_key",
+      "type": "uuid",
+      "table": "shared_core_commands",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "actor",
+      "type": "uuid",
+      "table": "shared_core_commands",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "reason",
+      "type": "text",
+      "table": "shared_core_commands",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "envelope",
+      "type": "jsonb",
+      "table": "shared_core_commands",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "result",
+      "type": "jsonb",
+      "table": "shared_core_commands",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "recorded_at",
+      "type": "timestamp with time zone",
+      "table": "shared_core_commands",
+      "schema": "public",
+      "default": "transaction_timestamp()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_id",
+      "type": "uuid",
+      "table": "shared_core_events",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "shared_core_events",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "command_id",
+      "type": "uuid",
+      "table": "shared_core_events",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "ordinal",
+      "type": "integer",
+      "table": "shared_core_events",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "kind",
+      "type": "text",
+      "table": "shared_core_events",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "aggregate_id",
+      "type": "uuid",
+      "table": "shared_core_events",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "expected_version",
+      "type": "bigint",
+      "table": "shared_core_events",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "version",
+      "type": "bigint",
+      "table": "shared_core_events",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "snapshot",
+      "type": "jsonb",
+      "table": "shared_core_events",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "schema_version",
+      "type": "integer",
+      "table": "shared_core_events",
+      "schema": "public",
+      "default": "1",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "default": "gen_random_uuid()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "email",
+      "type": "text",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "name",
+      "type": "text",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "business_type",
+      "type": "text",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "interests",
+      "type": "text[]",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "status",
+      "type": "text",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "default": "'pending'::text",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "consent_version",
+      "type": "text",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "consent_text",
+      "type": "text",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "confirmed_at",
+      "type": "timestamp with time zone",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "withdrawn_at",
+      "type": "timestamp with time zone",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "last_request_at",
+      "type": "timestamp with time zone",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "confirm_hash",
+      "type": "text",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "confirm_expires",
+      "type": "timestamp with time zone",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "withdraw_hash",
+      "type": "text",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "ingress",
+      "schema": "quote_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "enabled",
+      "type": "boolean",
+      "table": "ingress",
+      "schema": "quote_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "ingress",
+      "schema": "request_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "enabled",
+      "type": "boolean",
+      "table": "ingress",
+      "schema": "request_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "environment",
+      "type": "text",
+      "table": "ingress",
+      "schema": "staff_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "enabled",
+      "type": "boolean",
+      "table": "ingress",
+      "schema": "staff_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "event_id",
+      "type": "text",
+      "table": "delivery_events",
+      "schema": "waitlist_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "provider_id",
+      "type": "text",
+      "table": "delivery_events",
+      "schema": "waitlist_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "event_type",
+      "type": "text",
+      "table": "delivery_events",
+      "schema": "waitlist_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "received_at",
+      "type": "timestamp with time zone",
+      "table": "delivery_events",
+      "schema": "waitlist_private",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "id",
+      "type": "uuid",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "default": "gen_random_uuid()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "subscriber_id",
+      "type": "uuid",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "kind",
+      "type": "text",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "payload",
+      "type": "jsonb",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "status",
+      "type": "text",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "default": "'pending'::text",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "attempts",
+      "type": "integer",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "default": "0",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "next_attempt",
+      "type": "timestamp with time zone",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "default": "now()",
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "lease",
+      "type": "uuid",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "provider_id",
+      "type": "text",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "sent_at",
+      "type": "timestamp with time zone",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "delivery_status",
+      "type": "text",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "last_error",
+      "type": "text",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "default": null,
+      "not_null": false
+    },
+    {
+      "acl": null,
+      "name": "bucket",
+      "type": "text",
+      "table": "rate_limits",
+      "schema": "waitlist_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "hits",
+      "type": "integer",
+      "table": "rate_limits",
+      "schema": "waitlist_private",
+      "default": null,
+      "not_null": true
+    },
+    {
+      "acl": null,
+      "name": "expires",
+      "type": "timestamp with time zone",
+      "table": "rate_limits",
+      "schema": "waitlist_private",
+      "default": null,
+      "not_null": true
+    }
+  ],
+  "policies": [
+    {
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE ((b.id = business_booking_requests.business_id) AND (b.owner_id = ( SELECT auth.uid() AS uid)) AND (NOT (COALESCE((( SELECT auth.jwt() AS jwt) ->> 'is_anonymous'::text), 'true'::text))::boolean))))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_booking_requests",
+      "permissive": "PERMISSIVE",
+      "policyname": "requests_owner",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE ((b.id = business_booking_staff.business_id) AND (b.owner_id = ( SELECT auth.uid() AS uid)) AND (NOT COALESCE(((auth.jwt() ->> 'is_anonymous'::text))::boolean, true)))))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_booking_staff",
+      "permissive": "PERMISSIVE",
+      "policyname": "assignment_owner",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE (b.id = business_bookings.business_id)))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_bookings",
+      "permissive": "PERMISSIVE",
+      "policyname": "bookings_owner",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE (b.id = business_customers.business_id)))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_customers",
+      "permissive": "PERMISSIVE",
+      "policyname": "customers_owner",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE (b.id = business_enquiries.business_id)))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_enquiries",
+      "permissive": "PERMISSIVE",
+      "policyname": "enquiry_read",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE (b.id = business_enquiries.business_id)))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_enquiries",
+      "permissive": "PERMISSIVE",
+      "policyname": "enquiry_update",
+      "schemaname": "public",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE (b.id = business_enquiries.business_id)))"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM (business_enquiries e\n     JOIN businesses b ON ((b.id = e.business_id)))\n  WHERE ((e.id = business_enquiry_activity.enquiry_id) AND (b.owner_id = ( SELECT auth.uid() AS uid)) AND (NOT COALESCE(((auth.jwt() ->> 'is_anonymous'::text))::boolean, true)))))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_enquiry_activity",
+      "permissive": "PERMISSIVE",
+      "policyname": "enquiry_activity_read",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE ((b.id = business_invoice_events.business_id) AND (b.owner_id = auth.uid()) AND (NOT COALESCE(((auth.jwt() ->> 'is_anonymous'::text))::boolean, true)))))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_invoice_events",
+      "permissive": "PERMISSIVE",
+      "policyname": "invoice_owner",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE ((b.id = business_invoice_payments.business_id) AND (b.owner_id = auth.uid()) AND (NOT COALESCE(((auth.jwt() ->> 'is_anonymous'::text))::boolean, true)))))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_invoice_payments",
+      "permissive": "PERMISSIVE",
+      "policyname": "invoice_owner",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE ((b.id = business_invoices.business_id) AND (b.owner_id = auth.uid()) AND (NOT COALESCE(((auth.jwt() ->> 'is_anonymous'::text))::boolean, true)))))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_invoices",
+      "permissive": "PERMISSIVE",
+      "policyname": "invoice_owner",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "ALL",
+      "qual": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE (b.id = business_profiles.business_id)))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_profiles",
+      "permissive": "PERMISSIVE",
+      "policyname": "profile_owner",
+      "schemaname": "public",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE (b.id = business_profiles.business_id)))"
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE (b.id = business_public_pages.business_id)))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_public_pages",
+      "permissive": "PERMISSIVE",
+      "policyname": "published_delete",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_public_pages",
+      "permissive": "PERMISSIVE",
+      "policyname": "published_insert",
+      "schemaname": "public",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE (b.id = business_public_pages.business_id)))"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "tablename": "business_public_pages",
+      "permissive": "PERMISSIVE",
+      "policyname": "published_read",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE (b.id = business_public_pages.business_id)))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_public_pages",
+      "permissive": "PERMISSIVE",
+      "policyname": "published_update",
+      "schemaname": "public",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE (b.id = business_public_pages.business_id)))"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE (b.id = business_quotes.business_id)))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_quotes",
+      "permissive": "PERMISSIVE",
+      "policyname": "quotes_owner",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "ALL",
+      "qual": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE (b.id = business_service_catalogues.business_id)))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_service_catalogues",
+      "permissive": "PERMISSIVE",
+      "policyname": "services_owner",
+      "schemaname": "public",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE (b.id = business_service_catalogues.business_id)))"
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_service_images",
+      "permissive": "PERMISSIVE",
+      "policyname": "service_image_owner_insert",
+      "schemaname": "public",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE (b.id = business_service_images.business_id)))"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE (b.id = business_service_images.business_id)))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_service_images",
+      "permissive": "PERMISSIVE",
+      "policyname": "service_image_owner_read",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM businesses b\n  WHERE ((b.id = business_staff.business_id) AND (b.owner_id = ( SELECT auth.uid() AS uid)) AND (NOT COALESCE(((auth.jwt() ->> 'is_anonymous'::text))::boolean, true)))))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "business_staff",
+      "permissive": "PERMISSIVE",
+      "policyname": "staff_owner",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "((( SELECT auth.uid() AS uid) = owner_id) AND (NOT COALESCE((( SELECT (auth.jwt() ->> 'is_anonymous'::text)))::boolean, true)))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "businesses",
+      "permissive": "PERMISSIVE",
+      "policyname": "owner_complete_setup",
+      "schemaname": "public",
+      "with_check": "((( SELECT auth.uid() AS uid) = owner_id) AND (NOT COALESCE((( SELECT (auth.jwt() ->> 'is_anonymous'::text)))::boolean, true)))"
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "businesses",
+      "permissive": "PERMISSIVE",
+      "policyname": "owner_create",
+      "schemaname": "public",
+      "with_check": "((( SELECT auth.uid() AS uid) = owner_id) AND (NOT COALESCE((( SELECT (auth.jwt() ->> 'is_anonymous'::text)))::boolean, true)))"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "((( SELECT auth.uid() AS uid) = owner_id) AND (NOT COALESCE((( SELECT (auth.jwt() ->> 'is_anonymous'::text)))::boolean, true)))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "businesses",
+      "permissive": "PERMISSIVE",
+      "policyname": "owner_read",
+      "schemaname": "public",
+      "with_check": null
+    }
+  ],
+  "triggers": [
+    "CREATE TRIGGER enquiry_activity AFTER INSERT OR UPDATE ON public.business_enquiries FOR EACH ROW EXECUTE FUNCTION enquiry_private.record_activity()",
+    "CREATE TRIGGER enquiry_queue_mail AFTER INSERT ON public.business_enquiries FOR EACH ROW EXECUTE FUNCTION enquiry_private.queue_mail()",
+    "CREATE TRIGGER enquiry_updated BEFORE UPDATE ON public.business_enquiries FOR EACH ROW EXECUTE FUNCTION enquiry_private.touch()",
+    "CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON authorization_private.events FOR EACH ROW EXECUTE FUNCTION authorization_private.immutable()",
+    "CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON authorization_private.legacy_functions FOR EACH ROW EXECUTE FUNCTION authorization_private.immutable()",
+    "CREATE TRIGGER new_owner AFTER INSERT ON public.businesses FOR EACH ROW EXECUTE FUNCTION authorization_private.new_owner()",
+    "CREATE TRIGGER page_services_snapshot BEFORE INSERT OR UPDATE ON public.business_public_pages FOR EACH ROW EXECUTE FUNCTION business_page_services_snapshot()",
+    "CREATE TRIGGER protect_owner BEFORE DELETE OR UPDATE ON public.business_memberships FOR EACH ROW EXECUTE FUNCTION authorization_private.protect_owner()",
+    "CREATE TRIGGER quote_free_guard BEFORE UPDATE ON public.business_quotes FOR EACH ROW EXECUTE FUNCTION quote_private.guard_free()",
+    "CREATE TRIGGER shared_core_commands_immutable BEFORE DELETE OR UPDATE ON public.shared_core_commands FOR EACH ROW EXECUTE FUNCTION shared_core_immutable()",
+    "CREATE TRIGGER shared_core_events_immutable BEFORE DELETE OR UPDATE ON public.shared_core_events FOR EACH ROW EXECUTE FUNCTION shared_core_immutable()",
+    "CREATE TRIGGER staff_invitation_profile_change AFTER UPDATE OF email, active ON public.business_staff FOR EACH ROW EXECUTE FUNCTION authorization_private.staff_invite_profile_change()"
+  ],
+  "relations": [
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "availability_requests",
+      "owner": "postgres",
+      "schema": "authorization_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "delegate_functions",
+      "owner": "postgres",
+      "schema": "authorization_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "delegation_gate",
+      "owner": "postgres",
+      "schema": "authorization_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "events",
+      "owner": "postgres",
+      "schema": "authorization_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": null,
+      "rls": false,
+      "kind": "S",
+      "name": "events_id_seq",
+      "owner": "postgres",
+      "schema": "authorization_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "invitations",
+      "owner": "postgres",
+      "schema": "authorization_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "legacy_functions",
+      "owner": "postgres",
+      "schema": "authorization_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "live_businesses",
+      "owner": "postgres",
+      "schema": "authorization_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "preview_businesses",
+      "owner": "postgres",
+      "schema": "authorization_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "staff_invites",
+      "owner": "postgres",
+      "schema": "authorization_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "staff_onboarding_businesses",
+      "owner": "postgres",
+      "schema": "authorization_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "worker_identities",
+      "owner": "postgres",
+      "schema": "authorization_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "ingress",
+      "owner": "postgres",
+      "schema": "booking_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "ingress",
+      "owner": "postgres",
+      "schema": "customer_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "ingress",
+      "owner": "postgres",
+      "schema": "enquiry_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "mail_outbox",
+      "owner": "postgres",
+      "schema": "enquiry_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "mail_settings",
+      "owner": "postgres",
+      "schema": "enquiry_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "rate_limits",
+      "owner": "postgres",
+      "schema": "enquiry_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "counters",
+      "owner": "postgres",
+      "schema": "invoice_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "ingress",
+      "owner": "postgres",
+      "schema": "invoice_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=r/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "business_booking_requests",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=r/postgres"
+      ],
+      "rls": false,
+      "kind": "v",
+      "name": "business_booking_schedule",
+      "owner": "postgres",
+      "schema": "public",
+      "options": [
+        "security_invoker=true"
+      ],
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=r/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "business_booking_staff",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=r/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "business_bookings",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=r/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "business_customers",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=r/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "business_enquiries",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=r/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "business_enquiry_activity",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=r/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "business_invoice_events",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=rwU/postgres",
+        "anon=rwU/postgres",
+        "authenticated=rwU/postgres",
+        "service_role=rwU/postgres"
+      ],
+      "rls": false,
+      "kind": "S",
+      "name": "business_invoice_events_id_seq",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=r/postgres"
+      ],
+      "rls": false,
+      "kind": "v",
+      "name": "business_invoice_list",
+      "owner": "postgres",
+      "schema": "public",
+      "options": [
+        "security_invoker=true"
+      ],
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=r/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "business_invoice_payments",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=r/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "business_invoices",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "business_memberships",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=arw/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "business_profiles",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=arwd/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "business_public_pages",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=r/postgres"
+      ],
+      "rls": false,
+      "kind": "v",
+      "name": "business_quote_list",
+      "owner": "postgres",
+      "schema": "public",
+      "options": [
+        "security_invoker=true"
+      ],
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=r/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "business_quotes",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=arw/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "business_service_catalogues",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=ar/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "business_service_images",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=r/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "business_staff",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres",
+        "authenticated=r/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "businesses",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "shared_core_aggregates",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "shared_core_commands",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "shared_core_events",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "waitlist_subscribers",
+      "owner": "postgres",
+      "schema": "public",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "ingress",
+      "owner": "postgres",
+      "schema": "quote_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "ingress",
+      "owner": "postgres",
+      "schema": "request_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "ingress",
+      "owner": "postgres",
+      "schema": "staff_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwd/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "delivery_events",
+      "owner": "postgres",
+      "schema": "waitlist_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwd/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "outbox",
+      "owner": "postgres",
+      "schema": "waitlist_private",
+      "options": null,
+      "force_rls": false
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=arwd/postgres"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "rate_limits",
+      "owner": "postgres",
+      "schema": "waitlist_private",
+      "options": null,
+      "force_rls": false
+    }
+  ],
+  "constraints": [
+    {
+      "name": "availability_requests_business_id_environment_user_id_fkey",
+      "table": "availability_requests",
+      "schema": "authorization_private",
+      "definition": "FOREIGN KEY (business_id, environment, user_id) REFERENCES business_memberships(business_id, environment, user_id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "availability_requests_check",
+      "table": "availability_requests",
+      "schema": "authorization_private",
+      "definition": "CHECK (((ends_at > starts_at) AND (ends_at <= (starts_at + '31 days'::interval))))"
+    },
+    {
+      "name": "availability_requests_pkey",
+      "table": "availability_requests",
+      "schema": "authorization_private",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "delegate_functions_copy_name_key",
+      "table": "delegate_functions",
+      "schema": "authorization_private",
+      "definition": "UNIQUE (copy_name)"
+    },
+    {
+      "name": "delegate_functions_pkey",
+      "table": "delegate_functions",
+      "schema": "authorization_private",
+      "definition": "PRIMARY KEY (identity)"
+    },
+    {
+      "name": "delegation_gate_pkey",
+      "table": "delegation_gate",
+      "schema": "authorization_private",
+      "definition": "PRIMARY KEY (singleton)"
+    },
+    {
+      "name": "delegation_gate_singleton_check",
+      "table": "delegation_gate",
+      "schema": "authorization_private",
+      "definition": "CHECK (singleton)"
+    },
+    {
+      "name": "events_business_id_fkey",
+      "table": "events",
+      "schema": "authorization_private",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "events_pkey",
+      "table": "events",
+      "schema": "authorization_private",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "invitations_business_id_fkey",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "invitations_check",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "definition": "CHECK ((NOT ((accepted_at IS NOT NULL) AND (revoked_at IS NOT NULL))))"
+    },
+    {
+      "name": "invitations_created_by_fkey",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "invitations_environment_check",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "invitations_pkey",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "invitations_recipient_fkey",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "definition": "FOREIGN KEY (recipient) REFERENCES auth.users(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "invitations_role_check",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "definition": "CHECK ((role = ANY (ARRAY['manager'::text, 'receptionist'::text, 'worker'::text])))"
+    },
+    {
+      "name": "invitations_token_hash_key",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "definition": "UNIQUE (token_hash)"
+    },
+    {
+      "name": "legacy_functions_pkey",
+      "table": "legacy_functions",
+      "schema": "authorization_private",
+      "definition": "PRIMARY KEY (identity)"
+    },
+    {
+      "name": "live_businesses_business_id_fkey",
+      "table": "live_businesses",
+      "schema": "authorization_private",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "live_businesses_pkey",
+      "table": "live_businesses",
+      "schema": "authorization_private",
+      "definition": "PRIMARY KEY (business_id)"
+    },
+    {
+      "name": "preview_businesses_business_id_fkey",
+      "table": "preview_businesses",
+      "schema": "authorization_private",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "preview_businesses_pkey",
+      "table": "preview_businesses",
+      "schema": "authorization_private",
+      "definition": "PRIMARY KEY (business_id)"
+    },
+    {
+      "name": "staff_invites_business_id_fkey",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "staff_invites_created_by_fkey",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    {
+      "name": "staff_invites_delivery_check",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "definition": "CHECK ((delivery = ANY (ARRAY['queued'::text, 'sending'::text, 'provider_accepted'::text, 'failed'::text, 'cancelled'::text])))"
+    },
+    {
+      "name": "staff_invites_environment_check",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "staff_invites_pkey",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "staff_invites_role_check",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "definition": "CHECK ((role = ANY (ARRAY['manager'::text, 'receptionist'::text, 'worker'::text])))"
+    },
+    {
+      "name": "staff_invites_staff_id_business_id_environment_fkey",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "definition": "FOREIGN KEY (staff_id, business_id, environment) REFERENCES business_staff(id, business_id, environment) ON DELETE RESTRICT"
+    },
+    {
+      "name": "staff_invites_token_hash_key",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "definition": "UNIQUE (token_hash)"
+    },
+    {
+      "name": "staff_invites_user_id_fkey",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)"
+    },
+    {
+      "name": "staff_onboarding_businesses_business_id_fkey",
+      "table": "staff_onboarding_businesses",
+      "schema": "authorization_private",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "staff_onboarding_businesses_environment_check",
+      "table": "staff_onboarding_businesses",
+      "schema": "authorization_private",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "staff_onboarding_businesses_pkey",
+      "table": "staff_onboarding_businesses",
+      "schema": "authorization_private",
+      "definition": "PRIMARY KEY (business_id, environment)"
+    },
+    {
+      "name": "worker_identities_business_id_environment_staff_id_key",
+      "table": "worker_identities",
+      "schema": "authorization_private",
+      "definition": "UNIQUE (business_id, environment, staff_id)"
+    },
+    {
+      "name": "worker_identities_business_id_environment_user_id_fkey",
+      "table": "worker_identities",
+      "schema": "authorization_private",
+      "definition": "FOREIGN KEY (business_id, environment, user_id) REFERENCES business_memberships(business_id, environment, user_id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "worker_identities_pkey",
+      "table": "worker_identities",
+      "schema": "authorization_private",
+      "definition": "PRIMARY KEY (business_id, environment, user_id)"
+    },
+    {
+      "name": "worker_identities_staff_id_business_id_environment_fkey",
+      "table": "worker_identities",
+      "schema": "authorization_private",
+      "definition": "FOREIGN KEY (staff_id, business_id, environment) REFERENCES business_staff(id, business_id, environment) ON DELETE RESTRICT"
+    },
+    {
+      "name": "ingress_environment_check",
+      "table": "ingress",
+      "schema": "booking_private",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "ingress_pkey",
+      "table": "ingress",
+      "schema": "booking_private",
+      "definition": "PRIMARY KEY (environment)"
+    },
+    {
+      "name": "ingress_environment_check",
+      "table": "ingress",
+      "schema": "customer_private",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "ingress_pkey",
+      "table": "ingress",
+      "schema": "customer_private",
+      "definition": "PRIMARY KEY (environment)"
+    },
+    {
+      "name": "ingress_environment_check",
+      "table": "ingress",
+      "schema": "enquiry_private",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "ingress_pkey",
+      "table": "ingress",
+      "schema": "enquiry_private",
+      "definition": "PRIMARY KEY (environment)"
+    },
+    {
+      "name": "mail_outbox_business_id_fkey",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "mail_outbox_enquiry_id_fkey",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "definition": "FOREIGN KEY (enquiry_id) REFERENCES business_enquiries(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "mail_outbox_enquiry_id_kind_key",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "definition": "UNIQUE (enquiry_id, kind)"
+    },
+    {
+      "name": "mail_outbox_environment_check",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "mail_outbox_kind_check",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "definition": "CHECK ((kind = ANY (ARRAY['admin'::text, 'customer'::text])))"
+    },
+    {
+      "name": "mail_outbox_pkey",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "mail_outbox_status_check",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "definition": "CHECK ((status = ANY (ARRAY['pending'::text, 'sending'::text, 'accepted'::text, 'failed'::text])))"
+    },
+    {
+      "name": "mail_settings_environment_check",
+      "table": "mail_settings",
+      "schema": "enquiry_private",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "mail_settings_pkey",
+      "table": "mail_settings",
+      "schema": "enquiry_private",
+      "definition": "PRIMARY KEY (environment)"
+    },
+    {
+      "name": "rate_limits_pkey",
+      "table": "rate_limits",
+      "schema": "enquiry_private",
+      "definition": "PRIMARY KEY (key)"
+    },
+    {
+      "name": "counters_business_id_fkey",
+      "table": "counters",
+      "schema": "invoice_private",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id)"
+    },
+    {
+      "name": "counters_pkey",
+      "table": "counters",
+      "schema": "invoice_private",
+      "definition": "PRIMARY KEY (business_id, environment)"
+    },
+    {
+      "name": "ingress_environment_check",
+      "table": "ingress",
+      "schema": "invoice_private",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "ingress_pkey",
+      "table": "ingress",
+      "schema": "invoice_private",
+      "definition": "PRIMARY KEY (environment)"
+    },
+    {
+      "name": "business_booking_requests_booking_id_fkey",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "definition": "FOREIGN KEY (booking_id) REFERENCES business_bookings(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_booking_requests_booking_id_key",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "definition": "UNIQUE (booking_id)"
+    },
+    {
+      "name": "business_booking_requests_business_id_fkey",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_booking_requests_environment_check",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "business_booking_requests_id_fkey",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "definition": "FOREIGN KEY (id) REFERENCES business_enquiries(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_booking_requests_pkey",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "business_booking_requests_quote_id_fkey",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "definition": "FOREIGN KEY (quote_id) REFERENCES business_quotes(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_booking_requests_quote_id_key",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "definition": "UNIQUE (quote_id)"
+    },
+    {
+      "name": "business_booking_requests_scope_check",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "definition": "CHECK (((scope IS NULL) OR request_private.scope_valid(scope)))"
+    },
+    {
+      "name": "business_booking_requests_status_check",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "definition": "CHECK ((status = ANY (ARRAY['Pending'::text, 'Accepted'::text, 'Declined'::text, 'Booked'::text])))"
+    },
+    {
+      "name": "business_booking_staff_booking_id_business_id_environment_fkey",
+      "table": "business_booking_staff",
+      "schema": "public",
+      "definition": "FOREIGN KEY (booking_id, business_id, environment) REFERENCES business_bookings(id, business_id, environment) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_booking_staff_pkey",
+      "table": "business_booking_staff",
+      "schema": "public",
+      "definition": "PRIMARY KEY (booking_id, staff_id)"
+    },
+    {
+      "name": "business_booking_staff_staff_id_business_id_environment_fkey",
+      "table": "business_booking_staff",
+      "schema": "public",
+      "definition": "FOREIGN KEY (staff_id, business_id, environment) REFERENCES business_staff(id, business_id, environment) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_bookings_address_check",
+      "table": "business_bookings",
+      "schema": "public",
+      "definition": "CHECK ((((char_length(btrim(address)) >= 5) AND (char_length(btrim(address)) <= 1000)) AND (address !~ '[\\u0001-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]'::text)))"
+    },
+    {
+      "name": "business_bookings_business_id_fkey",
+      "table": "business_bookings",
+      "schema": "public",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_bookings_customer_id_business_id_environment_fkey",
+      "table": "business_bookings",
+      "schema": "public",
+      "definition": "FOREIGN KEY (customer_id, business_id, environment) REFERENCES business_customers(id, business_id, environment) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_bookings_document_check",
+      "table": "business_bookings",
+      "schema": "public",
+      "definition": "CHECK (quote_private.valid(document))"
+    },
+    {
+      "name": "business_bookings_duration_minutes_check",
+      "table": "business_bookings",
+      "schema": "public",
+      "definition": "CHECK (((duration_minutes >= 1) AND (duration_minutes <= 10080)))"
+    },
+    {
+      "name": "business_bookings_environment_check",
+      "table": "business_bookings",
+      "schema": "public",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "business_bookings_id_business_id_environment_key",
+      "table": "business_bookings",
+      "schema": "public",
+      "definition": "UNIQUE (id, business_id, environment)"
+    },
+    {
+      "name": "business_bookings_pkey",
+      "table": "business_bookings",
+      "schema": "public",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "business_bookings_quote_id_fkey",
+      "table": "business_bookings",
+      "schema": "public",
+      "definition": "FOREIGN KEY (quote_id) REFERENCES business_quotes(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_bookings_quote_id_key",
+      "table": "business_bookings",
+      "schema": "public",
+      "definition": "UNIQUE (quote_id)"
+    },
+    {
+      "name": "business_bookings_status_check",
+      "table": "business_bookings",
+      "schema": "public",
+      "definition": "CHECK ((status = ANY (ARRAY['Scheduled'::text, 'In Progress'::text, 'Completed'::text, 'Cancelled'::text])))"
+    },
+    {
+      "name": "business_customers_business_id_fkey",
+      "table": "business_customers",
+      "schema": "public",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_customers_details_check",
+      "table": "business_customers",
+      "schema": "public",
+      "definition": "CHECK (customer_private.valid(details))"
+    },
+    {
+      "name": "business_customers_environment_check",
+      "table": "business_customers",
+      "schema": "public",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "business_customers_id_business_id_environment_key",
+      "table": "business_customers",
+      "schema": "public",
+      "definition": "UNIQUE (id, business_id, environment)"
+    },
+    {
+      "name": "business_customers_pkey",
+      "table": "business_customers",
+      "schema": "public",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "business_enquiries_business_id_fkey",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_enquiries_check",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "CHECK (((email <> ''::text) OR (phone <> ''::text)))"
+    },
+    {
+      "name": "business_enquiries_customer_id_business_id_environment_fkey",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "FOREIGN KEY (customer_id, business_id, environment) REFERENCES business_customers(id, business_id, environment) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_enquiries_customer_name_check",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "CHECK (((char_length(customer_name) >= 2) AND (char_length(customer_name) <= 120)))"
+    },
+    {
+      "name": "business_enquiries_email_check",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "CHECK ((char_length(email) <= 254))"
+    },
+    {
+      "name": "business_enquiries_environment_check",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "business_enquiries_follow_up_on_check",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "CHECK (((follow_up_on >= '2000-01-01'::date) AND (follow_up_on <= '2099-12-31'::date)))"
+    },
+    {
+      "name": "business_enquiries_phone_check",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "CHECK ((char_length(phone) <= 40))"
+    },
+    {
+      "name": "business_enquiries_pkey",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "business_enquiries_private_notes_check",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "CHECK (((char_length(private_notes) <= 2000) AND (private_notes !~ '[\\u0001-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]'::text)))"
+    },
+    {
+      "name": "business_enquiries_request_id_key",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "UNIQUE (request_id)"
+    },
+    {
+      "name": "business_enquiries_requirements_check",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "CHECK (((char_length(requirements) >= 10) AND (char_length(requirements) <= 4000)))"
+    },
+    {
+      "name": "business_enquiries_status_check",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "CHECK ((status = ANY (ARRAY['New'::text, 'Contacted'::text, 'Closed'::text])))"
+    },
+    {
+      "name": "business_enquiry_activity_enquiry_id_fkey",
+      "table": "business_enquiry_activity",
+      "schema": "public",
+      "definition": "FOREIGN KEY (enquiry_id) REFERENCES business_enquiries(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_enquiry_activity_pkey",
+      "table": "business_enquiry_activity",
+      "schema": "public",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "business_invoice_events_invoice_id_business_id_environment_fkey",
+      "table": "business_invoice_events",
+      "schema": "public",
+      "definition": "FOREIGN KEY (invoice_id, business_id, environment) REFERENCES business_invoices(id, business_id, environment) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_invoice_events_pkey",
+      "table": "business_invoice_events",
+      "schema": "public",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "business_invoice_payments_amount_check",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "definition": "CHECK (((amount >= 1) AND (amount <= 999999999)))"
+    },
+    {
+      "name": "business_invoice_payments_invoice_id_business_id_environme_fkey",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "definition": "FOREIGN KEY (invoice_id, business_id, environment) REFERENCES business_invoices(id, business_id, environment) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_invoice_payments_pkey",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "business_invoice_payments_reversal_of_fkey",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "definition": "FOREIGN KEY (reversal_of) REFERENCES business_invoice_payments(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_invoice_payments_reversal_of_key",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "definition": "UNIQUE (reversal_of)"
+    },
+    {
+      "name": "business_invoices_booking_id_fkey",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "FOREIGN KEY (booking_id) REFERENCES business_bookings(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_invoices_business_id_environment_number_key",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "UNIQUE (business_id, environment, number)"
+    },
+    {
+      "name": "business_invoices_business_id_fkey",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_invoices_check",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "CHECK ((((state = 'Draft'::text) AND (number IS NULL) AND (share_token IS NULL) AND (issued_at IS NULL)) OR ((state <> 'Draft'::text) AND (number IS NOT NULL) AND (share_token ~ '^[a-f0-9]{64}$'::text) AND (issued_at IS NOT NULL))))"
+    },
+    {
+      "name": "business_invoices_document_check",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "CHECK (quote_private.valid(document))"
+    },
+    {
+      "name": "business_invoices_environment_check",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "business_invoices_id_business_id_environment_key",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "UNIQUE (id, business_id, environment)"
+    },
+    {
+      "name": "business_invoices_pkey",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "business_invoices_replaces_id_key",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "UNIQUE (replaces_id)"
+    },
+    {
+      "name": "business_invoices_share_token_key",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "UNIQUE (share_token)"
+    },
+    {
+      "name": "business_invoices_state_check",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "CHECK ((state = ANY (ARRAY['Draft'::text, 'Issued'::text, 'Void'::text])))"
+    },
+    {
+      "name": "invoice_predecessor",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "FOREIGN KEY (replaces_id, business_id, environment) REFERENCES business_invoices(id, business_id, environment) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_memberships_business_id_fkey",
+      "table": "business_memberships",
+      "schema": "public",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_memberships_environment_check",
+      "table": "business_memberships",
+      "schema": "public",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "business_memberships_pkey",
+      "table": "business_memberships",
+      "schema": "public",
+      "definition": "PRIMARY KEY (business_id, environment, user_id)"
+    },
+    {
+      "name": "business_memberships_role_check",
+      "table": "business_memberships",
+      "schema": "public",
+      "definition": "CHECK ((role = ANY (ARRAY['owner'::text, 'manager'::text, 'receptionist'::text, 'worker'::text])))"
+    },
+    {
+      "name": "business_memberships_user_id_fkey",
+      "table": "business_memberships",
+      "schema": "public",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_profiles_business_id_fkey",
+      "table": "business_profiles",
+      "schema": "public",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_profiles_draft_check",
+      "table": "business_profiles",
+      "schema": "public",
+      "definition": "CHECK (business_profile_valid(draft))"
+    },
+    {
+      "name": "business_profiles_environment_check",
+      "table": "business_profiles",
+      "schema": "public",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "business_profiles_environment_slug_key",
+      "table": "business_profiles",
+      "schema": "public",
+      "definition": "UNIQUE (environment, slug)"
+    },
+    {
+      "name": "business_profiles_pkey",
+      "table": "business_profiles",
+      "schema": "public",
+      "definition": "PRIMARY KEY (business_id, environment)"
+    },
+    {
+      "name": "business_profiles_slug_check",
+      "table": "business_profiles",
+      "schema": "public",
+      "definition": "CHECK ((((char_length(slug) >= 3) AND (char_length(slug) <= 64)) AND (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text)))"
+    },
+    {
+      "name": "business_profiles_version_check",
+      "table": "business_profiles",
+      "schema": "public",
+      "definition": "CHECK ((version > 0))"
+    },
+    {
+      "name": "business_public_pages_business_id_fkey",
+      "table": "business_public_pages",
+      "schema": "public",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_public_pages_document_check",
+      "table": "business_public_pages",
+      "schema": "public",
+      "definition": "CHECK (business_profile_valid(document))"
+    },
+    {
+      "name": "business_public_pages_environment_check",
+      "table": "business_public_pages",
+      "schema": "public",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "business_public_pages_environment_slug_key",
+      "table": "business_public_pages",
+      "schema": "public",
+      "definition": "UNIQUE (environment, slug)"
+    },
+    {
+      "name": "business_public_pages_pkey",
+      "table": "business_public_pages",
+      "schema": "public",
+      "definition": "PRIMARY KEY (business_id, environment)"
+    },
+    {
+      "name": "business_public_pages_slug_check",
+      "table": "business_public_pages",
+      "schema": "public",
+      "definition": "CHECK ((((char_length(slug) >= 3) AND (char_length(slug) <= 64)) AND (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text)))"
+    },
+    {
+      "name": "business_quotes_business_id_fkey",
+      "table": "business_quotes",
+      "schema": "public",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_quotes_check",
+      "table": "business_quotes",
+      "schema": "public",
+      "definition": "CHECK ((((status = 'Draft'::text) AND (share_token IS NULL) AND (sent_at IS NULL)) OR ((status <> 'Draft'::text) AND (share_token IS NOT NULL) AND (sent_at IS NOT NULL))))"
+    },
+    {
+      "name": "business_quotes_customer_id_business_id_environment_fkey",
+      "table": "business_quotes",
+      "schema": "public",
+      "definition": "FOREIGN KEY (customer_id, business_id, environment) REFERENCES business_customers(id, business_id, environment) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_quotes_document_check",
+      "table": "business_quotes",
+      "schema": "public",
+      "definition": "CHECK (quote_private.valid(document))"
+    },
+    {
+      "name": "business_quotes_enquiry_id_fkey",
+      "table": "business_quotes",
+      "schema": "public",
+      "definition": "FOREIGN KEY (enquiry_id) REFERENCES business_enquiries(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_quotes_environment_check",
+      "table": "business_quotes",
+      "schema": "public",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "business_quotes_pkey",
+      "table": "business_quotes",
+      "schema": "public",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "business_quotes_share_token_check",
+      "table": "business_quotes",
+      "schema": "public",
+      "definition": "CHECK (((share_token IS NULL) OR (share_token ~ '^[a-f0-9]{64}$'::text)))"
+    },
+    {
+      "name": "business_quotes_share_token_key",
+      "table": "business_quotes",
+      "schema": "public",
+      "definition": "UNIQUE (share_token)"
+    },
+    {
+      "name": "business_quotes_status_check",
+      "table": "business_quotes",
+      "schema": "public",
+      "definition": "CHECK ((status = ANY (ARRAY['Draft'::text, 'Sent'::text, 'Accepted'::text, 'Declined'::text])))"
+    },
+    {
+      "name": "business_service_catalogues_business_id_fkey",
+      "table": "business_service_catalogues",
+      "schema": "public",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_service_catalogues_draft_check",
+      "table": "business_service_catalogues",
+      "schema": "public",
+      "definition": "CHECK (business_services_valid(draft))"
+    },
+    {
+      "name": "business_service_catalogues_environment_check",
+      "table": "business_service_catalogues",
+      "schema": "public",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "business_service_catalogues_pkey",
+      "table": "business_service_catalogues",
+      "schema": "public",
+      "definition": "PRIMARY KEY (business_id, environment)"
+    },
+    {
+      "name": "business_service_catalogues_published_check",
+      "table": "business_service_catalogues",
+      "schema": "public",
+      "definition": "CHECK (business_services_valid(published))"
+    },
+    {
+      "name": "business_service_catalogues_version_check",
+      "table": "business_service_catalogues",
+      "schema": "public",
+      "definition": "CHECK ((version > 0))"
+    },
+    {
+      "name": "business_service_images_business_id_fkey",
+      "table": "business_service_images",
+      "schema": "public",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_service_images_environment_check",
+      "table": "business_service_images",
+      "schema": "public",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "business_service_images_image_check",
+      "table": "business_service_images",
+      "schema": "public",
+      "definition": "CHECK (business_service_image_valid(image))"
+    },
+    {
+      "name": "business_service_images_pkey",
+      "table": "business_service_images",
+      "schema": "public",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "business_staff_business_id_fkey",
+      "table": "business_staff",
+      "schema": "public",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "business_staff_email_check",
+      "table": "business_staff",
+      "schema": "public",
+      "definition": "CHECK (((char_length(email) <= 254) AND ((email = ''::text) OR (email ~ '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$'::text))))"
+    },
+    {
+      "name": "business_staff_environment_check",
+      "table": "business_staff",
+      "schema": "public",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "business_staff_id_business_id_environment_key",
+      "table": "business_staff",
+      "schema": "public",
+      "definition": "UNIQUE (id, business_id, environment)"
+    },
+    {
+      "name": "business_staff_name_check",
+      "table": "business_staff",
+      "schema": "public",
+      "definition": "CHECK ((((char_length(btrim(name)) >= 2) AND (char_length(btrim(name)) <= 120)) AND (name !~ '[\\u0001-\\u001f\\u007f]'::text)))"
+    },
+    {
+      "name": "business_staff_phone_check",
+      "table": "business_staff",
+      "schema": "public",
+      "definition": "CHECK (((phone = ''::text) OR ((phone ~ '^[+0-9 ()-]{5,40}$'::text) AND (char_length(regexp_replace(phone, '[^0-9]'::text, ''::text, 'g'::text)) >= 5))))"
+    },
+    {
+      "name": "business_staff_pkey",
+      "table": "business_staff",
+      "schema": "public",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "business_country_valid",
+      "table": "businesses",
+      "schema": "public",
+      "definition": "CHECK ((country = ANY (ARRAY['AD'::text, 'AE'::text, 'AF'::text, 'AG'::text, 'AI'::text, 'AL'::text, 'AM'::text, 'AO'::text, 'AQ'::text, 'AR'::text, 'AS'::text, 'AT'::text, 'AU'::text, 'AW'::text, 'AX'::text, 'AZ'::text, 'BA'::text, 'BB'::text, 'BD'::text, 'BE'::text, 'BF'::text, 'BG'::text, 'BH'::text, 'BI'::text, 'BJ'::text, 'BL'::text, 'BM'::text, 'BN'::text, 'BO'::text, 'BQ'::text, 'BR'::text, 'BS'::text, 'BT'::text, 'BV'::text, 'BW'::text, 'BY'::text, 'BZ'::text, 'CA'::text, 'CC'::text, 'CD'::text, 'CF'::text, 'CG'::text, 'CH'::text, 'CI'::text, 'CK'::text, 'CL'::text, 'CM'::text, 'CN'::text, 'CO'::text, 'CR'::text, 'CU'::text, 'CV'::text, 'CW'::text, 'CX'::text, 'CY'::text, 'CZ'::text, 'DE'::text, 'DJ'::text, 'DK'::text, 'DM'::text, 'DO'::text, 'DZ'::text, 'EC'::text, 'EE'::text, 'EG'::text, 'EH'::text, 'ER'::text, 'ES'::text, 'ET'::text, 'FI'::text, 'FJ'::text, 'FK'::text, 'FM'::text, 'FO'::text, 'FR'::text, 'GA'::text, 'GB'::text, 'GD'::text, 'GE'::text, 'GF'::text, 'GG'::text, 'GH'::text, 'GI'::text, 'GL'::text, 'GM'::text, 'GN'::text, 'GP'::text, 'GQ'::text, 'GR'::text, 'GS'::text, 'GT'::text, 'GU'::text, 'GW'::text, 'GY'::text, 'HK'::text, 'HM'::text, 'HN'::text, 'HR'::text, 'HT'::text, 'HU'::text, 'ID'::text, 'IE'::text, 'IL'::text, 'IM'::text, 'IN'::text, 'IO'::text, 'IQ'::text, 'IR'::text, 'IS'::text, 'IT'::text, 'JE'::text, 'JM'::text, 'JO'::text, 'JP'::text, 'KE'::text, 'KG'::text, 'KH'::text, 'KI'::text, 'KM'::text, 'KN'::text, 'KP'::text, 'KR'::text, 'KW'::text, 'KY'::text, 'KZ'::text, 'LA'::text, 'LB'::text, 'LC'::text, 'LI'::text, 'LK'::text, 'LR'::text, 'LS'::text, 'LT'::text, 'LU'::text, 'LV'::text, 'LY'::text, 'MA'::text, 'MC'::text, 'MD'::text, 'ME'::text, 'MF'::text, 'MG'::text, 'MH'::text, 'MK'::text, 'ML'::text, 'MM'::text, 'MN'::text, 'MO'::text, 'MP'::text, 'MQ'::text, 'MR'::text, 'MS'::text, 'MT'::text, 'MU'::text, 'MV'::text, 'MW'::text, 'MX'::text, 'MY'::text, 'MZ'::text, 'NA'::text, 'NC'::text, 'NE'::text, 'NF'::text, 'NG'::text, 'NI'::text, 'NL'::text, 'NO'::text, 'NP'::text, 'NR'::text, 'NU'::text, 'NZ'::text, 'OM'::text, 'PA'::text, 'PE'::text, 'PF'::text, 'PG'::text, 'PH'::text, 'PK'::text, 'PL'::text, 'PM'::text, 'PN'::text, 'PR'::text, 'PS'::text, 'PT'::text, 'PW'::text, 'PY'::text, 'QA'::text, 'RE'::text, 'RO'::text, 'RS'::text, 'RU'::text, 'RW'::text, 'SA'::text, 'SB'::text, 'SC'::text, 'SD'::text, 'SE'::text, 'SG'::text, 'SH'::text, 'SI'::text, 'SJ'::text, 'SK'::text, 'SL'::text, 'SM'::text, 'SN'::text, 'SO'::text, 'SR'::text, 'SS'::text, 'ST'::text, 'SV'::text, 'SX'::text, 'SY'::text, 'SZ'::text, 'TC'::text, 'TD'::text, 'TF'::text, 'TG'::text, 'TH'::text, 'TJ'::text, 'TK'::text, 'TL'::text, 'TM'::text, 'TN'::text, 'TO'::text, 'TR'::text, 'TT'::text, 'TV'::text, 'TW'::text, 'TZ'::text, 'UA'::text, 'UG'::text, 'UM'::text, 'US'::text, 'UY'::text, 'UZ'::text, 'VA'::text, 'VC'::text, 'VE'::text, 'VG'::text, 'VI'::text, 'VN'::text, 'VU'::text, 'WF'::text, 'WS'::text, 'YE'::text, 'YT'::text, 'ZA'::text, 'ZM'::text, 'ZW'::text])))"
+    },
+    {
+      "name": "business_location_pair",
+      "table": "businesses",
+      "schema": "public",
+      "definition": "CHECK (((country IS NULL) = (time_zone IS NULL)))"
+    },
+    {
+      "name": "business_time_zone_valid",
+      "table": "businesses",
+      "schema": "public",
+      "definition": "CHECK ((time_zone = ANY (ARRAY['Africa/Abidjan'::text, 'Africa/Accra'::text, 'Africa/Addis_Ababa'::text, 'Africa/Algiers'::text, 'Africa/Asmara'::text, 'Africa/Bamako'::text, 'Africa/Bangui'::text, 'Africa/Banjul'::text, 'Africa/Bissau'::text, 'Africa/Blantyre'::text, 'Africa/Brazzaville'::text, 'Africa/Bujumbura'::text, 'Africa/Cairo'::text, 'Africa/Casablanca'::text, 'Africa/Ceuta'::text, 'Africa/Conakry'::text, 'Africa/Dakar'::text, 'Africa/Dar_es_Salaam'::text, 'Africa/Djibouti'::text, 'Africa/Douala'::text, 'Africa/El_Aaiun'::text, 'Africa/Freetown'::text, 'Africa/Gaborone'::text, 'Africa/Harare'::text, 'Africa/Johannesburg'::text, 'Africa/Juba'::text, 'Africa/Kampala'::text, 'Africa/Khartoum'::text, 'Africa/Kigali'::text, 'Africa/Kinshasa'::text, 'Africa/Lagos'::text, 'Africa/Libreville'::text, 'Africa/Lome'::text, 'Africa/Luanda'::text, 'Africa/Lubumbashi'::text, 'Africa/Lusaka'::text, 'Africa/Malabo'::text, 'Africa/Maputo'::text, 'Africa/Maseru'::text, 'Africa/Mbabane'::text, 'Africa/Mogadishu'::text, 'Africa/Monrovia'::text, 'Africa/Nairobi'::text, 'Africa/Ndjamena'::text, 'Africa/Niamey'::text, 'Africa/Nouakchott'::text, 'Africa/Ouagadougou'::text, 'Africa/Porto-Novo'::text, 'Africa/Sao_Tome'::text, 'Africa/Tripoli'::text, 'Africa/Tunis'::text, 'Africa/Windhoek'::text, 'America/Adak'::text, 'America/Anchorage'::text, 'America/Anguilla'::text, 'America/Antigua'::text, 'America/Araguaina'::text, 'America/Argentina/Buenos_Aires'::text, 'America/Argentina/Catamarca'::text, 'America/Argentina/Cordoba'::text, 'America/Argentina/Jujuy'::text, 'America/Argentina/La_Rioja'::text, 'America/Argentina/Mendoza'::text, 'America/Argentina/Rio_Gallegos'::text, 'America/Argentina/Salta'::text, 'America/Argentina/San_Juan'::text, 'America/Argentina/San_Luis'::text, 'America/Argentina/Tucuman'::text, 'America/Argentina/Ushuaia'::text, 'America/Aruba'::text, 'America/Asuncion'::text, 'America/Atikokan'::text, 'America/Bahia'::text, 'America/Bahia_Banderas'::text, 'America/Barbados'::text, 'America/Belem'::text, 'America/Belize'::text, 'America/Blanc-Sablon'::text, 'America/Boa_Vista'::text, 'America/Bogota'::text, 'America/Boise'::text, 'America/Cambridge_Bay'::text, 'America/Campo_Grande'::text, 'America/Cancun'::text, 'America/Caracas'::text, 'America/Cayenne'::text, 'America/Cayman'::text, 'America/Chicago'::text, 'America/Chihuahua'::text, 'America/Ciudad_Juarez'::text, 'America/Costa_Rica'::text, 'America/Coyhaique'::text, 'America/Creston'::text, 'America/Cuiaba'::text, 'America/Curacao'::text, 'America/Danmarkshavn'::text, 'America/Dawson'::text, 'America/Dawson_Creek'::text, 'America/Denver'::text, 'America/Detroit'::text, 'America/Dominica'::text, 'America/Edmonton'::text, 'America/Eirunepe'::text, 'America/El_Salvador'::text, 'America/Fort_Nelson'::text, 'America/Fortaleza'::text, 'America/Glace_Bay'::text, 'America/Goose_Bay'::text, 'America/Grand_Turk'::text, 'America/Grenada'::text, 'America/Guadeloupe'::text, 'America/Guatemala'::text, 'America/Guayaquil'::text, 'America/Guyana'::text, 'America/Halifax'::text, 'America/Havana'::text, 'America/Hermosillo'::text, 'America/Indiana/Indianapolis'::text, 'America/Indiana/Knox'::text, 'America/Indiana/Marengo'::text, 'America/Indiana/Petersburg'::text, 'America/Indiana/Tell_City'::text, 'America/Indiana/Vevay'::text, 'America/Indiana/Vincennes'::text, 'America/Indiana/Winamac'::text, 'America/Inuvik'::text, 'America/Iqaluit'::text, 'America/Jamaica'::text, 'America/Juneau'::text, 'America/Kentucky/Louisville'::text, 'America/Kentucky/Monticello'::text, 'America/Kralendijk'::text, 'America/La_Paz'::text, 'America/Lima'::text, 'America/Los_Angeles'::text, 'America/Lower_Princes'::text, 'America/Maceio'::text, 'America/Managua'::text, 'America/Manaus'::text, 'America/Marigot'::text, 'America/Martinique'::text, 'America/Matamoros'::text, 'America/Mazatlan'::text, 'America/Menominee'::text, 'America/Merida'::text, 'America/Metlakatla'::text, 'America/Mexico_City'::text, 'America/Miquelon'::text, 'America/Moncton'::text, 'America/Monterrey'::text, 'America/Montevideo'::text, 'America/Montserrat'::text, 'America/Nassau'::text, 'America/New_York'::text, 'America/Nome'::text, 'America/Noronha'::text, 'America/North_Dakota/Beulah'::text, 'America/North_Dakota/Center'::text, 'America/North_Dakota/New_Salem'::text, 'America/Nuuk'::text, 'America/Ojinaga'::text, 'America/Panama'::text, 'America/Paramaribo'::text, 'America/Phoenix'::text, 'America/Port-au-Prince'::text, 'America/Port_of_Spain'::text, 'America/Porto_Velho'::text, 'America/Puerto_Rico'::text, 'America/Punta_Arenas'::text, 'America/Rankin_Inlet'::text, 'America/Recife'::text, 'America/Regina'::text, 'America/Resolute'::text, 'America/Rio_Branco'::text, 'America/Santarem'::text, 'America/Santiago'::text, 'America/Santo_Domingo'::text, 'America/Sao_Paulo'::text, 'America/Scoresbysund'::text, 'America/Sitka'::text, 'America/St_Barthelemy'::text, 'America/St_Johns'::text, 'America/St_Kitts'::text, 'America/St_Lucia'::text, 'America/St_Thomas'::text, 'America/St_Vincent'::text, 'America/Swift_Current'::text, 'America/Tegucigalpa'::text, 'America/Thule'::text, 'America/Tijuana'::text, 'America/Toronto'::text, 'America/Tortola'::text, 'America/Vancouver'::text, 'America/Whitehorse'::text, 'America/Winnipeg'::text, 'America/Yakutat'::text, 'Antarctica/Casey'::text, 'Antarctica/Davis'::text, 'Antarctica/DumontDUrville'::text, 'Antarctica/Macquarie'::text, 'Antarctica/Mawson'::text, 'Antarctica/McMurdo'::text, 'Antarctica/Palmer'::text, 'Antarctica/Rothera'::text, 'Antarctica/Syowa'::text, 'Antarctica/Troll'::text, 'Antarctica/Vostok'::text, 'Arctic/Longyearbyen'::text, 'Asia/Aden'::text, 'Asia/Almaty'::text, 'Asia/Amman'::text, 'Asia/Anadyr'::text, 'Asia/Aqtau'::text, 'Asia/Aqtobe'::text, 'Asia/Ashgabat'::text, 'Asia/Atyrau'::text, 'Asia/Baghdad'::text, 'Asia/Bahrain'::text, 'Asia/Baku'::text, 'Asia/Bangkok'::text, 'Asia/Barnaul'::text, 'Asia/Beirut'::text, 'Asia/Bishkek'::text, 'Asia/Brunei'::text, 'Asia/Chita'::text, 'Asia/Colombo'::text, 'Asia/Damascus'::text, 'Asia/Dhaka'::text, 'Asia/Dili'::text, 'Asia/Dubai'::text, 'Asia/Dushanbe'::text, 'Asia/Famagusta'::text, 'Asia/Gaza'::text, 'Asia/Hebron'::text, 'Asia/Ho_Chi_Minh'::text, 'Asia/Hong_Kong'::text, 'Asia/Hovd'::text, 'Asia/Irkutsk'::text, 'Asia/Jakarta'::text, 'Asia/Jayapura'::text, 'Asia/Jerusalem'::text, 'Asia/Kabul'::text, 'Asia/Kamchatka'::text, 'Asia/Karachi'::text, 'Asia/Kathmandu'::text, 'Asia/Khandyga'::text, 'Asia/Kolkata'::text, 'Asia/Krasnoyarsk'::text, 'Asia/Kuala_Lumpur'::text, 'Asia/Kuching'::text, 'Asia/Kuwait'::text, 'Asia/Macau'::text, 'Asia/Magadan'::text, 'Asia/Makassar'::text, 'Asia/Manila'::text, 'Asia/Muscat'::text, 'Asia/Nicosia'::text, 'Asia/Novokuznetsk'::text, 'Asia/Novosibirsk'::text, 'Asia/Omsk'::text, 'Asia/Oral'::text, 'Asia/Phnom_Penh'::text, 'Asia/Pontianak'::text, 'Asia/Pyongyang'::text, 'Asia/Qatar'::text, 'Asia/Qostanay'::text, 'Asia/Qyzylorda'::text, 'Asia/Riyadh'::text, 'Asia/Sakhalin'::text, 'Asia/Samarkand'::text, 'Asia/Seoul'::text, 'Asia/Shanghai'::text, 'Asia/Singapore'::text, 'Asia/Srednekolymsk'::text, 'Asia/Taipei'::text, 'Asia/Tashkent'::text, 'Asia/Tbilisi'::text, 'Asia/Tehran'::text, 'Asia/Thimphu'::text, 'Asia/Tokyo'::text, 'Asia/Tomsk'::text, 'Asia/Ulaanbaatar'::text, 'Asia/Urumqi'::text, 'Asia/Ust-Nera'::text, 'Asia/Vientiane'::text, 'Asia/Vladivostok'::text, 'Asia/Yakutsk'::text, 'Asia/Yangon'::text, 'Asia/Yekaterinburg'::text, 'Asia/Yerevan'::text, 'Atlantic/Azores'::text, 'Atlantic/Bermuda'::text, 'Atlantic/Canary'::text, 'Atlantic/Cape_Verde'::text, 'Atlantic/Faroe'::text, 'Atlantic/Madeira'::text, 'Atlantic/Reykjavik'::text, 'Atlantic/South_Georgia'::text, 'Atlantic/St_Helena'::text, 'Atlantic/Stanley'::text, 'Australia/Adelaide'::text, 'Australia/Brisbane'::text, 'Australia/Broken_Hill'::text, 'Australia/Darwin'::text, 'Australia/Eucla'::text, 'Australia/Hobart'::text, 'Australia/Lindeman'::text, 'Australia/Lord_Howe'::text, 'Australia/Melbourne'::text, 'Australia/Perth'::text, 'Australia/Sydney'::text, 'Europe/Amsterdam'::text, 'Europe/Andorra'::text, 'Europe/Astrakhan'::text, 'Europe/Athens'::text, 'Europe/Belgrade'::text, 'Europe/Berlin'::text, 'Europe/Bratislava'::text, 'Europe/Brussels'::text, 'Europe/Bucharest'::text, 'Europe/Budapest'::text, 'Europe/Busingen'::text, 'Europe/Chisinau'::text, 'Europe/Copenhagen'::text, 'Europe/Dublin'::text, 'Europe/Gibraltar'::text, 'Europe/Guernsey'::text, 'Europe/Helsinki'::text, 'Europe/Isle_of_Man'::text, 'Europe/Istanbul'::text, 'Europe/Jersey'::text, 'Europe/Kaliningrad'::text, 'Europe/Kirov'::text, 'Europe/Kyiv'::text, 'Europe/Lisbon'::text, 'Europe/Ljubljana'::text, 'Europe/London'::text, 'Europe/Luxembourg'::text, 'Europe/Madrid'::text, 'Europe/Malta'::text, 'Europe/Mariehamn'::text, 'Europe/Minsk'::text, 'Europe/Monaco'::text, 'Europe/Moscow'::text, 'Europe/Oslo'::text, 'Europe/Paris'::text, 'Europe/Podgorica'::text, 'Europe/Prague'::text, 'Europe/Riga'::text, 'Europe/Rome'::text, 'Europe/Samara'::text, 'Europe/San_Marino'::text, 'Europe/Sarajevo'::text, 'Europe/Saratov'::text, 'Europe/Simferopol'::text, 'Europe/Skopje'::text, 'Europe/Sofia'::text, 'Europe/Stockholm'::text, 'Europe/Tallinn'::text, 'Europe/Tirane'::text, 'Europe/Ulyanovsk'::text, 'Europe/Vaduz'::text, 'Europe/Vatican'::text, 'Europe/Vienna'::text, 'Europe/Vilnius'::text, 'Europe/Volgograd'::text, 'Europe/Warsaw'::text, 'Europe/Zagreb'::text, 'Europe/Zurich'::text, 'Indian/Antananarivo'::text, 'Indian/Chagos'::text, 'Indian/Christmas'::text, 'Indian/Cocos'::text, 'Indian/Comoro'::text, 'Indian/Kerguelen'::text, 'Indian/Mahe'::text, 'Indian/Maldives'::text, 'Indian/Mauritius'::text, 'Indian/Mayotte'::text, 'Indian/Reunion'::text, 'Pacific/Apia'::text, 'Pacific/Auckland'::text, 'Pacific/Bougainville'::text, 'Pacific/Chatham'::text, 'Pacific/Chuuk'::text, 'Pacific/Easter'::text, 'Pacific/Efate'::text, 'Pacific/Fakaofo'::text, 'Pacific/Fiji'::text, 'Pacific/Funafuti'::text, 'Pacific/Galapagos'::text, 'Pacific/Gambier'::text, 'Pacific/Guadalcanal'::text, 'Pacific/Guam'::text, 'Pacific/Honolulu'::text, 'Pacific/Kanton'::text, 'Pacific/Kiritimati'::text, 'Pacific/Kosrae'::text, 'Pacific/Kwajalein'::text, 'Pacific/Majuro'::text, 'Pacific/Marquesas'::text, 'Pacific/Midway'::text, 'Pacific/Nauru'::text, 'Pacific/Niue'::text, 'Pacific/Norfolk'::text, 'Pacific/Noumea'::text, 'Pacific/Pago_Pago'::text, 'Pacific/Palau'::text, 'Pacific/Pitcairn'::text, 'Pacific/Pohnpei'::text, 'Pacific/Port_Moresby'::text, 'Pacific/Rarotonga'::text, 'Pacific/Saipan'::text, 'Pacific/Tahiti'::text, 'Pacific/Tarawa'::text, 'Pacific/Tongatapu'::text, 'Pacific/Wake'::text, 'Pacific/Wallis'::text, 'UTC'::text])))"
+    },
+    {
+      "name": "businesses_business_type_check",
+      "table": "businesses",
+      "schema": "public",
+      "definition": "CHECK ((business_type = ANY (ARRAY['cleaning'::text, 'beauty-wellness'::text, 'home-maintenance-trades'::text, 'other'::text])))"
+    },
+    {
+      "name": "businesses_name_check",
+      "table": "businesses",
+      "schema": "public",
+      "definition": "CHECK (((name = btrim(name)) AND ((char_length(name) >= 2) AND (char_length(name) <= 120))))"
+    },
+    {
+      "name": "businesses_owner_id_fkey",
+      "table": "businesses",
+      "schema": "public",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "businesses_owner_id_key",
+      "table": "businesses",
+      "schema": "public",
+      "definition": "UNIQUE (owner_id)"
+    },
+    {
+      "name": "businesses_pkey",
+      "table": "businesses",
+      "schema": "public",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "shared_core_aggregates_business_id_fkey",
+      "table": "shared_core_aggregates",
+      "schema": "public",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "shared_core_aggregates_environment_check",
+      "table": "shared_core_aggregates",
+      "schema": "public",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "shared_core_aggregates_kind_check",
+      "table": "shared_core_aggregates",
+      "schema": "public",
+      "definition": "CHECK ((kind ~ '^[a-z][a-z0-9_.]{0,63}$'::text))"
+    },
+    {
+      "name": "shared_core_aggregates_pkey",
+      "table": "shared_core_aggregates",
+      "schema": "public",
+      "definition": "PRIMARY KEY (business_id, environment, kind, id)"
+    },
+    {
+      "name": "shared_core_aggregates_snapshot_check",
+      "table": "shared_core_aggregates",
+      "schema": "public",
+      "definition": "CHECK ((jsonb_typeof(snapshot) = 'object'::text))"
+    },
+    {
+      "name": "shared_core_aggregates_version_check",
+      "table": "shared_core_aggregates",
+      "schema": "public",
+      "definition": "CHECK ((version > 0))"
+    },
+    {
+      "name": "shared_core_commands_business_id_fkey",
+      "table": "shared_core_commands",
+      "schema": "public",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "shared_core_commands_environment_check",
+      "table": "shared_core_commands",
+      "schema": "public",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "shared_core_commands_pkey",
+      "table": "shared_core_commands",
+      "schema": "public",
+      "definition": "PRIMARY KEY (business_id, environment, idempotency_key)"
+    },
+    {
+      "name": "shared_core_events_business_id_environment_command_id_fkey",
+      "table": "shared_core_events",
+      "schema": "public",
+      "definition": "FOREIGN KEY (business_id, environment, command_id) REFERENCES shared_core_commands(business_id, environment, idempotency_key) ON DELETE RESTRICT"
+    },
+    {
+      "name": "shared_core_events_business_id_environment_kind_aggregate__fkey",
+      "table": "shared_core_events",
+      "schema": "public",
+      "definition": "FOREIGN KEY (business_id, environment, kind, aggregate_id) REFERENCES shared_core_aggregates(business_id, environment, kind, id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "shared_core_events_business_id_environment_kind_aggregate_i_key",
+      "table": "shared_core_events",
+      "schema": "public",
+      "definition": "UNIQUE (business_id, environment, kind, aggregate_id, version)"
+    },
+    {
+      "name": "shared_core_events_check",
+      "table": "shared_core_events",
+      "schema": "public",
+      "definition": "CHECK ((version = (expected_version + 1)))"
+    },
+    {
+      "name": "shared_core_events_ordinal_check",
+      "table": "shared_core_events",
+      "schema": "public",
+      "definition": "CHECK ((ordinal > 0))"
+    },
+    {
+      "name": "shared_core_events_pkey",
+      "table": "shared_core_events",
+      "schema": "public",
+      "definition": "PRIMARY KEY (business_id, environment, command_id, ordinal)"
+    },
+    {
+      "name": "shared_core_events_schema_version_check",
+      "table": "shared_core_events",
+      "schema": "public",
+      "definition": "CHECK ((schema_version = 1))"
+    },
+    {
+      "name": "waitlist_subscribers_business_type_check",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "definition": "CHECK ((business_type = ANY (ARRAY['cleaning'::text, 'beauty-wellness'::text, 'home-maintenance-trades'::text, 'other'::text, 'starting-business'::text])))"
+    },
+    {
+      "name": "waitlist_subscribers_confirm_hash_key",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "definition": "UNIQUE (confirm_hash)"
+    },
+    {
+      "name": "waitlist_subscribers_email_check",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "definition": "CHECK (((email = lower(btrim(email))) AND (length(email) <= 254)))"
+    },
+    {
+      "name": "waitlist_subscribers_email_key",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "definition": "UNIQUE (email)"
+    },
+    {
+      "name": "waitlist_subscribers_interests_check",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "definition": "CHECK ((((cardinality(interests) >= 1) AND (cardinality(interests) <= 6)) AND (interests <@ ARRAY['business-management'::text, 'website-builder'::text, 'website-creation'::text, 'hosting'::text, 'seo'::text, 'marketing'::text])))"
+    },
+    {
+      "name": "waitlist_subscribers_name_check",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "definition": "CHECK (((length(name) >= 2) AND (length(name) <= 120)))"
+    },
+    {
+      "name": "waitlist_subscribers_pkey",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "waitlist_subscribers_status_check",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "definition": "CHECK ((status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'withdrawn'::text, 'suppressed'::text])))"
+    },
+    {
+      "name": "waitlist_subscribers_withdraw_hash_key",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "definition": "UNIQUE (withdraw_hash)"
+    },
+    {
+      "name": "ingress_environment_check",
+      "table": "ingress",
+      "schema": "quote_private",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "ingress_pkey",
+      "table": "ingress",
+      "schema": "quote_private",
+      "definition": "PRIMARY KEY (environment)"
+    },
+    {
+      "name": "ingress_environment_check",
+      "table": "ingress",
+      "schema": "request_private",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "ingress_pkey",
+      "table": "ingress",
+      "schema": "request_private",
+      "definition": "PRIMARY KEY (environment)"
+    },
+    {
+      "name": "ingress_environment_check",
+      "table": "ingress",
+      "schema": "staff_private",
+      "definition": "CHECK ((environment = ANY (ARRAY['preview'::text, 'live'::text])))"
+    },
+    {
+      "name": "ingress_pkey",
+      "table": "ingress",
+      "schema": "staff_private",
+      "definition": "PRIMARY KEY (environment)"
+    },
+    {
+      "name": "delivery_events_pkey",
+      "table": "delivery_events",
+      "schema": "waitlist_private",
+      "definition": "PRIMARY KEY (event_id)"
+    },
+    {
+      "name": "outbox_kind_check",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "definition": "CHECK ((kind = ANY (ARRAY['confirmation'::text, 'owner'::text])))"
+    },
+    {
+      "name": "outbox_pkey",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "outbox_provider_id_key",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "definition": "UNIQUE (provider_id)"
+    },
+    {
+      "name": "outbox_status_check",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "definition": "CHECK ((status = ANY (ARRAY['pending'::text, 'sending'::text, 'retry'::text, 'sent'::text, 'failed'::text, 'cancelled'::text])))"
+    },
+    {
+      "name": "outbox_subscriber_id_fkey",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "definition": "FOREIGN KEY (subscriber_id) REFERENCES waitlist_subscribers(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "rate_limits_pkey",
+      "table": "rate_limits",
+      "schema": "waitlist_private",
+      "definition": "PRIMARY KEY (bucket)"
+    }
+  ]
+}
