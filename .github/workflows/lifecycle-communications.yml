@@ -1,4 +1,4 @@
-name: Scheduling and ZA pilot regression
+name: Lifecycle communication regression
 on:
   pull_request:
   push:

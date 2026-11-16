@@ -25,7 +25,7 @@ def build(destination):
    old=old.encode()
    if digest(old)!=later[rel]:raise ValueError('V1-005 recorded preview drift: '+rel)
   elif rel in ['account/enquiries.php','account/quotes.php','account/invoices.php']:
-   record=recorded['_accounts-preview/'+rel];old=subprocess.check_output(['git','show',record['source']['blob']],cwd=ROOT)
+   record=recorded['_accounts-preview/'+rel];frozen={r['path']:r for r in json.loads((BASE/'preview-preimages.json').read_text())};old=frozen['_accounts-preview/'+rel]['content'].encode()
    if digest(old)!=record['sha256']:raise ValueError('V1-017 preview preimage drift')
    text=old.decode();position=text.index('</h1>')+len('</h1>');text=text[:position]+'<p><a href="communications.php">Review messages</a></p>'+text[position:]
    if rel=='account/enquiries.php':text=text.replace("</li><?php endforeach;?></ul><small>Provider acceptance", "<?php if(!empty($mail['error'])):?> · <?=esc($mail['error'])?>. Check delivery with support before any manual recovery; do not resend uncertain messages.<?php endif;?></li><?php endforeach;?></ul><small>Provider acceptance")
