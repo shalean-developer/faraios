@@ -72,6 +72,7 @@ function platform_save(string $dir,array $in,string $actor): array {
   $s['revision']++;$s['history'][]=['revision'=>$s['revision'],'task'=>$task['id'],'actor'=>$actor,'at'=>gmdate('c'),'before'=>$old,'after'=>$task];
   $bytes=json_encode($s,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR)."\n";
   if(strlen($bytes)>12000000)throw new RuntimeException('Tracker storage limit reached. Export and review before continuing.');
+  platform_backup($dir,$bytes);
   $tmp=tempnam($dir,'.save-');if($tmp===false)throw new RuntimeException('Task could not save.');
   try{chmod($tmp,0600);if(file_put_contents($tmp,$bytes,LOCK_EX)!==strlen($bytes)||!rename($tmp,$dir.'/tracker.json'))throw new RuntimeException('Task could not save.');}finally{if(is_file($tmp))unlink($tmp);}
   return $task;
@@ -81,4 +82,28 @@ function platform_stats(array $tasks): array {
  $launch=array_values(array_filter($tasks,fn($t)=>$t['release']==='v1.0.0'));
  $verified=count(array_filter($launch,fn($t)=>$t['status']==='Verified'));
  return ['total'=>count($launch),'verified'=>$verified,'blockers'=>count(array_filter($launch,fn($t)=>$t['blocking']&&$t['status']!=='Verified')),'preview'=>count(array_filter($launch,fn($t)=>$t['status']==='Preview'))];
+}
+
+function platform_seal(string $bytes,string $public): array {
+ $key=openssl_pkey_get_public($public);if(!$key||openssl_pkey_get_details($key)['bits']<3072)throw new RuntimeException('Tracker recovery key is unavailable.');
+ $secret=random_bytes(32);$iv=random_bytes(12);$tag='';
+ $cipher=openssl_encrypt($bytes,'aes-256-gcm',$secret,OPENSSL_RAW_DATA,$iv,$tag,'faraios.tracker.v1');
+ if($cipher===false||!openssl_public_encrypt($secret,$sealed,$key,OPENSSL_PKCS1_OAEP_PADDING))throw new RuntimeException('Tracker backup could not be encrypted.');
+ return ['schema'=>'faraios.tracker.v1','key_fingerprint'=>hash('sha256',openssl_pkey_get_details($key)['key']),'sealed_key'=>base64_encode($sealed),'iv'=>base64_encode($iv),'tag'=>base64_encode($tag),'ciphertext'=>base64_encode($cipher),'sha256'=>hash('sha256',$bytes)];
+}
+function platform_unseal(array $p,string $private,string $pass): string {
+ $key=openssl_pkey_get_private($private,$pass);
+ if(($p['schema']??'')!=='faraios.tracker.v1'||!$key||!openssl_private_decrypt(base64_decode($p['sealed_key'],true),$secret,$key,OPENSSL_PKCS1_OAEP_PADDING))throw new RuntimeException('Tracker recovery failed.');
+ $raw=openssl_decrypt(base64_decode($p['ciphertext'],true),'aes-256-gcm',$secret,OPENSSL_RAW_DATA,base64_decode($p['iv'],true),base64_decode($p['tag'],true),'faraios.tracker.v1');
+ if($raw===false||!hash_equals($p['sha256'],hash('sha256',$raw)))throw new RuntimeException('Tracker recovery failed.');
+ platform_valid_store(json_decode($raw,true,128,JSON_THROW_ON_ERROR));return $raw;
+}
+function platform_backup(string $dir,string $bytes): void {
+ $public=@file_get_contents(dirname(__DIR__).'/config/recovery-public.pem');if(!$public)throw new RuntimeException('Tracker recovery key is unavailable.');
+ $packet=json_encode(platform_seal($bytes,$public),JSON_THROW_ON_ERROR);
+ $path=$dir.'/recovery';if(is_link($path)||(!is_dir($path)&&!mkdir($path,0700)))throw new RuntimeException('Tracker backup storage is unavailable.');chmod($path,0700);
+ $file=$path.'/revision-'.json_decode($bytes,true,128,JSON_THROW_ON_ERROR)['revision'].'-'.substr(hash('sha256',$bytes),0,16).'.packet';
+ if(is_link($file))throw new RuntimeException('Tracker backup storage is unavailable.');
+ $tmp=tempnam($path,'.backup-');if($tmp===false)throw new RuntimeException('Tracker backup could not save.');
+ try{chmod($tmp,0600);if(file_put_contents($tmp,$packet,LOCK_EX)!==strlen($packet)||!rename($tmp,$file))throw new RuntimeException('Tracker backup could not save.');}finally{if(is_file($tmp))unlink($tmp);}
 }
