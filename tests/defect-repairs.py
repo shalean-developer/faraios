@@ -1,5 +1,5 @@
 """D01–D03 regression evidence: native disposable PostgreSQL + PHP, no hosted writes."""
-import importlib.util,json,uuid,unittest,re,subprocess,urllib.request,urllib.parse
+import importlib.util,json,uuid,unittest,re,subprocess,urllib.request,urllib.parse,hashlib
 from journey import ROOT,lit
 spec=importlib.util.spec_from_file_location('ready',ROOT/'tests/sc04-readiness.py');base=importlib.util.module_from_spec(spec);spec.loader.exec_module(base)
 class Repairs(base.Readiness):
@@ -19,14 +19,13 @@ class Repairs(base.Readiness):
   self.post('/account/context.php',context=self.bids[0]+':preview')
  def test_d00_original_failures_and_history(self):
   self.enable();u=self.member('manager');self.login(u);page=self.webroot/'account/delegated.php';fixed=page.read_text()
-  old=subprocess.check_output(['git','show','d5f6f6c2c9c4e917253d5239ea40be78386f791b:docs/sc04/delegated.php'],cwd=ROOT,text=True)
+  frozen=(ROOT/'tests/fixtures/defects/d01-d03-before.json').read_bytes();self.assertEqual(hashlib.sha256(frozen).hexdigest(),'af51910e157e89e0604344c9009c0941ba46f4715aa5e93207a405aa46ec24a2');fixture=json.loads(frozen);old=fixture['delegated_php']
   try:
    page.write_text(old)
    html=self.post('/account/delegated.php?view=customers',action='customer',name='Synthetic disappearing original',email='bad',phone='',address='',notes='')
    self.assertNotIn('Create customer',html);self.assertNotIn('Synthetic disappearing original',html)
   finally:page.write_text(fixed)
-  oldsql=subprocess.check_output(['git','show','d5f6f6c2c9c4e917253d5239ea40be78386f791b:docs/sc04/delegation.sql'],cwd=ROOT,text=True)
-  command=oldsql[oldsql.index('create function public.business_delegate_command('):oldsql.index('create function public.business_delegate_read(')].replace('create function ','create or replace function ',1)
+  command=fixture['command_sql'].replace('create function ','create or replace function ',1)
   self.sql(command);w=self.member('worker');i=str(uuid.uuid4());self.sql("alter database postgres set timezone='UTC'")
   self.command(w,'availability.request',dict(id=i,starts_at='2026-12-05T09:00',ends_at='2026-12-05T10:00'))
   self.assertEqual(self.sql("select to_char(starts_at at time zone 'Africa/Johannesburg','HH24:MI') from authorization_private.availability_requests where id="+lit(i)),'11:00')
