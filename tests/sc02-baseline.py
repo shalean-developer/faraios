@@ -20,7 +20,7 @@ class Baseline(unittest.TestCase):
     def test_01_inventory_reproducible_and_complete(self):
         current=build()
         additions=json.loads((ROOT/'docs/platform-owner/access-sites.json').read_text())
-        self.assertEqual({x['path'] for x in additions},{'account/platform-core.php'})
+        self.assertEqual({x['path'] for x in additions},{'account/platform-core.php','scripts/platform-owner-release-20261116.php'})
         for row in additions:
             self.assertIn(row,current['local_access_sites'])
             current['local_access_sites'].remove(row)
