@@ -101,7 +101,7 @@ begin
  end loop;return true;
 end$$;
 create function public.business_delegate_command(p_business uuid,p_environment text,p_operation text,p_arguments jsonb default '{}') returns jsonb language plpgsql security definer set search_path='' as $$
-declare role text;action text;args jsonb;f record;arg text;parts text[]='{}';i integer;result jsonb;old public.business_bookings;inv public.business_invoices;doc jsonb;reason text;bid uuid;
+declare role text;action text;args jsonb;f record;arg text;parts text[]='{}';i integer;result jsonb;old public.business_bookings;inv public.business_invoices;doc jsonb;reason text;bid uuid;zone text;local_start timestamp;local_end timestamp;instant_start timestamptz;instant_end timestamptz;
 begin
  role=authorization_private.require_member(p_business,p_environment);
  if role='owner' then raise exception 'Use owner actions' using errcode='42501';end if;
@@ -136,7 +136,18 @@ begin
  end if;
  if p_operation='availability.request' then
   if role<>'worker' or exists(select 1 from jsonb_object_keys(p_arguments) k where k not in ('id','starts_at','ends_at')) then raise exception 'Availability denied';end if;
-  insert into authorization_private.availability_requests(id,business_id,environment,user_id,starts_at,ends_at) values((p_arguments->>'id')::uuid,p_business,p_environment,auth.uid(),(p_arguments->>'starts_at')::timestamptz,(p_arguments->>'ends_at')::timestamptz);
+  select time_zone into zone from public.businesses where id=p_business;
+  if zone is null or not exists(select 1 from pg_catalog.pg_timezone_names where name=zone) then raise exception 'Choose a valid date and time.';end if;
+  if coalesce(p_arguments->>'starts_at','') ~ '^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?$' and coalesce(p_arguments->>'ends_at','') ~ '^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?$' then
+   local_start=(p_arguments->>'starts_at')::timestamp;local_end=(p_arguments->>'ends_at')::timestamp;
+   instant_start=booking_private.instant(local_start,zone);instant_end=booking_private.instant(local_end,zone);
+  elsif coalesce(p_arguments->>'starts_at','') ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$' and coalesce(p_arguments->>'ends_at','') ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$' then
+   -- Existing explicit-instant API callers retain their unambiguous meaning.
+   instant_start=(p_arguments->>'starts_at')::timestamptz;instant_end=(p_arguments->>'ends_at')::timestamptz;
+   local_start=instant_start at time zone zone;local_end=instant_end at time zone zone;
+  else raise exception 'Choose a valid date and time.';end if;
+  if local_start<timestamp '2000-01-01' or local_end>=timestamp '2100-01-01' or instant_end<=instant_start then raise exception 'Choose an end time after the start, between 2000 and 2099.';end if;
+  insert into authorization_private.availability_requests(id,business_id,environment,user_id,starts_at,ends_at) values((p_arguments->>'id')::uuid,p_business,p_environment,auth.uid(),instant_start,instant_end);
   return jsonb_build_object('id',p_arguments->>'id');
  end if;
  -- Request quotation must pass the quote-draft constraints, never bypass them via conversion.
@@ -218,6 +229,40 @@ begin
  execute format('select coalesce(jsonb_agg(to_jsonb(t)),''[]'') from (select * from public.%I where business_id=$1 and environment=$2 and ($3 is null or id=$3) order by id limit 100) t',table_name) into result using p_business,p_environment,p_id;
  return authorization_private.redact(result);
 end$$;
+-- D01: bounded page API; same authorization and positive worker projection as legacy read.
+create function public.business_delegate_page(p_business uuid,p_environment text,p_resource text,p_id uuid default null,p_page integer default 1,p_size integer default 50) returns jsonb language plpgsql security definer set search_path='' as $$
+declare role text;result jsonb;table_name text;
+begin
+ role=authorization_private.require_member(p_business,p_environment);
+ if p_page is null or p_page<1 or p_page>1000000 or p_size is null or p_size<1 or p_size>100 then raise exception 'Choose a valid record page.';end if;
+ if role='owner' then raise exception 'Use owner workspace';end if;
+ if role='worker' then
+  if p_resource<>'visits' then raise exception 'Read denied' using errcode='42501';end if;
+  select coalesce(jsonb_agg(jsonb_build_object('id',b.id,'version',b.version,'status',b.status,'address',b.address,'starts_at',b.starts_at,'time_zone',b.time_zone,'duration_minutes',b.duration_minutes,'customer_name',b.document->>'name','services',(select jsonb_agg(jsonb_build_object('name',i->>'name','quantity',i->'quantity')) from jsonb_array_elements(b.document->'items')i)) order by b.starts_at,b.id),'[]') into result
+  from (select b.* from public.business_bookings b where b.business_id=p_business and b.environment=p_environment and (p_id is null or b.id=p_id) and b.status in ('Scheduled','In Progress') and authorization_private.assigned(p_business,p_environment,b.id) order by b.starts_at,b.id limit p_size+1 offset (p_page-1)*p_size) b;
+  return jsonb_build_object('items',result - p_size,'has_next',jsonb_array_length(result)>p_size,'page',p_page);
+ end if;
+ if p_resource='invoice' then
+  if p_id is null then raise exception 'Exact invoice required' using errcode='42501';end if;
+  select jsonb_build_object('id',i.id,'version',i.version,'state',i.state,'booking_id',i.booking_id,'document',i.document,'due_on',i.due_on,'number',i.number) into result
+  from public.business_invoices i join public.business_bookings b on b.id=i.booking_id and b.business_id=i.business_id and b.environment=i.environment
+  where i.id=p_id and i.business_id=p_business and i.environment=p_environment and (role='manager' or (i.replaces_id is null and i.document=b.document));
+  if result is null then raise exception 'Invoice unavailable' using errcode='42501';end if;
+  return result;
+ end if;
+ table_name=case p_resource when 'customers' then 'business_customers' when 'enquiries' then 'business_enquiries' when 'quotes' then 'business_quotes' when 'bookings' then 'business_booking_schedule' when 'staff' then 'business_staff' when 'invoices' then 'business_invoice_list' when 'payments' then 'business_invoice_payments' when 'catalogue' then 'business_service_catalogues' end;
+ if table_name is null or (role='receptionist' and p_resource in ('invoices','payments')) then raise exception 'Read denied' using errcode='42501';end if;
+ if role='receptionist' and p_resource='staff' then
+  select coalesce(jsonb_agg(jsonb_build_object('id',id,'name',name,'active',active) order by id),'[]') into result from (select id,name,active from public.business_staff where business_id=p_business and environment=p_environment and (p_id is null or id=p_id) order by id limit p_size+1 offset (p_page-1)*p_size) s;return jsonb_build_object('items',result - p_size,'has_next',jsonb_array_length(result)>p_size,'page',p_page);
+ end if;
+ if p_resource='catalogue' then
+  select published into result from public.business_service_catalogues where business_id=p_business and environment=p_environment;return coalesce(result,'{}');
+ end if;
+ execute format('select coalesce(jsonb_agg(to_jsonb(t)),''[]'') from (select * from public.%I where business_id=$1 and environment=$2 and ($3 is null or id=$3) order by id limit $4+1 offset ($5-1)*$4) t',table_name) into result using p_business,p_environment,p_id,p_size,p_page;
+ return jsonb_build_object('items',authorization_private.redact(result - p_size),'has_next',jsonb_array_length(result)>p_size,'page',p_page);
+end$$;
+revoke all on function public.business_delegate_page(uuid,text,text,uuid,integer,integer) from public,anon,authenticated,service_role;
+grant execute on function public.business_delegate_page(uuid,text,text,uuid,integer,integer) to authenticated;
 -- Discovery lists only active scopes; selection still supplies explicit headers and revalidates.
 create or replace function public.business_contexts(p_discovery boolean default true) returns jsonb language sql stable security definer set search_path='' as $$
  select coalesce(jsonb_agg(jsonb_build_object('business_id',b.id,'environment',m.environment,'role',m.role,'name',b.name,'business_type',b.business_type,'country',b.country,'time_zone',b.time_zone) order by b.id,m.environment),'[]') from public.business_memberships m join public.businesses b on b.id=m.business_id
