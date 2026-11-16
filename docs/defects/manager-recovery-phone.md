@@ -1,5 +1,12 @@
 # Manager typed-field recovery phone test
 
+## Manager typed-field stale recovery phone PASS — 16 November 2026
+
+Fresh read-only preflight confirmed controlled faraic3@gmail.com Manager active in A/preview and dedicated customer00000000-0000-4000-8000-000000000126 at version1/Baseline recovery note. After owner reported Ready with typed Name “Synthetic manager typed draft” and Notes “Phone draft must remain” unsaved, one guarded owner-authenticated customer write updated only saved Notes to “Synthetic other-writer update”, advancing version2. Temporary hosting task cancelled. Owner submitted old phone form once, reported “Customer changed or unavailable. Reload before saving” and confirmed both typed Name/Notes remained visible in Unsaved changes. Subsequent read-only verification finds saved version2, Name “Synthetic manager recovery check” and Notes “Synthetic other-writer update” unchanged. Record Manager typed-field stale-version rejection/retention/no overwrite phone PASS. Do not overwrite other-writer data by retrying stale recovery.
+
+Next: refresh and compare current saved data; do not submit old recovery form. Remaining controlled payment replay/cross-page assignment phone cases, final temporary Manager/onboarding closure, refreshed exact-candidate compatibility/CI and separate live authorization remain open. No merge/live deployment or real-customer mutation. Private guarded bump receipts: manager-recovery-phone-20261116/bump-attempt.json and bumped.json. Synthetic test history retained.
+
+
 
 ## Manager typed-field recovery phone invitation prepared — 16 November 2026
 
