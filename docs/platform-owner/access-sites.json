@@ -1,0 +1,12 @@
+[
+  {
+    "path": "account/platform-core.php",
+    "line": 64,
+    "text": "$lock=fopen($dir.'/tracker.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Tracker is busy. Try again.');chmod($dir.'/tracker.lock',0600);"
+  },
+  {
+    "path": "account/platform-core.php",
+    "line": 76,
+    "text": "try{chmod($tmp,0600);if(file_put_contents($tmp,$bytes,LOCK_EX)!==strlen($bytes)||!rename($tmp,$dir.'/tracker.json'))throw new RuntimeException('Task could not save.');}finally{if(is_file($tmp))unlink($tmp);}"
+  }
+]
