@@ -76,7 +76,7 @@ class Repairs(base.Readiness):
    def handle_endtag(self,tag):
     if tag=='nav':self.current_nav=None
   self.enable();u=self.member('manager');self.login(u)
-  for resource in ['customers','quotes','bookings']:
+  for resource in ['customers','quotes','bookings','staff']:
    first=ListPage();first.feed(self.get('/account/delegated.php?view='+resource)[1]);self.assertEqual(len(first.ids),10);self.assertTrue(first.bottom_after_cards);self.assertEqual(first.nav.count('Record pages'),1);self.assertTrue(first.bottom_link);self.assertIn('view='+resource,first.bottom_link)
    second=ListPage();second.feed(self.get('/account/delegated.php'+first.bottom_link)[1]);self.assertEqual(len(second.ids),10);self.assertFalse(set(first.ids)&set(second.ids))
   self.enable(False)
@@ -123,12 +123,12 @@ class Repairs(base.Readiness):
  def test_d04_browser_desktop_mobile(self):
   from playwright.sync_api import sync_playwright
   import os
-  self.enable();manager=self.member('manager');worker=self.member('worker');checks=[]
+  self.enable();manager=self.member('manager');worker=self.member('worker');receptionist=self.member('receptionist');checks=[]
   with sync_playwright() as pw:
    browser=pw.chromium.launch(executable_path=os.environ.get('FARAIOS_CHROMIUM','/usr/bin/chromium'),headless=True,args=['--no-sandbox','--no-zygote','--single-process','--disable-crash-reporter','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--disable-gpu'])
    try:
     for width in [390,1280]:
-     for role,actor in [('manager',manager),('worker',worker)]:
+     for role,actor in [('manager',manager),('receptionist',receptionist),('worker',worker)]:
       type(self).sc04_login_user=actor;ctx=browser.new_context(viewport={'width':width,'height':844});page=ctx.new_page()
       if role=='manager':page.route('**/ui/design-system.css',lambda route:route.abort())
       page.goto(self.url+'/account/index.php?page=signin');page.get_by_label('Email address',exact=True).fill('new@example.test');page.get_by_label('Password',exact=True).fill('test-long-password');page.get_by_role('button',name='Sign in',exact=True).click()
@@ -154,7 +154,7 @@ class Repairs(base.Readiness):
        page.screenshot(path=str(out/('customer-save-no-theme-'+str(width)+'.png')))
        form.locator('input[name="name"]').fill('Synthetic phone retained');form.locator('input[name="email"]').fill('bad-email');save.click();page.get_by_role('heading',name='Unsaved changes',exact=True).wait_for()
        self.assertEqual(page.locator('section.panel input[name="name"]').input_value(),'Synthetic phone retained');self.assertTrue(page.get_by_role('alert').is_visible())
-       for resource in ['quotes','bookings']:
+       for resource in ['quotes','bookings','staff']:
         page.goto(self.url+'/account/delegated.php?view='+resource+'&page=2');self.assertEqual(page.locator('article').count(),10);pager=page.get_by_role('navigation',name='Record pages',exact=True);self.assertEqual(pager.count(),1);pager.scroll_into_view_if_needed()
         prev=pager.get_by_role('link',name='Previous',exact=True).bounding_box();nxt=pager.get_by_role('link',name='Next',exact=True).bounding_box();self.assertAlmostEqual(prev['y'],nxt['y'],delta=1);self.assertGreaterEqual(nxt['height'],44);self.assertLess(prev['x'],nxt['x']);page.screenshot(path=str(out/(resource+'-pagination-'+str(width)+'.png')))
         pager.get_by_role('link',name='Next',exact=True).click();self.assertIn('view='+resource,page.url);self.assertIn('page=3',page.url);page.get_by_role('navigation',name='Record pages',exact=True).get_by_role('link',name='Previous',exact=True).click();self.assertIn('page=2',page.url)
@@ -164,6 +164,10 @@ class Repairs(base.Readiness):
          page.locator('details.workspace-staff-browser summary').click();page.get_by_role('link',name='Previous staff',exact=True).click();self.assertIn('staff_page=1',page.url);self.assertIn('page=2',page.url)
 
 
+      elif role=='receptionist':
+       page.goto(self.url+'/account/delegated.php?view=staff&page=2');self.assertEqual(page.locator('article').count(),10);self.assertEqual(page.locator('article form').count(),0);self.assertNotIn('@',str(page.locator('article').all_text_contents()));self.assertEqual(page.get_by_role('link',name='Invoices',exact=True).count(),0);self.assertEqual(page.get_by_role('link',name='Payments',exact=True).count(),0)
+       pager=page.get_by_role('navigation',name='Record pages',exact=True);self.assertEqual(pager.count(),1);pager.scroll_into_view_if_needed();prev=pager.get_by_role('link',name='Previous',exact=True).bounding_box();nxt=pager.get_by_role('link',name='Next',exact=True).bounding_box();self.assertAlmostEqual(prev['y'],nxt['y'],delta=1);self.assertGreaterEqual(nxt['height'],44)
+       page.screenshot(path=str(ROOT/'test-results/release'/('receptionist-staff-pagination-'+str(width)+'.png')));pager.get_by_role('link',name='Next',exact=True).click();self.assertIn('view=staff',page.url);self.assertIn('page=3',page.url);self.assertEqual(page.locator('article').count(),10);self.assertEqual(page.locator('article form').count(),0);self.assertNotIn('@',str(page.locator('article').all_text_contents()));page.get_by_role('navigation',name='Record pages',exact=True).get_by_role('link',name='Previous',exact=True).click();self.assertIn('page=2',page.url)
       else:self.assertIn('Times in Africa/Johannesburg',page.locator('body').inner_text());self.assertNotIn('Payments',page.locator('body').inner_text())
       metrics=page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');self.assertLessEqual(metrics['scroll'],width);checks.append(dict(role=role,**metrics));out=ROOT/'test-results/release';out.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(out/('defect-'+role+'-'+str(width)+'.png')),full_page=False);ctx.close();browser.close();browser=pw.chromium.launch(executable_path=os.environ.get('FARAIOS_CHROMIUM','/usr/bin/chromium'),headless=True,args=['--no-sandbox','--no-zygote','--single-process','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--disable-gpu'])
    finally:browser.close()

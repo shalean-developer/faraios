@@ -84,7 +84,7 @@ try {
   $notice=$action==='invoice'?'Invoice opened below.':'Saved.';
  }catch(AccountSessionExpired $e){throw $e;}catch(Throwable $e){if($e->getMessage()==='Access is unavailable for this business or action.'){$canRender=false;throw $e;}$recover=true;$error=$e instanceof RuntimeException?$e->getMessage():'Unable to save. Check the records before trying again.';}
  }
- $pageResult=work_rpc('business_delegate_page',$scope+['p_resource'=>$resource,'p_page'=>$page,'p_size'=>in_array($resource,['customers','quotes','bookings'],true)?10:50]);$rows=$pageResult['items']??[];
+ $pageResult=work_rpc('business_delegate_page',$scope+['p_resource'=>$resource,'p_page'=>$page,'p_size'=>in_array($resource,['customers','quotes','bookings','staff'],true)?10:50]);$rows=$pageResult['items']??[];
  $catalogue=$role==='worker'?[]:work_rpc('business_delegate_read',$scope+['p_resource'=>'catalogue']);
  $staffResult=$role==='worker'?[]:work_rpc('business_delegate_page',$scope+['p_resource'=>'staff','p_page'=>$staffPage]);$staff=$staffResult['items']??[];
 }catch(AccountSessionExpired $e){go('signin');}catch(Throwable $e){$denied=$e instanceof RuntimeException&&$e->getMessage()==='Access is unavailable for this business or action.';if($denied){$canRender=false;$recover=false;}elseif($canRender&&$_SERVER['REQUEST_METHOD']==='POST'){$recover=true;}$error=$e instanceof RuntimeException?$e->getMessage():'Workspace unavailable.';}
