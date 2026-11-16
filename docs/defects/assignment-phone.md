@@ -1,5 +1,14 @@
 # Controlled cross-page staff-assignment phone acceptance
 
+## Cross-page assignment phone PASS; final temporary access closed — 16 November 2026
+
+Controlled job00000000-0000-4000-8000-000000000128 began Scheduled/version1, assignmentversion1 with staff001 only. Owner added page2 staff051 and reported Saved; read-only verification showed001+051 at assignmentversion2. Initial removal attempt produced051-only/version3; screenshot showed page1 staff1–9, so this was not accepted as the intended page2 removal. Owner restored001 on page1; verified001+051/version4. After explicit phone confirmation “Synthetic D0106 staff51 checked” on page2, owner unchecked051 and Saved. Read-only final result: only staff001 “Synthetic D0106 edited profile”, assignmentversion5; booking remains Scheduled/version1. Record add/remove on page2 preserving other-page assignment phone PASS. No silent normalization/deletion of test history; initial wrong-page step retained in evidence.
+
+Closeout preflight found only controlled faraic3@gmail.com Managerf356bc93-6d64-4e4e-9004-0b2e0fd8ac51 active in A/preview, new pilot staffa56d5621-36bd-419d-b5f1-be288c1799c0 active/version1, A onboarding true/B false. Existing owner-authenticated revoke closed exactly that Manager; versioned owner staff write set only that pilot inactive/version2, preserving name/contact/identity/history. Guarded SQL disabled only registered A/preview onboarding after confirming all synthetic delegates inactive; B remained disabled. Final read-only counts: zero active nonowner synthetic delegates, zero enabled synthetic preview onboarding entries. Legitimate live memberships/onboarding/global delegation gate unchanged. Temporary host task cancelled; private close-attempt/closed receipts: manager-recovery-phone-20261116. Completed/time-off/invitation/financial histories retained, no real customer message or invitation mutation.
+
+Next: owner refreshes the same Manager phone session without signing out; expect Choose Business/access blocked and report actual result. This final retained-session Manager phone check remains pending until observed. Then refresh final exact-candidate compatibility/latest-head CI, preservation/recovery scope and prepare tested release for separate authorization. No main merge or live deployment.
+
+
 
 ## Cross-page staff-assignment phone fixture ready — 16 November 2026
 
