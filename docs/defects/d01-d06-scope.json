@@ -6,7 +6,7 @@
     {
       "path": "account/delegated.php",
       "baseline_sha256": "24b154b919951dbfaf748e8ffaaee92c5eced15d954fb7614846e690fc882f9f",
-      "candidate_sha256": "d5d0b6b7e409cc37d8463ec01cbc6f4e922533a7ddb8bd49fe84daffbf6edd83"
+      "candidate_sha256": "27dd9d085bbe7c922dbe240614d3f1b561e7b4b4c8162bb032e134de2575ae7e"
     },
     {
       "path": "account/core.php",

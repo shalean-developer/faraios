@@ -1,5 +1,11 @@
 # D01–D06 hosted preview — 16 November 2026
 
+## Bookings duplicate-looking pager follow-up
+
+Owner requests removal of duplicate Previous/Next buttons. The extra navigation browsed staff choices, while the bottom row browsed bookings. Staff browsing now sits in a closed-by-default **Browse staff for assignments** disclosure with distinct **Previous staff / Next staff** labels. The booking list shows one plain Previous/Next pair at the bottom. Staff paging remains available; existing cross-page assignment merging, stale-version handling and session/revocation controls are unchanged.
+
+Hosted238 assertions PASS across109 customers,21 quotes and115 bookings, including closed staff browser, distinct staff labels and preserved booking page during staff navigation. Canonical browser/native8 methods PASS. At390/1280 the regression verifies the staff disclosure starts closed, staff links are hidden, exactly one plain Previous/Next pair is visible, then opens staff browsing, navigates Next staff and Previous staff, retains booking page2 and ten cards, and checks the disclosure closes on page navigation. Existing off-page assignment preservation/stale tests still pass. Full Foundation37 suites /125 reported tests PASS, including preview alias10 methods. Only the preview delegated PHP file is replaced with a guarded backup and full1,097-file preservation check. No CSS, SQL, business record, invoice, live or worker-join mutation. Private originals/receipts: private/faraios-account/booking-single-pager-20261116/. Phone retry remains open before invoice acceptance.
+
 ## Current Bookings pagination follow-up
 
 Owner reports Quotes pagination **Passed**, then requests the same fix for Bookings before opening the phone booking invoice. Bookings now requests10 rows, matching Customers/Quotes, with one horizontal bottom record pager and per-page count. Staff-selection pagination remains separate and assignment/session/revocation code is unchanged. The existing full-ID parser regression covers all three resource lists;390/1280 browser checks exercise Next→Page3→Previous→Page2, one record pager, side-by-side44px targets and no overflow. Canonical8 methods and full Foundation37 suites /125 tests PASS locally, including preview alias10 methods and cross-page assignment preservation.

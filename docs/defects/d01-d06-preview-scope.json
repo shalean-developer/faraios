@@ -1,7 +1,7 @@
 {
   "files": {
     "account/core.php": "2605bab2badc357880bdefdf1370357fb9827645df10536a9825e3d82f3b1f03",
-    "account/delegated.php": "7c66a2a0e7753f0b9c1dd519fd3fbcd1be8857ac030ed48d86d861ae4facf536",
+    "account/delegated.php": "b6bdfafe4eebe9eb9fb456424b752dd0ac64b7e0cc88349d09a7e8651242e6e1",
     "account/workspace.css": "34604c14652214ac3ef10577d084ce9ae9cd960725523b89ce7dcbb013d49f1d"
   },
   "businesses": [
@@ -137,6 +137,18 @@
       "quotes": 21,
       "bookings": 115
     },
+    "hosted_result": "PASS"
+  },
+  "booking_single_pager_followup": {
+    "reason": "Staff page navigation looked like duplicate booking Previous/Next controls",
+    "fix": "Collapsed Browse staff for assignments; distinct Previous staff / Next staff labels; single visible record pager",
+    "before_delegated": "7c66a2a0e7753f0b9c1dd519fd3fbcd1be8857ac030ed48d86d861ae4facf536",
+    "after_delegated": "b6bdfafe4eebe9eb9fb456424b752dd0ac64b7e0cc88349d09a7e8651242e6e1",
+    "private_receipts": "private/faraios-account/booking-single-pager-20261116/",
+    "phone_retry_pending": true,
+    "live_changed": false,
+    "business_record_mutations": false,
+    "hosted_checks": 238,
     "hosted_result": "PASS"
   }
 }
