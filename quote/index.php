@@ -1,8 +1,8 @@
 <?php
 require dirname(__DIR__).'/account/core.php';require dirname(__DIR__).'/account/profile-core.php';require dirname(__DIR__).'/account/quotes-core.php';
 $_SERVER['SCRIPT_NAME']=preg_replace('~/quote/index.php$~','/account/index.php',$_SERVER['SCRIPT_NAME']);
-header('Cache-Control: no-store');header('Referrer-Policy: '.(foundation_enabled()?'no-referrer':'same-origin'));header('X-Content-Type-Options: nosniff');header('X-Robots-Tag: noindex, nofollow');header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
-$q=[];$error='';$token=is_string($_GET['token']??null)?$_GET['token']:'';
+header('Cache-Control: no-store');header('Referrer-Policy: no-referrer');header('X-Content-Type-Options: nosniff');header('X-Robots-Tag: noindex, nofollow');header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+if(!in_array($_SERVER['REQUEST_METHOD'],['GET','POST'],true)){http_response_code(405);header('Allow: GET, POST');exit;}$q=[];$error='';$token=is_string($_GET['token']??null)?$_GET['token']:'';
 try{
  $c=cfg();$path=(parse_url($c['base_url'],PHP_URL_PATH)?:'').'/quote/';ini_set('session.use_strict_mode','1');ini_set('session.use_only_cookies','1');session_name('faraios_quote_'.substr(hash('sha256',$c['base_url']),0,12));session_set_cookie_params(['lifetime'=>0,'path'=>$path,'secure'=>($c['environment']??'')!=='test','httponly'=>true,'samesite'=>'Lax']);session_start();$_SESSION['csrf']??=bin2hex(random_bytes(32));
  if(!preg_match('/\A[a-f0-9]{64}\z/',$token)){http_response_code(404);}else{
