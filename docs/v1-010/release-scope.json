@@ -1,0 +1,61 @@
+{
+  "task": "V1-010",
+  "base": "c6d943d038ccc2e08ea1e0dbae63ef76bd85f221",
+  "files": [
+    {
+      "path": "account/bookings.php",
+      "previous_sha256": "c2cfb7f2f597a66bbadcc97dcb40c6740ef6fadfc8b8133b167bbb3c8511099b",
+      "candidate_sha256": "5c68595dbd059ef6a4a439cefe9ff8481e44a0d0bce2df1a2de81e8bd288e731"
+    },
+    {
+      "path": "account/communications.php",
+      "previous_sha256": null,
+      "candidate_sha256": "62416fe1b36fcb923b6ffaaf6ac60d03863e76e0a9233554af8df88eff0216b3"
+    },
+    {
+      "path": "account/core.php",
+      "previous_sha256": "086b76d2aa91999a71d8dee39c670602daf375c752a720711dc39f97c6a158d8",
+      "candidate_sha256": "a91323937bc38a3c4ae5f7bdb9afe6ac19fc434b8ab001d2234a67a8d754652e"
+    },
+    {
+      "path": "account/enquiries.php",
+      "previous_sha256": "c61f592e07ff7ba16b2dfbe325a3654c7cdf990c4b3dd27d57f504ba195235d5",
+      "candidate_sha256": "2008cc51264a9c878d61825fa0dc7fab9361aa72b0bc860fe6a001e53719cc7e"
+    },
+    {
+      "path": "account/invoices.php",
+      "previous_sha256": "12aee76d298b5406b8175441d19e31ae6d6e62f09e8776dec829623b6fc9ae6e",
+      "candidate_sha256": "f6269491fd8f239be0270a9b4a6a7c40314e4cef2eacde5add552ce4980802bf"
+    },
+    {
+      "path": "account/quotes.php",
+      "previous_sha256": "b4a2b039486a7eb6ebf418eb8788d3bc1e059366eaceb01f36137969fe929bae",
+      "candidate_sha256": "3d4fdb9fd632f52892e0d5aa4b2dba5d714330a06da73985bbddc1707f17985e"
+    },
+    {
+      "path": "notifications/lifecycle-config.php",
+      "previous_sha256": null,
+      "candidate_sha256": "de8032b062ca089c95e995ef3be79ba1a23baa0ed5efc141667ff133bd87e739"
+    },
+    {
+      "path": "notifications/lifecycle-webhook.php",
+      "previous_sha256": null,
+      "candidate_sha256": "b4d491d4004080ea02a892800f8c9e4591fca2f3e95e0b2670cdc1bebd2031ae"
+    },
+    {
+      "path": "notifications/lifecycle.php",
+      "previous_sha256": null,
+      "candidate_sha256": "62fe74e682fdf5ea675db28f8ac10366a684423ece6c089162f2674e628192ce"
+    },
+    {
+      "path": "scripts/lifecycle-mail-worker.php",
+      "previous_sha256": null,
+      "candidate_sha256": "51848d0e31b30061f86e489218b3c8ff113bcbe7710ff6f63c877e895de1365f"
+    }
+  ],
+  "sql_sha256": "84778eaf57a0768568ff852badc5c6faa0a03318581b99a08c7150d25828f75b",
+  "outbound_default": false,
+  "capture_default": false,
+  "backfill": false,
+  "hosted_installation": false
+}

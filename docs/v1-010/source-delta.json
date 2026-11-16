@@ -1,0 +1,6 @@
+{
+  ".github/workflows/lifecycle-communications.yml": {
+    "baseline_sha256": null,
+    "candidate_sha256": "ba58895c05fbfb21d8b91d07cf65e848664f9c74c340ab9a7b3ffab46c6b29ab"
+  }
+}

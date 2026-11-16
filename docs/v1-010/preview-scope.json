@@ -1,0 +1,59 @@
+{
+  "task": "V1-010",
+  "scope": "synthetic A/preview only; no outbound authorization",
+  "files": [
+    {
+      "path": "_accounts-preview/account/bookings.php",
+      "previous_sha256": "0e43565ea592e26e05f139c57e340d85bbe3b16f5d39c076f6b22de866e4ed7e",
+      "candidate_sha256": "5f55d7d53acfca13a0fefe2d8c25e1b9357805e7fc77ce59513daa2ce3ea661e"
+    },
+    {
+      "path": "_accounts-preview/account/communications.php",
+      "previous_sha256": null,
+      "candidate_sha256": "1abc9b9f72013a96fb7e5086032613571b0a58ae58431dec968c17eb9e93bde3"
+    },
+    {
+      "path": "_accounts-preview/account/core.php",
+      "previous_sha256": "1db5adbdde7e11a97e596e048ce7903b7718d9f2f8a0699f995d0d988c290403",
+      "candidate_sha256": "6ccd4149e3f052f94f524be53896cf3bf54499bed00599fc29e8600b1bc8485b"
+    },
+    {
+      "path": "_accounts-preview/account/enquiries.php",
+      "previous_sha256": "950b3276b458ddb23382155bbd90c2c4598017aee5f4dbff559ccf102a5f2680",
+      "candidate_sha256": "bd5a9194d027c0265fef305e98e0d04a23ca80e1a84bbf16fc89c502b3310150"
+    },
+    {
+      "path": "_accounts-preview/account/invoices.php",
+      "previous_sha256": "843737415b3bf1d267ee9a4f8a19eccaa12124158b5c3514394ae588b4f8832b",
+      "candidate_sha256": "b6001de045e4c3f891022c90bf7e59683b3a1f45f7881963fe4afef225e0b832"
+    },
+    {
+      "path": "_accounts-preview/account/quotes.php",
+      "previous_sha256": "c6023fc2116a0396b430a731ffd3f40e1b796632d29381889ca3e56f11f42c20",
+      "candidate_sha256": "e2b030742a2e71d965af8499591ea4e32f91c7570d9c952224c59452656fdcd9"
+    },
+    {
+      "path": "_accounts-preview/notifications/lifecycle-config.php",
+      "previous_sha256": null,
+      "candidate_sha256": "de8032b062ca089c95e995ef3be79ba1a23baa0ed5efc141667ff133bd87e739"
+    },
+    {
+      "path": "_accounts-preview/notifications/lifecycle-webhook.php",
+      "previous_sha256": null,
+      "candidate_sha256": "b4d491d4004080ea02a892800f8c9e4591fca2f3e95e0b2670cdc1bebd2031ae"
+    },
+    {
+      "path": "_accounts-preview/notifications/lifecycle.php",
+      "previous_sha256": null,
+      "candidate_sha256": "62fe74e682fdf5ea675db28f8ac10366a684423ece6c089162f2674e628192ce"
+    },
+    {
+      "path": "_accounts-preview/scripts/lifecycle-mail-worker.php",
+      "previous_sha256": null,
+      "candidate_sha256": "51848d0e31b30061f86e489218b3c8ff113bcbe7710ff6f63c877e895de1365f"
+    }
+  ],
+  "sql_sha256": "84778eaf57a0768568ff852badc5c6faa0a03318581b99a08c7150d25828f75b",
+  "immediate_hosted_drift_check_required": true,
+  "hosted_installation": false
+}
