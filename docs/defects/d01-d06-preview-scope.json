@@ -1,0 +1,51 @@
+{
+  "source": "a4db8705e4640f78657490d69d42d42f7d5e35bb",
+  "files": {
+    "account/core.php": "2605bab2badc357880bdefdf1370357fb9827645df10536a9825e3d82f3b1f03",
+    "account/delegated.php": "492914882e0c894d4c1bfd46ede3c29274ad7cb137c85ba56e4a7869d045e972"
+  },
+  "businesses": [
+    "2f16e658-e031-4c4a-930a-2731ec1d1492",
+    "4627f805-8243-4890-bf18-a14fdf3fd21b"
+  ],
+  "aliases": {
+    "business_delegate_command": "business_delegate_command_preview_d0106",
+    "business_delegate_page": "business_delegate_page_preview_d0106"
+  },
+  "sql_sha256": "000aae5ae51b05b0ed7008adf6c550fc1686381fdd29d017e70f11d97ffb9483",
+  "production_install": false,
+  "hosted_installed": true,
+  "hosted_verified": true,
+  "production_installed": false,
+  "installed_php": "8.2.35",
+  "prechange_backup_run": 43807738972,
+  "isolated_restore_run": 43808033751,
+  "shared_command_unchanged_md5": "2c2aeb980f2b7cf6e3be2d0410551020",
+  "alias_definition_md5": {
+    "business_delegate_command_preview_d0106": "a5093a8c48a6792fdac435c4a0ca4ee9",
+    "business_delegate_page_preview_d0106": "7ddc557e548559f6cc7d5423da445cf7"
+  },
+  "phase_checks": {
+    "auth": 16,
+    "api": 255,
+    "sessions": 36,
+    "forms": 38,
+    "workflow": 71,
+    "assignment": 22,
+    "zone-johannesburg": 5,
+    "zone-utc": 5,
+    "zone-london-summer": 5,
+    "zone-london-winter": 5,
+    "zone-gap": 5,
+    "zone-repeat": 5,
+    "close": 7,
+    "revoked": 19
+  },
+  "receipt_sha256": "b52045016d0d7c395c1a4baf039aef1d228ea5fb7d93d7c0627f82105da6150d",
+  "checked_web_files": 1053,
+  "only_two_preview_files_changed": true,
+  "synthetic_delegates_active_at_close": 0,
+  "physical_phone_accepted": false,
+  "network_fault_testing": "Disposable local gateway only; no fault injected into shared hosting",
+  "private_receipt": "private/faraios-account/defect-preview-20261116/closeout.json"
+}

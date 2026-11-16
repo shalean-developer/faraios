@@ -24,7 +24,10 @@
   "database_patch": "docs/sc04/defect-repairs.sql",
   "database_patch_sha256": "017d5df36dbe4161754ed9944e9818cf63f588b52e657334e07001b21ee1ca9a",
   "observed_hosted_command_md5": "2c2aeb980f2b7cf6e3be2d0410551020",
-  "hosted_installed": false,
-  "hosted_mutations": false,
-  "worker_join": "Inherited unchanged from PR66; separately prepared only"
+  "hosted_mutations": true,
+  "worker_join": "Inherited unchanged from PR66; separately prepared only",
+  "hosted_status": "Guarded synthetic-only preview overlay verified; canonical live payload not installed",
+  "hosted_preview_manifest": "docs/defects/d01-d06-preview-scope.json",
+  "canonical_live_payload_installed": false,
+  "hosted_preview_installed": true
 }
