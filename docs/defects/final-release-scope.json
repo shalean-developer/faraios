@@ -48,8 +48,8 @@
   "current_shared_command_md5": "2c2aeb980f2b7cf6e3be2d0410551020",
   "preview_aliases_must_not_be_deployed": true,
   "schema_table_policy_changes": false,
-  "fresh_backup_run": 43843151079,
-  "isolated_restore_run": 43843901476,
+  "fresh_backup_run": 43872691752,
+  "isolated_restore_run": 43873154699,
   "isolated_restore_status": "PASS",
   "private_configuration_recovery": {
     "actual_files": 6,
@@ -75,14 +75,14 @@
   "closed_synthetic_access": true,
   "enabled_synthetic_onboarding": false,
   "phone_acceptance": "Listed Manager/Worker/Receptionist scenarios PASS, including new-account verification/join, offline retention/reconnect/explicit save, worker and Manager stale recovery, duplicate-payment rejection, cross-page assignment and retained-session revocation",
-  "release_authorized": false,
-  "production_deployed": false,
-  "private_receipts": "private/faraios-account/final-checks-20261116/",
+  "release_authorized": true,
+  "production_deployed": true,
+  "private_receipts": "private/faraios-account/live-d0106-20261116/",
   "isolated_restore_report": {
     "status": "restore_verified",
     "table_count": 84,
     "snapshot_fingerprints_match": true,
-    "owner_scopes_checked": 28,
+    "owner_scopes_checked": 32,
     "network": "none",
     "production_credentials_forwarded": false
   },
@@ -105,10 +105,10 @@
   "cross_page_assignment_phone": "PASS: add staff051 preserved001; confirmed page2 removal preserved001, final assignmentversion5",
   "manager_revocation_phone": "PASS: retained phone session refreshed to Choose Business",
   "latest_verified_ci": {
-    "source": "1951efd1d9facac18b90edbe72a406dab700492c",
-    "foundation": 43869447714,
-    "database_regression": 43869447532,
-    "private_configuration_regression": 43869447629,
+    "source": "f89d616b7a9e76612214d70dd845440c97fdbef2",
+    "foundation": 43870752337,
+    "database_regression": 43870752344,
+    "private_configuration_regression": 43870752385,
     "status": "PASS"
   },
   "hosted_final": {
@@ -124,5 +124,24 @@
     "Mid-flight ambiguous-save connection loss is native/browser-tested, not separately phone-accepted",
     "Not an assertion that every possible role/action/device combination was physically tested"
   ],
-  "final_review_status": "Prepared for owner release review; not authorized or deployed"
+  "final_review_status": "Owner authorized; exact seven-file/two-function live release installed and verified; no merge",
+  "reviewed_release_commit": "f89d616b7a9e76612214d70dd845440c97fdbef2",
+  "release_date": "2026-11-16",
+  "live_release": {
+    "migration": "reviewed_d0106_live_functions_20261116",
+    "runtime_hashes_match": true,
+    "changed_web_files": 7,
+    "all_other_web_files_unchanged": true,
+    "private_configs_preserved": true,
+    "http_asset_checks": 7,
+    "permission_checks": 16,
+    "preservation_fingerprints_match": true,
+    "active_synthetic_delegates": 0,
+    "synthetic_onboarding_enabled": false,
+    "main_changed": false,
+    "merged": false,
+    "temporary_hosting_task_cancelled": true,
+    "command_prosrc_md5": "244ea2a34b99082b9429c85f2c0bb981",
+    "page_prosrc_md5": "b89d3db6188427d4234e24979b4b9d93"
+  }
 }

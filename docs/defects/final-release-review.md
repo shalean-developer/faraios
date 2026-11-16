@@ -1,6 +1,16 @@
 # D01–D06 and worker joining: final release review — 16 November 2026
 
-Status: prepared for owner release review. No merge or live deployment authorized or performed. Draft PR68 remains stacked on draft PR66; do not deploy entire inherited branches.
+Status: owner-authorized exact release deployed and verified. Draft PR68 remains stacked on draft PR66 and unmerged. The deployment closeout below supersedes the historical pre-release review.
+
+## Owner-authorized live release complete — 16 November 2026
+
+The owner explicitly authorized the reviewed seven-file/two-function live release. The exact candidate pinned to reviewed commit f89d616b7a9e76612214d70dd845440c97fdbef2 is now installed live. No merge or main change occurred; draft PR68 and prepared PR66 remain unmerged. Earlier preview-only/no-authorization statements below are historical.
+
+Fresh encrypted backup [43872691752](https://github.com/shalean-developer/faraios/actions/runs/43872691752) and isolated restore [43873154699](https://github.com/shalean-developer/faraios/actions/runs/43873154699) passed immediately before release: 84 tables, matching snapshot fingerprints, 32 owner scopes, no network or published ports and no production credentials forwarded. All three CI workflows at reviewed f89d616b passed. Existing six-file private-configuration recovery proof remains separate.
+
+Guarded preflight verified original runtime/configuration/dependency hashes and saved five original runtime files plus two absent-file states privately. Applied only the reviewed command/page SQL functions and page ACLs, then installed exactly seven canonical runtime files. Final runtime hashes match the reviewed manifest; every other web file and original private configuration remained unchanged. Post-release verification passed seven HTTP/asset/access checks and sixteen canonical-RPC permission checks. Revoked Manager/Receptionist/Worker and anonymous access remain denied; the owner's scoped read works. Membership, invitation, payment-history and live-gate fingerprints match pre-release. Both synthetic businesses remain closed with onboarding disabled and zero active delegates. Temporary hosting task cancelled.
+
+Rollback material preserves the original command definition/grants and runtime states; guards protect against later drift. No whole-database rollback, history adjustment, real invitation mutation, customer message, intake change or republication was performed. Coverage limits remain: mid-flight ambiguous-save recovery has native/browser proof rather than separate physical-phone acceptance; no independent QA or universal-device claim; DB restore excludes hosted configuration and Storage bytes and establishes no service recovery-time guarantee.
 
 ## Verified candidate and compatibility
 
