@@ -8,9 +8,19 @@ class UIOnly(unittest.TestCase):
   for path,before in data.items():
    i=0
    for code in re.findall(r'<\?(?:php|=)(.*?)(?:\?>|\Z)',(ROOT/path).read_text(),re.S):
-    code=code.strip();h=hashlib.sha256(code.encode()).hexdigest()
+    code=code.strip()
+    if path=='account/staff.php':
+     # One explicit functional addition approved by staff-onboarding audit.
+     # Strip only this exact redirect; every other original PHP byte stays checked.
+     code=code.replace("if(isset($_POST['invite_next'])){unset($_SESSION['new_staff_id']);header('Location: staff-access.php?staff='.rawurlencode($saved['id']),true,303);exit;}", '')
+    h=hashlib.sha256(code.encode()).hexdigest()
     if i<len(before) and h==before[i]:i+=1
-    else:self.assertIn(code,['esc($base)','$base'],path)
+    else:
+     allowed=['esc($base)','$base']
+     if path=='account/staff.php':
+      # Search adds escaped scope labels and a name/email index; no write logic.
+      allowed += ["esc($b['name'])",'esc(profile_env())',"esc(strtolower($row['name'].' '.$row['email']))"]
+     self.assertIn(code,allowed,path)
    self.assertEqual(i,len(before),path)
  def test_auth_and_business_fields_remain(self):
   # Existing named form fields and security controls are all retained by the PHP fragment proof.

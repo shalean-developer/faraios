@@ -11028,6 +11028,33 @@
       ]
     },
     {
+      "path": "account/staff-access.php",
+      "line": 15,
+      "text": "api('/rest/v1/rpc/business_staff_invite_revoke',$scope+['p_id'=>staff_id((string)($_POST['id']??''))],'POST',$_SESSION['auth']['access_token']);$notice='Invitation revoked.';",
+      "literal_rpcs": [],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "account/staff-access.php",
+      "line": 16,
+      "text": "}elseif($action==='offboard'){api('/rest/v1/rpc/business_staff_offboard',$scope+['p_staff'=>staff_id((string)($_POST['staff']??''))],'POST',$_SESSION['auth']['access_token']);$notice='Staff deactivated and business access revoked. History retained.';}else throw new RuntimeException('Choose a valid action.');",
+      "literal_rpcs": [],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "account/staff-access.php",
+      "line": 18,
+      "text": "$staff=staff_rows($b);if(isset($_GET['staff'])){$selected=staff_id((string)$_GET['staff']);$staff=array_values(array_filter($staff,fn($s)=>$s['id']===$selected));}$invitations=api('/rest/v1/rpc/business_staff_invite_list',$scope,'POST',$_SESSION['auth']['access_token']);",
+      "literal_rpcs": [],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
       "path": "account/staff-core.php",
       "line": 5,
       "text": "function staff_rows(array $b): array {$all=[];for($page=0;$page<100;$page++){$rows=api('/rest/v1/business_staff?business_id=eq.'.rawurlencode($b['id']).'&environment=eq.'.profile_env().'&select=*&order=name.asc,id.asc&limit=100&offset='.($page*100),[],'GET',$_SESSION['auth']['access_token']);$all=array_merge($all,$rows);if(count($rows)<100)return $all;}throw new RuntimeException('Staff list is too large. Please contact support.');}",
@@ -11037,9 +11064,36 @@
       ]
     },
     {
+      "path": "account/staff-invite-core.php",
+      "line": 13,
+      "text": "api('/rest/v1/rpc/business_staff_invite',$scope+['p_staff'=>$staff,'p_role'=>$role,'p_hash'=>hash('sha256',$token),'p_sealed'=>$sealed,'p_replace'=>$replace],'POST',$_SESSION['auth']['access_token']);",
+      "literal_rpcs": [],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "account/staff-join.php",
+      "line": 16,
+      "text": "api('/rest/v1/rpc/business_staff_invite_accept',['p_environment'=>$environment,'p_id'=>$pending['id']??'','p_token'=>$pending['token']??''],'POST',$_SESSION['auth']['access_token']);",
+      "literal_rpcs": [],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "account/staff-join.php",
+      "line": 20,
+      "text": "if(isset($_SESSION['staff_join'])){$_SESSION['after_signin']='staff-join';$u=user();$pending=$_SESSION['staff_join'];$details=api('/rest/v1/rpc/business_staff_invite_preview',['p_environment'=>$environment,'p_id'=>$pending['id'],'p_token'=>$pending['token']],'POST',$_SESSION['auth']['access_token']);}",
+      "literal_rpcs": [],
+      "methods": [
+        "POST"
+      ]
+    },
+    {
       "path": "account/staff.php",
       "line": 9,
-      "text": "if($_SERVER['REQUEST_METHOD']==='POST'){csrf();if(!$s)throw new RuntimeException('Staff unavailable.');$d=staff_values();$saved=profile_rpc('business_staff_write',['p_business'=>$b['id'],'p_environment'=>profile_env(),'p_id'=>$s['id'],'p_version'=>(int)($_POST['version']??-1),'p_name'=>$d['name'],'p_email'=>$d['email'],'p_phone'=>$d['phone'],'p_active'=>isset($_POST['active'])]);unset($_SESSION['new_staff_id']);$_SESSION['staff_notice']='Staff saved. Existing assignments are preserved.';header('Location: staff.php?id='.rawurlencode($saved['id']),true,303);exit;}",
+      "text": "if($_SERVER['REQUEST_METHOD']==='POST'){csrf();if(!$s)throw new RuntimeException('Staff unavailable.');$d=staff_values();$saved=profile_rpc('business_staff_write',['p_business'=>$b['id'],'p_environment'=>profile_env(),'p_id'=>$s['id'],'p_version'=>(int)($_POST['version']??-1),'p_name'=>$d['name'],'p_email'=>$d['email'],'p_phone'=>$d['phone'],'p_active'=>isset($_POST['active'])]);if(isset($_POST['invite_next'])){unset($_SESSION['new_staff_id']);header('Location: staff-access.php?staff='.rawurlencode($saved['id']),true,303);exit;}unset($_SESSION['new_staff_id']);$_SESSION['staff_notice']='Staff saved. Existing assignments are preserved.';header('Location: staff.php?id='.rawurlencode($saved['id']),true,303);exit;}",
       "literal_rpcs": [
         "business_staff_write"
       ],
@@ -11100,6 +11154,24 @@
       "methods": []
     },
     {
+      "path": "notifications/staff-invitation.php",
+      "line": 21,
+      "text": "$j=$rpc('business_staff_mail_claim',['p_environment'=>$c['environment']]);if(empty($j['id']))break;",
+      "literal_rpcs": [
+        "business_staff_mail_claim"
+      ],
+      "methods": []
+    },
+    {
+      "path": "notifications/staff-invitation.php",
+      "line": 29,
+      "text": "$rpc('business_staff_mail_finish',['p_id'=>$j['id'],'p_lease'=>$j['lease'],'p_provider'=>$provider,'p_retry'=>$retry]);$n++;",
+      "literal_rpcs": [
+        "business_staff_mail_finish"
+      ],
+      "methods": []
+    },
+    {
       "path": "quote/index.php",
       "line": 11,
       "text": "$q=api('/rest/v1/rpc/business_quote_customer',$args);",
@@ -11138,6 +11210,27 @@
       "path": "scripts/operations-watchdog.php",
       "line": 26,
       "text": "[$code,$raw]=$fetch('https://rxelmugnucfajrqmphhe.supabase.co/auth/v1/health',['apikey: '.$m[1]]);$data=json_decode($raw,true);$auth=$code===200&&is_array($data)&&isset($data['name']);unset($config,$m,$raw,$data);",
+      "literal_rpcs": [],
+      "methods": []
+    },
+    {
+      "path": "scripts/staff-invitation-worker.php",
+      "line": 10,
+      "text": "function mail_rpc(array $c,string $name,array $args): array {",
+      "literal_rpcs": [],
+      "methods": []
+    },
+    {
+      "path": "scripts/staff-invitation-worker.php",
+      "line": 11,
+      "text": "$r=mail_http($c['supabase_url'].'/rest/v1/rpc/'.$name,$args,['apikey: '.$c['service_key'],'Authorization: Bearer '.$c['service_key']]);return staff_mail_rpc_result($name,$r);",
+      "literal_rpcs": [],
+      "methods": []
+    },
+    {
+      "path": "scripts/staff-invitation-worker.php",
+      "line": 19,
+      "text": "$processed=staff_mail_dispatch($c,fn($name,$args)=>mail_rpc($c,$name,$args),fn($message,$key)=>mail_http('https://api.resend.com/emails',$message,['Authorization: Bearer '.$c['resend_key'],'Idempotency-Key: '.$key]));fwrite(STDOUT,\"Processed {$processed} staff invitations. Provider acceptance does not confirm inbox delivery.\\n\");",
       "literal_rpcs": [],
       "methods": []
     },
@@ -11472,8 +11565,13 @@
     },
     {
       "path": "scripts/private_config.php",
-      "line": 6,
+      "line": 7,
       "text": "function pc_write(string $path,string $bytes): void {if(is_link($path)||file_put_contents($path,$bytes,LOCK_EX)===false||!chmod($path,0600))throw new RuntimeException();}"
+    },
+    {
+      "path": "scripts/staff-invitation-keygen.php",
+      "line": 11,
+      "text": "foreach(['web.php'=>$web,'worker.php'=>$worker] as $name=>$bytes){file_put_contents($directory.'/'.$name,$bytes,LOCK_EX);chmod($directory.'/'.$name,0600);}"
     },
     {
       "path": "scripts/waitlist.php",
@@ -11761,6 +11859,6 @@
     "policies": 23,
     "grant_statements": 87,
     "revoke_statements": 78,
-    "application_access_sites": 96
+    "application_access_sites": 107
   }
 }

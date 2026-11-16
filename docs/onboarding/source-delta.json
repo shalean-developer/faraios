@@ -1,0 +1,50 @@
+{
+  "account/staff-access.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "69adb17514d015b587f54fa286eba1c8ba514fc14a4d444158d371151cbbda34"
+  },
+  "account/staff-invite-core.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "0f51083536b03f33ffba79aa55393ad3390eaf7e78c2f0f935e373161afd42c5"
+  },
+  "account/staff-join.css": {
+    "baseline_sha256": null,
+    "candidate_sha256": "2a9fdf109418be3c686737e51544d09527ede4aebb20181eb552cdc149626644"
+  },
+  "account/staff-join.js": {
+    "baseline_sha256": null,
+    "candidate_sha256": "18ff7b76c4616c21c43f055706314cbe2350fdf20dc71d10ca5771f61c5e3cdb"
+  },
+  "account/staff-join.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "c2a3845160440a8d7a9eadc5233a9bc0b1ed372478c0b331255570b7de3f5eb9"
+  },
+  "account/staff-onboarding.css": {
+    "baseline_sha256": null,
+    "candidate_sha256": "025d5b0b7076a0d818fff9732c1687b01dac4c2581ee52bbb5b6f1cd572dcf78"
+  },
+  "account/staff-search.js": {
+    "baseline_sha256": null,
+    "candidate_sha256": "655d8901a0ce8275a8f8ca746da7029d0dc46d9975bdc7f7910d2e9adabf9246"
+  },
+  "account/staff.php": {
+    "baseline_sha256": "3a1f1a2c4643584314629d256cf162d13e6c490e840df2b9de21a52ea7be903d",
+    "candidate_sha256": "66ae14dcdb852772955005cbb5f01185676afc371d0f31afc36b008784874f34"
+  },
+  "notifications/staff-invitation.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "3a270bd1d729c5b114a86ea88047abdb8ed79c790326e2640abc25ba69ddadb8"
+  },
+  "scripts/private_config.php": {
+    "baseline_sha256": "4b29f0cba38995d6362c404a0966db7d92681a420370dbcad0fb7f7f20446284",
+    "candidate_sha256": "37f21d0935ba82674fa54a73f191347688e3017db111cef4ce85970028430c5c"
+  },
+  "scripts/staff-invitation-keygen.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "58ead1c0d9402d2637c0a3347cff903a45dedf30aff04bf374d78094e2da8b93"
+  },
+  "scripts/staff-invitation-worker.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "90872bdf15810a037c1f87b208aed2cc27149a8326d2c4b79cf2edd443c2890a"
+  }
+}

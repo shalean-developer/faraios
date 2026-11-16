@@ -145,6 +145,8 @@ class Readiness(base.Shared):
   from playwright.sync_api import sync_playwright
   import os
   self.enable();oldurl=type(self).url;private=self.private/'profiles';config=private/'config.php';router=private/'router.php';oldconfig=config.read_text();oldrouter=router.read_text();checks=[]
+  def capture(page,path):
+   if os.environ.get('FARAIOS_SKIP_SCREENSHOTS')!='true':page.screenshot(timeout=10000,animations='disabled',path=str(path),full_page=True)
   actors={role:self.member(role) for role in ['manager','receptionist','worker']}
   manager=actors['manager'];worker=actors['worker'];sid=str(uuid.uuid4());booking=self.booking()
   self.command(manager,'business_staff_write',dict(p_id=sid,p_version=0,p_name='Synthetic mobile worker',p_email='private@example.test',p_phone='',p_active=True))
@@ -156,23 +158,28 @@ class Readiness(base.Shared):
    router.write_text("<?php $path=preg_replace('~^/preview~','',parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));$_SERVER['SCRIPT_NAME']=$path;$_SERVER['SCRIPT_FILENAME']="+repr(str(self.webroot))+".$path;if(preg_match('~\\.(css|js|svg)$~',$path,$m)){header('Content-Type: '.['css'=>'text/css','js'=>'application/javascript','svg'=>'image/svg+xml'][$m[1]]);readfile($_SERVER['SCRIPT_FILENAME']);return true;}require $_SERVER['SCRIPT_FILENAME'];return true;")
    self.restart_php();type(self).url+='/preview'
    with sync_playwright() as playwright:
-    browser=playwright.chromium.launch()
+    def launch_browser():return playwright.chromium.launch(**({'executable_path':os.environ['FARAIOS_CHROMIUM']} if os.environ.get('FARAIOS_CHROMIUM') else {}),args=['--no-sandbox']+(['--single-process','--no-zygote','--disable-gpu','--disable-software-rasterizer'] if os.environ.get('FARAIOS_BROWSER_SINGLE_PROCESS')=='true' else []))
+    browser=launch_browser()
     try:
      for width in [390,1280]:
       for role,actor in actors.items():
        type(self).sc04_login_user=actor
        ctx=browser.new_context(viewport={'width':width,'height':844});page=ctx.new_page()
-       page.goto(self.url+'/account/join.php');page.get_by_label('Email address',exact=True).fill('new@example.test');page.get_by_label('Password',exact=True).fill('test-long-password');page.get_by_role('button',name='Sign in',exact=True).click();page.get_by_role('heading',name='Join business',exact=True).wait_for()
+       page.goto(self.url+'/account/join.php');page.get_by_label('Email address',exact=True).fill('new@example.test');page.get_by_label('Password',exact=True).fill('test-long-password');page.get_by_role('button',name='Sign in',exact=True).click(force=os.environ.get('FARAIOS_BROWSER_SINGLE_PROCESS')=='true');page.get_by_role('heading',name='Join business',exact=True).wait_for()
        for label,path in [('join','join.php'),('context','context.php')]:
-        page.goto(self.url+'/account/'+path);page.get_by_role('heading',level=1).wait_for();metrics=page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');self.assertEqual(metrics['width'],width);self.assertLessEqual(metrics['scroll'],width);checks.append(dict(role=role,page=label,**metrics));page.screenshot(path=str(out/f'sc04-{role}-{label}-{width}.png'),full_page=True)
-       page.get_by_label('Business and environment',exact=True).select_option(self.bids[0]+':preview');page.get_by_role('button',name='Continue',exact=True).click();page.get_by_role('heading',name='Fresh Test',exact=True).wait_for()
-       self.assertIn(role+' · preview',page.locator('body').inner_text());metrics=page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');self.assertEqual(metrics['width'],width);self.assertLessEqual(metrics['scroll'],width);checks.append(dict(role=role,page='workspace',**metrics))
+        page.goto(self.url+'/account/'+path);page.get_by_role('heading',level=1).wait_for();metrics=page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');self.assertEqual(metrics['width'],width);self.assertLessEqual(metrics['scroll'],width);checks.append(dict(role=role,page=label,**metrics));capture(page,out/f'sc04-{role}-{label}-{width}.png')
+       page.get_by_label('Business and environment',exact=True).select_option(self.bids[0]+':preview');page.get_by_role('button',name='Continue',exact=True).click(force=os.environ.get('FARAIOS_BROWSER_SINGLE_PROCESS')=='true');page.get_by_role('heading',name='Fresh Test',exact=True).wait_for()
+       self.assertEqual(page.locator('.workspace-role').text_content(),role+' workspace');self.assertEqual(page.locator('.workspace-environment').text_content(),'preview');metrics=page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');self.assertEqual(metrics['width'],width);self.assertLessEqual(metrics['scroll'],width);checks.append(dict(role=role,page='workspace',**metrics))
+       if width==390:
+        page.locator('.drawer-open').click(force=True);self.assertTrue(page.locator('.app-sidebar').evaluate('(e)=>e.classList.contains("is-open")'));page.keyboard.press('Escape')
+       self.assertEqual(page.locator('.workspace-signout button').count(),1)
+       self.assertEqual(page.locator('.app-sidebar nav a').count(),{'manager':7,'receptionist':5,'worker':1}[role])
        if role=='worker':self.assertEqual(page.get_by_role('link',name='Payments',exact=True).count(),0);self.assertNotIn('50500',page.locator('body').inner_text())
-       page.screenshot(path=str(out/f'sc04-{role}-workspace-{width}.png'),full_page=True);ctx.close()
+       capture(page,out/f'sc04-{role}-workspace-{width}.png');ctx.close();browser.close();browser=launch_browser()
       type(self).sc04_login_user=None
-      ctx=browser.new_context(viewport={'width':width,'height':844});page=ctx.new_page();page.goto(self.url+'/account/index.php?page=signin');page.get_by_label('Email address',exact=True).fill('a@example.test');page.get_by_label('Password',exact=True).fill('test-long-password');page.get_by_role('button',name='Sign in',exact=True).click();page.goto(self.url+'/account/access.php');page.get_by_role('heading',name='Access',exact=True).wait_for();metrics=page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');self.assertEqual(metrics['width'],width);self.assertLessEqual(metrics['scroll'],width);checks.append(dict(role='owner',page='access',**metrics));page.screenshot(path=str(out/f'sc04-owner-access-{width}.png'),full_page=True);ctx.close()
+      ctx=browser.new_context(viewport={'width':width,'height':844});page=ctx.new_page();page.goto(self.url+'/account/index.php?page=signin');page.get_by_label('Email address',exact=True).fill('a@example.test');page.get_by_label('Password',exact=True).fill('test-long-password');page.get_by_role('button',name='Sign in',exact=True).click(force=os.environ.get('FARAIOS_BROWSER_SINGLE_PROCESS')=='true');page.goto(self.url+'/account/access.php');page.get_by_role('heading',name='Access',exact=True).wait_for();metrics=page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');self.assertEqual(metrics['width'],width);self.assertLessEqual(metrics['scroll'],width);checks.append(dict(role='owner',page='access',**metrics));capture(page,out/f'sc04-owner-access-{width}.png');ctx.close();browser.close();browser=launch_browser()
     finally:browser.close()
-   (out/'sc04-browser-layout.json').write_text(json.dumps(dict(status='PASS',checks=checks,source='exact staged native PHP; simulated Auth/REST; disposable database',physical_phone=False),indent=2)+'\n')
+   (out/'sc04-browser-layout.json').write_text(json.dumps(dict(status='PASS',checks=checks,source='exact staged native PHP; simulated Auth/REST; disposable database',physical_phone=False,screenshots=os.environ.get('FARAIOS_SKIP_SCREENSHOTS')!='true'),indent=2)+'\n')
   finally:
    type(self).sc04_login_user=None;type(self).url=oldurl;config.write_text(oldconfig);router.write_text(oldrouter);self.restart_php();self.enable(False)
 
