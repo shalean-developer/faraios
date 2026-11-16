@@ -24,6 +24,8 @@ class Scheduling(Journey):
   u,b,s=[str(uuid.uuid4())for _ in range(3)]
   self.sql('insert into auth.users values('+lit(u)+');insert into public.businesses(id,owner_id,name,business_type,country,time_zone) values('+','.join(map(lit,[b,u,'Synthetic V1005','cleaning','ZA',zone]))+')')
   self.sql('insert into public.business_memberships(business_id,environment,user_id,role,active) values('+','.join(map(lit,[b,'preview',u,'owner',True]))+') on conflict do nothing')
+  # Explicit isolated operator rollout; the owner RPC cannot create or widen it.
+  self.sql('insert into authorization_private.scheduling_policies(business_id,environment,version,enabled,zone,hours,before_minutes,after_minutes,rollout_allowed) values('+','.join([lit(b),lit('preview'),'0','false',lit(zone),"'[]'::jsonb",'30','30','true'])+')')
   self.invoke(u,b,'business_staff_write',p_id=s,p_version=0,p_name='Synthetic worker',p_email='',p_phone='',p_active=True)
   return u,b,s
  def policy(self,u,b,version=0,enabled=True,hours=None,before=30,after=30,zone='Africa/Johannesburg',ack=False):
@@ -152,6 +154,11 @@ class Scheduling(Journey):
   import hashlib
   self.assertEqual(hashlib.sha256((ROOT/'docs/v1-005/install.sql').read_bytes()).hexdigest(),manifest['sql_sha256'])
   for entry in manifest['files']:self.assertEqual(hashlib.sha256((ROOT/'docs/v1-005/runtime'/entry['path']).read_bytes()).hexdigest(),entry['candidate_sha256'])
+ def test_11_owner_cannot_self_enable_unapproved_scope(self):
+  u,b,s=self.fixture();self.sql('update authorization_private.scheduling_policies set rollout_allowed=false where business_id='+lit(b))
+  with self.assertRaisesRegex(RuntimeError,'Scheduling settings unavailable'):self.policy(u,b)
+  with self.assertRaises(RuntimeError):self.invoke(u,b,'business_schedule_policy_read')
+  self.assertEqual(self.sql('select enabled from authorization_private.scheduling_policies where business_id='+lit(b)),'f')
 
 if __name__=='__main__':
  r=unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(Scheduling(n)for n in sorted(Scheduling.__dict__)if n.startswith('test_')));raise SystemExit(not r.wasSuccessful())

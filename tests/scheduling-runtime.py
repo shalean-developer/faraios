@@ -12,6 +12,8 @@ class Runtime(base.Installed):
  @classmethod
  def setUpClass(cls):
   super().setUpClass();stage.install_database(cls.sql)
+  for b in cls.bids:
+   cls.sql('insert into authorization_private.scheduling_policies(business_id,environment,version,enabled,zone,hours,before_minutes,after_minutes,rollout_allowed) values('+','.join([lit(b),lit('preview'),'0','false',lit('Africa/Johannesburg'),"'[]'::jsonb",'30','30','true'])+')')
   for p in (ROOT/'docs/v1-005/runtime').rglob('*'):
    if p.is_file():shutil.copyfile(p,cls.webroot/p.relative_to(ROOT/'docs/v1-005/runtime'))
   cls.restart_php()
@@ -48,6 +50,7 @@ class Runtime(base.Installed):
   published=self.sql('select document from public.business_public_pages where business_id='+lit(b))
   self.call_new(owner,b,'business_profile_save',p_slug=slug,p_draft=profile|dict(description='PRIVATE revised description'),p_version=1)
   self.assertEqual(self.sql('select document from public.business_public_pages where business_id='+lit(b)),published)
+  self.sql('insert into authorization_private.scheduling_policies(business_id,environment,version,enabled,zone,hours,before_minutes,after_minutes,rollout_allowed) values('+','.join([lit(b),lit('preview'),'0','false',lit('Africa/Johannesburg'),"'[]'::jsonb",'30','30','true'])+')')
   self.settings(owner,b);staff=str(uuid.uuid4());self.call_new(owner,b,'business_staff_write',p_id=staff,p_version=0,p_name='Synthetic pilot worker',p_email='',p_phone='',p_active=True)
   request=str(uuid.uuid4());args=dict(p_environment='preview',p_slug=slug,p_service=svc['id'],p_name='Synthetic guest',p_email='guest@example.test',p_phone='',p_requirements='Synthetic cleaning request',p_request=request,p_address='123 Synthetic Cape Town Road',p_local='2090-05-20 10:00',p_zone='Africa/Johannesburg',p_currency='ZAR',p_service_snapshot=svc)
   guest='set role anon;select public.business_booking_request_submit('+','.join(k+'=>'+(lit(json.dumps(v))+'::jsonb'if isinstance(v,dict)else lit(v))for k,v in args.items())+')'

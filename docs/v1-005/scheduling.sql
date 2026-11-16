@@ -4,6 +4,7 @@ create table authorization_private.scheduling_policies(
  business_id uuid not null references public.businesses(id), environment text not null check(environment in ('preview','live')),
  version integer not null, enabled boolean not null, zone text not null, hours jsonb not null,
  before_minutes integer not null check(before_minutes between 0 and 240), after_minutes integer not null check(after_minutes between 0 and 240),
+ rollout_allowed boolean not null default false,
  primary key(business_id,environment)
 );
 create table authorization_private.scheduling_legacy(
@@ -40,6 +41,9 @@ begin
  if p_environment is null or p_environment not in ('preview','live') or coalesce(authorization_private.member_role(p_business,p_environment),'')<>'owner' then
   raise exception 'Scheduling settings unavailable.' using errcode='42501';
  end if;
+ -- Operator-controlled rollout is separate from the owner's enabled setting.
+ -- Installation exposes no new settings/actions to an existing live business.
+ if not exists(select 1 from authorization_private.scheduling_policies where business_id=p_business and environment=p_environment and rollout_allowed) then raise exception 'Scheduling settings unavailable.' using errcode='42501';end if;
 end$$;
 create function authorization_private.scheduling_is_legacy(p_booking uuid) returns boolean language sql stable security definer set search_path='' as $$
  select exists(select 1 from authorization_private.scheduling_legacy l join public.business_bookings b on b.id=l.booking_id
@@ -178,7 +182,7 @@ begin
   select b.id,b.business_id,b.environment,b.starts_at,b.duration_minutes,b.time_zone,coalesce((select array_agg(staff_id) from public.business_booking_staff where booking_id=b.id),'{}'::uuid[])
   from public.business_bookings b where b.business_id=p_business and b.environment=p_environment and b.status in ('Scheduled','In Progress') on conflict(booking_id) do nothing;
  end if;
- insert into authorization_private.scheduling_policies values(p_business,p_environment,coalesce(old.version,0)+1,p_enabled,p_zone,p_hours,p_before,p_after)
+ insert into authorization_private.scheduling_policies(business_id,environment,version,enabled,zone,hours,before_minutes,after_minutes) values(p_business,p_environment,coalesce(old.version,0)+1,p_enabled,p_zone,p_hours,p_before,p_after)
  on conflict(business_id,environment) do update set version=excluded.version,enabled=excluded.enabled,zone=excluded.zone,hours=excluded.hours,before_minutes=excluded.before_minutes,after_minutes=excluded.after_minutes;
  if p_enabled then
   for candidate in select b.id,b.starts_at,b.duration_minutes,s.staff_id from public.business_bookings b join public.business_booking_staff s on s.booking_id=b.id where b.business_id=p_business and b.environment=p_environment and b.status in ('Scheduled','In Progress') and not authorization_private.scheduling_is_legacy(b.id) order by b.id,s.staff_id loop

@@ -29,7 +29,7 @@
       "candidate_sha256": "e292dc2bf345fcaad3c1c8a187f6733ebb000aeb93b3921bd10a65cfcf8742e4"
     }
   ],
-  "sql_sha256": "1a25bccc3d1d2bed7fa4181fdccb2e6e540501292adfc113e7af50869c4ecff1",
+  "sql_sha256": "337781c7f8d68212419b1eb05ad5e4284e5c9dd74c9a9e22aee76c277ea725bf",
   "changed_functions": [
     "authorization_private.copy_booking_private_owner_write(uuid,text,uuid,integer,uuid,jsonb,text,timestamp without time zone,text,integer,text)",
     "authorization_private.copy_staff_private_assign(uuid,text,uuid,integer,jsonb)",
