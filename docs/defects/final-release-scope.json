@@ -6,7 +6,7 @@
     {
       "path": "account/delegated.php",
       "baseline_sha256": "24b154b919951dbfaf748e8ffaaee92c5eced15d954fb7614846e690fc882f9f",
-      "candidate_sha256": "d64c427e6a52568da4a6f07b9e0f55a863cc7b21c7b1f9a02e34b0eaf01617c9"
+      "candidate_sha256": "451d51d8790e4131d74861fefbf874954a6caa419b6fb950ff9de12076725aae"
     },
     {
       "path": "account/core.php",
@@ -99,5 +99,7 @@
   },
   "phone_connection_recovery": "Preview corrected; physical-phone retry pending",
   "current_test_window": "Only controlled faraic3@gmail.com Manager active in A/preview; A onboarding true; worker/previous roles/B closed",
-  "manager_typed_field_phone": "PASS: stale version1 rejected; typed Name/Notes retained; saved version2 other-writer values unchanged"
+  "manager_typed_field_phone": "PASS: stale version1 rejected; typed Name/Notes retained; saved version2 other-writer values unchanged",
+  "invoice_labels": "Number-first heading; focused native/browser workflow PASS; preview installed, phone confirmation pending",
+  "payment_duplicate_phone": "Prepared same-details/new-key replay on INV-000004; existing payment count1, sum1000 minor, invoiceversion3; no submission yet"
 }
