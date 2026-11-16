@@ -1,5 +1,15 @@
 # V1-004 — stale assignment recovery
 
+## Owner-authorized live repair Verified — 16 November 2026
+
+The owner explicitly authorized PR76's one-file repair and synthetic verification. Reviewed source9a35e54a4abbd09fac8776ff06c9e532c66a3a20 was installed at18:44:37 Johannesburg, and live acceptance passed at18:47. Only account/bookings.php changed. Original bytes are retained privately under v1004-live-20261116/bookings.before.php. Exact candidate SHA256335f1f386dfcc775964ffc1b0011299129cf53cbd1202614a33bca3fbd32ef59 is installed; all other1159 regular web files and private configuration remained unchanged. No SQL/function installation or whole-branch deployment.
+
+Hosted PASS140 cumulative checks (30 installation plus110 additional verification). Dedicated new synthetic booking747c8427-0dad-446d-a987-ce6db9b8d492 loaded assignmentversion1, another writer saved both staff atversion2, and stale partial/empty choices were each submitted twice. Four rejections retained choices and original tokens; the exact saved row/assignments remained unchanged. Explicit reload displayed both staff/currentversion2. Eleven original A/live table/view snapshots matched; every original preview payment and booking/assignment row matched. The original phone payment remains a single1000-minor ledger entry, and cross-page assignment fixture remains version5/onlystaff001. No new payment, invoice or message was submitted.
+
+Synthetic Manager/Receptionist/Worker tokens still deny scoped data; no access activation or legitimate access change. New synthetic booking/assignment audit history is retained. Four original hosting schedules remain and the temporary unsaved task was cancelled. Accepted seven-file, V1-022, public/SEO and dashboard overlays were preserved.
+
+Live V1-004 now has all three acceptance items checked and Status Verified. Refreshed overview13/30 verified,15 blockers; broader launch remains HOLD. PR76 stays draft/unmerged and main4cea37e unchanged. Exact deployed-source three required CI workflows passed; any later evidence commit is documentation/operator tooling only and does not replace the deployed source. Private receipts and sanitized copies: live-install.json/live-verification.json; live-install.php/live-verify.php document the one-use operators. Earlier pending-deployment statements below are historical.
+
 ## Decision
 
 Repair prepared; not deployed. V1-004 remains In progress with its final acceptance item unchecked. The launch remains on hold. Payment replay and cross-page assignment phone passes already recorded in the tracker are preserved, not repeated.
