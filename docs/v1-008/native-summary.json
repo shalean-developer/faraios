@@ -1,0 +1,14 @@
+[
+  {
+    "suite": "sc04-readiness",
+    "passed": true
+  },
+  {
+    "suite": "workflow-repairs",
+    "passed": true
+  },
+  {
+    "suite": "v1-008-live-roles",
+    "passed": true
+  }
+]
