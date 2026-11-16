@@ -98,5 +98,13 @@
   "waitlist.html": {
     "baseline_sha256": "3b97b2566bd1e68b41eaac87989edc411986f681ed9afd02fae5f2055da3b56f",
     "candidate_sha256": "8527000721618727fb94988d0d47e09309a1b3b1d3f38b180d23a268db968fe0"
+  },
+  "ui/marketing-header.html": {
+    "baseline_sha256": "02103e77050bd971240e02552d6303b03b0cd614da25bc20af5212dbc21f096e",
+    "candidate_sha256": "963eec42cf4ca12609ba7e08afa876ddf9c39d4a8ad49a6d25bc23c366650544"
+  },
+  "release/seo/install-seo-20261116.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "513411ac5779c8689b78d29180dd82b94016e21b447340820c0cf9b419808d30"
   }
 }

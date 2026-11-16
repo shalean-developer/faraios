@@ -11286,6 +11286,21 @@
       "text": "$lock=fopen($lockPath,'c');if(!$lock||!chmod($lockPath,0600)||!flock($lock,LOCK_EX))throw new RuntimeException();"
     },
     {
+      "path": "release/seo/install-seo-20261116.php",
+      "line": 8,
+      "text": "$lock=fopen($private.'/seo-release.lock','c');if(!$lock||!flock($lock,LOCK_EX|LOCK_NB))throw new RuntimeException('Release locked');chmod($private.'/seo-release.lock',0600);"
+    },
+    {
+      "path": "release/seo/install-seo-20261116.php",
+      "line": 20,
+      "text": "foreach($changes as $p){$dest=$root.'/'.$p;$v=$payload[$p];if(hash_file('sha256',$dest)!==$v['baseline_sha256'])throw new RuntimeException('Concurrent change: '.$p);$tmp=$dest.'.seo-'.bin2hex(random_bytes(4));if(file_put_contents($tmp,base64_decode($v['content'],true),LOCK_EX)===false||!chmod($tmp,fileperms($dest)&0777))throw new RuntimeException('Stage failed');if(!rename($tmp,$dest))throw new RuntimeException('Install failed');$written[]=$p;if(function_exists('opcache_invalidate'))opcache_invalidate($dest,true);}"
+    },
+    {
+      "path": "release/seo/install-seo-20261116.php",
+      "line": 22,
+      "text": "$receipt=['seo_release'=>'applied_PASS','files'=>count($payload),'changed'=>count($changes),'protected_files'=>count($protected),'database_writes'=>false,'backup'=>basename($backup),'time'=>gmdate('c')];file_put_contents($backup.'/receipt.json',json_encode($receipt));chmod($backup.'/receipt.json',0600);echo json_encode($receipt);"
+    },
+    {
       "path": "scripts/auth_recovery.py",
       "line": 102,
       "text": "original_api_settings=sql(\"SELECT coalesce(rolconfig::text,'') FROM pg_roles WHERE rolname='authenticator'\")"

@@ -72,7 +72,7 @@ class Baseline(unittest.TestCase):
             self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
             original[path]={'path':path,'sha256':change['candidate_sha256']}
         seo=json.loads((ROOT/'docs/seo/source-delta.json').read_text())
-        self.assertEqual(set(seo),{'industries/fitness.html', 'business/seo.php', 'industries/construction.html', 'industries/electrical.html', 'about.html', 'guides/enquiry-to-invoice.html', 'marketplace.html', 'industries/consulting.html', 'industries/beauty-spa.html', 'features.html', 'privacy.html', 'sitemap.php', 'contact.html', 'pricing.html', 'industries.html', 'industries/technology.html', 'industries/security.html', 'industries/gardening.html', 'industries/cleaning.html', '.htaccess', 'terms.html', 'waitlist.html', 'industries/tourism.html', 'hosting.html', 'index.html'})
+        self.assertEqual(set(seo),{'guides/enquiry-to-invoice.html', 'ui/marketing-header.html', 'contact.html', 'industries/fitness.html', 'features.html', 'pricing.html', 'terms.html', 'industries/cleaning.html', 'sitemap.php', 'industries/consulting.html', 'industries/tourism.html', 'industries.html', 'privacy.html', 'release/seo/install-seo-20261116.php', 'industries/beauty-spa.html', '.htaccess', 'hosting.html', 'about.html', 'business/seo.php', 'index.html', 'industries/electrical.html', 'industries/gardening.html', 'waitlist.html', 'industries/security.html', 'marketplace.html', 'industries/technology.html', 'industries/construction.html'})
         for path,change in seo.items():
             self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
             self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
