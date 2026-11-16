@@ -1,0 +1,12 @@
+{
+  "application_delta": [
+    {
+      "path": "account/delegated.php",
+      "baseline_sha256": "451d51d8790e4131d74861fefbf874954a6caa419b6fb950ff9de12076725aae",
+      "candidate_sha256": "760ad191d34f03cc558cbb908b5db301c775c121569e56338d61a17c72cf4ff6"
+    }
+  ],
+  "preserve_owner_bookings_sha256": "335f1f386dfcc775964ffc1b0011299129cf53cbd1202614a33bca3fbd32ef59",
+  "database_changes": [],
+  "no_whole_branch_deployment": true
+}

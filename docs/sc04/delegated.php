@@ -11,7 +11,7 @@ function work_time(string $value,string $zone): string {try{return (new DateTime
 function work_nav(int $page,bool $next,string $key='page'): void {global $resource,$staffPage;echo '<nav class="workspace-pagination" aria-label="'.($key==='page'?'Record pages':'Staff pages').'">';foreach(['Previous'=> $page>1?$page-1:null,'Next'=>$next?$page+1:null] as $label=>$n)if($n!==null)echo '<a class="button secondary page-'.strtolower($label).'" href="?'.esc(http_build_query(['view'=>$resource,'page'=>$key==='page'?$n:($GLOBALS['page']??1),'staff_page'=>$key==='staff_page'?$n:$staffPage])).'">'.$label.($key==='staff_page'?' staff':'').'</a> ';echo '<span class="page-number">Page '.$page.'</span></nav>';}
 function work_rpc(string $name,array $args): array {return api('/rest/v1/rpc/'.$name,$args,'POST',$_SESSION['auth']['access_token']);}
 function work_input(string $name,string $label,string $type='text',string $value='',bool $required=true,string $attrs=''): void {global $activeForm;if($activeForm&&array_key_exists($name,$_POST)&&is_scalar($_POST[$name]))$value=(string)$_POST[$name];static $count=0;$count++;$element=$name.'-'.$count;echo '<label for="'.esc($element).'">'.esc($label).'</label><input id="'.esc($element).'" name="'.esc($name).'" type="'.esc($type).'" value="'.esc($value).'"'.($required?' required':'').$attrs.'>';}
-function work_form(string $action,string $label,array $row=[]): void {global $activeForm,$recover;$activeForm=$recover&&($_POST['action']??'')===$action&&($_POST['id']??'')===($row['id']??'');echo '<details class="panel"'.($activeForm?' open':'').'><summary>'.esc($label).'</summary>';form_start();echo '<input type="hidden" name="action" value="'.esc($action).'">';if($row&&$activeForm)$row['version']=(int)($_POST['version']??0);if($row)echo '<input type="hidden" name="id" value="'.esc($row['id']).'"><input type="hidden" name="version" value="'.(int)($row['version']??0).'">';}
+function work_form(string $action,string $label,array $row=[]): void {global $activeForm,$recover;$activeForm=$recover&&($_POST['action']??'')===$action&&($_POST['id']??'')===($row['id']??'');echo '<details class="panel"'.($activeForm?' open':'').'><summary>'.esc($label).'</summary>';form_start();echo '<input type="hidden" name="action" value="'.esc($action).'">';if($row&&$activeForm)$row['version']=(int)($_POST['version']??0);if(!$row)$row=['id'=>quote_uuid(),'version'=>0];echo '<input type="hidden" name="id" value="'.esc($row['id']).'"><input type="hidden" name="version" value="'.(int)($row['version']??0).'">';}
 function work_recovery(): void {
  global $recover,$role,$resource;
  $action=(string)($_POST['action']??'');
@@ -43,7 +43,7 @@ try {
  $scope=['p_business'=>$b['id'],'p_environment'=>$_SESSION['business_context']['environment']];
  $canRender=true;
  if($_SERVER['REQUEST_METHOD']==='POST'){try {
-  csrf(131072);if(isset($_POST['email'])&&$_POST['email']!==''&&!filter_var($_POST['email'],FILTER_VALIDATE_EMAIL))throw new RuntimeException('Enter a valid email address.');$action=(string)($_POST['action']??'');$id=(string)($_POST['id']??quote_uuid());$version=(int)($_POST['version']??0);$op='';$a=[];
+  csrf(131072);if(isset($_POST['email'])&&$_POST['email']!==''&&!filter_var($_POST['email'],FILTER_VALIDATE_EMAIL))throw new RuntimeException('Enter a valid email address.');$action=(string)($_POST['action']??'');$id=is_string($_POST['id']??null)?$_POST['id']:'';if(!preg_match('/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/',$id))throw new RuntimeException('This form has expired. Reload and compare before saving.');$version=(int)($_POST['version']??0);$op='';$a=[];
   switch($action){
    case 'customer':$op='business_customer_write';$a=['p_id'=>$id,'p_version'=>$version,'p_details'=>[],'p_confirm'=>isset($_POST['confirm_duplicate'])];foreach(['name','email','phone','address','notes'] as $k)$a['p_details'][$k]=(string)($_POST[$k]??'');break;
    case 'enquiry':$op='business_enquiry_create';$a=['p_id'=>$id,'p_name'=>(string)($_POST['name']??''),'p_email'=>(string)($_POST['email']??''),'p_phone'=>(string)($_POST['phone']??''),'p_requirements'=>(string)($_POST['requirements']??'')];break;
@@ -73,7 +73,7 @@ try {
    case 'payment':
     $reference=trim((string)($_POST['reference']??''),' ');$length=preg_match_all('/./us',$reference);
     if($length===false||$length<2||$length>120||preg_match('/[\x00-\x1f\x7f]/',$reference))throw new RuntimeException('Enter a payment reference of 2–120 characters without control characters.');
-    $paymentId=(string)($_POST['payment_id']??quote_uuid());$_POST['payment_id']=$paymentId;
+    $paymentId=is_string($_POST['payment_id']??null)?$_POST['payment_id']:'';if(!preg_match('/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/',$paymentId))throw new RuntimeException('Reload the payment form before saving.');
     $op='business_invoice_payment';$a=['p_invoice'=>$id,'p_id'=>$paymentId,'p_amount'=>work_amount((string)($_POST['amount']??''),(string)($_POST['currency']??'ZAR')),'p_paid_on'=>(string)($_POST['paid_on']??''),'p_reference'=>$reference];break;
    case 'availability':$op='availability.request';$a=['id'=>$id,'starts_at'=>(string)($_POST['starts_at']??''),'ends_at'=>(string)($_POST['ends_at']??'')];break;
    default:throw new RuntimeException('Action unavailable.');

@@ -30,6 +30,8 @@ class Profiles(Journey):
        for k,v in body.items():parts.append(k+'=>'+(lit(json.dumps(v))+'::jsonb' if k in ['p_image','p_draft','p_document','p_details','p_staff','p_service_snapshot','p_selections','p_arguments'] and not (getattr(cls,'staff_onboarding',False) and k=='p_staff' and name in ['business_staff_invite','business_staff_offboard']) else lit(v)))
        call='public.'+name+'('+','.join(parts)+')'
        data=json.loads(cls.sql(prefix+'select '+('to_jsonb('+call+')' if getattr(cls,'staff_onboarding',False) and name=='business_staff_invite' else call)))
+       if logical in getattr(cls,'rpc_commit_faults',{}):
+        status=cls.rpc_commit_faults.pop(logical);raise RuntimeError('Synthetic response lost after committed save')
       else:
        table=url.path.rsplit('/',1)[-1];assert table in ['business_service_images','businesses','business_profiles','business_public_pages','business_service_catalogues','business_enquiries','business_quotes','business_quote_list','business_bookings','business_customers','business_staff','business_booking_schedule','business_invoice_list','business_invoice_payments','business_booking_requests'];cols=q.get('select',['*'])[0];assert re.fullmatch(r'[a-z_,*]+',cols);conditions=[]
        for key,vs in q.items():
