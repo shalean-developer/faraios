@@ -1,8 +1,8 @@
 {
   "files": {
     "account/core.php": "2605bab2badc357880bdefdf1370357fb9827645df10536a9825e3d82f3b1f03",
-    "account/delegated.php": "597760e03083c08fb2122820a3d8362c840dd573d72b7f93b43b68b448371ae6",
-    "account/workspace.css": "183bf0a1b40926c17f3bb51225064d5166044ec8d66ea32b3c6c6c98b88b6cd8"
+    "account/delegated.php": "e98589f3af6bb1639852fff01df70b8ab8e233718283e1d4e9b8367156c69dfe",
+    "account/workspace.css": "34604c14652214ac3ef10577d084ce9ae9cd960725523b89ce7dcbb013d49f1d"
   },
   "businesses": [
     "2f16e658-e031-4c4a-930a-2731ec1d1492",
@@ -83,5 +83,28 @@
     "physical_phone_retry_pending": true,
     "live_changed": false,
     "database_change": false
+  },
+  "save_visibility_followup": {
+    "owner_finding": "Create customer form has no visible Save button on phone",
+    "cause": "Preview relative theme asset returned404, so unresolved custom properties left white Save text on transparent background",
+    "theme_asset": "/ui/design-system.css (existing shared asset, HTTP200 with theme tokens)",
+    "fix": "Correct shared stylesheet URL, explicit submit type, module fallback colours, refreshed CSS query key save-visible-20261116",
+    "runtime_changes": {
+      "account/delegated.php": {
+        "before": "597760e03083c08fb2122820a3d8362c840dd573d72b7f93b43b68b448371ae6",
+        "after": "e98589f3af6bb1639852fff01df70b8ab8e233718283e1d4e9b8367156c69dfe"
+      },
+      "account/workspace.css": {
+        "before": "183bf0a1b40926c17f3bb51225064d5166044ec8d66ea32b3c6c6c98b88b6cd8",
+        "after": "34604c14652214ac3ef10577d084ce9ae9cd960725523b89ce7dcbb013d49f1d"
+      }
+    },
+    "regression": "Before-fix blocked-theme test FAIL: rgba(0,0,0,0) background. After-fix390/1280 contrast>=4.5,44px target, Save click and retained invalid input PASS",
+    "private_receipts": "private/faraios-account/save-visibility-20261116/",
+    "physical_phone_retry_pending": true,
+    "database_change": false,
+    "live_changed": false,
+    "hosted_checks": 48,
+    "web_files_preserved": 1053
   }
 }

@@ -128,6 +128,7 @@ class Repairs(base.Readiness):
     for width in [390,1280]:
      for role,actor in [('manager',manager),('worker',worker)]:
       type(self).sc04_login_user=actor;ctx=browser.new_context(viewport={'width':width,'height':844});page=ctx.new_page()
+      if role=='manager':page.route('**/ui/design-system.css',lambda route:route.abort())
       page.goto(self.url+'/account/index.php?page=signin');page.get_by_label('Email address',exact=True).fill('new@example.test');page.get_by_label('Password',exact=True).fill('test-long-password');page.get_by_role('button',name='Sign in',exact=True).click()
       page.goto(self.url+'/account/context.php');page.get_by_label('Business and environment',exact=True).select_option(self.bids[0]+':preview');page.get_by_role('button',name='Continue',exact=True).click();page.get_by_role('heading',name='Fresh Test',exact=True).wait_for()
       if role=='manager':
@@ -143,7 +144,13 @@ class Repairs(base.Readiness):
        page.get_by_role('navigation',name='Record pages',exact=True).get_by_role('link',name='Previous',exact=True).click();self.assertIn('page=2',page.url)
        page.get_by_role('navigation',name='Record pages',exact=True).get_by_role('link',name='Next',exact=True).click();self.assertIn('page=3',page.url)
        page.locator('summary').filter(has_text='Create customer').click();form=page.locator('form').filter(has=page.locator('input[name="action"][value="customer"]')).first
-       form.locator('input[name="name"]').fill('Synthetic phone retained');form.locator('input[name="email"]').fill('bad-email');form.get_by_role('button',name='Save',exact=True).click();page.get_by_role('heading',name='Unsaved changes',exact=True).wait_for()
+       save=form.get_by_role('button',name='Save',exact=True);save.scroll_into_view_if_needed();self.assertGreaterEqual(save.bounding_box()['height'],44)
+       colors=save.evaluate('(e)=>({background:getComputedStyle(e).backgroundColor,foreground:getComputedStyle(e).color})');self.assertNotIn(colors['background'],['rgba(0, 0, 0, 0)','transparent','rgb(255, 255, 255)']);self.assertNotEqual(colors['background'],colors['foreground'])
+       def luminance(color):
+        rgb=[int(v)/255 for v in re.findall(r'\d+',color)[:3]];linear=[v/12.92 if v<=.04045 else ((v+.055)/1.055)**2.4 for v in rgb];return sum(v*w for v,w in zip(linear,[.2126,.7152,.0722]))
+       a,b=sorted([luminance(colors['background']),luminance(colors['foreground'])]);self.assertGreaterEqual((b+.05)/(a+.05),4.5)
+       page.screenshot(path=str(out/('customer-save-no-theme-'+str(width)+'.png')))
+       form.locator('input[name="name"]').fill('Synthetic phone retained');form.locator('input[name="email"]').fill('bad-email');save.click();page.get_by_role('heading',name='Unsaved changes',exact=True).wait_for()
        self.assertEqual(page.locator('section.panel input[name="name"]').input_value(),'Synthetic phone retained');self.assertTrue(page.get_by_role('alert').is_visible())
       else:self.assertIn('Times in Africa/Johannesburg',page.locator('body').inner_text());self.assertNotIn('Payments',page.locator('body').inner_text())
       metrics=page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');self.assertLessEqual(metrics['scroll'],width);checks.append(dict(role=role,**metrics));out=ROOT/'test-results/release';out.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(out/('defect-'+role+'-'+str(width)+'.png')),full_page=False);ctx.close();browser.close();browser=pw.chromium.launch(executable_path=os.environ.get('FARAIOS_CHROMIUM','/usr/bin/chromium'),headless=True,args=['--no-sandbox','--no-zygote','--single-process','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--disable-gpu'])

@@ -1,5 +1,16 @@
 # D01–D06 hosted preview — 16 November 2026
 
+## Current Save-button visibility follow-up
+
+During the intentional invalid-email phone check, the owner reported an open Create customer form with no visible Save button. The button was in the markup, but **/_accounts-preview/ui/design-system.css returned404**, leaving theme properties undefined; white button text appeared on a transparent/white background. The existing shared **/ui/design-system.css returned200 and contains the homepage tokens**. Earlier local tests loaded a theme file that was absent at the hosted relative URL, so they missed this visual defect.
+
+The delegated page now references the existing root shared stylesheet, uses explicit submit types, and its own workspace CSS supplies fallback colours for buttons/text/borders if the shared theme fails. Query key save-visible-20261116 forces fresh workspace CSS. No shared live stylesheet is changed or republished. The single bottom pager, mobile Menu,10-customer pages and all permission/session/revocation controls remain intact.
+
+A missing-theme browser regression **fails before the fix** with background rgba(0,0,0,0). After the fix at390/1280 it requires an opaque button, text contrast at least4.5:1 and44px+ touch target, then actually clicks Save with an invalid email and verifies clear error plus retained values. This passed with the shared theme deliberately blocked. Canonical browser/native8 methods and preview alias10 native methods pass. Physical-phone retry is still required; customer-view acceptance does not accept this failed form check.
+
+Only preview account/delegated.php and account/workspace.css are replaced with original-byte backups and full1,053-file preservation checks. Private receipts/operator are under private/faraios-account/save-visibility-20261116. Hosted verification checks actual Create customer Save submit markup, one bottom pager, corrected shared URL, actual served fallback CSS hash and successful HTTP200 theme response. No business-record, SQL/function, invitation, live-file or worker-join change. Full live proposal remains the three canonical runtime files plus the previously prepared SQL, separately authorized after full phone acceptance.
+
+
 ## Current phone controls — single bottom pager and visible Menu
 
 The owner's physical-phone screenshots showed navigation at Page2 but requested removal of duplicate top/bottom controls, side-by-side Previous/Next, and a visible left header Menu icon. The current UI supersedes the preceding dual-pager design: **one record pager at the bottom**, two equal columns with the page number beneath,10 customers per page. Staff-page navigation remains separate on booking assignment screens.
