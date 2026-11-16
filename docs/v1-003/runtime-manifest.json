@@ -8,5 +8,9 @@
   ],
   "preserve_owner_bookings_sha256": "335f1f386dfcc775964ffc1b0011299129cf53cbd1202614a33bca3fbd32ef59",
   "database_changes": [],
-  "no_whole_branch_deployment": true
+  "no_whole_branch_deployment": true,
+  "status": "deployed_and_verified",
+  "deployed_source": "6dec96fd8524c45837eee859706c0e8c6e72a6b3",
+  "installed_at": "2026-11-16T17:24:31+00:00",
+  "verified_at": "2026-11-16T17:25:27+00:00"
 }
