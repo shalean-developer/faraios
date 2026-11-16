@@ -112,7 +112,10 @@ class Repairs(base.Readiness):
  def test_d01_assignment_across_pages(self):
   self.enable();u=self.member('manager');self.login(u);bid=self.booking()
   staff=self.page(u,'staff')['items'];other=self.page(u,'staff',3)['items'];self.assertTrue(other)
-  first=staff[0]['id'];second=other[0]['id']
+  # Prior workflow tests intentionally retain inactive staff. UUID ordering
+  # must not make this permitted cross-page case randomly choose one of them.
+  self.assertTrue(any(s['active'] for s in staff));self.assertTrue(any(s['active'] for s in other))
+  first=next(s['id'] for s in staff if s['active']);second=next(s['id'] for s in other if s['active'])
   self.command(u,'business_staff_assign',dict(p_booking=bid,p_version=0,p_staff=[first]))
   row=self.page(u,'bookings',id=bid)['items'][0]
   html=self.post('/account/delegated.php?view=bookings&staff_page=3',action='assign',id=bid,version=row['version'],assignment_version=row['assignment_version'],staff_page_ids=json.dumps([s['id'] for s in self.page(u,'staff',3)['items']]),**{'staff[]':second})
