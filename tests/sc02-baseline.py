@@ -77,6 +77,12 @@ class Baseline(unittest.TestCase):
             self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
             self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
             original[path]={'path':path,'sha256':change['candidate_sha256']}
+        release=json.loads((ROOT/'docs/v1-017/source-delta.json').read_text())
+        self.assertEqual(set(release),{'.github/workflows/foundation-regression.yml'})
+        for path,change in release.items():
+            self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
+            self.assertEqual(change['baseline_sha256'],original[path]['sha256'])
+            original[path]={'path':path,'sha256':change['candidate_sha256']}
         expected['files']=[original[path] for path in sorted(original,key=Path)]
         self.assertEqual(expected,manifest())
         self.assertEqual(len(self.inventory['files']),31)

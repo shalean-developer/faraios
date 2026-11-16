@@ -1,0 +1,93 @@
+{
+  "ingress": {
+    "quote_private": [
+      {
+        "enabled": true,
+        "environment": "preview"
+      },
+      {
+        "enabled": true,
+        "environment": "live"
+      }
+    ],
+    "staff_private": [
+      {
+        "enabled": true,
+        "environment": "preview"
+      },
+      {
+        "enabled": true,
+        "environment": "live"
+      }
+    ],
+    "booking_private": [
+      {
+        "enabled": true,
+        "environment": "preview"
+      },
+      {
+        "enabled": true,
+        "environment": "live"
+      }
+    ],
+    "enquiry_private": [
+      {
+        "enabled": true,
+        "environment": "preview"
+      },
+      {
+        "enabled": true,
+        "environment": "live"
+      }
+    ],
+    "invoice_private": [
+      {
+        "enabled": true,
+        "environment": "preview"
+      },
+      {
+        "enabled": true,
+        "environment": "live"
+      }
+    ],
+    "request_private": [
+      {
+        "enabled": true,
+        "environment": "preview"
+      },
+      {
+        "enabled": true,
+        "environment": "live"
+      }
+    ],
+    "customer_private": [
+      {
+        "enabled": true,
+        "environment": "preview"
+      },
+      {
+        "enabled": true,
+        "environment": "live"
+      }
+    ]
+  },
+  "live_scopes": {
+    "total": 2,
+    "enabled": 1
+  },
+  "delegation_gate": [
+    {
+      "enabled": true,
+      "singleton": true
+    }
+  ],
+  "staff_onboarding": {
+    "total": 3,
+    "enabled": 1
+  },
+  "mail_settings_columns": [
+    "environment",
+    "enabled"
+  ],
+  "synthetic_live_delegates": 0
+}

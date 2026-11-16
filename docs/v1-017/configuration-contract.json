@@ -1,0 +1,191 @@
+{
+  "php": "8.4.27",
+  "extensions": [
+    "Core",
+    "date",
+    "libxml",
+    "openssl",
+    "pcre",
+    "zlib",
+    "bz2",
+    "calendar",
+    "ctype",
+    "json",
+    "filter",
+    "ftp",
+    "gettext",
+    "gmp",
+    "hash",
+    "iconv",
+    "SPL",
+    "pcntl",
+    "random",
+    "readline",
+    "Reflection",
+    "session",
+    "standard",
+    "mbstring",
+    "SimpleXML",
+    "sockets",
+    "tokenizer",
+    "xml",
+    "mysqlnd",
+    "bcmath",
+    "clos_ssa",
+    "curl",
+    "dba",
+    "dom",
+    "enchant",
+    "fileinfo",
+    "gd",
+    "i360",
+    "imagick",
+    "imap",
+    "intl",
+    "ldap",
+    "exif",
+    "mysqli",
+    "odbc",
+    "PDO",
+    "pdo_mysql",
+    "PDO_ODBC",
+    "pdo_pgsql",
+    "pdo_sqlite",
+    "pgsql",
+    "Phar",
+    "posix",
+    "pspell",
+    "redis",
+    "soap",
+    "sodium",
+    "sqlite3",
+    "sysvmsg",
+    "sysvsem",
+    "sysvshm",
+    "tidy",
+    "xmlreader",
+    "xmlwriter",
+    "xsl",
+    "zip",
+    "ionCube Loader",
+    "Zend OPcache"
+  ],
+  "configuration": {
+    "faraios-account/config.php": {
+      "sha256": "0a68939647227d464eefcdfb067efca254e995db27ed8f61fd9fc063e7f693a5",
+      "mode": "644",
+      "keys": [
+        "enabled",
+        "environment",
+        "base_url",
+        "supabase_url",
+        "publishable_key"
+      ],
+      "safe_values": {
+        "enabled": true,
+        "environment": "preview",
+        "base_url": "https://www.faraios.com/_accounts-preview",
+        "supabase_url": "https://rxelmugnucfajrqmphhe.supabase.co"
+      }
+    },
+    "faraios-account/production.php": {
+      "sha256": "d6704d14089fcbbfb484e886e1da93d5085324c266e0e2db68cd868be1b5afea",
+      "mode": "644",
+      "keys": [
+        "enabled",
+        "foundation_release",
+        "environment",
+        "base_url",
+        "supabase_url",
+        "publishable_key"
+      ],
+      "safe_values": {
+        "enabled": true,
+        "foundation_release": true,
+        "environment": "production",
+        "base_url": "https://www.faraios.com",
+        "supabase_url": "https://rxelmugnucfajrqmphhe.supabase.co"
+      }
+    },
+    "faraios-enquiry-mail/config.php": {
+      "sha256": "798c0a030c1ec8a10d8680baa9a6865753435b42cd73cc96f707f9340cf8acef",
+      "mode": "600",
+      "keys": [
+        "enabled",
+        "environment",
+        "base_url",
+        "supabase_url",
+        "service_key",
+        "resend_key",
+        "sender",
+        "allow_recipients"
+      ],
+      "safe_values": {
+        "enabled": true,
+        "environment": "live",
+        "base_url": "https://www.faraios.com",
+        "supabase_url": "https://rxelmugnucfajrqmphhe.supabase.co"
+      }
+    },
+    "faraios-waitlist/config.php": {
+      "sha256": "ecce04561e3c1681b01f305df4e11ecc96f198931059ce239cf2fc98834b1f0e",
+      "mode": "600",
+      "keys": [
+        "enabled",
+        "environment",
+        "transport",
+        "base_url",
+        "supabase_url",
+        "supabase_key",
+        "resend_key",
+        "webhook_secret",
+        "secret",
+        "sender",
+        "reply_to",
+        "owner_email",
+        "min_seconds",
+        "global_hourly_limit"
+      ],
+      "safe_values": {
+        "enabled": true,
+        "environment": "production",
+        "transport": "resend",
+        "base_url": "https://www.faraios.com",
+        "supabase_url": "https://rxelmugnucfajrqmphhe.supabase.co"
+      }
+    },
+    "faraios-staff-invite/web.php": {
+      "sha256": "0dcf202223984d48a98c6ffcbff286a8ad155a840b08ac3d3d1d01bacd241134",
+      "mode": "600",
+      "keys": [
+        "enabled",
+        "public_key"
+      ],
+      "safe_values": {
+        "enabled": true
+      }
+    },
+    "faraios-staff-invite/worker.php": {
+      "sha256": "abd2a5068c0807311cddaf0ffcf2d9ab23a944b4012a669836a1014c14f9f1b3",
+      "mode": "600",
+      "keys": [
+        "enabled",
+        "environment",
+        "base_url",
+        "supabase_url",
+        "sender",
+        "public_key",
+        "secret_key",
+        "allow_recipients",
+        "service_key",
+        "resend_key"
+      ],
+      "safe_values": {
+        "enabled": true,
+        "environment": "live",
+        "base_url": "https://www.faraios.com",
+        "supabase_url": "https://rxelmugnucfajrqmphhe.supabase.co"
+      }
+    }
+  }
+}

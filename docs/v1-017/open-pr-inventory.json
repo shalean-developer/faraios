@@ -1,0 +1,114 @@
+[
+  {
+    "number": 78,
+    "title": "Verify V1-012 financial safeguards and retained history",
+    "head_sha": "9cb3645890130b5f6a96c5bff6177ccd2b35a00a",
+    "head": "audit/v1-012-finance-20261116",
+    "base": "repair/v1-003-retry-20261116"
+  },
+  {
+    "number": 77,
+    "title": "V1-003: prevent duplicate records after interrupted saves",
+    "head_sha": "a1e1595d7c5a21f355b180f6962412ca5f7891af",
+    "head": "repair/v1-003-retry-20261116",
+    "base": "repair/d01-d03-20261116"
+  },
+  {
+    "number": 76,
+    "title": "V1-004: preserve owner assignment choices after stale rejection",
+    "head_sha": "eea71b2ae9c92e5ed2794589298dc08bd25cebc1",
+    "head": "repair/v1-004-stale-assignment-20261116",
+    "base": "main"
+  },
+  {
+    "number": 75,
+    "title": "docs: V1-008 verified hosted role acceptance and access closure",
+    "head_sha": "52155a4a7fb13ee0e99e800f88a5220a39064b94",
+    "head": "audit/v1-008-roles-20261116",
+    "base": "main"
+  },
+  {
+    "number": 74,
+    "title": "V1-007: align public booking and staff-access availability",
+    "head_sha": "d6fe229e0326e8e57bfca2239517a12c1de334b7",
+    "head": "repair/v1-007-content-20261116",
+    "base": "fix/seo-audit-20261116"
+  },
+  {
+    "number": 73,
+    "title": "Repair public SEO metadata, homepage canonical links and sitemap",
+    "head_sha": "c07de4053f0dab5934a0f51564c79e6162fed95f",
+    "head": "fix/seo-audit-20261116",
+    "base": "main"
+  },
+  {
+    "number": 72,
+    "title": "V1-022: protect guest documents and quote responses",
+    "head_sha": "739f03f8cf85ca57b6832b3466e0c5e0c10f56f4",
+    "head": "repair/v1-022-document-privacy-20261116",
+    "base": "main"
+  },
+  {
+    "number": 71,
+    "title": "Add protected platform-owner release tracker and v1.0.0 audit",
+    "head_sha": "6cff41c6cbf8f3bd1dadc769655f82255bb2c971",
+    "head": "feature/platform-owner-tracker-20261116",
+    "base": "main"
+  },
+  {
+    "number": 68,
+    "title": "Repair D01–D06 and verify preview phone acceptance; prepare scoped release",
+    "head_sha": "9fd4c0a6ec5192d570ef4efa4036459efb205cd8",
+    "head": "repair/d01-d03-20261116",
+    "base": "feature/staff-email-onboarding-20261115"
+  },
+  {
+    "number": 66,
+    "title": "Add staff email onboarding and consistent staff workspaces",
+    "head_sha": "d5f6f6c2c9c4e917253d5239ea40be78386f791b",
+    "head": "feature/staff-email-onboarding-20261115",
+    "base": "main"
+  },
+  {
+    "number": 52,
+    "title": "Match About and Contact pages to the FaraiOS homepage",
+    "head_sha": "76fc660e0ae8ca6953c8536a4a539e20084cedea",
+    "head": "feature/about-contact-design-20261115",
+    "base": "main"
+  },
+  {
+    "number": 44,
+    "title": "Add private preview monitoring and deduplicated operator alerts",
+    "head_sha": "658dde7122a823b9aaba59213aba989d7a746b47",
+    "head": "feature/private-monitoring-f06-20261114",
+    "base": "feature/release-recovery-f05-f06-20261114"
+  },
+  {
+    "number": 37,
+    "title": "F05/F06: release regression, isolated restore and preview diagnostics",
+    "head_sha": "44f4930e4a4b8c11f338015b1be55e3532be1b47",
+    "head": "feature/release-recovery-f05-f06-20261114",
+    "base": "feature/customer-access-f04-20261114"
+  },
+  {
+    "number": 36,
+    "title": "F04: replace incomplete customer sign-in with confidential-link access",
+    "head_sha": "51a0fa1fc6d70fd3e95a52a29813ac5078be61ad",
+    "head": "feature/customer-access-f04-20261114",
+    "base": "feature/foundation-batch1-20261114"
+  },
+  {
+    "number": 24,
+    "title": "Record production business website release verification",
+    "head_sha": "710ab7f385e2d816c0b8c3a568cef52ab538d586",
+    "head": "docs/business-website-release-20261114",
+    "base": "main"
+  },
+  {
+    "number": 23,
+    "title": "Preview waitlist privacy notice and contextual links",
+    "head_sha": "a198e425a23ec24d3d0f62d40b90640bd15e8da7",
+    "head": "fix/waitlist-privacy-20261114",
+    "base": "feature/waitlist-20261112"
+  }
+]

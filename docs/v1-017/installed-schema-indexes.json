@@ -1,0 +1,608 @@
+{
+  "indexes": [
+    {
+      "name": "availability_requests_pkey",
+      "table": "availability_requests",
+      "schema": "authorization_private",
+      "definition": "CREATE UNIQUE INDEX availability_requests_pkey ON authorization_private.availability_requests USING btree (id)"
+    },
+    {
+      "name": "delegate_functions_copy_name_key",
+      "table": "delegate_functions",
+      "schema": "authorization_private",
+      "definition": "CREATE UNIQUE INDEX delegate_functions_copy_name_key ON authorization_private.delegate_functions USING btree (copy_name)"
+    },
+    {
+      "name": "delegate_functions_pkey",
+      "table": "delegate_functions",
+      "schema": "authorization_private",
+      "definition": "CREATE UNIQUE INDEX delegate_functions_pkey ON authorization_private.delegate_functions USING btree (identity)"
+    },
+    {
+      "name": "delegation_gate_pkey",
+      "table": "delegation_gate",
+      "schema": "authorization_private",
+      "definition": "CREATE UNIQUE INDEX delegation_gate_pkey ON authorization_private.delegation_gate USING btree (singleton)"
+    },
+    {
+      "name": "events_pkey",
+      "table": "events",
+      "schema": "authorization_private",
+      "definition": "CREATE UNIQUE INDEX events_pkey ON authorization_private.events USING btree (id)"
+    },
+    {
+      "name": "invitations_pkey",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "definition": "CREATE UNIQUE INDEX invitations_pkey ON authorization_private.invitations USING btree (id)"
+    },
+    {
+      "name": "invitations_token_hash_key",
+      "table": "invitations",
+      "schema": "authorization_private",
+      "definition": "CREATE UNIQUE INDEX invitations_token_hash_key ON authorization_private.invitations USING btree (token_hash)"
+    },
+    {
+      "name": "legacy_functions_pkey",
+      "table": "legacy_functions",
+      "schema": "authorization_private",
+      "definition": "CREATE UNIQUE INDEX legacy_functions_pkey ON authorization_private.legacy_functions USING btree (identity)"
+    },
+    {
+      "name": "live_businesses_pkey",
+      "table": "live_businesses",
+      "schema": "authorization_private",
+      "definition": "CREATE UNIQUE INDEX live_businesses_pkey ON authorization_private.live_businesses USING btree (business_id)"
+    },
+    {
+      "name": "preview_businesses_pkey",
+      "table": "preview_businesses",
+      "schema": "authorization_private",
+      "definition": "CREATE UNIQUE INDEX preview_businesses_pkey ON authorization_private.preview_businesses USING btree (business_id)"
+    },
+    {
+      "name": "staff_invites_pkey",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "definition": "CREATE UNIQUE INDEX staff_invites_pkey ON authorization_private.staff_invites USING btree (id)"
+    },
+    {
+      "name": "staff_invites_token_hash_key",
+      "table": "staff_invites",
+      "schema": "authorization_private",
+      "definition": "CREATE UNIQUE INDEX staff_invites_token_hash_key ON authorization_private.staff_invites USING btree (token_hash)"
+    },
+    {
+      "name": "staff_onboarding_businesses_pkey",
+      "table": "staff_onboarding_businesses",
+      "schema": "authorization_private",
+      "definition": "CREATE UNIQUE INDEX staff_onboarding_businesses_pkey ON authorization_private.staff_onboarding_businesses USING btree (business_id, environment)"
+    },
+    {
+      "name": "worker_identities_business_id_environment_staff_id_key",
+      "table": "worker_identities",
+      "schema": "authorization_private",
+      "definition": "CREATE UNIQUE INDEX worker_identities_business_id_environment_staff_id_key ON authorization_private.worker_identities USING btree (business_id, environment, staff_id)"
+    },
+    {
+      "name": "worker_identities_pkey",
+      "table": "worker_identities",
+      "schema": "authorization_private",
+      "definition": "CREATE UNIQUE INDEX worker_identities_pkey ON authorization_private.worker_identities USING btree (business_id, environment, user_id)"
+    },
+    {
+      "name": "ingress_pkey",
+      "table": "ingress",
+      "schema": "booking_private",
+      "definition": "CREATE UNIQUE INDEX ingress_pkey ON booking_private.ingress USING btree (environment)"
+    },
+    {
+      "name": "ingress_pkey",
+      "table": "ingress",
+      "schema": "customer_private",
+      "definition": "CREATE UNIQUE INDEX ingress_pkey ON customer_private.ingress USING btree (environment)"
+    },
+    {
+      "name": "enquiry_mail_ready",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "definition": "CREATE INDEX enquiry_mail_ready ON enquiry_private.mail_outbox USING btree (environment, status, available_at)"
+    },
+    {
+      "name": "ingress_pkey",
+      "table": "ingress",
+      "schema": "enquiry_private",
+      "definition": "CREATE UNIQUE INDEX ingress_pkey ON enquiry_private.ingress USING btree (environment)"
+    },
+    {
+      "name": "mail_outbox_enquiry_id_kind_key",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "definition": "CREATE UNIQUE INDEX mail_outbox_enquiry_id_kind_key ON enquiry_private.mail_outbox USING btree (enquiry_id, kind)"
+    },
+    {
+      "name": "mail_outbox_pkey",
+      "table": "mail_outbox",
+      "schema": "enquiry_private",
+      "definition": "CREATE UNIQUE INDEX mail_outbox_pkey ON enquiry_private.mail_outbox USING btree (id)"
+    },
+    {
+      "name": "mail_settings_pkey",
+      "table": "mail_settings",
+      "schema": "enquiry_private",
+      "definition": "CREATE UNIQUE INDEX mail_settings_pkey ON enquiry_private.mail_settings USING btree (environment)"
+    },
+    {
+      "name": "rate_limits_pkey",
+      "table": "rate_limits",
+      "schema": "enquiry_private",
+      "definition": "CREATE UNIQUE INDEX rate_limits_pkey ON enquiry_private.rate_limits USING btree (key)"
+    },
+    {
+      "name": "counters_pkey",
+      "table": "counters",
+      "schema": "invoice_private",
+      "definition": "CREATE UNIQUE INDEX counters_pkey ON invoice_private.counters USING btree (business_id, environment)"
+    },
+    {
+      "name": "ingress_pkey",
+      "table": "ingress",
+      "schema": "invoice_private",
+      "definition": "CREATE UNIQUE INDEX ingress_pkey ON invoice_private.ingress USING btree (environment)"
+    },
+    {
+      "name": "booking_staff_member",
+      "table": "business_booking_staff",
+      "schema": "public",
+      "definition": "CREATE INDEX booking_staff_member ON public.business_booking_staff USING btree (staff_id, booking_id)"
+    },
+    {
+      "name": "bookings_customer",
+      "table": "business_bookings",
+      "schema": "public",
+      "definition": "CREATE INDEX bookings_customer ON public.business_bookings USING btree (business_id, environment, customer_id)"
+    },
+    {
+      "name": "bookings_owner_schedule",
+      "table": "business_bookings",
+      "schema": "public",
+      "definition": "CREATE INDEX bookings_owner_schedule ON public.business_bookings USING btree (business_id, environment, starts_at, id)"
+    },
+    {
+      "name": "business_booking_requests_booking_id_key",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_booking_requests_booking_id_key ON public.business_booking_requests USING btree (booking_id)"
+    },
+    {
+      "name": "business_booking_requests_pkey",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_booking_requests_pkey ON public.business_booking_requests USING btree (id)"
+    },
+    {
+      "name": "business_booking_requests_quote_id_key",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_booking_requests_quote_id_key ON public.business_booking_requests USING btree (quote_id)"
+    },
+    {
+      "name": "business_booking_staff_pkey",
+      "table": "business_booking_staff",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_booking_staff_pkey ON public.business_booking_staff USING btree (booking_id, staff_id)"
+    },
+    {
+      "name": "business_bookings_id_business_id_environment_key",
+      "table": "business_bookings",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_bookings_id_business_id_environment_key ON public.business_bookings USING btree (id, business_id, environment)"
+    },
+    {
+      "name": "business_bookings_pkey",
+      "table": "business_bookings",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_bookings_pkey ON public.business_bookings USING btree (id)"
+    },
+    {
+      "name": "business_bookings_quote_id_key",
+      "table": "business_bookings",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_bookings_quote_id_key ON public.business_bookings USING btree (quote_id)"
+    },
+    {
+      "name": "business_customers_id_business_id_environment_key",
+      "table": "business_customers",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_customers_id_business_id_environment_key ON public.business_customers USING btree (id, business_id, environment)"
+    },
+    {
+      "name": "business_customers_pkey",
+      "table": "business_customers",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_customers_pkey ON public.business_customers USING btree (id)"
+    },
+    {
+      "name": "business_enquiries_owner_list",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "CREATE INDEX business_enquiries_owner_list ON public.business_enquiries USING btree (business_id, environment, created_at DESC, id)"
+    },
+    {
+      "name": "business_enquiries_pkey",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_enquiries_pkey ON public.business_enquiries USING btree (id)"
+    },
+    {
+      "name": "business_enquiries_request_id_key",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_enquiries_request_id_key ON public.business_enquiries USING btree (request_id)"
+    },
+    {
+      "name": "business_enquiry_activity_pkey",
+      "table": "business_enquiry_activity",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_enquiry_activity_pkey ON public.business_enquiry_activity USING btree (id)"
+    },
+    {
+      "name": "business_invoice_events_pkey",
+      "table": "business_invoice_events",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_invoice_events_pkey ON public.business_invoice_events USING btree (id)"
+    },
+    {
+      "name": "business_invoice_payments_pkey",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_invoice_payments_pkey ON public.business_invoice_payments USING btree (id)"
+    },
+    {
+      "name": "business_invoice_payments_reversal_of_key",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_invoice_payments_reversal_of_key ON public.business_invoice_payments USING btree (reversal_of)"
+    },
+    {
+      "name": "business_invoices_business_id_environment_number_key",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_invoices_business_id_environment_number_key ON public.business_invoices USING btree (business_id, environment, number)"
+    },
+    {
+      "name": "business_invoices_id_business_id_environment_key",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_invoices_id_business_id_environment_key ON public.business_invoices USING btree (id, business_id, environment)"
+    },
+    {
+      "name": "business_invoices_pkey",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_invoices_pkey ON public.business_invoices USING btree (id)"
+    },
+    {
+      "name": "business_invoices_replaces_id_key",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_invoices_replaces_id_key ON public.business_invoices USING btree (replaces_id)"
+    },
+    {
+      "name": "business_invoices_share_token_key",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_invoices_share_token_key ON public.business_invoices USING btree (share_token)"
+    },
+    {
+      "name": "business_memberships_pkey",
+      "table": "business_memberships",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_memberships_pkey ON public.business_memberships USING btree (business_id, environment, user_id)"
+    },
+    {
+      "name": "business_profiles_environment_slug_key",
+      "table": "business_profiles",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_profiles_environment_slug_key ON public.business_profiles USING btree (environment, slug)"
+    },
+    {
+      "name": "business_profiles_pkey",
+      "table": "business_profiles",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_profiles_pkey ON public.business_profiles USING btree (business_id, environment)"
+    },
+    {
+      "name": "business_public_pages_environment_slug_key",
+      "table": "business_public_pages",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_public_pages_environment_slug_key ON public.business_public_pages USING btree (environment, slug)"
+    },
+    {
+      "name": "business_public_pages_pkey",
+      "table": "business_public_pages",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_public_pages_pkey ON public.business_public_pages USING btree (business_id, environment)"
+    },
+    {
+      "name": "business_quotes_pkey",
+      "table": "business_quotes",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_quotes_pkey ON public.business_quotes USING btree (id)"
+    },
+    {
+      "name": "business_quotes_share_token_key",
+      "table": "business_quotes",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_quotes_share_token_key ON public.business_quotes USING btree (share_token)"
+    },
+    {
+      "name": "business_service_catalogues_pkey",
+      "table": "business_service_catalogues",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_service_catalogues_pkey ON public.business_service_catalogues USING btree (business_id, environment)"
+    },
+    {
+      "name": "business_service_images_pkey",
+      "table": "business_service_images",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_service_images_pkey ON public.business_service_images USING btree (id)"
+    },
+    {
+      "name": "business_staff_id_business_id_environment_key",
+      "table": "business_staff",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_staff_id_business_id_environment_key ON public.business_staff USING btree (id, business_id, environment)"
+    },
+    {
+      "name": "business_staff_pkey",
+      "table": "business_staff",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX business_staff_pkey ON public.business_staff USING btree (id)"
+    },
+    {
+      "name": "businesses_owner_id_key",
+      "table": "businesses",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX businesses_owner_id_key ON public.businesses USING btree (owner_id)"
+    },
+    {
+      "name": "businesses_pkey",
+      "table": "businesses",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX businesses_pkey ON public.businesses USING btree (id)"
+    },
+    {
+      "name": "customers_owner_list",
+      "table": "business_customers",
+      "schema": "public",
+      "definition": "CREATE INDEX customers_owner_list ON public.business_customers USING btree (business_id, environment, lower((details ->> 'name'::text)), id)"
+    },
+    {
+      "name": "enquiries_customer",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "CREATE INDEX enquiries_customer ON public.business_enquiries USING btree (business_id, environment, customer_id)"
+    },
+    {
+      "name": "enquiry_activity_history",
+      "table": "business_enquiry_activity",
+      "schema": "public",
+      "definition": "CREATE INDEX enquiry_activity_history ON public.business_enquiry_activity USING btree (enquiry_id, created_at DESC, id DESC)"
+    },
+    {
+      "name": "enquiry_followups",
+      "table": "business_enquiries",
+      "schema": "public",
+      "definition": "CREATE INDEX enquiry_followups ON public.business_enquiries USING btree (business_id, environment, follow_up_on) WHERE ((status <> 'Closed'::text) AND (follow_up_on IS NOT NULL))"
+    },
+    {
+      "name": "invoice_active_booking",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX invoice_active_booking ON public.business_invoices USING btree (booking_id) WHERE (state <> 'Void'::text)"
+    },
+    {
+      "name": "invoice_events_list",
+      "table": "business_invoice_events",
+      "schema": "public",
+      "definition": "CREATE INDEX invoice_events_list ON public.business_invoice_events USING btree (invoice_id, created_at, id)"
+    },
+    {
+      "name": "invoice_payments_list",
+      "table": "business_invoice_payments",
+      "schema": "public",
+      "definition": "CREATE INDEX invoice_payments_list ON public.business_invoice_payments USING btree (invoice_id, created_at, id)"
+    },
+    {
+      "name": "invoices_list",
+      "table": "business_invoices",
+      "schema": "public",
+      "definition": "CREATE INDEX invoices_list ON public.business_invoices USING btree (business_id, environment, created_at DESC, id)"
+    },
+    {
+      "name": "quotes_customer",
+      "table": "business_quotes",
+      "schema": "public",
+      "definition": "CREATE INDEX quotes_customer ON public.business_quotes USING btree (business_id, environment, customer_id)"
+    },
+    {
+      "name": "quotes_owner_list",
+      "table": "business_quotes",
+      "schema": "public",
+      "definition": "CREATE INDEX quotes_owner_list ON public.business_quotes USING btree (business_id, environment, created_at DESC, id)"
+    },
+    {
+      "name": "requests_list",
+      "table": "business_booking_requests",
+      "schema": "public",
+      "definition": "CREATE INDEX requests_list ON public.business_booking_requests USING btree (business_id, environment, created_at DESC, id)"
+    },
+    {
+      "name": "service_images_business",
+      "table": "business_service_images",
+      "schema": "public",
+      "definition": "CREATE INDEX service_images_business ON public.business_service_images USING btree (business_id, environment)"
+    },
+    {
+      "name": "shared_core_aggregates_pkey",
+      "table": "shared_core_aggregates",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX shared_core_aggregates_pkey ON public.shared_core_aggregates USING btree (business_id, environment, kind, id)"
+    },
+    {
+      "name": "shared_core_commands_pkey",
+      "table": "shared_core_commands",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX shared_core_commands_pkey ON public.shared_core_commands USING btree (business_id, environment, idempotency_key)"
+    },
+    {
+      "name": "shared_core_events_business_id_environment_kind_aggregate_i_key",
+      "table": "shared_core_events",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX shared_core_events_business_id_environment_kind_aggregate_i_key ON public.shared_core_events USING btree (business_id, environment, kind, aggregate_id, version)"
+    },
+    {
+      "name": "shared_core_events_pkey",
+      "table": "shared_core_events",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX shared_core_events_pkey ON public.shared_core_events USING btree (business_id, environment, command_id, ordinal)"
+    },
+    {
+      "name": "waitlist_subscribers_confirm_hash_key",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX waitlist_subscribers_confirm_hash_key ON public.waitlist_subscribers USING btree (confirm_hash)"
+    },
+    {
+      "name": "waitlist_subscribers_email_key",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX waitlist_subscribers_email_key ON public.waitlist_subscribers USING btree (email)"
+    },
+    {
+      "name": "waitlist_subscribers_pkey",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX waitlist_subscribers_pkey ON public.waitlist_subscribers USING btree (id)"
+    },
+    {
+      "name": "waitlist_subscribers_retention",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "definition": "CREATE INDEX waitlist_subscribers_retention ON public.waitlist_subscribers USING btree (status, last_request_at)"
+    },
+    {
+      "name": "waitlist_subscribers_withdraw_hash_key",
+      "table": "waitlist_subscribers",
+      "schema": "public",
+      "definition": "CREATE UNIQUE INDEX waitlist_subscribers_withdraw_hash_key ON public.waitlist_subscribers USING btree (withdraw_hash)"
+    },
+    {
+      "name": "ingress_pkey",
+      "table": "ingress",
+      "schema": "quote_private",
+      "definition": "CREATE UNIQUE INDEX ingress_pkey ON quote_private.ingress USING btree (environment)"
+    },
+    {
+      "name": "ingress_pkey",
+      "table": "ingress",
+      "schema": "request_private",
+      "definition": "CREATE UNIQUE INDEX ingress_pkey ON request_private.ingress USING btree (environment)"
+    },
+    {
+      "name": "ingress_pkey",
+      "table": "ingress",
+      "schema": "staff_private",
+      "definition": "CREATE UNIQUE INDEX ingress_pkey ON staff_private.ingress USING btree (environment)"
+    },
+    {
+      "name": "delivery_events_pkey",
+      "table": "delivery_events",
+      "schema": "waitlist_private",
+      "definition": "CREATE UNIQUE INDEX delivery_events_pkey ON waitlist_private.delivery_events USING btree (event_id)"
+    },
+    {
+      "name": "outbox_pkey",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "definition": "CREATE UNIQUE INDEX outbox_pkey ON waitlist_private.outbox USING btree (id)"
+    },
+    {
+      "name": "outbox_provider_id_key",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "definition": "CREATE UNIQUE INDEX outbox_provider_id_key ON waitlist_private.outbox USING btree (provider_id)"
+    },
+    {
+      "name": "rate_limits_pkey",
+      "table": "rate_limits",
+      "schema": "waitlist_private",
+      "definition": "CREATE UNIQUE INDEX rate_limits_pkey ON waitlist_private.rate_limits USING btree (bucket)"
+    },
+    {
+      "name": "waitlist_outbox_due",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "definition": "CREATE INDEX waitlist_outbox_due ON waitlist_private.outbox USING btree (next_attempt) WHERE (status = ANY (ARRAY['pending'::text, 'sending'::text, 'retry'::text]))"
+    },
+    {
+      "name": "waitlist_outbox_subscriber",
+      "table": "outbox",
+      "schema": "waitlist_private",
+      "definition": "CREATE INDEX waitlist_outbox_subscriber ON waitlist_private.outbox USING btree (subscriber_id)"
+    }
+  ],
+  "schemas": [
+    {
+      "acl": "{postgres=UC/postgres,authenticated=U/postgres}",
+      "name": "authorization_private",
+      "owner": "postgres"
+    },
+    {
+      "acl": "{postgres=UC/postgres,authenticated=U/postgres}",
+      "name": "booking_private",
+      "owner": "postgres"
+    },
+    {
+      "acl": "{postgres=UC/postgres,authenticated=U/postgres}",
+      "name": "customer_private",
+      "owner": "postgres"
+    },
+    {
+      "acl": "{postgres=UC/postgres,anon=U/postgres,authenticated=U/postgres}",
+      "name": "enquiry_private",
+      "owner": "postgres"
+    },
+    {
+      "acl": "{postgres=UC/postgres,authenticated=U/postgres,anon=U/postgres}",
+      "name": "invoice_private",
+      "owner": "postgres"
+    },
+    {
+      "acl": "{pg_database_owner=UC/pg_database_owner,=U/pg_database_owner,postgres=U/pg_database_owner,anon=U/pg_database_owner,authenticated=U/pg_database_owner,service_role=U/pg_database_owner}",
+      "name": "public",
+      "owner": "pg_database_owner"
+    },
+    {
+      "acl": "{postgres=UC/postgres,anon=U/postgres,authenticated=U/postgres}",
+      "name": "quote_private",
+      "owner": "postgres"
+    },
+    {
+      "acl": "{postgres=UC/postgres,anon=U/postgres,authenticated=U/postgres}",
+      "name": "request_private",
+      "owner": "postgres"
+    },
+    {
+      "acl": "{postgres=UC/postgres,authenticated=U/postgres}",
+      "name": "staff_private",
+      "owner": "postgres"
+    },
+    {
+      "acl": "{postgres=UC/postgres,service_role=U/postgres}",
+      "name": "waitlist_private",
+      "owner": "postgres"
+    }
+  ]
+}

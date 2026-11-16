@@ -1,0 +1,212 @@
+[
+  {
+    "version": "20261112123416",
+    "name": "waitlist_supabase_resend",
+    "path": "docs/v1-017/sql/20261112123416_waitlist_supabase_resend.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261112152816",
+    "name": "account_business_setup",
+    "path": "docs/v1-017/sql/20261112152816_account_business_setup.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261112184403",
+    "name": "business_location_details",
+    "path": "docs/v1-017/sql/20261112184403_business_location_details.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261112195239",
+    "name": "business_profiles",
+    "path": "docs/v1-017/sql/20261112195239_business_profiles.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261112215916",
+    "name": "services_pricing",
+    "path": "docs/v1-017/sql/20261112215916_services_pricing.sql",
+    "source": "supabase/migrations/20261112215916_services_pricing.sql"
+  },
+  {
+    "version": "20261113055208",
+    "name": "customer_enquiries",
+    "path": "docs/v1-017/sql/20261113055208_customer_enquiries.sql",
+    "source": "supabase/migrations/20261113055208_customer_enquiries.sql"
+  },
+  {
+    "version": "20261113075926",
+    "name": "customer_quotes",
+    "path": "docs/v1-017/sql/20261113075926_customer_quotes.sql",
+    "source": "supabase/migrations/20261113075926_customer_quotes.sql"
+  },
+  {
+    "version": "20261113090007",
+    "name": "bookings_scheduling",
+    "path": "docs/v1-017/sql/20261113090007_bookings_scheduling.sql",
+    "source": "supabase/migrations/20261113090007_bookings_scheduling.sql"
+  },
+  {
+    "version": "20261113094646",
+    "name": "customer_profiles",
+    "path": "docs/v1-017/sql/20261113094646_customer_profiles.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261113103036",
+    "name": "staff_booking_assignment",
+    "path": "docs/v1-017/sql/20261113103036_staff_booking_assignment.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261113122458",
+    "name": "invoices_payments",
+    "path": "docs/v1-017/sql/20261113122458_invoices_payments.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261113143833",
+    "name": "dashboard_overview",
+    "path": "docs/v1-017/sql/20261113143833_dashboard_overview.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261113151114",
+    "name": "dashboard_live_intake",
+    "path": "docs/v1-017/sql/20261113151114_dashboard_live_intake.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261113183501",
+    "name": "online_booking_requests",
+    "path": "docs/v1-017/sql/20261113183501_online_booking_requests.sql",
+    "source": "supabase/migrations/20261113183501_online_booking_requests.sql"
+  },
+  {
+    "version": "20261114001631",
+    "name": "service_rooms_extras_pricing",
+    "path": "docs/v1-017/sql/20261114001631_service_rooms_extras_pricing.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261114062432",
+    "name": "business_homepage_content",
+    "path": "docs/v1-017/sql/20261114062432_business_homepage_content.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261114064032",
+    "name": "business_standalone_pages",
+    "path": "docs/v1-017/sql/20261114064032_business_standalone_pages.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261114071849",
+    "name": "business_website_seo",
+    "path": "docs/v1-017/sql/20261114071849_business_website_seo.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261114085730",
+    "name": "business_template_options",
+    "path": "docs/v1-017/sql/20261114085730_business_template_options.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261114090043",
+    "name": "business_template_availability_boundary",
+    "path": "docs/v1-017/sql/20261114090043_business_template_availability_boundary.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261114093146",
+    "name": "business_header_branding",
+    "path": "docs/v1-017/sql/20261114093146_business_header_branding.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261114113021",
+    "name": "service_card_images",
+    "path": "docs/v1-017/sql/20261114113021_service_card_images.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261114123413",
+    "name": "homepage_benefit_cards",
+    "path": "docs/v1-017/sql/20261114123413_homepage_benefit_cards.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261114130134",
+    "name": "business_area_pages",
+    "path": "docs/v1-017/sql/20261114130134_business_area_pages.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261114132311",
+    "name": "enquiry_notifications",
+    "path": "docs/v1-017/sql/20261114132311_enquiry_notifications.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261114152721",
+    "name": "enquiry_workflow",
+    "path": "docs/v1-017/sql/20261114152721_enquiry_workflow.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261114153806",
+    "name": "enquiry_manual_validation",
+    "path": "docs/v1-017/sql/20261114153806_enquiry_manual_validation.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261114161953",
+    "name": "foundation_batch_one",
+    "path": "docs/v1-017/sql/20261114161953_foundation_batch_one.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261114214834",
+    "name": "activate_foundation_release",
+    "path": "docs/v1-017/sql/20261114214834_activate_foundation_release.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261114225140",
+    "name": "account_information_editing",
+    "path": "docs/v1-017/sql/20261114225140_account_information_editing.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261115050820",
+    "name": "sc03_shared_foundation_acceptance",
+    "path": "docs/v1-017/sql/20261115050820_sc03_shared_foundation_acceptance.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261115050929",
+    "name": "sc04_shared_preview_acceptance",
+    "path": "docs/v1-017/sql/20261115050929_sc04_shared_preview_acceptance.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261116050910",
+    "name": "d0106_synthetic_preview_rpc_copies",
+    "path": "docs/v1-017/sql/20261116050910_d0106_synthetic_preview_rpc_copies.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261116131634",
+    "name": "reviewed_d0106_live_functions_20261116",
+    "path": "docs/v1-017/sql/20261116131634_reviewed_d0106_live_functions_20261116.sql",
+    "source": "hosted migration history"
+  },
+  {
+    "version": "20261116141605",
+    "name": "v1022_customer_document_privacy",
+    "path": "docs/v1-017/sql/20261116141605_v1022_customer_document_privacy.sql",
+    "source": "hosted migration history"
+  }
+]

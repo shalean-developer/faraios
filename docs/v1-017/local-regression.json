@@ -1,0 +1,258 @@
+{
+  "source": "9cb3645890130b5f6a96c5bff6177ccd2b35a00a",
+  "worktree_dirty": true,
+  "python": "3.12.14",
+  "php": "PHP 8.4.27 (cli) (built: Oct 21 2026 07:53:46) (NTS)",
+  "postgres": "postgres (PostgreSQL) 17.11 (Debian 17.11-0+deb13u1)",
+  "scope": "disposable native database + PHP HTTP; simulated Auth/REST; no hosted writes or provider sends",
+  "suites": [
+    {
+      "name": "sc02-baseline",
+      "passed": true,
+      "tests": 8,
+      "seconds": 0.615
+    },
+    {
+      "name": "sc02-native",
+      "passed": true,
+      "tests": 1,
+      "seconds": 2.999
+    },
+    {
+      "name": "sc03-native",
+      "passed": true,
+      "tests": 4,
+      "seconds": 3.444
+    },
+    {
+      "name": "sc04-native",
+      "passed": true,
+      "tests": 10,
+      "seconds": 11.227
+    },
+    {
+      "name": "sc04-delegated",
+      "passed": true,
+      "tests": 12,
+      "seconds": 14.239
+    },
+    {
+      "name": "sc04-shared",
+      "passed": true,
+      "tests": 14,
+      "seconds": 17.801
+    },
+    {
+      "name": "sc04-readiness",
+      "passed": true,
+      "tests": 9,
+      "seconds": 8.35
+    },
+    {
+      "name": "staff-onboarding",
+      "passed": true,
+      "tests": 12,
+      "seconds": 7.388
+    },
+    {
+      "name": "staff-invitation-mail",
+      "passed": true,
+      "tests": 0,
+      "seconds": 0.018
+    },
+    {
+      "name": "defect-repairs",
+      "passed": true,
+      "tests": 7,
+      "seconds": 9.771
+    },
+    {
+      "name": "workflow-repairs",
+      "passed": true,
+      "tests": 3,
+      "seconds": 9.839
+    },
+    {
+      "name": "retry-recovery",
+      "passed": true,
+      "tests": 4,
+      "seconds": 8.453
+    },
+    {
+      "name": "financial-safeguards",
+      "passed": true,
+      "tests": 6,
+      "seconds": 5.513
+    },
+    {
+      "name": "defect-preview",
+      "passed": true,
+      "tests": 10,
+      "seconds": 17.84
+    },
+    {
+      "name": "accounts",
+      "passed": true,
+      "tests": 6,
+      "seconds": 2.477
+    },
+    {
+      "name": "profiles",
+      "passed": true,
+      "tests": 4,
+      "seconds": 4.173
+    },
+    {
+      "name": "services",
+      "passed": true,
+      "tests": 1,
+      "seconds": 4.215
+    },
+    {
+      "name": "customers",
+      "passed": true,
+      "tests": 1,
+      "seconds": 4.604
+    },
+    {
+      "name": "staff",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.246
+    },
+    {
+      "name": "enquiries",
+      "passed": true,
+      "tests": 1,
+      "seconds": 5.69
+    },
+    {
+      "name": "quotes",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.718
+    },
+    {
+      "name": "bookings",
+      "passed": true,
+      "tests": 1,
+      "seconds": 4.778
+    },
+    {
+      "name": "invoices",
+      "passed": true,
+      "tests": 1,
+      "seconds": 5.147
+    },
+    {
+      "name": "dashboard",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.927
+    },
+    {
+      "name": "requests",
+      "passed": true,
+      "tests": 1,
+      "seconds": 5.772
+    },
+    {
+      "name": "rooms",
+      "passed": true,
+      "tests": 1,
+      "seconds": 6.731
+    },
+    {
+      "name": "area-pages",
+      "passed": true,
+      "tests": 1,
+      "seconds": 2.689
+    },
+    {
+      "name": "website-release",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.155
+    },
+    {
+      "name": "customer-access",
+      "passed": true,
+      "tests": 1,
+      "seconds": 2.631
+    },
+    {
+      "name": "business-header",
+      "passed": true,
+      "tests": 1,
+      "seconds": 2.922
+    },
+    {
+      "name": "enquiry-workflow",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.798
+    },
+    {
+      "name": "foundation",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.177
+    },
+    {
+      "name": "production-activation",
+      "passed": true,
+      "tests": 1,
+      "seconds": 6.211
+    },
+    {
+      "name": "full-journey",
+      "passed": true,
+      "tests": 1,
+      "seconds": 2.858
+    },
+    {
+      "name": "enquiry-mail",
+      "passed": true,
+      "tests": 0,
+      "seconds": 0.013
+    },
+    {
+      "name": "enquiry-notifications",
+      "passed": true,
+      "tests": 1,
+      "seconds": 1.637
+    },
+    {
+      "name": "observability",
+      "passed": true,
+      "tests": 2,
+      "seconds": 3.733
+    },
+    {
+      "name": "ops-alerts",
+      "passed": true,
+      "tests": 3,
+      "seconds": 0.239
+    },
+    {
+      "name": "recovery",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.805
+    },
+    {
+      "name": "release-manifest",
+      "passed": true,
+      "tests": 3,
+      "seconds": 11.049
+    },
+    {
+      "name": "installed-runtime",
+      "passed": true,
+      "tests": 7,
+      "seconds": 6.758
+    }
+  ],
+  "passed": true,
+  "tests": 145
+}

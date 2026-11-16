@@ -14,6 +14,7 @@ suites.insert(suites.index('defect-repairs')+1,'workflow-repairs')
 suites.insert(suites.index('workflow-repairs')+1,'defect-preview')
 suites.insert(suites.index('workflow-repairs')+1,'retry-recovery')
 suites.insert(suites.index('retry-recovery')+1,'financial-safeguards')
+suites.extend(['release-manifest','installed-runtime'])
 suites.insert(suites.index('staff-onboarding')+1,'staff-invitation-mail')
 report={'source':command(['git','rev-parse','HEAD']),'worktree_dirty':bool(command(['git','status','--porcelain'])),'python':platform.python_version(),'php':command([os.environ.get('PHP_BIN','php'),'-v']).splitlines()[0],'postgres':command([str(Path(os.environ.get('PG_BIN','/usr/lib/postgresql/17/bin'))/'postgres'),'--version']),'scope':'disposable native database + PHP HTTP; simulated Auth/REST; no hosted writes or provider sends','suites':[]}
 for name in suites:
