@@ -106,5 +106,9 @@
   "release/seo/install-seo-20261116.php": {
     "baseline_sha256": null,
     "candidate_sha256": "513411ac5779c8689b78d29180dd82b94016e21b447340820c0cf9b419808d30"
+  },
+  "account/index.php": {
+    "baseline_sha256": "674fac31c736967bd2e73f1e309b782e32f65d81d62bbfc593b7bfc9208f1a1a",
+    "candidate_sha256": "ebee34d1f49dbdcebd32c6b29f84ecb9a2c81ac635f9028721cbd35cac83a1ea"
   }
 }
