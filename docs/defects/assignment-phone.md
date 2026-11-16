@@ -1,0 +1,8 @@
+# Controlled cross-page staff-assignment phone acceptance
+
+
+## Cross-page staff-assignment phone fixture ready — 16 November 2026
+
+Owner authorizes controlled cross-page phone test. Preflight confirms only controlled faraic3@gmail.com Manager active A/preview,108 staff, first-page active row1 staff01060001-0000-4000-8000-000000000001 “Synthetic D0106 edited profile”, second-page row51 staff01060001-0000-4000-8000-000000000051 “Synthetic D0106 staff51”; test booking absent. Existing authenticated owner APIs created only dedicated booking00000000-0000-4000-8000-000000000128, Scheduled/version1, assignmentversion1,28 November2026 09:00 Johannesburg, address “Synthetic cross-page staff assignment”. Exactly first-page staff001 is assigned. Copied frozen synthetic agreement from completed source5df81e47-7eef-413c-a306-db88d0858a3f; exact source row preserved. No invoice/payment/customer message/new access or historical booking change. Private guarded operator/before/prepared receipts: assignment-phone-20261116; temporary host task cancelled.
+
+Next phone: Manager→Bookings→unique test address/date→Assign staff, confirm edited profile checked before changing anything. Then Browse staff for assignments→Next staff to page2; reopen same test booking Assign staff, tick staff51 and save once. Verify both001 and051 remain assigned, then optionally deselect051/save on page2 and verify001 remains. Do not manipulate real bookings, other synthetic history or payment form. Phone acceptance pending; no PASS inferred from setup. Final access/onboarding closure, refreshed exact-candidate compatibility/CI/release review and separate live authorization remain open. No merge/live deployment.
