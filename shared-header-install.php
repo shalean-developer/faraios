@@ -1,0 +1,1 @@
+<?php if(PHP_SAPI!=='cli'){http_response_code(404);exit;}require __DIR__.'/shared-header-release.php';try{ui_release('install');}catch(Throwable $e){echo json_encode(['status'=>'FAIL','error'=>$e->getMessage()]).PHP_EOL;exit(1);}
