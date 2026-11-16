@@ -7,7 +7,7 @@ try{
  $c=cfg();$path=(parse_url($c['base_url'],PHP_URL_PATH)?:'').'/quote/';ini_set('session.use_strict_mode','1');ini_set('session.use_only_cookies','1');session_name('faraios_quote_'.substr(hash('sha256',$c['base_url']),0,12));session_set_cookie_params(['lifetime'=>0,'path'=>$path,'secure'=>($c['environment']??'')!=='test','httponly'=>true,'samesite'=>'Lax']);session_start();$_SESSION['csrf']??=bin2hex(random_bytes(32));
  if(!preg_match('/\A[a-f0-9]{64}\z/',$token)){http_response_code(404);}else{
  $args=['p_environment'=>profile_env(),'p_token'=>$token,'p_response'=>''];
- if($_SERVER['REQUEST_METHOD']==='POST'){csrf();$response=(string)($_POST['response']??'');if(!in_array($response,['Accepted','Declined'],true)||!isset($_POST['confirm_response']))throw new RuntimeException('Choose and confirm your response.');$args['p_response']=$response;}
+ if($_SERVER['REQUEST_METHOD']==='POST'){$opaqueOrigin=($_SERVER['HTTP_ORIGIN']??'')==='null';if($opaqueOrigin){if(($_SERVER['HTTP_SEC_FETCH_SITE']??'')!=='same-origin'||!is_string($_POST['csrf']??null)||!hash_equals($_SESSION['csrf'],$_POST['csrf'])||(int)($_SERVER['CONTENT_LENGTH']??0)>8192)throw new RuntimeException('This form has expired. Reload the page and try again.');}else csrf();$response=(string)($_POST['response']??'');if(!in_array($response,['Accepted','Declined'],true)||!isset($_POST['confirm_response']))throw new RuntimeException('Choose and confirm your response.');$args['p_response']=$response;}
  $q=api('/rest/v1/rpc/business_quote_customer',$args);
  if(!$q)http_response_code(404);
  elseif($_SERVER['REQUEST_METHOD']==='POST'){header('Location: index.php?token='.$token,true,303);exit;}

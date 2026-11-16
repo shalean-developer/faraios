@@ -24,8 +24,8 @@ class Privacy(Profiles):
  def rpc(self,kind,token,env='live',response='',owner=None):
   call='select public.business_'+kind+'_customer('+lit(env)+','+lit(token)+(','+lit(response) if kind=='quote' else '')+')'
   return json.loads(self.scope(owner,call) if owner else self.sql('set role anon;'+call))
- def request(self,path,method='GET',fields=None):
-  req=urllib.request.Request(self.url+path,method=method,data=fields,headers={'Origin':self.url})
+ def request(self,path,method='GET',fields=None,headers=None):
+  req=urllib.request.Request(self.url+path,method=method,data=fields,headers={'Origin':self.url}|(headers or {}))
   try:r=self.client.open(req)
   except urllib.error.HTTPError as e:r=e
   return r.status,r.headers,r.read().decode()
@@ -70,6 +70,12 @@ class Privacy(Profiles):
    for method in (['PUT','DELETE','PATCH'] if kind=='quote' else ['POST','PUT','DELETE','PATCH']):self.assertEqual(self.request(path,method,b'')[0],405)
   before=self.fingerprint();path='/quote/index.php?token='+f['quote']
   self.assertEqual(self.request(path,'POST',b'response=Accepted&confirm_response=on')[0],503);self.assertEqual(before,self.fingerprint())
+  # no-referrer browsers send opaque Origin; only same-origin Fetch Metadata plus session CSRF may pass.
+  csrf=re.search('name="csrf" value="([^"]+)"',self.get(path)[1])[1]
+  raw=__import__('urllib.parse',fromlist=['urlencode']).urlencode(dict(csrf=csrf,response='Accepted',confirm_response='on')).encode()
+  for headers in [{'Origin':'null'},{'Origin':'null','Sec-Fetch-Site':'cross-site'},{'Origin':'null','Sec-Fetch-Site':'same-site'},{'Origin':'https://evil.example','Sec-Fetch-Site':'same-origin'}]:
+   self.assertEqual(self.request(path,'POST',raw,headers)[0],503);self.assertEqual(before,self.fingerprint())
+  self.assertEqual(self.request(path,'POST',raw.replace(csrf.encode(),b'invalid'),{'Origin':'null','Sec-Fetch-Site':'same-origin'})[0],503);self.assertEqual(before,self.fingerprint())
   html=self.post(path,response='Accepted',confirm_response='on');self.assertIn('has been accepted',html)
   self.assertEqual(self.rpc('quote',f['quote'])['status'],'Accepted');self.assertEqual(self.rpc('quote',f['quote'],response='Accepted')['status'],'Accepted')
   with self.assertRaises(RuntimeError):self.rpc('quote',f['quote'],response='Declined')
