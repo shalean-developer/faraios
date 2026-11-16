@@ -1,0 +1,46 @@
+name: Scheduling and ZA pilot regression
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  application:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native test runtimes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl ca-certificates gpg
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --retry 3 --retry-all-errors -fsS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          gpg --show-keys --with-colons /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc | grep -q B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
+          echo 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y postgresql-17 php-cli php-curl php-sqlite3
+      - name: Install isolated browser test runtime
+        run: |
+          python3 -m pip install playwright==1.62.0
+          python3 -m playwright install --with-deps chromium
+      - name: Lifecycle communication tests
+        env:
+          PG_BIN: /usr/lib/postgresql/17/bin
+          FARAIOS_COMMUNICATION_BROWSER_CHECK: 'true'
+          TZ: UTC
+        run: |
+          mkdir -p test-results/communications
+          set -o pipefail
+          find docs/v1-010/runtime -name '*.php' -print0 | xargs -0 -n 1 php -l
+          python3 tests/lifecycle-communications.py 2>&1 | tee test-results/communications/native.log
+          python3 tests/enquiry-notifications.py 2>&1 | tee test-results/communications/enquiry.log
+          php tests/enquiry-mail.php
+      - name: Keep communication evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lifecycle-communication-evidence
+          path: test-results/communications/
+          retention-days: 14
