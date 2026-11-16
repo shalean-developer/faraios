@@ -1,5 +1,5 @@
 /* Homepage header: reference proportions, FaraiOS identity and destinations. */
-.ui-home .homepage-header{background:rgba(255,255,255,.96);border-bottom:1px solid #e8eeeb;box-shadow:0 1px 3px #112f3208;backdrop-filter:blur(16px)}
+.ui-home .homepage-header{background:#f7f9f5f5;border-bottom:1px solid #e8eeeb;box-shadow:0 1px 3px #112f3208;backdrop-filter:blur(16px)}
 .ui-home .homepage-header .nav{min-height:96px;gap:24px;flex-wrap:nowrap;padding:12px 0}
 .ui-home .homepage-header .logo img{width:170px;height:50px}
 .ui-home .homepage-header nav{margin:0 0 0 16px;gap:4px;font-size:15px;font-weight:500;align-items:center}
