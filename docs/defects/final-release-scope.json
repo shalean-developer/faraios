@@ -1,0 +1,76 @@
+{
+  "application_source": "276640227becd6da6b8f6a9b1b653dd268159db2",
+  "main_compatibility": "4cea37e553edd3d6b1faae277a3286f7134c3801",
+  "pr66": "d5f6f6c2c9c4e917253d5239ea40be78386f791b",
+  "runtime_files": [
+    {
+      "path": "account/delegated.php",
+      "baseline_sha256": "24b154b919951dbfaf748e8ffaaee92c5eced15d954fb7614846e690fc882f9f",
+      "candidate_sha256": "e52548106677cda60160d50e19848b6dc730ad642624b8d712e63b8566c7c50b"
+    },
+    {
+      "path": "account/core.php",
+      "baseline_sha256": "20de2c9c307a14255494dcd46cecf6b838990215592989023236190cda7c164d",
+      "candidate_sha256": "9c7566f83dccbf023b622de3f1fb935349234e263ee934d1a957a25a9df686da"
+    },
+    {
+      "path": "account/workspace.css",
+      "baseline_sha256": "9abe04ffbc6e9ee006fdda64f53d488b5cd989274ab9126cf727efd956900b54",
+      "candidate_sha256": "34604c14652214ac3ef10577d084ce9ae9cd960725523b89ce7dcbb013d49f1d"
+    },
+    {
+      "path": "account/staff-join.php",
+      "baseline_sha256": "a693381502e184831de2dd019cac6cad3db0d7f48d67cc2922308b6ee744e6c0",
+      "candidate_sha256": "c2a3845160440a8d7a9eadc5233a9bc0b1ed372478c0b331255570b7de3f5eb9"
+    },
+    {
+      "path": "account/staff-join.js",
+      "baseline_sha256": "53398673a72b5da5efc543f1e904bf809cf7cc9895d435c4fbc346ce5259876f",
+      "candidate_sha256": "18ff7b76c4616c21c43f055706314cbe2350fdf20dc71d10ca5771f61c5e3cdb"
+    },
+    {
+      "path": "account/staff-join.css",
+      "baseline_sha256": null,
+      "candidate_sha256": "2a9fdf109418be3c686737e51544d09527ede4aebb20181eb552cdc149626644"
+    }
+  ],
+  "sql_patch": "docs/sc04/defect-repairs.sql",
+  "sql_sha256": "017d5df36dbe4161754ed9944e9818cf63f588b52e657334e07001b21ee1ca9a",
+  "database_functions": [
+    "public.business_delegate_command(uuid,text,text,jsonb)",
+    "public.business_delegate_page(uuid,text,text,uuid,integer,integer)"
+  ],
+  "current_shared_command_md5": "2c2aeb980f2b7cf6e3be2d0410551020",
+  "preview_aliases_must_not_be_deployed": true,
+  "schema_table_policy_changes": false,
+  "fresh_backup_run": 43843151079,
+  "isolated_restore_run": 43843901476,
+  "isolated_restore_status": "queued",
+  "private_configuration_recovery": {
+    "actual_files": 6,
+    "hashes_match": true,
+    "private_modes": true,
+    "smtp_test": false,
+    "plaintext_copies_removed": true
+  },
+  "compatibility_tests": {
+    "suites": 37,
+    "reported_tests": 125,
+    "repair_browser_methods": 8,
+    "join_browser_methods": 13,
+    "widths": [
+      390,
+      1280
+    ],
+    "status": "PASS",
+    "source_snapshot_manifest": "compatibility-snapshot.json",
+    "inventory_receipt_outside_source": true,
+    "verification": "36 suites passed in combined run; baseline 8 methods passed after removing receipt from source inventory; focused browser 8+13 passed"
+  },
+  "closed_synthetic_access": true,
+  "enabled_synthetic_onboarding": false,
+  "phone_acceptance": "Manager/Worker/Receptionist listed scenarios PASS, including worker/receptionist retained-session revocation; new-account signup/verification phone case remains open",
+  "release_authorized": false,
+  "production_deployed": false,
+  "private_receipts": "private/faraios-account/final-checks-20261116/"
+}
