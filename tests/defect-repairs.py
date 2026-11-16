@@ -69,14 +69,14 @@ class Repairs(base.Readiness):
    def __init__(self):super().__init__();self.ids=[];self.nav=[];self.bottom_after_cards=False;self.bottom_link=None;self.current_nav=None
    def handle_starttag(self,tag,attrs):
     attrs=dict(attrs)
-    if tag=='nav':self.current_nav=attrs.get('aria-label');self.nav.append(self.current_nav);self.bottom_after_cards=self.bottom_after_cards or (self.current_nav=='Record pages end' and len(self.ids)==10)
+    if tag=='nav':self.current_nav=attrs.get('aria-label');self.nav.append(self.current_nav);self.bottom_after_cards=self.bottom_after_cards or (self.current_nav=='Record pages' and len(self.ids)==10)
     if tag=='article':self.ids.append(None)
     if tag=='input' and attrs.get('name')=='id' and self.ids:self.ids[-1]=attrs.get('value')
-    if tag=='a' and self.current_nav=='Record pages end' and 'page=2' in attrs.get('href',''):self.bottom_link=attrs['href']
+    if tag=='a' and self.current_nav=='Record pages' and 'page=2' in attrs.get('href',''):self.bottom_link=attrs['href']
    def handle_endtag(self,tag):
     if tag=='nav':self.current_nav=None
   self.enable();u=self.member('manager');self.login(u)
-  first=ListPage();first.feed(self.get('/account/delegated.php?view=customers')[1]);self.assertEqual(len(first.ids),10);self.assertTrue(first.bottom_after_cards);self.assertIn('Record pages',first.nav);self.assertIn('Record pages end',first.nav);self.assertTrue(first.bottom_link)
+  first=ListPage();first.feed(self.get('/account/delegated.php?view=customers')[1]);self.assertEqual(len(first.ids),10);self.assertTrue(first.bottom_after_cards);self.assertEqual(first.nav.count('Record pages'),1);self.assertTrue(first.bottom_link)
   second=ListPage();second.feed(self.get('/account/delegated.php'+first.bottom_link)[1]);self.assertEqual(len(second.ids),10);self.assertFalse(set(first.ids)&set(second.ids));self.enable(False)
  def test_d02_business_zone_and_dst(self):
   self.enable();u=self.member('worker');b=lit(self.bids[0]);self.sql("alter database postgres set timezone='UTC'")
@@ -132,10 +132,15 @@ class Repairs(base.Readiness):
       page.goto(self.url+'/account/context.php');page.get_by_label('Business and environment',exact=True).select_option(self.bids[0]+':preview');page.get_by_role('button',name='Continue',exact=True).click();page.get_by_role('heading',name='Fresh Test',exact=True).wait_for()
       if role=='manager':
        page.goto(self.url+'/account/delegated.php?view=customers&page=2');self.assertEqual(page.locator('article').count(),10)
-       end=page.get_by_role('navigation',name='Record pages end',exact=True);end.scroll_into_view_if_needed();self.assertGreaterEqual(end.get_by_role('link',name='Next',exact=True).bounding_box()['height'],44)
+       self.assertEqual(page.get_by_role('navigation',name='Record pages',exact=True).count(),1)
+       if width==390:
+        menu=page.get_by_role('button',name='Open menu',exact=True);icon=menu.locator('svg');self.assertEqual(icon.bounding_box()['width'],24);self.assertEqual(icon.bounding_box()['height'],24);self.assertNotEqual(icon.evaluate('(e)=>getComputedStyle(e).stroke'),'none');self.assertGreaterEqual(menu.bounding_box()['width'],44)
+        page.screenshot(path=str(ROOT/'test-results/release'/'mobile-menu-visible.png'));menu.click();self.assertEqual(page.locator('.drawer-open').get_attribute('aria-expanded'),'true');self.assertTrue(page.get_by_role('dialog').is_visible());page.get_by_role('button',name='Close menu',exact=True).click();self.assertEqual(menu.get_attribute('aria-expanded'),'false')
+       end=page.get_by_role('navigation',name='Record pages',exact=True);end.scroll_into_view_if_needed();self.assertEqual(end.get_by_role('link').count(),2)
+       previous=end.get_by_role('link',name='Previous',exact=True).bounding_box();following=end.get_by_role('link',name='Next',exact=True).bounding_box();self.assertAlmostEqual(previous['y'],following['y'],delta=1);self.assertLess(previous['x'],following['x']);self.assertGreaterEqual(following['height'],44)
        out=ROOT/'test-results/release';out.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(out/('customer-pagination-bottom-'+str(width)+'.png')))
        end.get_by_role('link',name='Next',exact=True).click();self.assertIn('page=3',page.url)
-       page.get_by_role('navigation',name='Record pages end',exact=True).get_by_role('link',name='Previous',exact=True).click();self.assertIn('page=2',page.url)
+       page.get_by_role('navigation',name='Record pages',exact=True).get_by_role('link',name='Previous',exact=True).click();self.assertIn('page=2',page.url)
        page.get_by_role('navigation',name='Record pages',exact=True).get_by_role('link',name='Next',exact=True).click();self.assertIn('page=3',page.url)
        page.locator('summary').filter(has_text='Create customer').click();form=page.locator('form').filter(has=page.locator('input[name="action"][value="customer"]')).first
        form.locator('input[name="name"]').fill('Synthetic phone retained');form.locator('input[name="email"]').fill('bad-email');form.get_by_role('button',name='Save',exact=True).click();page.get_by_role('heading',name='Unsaved changes',exact=True).wait_for()

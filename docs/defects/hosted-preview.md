@@ -1,5 +1,18 @@
 # D01–D06 hosted preview — 16 November 2026
 
+## Current phone controls — single bottom pager and visible Menu
+
+The owner's physical-phone screenshots showed navigation at Page2 but requested removal of duplicate top/bottom controls, side-by-side Previous/Next, and a visible left header Menu icon. The current UI supersedes the preceding dual-pager design: **one record pager at the bottom**, two equal columns with the page number beneath,10 customers per page. Staff-page navigation remains separate on booking assignment screens.
+
+The menu SVG now has explicit24×24 dimensions and an accessible Open menu label. Preview-scoped workspace CSS makes the icon and Menu text visible, maintains a44px touch target and uses the existing drawer script. The stylesheet query key changes to phone-controls-20261116 so phones fetch the new CSS. No global theme/layout asset is replaced.
+
+Canonical native/browser8 methods PASS and preview alias10 native methods PASS. At390/1280 the browser requires one record pager, equal vertical positions for the two buttons,44px+ touch targets, successful Next/Previous navigation and no horizontal overflow. On mobile the icon is24px square and Menu opens/closes the accessible drawer. Full Foundation37 suites /125 reported tests PASS. Physical-phone visual retry remains pending.
+
+Hosted preflight confirmed previous PHP65732061 and CSS9abe04ff; CSS was byte-identical to the existing source before the additive scoped rules. Only preview account/delegated.php and account/workspace.css changed. Full1,053-file and original private configuration comparisons passed. Hosted38 read-only PHP assertions check pages1–3, exactly one bottom pager, explicit icon markup and the actual served stylesheet SHA256. Private receipts/original bytes are in private/faraios-account/phone-controls-20261116; phone-controls.php performs guarded file-only rollback preparation. No SQL/function, business record, invitation, session/revocation rule or live file changed.
+
+The complete proposed live payload is now **three runtime files**: canonical account/core.php, account/delegated.php and account/workspace.css, plus the previously prepared cumulative command/page SQL. Preview still uses guarded RPC aliases; do not deploy that adapter to live. Manager remains temporarily active for owner phone acceptance; receptionist/worker remain closed. The normal live account's permissions and the separately prepared worker-join patch remain unchanged. No merge or live authorization is implied.
+
+
 ## Phone acceptance follow-up — customer navigation
 
 The owner entered synthetic A's Manager workspace on a physical phone and reported one long customer page with no Next at the bottom. **D01 phone acceptance failed at this step.** The original navigation was only above the50-row list, so reaching the end did not offer a next-page action. Earlier API/local-browser passes did not cover that usability requirement.

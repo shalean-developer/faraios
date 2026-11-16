@@ -28,3 +28,9 @@
 .workspace-empty h3{font-size:16px;margin:0 0 5px}.workspace-empty p{font-size:13px;margin:0;color:var(--f-muted)}
 @media(max-width:900px){.delegated-page .delegated-main{padding:0 16px;margin:18px auto}.delegated-page .layout-enhanced .app-sidebar{overflow:hidden}.workspace-sidebar-footer{flex-shrink:0}}
 @media(max-width:600px){.workspace-heading{padding-bottom:16px;margin-bottom:16px}.workspace-heading h1{font-size:21px}.workspace-environment{font-size:11px}.workspace-section-heading h2{font-size:17px}.delegated-page .role-workspace .panel{padding:13px 15px}.delegated-page .role-workspace summary{min-height:44px}.delegated-page .role-workspace article{padding:16px}.workspace-empty{padding:30px 16px}}
+
+/* One compact pager at the end of each record list, including narrow phones. */
+.delegated-page .role-workspace nav.workspace-pagination{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:420px;margin:24px auto 0}
+.delegated-page .role-workspace .workspace-pagination a.button{display:flex;align-items:center;justify-content:center;min-height:44px;width:auto;margin:0;padding:10px 12px;font-size:14px}
+.workspace-pagination .page-previous{grid-column:1;grid-row:1}.workspace-pagination .page-next{grid-column:2;grid-row:1}.workspace-pagination .page-number{grid-column:1/-1;text-align:center;font-size:13px;color:var(--f-muted)}
+@media(max-width:900px){.delegated-page.layout-enhanced .app-topbar .drawer-open{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;padding:10px 12px;color:#087b78}.delegated-page .app-topbar .drawer-open .icon{display:block;width:24px;height:24px;flex:0 0 24px;stroke:currentColor}.delegated-page .app-topbar .drawer-open span{position:static;width:auto;height:auto;overflow:visible}}

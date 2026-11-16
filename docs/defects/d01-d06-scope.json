@@ -6,12 +6,17 @@
     {
       "path": "account/delegated.php",
       "baseline_sha256": "24b154b919951dbfaf748e8ffaaee92c5eced15d954fb7614846e690fc882f9f",
-      "candidate_sha256": "b51a481f2006b4bfaa21cdbf7cf7fc3b6916784c355d770c2b1f05658c64f642"
+      "candidate_sha256": "586cf7107526cbad4f391e9f651ff2572d3c69de7b90e88f14fae1d6d2641649"
     },
     {
       "path": "account/core.php",
       "baseline_sha256": "20de2c9c307a14255494dcd46cecf6b838990215592989023236190cda7c164d",
       "candidate_sha256": "9c7566f83dccbf023b622de3f1fb935349234e263ee934d1a957a25a9df686da"
+    },
+    {
+      "path": "account/workspace.css",
+      "baseline_sha256": "9abe04ffbc6e9ee006fdda64f53d488b5cd989274ab9126cf727efd956900b54",
+      "candidate_sha256": "183bf0a1b40926c17f3bb51225064d5166044ec8d66ea32b3c6c6c98b88b6cd8"
     }
   ],
   "database_delta": [

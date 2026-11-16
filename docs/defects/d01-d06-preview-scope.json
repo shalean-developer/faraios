@@ -1,7 +1,8 @@
 {
   "files": {
     "account/core.php": "2605bab2badc357880bdefdf1370357fb9827645df10536a9825e3d82f3b1f03",
-    "account/delegated.php": "6573206110b0570f4b7c58075864eaef072fd4c8304241970a74e8dcae9a8bb5"
+    "account/delegated.php": "597760e03083c08fb2122820a3d8362c840dd573d72b7f93b43b68b448371ae6",
+    "account/workspace.css": "183bf0a1b40926c17f3bb51225064d5166044ec8d66ea32b3c6c6c98b88b6cd8"
   },
   "businesses": [
     "2f16e658-e031-4c4a-930a-2731ec1d1492",
@@ -60,5 +61,27 @@
     "private_receipts": "private/faraios-account/phone-navigation-20261116/",
     "local_gate": "37 suites /125 reported tests PASS; 390/1280 browser checks PASS",
     "manager_preview_access": "Registered synthetic Manager temporarily active for owner phone acceptance"
+  },
+  "phone_controls_followup": {
+    "owner_request": "Visible left mobile Menu icon; remove duplicate pagers; Previous and Next side by side",
+    "navigation": "One record pager at list bottom; two equal columns on phone and desktop",
+    "menu": "Explicit 24px SVG, visible Menu label, scoped 44px touch target; existing drawer script unchanged",
+    "css_cache_key": "phone-controls-20261116",
+    "changed_files": {
+      "account/delegated.php": {
+        "before": "6573206110b0570f4b7c58075864eaef072fd4c8304241970a74e8dcae9a8bb5",
+        "after": "597760e03083c08fb2122820a3d8362c840dd573d72b7f93b43b68b448371ae6"
+      },
+      "account/workspace.css": {
+        "before": "9abe04ffbc6e9ee006fdda64f53d488b5cd989274ab9126cf727efd956900b54",
+        "after": "183bf0a1b40926c17f3bb51225064d5166044ec8d66ea32b3c6c6c98b88b6cd8"
+      }
+    },
+    "hosted_checks": 38,
+    "web_files_preserved": 1053,
+    "private_receipts": "private/faraios-account/phone-controls-20261116/",
+    "physical_phone_retry_pending": true,
+    "live_changed": false,
+    "database_change": false
   }
 }

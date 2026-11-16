@@ -30,7 +30,7 @@ def overlay(path):
  text=core.read_text();needle="if(in_array($path,['/rest/v1/rpc/business_delegate_command',"
  assert text.count(needle)==1
  core.write_text(text.replace(needle,"if(in_array($path,['/rest/v1/rpc/business_delegate_command_preview_d0106','/rest/v1/rpc/business_delegate_page_preview_d0106','/rest/v1/rpc/business_delegate_command',"))
- return {str(p.relative_to(path)):hashlib.sha256(p.read_bytes()).hexdigest() for p in (core,delegated)}
+ return {str(p.relative_to(path)):hashlib.sha256(p.read_bytes()).hexdigest() for p in (core,delegated,path/'account/workspace.css')}
 def stage(dest):
  spec=importlib.util.spec_from_file_location('ready',ROOT/'docs/sc04/readiness.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
  path=m.stage(str(dest));hashes=overlay(path)
