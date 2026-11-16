@@ -8,7 +8,9 @@ def render(path,template):
     if not re.search(r'<body[^>]*class="[^"]*\b(?:ui-home|ui-content)\b',source):
         return source
     base='../'*len(path.relative_to(ROOT).parts[:-1])
-    source=re.sub(r'<header\b.*?</header>',lambda _:template.replace('{{base}}',base).strip(),source,count=1,flags=re.S)
+    source=re.sub(r'<header\b.*?</header>',lambda _:template.replace('{{base}}',base).replace('{{home}}',base or './').strip(),source,count=1,flags=re.S)
+    if f'href="{base}ui/homepage-header.css?v=shared-20261116"' in source and f'src="{base}ui/site-menu.js?v=shared-20261116"' in source:
+        return source
     source=re.sub(r'<link\b[^>]*href="[^"]*ui/homepage-header\.css[^"]*"[^>]*>\s*','',source)
     source=re.sub(r'<script\b[^>]*src="[^"]*ui/site-menu\.js[^"]*"[^>]*></script>\s*','',source)
     source=re.sub(r'<script>const menu=document\.querySelector\(\x27\.menu\x27\).*?</script>','',source,flags=re.S)

@@ -71,6 +71,12 @@ class Baseline(unittest.TestCase):
             self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
             self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
             original[path]={'path':path,'sha256':change['candidate_sha256']}
+        seo=json.loads((ROOT/'docs/seo/source-delta.json').read_text())
+        self.assertEqual(set(seo),{'about.html', 'sitemap.php', 'waitlist.html', 'features.html', 'industries/construction.html', 'guides/enquiry-to-invoice.html', 'industries/technology.html', 'release/seo/install-seo-20261116.php', 'privacy.html', 'industries/electrical.html', 'industries/cleaning.html', 'terms.html', 'ui/marketing-header.html', 'industries/gardening.html', 'pricing.html', 'industries/tourism.html', 'account/index.php', '.htaccess', 'marketplace.html', 'index.html', 'industries/fitness.html', 'industries/security.html', 'industries/consulting.html', 'industries.html', 'hosting.html', 'industries/beauty-spa.html', 'business/seo.php', 'contact.html'})
+        for path,change in seo.items():
+            self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
+            self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
+            original[path]={'path':path,'sha256':change['candidate_sha256']}
         expected['files']=[original[path] for path in sorted(original,key=Path)]
         self.assertEqual(expected,manifest())
         self.assertEqual(len(self.inventory['files']),31)

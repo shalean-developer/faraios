@@ -1,6 +1,10 @@
 Options -Indexes
 <IfModule mod_rewrite.c>
 RewriteEngine On
+# Canonical homepage: external GET/HEAD only; preserve query strings and directory previews.
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteCond %{THE_REQUEST} "\s/+[^?\ ]*index\.html[?\ ]" [NC]
+RewriteRule ^index\.html$ ./ [R=301,L]
 # Public product walkthrough; keep canonical aliases bounded.
 RewriteCond %{THE_REQUEST} "\s/+[^?\ ]*guides/enquiry-to-invoice\.html[?\ ]" [NC]
 RewriteRule ^guides/enquiry-to-invoice\.html$ guides/enquiry-to-invoice [R=301,L]

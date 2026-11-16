@@ -31,13 +31,17 @@ function business_seo_metadata(array $p,string $page,string $url,string $root): 
  elseif(in_array($choice,['auto','logo'],true)&&!empty($p['logo'])){$image='logo';$alt=$p['name'].' logo';}
  $blob=$image==='social'?($p['seo']['image']??null):($image==='hero'?($p['homepage']['image']??null):($image==='logo'?($p['logo']??null):null));
  $dimensions=$blob?@getimagesizefromstring(base64_decode($blob['data'],true)?:''):false;
- return ['title'=>business_seo_text($title,120),'description'=>business_seo_text($description,300),'url'=>$url,'image'=>$image?$root.'?'.$image.'=1':'','alt'=>$alt,'width'=>$dimensions?$dimensions[0]:null,'height'=>$dimensions?$dimensions[1]:null];
+ // Auto sharing may use the platform card; an explicit none choice remains respected.
+ $fallback=$choice==='auto'&&$image===null;
+ $platform=preg_replace('~/b/[^/]+$~','',$root);
+ if($fallback){$alt='Published on FaraiOS — Build. Grow. Manage.';$dimensions=[1200,630];}
+ return ['title'=>business_seo_text($title,120),'description'=>business_seo_text($description,300),'url'=>$url,'image'=>$image?$root.'?'.$image.'=1':($fallback?$platform.'/social-preview.png':''),'platform_image'=>$fallback,'alt'=>$alt,'width'=>$dimensions?$dimensions[0]:null,'height'=>$dimensions?$dimensions[1]:null];
 }
 function business_schema(array $p,string $page,string $root,string $url,array $meta): array {
  // Only genuine explicitly published address fields permit LocalBusiness markup.
  $org=['@type'=>'Organization','@id'=>$root.'#business','name'=>$p['name'],'url'=>$root];
  foreach(['description'=>'description','email'=>'email','phone'=>'telephone','areas'=>'areaServed'] as $field=>$property)if(trim($p[$field]??'')!=='')$org[$property]=$p[$field];
- if(!empty($p['logo']))$org['logo']=$root.'?logo=1';if($meta['image']!=='')$org['image']=$meta['image'];
+ if(!empty($p['logo']))$org['logo']=$root.'?logo=1';if($meta['image']!==''&&!($meta['platform_image']??false))$org['image']=$meta['image'];
  $o=$p['presentation']??[];
  if(!empty($o['street'])&&!empty($o['city'])&&!empty($o['country'])){
   $org['@type']='LocalBusiness';$org['address']=['@type'=>'PostalAddress','streetAddress'=>$o['street'],'addressLocality'=>$o['city'],'addressCountry'=>$o['country']];

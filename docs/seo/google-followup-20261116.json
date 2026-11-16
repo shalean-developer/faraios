@@ -1,0 +1,435 @@
+{
+  "date": "2026-11-16",
+  "timezone": "Africa/Johannesburg",
+  "property": "sc-domain:faraios.com",
+  "publicUrlCount": 37,
+  "inspectionTool": "bulk_inspect_urls",
+  "inspectionCounts": {
+    "Submitted and indexed": 12,
+    "URL is unknown to Google": 19,
+    "Discovered - currently not indexed": 6
+  },
+  "quota": {
+    "count": 38,
+    "limit": 2000,
+    "remaining": 1962
+  },
+  "sitemap": {
+    "url": "https://www.faraios.com/sitemap.xml",
+    "resubmittedAt": "2026-11-16T15:12:23.163Z",
+    "accepted": true,
+    "confirmed": true,
+    "pending": false,
+    "priorGoogleDownload": "2026-11-14T14:41:55.132Z",
+    "priorGoogleSubmittedURLs": 11,
+    "lastDownloaded": "2026-11-16T15:12:24.544Z",
+    "googleSubmittedURLs": 37,
+    "errors": 0,
+    "warnings": 0
+  },
+  "orphanReconciliation": {
+    "expectedPublicURLs": 37,
+    "matchedWithIncomingLinks": 37,
+    "minimumIncomingLinks": 4,
+    "missing": [],
+    "zeroLinks": [],
+    "residualSummary": "SiteGuru reports one orphan but warning filter has no rows; no orphan in public canonical set."
+  },
+  "metadata": {
+    "business": "pure-quality-cleaning-services",
+    "fields": {
+      "areas": "Check the service coverage published by Pure Quality Cleaning Services. Share your location with the business to confirm availability before requesting a visit.",
+      "services": "Explore the cleaning services listed by Pure Quality Cleaning Services. Contact the business to discuss your requirements and confirm the scope before booking.",
+      "contact": "Contact Pure Quality Cleaning Services about cleaning requirements, property details or an existing booking. Discuss availability and agree the next steps directly."
+    },
+    "beforeVersion": 7,
+    "afterVersion": 8,
+    "beforeDocumentMd5": "dbc34fce1d10f41750965eea997d7fd2",
+    "afterDocumentMd5": "5b359865c6b373813ce6a179622cada8",
+    "draftMatchesPublished": true,
+    "unrelatedContentPreserved": true,
+    "siteGuruRechecks": "all three perfect"
+  },
+  "inspections": [
+    {
+      "url": "https://www.faraios.com/",
+      "verdict": "PASS",
+      "coverageState": "Submitted and indexed",
+      "indexingState": "INDEXING_ALLOWED",
+      "lastCrawlTime": "2026-11-15T22:25:48Z",
+      "googleCanonical": "https://www.faraios.com/",
+      "userCanonical": "https://www.faraios.com/",
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=Czr31P9dvFSrTX7KK2-Stg&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/waitlist.html",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=du3EsOyak_GurtceY6qIsw&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/features",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=AciOPsyHR_N9cy6NwRNVGA&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/industries/cleaning",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=3_AuiXRcQ8-PpTIRPTZwDw&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/b/pure-quality-cleaning-services/contact",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=7mTh1CVR73iKwoXhXyF9DQ&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/index.html",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=w1DlKR3-EVG14CYadWDSYA&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/about.html",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=bxzqOUiYbMDgUKfyWpVkvw&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/contact.html",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=mExaE6e9_y-OVZWKuZxxGQ&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/guides/enquiry-to-invoice",
+      "verdict": "PASS",
+      "coverageState": "Submitted and indexed",
+      "indexingState": "INDEXING_ALLOWED",
+      "lastCrawlTime": "2026-11-16T09:14:18Z",
+      "googleCanonical": "https://www.faraios.com/guides/enquiry-to-invoice",
+      "userCanonical": "https://www.faraios.com/guides/enquiry-to-invoice",
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=jYbI4tjM8juM6hAf8m0Pbw&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/privacy.html",
+      "verdict": "PASS",
+      "coverageState": "Submitted and indexed",
+      "indexingState": "INDEXING_ALLOWED",
+      "lastCrawlTime": "2026-11-16T08:03:28Z",
+      "googleCanonical": "https://www.faraios.com/privacy.html",
+      "userCanonical": "https://www.faraios.com/privacy.html",
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=-8F4EkJRLlR3c7OV5trjMQ&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/terms",
+      "verdict": "NEUTRAL",
+      "coverageState": "Discovered - currently not indexed",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=aHoSbnwaEMEYAFnREhOYXQ&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/pricing",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=wbJky7x9Znd38bViQOuX4A&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/marketplace",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=rKWunW5y7s4D6yod6MKlAQ&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/industries/electrical",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=JUFwDcubCq15vlyKS970tA&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/industries/security",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=I2TtUl4imzgivsaBEtf8Ew&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/industries/beauty-spa",
+      "verdict": "NEUTRAL",
+      "coverageState": "Discovered - currently not indexed",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=PKNldWSXFZJb_OM-yBd6bQ&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/industries/fitness",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=RpjuTjNjHJY-BE9vAMhVLg&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/industries/consulting",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=FSosKlFOwfHwA5r0GLvdbg&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/hosting",
+      "verdict": "NEUTRAL",
+      "coverageState": "Discovered - currently not indexed",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=q4z2pnYlH2gaXk39p8-R3g&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/industries",
+      "verdict": "NEUTRAL",
+      "coverageState": "Discovered - currently not indexed",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=cI4f-ea5pkhu0mmbCSBhtA&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/industries/tourism",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=yikuLQhWQsaUxdHOnpHIbw&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/industries/gardening",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=2tkOY7DU08If6aXDM4AnDg&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/industries/technology",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=ecQVxyFfI8mN5yGVz9cASg&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/industries/construction",
+      "verdict": "NEUTRAL",
+      "coverageState": "Discovered - currently not indexed",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=-VwBJwnqw7FXyKx-1hbzeA&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/b/jess-cleaning-services",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=uvFbJyTfzf_3mTcNbK3fcA&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/b/jess-cleaning-services/services",
+      "verdict": "NEUTRAL",
+      "coverageState": "Discovered - currently not indexed",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=68oaHPBUGFDLEfjWfdj5kA&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/b/jess-cleaning-services/how-it-works",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=3stUzTD7dmV_SAp-O7xHNA&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/b/jess-cleaning-services/areas",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=y25SjErC3gwpFYDmkxMBIw&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/b/jess-cleaning-services/contact",
+      "verdict": "NEUTRAL",
+      "coverageState": "URL is unknown to Google",
+      "indexingState": "INDEXING_STATE_UNSPECIFIED",
+      "lastCrawlTime": null,
+      "googleCanonical": null,
+      "userCanonical": null,
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=l-m1OUFP2uQkA-Kf5q4JDQ&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/b/pure-quality-cleaning-services",
+      "verdict": "PASS",
+      "coverageState": "Submitted and indexed",
+      "indexingState": "INDEXING_ALLOWED",
+      "lastCrawlTime": "2026-11-15T11:43:58Z",
+      "googleCanonical": "https://www.faraios.com/b/pure-quality-cleaning-services",
+      "userCanonical": "https://www.faraios.com/b/pure-quality-cleaning-services",
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=xkDmk_OVcYF8Q_HsmOS0gw&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/b/pure-quality-cleaning-services/services",
+      "verdict": "PASS",
+      "coverageState": "Submitted and indexed",
+      "indexingState": "INDEXING_ALLOWED",
+      "lastCrawlTime": "2026-11-15T03:33:07Z",
+      "googleCanonical": "https://www.faraios.com/b/pure-quality-cleaning-services/services",
+      "userCanonical": "https://www.faraios.com/b/pure-quality-cleaning-services/services",
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=0mJvzBSPETeDxb6jHCpfAA&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/b/pure-quality-cleaning-services/how-it-works",
+      "verdict": "PASS",
+      "coverageState": "Submitted and indexed",
+      "indexingState": "INDEXING_ALLOWED",
+      "lastCrawlTime": "2026-11-16T00:56:46Z",
+      "googleCanonical": "https://www.faraios.com/b/pure-quality-cleaning-services/how-it-works",
+      "userCanonical": "https://www.faraios.com/b/pure-quality-cleaning-services/how-it-works",
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=8TiSHBw9xuMi4NZFJuog0w&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/b/pure-quality-cleaning-services/areas",
+      "verdict": "PASS",
+      "coverageState": "Submitted and indexed",
+      "indexingState": "INDEXING_ALLOWED",
+      "lastCrawlTime": "2026-11-15T06:15:27Z",
+      "googleCanonical": "https://www.faraios.com/b/pure-quality-cleaning-services/areas",
+      "userCanonical": "https://www.faraios.com/b/pure-quality-cleaning-services/areas",
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=-sjZTRlJpy2hqx5WirFY6A&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/b/shalean-cleaning-services",
+      "verdict": "PASS",
+      "coverageState": "Submitted and indexed",
+      "indexingState": "INDEXING_ALLOWED",
+      "lastCrawlTime": "2026-11-15T03:40:03Z",
+      "googleCanonical": "https://www.faraios.com/b/shalean-cleaning-services",
+      "userCanonical": "https://www.faraios.com/b/shalean-cleaning-services",
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=ZCtPufQL-SC_YbIQxDhP7w&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/b/shalean-cleaning-services/services",
+      "verdict": "PASS",
+      "coverageState": "Submitted and indexed",
+      "indexingState": "INDEXING_ALLOWED",
+      "lastCrawlTime": "2026-11-16T04:45:21Z",
+      "googleCanonical": "https://www.faraios.com/b/shalean-cleaning-services/services",
+      "userCanonical": "https://www.faraios.com/b/shalean-cleaning-services/services",
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=Wk8bFo5eq-EVlUu--cMxhQ&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/b/shalean-cleaning-services/how-it-works",
+      "verdict": "PASS",
+      "coverageState": "Submitted and indexed",
+      "indexingState": "INDEXING_ALLOWED",
+      "lastCrawlTime": "2026-11-15T02:24:38Z",
+      "googleCanonical": "https://www.faraios.com/b/shalean-cleaning-services/how-it-works",
+      "userCanonical": "https://www.faraios.com/b/shalean-cleaning-services/how-it-works",
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=qfTu1gBssxZfPGa7Vrv0Eg&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/b/shalean-cleaning-services/areas",
+      "verdict": "PASS",
+      "coverageState": "Submitted and indexed",
+      "indexingState": "INDEXING_ALLOWED",
+      "lastCrawlTime": "2026-11-16T04:43:48Z",
+      "googleCanonical": "https://www.faraios.com/b/shalean-cleaning-services/areas",
+      "userCanonical": "https://www.faraios.com/b/shalean-cleaning-services/areas",
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=qkn4JOyN2nNAe2k6KBt3sw&utm_medium=link&utm_source=api"
+    },
+    {
+      "url": "https://www.faraios.com/b/shalean-cleaning-services/contact",
+      "verdict": "PASS",
+      "coverageState": "Submitted and indexed",
+      "indexingState": "INDEXING_ALLOWED",
+      "lastCrawlTime": "2026-11-16T14:52:37Z",
+      "googleCanonical": "https://www.faraios.com/b/shalean-cleaning-services/contact",
+      "userCanonical": "https://www.faraios.com/b/shalean-cleaning-services/contact",
+      "inspectionResultLink": "https://search.google.com/search-console/inspect?resource_id=sc-domain:faraios.com&id=fRGhVhZhbvzBEzwiuVmEpQ&utm_medium=link&utm_source=api"
+    }
+  ]
+}
