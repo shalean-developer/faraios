@@ -19,9 +19,14 @@
       "candidate_sha256": "d68ab9eca2b5acf1217b85e93356b4e98bdcdac63758c9d248a0d241c7aabddd"
     },
     {
+      "path": "account/schedule.css",
+      "baseline_sha256": null,
+      "candidate_sha256": "759936ff34a0d99eec3eea8ffb3c5f9a96f568266bec7c3a064722f1081f6108"
+    },
+    {
       "path": "account/schedule.php",
       "baseline_sha256": null,
-      "candidate_sha256": "b9c833b24189a5aa785ba72af85bf7434d962a39771707968df897e8aaf9852b"
+      "candidate_sha256": "e132883368c990f902de2a4b1801490353ca7dc3211b6fddaf78c7e3468223aa"
     }
   ],
   "sql_sha256": "1a25bccc3d1d2bed7fa4181fdccb2e6e540501292adfc113e7af50869c4ecff1",

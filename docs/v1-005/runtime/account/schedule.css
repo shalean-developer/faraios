@@ -1,0 +1,1 @@
+.scheduling-days .quote-numbers{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.scheduling-days fieldset{margin:8px 0;padding:8px 10px}.scheduling-days input[type=time],.scheduling-days input[type=text]{width:100%;min-width:0;box-sizing:border-box;padding:10px 6px;font-size:16px}

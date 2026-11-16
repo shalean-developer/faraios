@@ -1,4 +1,4 @@
-"""Rebuild deterministic SQL and the exact four-file runtime delta."""
+"""Rebuild deterministic SQL and the exact five-file runtime delta."""
 import hashlib,importlib.util,json,re,zipfile
 from pathlib import Path
 BASE=Path(__file__).resolve().parent;ROOT=BASE.parents[1]
