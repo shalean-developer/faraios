@@ -1,0 +1,240 @@
+{
+  "source": "9fd4c0a6ec5192d570ef4efa4036459efb205cd8",
+  "worktree_dirty": true,
+  "python": "3.12.14",
+  "php": "PHP 8.4.27 (cli) (built: Oct 21 2026 07:53:46) (NTS)",
+  "postgres": "postgres (PostgreSQL) 17.11 (Debian 17.11-0+deb13u1)",
+  "scope": "disposable native database + PHP HTTP; simulated Auth/REST; no hosted writes or provider sends",
+  "suites": [
+    {
+      "name": "sc02-baseline",
+      "passed": true,
+      "tests": 8,
+      "seconds": 0.546
+    },
+    {
+      "name": "sc02-native",
+      "passed": true,
+      "tests": 1,
+      "seconds": 2.996
+    },
+    {
+      "name": "sc03-native",
+      "passed": true,
+      "tests": 4,
+      "seconds": 3.148
+    },
+    {
+      "name": "sc04-native",
+      "passed": true,
+      "tests": 10,
+      "seconds": 13.483
+    },
+    {
+      "name": "sc04-delegated",
+      "passed": true,
+      "tests": 12,
+      "seconds": 15.827
+    },
+    {
+      "name": "sc04-shared",
+      "passed": true,
+      "tests": 14,
+      "seconds": 19.576
+    },
+    {
+      "name": "sc04-readiness",
+      "passed": true,
+      "tests": 9,
+      "seconds": 8.882
+    },
+    {
+      "name": "staff-onboarding",
+      "passed": true,
+      "tests": 12,
+      "seconds": 8.92
+    },
+    {
+      "name": "staff-invitation-mail",
+      "passed": true,
+      "tests": 0,
+      "seconds": 0.018
+    },
+    {
+      "name": "defect-repairs",
+      "passed": true,
+      "tests": 7,
+      "seconds": 9.187
+    },
+    {
+      "name": "workflow-repairs",
+      "passed": true,
+      "tests": 3,
+      "seconds": 9.751
+    },
+    {
+      "name": "retry-recovery",
+      "passed": true,
+      "tests": 4,
+      "seconds": 8.743
+    },
+    {
+      "name": "defect-preview",
+      "passed": true,
+      "tests": 10,
+      "seconds": 14.741
+    },
+    {
+      "name": "accounts",
+      "passed": true,
+      "tests": 6,
+      "seconds": 2.497
+    },
+    {
+      "name": "profiles",
+      "passed": true,
+      "tests": 4,
+      "seconds": 4.255
+    },
+    {
+      "name": "services",
+      "passed": true,
+      "tests": 1,
+      "seconds": 4.296
+    },
+    {
+      "name": "customers",
+      "passed": true,
+      "tests": 1,
+      "seconds": 4.81
+    },
+    {
+      "name": "staff",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.135
+    },
+    {
+      "name": "enquiries",
+      "passed": true,
+      "tests": 1,
+      "seconds": 5.733
+    },
+    {
+      "name": "quotes",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.232
+    },
+    {
+      "name": "bookings",
+      "passed": true,
+      "tests": 1,
+      "seconds": 5.153
+    },
+    {
+      "name": "invoices",
+      "passed": true,
+      "tests": 1,
+      "seconds": 4.209
+    },
+    {
+      "name": "dashboard",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.224
+    },
+    {
+      "name": "requests",
+      "passed": true,
+      "tests": 1,
+      "seconds": 5.339
+    },
+    {
+      "name": "rooms",
+      "passed": true,
+      "tests": 1,
+      "seconds": 6.691
+    },
+    {
+      "name": "area-pages",
+      "passed": true,
+      "tests": 1,
+      "seconds": 2.676
+    },
+    {
+      "name": "website-release",
+      "passed": true,
+      "tests": 1,
+      "seconds": 2.629
+    },
+    {
+      "name": "customer-access",
+      "passed": true,
+      "tests": 1,
+      "seconds": 2.898
+    },
+    {
+      "name": "business-header",
+      "passed": true,
+      "tests": 1,
+      "seconds": 2.727
+    },
+    {
+      "name": "enquiry-workflow",
+      "passed": true,
+      "tests": 1,
+      "seconds": 4.243
+    },
+    {
+      "name": "foundation",
+      "passed": true,
+      "tests": 1,
+      "seconds": 4.248
+    },
+    {
+      "name": "production-activation",
+      "passed": true,
+      "tests": 1,
+      "seconds": 7.682
+    },
+    {
+      "name": "full-journey",
+      "passed": true,
+      "tests": 1,
+      "seconds": 2.644
+    },
+    {
+      "name": "enquiry-mail",
+      "passed": true,
+      "tests": 0,
+      "seconds": 0.016
+    },
+    {
+      "name": "enquiry-notifications",
+      "passed": true,
+      "tests": 1,
+      "seconds": 2.236
+    },
+    {
+      "name": "observability",
+      "passed": true,
+      "tests": 2,
+      "seconds": 3.787
+    },
+    {
+      "name": "ops-alerts",
+      "passed": true,
+      "tests": 3,
+      "seconds": 0.248
+    },
+    {
+      "name": "recovery",
+      "passed": true,
+      "tests": 1,
+      "seconds": 4.342
+    }
+  ],
+  "passed": true,
+  "tests": 129
+}

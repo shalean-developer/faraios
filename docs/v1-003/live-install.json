@@ -1,0 +1,14 @@
+{
+  "task": "V1-003",
+  "status": "INSTALLED",
+  "source": "6dec96fd8524c45837eee859706c0e8c6e72a6b3",
+  "files": [
+    "account/delegated.php"
+  ],
+  "sha256": "760ad191d34f03cc558cbb908b5db301c775c121569e56338d61a17c72cf4ff6",
+  "other_web_files_preserved": true,
+  "web_file_count": 1160,
+  "V1_004_preserved": true,
+  "configuration_preserved": true,
+  "installed_at": "2026-11-16T17:24:31+00:00"
+}

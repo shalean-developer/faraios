@@ -1,0 +1,240 @@
+{
+  "source": "fatal: not a git repository (or any parent up to mount point /)\nStopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).",
+  "worktree_dirty": true,
+  "python": "3.12.14",
+  "php": "PHP 8.4.27 (cli) (built: Oct 21 2026 07:53:46) (NTS)",
+  "postgres": "postgres (PostgreSQL) 17.11 (Debian 17.11-0+deb13u1)",
+  "scope": "disposable native database + PHP HTTP; simulated Auth/REST; no hosted writes or provider sends",
+  "suites": [
+    {
+      "name": "sc02-baseline",
+      "passed": true,
+      "tests": 8,
+      "seconds": 0.536
+    },
+    {
+      "name": "sc02-native",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.35
+    },
+    {
+      "name": "sc03-native",
+      "passed": true,
+      "tests": 4,
+      "seconds": 3.217
+    },
+    {
+      "name": "sc04-native",
+      "passed": true,
+      "tests": 10,
+      "seconds": 11.743
+    },
+    {
+      "name": "sc04-delegated",
+      "passed": true,
+      "tests": 12,
+      "seconds": 12.884
+    },
+    {
+      "name": "sc04-shared",
+      "passed": true,
+      "tests": 14,
+      "seconds": 16.219
+    },
+    {
+      "name": "sc04-readiness",
+      "passed": true,
+      "tests": 9,
+      "seconds": 7.344
+    },
+    {
+      "name": "staff-onboarding",
+      "passed": true,
+      "tests": 12,
+      "seconds": 7.726
+    },
+    {
+      "name": "staff-invitation-mail",
+      "passed": true,
+      "tests": 0,
+      "seconds": 0.044
+    },
+    {
+      "name": "defect-repairs",
+      "passed": true,
+      "tests": 7,
+      "seconds": 9.797
+    },
+    {
+      "name": "workflow-repairs",
+      "passed": true,
+      "tests": 3,
+      "seconds": 8.89
+    },
+    {
+      "name": "retry-recovery",
+      "passed": true,
+      "tests": 4,
+      "seconds": 7.733
+    },
+    {
+      "name": "defect-preview",
+      "passed": true,
+      "tests": 10,
+      "seconds": 15.838
+    },
+    {
+      "name": "accounts",
+      "passed": true,
+      "tests": 6,
+      "seconds": 2.535
+    },
+    {
+      "name": "profiles",
+      "passed": true,
+      "tests": 4,
+      "seconds": 4.225
+    },
+    {
+      "name": "services",
+      "passed": true,
+      "tests": 1,
+      "seconds": 4.791
+    },
+    {
+      "name": "customers",
+      "passed": true,
+      "tests": 1,
+      "seconds": 4.71
+    },
+    {
+      "name": "staff",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.661
+    },
+    {
+      "name": "enquiries",
+      "passed": true,
+      "tests": 1,
+      "seconds": 5.679
+    },
+    {
+      "name": "quotes",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.311
+    },
+    {
+      "name": "bookings",
+      "passed": true,
+      "tests": 1,
+      "seconds": 4.679
+    },
+    {
+      "name": "invoices",
+      "passed": true,
+      "tests": 1,
+      "seconds": 4.195
+    },
+    {
+      "name": "dashboard",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.221
+    },
+    {
+      "name": "requests",
+      "passed": true,
+      "tests": 1,
+      "seconds": 5.246
+    },
+    {
+      "name": "rooms",
+      "passed": true,
+      "tests": 1,
+      "seconds": 7.831
+    },
+    {
+      "name": "area-pages",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.309
+    },
+    {
+      "name": "website-release",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.301
+    },
+    {
+      "name": "customer-access",
+      "passed": true,
+      "tests": 1,
+      "seconds": 2.812
+    },
+    {
+      "name": "business-header",
+      "passed": true,
+      "tests": 1,
+      "seconds": 2.799
+    },
+    {
+      "name": "enquiry-workflow",
+      "passed": true,
+      "tests": 1,
+      "seconds": 4.258
+    },
+    {
+      "name": "foundation",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.664
+    },
+    {
+      "name": "production-activation",
+      "passed": true,
+      "tests": 1,
+      "seconds": 7.262
+    },
+    {
+      "name": "full-journey",
+      "passed": true,
+      "tests": 1,
+      "seconds": 2.913
+    },
+    {
+      "name": "enquiry-mail",
+      "passed": true,
+      "tests": 0,
+      "seconds": 0.012
+    },
+    {
+      "name": "enquiry-notifications",
+      "passed": true,
+      "tests": 1,
+      "seconds": 2.211
+    },
+    {
+      "name": "observability",
+      "passed": true,
+      "tests": 2,
+      "seconds": 3.677
+    },
+    {
+      "name": "ops-alerts",
+      "passed": true,
+      "tests": 3,
+      "seconds": 0.303
+    },
+    {
+      "name": "recovery",
+      "passed": true,
+      "tests": 1,
+      "seconds": 3.741
+    }
+  ],
+  "passed": true,
+  "tests": 129
+}

@@ -69,6 +69,13 @@ class SC04(Foundation):
  def post(cls,path,**fields):
   html=cls.get(path)[1]
   if 'name="csrf"' not in html:raise AssertionError('Missing form: '+str(cls.sc04_errors[-3:])+html[-700:])
+  if '/account/delegated.php' in path and 'id' not in fields:
+   # Preserve the stable identity from the actual rendered form in native submits.
+   for form in __import__('re').findall(r'<form\b.*?</form>',html,__import__('re').S):
+    if 'name="action" value="'+str(fields.get('action',''))+'"' not in form:continue
+    if any(k in fields and 'name="'+k+'" value="'+str(fields[k])+'"' not in form for k in ['quote','booking']):continue
+    matched=__import__('re').search(r'name="id" value="([^"]+)"',form)
+    if matched:fields['id']=matched[1];break
   return super().post(path,**fields)
  def test_new_owner(self):
   u=self.newuser()

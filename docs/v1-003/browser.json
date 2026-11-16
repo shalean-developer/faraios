@@ -1,0 +1,86 @@
+{
+  "status": "PASS",
+  "physical_phone": false,
+  "checks": [
+    {
+      "role": "manager",
+      "width": 390,
+      "action": "customer",
+      "committed_then_response_dropped": true,
+      "records": 1,
+      "automatic_replays": 0
+    },
+    {
+      "role": "manager",
+      "width": 390,
+      "action": "booking",
+      "committed_then_response_dropped": true,
+      "records": 1,
+      "automatic_replays": 0
+    },
+    {
+      "role": "manager",
+      "width": 390,
+      "action": "payment",
+      "committed_then_response_dropped": true,
+      "records": 1,
+      "automatic_replays": 0
+    },
+    {
+      "role": "receptionist",
+      "width": 390,
+      "action": "customer",
+      "committed_then_response_dropped": true,
+      "records": 1,
+      "automatic_replays": 0
+    },
+    {
+      "role": "receptionist",
+      "width": 390,
+      "action": "booking",
+      "committed_then_response_dropped": true,
+      "records": 1,
+      "automatic_replays": 0
+    },
+    {
+      "role": "manager",
+      "width": 1280,
+      "action": "customer",
+      "committed_then_response_dropped": true,
+      "records": 1,
+      "automatic_replays": 0
+    },
+    {
+      "role": "manager",
+      "width": 1280,
+      "action": "booking",
+      "committed_then_response_dropped": true,
+      "records": 1,
+      "automatic_replays": 0
+    },
+    {
+      "role": "manager",
+      "width": 1280,
+      "action": "payment",
+      "committed_then_response_dropped": true,
+      "records": 1,
+      "automatic_replays": 0
+    },
+    {
+      "role": "receptionist",
+      "width": 1280,
+      "action": "customer",
+      "committed_then_response_dropped": true,
+      "records": 1,
+      "automatic_replays": 0
+    },
+    {
+      "role": "receptionist",
+      "width": 1280,
+      "action": "booking",
+      "committed_then_response_dropped": true,
+      "records": 1,
+      "automatic_replays": 0
+    }
+  ]
+}

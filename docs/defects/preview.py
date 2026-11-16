@@ -21,8 +21,13 @@ def overlay(path):
  core=path/'account/core.php';delegated=path/'account/delegated.php'
  manifest=json.loads((ROOT/'docs/defects/d01-d06-scope.json').read_text())
  for item in manifest['application_delta']:
-  p=path/item['path']
-  if hashlib.sha256(p.read_bytes()).hexdigest()!=item['candidate_sha256']:raise RuntimeError('Candidate source drift: '+item['path'])
+  p=path/item['path'];expected=item['candidate_sha256']
+  retry=json.loads((ROOT/'docs/v1-003/runtime-manifest.json').read_text())['application_delta']
+  for change in retry:
+   if change['path']==item['path']:
+    if change['baseline_sha256']!=expected:raise RuntimeError('Retry baseline drift')
+    expected=change['candidate_sha256']
+  if hashlib.sha256(p.read_bytes()).hexdigest()!=expected:raise RuntimeError('Candidate source drift: '+item['path'])
  text=delegated.read_text();needle="function work_rpc(string $name,array $args): array {return api("
  adapter="function work_rpc(string $name,array $args): array {$name=['business_delegate_command'=>'business_delegate_command_preview_d0106','business_delegate_page'=>'business_delegate_page_preview_d0106'][$name]??$name;return api("
  assert text.count(needle)==1
