@@ -1,0 +1,6 @@
+{
+  ".github/workflows/foundation-regression.yml": {
+    "baseline_sha256": "72838e7ab7e5de525ad23e1adb560720ae930f084429498b71cb81539f6a9152",
+    "candidate_sha256": "96633e018aa8d2335127f202af9f1bd855503eca2a6cd3057eed6edfb1c0e303"
+  }
+}
