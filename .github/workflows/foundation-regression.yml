@@ -19,6 +19,7 @@ jobs:
         env:
           PG_BIN: /usr/lib/postgresql/16/bin
         run: |
+          python3 docs/ui-consistency/build-marketing-header.py --check
           python3 tests/ui-only.py
           python3 tests/ui-preview.py
       - name: Keep synthetic UI preview

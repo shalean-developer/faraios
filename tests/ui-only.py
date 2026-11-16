@@ -20,6 +20,6 @@ class UIOnly(unittest.TestCase):
   for p in list(ROOT.glob('*.html'))+list((ROOT/'industries').glob('*.html'))+list((ROOT/'guides').glob('*.html')):
    s=p.read_text();self.assertIn('ui/design-system.css',s)
    if 'ui-content' in s:
-    self.assertEqual(s.count('class="site-header"'),1,p.name);self.assertEqual(s.count('class="site-footer"'),1,p.name)
+    self.assertEqual(len(re.findall(r'<header\b[^>]*class="[^"]*\bsite-header\b[^"]*"',s)),1,p.name);self.assertEqual(s.count('class="site-footer"'),1,p.name)
     self.assertIn('id="main"',s,p.name);self.assertIn('ui/site-menu.js',s,p.name)
 if __name__=='__main__':unittest.main(verbosity=2)
