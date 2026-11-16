@@ -6,6 +6,15 @@ class UIOnly(unittest.TestCase):
  def test_original_php_logic_is_preserved(self):
   data=json.loads((ROOT/'docs/ui-consistency/php-logic-baseline.json').read_text())
   for path,before in data.items():
+   if path=='account/bookings.php':
+    # This reviewed behavioral repair supersedes only this page's UI-only promise.
+    # Pin exact bytes and the previous reviewed hash; keep the frozen baseline.
+    delta=json.loads((ROOT/'docs/v1-004/source-delta.json').read_text())
+    self.assertEqual(set(delta),{path})
+    previous=json.loads((ROOT/'docs/ui-consistency/source-delta.json').read_text())[path]['candidate_sha256']
+    self.assertEqual(delta[path]['baseline_sha256'],previous)
+    self.assertEqual(hashlib.sha256((ROOT/path).read_bytes()).hexdigest(),delta[path]['candidate_sha256'])
+    continue
    i=0
    for code in re.findall(r'<\?(?:php|=)(.*?)(?:\?>|\Z)',(ROOT/path).read_text(),re.S):
     code=code.strip();h=hashlib.sha256(code.encode()).hexdigest()

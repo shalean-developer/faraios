@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "physical_phone": false,
+  "checks": [
+    {
+      "width": 390,
+      "stale_rejected": true,
+      "choices_retained": true,
+      "stale_token_retained": true,
+      "saved_row_preserved": true,
+      "reload_current": true
+    },
+    {
+      "width": 1280,
+      "stale_rejected": true,
+      "choices_retained": true,
+      "stale_token_retained": true,
+      "saved_row_preserved": true,
+      "reload_current": true
+    }
+  ]
+}
