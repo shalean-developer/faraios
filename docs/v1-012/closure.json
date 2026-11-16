@@ -1,0 +1,22 @@
+{
+  "task": "V1-012",
+  "status": "Verified",
+  "all_three_acceptance_items_checked": true,
+  "overview": {
+    "verified": 15,
+    "total": 30,
+    "blockers": 13,
+    "launch": "HOLD"
+  },
+  "source": "b90e7903dc6b9f58fe12eebeb354e9bdf66b1d25",
+  "ci": {
+    "foundation": 43922818703,
+    "database_backup": 43922818850,
+    "private_configuration": 43922818783
+  },
+  "all_ci": "success",
+  "draft_pr": 78,
+  "main": "4cea37e553edd3d6b1faae277a3286f7134c3801",
+  "runtime_or_schema_deployment": false,
+  "engineering_acceptance_only": true
+}

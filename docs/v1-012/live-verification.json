@@ -1,0 +1,28 @@
+{
+  "task": "V1-012",
+  "status": "PASS",
+  "passed_checks": 194,
+  "failed_checks": 0,
+  "synthetic_only": true,
+  "verified_at": "2026-11-16T17:50:26+00:00",
+  "runtime_changes": false,
+  "all_existing_history_preserved": true,
+  "all_overlays_preserved": true,
+  "ids": {
+    "booking": "af2d2b93-e3a1-4ace-a125-b6d370f55595",
+    "invoice": "cb43bc12-43f6-4c48-aa92-f370ed4d5d7d",
+    "payment": "5a22ecce-1741-4fed-a9de-4619ffbc7b24",
+    "remainder": "15f828d5-c1ae-faa1-bf39-1ec315f0c91d",
+    "reversal0": "f437cb50-b25c-409f-a3b4-3cff819b2bf8",
+    "reversal1": "d096d3d6-eb93-4d19-a5b7-adaad5b0863e"
+  },
+  "snapshot_population": "Existing synthetic business A/live rows in twelve scoped tables/views; A/preview invoice, payment, invoice-event and booking-schedule rows. Other tenants were not written.",
+  "host_private_receipt": "v1012-live-20261116/final.json",
+  "schedules_preserved": [
+    263,
+    265,
+    264,
+    266
+  ],
+  "temporary_task_cancelled": true
+}
