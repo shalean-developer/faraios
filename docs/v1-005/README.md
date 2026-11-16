@@ -28,7 +28,7 @@ Installation enables **no policy** and rewrites no business, booking, assignment
 
 The existing enhanced backup script encrypts the actual candidate database and restores it to a new native database; all source/restored table fingerprints, including scheduling, are compared. Wrong-key/tamper and other recovery guards remain in the established backup regression. This is isolated recovery, not a new hosted provider restore or an RTO guarantee.
 
-Optional browser integration (`FARAIOS_SCHEDULING_BROWSER_CHECK=true`) checks the real PHP settings form at 320/390/768/1280, no horizontal overflow, touch-sized save control and stale-input/version retention. CI installs pinned Playwright 1.62.0 for this gate. The local Chromium attempt crashed before page creation; no local visual pass is claimed from that failure. Synthetic screenshots are CI artifacts, not physical-phone acceptance.
+Optional browser integration (`FARAIOS_SCHEDULING_BROWSER_CHECK=true`) checks the real PHP settings form at 320/390/768/1280, no horizontal overflow, touch-sized save control and stale-input/version retention. CI installs pinned Playwright 1.62.0 for this gate. An initial local Chromium attempt using single-process flags crashed before page creation; it supplies no visual pass. Normal multi-process Chromium subsequently passed all four widths locally. Times use explicit 24-hour HH:MM fields to avoid clipped locale-dependent AM/PM controls, and styles load from a same-origin CSS file without weakening CSP. Synthetic screenshots are CI artifacts, not physical-phone acceptance.
 
 ## Guarded rollback and rollout gate
 
