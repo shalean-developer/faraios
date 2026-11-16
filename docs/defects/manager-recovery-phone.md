@@ -1,0 +1,10 @@
+# Manager typed-field recovery phone test
+
+
+## Manager typed-field recovery phone invitation prepared — 16 November 2026
+
+Owner authorizes next Manager form recovery test. Read-only preflight confirms faraic3@gmail.com active A/preview Worker, linked staffa56d5621-36bd-419d-b5f1-be288c1799c0 active/version1, no pending/queued preview invitation and dedicated customer absent. Existing owner-authenticated membership revoke closed only that new synthetic Worker; existing owner customer write created customer00000000-0000-4000-8000-000000000126, “Synthetic manager recovery check”, version1, manager-recovery@example.test, address Synthetic preview address, notes Baseline recovery note. Small fixed ID places this dedicated synthetic record on first Customers page; old records/history untouched.
+
+One Manager invitationf0dcf9c8-0290-43ff-84ad-589f63b6f7d0 for existing same staff/mailbox is provider_accepted after one attempt, expires17 November2026 13:37 Johannesburg. Membership stays inactive until explicit acceptance; no manager pre-activation. A preview onboarding remains open; prior roles/B closed. No new staff profile, password change, real invitation or customer message. One-use private transport override changes no live mail configuration/schedule. Temporary host task cancelled. Private guarded receipts: manager-recovery-phone-20261116. Do not replay prepare/mail.
+
+Next phone: newest Preview Manager invitation→sign in as faraic3@gmail.com→accept→A/Preview→Manager Workspace. Then Customers first page→Synthetic manager recovery check→Edit customer; enter Name “Synthetic manager typed draft” and Notes “Phone draft must remain”, do not save, report Ready. Only after Ready, owner updates the dedicated record's notes at version1 through existing customer write API, then phone submits stale version1 once. Expect clear error, open recovery form, both typed fields preserved and server version2/other-writer content unchanged. Do not mark PASS early or use real customers. Scheduled worker stale-test job remains Scheduled/version2; no start/completion. No merge or live deployment.

@@ -72,7 +72,7 @@
     "inventory_receipt_outside_source": true,
     "verification": "36 suites passed in combined run; baseline 8 methods passed after removing receipt from source inventory; focused browser 8+13 passed"
   },
-  "closed_synthetic_access": false,
+  "closed_synthetic_access": true,
   "enabled_synthetic_onboarding": true,
   "phone_acceptance": "Manager/Worker/Receptionist listed scenarios PASS, including worker/receptionist retained-session revocation; new-account signup/verification phone case remains open",
   "release_authorized": false,
@@ -98,5 +98,6 @@
     "delivery_attempts": 1
   },
   "phone_connection_recovery": "Preview corrected; physical-phone retry pending",
-  "current_test_window": "Only newly accepted A/preview worker active; A onboarding true; prior roles/B closed"
+  "current_test_window": "New worker revoked; Manager preview invitation pending acceptance for same controlled user; A onboarding true; all previous roles/B closed",
+  "manager_typed_field_phone": "Prepared dedicated synthetic customer version1; Manager invitation provider accepted; phone acceptance pending"
 }
