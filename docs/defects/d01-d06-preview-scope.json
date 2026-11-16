@@ -1,7 +1,7 @@
 {
   "files": {
     "account/core.php": "2605bab2badc357880bdefdf1370357fb9827645df10536a9825e3d82f3b1f03",
-    "account/delegated.php": "7f6d601daad3b439dd4d662c64cd176a5f5ef843f14ef6c19d57b7a133cf1464",
+    "account/delegated.php": "7c66a2a0e7753f0b9c1dd519fd3fbcd1be8857ac030ed48d86d861ae4facf536",
     "account/workspace.css": "34604c14652214ac3ef10577d084ce9ae9cd960725523b89ce7dcbb013d49f1d"
   },
   "businesses": [
@@ -118,6 +118,25 @@
     "private_receipts": "private/faraios-account/quote-pagination-20261116/",
     "live_changed": false,
     "sql_functions_changed": false,
-    "phone_retry_pending": true
+    "phone_retry_pending": false,
+    "phone_result": "Owner reports Passed"
+  },
+  "booking_pagination_followup": {
+    "page_size": 10,
+    "layout": "One bottom horizontal Previous/Next pager",
+    "before_delegated": "7f6d601daad3b439dd4d662c64cd176a5f5ef843f14ef6c19d57b7a133cf1464",
+    "after_delegated": "7c66a2a0e7753f0b9c1dd519fd3fbcd1be8857ac030ed48d86d861ae4facf536",
+    "fixture_mutations": false,
+    "private_receipts": "private/faraios-account/booking-pagination-20261116/",
+    "live_changed": false,
+    "sql_functions_changed": false,
+    "phone_retry_pending": true,
+    "hosted_checks": 232,
+    "verified_counts": {
+      "customers": 109,
+      "quotes": 21,
+      "bookings": 115
+    },
+    "hosted_result": "PASS"
   }
 }

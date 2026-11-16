@@ -76,7 +76,7 @@ class Repairs(base.Readiness):
    def handle_endtag(self,tag):
     if tag=='nav':self.current_nav=None
   self.enable();u=self.member('manager');self.login(u)
-  for resource in ['customers','quotes']:
+  for resource in ['customers','quotes','bookings']:
    first=ListPage();first.feed(self.get('/account/delegated.php?view='+resource)[1]);self.assertEqual(len(first.ids),10);self.assertTrue(first.bottom_after_cards);self.assertEqual(first.nav.count('Record pages'),1);self.assertTrue(first.bottom_link);self.assertIn('view='+resource,first.bottom_link)
    second=ListPage();second.feed(self.get('/account/delegated.php'+first.bottom_link)[1]);self.assertEqual(len(second.ids),10);self.assertFalse(set(first.ids)&set(second.ids))
   self.enable(False)
@@ -154,9 +154,10 @@ class Repairs(base.Readiness):
        page.screenshot(path=str(out/('customer-save-no-theme-'+str(width)+'.png')))
        form.locator('input[name="name"]').fill('Synthetic phone retained');form.locator('input[name="email"]').fill('bad-email');save.click();page.get_by_role('heading',name='Unsaved changes',exact=True).wait_for()
        self.assertEqual(page.locator('section.panel input[name="name"]').input_value(),'Synthetic phone retained');self.assertTrue(page.get_by_role('alert').is_visible())
-       page.goto(self.url+'/account/delegated.php?view=quotes&page=2');self.assertEqual(page.locator('article').count(),10);pager=page.get_by_role('navigation',name='Record pages',exact=True);self.assertEqual(pager.count(),1);pager.scroll_into_view_if_needed()
-       prev=pager.get_by_role('link',name='Previous',exact=True).bounding_box();nxt=pager.get_by_role('link',name='Next',exact=True).bounding_box();self.assertAlmostEqual(prev['y'],nxt['y'],delta=1);self.assertGreaterEqual(nxt['height'],44);self.assertLess(prev['x'],nxt['x']);page.screenshot(path=str(out/('quote-pagination-'+str(width)+'.png')))
-       pager.get_by_role('link',name='Next',exact=True).click();self.assertIn('view=quotes',page.url);self.assertIn('page=3',page.url);page.get_by_role('navigation',name='Record pages',exact=True).get_by_role('link',name='Previous',exact=True).click();self.assertIn('page=2',page.url)
+       for resource in ['quotes','bookings']:
+        page.goto(self.url+'/account/delegated.php?view='+resource+'&page=2');self.assertEqual(page.locator('article').count(),10);pager=page.get_by_role('navigation',name='Record pages',exact=True);self.assertEqual(pager.count(),1);pager.scroll_into_view_if_needed()
+        prev=pager.get_by_role('link',name='Previous',exact=True).bounding_box();nxt=pager.get_by_role('link',name='Next',exact=True).bounding_box();self.assertAlmostEqual(prev['y'],nxt['y'],delta=1);self.assertGreaterEqual(nxt['height'],44);self.assertLess(prev['x'],nxt['x']);page.screenshot(path=str(out/(resource+'-pagination-'+str(width)+'.png')))
+        pager.get_by_role('link',name='Next',exact=True).click();self.assertIn('view='+resource,page.url);self.assertIn('page=3',page.url);page.get_by_role('navigation',name='Record pages',exact=True).get_by_role('link',name='Previous',exact=True).click();self.assertIn('page=2',page.url)
 
       else:self.assertIn('Times in Africa/Johannesburg',page.locator('body').inner_text());self.assertNotIn('Payments',page.locator('body').inner_text())
       metrics=page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');self.assertLessEqual(metrics['scroll'],width);checks.append(dict(role=role,**metrics));out=ROOT/'test-results/release';out.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(out/('defect-'+role+'-'+str(width)+'.png')),full_page=False);ctx.close();browser.close();browser=pw.chromium.launch(executable_path=os.environ.get('FARAIOS_CHROMIUM','/usr/bin/chromium'),headless=True,args=['--no-sandbox','--no-zygote','--single-process','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--disable-gpu'])
