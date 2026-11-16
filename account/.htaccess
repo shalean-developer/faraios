@@ -1,5 +1,0 @@
-Options -Indexes
-<IfModule mod_rewrite.c>
-RewriteEngine On
-RewriteRule ^(?:core|profile-core|services-core|customers-core|staff-core|account-view|settings-core|customer-help|observability|invoices-core)\.php$ - [F,L,NC]
-</IfModule>
