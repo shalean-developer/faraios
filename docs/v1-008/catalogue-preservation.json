@@ -1,0 +1,268 @@
+{
+  "before": {
+    "tables": [
+      {
+        "md5": "e6dee43b136c55c4ffd6b7d980ae548d",
+        "total": 10,
+        "table_name": "authorization_private.availability_requests"
+      },
+      {
+        "md5": "2c107e225e8e32e5539be6b564760cce",
+        "total": 1,
+        "table_name": "authorization_private.delegation_gate"
+      },
+      {
+        "md5": "51f6982c574171965bbb6c5f6d71f801",
+        "total": 177,
+        "table_name": "authorization_private.events"
+      },
+      {
+        "md5": "24573329dcbe304a59f7eebc39ffa405",
+        "total": 12,
+        "table_name": "authorization_private.invitations"
+      },
+      {
+        "md5": "372aafb9d59f64b662f54a61687054c7",
+        "total": 2,
+        "table_name": "authorization_private.live_businesses"
+      },
+      {
+        "md5": "aaaed23a4432360fcb07bd6a2de9c723",
+        "total": 12,
+        "table_name": "authorization_private.staff_invites"
+      },
+      {
+        "md5": "1257f3492c1cb73f7dbb286c2503022d",
+        "total": 3,
+        "table_name": "authorization_private.staff_onboarding_businesses"
+      },
+      {
+        "md5": "23d5c2e5befbbaacd926552a1b7dfa95",
+        "total": 4,
+        "table_name": "authorization_private.worker_identities"
+      },
+      {
+        "md5": "09c82db3376fdefe9e6f189c255ec09e",
+        "total": 4,
+        "table_name": "invoice_private.counters"
+      },
+      {
+        "md5": "8410f5f30598c13fa72a63ec84127403",
+        "total": 121,
+        "table_name": "public.business_booking_staff"
+      },
+      {
+        "md5": "7086c87abd8ab86ac6d3022d2b653358",
+        "total": 134,
+        "table_name": "public.business_bookings"
+      },
+      {
+        "md5": "e26d929a0fdf4b881002da79303a9e12",
+        "total": 118,
+        "table_name": "public.business_customers"
+      },
+      {
+        "md5": "071b1a7a8cc3778fb33f460464b4bc45",
+        "total": 20,
+        "table_name": "public.business_enquiries"
+      },
+      {
+        "md5": "90e384095b313b5878ba29399d0c41e1",
+        "total": 17,
+        "table_name": "public.business_enquiry_activity"
+      },
+      {
+        "md5": "d53a3f08e5141d662de1129101d71666",
+        "total": 51,
+        "table_name": "public.business_invoice_events"
+      },
+      {
+        "md5": "6702342e264a5244650706d8683d519c",
+        "total": 16,
+        "table_name": "public.business_invoice_payments"
+      },
+      {
+        "md5": "a9097680ae44a281226eb0283959f6b1",
+        "total": 15,
+        "table_name": "public.business_invoices"
+      },
+      {
+        "md5": "9a28ec9c1e9a2ded61c72467f957ee49",
+        "total": 26,
+        "table_name": "public.business_memberships"
+      },
+      {
+        "md5": "e203cf44f31c65e8eb9a81fe9ee4b78d",
+        "total": 7,
+        "table_name": "public.business_profiles"
+      },
+      {
+        "md5": "572befef45f9fad51f2a077848ca5ae5",
+        "total": 4,
+        "table_name": "public.business_public_pages"
+      },
+      {
+        "md5": "cdc5b5c1d33f94ff03ea1c9588436050",
+        "total": 36,
+        "table_name": "public.business_quotes"
+      },
+      {
+        "md5": "4c8280948e80423a10c6c7f86702f118",
+        "total": 7,
+        "table_name": "public.business_service_catalogues"
+      },
+      {
+        "md5": "386af34b406c85a0b361105c3882874a",
+        "total": 7,
+        "table_name": "public.business_service_images"
+      },
+      {
+        "md5": "0f07c98ba56ae486b64d5d91e23261ba",
+        "total": 118,
+        "table_name": "public.business_staff"
+      },
+      {
+        "md5": "cc16659856a5180fe4b1310729e8ae1c",
+        "total": 8,
+        "table_name": "public.businesses"
+      }
+    ],
+    "policies_md5": "a0c0e1f03c078af6aab7a472bdfc4db5",
+    "functions_md5": "daf2ee585dd5628ea603f7d44f90a2ee"
+  },
+  "after": {
+    "tables": [
+      {
+        "md5": "e6dee43b136c55c4ffd6b7d980ae548d",
+        "total": 10,
+        "table_name": "authorization_private.availability_requests"
+      },
+      {
+        "md5": "2c107e225e8e32e5539be6b564760cce",
+        "total": 1,
+        "table_name": "authorization_private.delegation_gate"
+      },
+      {
+        "md5": "51f6982c574171965bbb6c5f6d71f801",
+        "total": 177,
+        "table_name": "authorization_private.events"
+      },
+      {
+        "md5": "24573329dcbe304a59f7eebc39ffa405",
+        "total": 12,
+        "table_name": "authorization_private.invitations"
+      },
+      {
+        "md5": "372aafb9d59f64b662f54a61687054c7",
+        "total": 2,
+        "table_name": "authorization_private.live_businesses"
+      },
+      {
+        "md5": "aaaed23a4432360fcb07bd6a2de9c723",
+        "total": 12,
+        "table_name": "authorization_private.staff_invites"
+      },
+      {
+        "md5": "1257f3492c1cb73f7dbb286c2503022d",
+        "total": 3,
+        "table_name": "authorization_private.staff_onboarding_businesses"
+      },
+      {
+        "md5": "23d5c2e5befbbaacd926552a1b7dfa95",
+        "total": 4,
+        "table_name": "authorization_private.worker_identities"
+      },
+      {
+        "md5": "09c82db3376fdefe9e6f189c255ec09e",
+        "total": 4,
+        "table_name": "invoice_private.counters"
+      },
+      {
+        "md5": "8410f5f30598c13fa72a63ec84127403",
+        "total": 121,
+        "table_name": "public.business_booking_staff"
+      },
+      {
+        "md5": "7086c87abd8ab86ac6d3022d2b653358",
+        "total": 134,
+        "table_name": "public.business_bookings"
+      },
+      {
+        "md5": "e26d929a0fdf4b881002da79303a9e12",
+        "total": 118,
+        "table_name": "public.business_customers"
+      },
+      {
+        "md5": "071b1a7a8cc3778fb33f460464b4bc45",
+        "total": 20,
+        "table_name": "public.business_enquiries"
+      },
+      {
+        "md5": "90e384095b313b5878ba29399d0c41e1",
+        "total": 17,
+        "table_name": "public.business_enquiry_activity"
+      },
+      {
+        "md5": "d53a3f08e5141d662de1129101d71666",
+        "total": 51,
+        "table_name": "public.business_invoice_events"
+      },
+      {
+        "md5": "6702342e264a5244650706d8683d519c",
+        "total": 16,
+        "table_name": "public.business_invoice_payments"
+      },
+      {
+        "md5": "a9097680ae44a281226eb0283959f6b1",
+        "total": 15,
+        "table_name": "public.business_invoices"
+      },
+      {
+        "md5": "9a28ec9c1e9a2ded61c72467f957ee49",
+        "total": 26,
+        "table_name": "public.business_memberships"
+      },
+      {
+        "md5": "e203cf44f31c65e8eb9a81fe9ee4b78d",
+        "total": 7,
+        "table_name": "public.business_profiles"
+      },
+      {
+        "md5": "572befef45f9fad51f2a077848ca5ae5",
+        "total": 4,
+        "table_name": "public.business_public_pages"
+      },
+      {
+        "md5": "cdc5b5c1d33f94ff03ea1c9588436050",
+        "total": 36,
+        "table_name": "public.business_quotes"
+      },
+      {
+        "md5": "4c8280948e80423a10c6c7f86702f118",
+        "total": 7,
+        "table_name": "public.business_service_catalogues"
+      },
+      {
+        "md5": "386af34b406c85a0b361105c3882874a",
+        "total": 7,
+        "table_name": "public.business_service_images"
+      },
+      {
+        "md5": "0f07c98ba56ae486b64d5d91e23261ba",
+        "total": 118,
+        "table_name": "public.business_staff"
+      },
+      {
+        "md5": "cc16659856a5180fe4b1310729e8ae1c",
+        "total": 8,
+        "table_name": "public.businesses"
+      }
+    ],
+    "policies_md5": "a0c0e1f03c078af6aab7a472bdfc4db5",
+    "functions_md5": "daf2ee585dd5628ea603f7d44f90a2ee"
+  },
+  "original_rows_unchanged": true,
+  "functions_and_acls_unchanged": true,
+  "rls_policies_unchanged": true,
+  "method": "25 comparisons include all prior synthetic A/live records. Exclude only the two new quote IDs, previously absent A/live test catalogue, newly appended invitations and authorization events; preserve all original invitation IDs and prior event prefix."
+}

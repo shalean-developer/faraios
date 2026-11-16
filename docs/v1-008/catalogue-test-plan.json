@@ -1,0 +1,29 @@
+{
+  "status": "owner_authorized_final_test",
+  "business_id": "2f16e658-e031-4c4a-930a-2731ec1d1492",
+  "environment": "live",
+  "business_pages_stay_unpublished": true,
+  "catalogue": {
+    "currency": "ZAR",
+    "items": [
+      {
+        "id": "88888888888888888888888888888888",
+        "name": "Synthetic V1008 fixed service",
+        "description": "Synthetic unpublished role-audit fixture only",
+        "duration": 90,
+        "mode": "fixed",
+        "amount": 50500,
+        "visible": true,
+        "archived": false,
+        "options": []
+      }
+    ]
+  },
+  "synthetic_quote_price_minor": 50500,
+  "temporary_actor": "existing synthetic Receptionist only",
+  "close_after_test": true,
+  "provider_sends": false,
+  "real_payments": false,
+  "positive_quote_id": "504e924e-3bfa-4f47-ac65-aeb9e576c840",
+  "negative_quote_id": "de4929e0-22f1-4e7b-a5b3-e11cb64ae5bb"
+}
