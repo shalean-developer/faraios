@@ -1,6 +1,6 @@
 begin;
 create or replace function public.business_delegate_command(p_business uuid,p_environment text,p_operation text,p_arguments jsonb default '{}') returns jsonb language plpgsql security definer set search_path='' as $$
-declare role text;action text;args jsonb;f record;arg text;parts text[]='{}';i integer;result jsonb;old public.business_bookings;inv public.business_invoices;doc jsonb;reason text;bid uuid;zone text;local_start timestamp;local_end timestamp;instant_start timestamptz;instant_end timestamptz;
+declare role text;action text;args jsonb;f record;arg text;parts text[]='{}';i integer;result jsonb;old public.business_bookings;inv public.business_invoices;doc jsonb;reason text;bid uuid;zone text;local_start timestamp;local_end timestamp;instant_start timestamptz;instant_end timestamptz;selected_quote public.business_quotes;
 begin
  role=authorization_private.require_member(p_business,p_environment);
  if role='owner' then raise exception 'Use owner actions' using errcode='42501';end if;
@@ -15,6 +15,20 @@ begin
  when 'business_dashboard' then 'finance.bulk'
  when 'visit.execute' then 'visit.execute' when 'terminal.correct' then 'terminal.correct' when 'availability.request' then 'assignment.manage' end;
  if action is null or (role='worker' and p_operation not in ('visit.execute','availability.request')) or (role='receptionist' and action not in ('customers.manage','enquiry.internal','quote.draft','booking.schedule','assignment.manage','invoice.issue')) then raise exception 'Action denied' using errcode='42501';end if;
+ -- Optional UI selection versions supplement existing API contracts; old callers keep their signatures.
+ if p_arguments ? 'selection_version' then
+  if p_arguments->>'selection_version' is null or p_arguments->>'selection_version' !~ '^[1-9][0-9]{0,8}$' then raise exception 'The selected record changed or is unavailable. Reload and choose it again.';end if;
+  if p_operation='business_booking_write' and p_arguments->>'p_version'='0' and p_arguments->>'p_quote' is not null then
+   -- Match the existing booking command's advisory/row lock order.
+   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_business::text,32));
+   select * into selected_quote from public.business_quotes where id=(p_arguments->>'p_quote')::uuid and business_id=p_business and environment=p_environment and status='Accepted' for update;
+   if not found or selected_quote.version<>(p_arguments->>'selection_version')::integer then raise exception 'The selected record changed or is unavailable. Reload and choose it again.';end if;
+  elsif p_operation='business_invoice_write' and p_arguments->>'p_action'='save' and p_arguments->>'p_version'='0' and p_arguments->>'p_booking' is not null then
+   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_business::text||':invoice:'||p_environment,0));
+   select * into old from public.business_bookings where id=(p_arguments->>'p_booking')::uuid and business_id=p_business and environment=p_environment and status<>'Cancelled' for share;
+   if not found or old.version<>(p_arguments->>'selection_version')::integer then raise exception 'The selected record changed or is unavailable. Reload and choose it again.';end if;
+  else raise exception 'Invalid record selection';end if;
+ end if;
  -- Locks shared with existing assignment writes; recheck assignment after lock acquisition.
  if p_operation in ('visit.execute','terminal.correct') then
   if exists(select 1 from jsonb_object_keys(p_arguments) k where k not in ('id','version','status','reason')) then raise exception 'Invalid visit fields';end if;
@@ -86,7 +100,7 @@ begin
  select p.*,d.copy_name into f from authorization_private.delegate_functions d join pg_proc p on d.copy_name='copy_public_'||p.proname join pg_namespace n on n.oid=p.pronamespace and n.nspname='public'
  where d.identity like p_operation||'(%';
  if not found then raise exception 'Unknown operation' using errcode='42501';end if;
- args=(p_arguments-'authorization_reason')||jsonb_build_object('p_business',p_business,'p_environment',p_environment);
+ args=(p_arguments-'authorization_reason'-'selection_version')||jsonb_build_object('p_business',p_business,'p_environment',p_environment);
  if exists(select 1 from jsonb_object_keys(args) k where not(k=any(f.proargnames))) or p_arguments ?| array['p_business','p_environment'] then raise exception 'Unexpected argument';end if;
  for i in 1..f.pronargs loop
   arg=f.proargnames[i];
