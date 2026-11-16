@@ -1,7 +1,7 @@
 {
   "files": {
     "account/core.php": "2605bab2badc357880bdefdf1370357fb9827645df10536a9825e3d82f3b1f03",
-    "account/delegated.php": "e98589f3af6bb1639852fff01df70b8ab8e233718283e1d4e9b8367156c69dfe",
+    "account/delegated.php": "7f6d601daad3b439dd4d662c64cd176a5f5ef843f14ef6c19d57b7a133cf1464",
     "account/workspace.css": "34604c14652214ac3ef10577d084ce9ae9cd960725523b89ce7dcbb013d49f1d"
   },
   "businesses": [
@@ -106,5 +106,18 @@
     "live_changed": false,
     "hosted_checks": 48,
     "web_files_preserved": 1053
+  },
+  "quote_pagination_followup": {
+    "reason": "Owner requested Quotes pagination to match Customers after successful scheduling",
+    "page_size": 10,
+    "layout": "One horizontal bottom Previous/Next pager, shared with Customers",
+    "before_delegated": "e98589f3af6bb1639852fff01df70b8ab8e233718283e1d4e9b8367156c69dfe",
+    "after_delegated": "7f6d601daad3b439dd4d662c64cd176a5f5ef843f14ef6c19d57b7a133cf1464",
+    "fixtures": "14 labelled synthetic Draft quotes added only to registered preview A after inspection;21 total; existing7 unchanged",
+    "phone_booking_id": "1d5758e2-389d-4c7c-abd0-18eaa2c16fb0",
+    "private_receipts": "private/faraios-account/quote-pagination-20261116/",
+    "live_changed": false,
+    "sql_functions_changed": false,
+    "phone_retry_pending": true
   }
 }
