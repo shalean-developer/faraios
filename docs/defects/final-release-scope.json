@@ -1,5 +1,5 @@
 {
-  "application_source": "Offline follow-up on repair branch; pin evidence commit before release",
+  "application_source": "1951efd1d9facac18b90edbe72a406dab700492c",
   "main_compatibility": "4cea37e553edd3d6b1faae277a3286f7134c3801",
   "pr66": "d5f6f6c2c9c4e917253d5239ea40be78386f791b",
   "runtime_files": [
@@ -59,22 +59,22 @@
     "plaintext_copies_removed": true
   },
   "compatibility_tests": {
+    "status": "PASS",
     "suites": 37,
     "reported_tests": 125,
     "repair_browser_methods": 8,
+    "workflow_browser_methods": 4,
     "join_browser_methods": 13,
     "widths": [
       390,
       1280
     ],
-    "status": "Offline browser 8 and preview 10 PASS; final combined-source/CI refresh pending",
     "source_snapshot_manifest": "compatibility-snapshot.json",
-    "inventory_receipt_outside_source": true,
-    "verification": "36 suites passed in combined run; baseline 8 methods passed after removing receipt from source inventory; focused browser 8+13 passed"
+    "method": "Disposable combined source; all current-main public header bytes preserved; only three preservation fixtures reconciled; no merge/ref update"
   },
   "closed_synthetic_access": true,
   "enabled_synthetic_onboarding": false,
-  "phone_acceptance": "Manager/Worker/Receptionist listed scenarios PASS, including worker/receptionist retained-session revocation; new-account signup/verification phone case remains open",
+  "phone_acceptance": "Listed Manager/Worker/Receptionist scenarios PASS, including new-account verification/join, offline retention/reconnect/explicit save, worker and Manager stale recovery, duplicate-payment rejection, cross-page assignment and retained-session revocation",
   "release_authorized": false,
   "production_deployed": false,
   "private_receipts": "private/faraios-account/final-checks-20261116/",
@@ -97,11 +97,32 @@
     "membership_not_activated": false,
     "delivery_attempts": 1
   },
-  "phone_connection_recovery": "Preview corrected; physical-phone retry pending",
+  "phone_connection_recovery": "PASS: known-offline retains dates/times, reconnect does not resend, explicit online save creates exactly one correctly zoned request",
   "current_test_window": "Closed: all A/B preview delegates inactive, onboarding disabled; new pilot inactive version2",
   "manager_typed_field_phone": "PASS: stale version1 rejected; typed Name/Notes retained; saved version2 other-writer values unchanged",
-  "invoice_labels": "Number-first heading; focused native/browser workflow PASS; preview installed, phone confirmation pending",
+  "invoice_labels": "Number-first heading installed in preview; owner proceeded to exact INV-000004 duplicate test",
   "payment_duplicate_phone": "PASS: exact original one payment1000 minor, invoice Issued/version3 unchanged",
   "cross_page_assignment_phone": "PASS: add staff051 preserved001; confirmed page2 removal preserved001, final assignmentversion5",
-  "manager_revocation_phone": "Final same-session refresh pending"
+  "manager_revocation_phone": "PASS: retained phone session refreshed to Choose Business",
+  "latest_verified_ci": {
+    "source": "1951efd1d9facac18b90edbe72a406dab700492c",
+    "foundation": 43869447714,
+    "database_regression": 43869447532,
+    "private_configuration_regression": 43869447629,
+    "status": "PASS"
+  },
+  "hosted_final": {
+    "checks": 10,
+    "preview_files": 7,
+    "live_baselines_match": true,
+    "private_configs_preserved": true,
+    "no_business_record_mutation": true,
+    "receipt": "final-closeout-20261116/hosted-final.json",
+    "temporary_task_cancelled": true
+  },
+  "physical_phone_limits": [
+    "Mid-flight ambiguous-save connection loss is native/browser-tested, not separately phone-accepted",
+    "Not an assertion that every possible role/action/device combination was physically tested"
+  ],
+  "final_review_status": "Prepared for owner release review; not authorized or deployed"
 }
