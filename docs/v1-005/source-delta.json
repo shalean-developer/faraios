@@ -1,0 +1,6 @@
+{
+  ".github/workflows/scheduling-regression.yml": {
+    "baseline_sha256": null,
+    "candidate_sha256": "5d161a6c8ee9a05d0b99dbeb653ad6f8ae632b0b12a86d5f81e497fe6b0594b2"
+  }
+}

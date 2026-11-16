@@ -1,0 +1,100 @@
+{
+  "scope": "Read-only hosted function preflight; no runtime-file freshness claim; recheck immediately before installation",
+  "version": "17.11",
+  "functions": [
+    {
+      "acl": [
+        "postgres=X/postgres"
+      ],
+      "md5": "6b73e3d3da5bffc9acdb6a5e42f301b3",
+      "identity": "authorization_private.copy_booking_private_owner_write(uuid,text,uuid,integer,uuid,jsonb,text,timestamp without time zone,text,integer,text)"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres"
+      ],
+      "md5": "9d24eb1d9b5865c31f71fc715061e9ea",
+      "identity": "authorization_private.copy_customer_private_booking_create(uuid,text,uuid,integer,uuid,jsonb,text,timestamp without time zone,text,integer,text,uuid)"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres"
+      ],
+      "md5": "f468af87d35adfd05ae15325b36fd260",
+      "identity": "authorization_private.copy_request_private_action(uuid,text,uuid,integer,text)"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres"
+      ],
+      "md5": "bc7c22868bddc73c7f465366044d5fe3",
+      "identity": "authorization_private.copy_staff_private_assign(uuid,text,uuid,integer,jsonb)"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres"
+      ],
+      "md5": "2d7e9e54c4764f9cda1eaa60d583beb8",
+      "identity": "authorization_private.copy_staff_private_write(uuid,text,uuid,integer,text,text,text,boolean)"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "authenticated=X/postgres"
+      ],
+      "md5": "02f42ff8809bac9e00404a03b2fb3d6a",
+      "identity": "booking_private.owner_write(uuid,text,uuid,integer,uuid,jsonb,text,timestamp without time zone,text,integer,text)"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "authenticated=X/postgres"
+      ],
+      "md5": "a5093a8c48a6792fdac435c4a0ca4ee9",
+      "identity": "business_delegate_command_preview_d0106(uuid,text,text,jsonb)"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "authenticated=X/postgres"
+      ],
+      "md5": "64f6006540d7f1eb67b97820dbb11928",
+      "identity": "business_delegate_command(uuid,text,text,jsonb)"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "authenticated=X/postgres"
+      ],
+      "md5": "ee6a1477b2e0885b239ec00090211c8e",
+      "identity": "customer_private.booking_create(uuid,text,uuid,integer,uuid,jsonb,text,timestamp without time zone,text,integer,text,uuid)"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "authenticated=X/postgres"
+      ],
+      "md5": "09eb0d9e634e427afb7efe5745af5a80",
+      "identity": "request_private.action(uuid,text,uuid,integer,text)"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "authenticated=X/postgres"
+      ],
+      "md5": "6d756bc9caff72971e3efc0742ea8c21",
+      "identity": "staff_private.assign(uuid,text,uuid,integer,jsonb)"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "authenticated=X/postgres"
+      ],
+      "md5": "d5d59dc918e4aa39d132dff96ebc1cb6",
+      "identity": "staff_private.write(uuid,text,uuid,integer,text,text,text,boolean)"
+    }
+  ],
+  "captured_at": "2026-11-16T19:43:30.057514+00:00",
+  "new_tables_absent": true,
+  "function_differences": 0
+}
