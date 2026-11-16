@@ -78,7 +78,7 @@ class Baseline(unittest.TestCase):
             self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
             original[path]={'path':path,'sha256':change['candidate_sha256']}
         platform=json.loads((ROOT/'docs/platform-owner/source-delta.json').read_text())
-        self.assertEqual(set(platform),{'account/platform.php','account/platform-core.php','account/platform-seed.php','account/platform.css','account/platform.js','.github/workflows/foundation-regression.yml'})
+        self.assertEqual(set(platform),{'account/platform.php','account/platform-core.php','account/platform-seed.php','account/platform.css','account/platform.js','.github/workflows/foundation-regression.yml','scripts/platform-owner-release-20261116.php'})
         for path,change in platform.items():
             self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
             original[path]={'path':path,'sha256':change['candidate_sha256']}
