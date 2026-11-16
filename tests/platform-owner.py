@@ -83,6 +83,22 @@ class Tracker(unittest.TestCase):
   type(self).user=OTHER;self.assertEqual(self.get('/account/platform.php?export=1')[0],403);type(self).user=OWNER
   self.assertNotIn('localStorage',(ROOT/'account/platform.js').read_text())
   self.assertNotIn('service_role',(ROOT/'account/platform-core.php').read_text())
+ def test_08_encrypted_history_recovery(self):
+  code=r'''require 'account/platform-core.php';
+  $key=openssl_pkey_new(['private_key_bits'=>3072]);openssl_pkey_export($key,$private);
+  $public=openssl_pkey_get_details($key)['key'];
+  $bytes=json_encode(['schema'=>1,'revision'=>4,'tasks'=>[['title'=>'Private recovery example']],'history'=>[['revision'=>4]]]);
+  $p=platform_seal($bytes,$public);
+  if(platform_unseal($p,$private,'')!==$bytes||str_contains(json_encode($p),'Private recovery example'))exit(1);
+  $other=openssl_pkey_new(['private_key_bits'=>3072]);openssl_pkey_export($other,$wrong);
+  try{platform_unseal($p,$wrong,'');exit(2);}catch(RuntimeException $e){}
+  $p['tag']=base64_encode(str_repeat('x',16));
+  try{platform_unseal($p,$private,'');exit(3);}catch(RuntimeException $e){}
+  echo 'recovery_verified';'''
+  r=subprocess.run([PHP,'-r',code],cwd=ROOT,capture_output=True,text=True)
+  self.assertEqual(r.returncode,0,r.stderr);self.assertEqual(r.stdout,'recovery_verified')
+  files=list(self.private.glob('platform-tracker-*/recovery/*.packet'));self.assertTrue(files)
+  for f in files:self.assertEqual(f.stat().st_mode&0o777,0o600)
  def test_07_browser_responsive_and_save(self):
   if os.environ.get('PLATFORM_BROWSER')!='1':self.skipTest('Optional isolated Chromium UI check')
   from playwright.sync_api import sync_playwright
