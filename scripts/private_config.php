@@ -3,6 +3,7 @@ declare(strict_types=1);
 if(realpath($_SERVER['SCRIPT_FILENAME']??'')===__FILE__){http_response_code(403);exit;}
 const PC_PROJECT='rxelmugnucfajrqmphhe';
 const PC_FILES=['faraios-account/config.php','faraios-account/production.php','faraios-enquiry-mail/config.php','faraios-waitlist/config.php'];
+const PC_STAFF_FILES=['faraios-staff-invite/web.php','faraios-staff-invite/worker.php'];
 function pc_write(string $path,string $bytes): void {if(is_link($path)||file_put_contents($path,$bytes,LOCK_EX)===false||!chmod($path,0600))throw new RuntimeException();}
 function pc_key(string $dir,string $pass): void {
  if(strlen($pass)<32||file_exists($dir))throw new RuntimeException();mkdir($dir,0700,true);
@@ -12,7 +13,8 @@ function pc_key(string $dir,string $pass): void {
 }
 function pc_seal(string $root,string $public): array {
  $root=realpath($root);if(!$root)throw new RuntimeException();$files=[];
- foreach(PC_FILES as $name){$path=$root.'/'.$name;$parent=dirname($path);if(is_link($path)||is_link($parent)||realpath($path)!==$path||!is_file($path)||filesize($path)>65536)throw new RuntimeException();$raw=file_get_contents($path);$files[$name]=['sha256'=>hash('sha256',$raw),'bytes'=>base64_encode($raw)];}
+ $names=PC_FILES;$present=array_filter(PC_STAFF_FILES,fn($name)=>file_exists($root.'/'.$name)||is_link($root.'/'.$name));if($present&&count($present)!==count(PC_STAFF_FILES))throw new RuntimeException();if($present)$names=array_merge($names,PC_STAFF_FILES);
+ foreach($names as $name){$path=$root.'/'.$name;$parent=dirname($path);if(is_link($path)||is_link($parent)||realpath($path)!==$path||!is_file($path)||filesize($path)>65536)throw new RuntimeException();$raw=file_get_contents($path);$files[$name]=['sha256'=>hash('sha256',$raw),'bytes'=>base64_encode($raw)];}
  $key=openssl_pkey_get_public($public);if(!$key||openssl_pkey_get_details($key)['bits']<3072)throw new RuntimeException();
  $public=openssl_pkey_get_details($key)['key'];$header=['schema'=>'faraios.private-config.v1','project'=>PC_PROJECT,'key_fingerprint'=>hash('sha256',$public),'captured_utc'=>gmdate('c')];
  $secret=random_bytes(32);$iv=random_bytes(12);$aad=json_encode($header,JSON_THROW_ON_ERROR);
@@ -27,9 +29,9 @@ function pc_restore(array $packet,string $encrypted,string $public,string $pass,
  if(($header['schema']??'')!=='faraios.private-config.v1'||($header['project']??'')!==PC_PROJECT||($header['key_fingerprint']??'')!==hash('sha256',$public))throw new RuntimeException();
  $key=openssl_pkey_get_private($encrypted,$pass);if(!$key||!openssl_private_decrypt(base64_decode($packet['sealed_key'],true),$secret,$key,OPENSSL_PKCS1_OAEP_PADDING)||strlen($secret)!==32)throw new RuntimeException();
  $raw=openssl_decrypt(base64_decode($packet['ciphertext'],true),'aes-256-gcm',$secret,OPENSSL_RAW_DATA,base64_decode($packet['iv'],true),base64_decode($packet['tag'],true),json_encode($header,JSON_THROW_ON_ERROR));
- if($raw===false||strlen($raw)>400000)throw new RuntimeException();$data=json_decode($raw,true,32,JSON_THROW_ON_ERROR);
- if($data['header']!==$header||array_keys($data['files'])!==PC_FILES)throw new RuntimeException();
- $validated=[];foreach(PC_FILES as $name){$row=$data['files'][$name];$bytes=base64_decode($row['bytes'],true);if($bytes===false||strlen($bytes)>65536||!hash_equals($row['sha256'],hash('sha256',$bytes)))throw new RuntimeException();$validated[$name]=$bytes;}
+ if($raw===false||strlen($raw)>600000)throw new RuntimeException();$data=json_decode($raw,true,32,JSON_THROW_ON_ERROR);
+ $names=array_keys($data['files']);if($data['header']!==$header||!in_array($names,[PC_FILES,array_merge(PC_FILES,PC_STAFF_FILES)],true))throw new RuntimeException();
+ $validated=[];foreach($names as $name){$row=$data['files'][$name];$bytes=base64_decode($row['bytes'],true);if($bytes===false||strlen($bytes)>65536||!hash_equals($row['sha256'],hash('sha256',$bytes)))throw new RuntimeException();$validated[$name]=$bytes;}
  mkdir($out,0700,true);chmod($out,0700);
  foreach($validated as $name=>$bytes){if(!is_dir(dirname($out.'/'.$name)))mkdir(dirname($out.'/'.$name),0700,true);pc_write($out.'/'.$name,$bytes);if(hash_file('sha256',$out.'/'.$name)!==$data['files'][$name]['sha256'])throw new RuntimeException();}
  return ['status'=>'private_configuration_restored','project'=>PC_PROJECT,'file_count'=>count($validated),'hashes_match'=>true,'private_modes'=>true,'captured_utc'=>$header['captured_utc'],'secrets_printed'=>false];
