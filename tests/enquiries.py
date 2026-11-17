@@ -31,7 +31,8 @@ class Enquiries(Profiles):
   self.assertIn('wait a moment',self.send(path,**(fields|{'website':'spam'}))[1])
   rejected=self.send(path,**(fields|{'email':''}))[1]
   self.assertIn('email address or phone',rejected)
-  self.assertIn('role="alert"',rejected)
+  self.assertIn('role="alert" id="enquire" tabindex="-1"',rejected)
+  self.assertEqual(rejected.count('id="enquire"'),1)
   self.assertIn('account/error-focus.js?v=20261117-v1016" defer',rejected)
   self.assertIn('Alice &lt;script&gt;',rejected)
   self.assertIn('valid email',self.send(path,**(fields|{'email':'bad'}))[1])

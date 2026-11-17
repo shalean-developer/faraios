@@ -1,0 +1,22 @@
+{
+  "status": "Prepared for review; NOT installed",
+  "files": [
+    {
+      "path": "_accounts-preview/account/enquiries-core.php",
+      "before_sha256": "fd1e70f3fbd9e3143d8cd6792b2806489042932ec2af91970e84b8182f87aac7",
+      "after_sha256": "e30194d197a6f727934ec3dd492c120b0ecb07867be315e5e2dde680d7196e2a"
+    },
+    {
+      "path": "account/enquiries-core.php",
+      "before_sha256": "fd1e70f3fbd9e3143d8cd6792b2806489042932ec2af91970e84b8182f87aac7",
+      "after_sha256": "e30194d197a6f727934ec3dd492c120b0ecb07867be315e5e2dde680d7196e2a"
+    }
+  ],
+  "required_unchanged": {
+    "b/index.php": "8175ebc0d73aaaa1e4d77506fc81c489ca9266987b5199eac980138d752cb3c4",
+    "_accounts-preview/b/index.php": "a2d0d9619cad346492ad11696335b699d36aae5b6d37a14fca4dd5100d0dcf2b",
+    "_accounts-preview/account/layout.php": "86510015e7577204a34373ecdd78edd68e12a0d30cbf7e515654d7f5cfc66867",
+    "account/error-focus.js": "29b5ef540e1474d0a51eccc79b6c7055692407c522d44ce7ec039d7716989102",
+    "_accounts-preview/account/error-focus.js": "29b5ef540e1474d0a51eccc79b6c7055692407c522d44ce7ec039d7716989102"
+  }
+}

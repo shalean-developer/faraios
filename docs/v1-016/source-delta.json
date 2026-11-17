@@ -22,5 +22,9 @@
   "b/index.php": {
     "baseline_sha256": "220eedda2330b4f3de0575c8a7fbe7113b08d41f6d1a47a655a984d0ffc1052a",
     "candidate_sha256": "8175ebc0d73aaaa1e4d77506fc81c489ca9266987b5199eac980138d752cb3c4"
+  },
+  "account/enquiries-core.php": {
+    "baseline_sha256": "fd1e70f3fbd9e3143d8cd6792b2806489042932ec2af91970e84b8182f87aac7",
+    "candidate_sha256": "e30194d197a6f727934ec3dd492c120b0ecb07867be315e5e2dde680d7196e2a"
   }
 }
