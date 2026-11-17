@@ -25,8 +25,17 @@ jobs:
           ref: eb97fe51cb5dbee4654f2fbe7090aeb7229826e7
           path: baseline
           persist-credentials: false
-      - run: sudo apt-get update -qq && sudo apt-get install -y postgresql-16 php-cli php-pgsql
+      - name: Install native test runtimes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl ca-certificates gpg
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          gpg --show-keys --with-colons /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc | grep -q B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
+          echo 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y postgresql-17 php-cli php-curl php-pgsql
       - run: php -l b/instant.php && php -l business/instant-core.php && php -l account/instant-settings.php && node --check business/booking.js
       - run: python3 tests/instant-checkout.py
         env:
-          PG_BIN: /usr/lib/postgresql/16/bin
+          PG_BIN: /usr/lib/postgresql/17/bin
