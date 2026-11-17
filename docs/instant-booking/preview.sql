@@ -62,7 +62,7 @@ language plpgsql security definer set search_path='' as $$
 declare c record; worker uuid; occupied_range tstzrange;
 begin
  select * into c from instant_private.config(p_slug);
- if not found or p_at<=clock_timestamp() or p_at>clock_timestamp()+interval '31 days' or
+ if not found or p_at is null or not isfinite(p_at) or p_minutes is null or p_minutes not between 1 and 1440 or p_at<=clock_timestamp() or p_at>clock_timestamp()+interval '31 days' or
     date_trunc('minute',p_at)<>p_at or extract(minute from p_at)::int%30<>0 then return null; end if;
  occupied_range=tstzrange(p_at-c.before_min*interval '1 minute',p_at+(p_minutes+c.after_min)*interval '1 minute','[)');
  -- An unassigned job has no known worker capacity. Do not sell that interval.
@@ -101,7 +101,7 @@ end $$;
 create function instant_private.reserve(p_ref uuid,p_slug text,p_service text,p_area text,p_options jsonb,p_at timestamptz,
  p_total int,p_minutes int,p_customer jsonb,p_address text) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare c record; scope jsonb; worker uuid; deadline timestamptz; doc jsonb;
+declare c record; scope jsonb; worker uuid; deadline timestamptz; doc jsonb; prior instant_private.holds;
 begin
  select * into strict c from instant_private.config(p_slug);
  perform authorization_private.scheduling_lock_scope(c.bid,'preview');
@@ -111,6 +111,15 @@ begin
  if p_total is null or p_total<=0 or (scope->>'total')::int is distinct from p_total or (scope->>'minutes')::int is distinct from p_minutes then raise exception 'Price or duration changed.';end if;
  doc=p_customer||jsonb_build_object('items',scope->'items','scope',scope,'currency','ZAR');
  if not coalesce(quote_private.valid(doc),false) or p_address is null or length(trim(p_address)) not between 5 and 1000 then raise exception 'Check the booking details.'; end if;
+ select * into prior from instant_private.holds where reference=p_ref;
+ if found then
+  if prior.state='held' and prior.expires_at>clock_timestamp() and
+    (prior.business_id,prior.slug,prior.area,prior.address,prior.scope,prior.starts_at,prior.customer)
+    is not distinct from (c.bid,p_slug,p_area,p_address,scope,p_at,doc) then
+   return jsonb_build_object('expires',prior.expires_at,'total',p_total);
+  end if;
+  raise exception 'Reservation reference has already been used.';
+ end if;
  worker=instant_private.worker(p_slug,p_at,p_minutes,null);
  if worker is null then raise exception 'Slot unavailable.';end if;
  deadline=least(clock_timestamp()+interval '10 minutes',p_at);

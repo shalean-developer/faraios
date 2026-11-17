@@ -1,5 +1,6 @@
 """Run the preview journey against native Postgres, real PHP and a local test PSP."""
-import datetime
+import hashlib
+import hmac
 import json
 import os
 import re
@@ -60,6 +61,7 @@ class Checkout(Journey):
         cls.sql(cls.owner+f"select public.preview_instant_offer('{cls.bid}',true,'{cls.service}',array['{cls.worker}']::uuid[],array['Gardens'])")
         cls.day=cls.sql("select (now() at time zone 'Africa/Johannesburg')::date+1")
         cls.receipts={}
+        cls.provider_overrides={}
         class Provider(BaseHTTPRequestHandler):
             def log_message(self,*args): pass
             def reply(self,data):
@@ -78,7 +80,7 @@ class Checkout(Journey):
                     self.send_header('Location',cls.receipts[ref]['callback_url']+'&reference='+ref);self.end_headers()
                 elif self.path.startswith('/transaction/verify/'):
                     ref=self.path.split('/')[-1]
-                    self.reply(dict(reference=ref,amount=37500,currency='ZAR',domain='test',status='success'))
+                    self.reply(dict(reference=ref,amount=37500,currency='ZAR',domain='test',status='success') | cls.provider_overrides)
                 else:
                     self.reply({})
         cls.provider=ThreadingHTTPServer(('127.0.0.1',0),Provider)
@@ -129,11 +131,41 @@ class Checkout(Journey):
         self.assertIn('375.00',html);self.assertIn('300 minutes',html);self.assertIn('<option>09:00</option>',html);self.assertNotIn('<option>09:30</option>',html)
         review=post(flow,action='hold',time='09:00',name='Synthetic Customer',email='fixture@example.test').read().decode()
         self.assertIn('Review and pay',review);self.assertIn('Pay with test checkout',review)
+        ref='fi-'+urllib.parse.parse_qs(urllib.parse.urlsplit(flow).query)['flow'][0]
+        hook=self.base_url+'/b/instant.php?webhook=1'
+        payload=json.dumps(dict(event='charge.success',data=dict(domain='test',reference=ref))).encode()
+        def webhook(signature):
+            req=urllib.request.Request(hook,data=payload,headers={'X-Paystack-Signature':signature})
+            try: return self.browser.open(req).status
+            except urllib.error.HTTPError as e: return e.code
+        signature=hmac.new(b'sk_test_fixture',payload,hashlib.sha512).hexdigest()
+        self.assertEqual(webhook('incorrect'),403)
+        for invalid in [dict(status='failed'),dict(currency='USD'),dict(domain='live'),dict(amount=37499),dict(reference='another-reference')]:
+            self.provider_overrides.update(invalid)
+            try: self.assertEqual(webhook(signature),503)
+            finally: self.provider_overrides.clear()
+            self.assertEqual(self.sql("select count(*) from public.business_booking_staff where staff_id="+lit(self.worker)),'0')
         confirmed=post(flow,action='pay').read().decode();self.assertIn('Booking confirmed',confirmed)
         ref='fi-'+urllib.parse.parse_qs(urllib.parse.urlsplit(flow).query)['flow'][0]
         again=self.browser.open(flow+'&reference='+ref).read().decode()
         self.assertEqual(confirmed,again)
+        self.assertEqual(webhook(signature),200)
         self.assertEqual(self.sql("select count(*) from public.business_booking_staff where staff_id="+lit(self.worker)),'1')
+
+    def test_capacity_and_scope(self):
+        query=("select instant_private.slots('synthetic-cleaning',"+lit(self.service)+",'Gardens',"+
+               lit(json.dumps(self.opts))+",current_date+8)")
+        def available(change):
+            raw=self.sql("begin;"+change+";"+query+";rollback")
+            return json.loads(raw.splitlines()[-1])['times']
+        self.assertEqual(available("update authorization_private.scheduling_policies set hours='[]' where business_id="+lit(self.bid)),[])
+        self.assertEqual(available("update public.business_staff set active=false where id="+lit(self.worker)),[])
+        self.assertEqual(available("update authorization_private.scheduling_policies set after_minutes=30 where business_id="+lit(self.bid)),[])
+        with self.assertRaises(RuntimeError): self.sql(query.replace("'Gardens'","'Outside area'"))
+        with self.assertRaises(RuntimeError): self.sql("set role anon;"+query)
+        with self.assertRaises(RuntimeError): self.sql("set role authenticated;select * from instant_private.holds")
+        other=str(uuid.uuid4())
+        with self.assertRaises(RuntimeError): self.sql(self.owner+"select public.preview_instant_offer("+lit(other)+")")
 
     def test_mobile_browser(self):
         subprocess.run(['node',str(ROOT/'tests/instant-browser.cjs'),self.base_url,self.sql('select current_date+6')],check=True,timeout=50)
@@ -150,9 +182,10 @@ class Checkout(Journey):
         with ThreadPoolExecutor(2) as pool: won=list(pool.map(reserve,refs))
         self.assertEqual(sorted(won),[False,True])
         old=refs[won.index(True)]
+        self.assertTrue(reserve(old), 'Retry should return the same active hold')
         self.sql("update instant_private.holds set expires_at=now()-interval '1 second' where reference="+lit(old))
         self.assertTrue(reserve(str(uuid.uuid4())))
         self.assertEqual(json.loads(self.sql("select instant_private.settle("+lit(old)+",37500)"))['state'],'review')
 
 if __name__=='__main__':
-    unittest.main(defaultTest=['Checkout.test_checkout_and_duplicate_callback','Checkout.test_race_expiry_and_late_payment','Checkout.test_mobile_browser'],verbosity=2)
+    unittest.main(defaultTest=['Checkout.test_checkout_and_duplicate_callback','Checkout.test_race_expiry_and_late_payment','Checkout.test_capacity_and_scope','Checkout.test_mobile_browser'],verbosity=2)
