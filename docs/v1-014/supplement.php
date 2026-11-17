@@ -32,7 +32,7 @@ if(realpath($_SERVER['SCRIPT_FILENAME']??'')!==__FILE__)return;
 try{
  $dir=getenv('V14_BUNDLE');$out=getenv('RUNNER_TEMP').'/v1014-supplement-restored';
  $keyFiles=glob($dir.'/*.pem');$private='';$public='';foreach($keyFiles as $f){$s=file_get_contents($f);if(str_contains($s,'PRIVATE KEY'))$private=$s;elseif(str_contains($s,'PUBLIC KEY'))$public=$s;}
- $packet=json_decode(base64_decode(getenv('V14_PACKET'),true),true,32,JSON_THROW_ON_ERROR);
+ $packet=json_decode(file_get_contents(getenv('V14_PACKET_FILE')),true,32,JSON_THROW_ON_ERROR);
  $r=v14_restore($packet,$private,$public,getenv('BACKUP_PASSPHRASE'),$out);
  file_put_contents(getenv('V14_EVIDENCE').'/receipt.json',json_encode($r));
  file_put_contents(getenv('V14_EVIDENCE').'/supplement.packet',json_encode($packet));
