@@ -1,13 +1,13 @@
 name: Isolated database restore check
 on:
   push:
-    branches: [verify/v1-023-release-20261117]
+    branches: [verify/v1-014-scheduled-files-20261117]
 permissions:
   contents: read
   actions: read
 jobs:
   release-restore:
-    if: github.ref == 'refs/heads/verify/v1-023-release-20261117'
+    if: github.ref == 'refs/heads/verify/v1-014-scheduled-files-20261117'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -23,8 +23,8 @@ jobs:
       - name: Verify downloaded files and restore into a new private directory
         env:
           BACKUP_PASSPHRASE: ${{ secrets.FARAIOS_BACKUP_PASSPHRASE }}
-          SEALED_READ_LINKS: '{"manifest.json":"RHxhghaMoTiy2gWY1eLdshxdrNz0pAO0SsmiaDFCXZcTTKxhq5amGOMdsrhxUADpNUeCXEwN+Cvk18UCsEgYaL/t46nQ9Fsklmo0P4XE65uuT369UBI8KsUsGjrqjoh4G6VLpV7g5xPLxO/7xLFxevAMPR7aeKEYt+jqvHr6JWXlvuYdKxWwUBPqGJH/ELHBmZwRyQERrtHcpj2No9Lu2sSw4glKXPm+9HPfpOwtdM2reB+Ez7JnNbd9QbGb9ThEEGtactxuQ5AT0HruQhNE9FaBhzzpKMz92lsrTYJsPjjNjKvsWvNGeF/ycoWQnvEJ5iHwYAUyvtOfCwAPSOpi/HFT4/Nj9B5JIr3WmcU+Wxa9BUUQVO6StUFVSl2HdHr4KroDGqs/3CTEWXItRRtXG2lWSJbj2mn2wxIfzna1eY/8TwHCIrEq9JB+hF0xiE7sbDFcv+cnAQq21U0ebmoVO468QKz6ES+KYY3jYi2IAkgLO1TVeeuLGGsMMGGIEC7D","release.encrypted.json":"gEhW2T+flTdPEWaMxVs/AJmZ6R8l+5dn7HCdvrd/bIiR/Q5ooIYPrVQ80k7C2GXH1vnE6sBNslm5vHm9LSmXgUpHdvpQPPC1IfOS2FiThNqBpyvhCUo53Aw/tmX7NYKb+viJcurg/vqvOVQLbZVvF58q+UgPQ+HG86Led8Fx1HUSRaRtp3KWJagj3HpVBg41p2Wk48JlNCmIHOdw5FgohHYfpo1AcJdsBwcIn7SNpfiNDTcYZes1l717nFx13LX0mb64Skgys4bRnxps+6JIXpJ+zA9FeEU1ZShfeSwWYmMkbeASSdKhKAmhPWvRj3w0muQZ0PIVomc4YlgIvyx45bAME60tns0zdEzKFrLqTlwxMJAIwahM8BQotUT2pF7BsEdScH7g2wbbSvBnNZ0nv7JPkcheZVUDWMr9RfVhPL4qO2xBYdBi/BfvNekmPdeq8czEMxL6nNrqv9UAt6BZxXZpYAaYHWr6vZx3d1E9+1ZHGtrWpxVPtjJ8NhqStcp9"}'
-        run: /usr/bin/python3 docs/v1-023/run_check.py
+          SEALED_RECEIPT: '["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"]'
+        run: /usr/bin/python3 docs/v1-023/from_asset.py
       - name: Remove disposable inputs and restored files
         if: always()
         run: rm -rf -- "$RUNNER_TEMP/key" "$RUNNER_TEMP/v1023-offline" "$RUNNER_TEMP/manifest.json" "$RUNNER_TEMP/release.encrypted.json"
