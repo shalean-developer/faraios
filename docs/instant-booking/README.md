@@ -12,7 +12,7 @@ In the private preview account configuration set instant_test_enabled, instant_d
 
 ## Reservation and payment behavior
 
-Slots start on the half hour, over the next 30 days in Africa/Johannesburg. The full visit and both scheduling buffers must fit. Unassigned work blocks an overlapping interval conservatively. Checkout serializes reservations with the existing business/environment schedule lock. A slot stays held for ten minutes, or until the job starts if earlier. A failed or abandoned test checkout creates no booking. Expired holds stop consuming capacity automatically.
+Slots start on the half hour, over the next 30 days in Africa/Johannesburg. The full visit and both scheduling buffers must fit. Unassigned work blocks an overlapping interval conservatively. Checkout serializes reservations with the existing business/environment schedule lock. Owner assignments and reschedules cannot take an overlapping held cleaner. An unassigned booking created after the hold cannot take priority over it. A slot stays held for ten minutes, or until the job starts if earlier. A failed or abandoned test checkout creates no booking. Expired holds stop consuming capacity automatically.
 
 Confirmation requires the exact test reference, ZAR amount in cents, successful test-domain receipt and available staff. Booking and assignment commit together. Callback and webhook retries return the same booking. A late verified payment or a change to the eligible service or capacity routes the reference to review. Operators can reconcile test exceptions in instant_private.holds using the reference prefixed with fi- in Paystack. No automated refund or customer notification is configured. Preview test receipts are separate from the production invoice/payment ledger.
 

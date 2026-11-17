@@ -66,7 +66,7 @@ begin
     date_trunc('minute',p_at)<>p_at or extract(minute from p_at)::int%30<>0 then return null; end if;
  occupied_range=tstzrange(p_at-c.before_min*interval '1 minute',p_at+(p_minutes+c.after_min)*interval '1 minute','[)');
  -- An unassigned job has no known worker capacity. Do not sell that interval.
- if exists(select 1 from public.business_bookings b where b.business_id=c.bid and b.environment='preview'
+ if p_ignore is null and exists(select 1 from public.business_bookings b where b.business_id=c.bid and b.environment='preview'
   and b.status in ('Scheduled','In Progress') and not exists(select 1 from public.business_booking_staff a where a.booking_id=b.id)
   and tstzrange(b.starts_at-c.before_min*interval '1 minute',b.starts_at+(b.duration_minutes+c.after_min)*interval '1 minute','[)') && occupied_range)
  then return null; end if;
@@ -144,6 +144,7 @@ begin
   if worker is null then update instant_private.holds set state='review' where reference=p_ref;
   else
    id=gen_random_uuid();
+   update instant_private.holds set state='confirmed' where reference=p_ref;
    insert into public.business_bookings(id,business_id,environment,document,address,starts_at,time_zone,duration_minutes,status)
     values(id,h.business_id,'preview',h.customer,h.address,h.starts_at,'Africa/Johannesburg',(h.scope->>'minutes')::int,'Scheduled');
    insert into public.business_booking_staff(booking_id,staff_id,business_id,environment) values(id,worker,h.business_id,'preview');
@@ -152,6 +153,43 @@ begin
  end if;
  return (select jsonb_build_object('state',state,'booking',booking_id) from instant_private.holds where reference=p_ref);
 end $$;
+-- The ordinary owner scheduler uses the same scope lock. Protect a held worker
+-- against new assignments and moves while allowing unrelated workers to operate.
+create function instant_private.check_held_worker(bid uuid,worker uuid,at_time timestamptz,minutes int)
+returns void language plpgsql security definer set search_path='' as $
+begin
+ if exists(select 1 from instant_private.holds h join authorization_private.scheduling_policies p
+    on p.business_id=h.business_id and p.environment='preview'
+    where h.business_id=bid and h.staff_id=worker and h.state='held' and h.expires_at>clock_timestamp()
+    and h.occupied && tstzrange(at_time-p.before_minutes*interval '1 minute',
+       at_time+(minutes+p.after_minutes)*interval '1 minute','[)')) then
+  raise exception 'This cleaner is reserved for checkout. Choose another worker or time.';
+ end if;
+end $;
+create function instant_private.assignment_guard() returns trigger language plpgsql security definer set search_path='' as $
+declare job public.business_bookings;
+begin
+ select * into job from public.business_bookings where id=new.booking_id and business_id=new.business_id and environment='preview';
+ if job.status in ('Scheduled','In Progress') then
+  perform instant_private.check_held_worker(new.business_id,new.staff_id,job.starts_at,job.duration_minutes);
+ end if;
+ return new;
+end $;
+create trigger zz_instant_assignment before insert or update on public.business_booking_staff for each row
+ when (new.environment='preview') execute function instant_private.assignment_guard();
+create function instant_private.move_guard() returns trigger language plpgsql security definer set search_path='' as $
+declare worker uuid;
+begin
+ for worker in select staff_id from public.business_booking_staff where booking_id=new.id loop
+  perform instant_private.check_held_worker(new.business_id,worker,new.starts_at,new.duration_minutes);
+ end loop;
+ return new;
+end $;
+create trigger zz_instant_move before update on public.business_bookings for each row
+ when (new.environment='preview' and new.status in ('Scheduled','In Progress') and
+  (new.starts_at,new.duration_minutes,new.status) is distinct from (old.starts_at,old.duration_minutes,old.status))
+ execute function instant_private.move_guard();
+
 -- A returning customer can see the result even when the webhook arrived first.
 create function instant_private.receipt(p_ref uuid) returns jsonb language sql stable security definer set search_path='' as $$
  select jsonb_build_object('state',state,'booking',booking_id) from instant_private.holds where reference=p_ref

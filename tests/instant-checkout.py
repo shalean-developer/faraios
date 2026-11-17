@@ -183,6 +183,14 @@ class Checkout(Journey):
         self.assertEqual(sorted(won),[False,True])
         old=refs[won.index(True)]
         self.assertTrue(reserve(old), 'Retry should return the same active hold')
+        manual=str(uuid.uuid4())
+        self.sql("insert into public.business_bookings(id,business_id,environment,document,address,starts_at,time_zone,duration_minutes,status) "
+                 +"select "+lit(manual)+",business_id,'preview',customer,address,starts_at,'Africa/Johannesburg',300,'Scheduled' "
+                 +"from instant_private.holds where reference="+lit(old))
+        with self.assertRaisesRegex(RuntimeError,'reserved for checkout'):
+            self.sql("insert into public.business_booking_staff(booking_id,staff_id,business_id,environment) values("
+                     +",".join(lit(x) for x in [manual,self.worker,self.bid,'preview'])+")")
+        self.sql("update public.business_bookings set status='Cancelled' where id="+lit(manual))
         self.sql("update instant_private.holds set expires_at=now()-interval '1 second' where reference="+lit(old))
         self.assertTrue(reserve(str(uuid.uuid4())))
         self.assertEqual(json.loads(self.sql("select instant_private.settle("+lit(old)+",37500)"))['state'],'review')
