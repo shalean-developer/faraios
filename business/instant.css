@@ -1,0 +1,5 @@
+.instant { max-width: 38rem; margin: 2rem auto; padding: 1.25rem; }
+.instant form { display: grid; gap: 1rem; margin: 1.5rem 0; }
+.instant label { display: grid; gap: .35rem; }
+.instant input, .instant select, .instant button { font: inherit; padding: .75rem; }
+.instant [role="alert"] { border-left: .25rem solid #a32d21; padding: .75rem; }

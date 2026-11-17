@@ -77,7 +77,12 @@ const rebuildOptions = service => {
    const input = document.createElement('input'); input.type='number'; input.id=`quantity-${o.id}`; input.name=`options[${o.id}]`; input.min=o.minimum; input.max=o.maximum; input.step=1; input.required=true;
    input.value = String(Math.max(o.minimum, Math.min(o.maximum, Number(remembered[o.id] ?? Math.max(o.minimum,o.included)))));
    optionInputs.set(o.id,input);
-   if (o.kind === 'toggle') {
+   if (o.minimum === o.maximum) {
+    input.type = 'hidden';
+    const fixed = document.createElement('p');
+    fixed.textContent = o.name + ' · ' + money(Math.max(0, o.minimum - o.included) * o.price);
+    row.append(fixed, input);
+   } else if (o.kind === 'toggle') {
     input.type='hidden'; const button=document.createElement('button');button.type='button';button.className='extra-choice';
     row.classList.add('extra-task');
     const circle=document.createElement('span');circle.className='extra-task-circle';circle.append(extraIcon(o.name));
@@ -196,6 +201,21 @@ const calculateOptions = service => {
   saveDraft();
   if (focus) steps[current].querySelector('legend').focus();
  };
+ const instantStart = document.getElementById('instant-start');
+ if (instantStart) {
+  const coveredAreas = JSON.parse(instantStart.dataset.areas);
+  const refreshInstant = () => {
+   instantStart.hidden = fields.service.value !== instantStart.dataset.service ||
+    !coveredAreas.includes(fields.service_area?.value);
+  };
+  refreshInstant();
+  form.addEventListener('change', refreshInstant);
+  instantStart.addEventListener('click', () => {
+   if (instantStart.hidden || !valid(1)) return;
+   form.action = instantStart.dataset.target;
+   HTMLFormElement.prototype.submit.call(form);
+  });
+ }
  const valid = (index, report = true) => {
   update();
   const invalid = [...steps[index].querySelectorAll('input, select, textarea')].find(field => !field.checkValidity());
