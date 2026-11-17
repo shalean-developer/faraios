@@ -1,11 +1,7 @@
 name: Isolated database restore check
 on:
-  workflow_dispatch:
-    inputs:
-      configuration_packet:
-        description: Encrypted short-lived file read links
-        required: true
-        type: string
+  push:
+    branches: [verify/v1-023-release-20261117]
 permissions:
   contents: read
   actions: read
@@ -27,7 +23,7 @@ jobs:
       - name: Verify downloaded files and restore into a new private directory
         env:
           BACKUP_PASSPHRASE: ${{ secrets.FARAIOS_BACKUP_PASSPHRASE }}
-          SEALED_READ_LINKS: ${{ inputs.configuration_packet }}
+          SEALED_READ_LINKS: '{"manifest.json":"RHxhghaMoTiy2gWY1eLdshxdrNz0pAO0SsmiaDFCXZcTTKxhq5amGOMdsrhxUADpNUeCXEwN+Cvk18UCsEgYaL/t46nQ9Fsklmo0P4XE65uuT369UBI8KsUsGjrqjoh4G6VLpV7g5xPLxO/7xLFxevAMPR7aeKEYt+jqvHr6JWXlvuYdKxWwUBPqGJH/ELHBmZwRyQERrtHcpj2No9Lu2sSw4glKXPm+9HPfpOwtdM2reB+Ez7JnNbd9QbGb9ThEEGtactxuQ5AT0HruQhNE9FaBhzzpKMz92lsrTYJsPjjNjKvsWvNGeF/ycoWQnvEJ5iHwYAUyvtOfCwAPSOpi/HFT4/Nj9B5JIr3WmcU+Wxa9BUUQVO6StUFVSl2HdHr4KroDGqs/3CTEWXItRRtXG2lWSJbj2mn2wxIfzna1eY/8TwHCIrEq9JB+hF0xiE7sbDFcv+cnAQq21U0ebmoVO468QKz6ES+KYY3jYi2IAkgLO1TVeeuLGGsMMGGIEC7D","release.encrypted.json":"gEhW2T+flTdPEWaMxVs/AJmZ6R8l+5dn7HCdvrd/bIiR/Q5ooIYPrVQ80k7C2GXH1vnE6sBNslm5vHm9LSmXgUpHdvpQPPC1IfOS2FiThNqBpyvhCUo53Aw/tmX7NYKb+viJcurg/vqvOVQLbZVvF58q+UgPQ+HG86Led8Fx1HUSRaRtp3KWJagj3HpVBg41p2Wk48JlNCmIHOdw5FgohHYfpo1AcJdsBwcIn7SNpfiNDTcYZes1l717nFx13LX0mb64Skgys4bRnxps+6JIXpJ+zA9FeEU1ZShfeSwWYmMkbeASSdKhKAmhPWvRj3w0muQZ0PIVomc4YlgIvyx45bAME60tns0zdEzKFrLqTlwxMJAIwahM8BQotUT2pF7BsEdScH7g2wbbSvBnNZ0nv7JPkcheZVUDWMr9RfVhPL4qO2xBYdBi/BfvNekmPdeq8czEMxL6nNrqv9UAt6BZxXZpYAaYHWr6vZx3d1E9+1ZHGtrWpxVPtjJ8NhqStcp9"}'
         run: /usr/bin/python3 docs/v1-023/run_check.py
       - name: Remove disposable inputs and restored files
         if: always()
