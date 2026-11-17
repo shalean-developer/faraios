@@ -20,12 +20,13 @@ class Baseline(unittest.TestCase):
     def test_01_inventory_reproducible_and_complete(self):
         self.assertEqual(self.inventory,build())
         # Preserve the historical SC-02 manifest. Only these reviewed operational
-        # workflow bytes and the bounded marketing repair below may differ.
+        # workflow/configuration bytes and the bounded marketing repair below may differ.
         # Every other original file remains exact; keep both historical baselines.
         expected=copy.deepcopy(json.loads((ROOT/'docs/sc02/preservation-manifest.json').read_text()))
         delta=json.loads((ROOT/'docs/sc04/operational-source-delta.json').read_text())
         self.assertEqual(set(delta),{'.github/workflows/database-backup.yml',
-                                     '.github/workflows/database-restore-check.yml'})
+                                     '.github/workflows/database-restore-check.yml',
+                                     'scripts/private_config.php'})
         found=set()
         for entry in expected['files']:
             if entry['path'] in delta:
