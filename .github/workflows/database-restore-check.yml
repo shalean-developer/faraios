@@ -303,3 +303,37 @@ jobs:
           path: hosted-closeout.json
           retention-days: 30
           if-no-files-found: warn
+
+  v1014_supplement:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.configuration_action == 'v1014-supplement' && github.ref == 'refs/heads/verify/v1-014-recovery-drill-20261117' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y php-cli
+      - name: Reject unsafe supplemental restores
+        run: php docs/v1-014/supplement-test.php
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: '44116724464'
+          name: faraios-private-config
+          path: ${{ runner.temp }}/v1014-key-bundle
+      - name: Restore only supplemental configuration and tracker in private temporary storage
+        env:
+          V14_BUNDLE: ${{ runner.temp }}/v1014-key-bundle
+          V14_PACKET: ${{ inputs.configuration_packet }}
+          BACKUP_PASSPHRASE: ${{ secrets.FARAIOS_BACKUP_PASSPHRASE }}
+          V14_EVIDENCE: ${{ runner.temp }}/v1014-supplement-evidence
+        run: |
+          mkdir -m 700 "$V14_EVIDENCE"
+          php docs/v1-014/supplement.php
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1014-supplemental-recovery
+          path: ${{ runner.temp }}/v1014-supplement-evidence
+          retention-days: 30
+          if-no-files-found: error
+      - name: Remove only generated private drill files
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/v1014-key-bundle" "$RUNNER_TEMP/v1014-supplement-restored" "$RUNNER_TEMP/v1014-supplement-evidence"
