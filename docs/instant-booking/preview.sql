@@ -156,7 +156,7 @@ end $$;
 -- The ordinary owner scheduler uses the same scope lock. Protect a held worker
 -- against new assignments and moves while allowing unrelated workers to operate.
 create function instant_private.check_held_worker(bid uuid,worker uuid,at_time timestamptz,minutes int)
-returns void language plpgsql security definer set search_path='' as $
+returns void language plpgsql security definer set search_path='' as $$
 begin
  if exists(select 1 from instant_private.holds h join authorization_private.scheduling_policies p
     on p.business_id=h.business_id and p.environment='preview'
@@ -165,8 +165,8 @@ begin
        at_time+(minutes+p.after_minutes)*interval '1 minute','[)')) then
   raise exception 'This cleaner is reserved for checkout. Choose another worker or time.';
  end if;
-end $;
-create function instant_private.assignment_guard() returns trigger language plpgsql security definer set search_path='' as $
+end $$;
+create function instant_private.assignment_guard() returns trigger language plpgsql security definer set search_path='' as $$
 declare job public.business_bookings;
 begin
  select * into job from public.business_bookings where id=new.booking_id and business_id=new.business_id and environment='preview';
@@ -174,17 +174,17 @@ begin
   perform instant_private.check_held_worker(new.business_id,new.staff_id,job.starts_at,job.duration_minutes);
  end if;
  return new;
-end $;
+end $$;
 create trigger zz_instant_assignment before insert or update on public.business_booking_staff for each row
  when (new.environment='preview') execute function instant_private.assignment_guard();
-create function instant_private.move_guard() returns trigger language plpgsql security definer set search_path='' as $
+create function instant_private.move_guard() returns trigger language plpgsql security definer set search_path='' as $$
 declare worker uuid;
 begin
  for worker in select staff_id from public.business_booking_staff where booking_id=new.id loop
   perform instant_private.check_held_worker(new.business_id,worker,new.starts_at,new.duration_minutes);
  end loop;
  return new;
-end $;
+end $$;
 create trigger zz_instant_move before update on public.business_bookings for each row
  when (new.environment='preview' and new.status in ('Scheduled','In Progress') and
   (new.starts_at,new.duration_minutes,new.status) is distinct from (old.starts_at,old.duration_minutes,old.status))
