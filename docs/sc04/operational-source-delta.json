@@ -1,7 +1,7 @@
 {
   ".github/workflows/database-backup.yml": {
     "baseline_sha256": "4b3e65ad68be7c07e5d04c4a85488276983dbbedb4e7df50816b8254dfb563dd",
-    "candidate_sha256": "b3b11bdef17ce6cf3ad388cc505cc50d0e1bfe3c9a216ad4fafddefdfe204de3"
+    "candidate_sha256": "2237e414cc0d15d3c4eb0ec6e4a009415f25f0a472ff28031edd5abc477068ae"
   },
   ".github/workflows/database-restore-check.yml": {
     "baseline_sha256": "92634f9ffc1a50ba5fba0b5d3873baaf389ac9c5526a9a97190f13c6f4d2362e",
@@ -10,5 +10,13 @@
   "scripts/private_config.php": {
     "baseline_sha256": "4b29f0cba38995d6362c404a0966db7d92681a420370dbcad0fb7f7f20446284",
     "candidate_sha256": "37f21d0935ba82674fa54a73f191347688e3017db111cef4ce85970028430c5c"
+  },
+  ".github/workflows/database-backup-health.yml": {
+    "baseline_sha256": "ee944b7035857ba6e9376f9005d2c8f9bc1c0a26e94bcda3a91e5e816fed950a",
+    "candidate_sha256": "bba03e218fff71fdf9b15a066464f8bf6332a5f4caeca46ef8df60055aa5e0da"
+  },
+  "scripts/backup-health.py": {
+    "baseline_sha256": "bbe86f2c2c50dd772c605309aa7126d14e6da90ba7d5804abdc952aed890f84e",
+    "candidate_sha256": "00e09795bc64e2036dd1f9b1dc28318295dc2e1cd3657eb39b221869f7543090"
   }
 }
