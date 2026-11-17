@@ -18,5 +18,9 @@
   ".github/workflows/v1-016-accessibility.yml": {
     "baseline_sha256": null,
     "candidate_sha256": "50c7b580ead908ed6cc941cbbbf1be4e0206abbeeb30ab38a7d6b729d79a1b17"
+  },
+  "b/index.php": {
+    "baseline_sha256": "220eedda2330b4f3de0575c8a7fbe7113b08d41f6d1a47a655a984d0ffc1052a",
+    "candidate_sha256": "8175ebc0d73aaaa1e4d77506fc81c489ca9266987b5199eac980138d752cb3c4"
   }
 }
