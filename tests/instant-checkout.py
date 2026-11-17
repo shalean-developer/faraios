@@ -49,6 +49,7 @@ class Checkout(Journey):
         insert into public.businesses(id,owner_id,name,business_type,country,time_zone) values('{cls.bid}','{cls.uid}','Synthetic Cleaning','cleaning','ZA','Africa/Johannesburg');
         insert into public.business_memberships(business_id,environment,user_id,role,active) values('{cls.bid}','preview','{cls.uid}','owner',true) on conflict do nothing;
         insert into public.business_staff(id,business_id,environment,name,email,phone) values('{cls.worker}','{cls.bid}','preview','Synthetic staff','','');
+        insert into public.business_service_catalogues(business_id,environment,draft,published,published_version) values('{cls.bid}','preview',{lit(json.dumps(cls.catalogue))},{lit(json.dumps(cls.catalogue))},1);
         insert into public.business_public_pages(business_id,environment,slug,document,time_zone,services)
         values('{cls.bid}','preview','synthetic-cleaning',{lit(json.dumps(cls.profile))},'Africa/Johannesburg',{lit(json.dumps(cls.catalogue))});
         insert into authorization_private.scheduling_policies values('{cls.bid}','preview',1,true,'Africa/Johannesburg',{lit(json.dumps(cls.hours))},0,0,true);
@@ -92,10 +93,11 @@ class Checkout(Journey):
         router.write_text("""<?php
         $path=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);
         if ($path==='/preview/b/instant.php') { $_SERVER['SCRIPT_NAME']=$path; require '"""+str(ROOT)+"""/b/instant.php';return; }
+        if ($path==='/preview/business/booking.js'){header('Content-Type: application/javascript');readfile('"""+str(ROOT)+"""/business/booking.js');return;}
         if ($path!=='/preview/b/synthetic-cleaning'){http_response_code(404);return;}
         require '"""+str(ROOT)+"""/account/core.php';require '"""+str(ROOT)+"""/account/enquiries-core.php';
         require '"""+str(ROOT)+"""/account/profile-core.php';require '"""+str(ROOT)+"""/account/services-core.php';require '"""+str(ROOT)+"""/account/requests-core.php';
-        enquiry_session();request_form('synthetic-cleaning',json_decode('"""+json.dumps(dict(document=cls.profile,services=cls.catalogue,time_zone='Africa/Johannesburg'))+"""',true),'',false);
+        enquiry_session();request_progress();request_form('synthetic-cleaning',json_decode('"""+json.dumps(dict(document=cls.profile,services=cls.catalogue,time_zone='Africa/Johannesburg'))+"""',true),'',false);echo '<script src=/preview/business/booking.js></script>';
         """)
         cls.web=subprocess.Popen([PHP,'-d','session.save_path='+str(private),'-S',cls.base_url.split('/')[2],str(router)],
             env=dict(cls.env,FARAIOS_ACCOUNT_DIR=str(private)),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
@@ -124,6 +126,9 @@ class Checkout(Journey):
         self.assertEqual(confirmed,again)
         self.assertEqual(self.sql("select count(*) from public.business_booking_staff where staff_id="+lit(self.worker)),'1')
 
+    def test_mobile_browser(self):
+        subprocess.run(['node',str(ROOT/'tests/instant-browser.cjs'),self.base_url,self.sql('select current_date+6')],check=True,timeout=50)
+
     def test_race_expiry_and_late_payment(self):
         day=self.sql("select current_date+4");at=day+' 09:00+02'
         def reserve(ref):
@@ -141,4 +146,4 @@ class Checkout(Journey):
         self.assertEqual(json.loads(self.sql("select instant_private.settle("+lit(old)+",37500)"))['state'],'review')
 
 if __name__=='__main__':
-    unittest.main(defaultTest=['Checkout.test_checkout_and_duplicate_callback','Checkout.test_race_expiry_and_late_payment'],verbosity=2)
+    unittest.main(defaultTest=['Checkout.test_checkout_and_duplicate_callback','Checkout.test_race_expiry_and_late_payment','Checkout.test_mobile_browser'],verbosity=2)
