@@ -86,6 +86,7 @@ jobs:
         run: |
           mkdir -p "$(dirname "$RESTORE_REPORT")"
           python3 docs/sc04/shared.py "$RUNNER_TEMP/sc04-restore-runtime"
+          python3 docs/v1-014/recovery-drill.py "$RUNNER_TEMP/sc04-restore-runtime/application"
           python3 "$RUNNER_TEMP/sc04-restore-runtime/application/scripts/database-restore-check.py" "$RESTORE_INPUT" > "$RESTORE_REPORT"
           cat "$RESTORE_REPORT"
           echo 'Isolated restore passed. See the aggregate report artifact; no database contents are retained.' >> "$GITHUB_STEP_SUMMARY"
@@ -171,6 +172,18 @@ jobs:
         env:
           BACKUP_PASSPHRASE: ${{ secrets.FARAIOS_BACKUP_PASSPHRASE }}
         run: php scripts/private-config-recovery.php --action=restore --key-dir="$RUNNER_TEMP/config-bundle" --packet="$RUNNER_TEMP/config-bundle/configuration.packet" --out="$RUNNER_TEMP/restored-private"
+      - name: Public endpoint diagnostics without credentials
+        run: |
+          python3 - <<'PYTHON'
+          import subprocess,json,hashlib
+          for url in ['https://www.faraios.com/','https://www.faraios.com/_accounts-preview/account/index.php?page=signin']:
+            p=subprocess.run(['curl','--silent','--show-error','--proto','=https','--max-time','12','--max-filesize','2097152','--user-agent','Mozilla/5.0 (compatible; FaraiOSOperationsMonitor/1.0)','--header','Accept: text/html,application/json','--dump-header','/tmp/v1014-headers','--output','/tmp/v1014-body','--write-out','%{http_code} %{remote_ip} %{http_version}',url],capture_output=True,text=True)
+            from pathlib import Path
+            headers=Path('/tmp/v1014-headers').read_text() if Path('/tmp/v1014-headers').exists() else ''
+            body=Path('/tmp/v1014-body').read_bytes() if Path('/tmp/v1014-body').exists() else b''
+            safe=[line for line in headers.splitlines() if line.lower().startswith(('http/','server:','content-type:','x-sucuri','cf-ray:','x-cache:','retry-after:'))]
+            print(json.dumps({'url':url,'curl_exit':p.returncode,'status_remote_ip_http':p.stdout,'headers':safe,'body_sha256':hashlib.sha256(body).hexdigest(),'body_bytes':len(body),'denial_markers':[m for m in ['ModSecurity','Access Denied','Forbidden','Cloudflare','Sucuri','Imunify'] if m.encode().lower() in body.lower()]}))
+          PYTHON
       - name: Independent availability and recovery checks
         env:
           BACKUP_HEALTH_JSON: ${{ steps.source.outputs.health }}
@@ -290,3 +303,63 @@ jobs:
           path: hosted-closeout.json
           retention-days: 30
           if-no-files-found: warn
+
+  v1014_supplement:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.configuration_action == 'v1014-supplement' && github.ref == 'refs/heads/verify/v1-014-recovery-drill-20261117' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y php-cli
+      - name: Reject unsafe supplemental restores
+        run: php docs/v1-014/supplement-test.php
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: '44116724464'
+          name: faraios-private-config
+          path: ${{ runner.temp }}/v1014-key-bundle
+      - name: Assemble authenticated encrypted parts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V14_PART_RUNS: ${{ inputs.configuration_packet }}
+        run: python3 docs/v1-014/packet-parts.py assemble
+      - name: Restore only supplemental configuration and tracker in private temporary storage
+        env:
+          V14_BUNDLE: ${{ runner.temp }}/v1014-key-bundle
+          V14_PACKET_FILE: ${{ runner.temp }}/v1014-parts/packet.json
+          BACKUP_PASSPHRASE: ${{ secrets.FARAIOS_BACKUP_PASSPHRASE }}
+          V14_EVIDENCE: ${{ runner.temp }}/v1014-supplement-evidence
+        run: |
+          mkdir -m 700 "$V14_EVIDENCE"
+          php docs/v1-014/supplement.php
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1014-supplemental-recovery
+          path: ${{ runner.temp }}/v1014-supplement-evidence
+          retention-days: 30
+          if-no-files-found: error
+      - name: Remove only generated private drill files
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/v1014-key-bundle" "$RUNNER_TEMP/v1014-supplement-restored" "$RUNNER_TEMP/v1014-supplement-evidence" "$RUNNER_TEMP/v1014-parts"
+
+  v1014_encrypted_part:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.configuration_action == 'v1014-part' && github.ref == 'refs/heads/verify/v1-014-recovery-drill-20261117' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate bounded ciphertext fragment
+        env:
+          V14_PART: ${{ inputs.configuration_packet }}
+          V14_PART_INDEX: ${{ inputs.configuration_key_run }}
+        run: python3 docs/v1-014/packet-parts.py part
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v1014-encrypted-part
+          path: ${{ runner.temp }}/v1014-parts/*.part
+          retention-days: 30
+          if-no-files-found: error
+      - name: Remove generated ciphertext fragment
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/v1014-parts"
