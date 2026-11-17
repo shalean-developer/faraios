@@ -26,7 +26,8 @@ class Baseline(unittest.TestCase):
         delta=json.loads((ROOT/'docs/sc04/operational-source-delta.json').read_text())
         self.assertEqual(set(delta),{'.github/workflows/database-backup.yml',
                                      '.github/workflows/database-restore-check.yml',
-                                     'scripts/private_config.php'})
+                                     'scripts/private_config.php', 'scripts/backup-health.py',
+                                     '.github/workflows/database-backup-health.yml'})
         found=set()
         for entry in expected['files']:
             if entry['path'] in delta:

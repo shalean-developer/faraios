@@ -7,21 +7,35 @@ def assess(runs,now,max_hours):
  successful=[r for r in completed if r['conclusion']=='success']
  if not successful:return 'no_success'
  if completed[0]['conclusion']!='success':return 'latest_completed_failed'
- when=datetime.datetime.fromisoformat(successful[0]['updated_at'].replace('Z','+00:00'))
+ # Run creation precedes capture; completion/update time can hide an old snapshot.
+ when=datetime.datetime.fromisoformat(successful[0]['created_at'].replace('Z','+00:00'))
+ if when>now:return 'invalid_timestamp'
  if (now-when).total_seconds()>max_hours*3600:return 'stale'
  return 'ok'
 def get(path):
  req=urllib.request.Request('https://api.github.com/repos/'+REPO+'/'+path,headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'})
  with urllib.request.urlopen(req,timeout=30) as response:return json.load(response)
+def verified_restore(api=get):
+ # A monitor-only run of the same workflow is not a database restore.
+ # Require retained aggregate restore evidence and a successful main run.
+ for page in range(1,11):
+  artifacts=api('actions/artifacts?per_page=100&page='+str(page))['artifacts']
+  for artifact in artifacts:
+   run_id=artifact.get('workflow_run',{}).get('id')
+   if not run_id or artifact.get('expired') or artifact.get('name')!='isolated-restore-evidence-'+str(run_id):continue
+   run=api('actions/runs/'+str(int(run_id)))
+   if run.get('head_branch')=='main' and run.get('status')=='completed' and run.get('conclusion')=='success' and run.get('path')=='.github/workflows/database-restore-check.yml':return run
+  if len(artifacts)<100:break
+ return None
 def main(latest=False):
  backup=get('actions/workflows/database-backup.yml/runs?branch=main&per_page=30')['workflow_runs']
  success=next((r for r in backup if r['status']=='completed' and r['conclusion']=='success'),None)
  if latest:
   if not success:raise ValueError('No successful backup')
   print(int(success['id']));return
- restore=get('actions/workflows/database-restore-check.yml/runs?branch=main&per_page=30')['workflow_runs']
+ restore=verified_restore()
  now=datetime.datetime.now(datetime.timezone.utc)
- states={'backup':assess(backup,now,30),'restore':assess(restore,now,8*24)}
+ states={'backup':assess(backup,now,12),'restore':assess([restore] if restore else [],now,8*24)}
  if success:
   artifacts=get('actions/runs/'+str(int(success['id']))+'/artifacts')['artifacts']
   if not any(a['name']=='faraios-encrypted-backup-'+str(int(success['id'])) and not a['expired'] for a in artifacts):states['backup']='artifact_missing_or_expired'

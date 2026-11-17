@@ -2,7 +2,7 @@ name: Database backup heartbeat
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 5 * * *'
+    - cron: '43 * * * *'
   workflow_run:
     workflows: [Encrypted FaraiOS database backup, Isolated database restore check]
     types: [completed]

@@ -2,7 +2,7 @@ name: Encrypted FaraiOS database backup
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 1 * * *'
+    - cron: '17 */6 * * *'
 permissions:
   contents: read
 concurrency:
