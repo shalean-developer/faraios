@@ -1,0 +1,15 @@
+name: V1-015 review
+on:
+  pull_request:
+    paths:
+      - 'docs/v1-015/**'
+      - 'tests/v1-015-review.py'
+      - '.github/workflows/v1-015-review.yml'
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tests/v1-015-review.py

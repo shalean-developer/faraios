@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-17",
+  "project": "rxelmugnucfajrqmphhe",
+  "mode": "native PostgreSQL with simulated JWT claims; all fixtures rolled back; not managed Auth login",
+  "results": [
+    {
+      "v1015_rehearsal": {
+        "export_scope": true,
+        "messages_sent": false,
+        "tokens_excluded": true,
+        "row_counts_match": true,
+        "committed_records": false,
+        "cross_owner_denied": true,
+        "wrong_owner_denied": true,
+        "website_publication": false,
+        "owner_positive_control": true,
+        "anonymous_private_denied": true,
+        "cross_environment_denied": true,
+        "published_snapshot_boundary": true
+      }
+    }
+  ],
+  "baseline_A": {
+    "customers": 117,
+    "staff": 123,
+    "quotes": 33,
+    "bookings": 159,
+    "invoices": 15,
+    "payments": 10
+  },
+  "post_first_successful_rehearsal": {
+    "fixture_profile": 0,
+    "fixture_quote": 0,
+    "fixture_customers": 0,
+    "baseline_counts_unchanged": true
+  },
+  "source_audit": {
+    "anonymous_private_select_grants": 0,
+    "public_columns": [
+      "document",
+      "environment",
+      "services",
+      "slug",
+      "time_zone"
+    ],
+    "owner_views_security_invoker": true,
+    "quote_customer_md5": "6e20e31b7dffb7848c92bf5c9ae25c8c",
+    "invoice_customer_md5": "28c1e528b88c2f2dbd1d0d22116c6701"
+  },
+  "limitations": [
+    "No actual account closure or destructive action",
+    "No customer export delivery or email sent",
+    "Public text installation pending",
+    "No legal certification",
+    "No V1-016 tests or cleanup repeated",
+    "V1-014 deferred separately"
+  ]
+}

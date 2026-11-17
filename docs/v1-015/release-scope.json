@@ -1,0 +1,19 @@
+{
+  "status": "prepared-not-deployed",
+  "base_main": "138ee5fc982c64138fc55de4203da23338c819e8",
+  "files": [
+    {
+      "path": "privacy.html",
+      "before_sha256": "cec97c8135a3781a9f1f1b1ed5b71994626603a996444fe560fca6ea437e0c0e",
+      "after_sha256": "374720ebc52be7721fb4149f40a904d46a9b01bc0af7476eb33187cb672c6ce6",
+      "bytes": 20104
+    },
+    {
+      "path": "contact.html",
+      "before_sha256": "bcf2cee5417827a3c847f9a2c05154607529127ec5b1f7bda82c0335a789a6c5",
+      "after_sha256": "d7aa203b17e930fb6e90479eb73381c4f98c6c1de89876540585057544b9a09d",
+      "bytes": 6406
+    }
+  ],
+  "changes": "Text and anchor links only; preserve current live headers, footer, metadata, overlays and all non-target files."
+}
