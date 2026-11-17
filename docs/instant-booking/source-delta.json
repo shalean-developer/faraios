@@ -1,0 +1,38 @@
+{
+  ".github/workflows/instant-preview.yml": {
+    "baseline_sha256": null,
+    "candidate_sha256": "7aa06c6478141f80c23ff5edc9fd1dde0c442e19c356b9b6df9e5d163c3c5170"
+  },
+  "account/instant-settings.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "9e48bd430280e3e15ebf383f2d53f74614535095de00cd6a542d1b41d31a6858"
+  },
+  "account/requests-core.php": {
+    "baseline_sha256": "20f6fd38f89e93ed94ae2ada726d1e43baad1af8cfa276d4e25fc617dbfc8a45",
+    "candidate_sha256": "3707ec67fc747f99f168d4af05368c85130cc9be332ceb68dfc9a354cd9ded22"
+  },
+  "account/services.php": {
+    "baseline_sha256": "6d44cd557145ee6402dbd2f79bd37d26f7f0f2aec80ee571d399c14eb5a04a09",
+    "candidate_sha256": "81b5f0aec2a2fbe5d6d0454433bb6f6d829a527ef440f5509e8066dcc2625933"
+  },
+  "b/.htaccess": {
+    "baseline_sha256": "e94b72a161167d1a8584b3e4053d888b0c424e366ba98a9a8704b8709c4b3e13",
+    "candidate_sha256": "4a57b8fa2e81cd4b1e48ca74ed09de880fdde0145053edadbdf751b074c2941a"
+  },
+  "b/instant.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "487bc872818e9064c7bea7e37ce48ed12bf74b4eefb5d01304817155b71fcf8f"
+  },
+  "business/booking.js": {
+    "baseline_sha256": "2ceef3df2679b5db881e21ad62f76575f625f4efbb3433ae9fb48b8fab6b4a45",
+    "candidate_sha256": "af6d1ca9c790145cc6247eb6efd01c1ade23b7bb67bbdff60793ef11e44cb65f"
+  },
+  "business/instant-core.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "c3651bc4ee79af786db99223c44e05f010c56f40ce4e2be433368e3c528ed9b2"
+  },
+  "business/instant.css": {
+    "baseline_sha256": null,
+    "candidate_sha256": "0256c1a11e63cd69779c44920425ca8afe4afb2425c2f7c50772ad7379652228"
+  }
+}

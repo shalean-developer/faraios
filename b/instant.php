@@ -8,7 +8,10 @@ $_SERVER['SCRIPT_NAME'] = preg_replace('~/b/instant.php$~','/account/index.php',
 header('Cache-Control: no-store');
 header('Referrer-Policy: no-referrer');
 header('X-Robots-Tag: noindex, nofollow');
-header("Content-Security-Policy: default-src 'none'; style-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+$checkoutOrigin = 'https://checkout.paystack.com';
+if ((cfg()['environment'] ?? '') === 'test' && preg_match('~^http://127\.0\.0\.1:[0-9]+$~D', cfg()['instant_fixture'] ?? ''))
+    $checkoutOrigin = cfg()['instant_fixture'];
+header("Content-Security-Policy: default-src 'none'; style-src 'self'; form-action 'self' $checkoutOrigin; base-uri 'none'; frame-ancestors 'none'");
 if (!instant_enabled()) { http_response_code(404); exit; }
 
 if (isset($_GET['webhook'])) {
@@ -60,6 +63,10 @@ try {
     if (!is_string($flow) || ($_SESSION['instant'][$flow]['slug'] ?? null)!==$slug) throw new DomainException('Start again from the booking form.');
     $f=&$_SESSION['instant'][$flow]; $self.='&flow='.$flow;
     $action=$_POST['action'] ?? '';
+    if (isset($f['reserved']) && !isset($f['result'])) {
+        $receipt=instant_query('select instant_private.receipt(?::uuid)',[$flow]);
+        if (in_array($receipt['state'] ?? '', ['confirmed','review'],true)) $f['result']=$receipt;
+    }
     if (isset($_GET['reference'])) {
         if (!isset($f['reserved']) || $_GET['reference']!=='fi-'.$flow) throw new DomainException('Payment reference unavailable.');
         $f['result']=instant_verify('fi-'.$flow);

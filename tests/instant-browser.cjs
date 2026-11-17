@@ -22,7 +22,7 @@ const assert = require('node:assert/strict');
     await page.getByRole('button', { name: 'Reserve and review' }).click();
     assert.match(await page.locator('main').innerText(), /Total ZAR 375.00/);
     await page.getByRole('button', { name: 'Pay with test checkout' }).click();
-    await page.getByRole('heading', { name: 'Booking confirmed' }).waitFor();
+    await page.getByRole('heading', { name: 'Booking confirmed' }).waitFor().catch(async e => { throw Error(e.message + ' · ' + await page.locator('body').innerText()); });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
     console.log('Mobile browser confirmed a five-hour booking after verified test checkout.');
   } finally {

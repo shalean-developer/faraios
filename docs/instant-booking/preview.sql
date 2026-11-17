@@ -143,7 +143,11 @@ begin
  end if;
  return (select jsonb_build_object('state',state,'booking',booking_id) from instant_private.holds where reference=p_ref);
 end $$;
+-- A returning customer can see the result even when the webhook arrived first.
+create function instant_private.receipt(p_ref uuid) returns jsonb language sql stable security definer set search_path='' as $$
+ select jsonb_build_object('state',state,'booking',booking_id) from instant_private.holds where reference=p_ref
+$$;
 revoke all on all functions in schema instant_private from public,anon,authenticated;
 grant execute on function instant_private.config(text),instant_private.slots(text,text,text,jsonb,date),
- instant_private.reserve(uuid,text,text,text,jsonb,timestamptz,int,int,jsonb,text),instant_private.settle(uuid,int) to faraios_preview_checkout;
+ instant_private.reserve(uuid,text,text,text,jsonb,timestamptz,int,int,jsonb,text),instant_private.settle(uuid,int),instant_private.receipt(uuid) to faraios_preview_checkout;
 commit;

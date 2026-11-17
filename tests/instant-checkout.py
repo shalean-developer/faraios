@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 import threading
 import unittest
 import urllib.parse
@@ -102,6 +103,14 @@ class Checkout(Journey):
         cls.web=subprocess.Popen([PHP,'-d','session.save_path='+str(private),'-S',cls.base_url.split('/')[2],str(router)],
             env=dict(cls.env,FARAIOS_ACCOUNT_DIR=str(private)),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         cls.browser=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+
+        for attempt in range(100):
+            try:
+                cls.browser.open(cls.base_url+'/b/synthetic-cleaning').close()
+                break
+            except OSError:
+                if attempt==99: raise
+                time.sleep(.05)
 
     @classmethod
     def tearDownClass(cls):
