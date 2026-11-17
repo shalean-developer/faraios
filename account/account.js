@@ -1,13 +1,19 @@
 'use strict';
 document.querySelectorAll('.show').forEach(button=>button.addEventListener('click',()=>{const input=document.getElementById(button.getAttribute('aria-controls'));const show=input.type==='password';input.type=show?'text':'password';button.textContent=show?'Hide':'Show';button.setAttribute('aria-pressed',String(show));}));
 const confirm=document.getElementById('confirm-button');
+const errorAlert=document.querySelector('.alert[role="alert"]');
+if(errorAlert){errorAlert.setAttribute('tabindex','-1');errorAlert.focus();}
 if(confirm){
  const params=new URLSearchParams(location.hash.slice(1));
  const hash=params.get('token_hash')||document.getElementById('token_hash').value||'';
  const type=params.get('type')||document.getElementById('type').value||'';
  // Native Auth email-change links confirm upstream. Never import URL sessions.
  history.replaceState(null,'',location.pathname+location.search);
- if(/^[a-f0-9]{40,128}$/i.test(hash)&&['email','recovery','email_change'].includes(type)){
+ if(errorAlert){
+  confirm.form.remove();
+  document.getElementById('confirmation-intro').textContent='This link could not be confirmed. Use the recovery options below.';
+  document.getElementById('link-status').textContent='Request a new verification or password reset email, or return to sign in.';
+ }else if(/^[a-f0-9]{40,128}$/i.test(hash)&&['email','recovery','email_change'].includes(type)){
   document.getElementById('token_hash').value=hash;document.getElementById('type').value=type;confirm.disabled=false;document.getElementById('link-status').textContent='Your link is ready.';
  }else if(type==='email_change'||params.get('message')==='Confirmation link accepted. Please proceed to confirm link sent to the other email'){
   confirm.form.remove();document.getElementById('confirmation-intro').textContent='Your email confirmation is handled securely. No automatic sign-in is performed.';document.getElementById('link-status').textContent='Email link processed. Confirm the links in both inboxes, then sign in with your new email.';
