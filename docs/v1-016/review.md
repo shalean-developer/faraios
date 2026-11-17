@@ -27,3 +27,9 @@ Scheduling settings unavailable in this pilot is expected: authoritative V1-009 
 ## Still required
 
 Fresh private runtime preimages and review; candidate browser confirmation/rejection/error-focus checks; active guest intake, pending quote acceptance, active manual payment form and availability UI at four widths in a controlled fixture; comprehensive keyboard/touch/visibility checks and actual-phone acceptance. Current retained hosted records are terminal states, not fresh active-form proof. No original criterion weakened. No customer messages, financial record mutations, publication, deployment, merge or main changes during this audit.
+
+## CI continuation — 17 November 2026
+
+PR82 first CI found two stale expectations: SC-02 preservation hashes omitted the bounded repair, and the auth regression expected the previous script cache version. Preserve the historical manifests; add a chained source delta limited to the four source files and the new dedicated V1-016 CI workflow. The exact cache version assertion now matches the reviewed release. Existing frozen foundation workflow and release runner remain byte-for-byte unchanged. The dedicated workflow runs both JavaScript regressions and all three candidate-runtime tests. No deployable bytes changed in this continuation.
+
+Additional hosted checks: Access and Staff access have no horizontal overflow at actual 320/390/768/1280. Access inputs are labelled and at least48px high; empty invitation submission focuses recipient without creating access. Dashboard menu Enter/ Escape opens to Close menu and returns focus to Menu at390 and768. Physical-device coverage remains pending. Current synthetic business session cannot edit the platform tracker; platform-owner sign-in is required. Viewport reset confirmed.
