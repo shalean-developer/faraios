@@ -1,0 +1,30 @@
+name: V1-016 accessibility regression
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  application:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native test runtimes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl ca-certificates gpg
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          gpg --show-keys --with-colons /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc | grep -q B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
+          echo 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y postgresql-17 php-cli php-curl php-sqlite3
+      - name: V1-016 rejected-link and error-focus regression
+        env:
+          PG_BIN: /usr/lib/postgresql/17/bin
+        run: |
+          node tests/auth-link-state.cjs
+          node tests/error-focus.cjs
+          python3 tests/v1-016-runtime.py

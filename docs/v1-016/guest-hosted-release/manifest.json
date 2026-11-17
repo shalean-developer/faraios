@@ -1,0 +1,32 @@
+{
+  "status": "Prepared; deployment authorization pending",
+  "files": [
+    {
+      "path": "b/index.php",
+      "before_sha256": "220eedda2330b4f3de0575c8a7fbe7113b08d41f6d1a47a655a984d0ffc1052a",
+      "after_sha256": "8175ebc0d73aaaa1e4d77506fc81c489ca9266987b5199eac980138d752cb3c4"
+    },
+    {
+      "path": "_accounts-preview/b/index.php",
+      "before_sha256": "6fbed561b3f59fbd5c3f727f1a2f4b5a2619fa6b8e41c4ae00ed4198bd6d44fd",
+      "after_sha256": "a2d0d9619cad346492ad11696335b699d36aae5b6d37a14fca4dd5100d0dcf2b"
+    },
+    {
+      "path": "_accounts-preview/account/layout.php",
+      "before_sha256": "9fa813b340b6629cc69be58f9174fb29c39bc950581ec9be2f51b0f162d194f3",
+      "after_sha256": "86510015e7577204a34373ecdd78edd68e12a0d30cbf7e515654d7f5cfc66867"
+    },
+    {
+      "path": "_accounts-preview/account/error-focus.js",
+      "before_sha256": null,
+      "after_sha256": "5ab9af1a32028a0e165142077a2ace975d0b966b49b0cdad6f0d23877cb4d08b"
+    }
+  ],
+  "required_unchanged": {
+    "account/error-focus.js": "5ab9af1a32028a0e165142077a2ace975d0b966b49b0cdad6f0d23877cb4d08b"
+  },
+  "source_pr": 82,
+  "source_head": "a1ca7e1ff6cf6a5cdabcfc3a139e777c158eb678",
+  "no_database_changes": true,
+  "no_merge_or_main_changes": true
+}

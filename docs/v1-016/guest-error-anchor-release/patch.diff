@@ -1,0 +1,26 @@
+--- before/_accounts-preview/account/enquiries-core.php
++++ after/_accounts-preview/account/enquiries-core.php
+@@ -39,8 +39,8 @@
+  header('Location: '.cfg()['base_url'].'/b/'.rawurlencode($slug).($page==='contact'?'/contact':'').'#enquire',true,303);exit;
+ }
+ function enquiry_form(string $slug,array $services,string $error,bool $sent,bool $custom=false,string $page='',string $businessName=''): void {
+- $ticket=enquiry_ticket($slug);echo '<section class="public-card enquiry-form" id="enquire"><h2>Send an enquiry</h2><p class="muted">Tell us what you need. We’ll discuss the next steps with you.</p>';
+- if($error!=='')echo '<p class="alert" role="alert">'.esc($error).'</p>';
++ $ticket=enquiry_ticket($slug);echo '<section class="public-card enquiry-form"'.($error===''?' id="enquire"':'').'><h2>Send an enquiry</h2><p class="muted">Tell us what you need. We’ll discuss the next steps with you.</p>';
++ if($error!=='')echo '<p class="alert" role="alert" id="enquire" tabindex="-1">'.esc($error).'</p>';
+  if($sent)echo '<p class="notice" role="status">Your enquiry is saved. The business can now contact you. If you provided an email address, a separate acknowledgement may follow.</p>';
+  echo '<form method="post" action="'.esc(cfg()['base_url'].'/b/'.$slug.($page==='contact'?'/contact':'')).'#enquire"><input type="hidden" name="csrf" value="'.esc($ticket['csrf']).'"><div class="spam-field" aria-hidden="true"><label for="website">Leave blank</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div>';
+  $available=array_filter($services['items']??[],fn($s)=>!empty($s['visible'])&&empty($s['archived']));
+--- before/account/enquiries-core.php
++++ after/account/enquiries-core.php
+@@ -39,8 +39,8 @@
+  header('Location: '.cfg()['base_url'].'/b/'.rawurlencode($slug).($page==='contact'?'/contact':'').'#enquire',true,303);exit;
+ }
+ function enquiry_form(string $slug,array $services,string $error,bool $sent,bool $custom=false,string $page='',string $businessName=''): void {
+- $ticket=enquiry_ticket($slug);echo '<section class="public-card enquiry-form" id="enquire"><h2>Send an enquiry</h2><p class="muted">Tell us what you need. We’ll discuss the next steps with you.</p>';
+- if($error!=='')echo '<p class="alert" role="alert">'.esc($error).'</p>';
++ $ticket=enquiry_ticket($slug);echo '<section class="public-card enquiry-form"'.($error===''?' id="enquire"':'').'><h2>Send an enquiry</h2><p class="muted">Tell us what you need. We’ll discuss the next steps with you.</p>';
++ if($error!=='')echo '<p class="alert" role="alert" id="enquire" tabindex="-1">'.esc($error).'</p>';
+  if($sent)echo '<p class="notice" role="status">Your enquiry is saved. The business can now contact you. If you provided an email address, a separate acknowledgement may follow.</p>';
+  echo '<form method="post" action="'.esc(cfg()['base_url'].'/b/'.$slug.($page==='contact'?'/contact':'')).'#enquire"><input type="hidden" name="csrf" value="'.esc($ticket['csrf']).'"><div class="spam-field" aria-hidden="true"><label for="website">Leave blank</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div>';
+  $available=array_filter($services['items']??[],fn($s)=>!empty($s['visible'])&&empty($s['archived']));

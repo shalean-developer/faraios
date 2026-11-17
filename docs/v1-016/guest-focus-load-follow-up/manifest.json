@@ -1,0 +1,20 @@
+{
+  "status": "Prepared locally; NOT installed",
+  "files": [
+    {
+      "path": "account/error-focus.js",
+      "before_sha256": "5ab9af1a32028a0e165142077a2ace975d0b966b49b0cdad6f0d23877cb4d08b",
+      "after_sha256": "29b5ef540e1474d0a51eccc79b6c7055692407c522d44ce7ec039d7716989102"
+    },
+    {
+      "path": "_accounts-preview/account/error-focus.js",
+      "before_sha256": "5ab9af1a32028a0e165142077a2ace975d0b966b49b0cdad6f0d23877cb4d08b",
+      "after_sha256": "29b5ef540e1474d0a51eccc79b6c7055692407c522d44ce7ec039d7716989102"
+    }
+  ],
+  "required_unchanged": {
+    "b/index.php": "8175ebc0d73aaaa1e4d77506fc81c489ca9266987b5199eac980138d752cb3c4",
+    "_accounts-preview/b/index.php": "a2d0d9619cad346492ad11696335b699d36aae5b6d37a14fca4dd5100d0dcf2b",
+    "_accounts-preview/account/layout.php": "86510015e7577204a34373ecdd78edd68e12a0d30cbf7e515654d7f5cfc66867"
+  }
+}

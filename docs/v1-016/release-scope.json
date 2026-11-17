@@ -1,0 +1,27 @@
+{
+  "status": "candidate; fresh private PHP hashes and browser/phone acceptance pending",
+  "files": [
+    {
+      "path": "account/index.php",
+      "before_sha256": "93663a8f804bf43723fdb412ace6f16f2f9184ed3b8a3f2769cbd5d93a1214b5",
+      "after_sha256": "ff382f34e67ee221c0e18add0ef0b089888222fc8d2855de31ccd37bdc851e11"
+    },
+    {
+      "path": "account/layout.php",
+      "before_sha256": "9ceb88a33e8fa060ff273079c725a2120ee4dc925559f40a26a45342b46dcce6",
+      "after_sha256": "5638015f035cd3c35650f6b9fea1dad4abf1c0679470fdc1cccab7de2b5dea16"
+    },
+    {
+      "path": "account/account.js",
+      "before_sha256": "6a58a1cc69653813c0d0ed21d8363f487601dda29a947108c986d6b6f97408af",
+      "after_sha256": "6fb359fea8ea728ece558d9cd70b36e26c83b52acbc7fd39f8dde49a8cef77ea"
+    },
+    {
+      "path": "account/error-focus.js",
+      "before_sha256": null,
+      "after_sha256": "5ab9af1a32028a0e165142077a2ace975d0b966b49b0cdad6f0d23877cb4d08b"
+    }
+  ],
+  "no_database_changes": true,
+  "no_whole_branch_deployment": true
+}

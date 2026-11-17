@@ -29,7 +29,12 @@ class Enquiries(Profiles):
   self.assertIn('wait a moment',self.send(path,**fields)[1]);time.sleep(2.1)
   self.assertIn('form has expired',self.send(path,**(fields|{'csrf':'bad'}))[1])
   self.assertIn('wait a moment',self.send(path,**(fields|{'website':'spam'}))[1])
-  self.assertIn('email address or phone',self.send(path,**(fields|{'email':''}))[1])
+  rejected=self.send(path,**(fields|{'email':''}))[1]
+  self.assertIn('email address or phone',rejected)
+  self.assertIn('role="alert" id="enquire" tabindex="-1"',rejected)
+  self.assertEqual(rejected.count('id="enquire"'),1)
+  self.assertIn('account/error-focus.js?v=20261117-v1016" defer',rejected)
+  self.assertIn('Alice &lt;script&gt;',rejected)
   self.assertIn('valid email',self.send(path,**(fields|{'email':'bad'}))[1])
   self.assertIn('valid phone',self.send(path,**(fields|{'phone':'(---)'}))[1])
   self.assertIn('requirements',self.send(path,**(fields|{'requirements':'short'}))[1])
