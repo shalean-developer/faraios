@@ -369,7 +369,7 @@
              header('Location: '.$self.'&flow='.$flow,true,303); exit;
          }
      }
-@@ -103,22 +108,12 @@
+@@ -103,36 +108,16 @@
          } elseif (in_array($action,['date','review','next'],true) && !isset($f['reserved'])) {
              $previous=$f;
              $f['day']=enquiry_text('date',10,10);
@@ -396,7 +396,34 @@
              unset($f['review']);
              $f['quote']=book04_quote($f);
              if ($action==='next' && empty($f['quote']['outside_scope'])) {
-@@ -188,19 +183,11 @@
+-                $day=new DateTimeImmutable($f['day'],new DateTimeZone('Africa/Johannesburg'));
+-                $limit=$today->modify('+30 days');
+-                $f['time']='';
+-                for ($i=1;$i<=7;$i++) {
+-                    $day=$day->modify('+1 day');
+-                    if ($day>$limit) break;
+-                    $f['day']=$day->format('Y-m-d');
+-                    $f['quote']=book04_quote($f);
+-                    if ($f['quote']['times']) break;
+-                }
+-                $f['availability_notice']=$f['quote']['times']?'Available times found on '.$f['day'].'.':'No available times found through '.$f['day'].'.';
++                book01_find_next_date($f,$today->modify('+30 days'),true);
+             }
+             if ($action==='review') {
+                 if (mb_len($f['contact']['name'])<2 || !filter_var($f['contact']['email'],FILTER_VALIDATE_EMAIL)) throw new DomainException('Enter your name and a valid test checkout email.');
+@@ -180,7 +165,11 @@
+         header('Location: '.$self,true,303); exit;
+     }
+     if (!isset($f['reserved']) && !isset($f['review'])) {
++        $firstVisit=!isset($f['quote']);
+         $f['quote']=book04_quote($f);
++        if ($firstVisit && empty($f['quote']['outside_scope']) && !$f['quote']['times']) {
++            book01_find_next_date($f,$today->modify('+30 days'),false);
++        }
+     }
+ } catch (DomainException $e) { $problem=$e->getMessage(); }
+ catch (Throwable $e) {
+@@ -188,19 +177,11 @@
          'The booking could not proceed. Check your details or choose another available time.';
      if (isset($f) && !isset($f['reserved'])) { unset($f['review']); }
  }
@@ -417,7 +444,31 @@
          if (!in_array($value,$choices,true)) throw new DomainException('Choose a listed option for '.$label.'.');
          $details[$key]=$value;
      }
-@@ -229,17 +216,25 @@
+@@ -226,20 +207,49 @@
+     }
+     return $result;
+ }
++// On first entry move only to a bookable date. An explicit search can also
++// advance through an empty week so a customer can check the following week.
++function book01_find_next_date(array &$visit,DateTimeImmutable $limit,bool $advanceWhenFull): void {
++    $day=new DateTimeImmutable($visit['day'],$limit->getTimezone());
++    $candidate=$visit;
++    $visit['time']='';
++    for ($i=0;$i<7;$i++) {
++        $day=$day->modify('+1 day');
++        if ($day>$limit) break;
++        $candidate['day']=$day->format('Y-m-d');
++        $candidate['quote']=book04_quote($candidate);
++        if ($candidate['quote']['times']) break;
++    }
++    if ($candidate['quote']['times'] || $advanceWhenFull) {
++        $visit['day']=$candidate['day'];
++        $visit['quote']=$candidate['quote'];
++    }
++    $visit['availability_notice']=!empty($candidate['quote']['times'])
++        ? 'Next available date: '.$candidate['day'].'. Choose a start time below.'
++        : 'No start times found through '.$candidate['day'].'.';
++}
  function instant_form(string $action,string $url,string $csrf): void {
      echo '<form method="post" action="'.esc($url).'"><input type="hidden" name="csrf" value="'.esc($csrf).'"><input type="hidden" name="action" value="'.esc($action).'">';
  }
@@ -449,7 +500,7 @@
  <p><?=esc(book05_merchants()[$slug]['name'])?> will check the reported transfer before confirming your booking.</p>
  <p>Transfer report reference <strong><?=esc($flow)?></strong></p>
  <p>If the hold expires first, the business will review the payment and availability.</p>
-@@ -251,12 +246,12 @@
+@@ -251,12 +261,12 @@
  $start=new DateTimeImmutable($f['at'],new DateTimeZone('Africa/Johannesburg'));
  $finish=$start->modify('+'.(int)($q['minutes']??0).' minutes');
  ?>
@@ -464,7 +515,7 @@
  <?php foreach (booking_visit_fields() as $key=>[$label]): if (isset($f['visit_details'][$key])): ?><dt><?=esc($label)?></dt><dd><?=esc($f['visit_details'][$key])?></dd><?php endif; endforeach; ?>
  <?php if ($f['notes']!==''): ?><dt>Instructions</dt><dd><?=esc($f['notes'])?></dd><?php endif; ?>
  <dt>Contact</dt><dd><?=esc($f['contact']['name'])?> · <?=esc($f['contact']['email'])?> <?=esc($f['contact']['phone']??'')?></dd></dl>
-@@ -269,41 +264,34 @@
+@@ -269,41 +279,34 @@
  <p>If your payment arrives and the visit cannot be confirmed, you receive a full refund. The business initiates approved refunds to the original payment method within two business days. Refunds stay pending until the provider confirms them.</p>
  <?php if (!$held): ?>
  <p>Continuing holds the slot for up to ten minutes or until the visit starts, whichever comes first. Your booking is confirmed after payment and availability are verified.</p>
@@ -497,11 +548,10 @@
 -<?php foreach ($choices as $choice): ?><option <?=($f['visit_details'][$key]??'')===$choice?'selected':''?>><?=esc($choice)?></option><?php endforeach; ?>
 -</select></label>
 -<?php endforeach; ?></fieldset>
--<label>Instructions (optional)<textarea name="requirements" maxlength="1900"><?=esc($f['notes'])?></textarea></label>
--<label>Date<input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
 +<label>Visit date<input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
- <?php if (isset($q['total']) && empty($q['outside_scope'])): ?><p><?=esc($f['area'])?> · <?=(int)$q['minutes']?> minutes · ZAR <?=number_format($q['total']/100,2)?></p><?php endif; ?>
- <label>Available start time (SAST)<select name="time"><option value="">Choose a time</option><?php foreach ($q['times']??[] as $t): ?><option <?=($f['time']??'')===$t?'selected':''?>><?=esc($t)?></option><?php endforeach; ?></select></label>
++<?php if (isset($q['total']) && empty($q['outside_scope'])): ?><p><?=esc($f['area'])?> · <?=(int)$q['minutes']?> minutes · ZAR <?=number_format($q['total']/100,2)?></p><?php endif; ?>
++<button>Update availability</button>
++<label>Available start time (SAST)<select name="time" <?=empty($q['times'])?'disabled':''?>><option value=""><?=empty($q['times'])?'No start times on this date':'Choose a time'?></option><?php foreach ($q['times']??[] as $t): ?><option <?=($f['time']??'')===$t?'selected':''?>><?=esc($t)?></option><?php endforeach; ?></select></label>
 +<section aria-labelledby="access-notes-heading"><h2 id="access-notes-heading">Extras and access notes (optional)</h2>
 +<div class="booking-access-row">
 +<?php require_once '/var/www/vhosts/shalean.com/faraios.com/account/booking-location-ui.php';
@@ -510,7 +560,10 @@
 +    booking_dropdown($key, $label.' (optional)', $choices, $f['visit_details'][$key]??null, 'Choose if applicable');
 +} ?>
 +</div>
-+<label>Instructions (optional)<textarea name="requirements" maxlength="1900"><?=esc($f['notes'])?></textarea></label>
+ <label>Instructions (optional)<textarea name="requirements" maxlength="1900"><?=esc($f['notes'])?></textarea></label>
+-<label>Date<input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
+-<?php if (isset($q['total']) && empty($q['outside_scope'])): ?><p><?=esc($f['area'])?> · <?=(int)$q['minutes']?> minutes · ZAR <?=number_format($q['total']/100,2)?></p><?php endif; ?>
+-<label>Available start time (SAST)<select name="time"><option value="">Choose a time</option><?php foreach ($q['times']??[] as $t): ?><option <?=($f['time']??'')===$t?'selected':''?>><?=esc($t)?></option><?php endforeach; ?></select></label>
 +</section>
  <?php if (!empty($q['outside_scope'])): ?><p role="status">Instant booking covers one-time Regular Cleaning with one cleaner in the listed service areas. Change your selection to see available times.</p>
  <?php elseif (isset($q['times']) && !$q['times']): ?><p>No cleaner is available for this entire visit. Choose another date or check the next seven days.</p>
@@ -518,7 +571,7 @@
 -<label>Your name<input name="name" autocomplete="name" value="<?=esc($f['contact']['name']??'')?>" maxlength="120"></label>
 -<label>Email for test checkout<input name="email" type="email" autocomplete="email" value="<?=esc($f['contact']['email']??'')?>" maxlength="254"></label>
 -<label>Phone (optional)<input name="phone" type="tel" value="<?=esc($f['contact']['phone']??'')?>" maxlength="40"></label>
- <button>Update availability</button>
+-<button>Update availability</button>
 -<?php if (!empty($q['times'])): ?><button name="action" value="review">Review booking</button><?php endif; ?></form>
 -<?php endif; ?></main></body></html>
 +<?php if (!empty($q['times'])): ?><button name="action" value="review">Review this visit</button><?php endif; ?></form>
