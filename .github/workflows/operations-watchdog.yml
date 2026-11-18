@@ -1,18 +1,28 @@
-name: Independent FaraiOS operations monitor
+name: MON-01 bounded HTTP diagnostics
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '*/15 * * * *'
-permissions:
-  contents: read
-  actions: read
-concurrency:
-  group: faraios-independent-monitor
-  cancel-in-progress: false
+permissions: {}
 jobs:
-  monitor:
-    uses: ./.github/workflows/database-restore-check.yml
-    with:
-      configuration_action: monitor
-    secrets:
-      FARAIOS_BACKUP_PASSPHRASE: ${{ secrets.FARAIOS_BACKUP_PASSPHRASE }}
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Compare public page responses without credentials
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import subprocess,tempfile,pathlib,json,re,hashlib
+          for mode in ['default','ipv4']:
+            for path in ['/','/_accounts-preview/account/index.php?page=signin']:
+              with tempfile.TemporaryDirectory() as d:
+                h=pathlib.Path(d)/'headers';b=pathlib.Path(d)/'body'
+                args=['curl','--silent','--show-error','--proto','=https','--max-time','12','--max-filesize','2097152','--user-agent','Mozilla/5.0 (compatible; FaraiOSOperationsMonitor/1.0)','--header','Accept: text/html,application/json','--dump-header',str(h),'--output',str(b),'--write-out','%{http_code} %{remote_ip} %{ssl_verify_result}']
+                if mode=='ipv4':args.append('--ipv4')
+                r=subprocess.run(args+['https://www.faraios.com'+path],capture_output=True,text=True)
+                headers={}
+                for line in h.read_text(errors='replace').splitlines() if h.exists() else []:
+                  k,sep,v=line.partition(':')
+                  if sep and k.lower() in ['server','cf-ray','cf-mitigated','x-sucuri-block','x-sucuri-id','via']:headers[k]=v.strip()[:160]
+                body=b.read_bytes() if b.exists() else b''
+                print(json.dumps({'mode':mode,'path':path.split('?')[0],'curl_exit':r.returncode,'status_ip_tls':r.stdout[:100],'headers':headers,'bytes':len(body),'body_sha256':hashlib.sha256(body).hexdigest(),'markers':[m for m in ['cloudflare','litespeed','access denied','forbidden','captcha','imunify'] if m in body.decode(errors='replace').lower()]}))
+          PY
