@@ -1,0 +1,93 @@
+--- a/account/core.php
++++ b/account/core.php
+@@ -4,11 +4,11 @@
+ class AccountSessionExpired extends RuntimeException {}
+ function cfg(): array {
+  static $c; if ($c !== null) return $c;
+- $dir=getenv('FARAIOS_ACCOUNT_DIR') ?: '/var/www/vhosts/shalean.com/private/faraios-account';
++ $dir='/var/www/vhosts/shalean.com/private/faraios-checkout-preview/app';
+  $c=is_file($dir.'/config.php') ? require $dir.'/config.php' : [];
+  if (!is_array($c) || !($c['enabled']??false)) throw new RuntimeException('Account setup is not available yet. Please try again later.');
+  $test=($c['environment']??'')==='test';
+- if (!$test && (($c['supabase_url']??'')!=='https://rxelmugnucfajrqmphhe.supabase.co' || !str_starts_with($c['base_url']??'', 'https://www.faraios.com'))) throw new RuntimeException('Account configuration is unavailable.');
++ if (!$test && (($c['supabase_url']??'')!=='https://jqnecahhaxxdsrybwuoo.supabase.co' || ($c['base_url']??'') !== 'https://www.faraios.com/account/_book05-preview')) throw new RuntimeException('Account configuration is unavailable.');
+  if (!$test && !str_starts_with($_SERVER['SCRIPT_NAME']??'', (parse_url($c['base_url'],PHP_URL_PATH)?:'').'/account/')) throw new RuntimeException('Account configuration is unavailable.');
+  if (empty($c['publishable_key'])) throw new RuntimeException('Account configuration is unavailable.');
+  $c['_ops_root']=realpath($dir)?:'';ops_install($c);return $c;
+--- a/business/instant-core.php
++++ b/business/instant-core.php
+@@ -6,18 +6,27 @@
+     return profile_env() === 'preview' && (cfg()['instant_test_enabled'] ?? false) === true;
+ }
+ 
+-function instant_db(): PDO {
+-    static $db;
+-    if (!instant_enabled()) throw new RuntimeException('Test checkout unavailable.');
+-    return $db ??= new PDO(cfg()['instant_dsn'], cfg()['instant_user'], cfg()['instant_password'],
+-        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_EMULATE_PREPARES => false]);
+-}
+-
+ function instant_query(string $sql, array $args): array {
+-    $statement = instant_db()->prepare($sql);
+-    $statement->execute($args);
+-    $value = $statement->fetchColumn();
+-    return $value === false ? [] : json_decode($value, true, 32, JSON_THROW_ON_ERROR);
++    $operations = [
++        "select jsonb_build_object('id',service->>'id','areas',areas) from instant_private.config(?)" => 'offer',
++        "select instant_private.receipt(?::uuid)" => 'receipt',
++        "select instant_private.reserve(?::uuid,?,?,?,?::jsonb,?::timestamptz,?::int,?::int,?::jsonb,?)" => 'reserve',
++        "select instant_private.slots(?,?,?,?::jsonb,?::date)" => 'slots',
++        "select instant_private.settle(?::uuid,?::int)" => 'settle',
++    ];
++    if (!instant_enabled() || !isset($operations[$sql])) throw new RuntimeException('Preview unavailable.');
++    $token = trim(file_get_contents('/var/www/vhosts/shalean.com/private/faraios-checkout-preview/https-gateway.key'));
++    if (!preg_match('/^[A-Za-z0-9_-]{64}$/D',$token)) throw new RuntimeException('Preview unavailable.');
++    $options = ['http'=>['method'=>'POST','header'=>"Content-Type: application/json\r\nAuthorization: Bearer ".$token,
++        'content'=>json_encode(['operation'=>$operations[$sql],'args'=>$args],JSON_THROW_ON_ERROR),
++        'timeout'=>15,'follow_location'=>0,'ignore_errors'=>true],'ssl'=>['verify_peer'=>true,'verify_peer_name'=>true]];
++    $stream = @fopen('https://jqnecahhaxxdsrybwuoo.supabase.co/functions/v1/book05-checkout','rb',false,stream_context_create($options));
++    if (!$stream) throw new RuntimeException('Preview unavailable.');
++    try {$body=stream_get_contents($stream,32769);$meta=stream_get_meta_data($stream);} finally {fclose($stream);}
++    if (!preg_match('~^HTTP/\S+ 200\b~',$meta['wrapper_data'][0]??'') || $meta['timed_out'] || $body===false || strlen($body)>32768) throw new RuntimeException('Preview unavailable.');
++    $reply=json_decode($body,true,32,JSON_THROW_ON_ERROR);
++    if (!array_key_exists('result',$reply)) throw new RuntimeException('Preview unavailable.');
++    return $reply['result']??[];
+ }
+ 
+ function instant_entry(string $slug): void {
+@@ -40,8 +49,8 @@
+     $key = cfg()['instant_paystack_key'] ?? '';
+     if (!instant_enabled() || !str_starts_with($key, 'sk_test_')) throw new RuntimeException('Test checkout unavailable.');
+     $ctx = stream_context_create(['http' => [
+-        'method' => $body === null ? 'GET' : 'POST', 'timeout' => 12, 'follow_location' => 0,
+-        'header' => "Authorization: Bearer ".$key."\r\nContent-Type: application/json",
++        'method' => $body === null ? 'GET' : 'POST', 'timeout' => 12, 'follow_location' => 0, 'ignore_errors'=>true,
++        'header' => "Authorization: Bearer ".$key."\r\nContent-Type: application/json\r\nAccept: application/json\r\nUser-Agent: FaraiOS-Private-Checkout/1.0",
+         'content' => $body === null ? '' : json_encode($body, JSON_THROW_ON_ERROR)
+     ]]);
+     $base = 'https://api.paystack.co';
+@@ -50,7 +59,12 @@
+         $base = cfg()['instant_fixture'];
+     $raw = @file_get_contents($base.'/transaction/'.$path, false, $ctx);
+     $reply = json_decode($raw ?: '{}', true);
+-    if (($reply['status'] ?? false) !== true || !is_array($reply['data'] ?? null)) throw new RuntimeException('Payment service unavailable.');
++    if (($reply['status'] ?? false) !== true || !is_array($reply['data'] ?? null)) {
++        preg_match('~^HTTP/\\S+ (\\d{3})~',$http_response_header[0]??'',$code);
++        $message = preg_replace('/[^a-zA-Z0-9 .,!?_-]/',' ',substr(str_replace($key,'[redacted]',(string)($reply['message']??'')),0,180));
++        file_put_contents('/var/www/vhosts/shalean.com/private/faraios-checkout-preview/paystack-status.json',json_encode(['http'=>(int)($code[1]??0),'operation'=>$body===null?'verify':'initialize','message'=>$message]),LOCK_EX);
++        throw new RuntimeException('Payment service unavailable.');
++    }
+     return $reply['data'];
+ }
+ 
+--- a/b/instant.php
++++ b/b/instant.php
+@@ -31,7 +31,7 @@
+ if (!is_string($slug) || !preg_match('/^[a-z0-9-]{3,64}$/D',$slug)) { http_response_code(404); exit; }
+ $ticket = enquiry_ticket($slug.':booking');
+ $base = cfg()['base_url'];
+-$back = $base.'/b/'.$slug.'?booking=1';
++$back = $base.'/b/index.php';
+ $self = $base.'/b/instant.php?slug='.$slug;
+ $flow = $_GET['flow'] ?? '';
+ $today = new DateTimeImmutable('today',new DateTimeZone('Africa/Johannesburg'));
