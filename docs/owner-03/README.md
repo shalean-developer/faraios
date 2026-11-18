@@ -1,3 +1,5 @@
+> Latest preparation (18 November2026): see [installation.md](installation.md), [hosted-baseline.json](hosted-baseline.json) and the generated migration. Six hosted editor sources reconciled; raw-byte host guard still required. Local DB/rollback checks now36 PASS. The live tracker save was recovered successfully; earlier unsaved-tracker notes below are historical. No deployment or merge.
+
 # OWNER-03 — shared directory foundation
 
 Status: isolated implementation; not installed or accepted. Parent OWNER-01. Production task TASK-4D58A7674A. Source base PR71 `6cff41c6cbf8f3bd1dadc769655f82255bb2c971`; do not merge this historical branch wholesale.
