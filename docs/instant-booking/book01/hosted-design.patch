@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/faraios.com/account/_book05-preview/business/book01-visit.css
-@@ -0,0 +1,123 @@
+@@ -0,0 +1,193 @@
 +:root{font:16px/1.5 system-ui,sans-serif;color:#153438;background:#f4f7f5;--teal:#087e79;--line:#ccdcda}*{box-sizing:border-box}body{margin:0}
 +
 +.outer { margin:0; container-type:inline-size; }
@@ -121,9 +121,79 @@
 +
 +.details-heading { text-align:center; }
 +.selected-service { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
-+.service-entry { width:min(100%, 31rem); margin-inline:auto; padding-block:1.5rem; }
-+main:has(.service-entry) { padding-inline:clamp(16px, 3vw, 40px); }
-+.service-entry h1 { text-align:center; }
++
++/* The launch screen has its own scroll region between the header and booking action. */
++.launch-page {
++    display:grid;
++    grid-template-rows:auto minmax(0,1fr) auto;
++    height:100vh;
++    height:100dvh;
++    background:#fffcf8;
++}
++.launch-page .header-inner { padding:0 clamp(16px,2.7vw,40px); }
++.launch-page .preview { display:none; }
++.launch-page .brand-row { display:flex; justify-content:space-between; min-height:74px; padding:10px 0; }
++.launch-page .brand-row>strong { font-size:clamp(1rem,2vw,1.35rem); }
++.launch-page .help summary, .panel-action, .launch-panel summary {
++    display:inline-block;
++    border-radius:999px;
++    padding:9px 19px;
++    font-size:.95rem;
++    text-decoration:none;
++    cursor:pointer;
++}
++.launch-page .help summary { background:var(--teal); color:white; }
++.launch-page .help summary::-webkit-details-marker, .launch-panel summary::-webkit-details-marker { display:none; }
++.launch-page .outer { overflow:auto; min-height:0; container-type:normal; }
++.launch-page main {
++    background:transparent;
++    border:0;
++    padding:20px clamp(16px,4.5vw,76px) 36px;
++    margin:auto;
++    max-width:1600px;
++}
++.service-entry h1 { margin:0 0 10px; font-size:clamp(1.22rem,2vw,1.55rem); letter-spacing:-.025em; }
++.service-tiles { display:flex; gap:8px; overflow-x:auto; padding:4px; }
++.service-tile {
++    position:relative;
++    display:flex;
++    flex:0 0 128px;
++    flex-direction:column;
++    align-items:center;
++    justify-content:center;
++    gap:8px;
++    min-height:128px;
++    margin:0;
++    padding:12px;
++    text-align:center;
++    font-size:.97rem;
++    line-height:1.25;
++    font-weight:500;
++    border:1px solid #d4dedb;
++    border-radius:9px;
++    background:white;
++    cursor:pointer;
++}
++.service-tile input { position:absolute; width:1px; height:1px; opacity:0; margin:0; padding:0; }
++.service-tile:has(:checked) { border-color:var(--teal); box-shadow:inset 0 0 0 1px var(--teal); }
++.service-tile:focus-within { outline:3px solid #197baf; outline-offset:1px; }
++.launch-panels { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:28px; margin:clamp(36px,7vh,72px) 12px 0; }
++.launch-panel { background:#dfefea; border-radius:9px; padding:30px 20px; text-align:center; align-content:center; min-height:176px; }
++.launch-panel:nth-child(2) { background:#e6f1ef; }
++.launch-panel h2 { font-size:1.2rem; margin:0 0 16px; }
++.panel-action,.launch-panel summary { border:1px solid #456762; color:#234b47; }
++.panel-action:hover,.launch-panel summary:hover { background:white; }
++.launch-panel details { margin:0; }
++.launch-page footer { padding:0; background:white; text-align:center; }
++.launch-action { padding:13px 16px; border-top:1px solid var(--line); }
++.launch-action button { border-radius:999px; max-width:405px; margin:0 auto; }
++.launch-page .preview-note { background:#e9edeb; padding:8px 16px; }
++@media (max-width:720px) {
++    .launch-page main { padding-inline:16px; }
++    .launch-panels { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; margin-inline:-4px; gap:10px; padding-bottom:8px; }
++    .launch-panel { flex:0 0 94%; min-height:185px; scroll-snap-align:start; }
++    .launch-action button { width:min(100%,240px); }
++}
 --- /dev/null
 +++ b/faraios.com/account/_book05-preview/business/book01-details.js
 @@ -0,0 +1,14 @@
@@ -143,7 +213,7 @@
 +}
 --- /dev/null
 +++ b/private/faraios-checkout-preview/app/book01-layout.php
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,38 @@
 +<?php
 +declare(strict_types=1);
 +function book01_money(int $minor): string {
@@ -163,14 +233,16 @@
 +}
 +function book01_open(string $business,int $step,string $heading,array $quote=[],array $visit=[]): void {
 +    $steps=['Details','Schedule','Review','Payment']; ?>
-+<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=service-1"></head><body><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
++<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=launch-1"></head><body<?=$step===0?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
 +<?php if ($step>=1 && $step<=4): ?><nav aria-label="Booking steps"><ol><?php foreach($steps as $i=>$label): ?><li class="<?=$i+1<=$step?'current':''?>" <?=$i+1===$step?'aria-current="step"':''?>><b><?=$i+1?></b><span><?=esc($label)?></span></li><?php endforeach; ?></ol></nav><?php endif; ?>
 +<details class="help"><summary>Booking help</summary><p>Use synthetic details. Card checkout uses Paystack Test. For manual EFT, report a synthetic transfer and wait for the business to verify it.</p></details></div>
 +</div></header><div class="outer"><main>
 +<div class="<?=$step===0?'service-entry':'layout'?>"><section><h1<?=$step===1?' class="details-heading"':''?>><?=esc($heading)?></h1><?php if ($step>0): ?><details class="mobile-summary"><summary>Summary<?=isset($quote['total']) && empty($quote['outside_scope'])?' · '.esc(book01_money((int)$quote['total'])).' · '.esc(book01_duration((int)$quote['minutes'])):''?></summary><?php book01_summary($quote,$visit); ?></details><?php endif; ?>
 +<?php }
-+function book01_close(array $quote=[],array $visit=[],bool $showSummary=true): void { ?>
-+</section><?php if ($showSummary): ?><aside aria-label="Your booking"><h2>Your booking</h2><?php book01_summary($quote,$visit); ?></aside><?php endif; ?></div></main><footer>Private preview · Synthetic records only</footer></div></body></html>
++function book01_close(array $quote=[],array $visit=[],bool $showSummary=true,bool $canBook=false): void { ?>
++</section><?php if ($showSummary): ?><aside aria-label="Your booking"><h2>Your booking</h2><?php book01_summary($quote,$visit); ?></aside><?php endif; ?></div></main><?php if (!$showSummary): ?></div><?php endif; ?>
++<footer><?php if ($canBook): ?><div class="launch-action"><button type="submit" form="launch-service">Book Now</button></div><?php endif; ?><div class="preview-note">Private preview · Synthetic records only</div></footer>
++<?php if ($showSummary): ?></div><?php endif; ?></body></html>
 +<?php }
 +function booking_visit_fields(): array {
 +    return [
@@ -313,7 +385,7 @@
  $_SERVER['SCRIPT_NAME']='/account/_book05-preview/account/index.php';
  require $private.'/app/runtime/account/core.php';
  require $private.'/app/runtime/account/profile-core.php';
-@@ -25,19 +26,49 @@
+@@ -25,19 +26,70 @@
  try { book05_merchant_key($slug,$private); }
  catch (DomainException $error) { $ready=false; }
  $ticket=enquiry_ticket($slug.':booking');
@@ -334,20 +406,41 @@
 +<?php }
 +$selected=$_GET['service']??null;
 +if (!$ready || !$offer || $selected!==$offer['id']) {
-+    book01_open($merchants[$slug]['name'],0,'Choose a service');
++    book01_open($merchants[$slug]['name'],0,'Book a service');
 +    if (!empty($unavailable)): ?><p>Service details are temporarily unavailable. Try again shortly.</p>
 +    <?php elseif (!$offer): ?><p>No eligible instant booking service is available for this business.</p>
 +    <?php elseif (!$ready): ?><p>Test checkout is awaiting this business’s Paystack connection.</p>
 +    <?php else: ?>
 +        <?php if ($selected!==null): ?><p role="alert">Choose an available service to continue.</p><?php endif; ?>
-+        <form method="get">
++        <form id="launch-service" method="get" aria-label="Book a service">
 +            <input type="hidden" name="slug" value="<?=esc($slug)?>">
-+            <label>Service<select name="service" required><option value="<?=esc($offer['id'])?>">Regular Cleaning</option></select></label>
-+            <button>Continue to details</button>
++            <div class="service-tiles">
++                <label class="service-tile">
++                    <input type="radio" name="service" value="<?=esc($offer['id'])?>" checked required>
++                    <svg viewBox="0 0 64 56" width="62" height="54" fill="none" aria-hidden="true" focusable="false">
++                        <g stroke="#183c3b" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
++                            <path d="M15 42 23 15c2-7 7-10 13-9 6 0 10 5 10 12v8"/>
++                            <path d="m17 32 3 1-3 11-3-1z" fill="#92cfc0"/>
++                            <path d="M9 43h12l4 5H5z" fill="#e7f2ef"/>
++                            <path d="M34 42V29c0-7 5-12 12-12 8 0 14 6 14 14v9c0 3-2 5-5 5H39z" fill="#a6d8c7"/>
++                            <path d="M41 24c4-3 9-1 10 2m0 6h5m-5 4h5"/>
++                            <circle cx="38" cy="42" r="8" fill="#fff9e8"/><circle cx="38" cy="42" r="2.5" fill="#edbb71"/>
++                        </g>
++                    </svg>
++                    <span>Regular Cleaning</span>
++                </label>
++            </div>
 +        </form>
-+    <?php endif;
-+    booking_preview_tools($merchants);
-+    book01_close([],[],false);
++    <?php endif; ?>
++    <div class="launch-panels" role="region" aria-label="Private preview tools" tabindex="0">
++        <section class="launch-panel"><h2>Booking availability</h2>
++            <a class="panel-action" href="../availability.php">Manage availability</a>
++        </section>
++        <section class="launch-panel"><h2>Preview tools</h2>
++            <?php booking_preview_tools($merchants); ?>
++        </section>
++    </div>
++    <?php book01_close([],[],false,$ready && !empty($offer));
 +    exit;
 +}
 +$initialQuote=[];
@@ -374,7 +467,7 @@
  <label>Service area <select name="service_area"><?php foreach ($offer['areas'] as $area): ?><option><?=esc($area)?></option><?php endforeach; ?></select></label>
  <fieldset><legend>Rooms, extras and fees</legend>
  <?php foreach ($rows as $row):
-@@ -46,5 +77,12 @@
+@@ -46,5 +98,12 @@
      $quantity=max($min,min($max,(int)$sample)); ?>
  <label><?=esc($row['name'])?> <input type="number" name="options[<?=esc($row['id'])?>]" min="<?=$min?>" max="<?=$max?>" value="<?=$quantity?>" <?= $min===$max?'readonly':'required' ?>></label>
  <?php endforeach; ?></fieldset>
