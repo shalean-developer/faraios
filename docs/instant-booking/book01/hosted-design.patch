@@ -269,7 +269,7 @@
 +}
 --- /dev/null
 +++ b/private/faraios-checkout-preview/app/book01-layout.php
-@@ -0,0 +1,70 @@
+@@ -0,0 +1,69 @@
 +<?php
 +declare(strict_types=1);
 +function book01_money(int $minor): string {
@@ -289,7 +289,7 @@
 +}
 +function book01_open(string $business,int $step,string $heading,array $quote=[],array $visit=[]): void {
 +    $steps=['Details','Schedule','Review','Payment']; ?>
-+<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=room-picker-1"><?php if ($step===1): ?><link rel="stylesheet" href="/account/booking-location-ui.css?v=1"><?php endif; ?></head><body<?=$step===0?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
++<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=room-picker-1"><?php if ($step===1 || $step===2): ?><link rel="stylesheet" href="/account/booking-location-ui.css?v=2"><?php endif; ?></head><body<?=$step===0?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
 +<?php if ($step>=1 && $step<=4): ?><nav aria-label="Booking steps"><ol><?php foreach($steps as $i=>$label): ?><li class="<?=$i+1<=$step?'current':''?>" <?=$i+1===$step?'aria-current="step"':''?>><b><?=$i+1?></b><span><?=esc($label)?></span></li><?php endforeach; ?></ol></nav><?php endif; ?>
 +<details class="help"><summary>Booking help</summary><p>Use synthetic details. Card checkout uses Paystack Test. For manual EFT, report a synthetic transfer and wait for the business to verify it.</p></details></div>
 +</div></header><div class="outer"><main>
@@ -303,7 +303,6 @@
 +function booking_visit_fields(): array {
 +    return [
 +        'extra_rooms'=>['Extra Rooms requested',array_map('strval',range(0,8))],
-+        'property_type'=>['Property type',['Apartment','House','Townhouse','Other']],
 +        'pets'=>['Pets at the property',['No pets','Pets present']],
 +        'equipment'=>['Cleaning equipment at the property',['Available','Partly available','Unavailable']],
 +    ];
@@ -465,7 +464,7 @@
  <?php foreach (booking_visit_fields() as $key=>[$label]): if (isset($f['visit_details'][$key])): ?><dt><?=esc($label)?></dt><dd><?=esc($f['visit_details'][$key])?></dd><?php endif; endforeach; ?>
  <?php if ($f['notes']!==''): ?><dt>Instructions</dt><dd><?=esc($f['notes'])?></dd><?php endif; ?>
  <dt>Contact</dt><dd><?=esc($f['contact']['name'])?> · <?=esc($f['contact']['email'])?> <?=esc($f['contact']['phone']??'')?></dd></dl>
-@@ -269,41 +264,32 @@
+@@ -269,41 +264,34 @@
  <p>If your payment arrives and the visit cannot be confirmed, you receive a full refund. The business initiates approved refunds to the original payment method within two business days. Refunds stay pending until the provider confirms them.</p>
  <?php if (!$held): ?>
  <p>Continuing holds the slot for up to ten minutes or until the visit starts, whichever comes first. Your booking is confirmed after payment and availability are verified.</p>
@@ -494,20 +493,24 @@
 -</fieldset>
 -<fieldset><legend>Property and access</legend>
 -<?php foreach (booking_visit_fields() as $key=>[$label,$choices]): ?>
-+<label>Visit date<input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
-+<?php if (isset($q['total']) && empty($q['outside_scope'])): ?><p><?=esc($f['area'])?> · <?=(int)$q['minutes']?> minutes · ZAR <?=number_format($q['total']/100,2)?></p><?php endif; ?>
-+<label>Available start time (SAST)<select name="time"><option value="">Choose a time</option><?php foreach ($q['times']??[] as $t): ?><option <?=($f['time']??'')===$t?'selected':''?>><?=esc($t)?></option><?php endforeach; ?></select></label>
-+<details<?= (!empty($f['notes']) || !empty(array_diff_key($f['visit_details']??[],['extra_rooms'=>true]))) ? ' open' : '' ?>><summary>Extras and access notes (optional)</summary>
-+<?php foreach (booking_visit_fields() as $key=>[$label,$choices]): if ($key==='extra_rooms') continue; ?>
- <label><?=esc($label)?> (optional)<select name="<?=esc($key)?>"><option value="">Choose if applicable</option>
- <?php foreach ($choices as $choice): ?><option <?=($f['visit_details'][$key]??'')===$choice?'selected':''?>><?=esc($choice)?></option><?php endforeach; ?>
- </select></label>
+-<label><?=esc($label)?> (optional)<select name="<?=esc($key)?>"><option value="">Choose if applicable</option>
+-<?php foreach ($choices as $choice): ?><option <?=($f['visit_details'][$key]??'')===$choice?'selected':''?>><?=esc($choice)?></option><?php endforeach; ?>
+-</select></label>
 -<?php endforeach; ?></fieldset>
-+<?php endforeach; ?>
- <label>Instructions (optional)<textarea name="requirements" maxlength="1900"><?=esc($f['notes'])?></textarea></label>
+-<label>Instructions (optional)<textarea name="requirements" maxlength="1900"><?=esc($f['notes'])?></textarea></label>
 -<label>Date<input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
--<?php if (isset($q['total']) && empty($q['outside_scope'])): ?><p><?=esc($f['area'])?> · <?=(int)$q['minutes']?> minutes · ZAR <?=number_format($q['total']/100,2)?></p><?php endif; ?>
--<label>Available start time (SAST)<select name="time"><option value="">Choose a time</option><?php foreach ($q['times']??[] as $t): ?><option <?=($f['time']??'')===$t?'selected':''?>><?=esc($t)?></option><?php endforeach; ?></select></label>
++<label>Visit date<input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
+ <?php if (isset($q['total']) && empty($q['outside_scope'])): ?><p><?=esc($f['area'])?> · <?=(int)$q['minutes']?> minutes · ZAR <?=number_format($q['total']/100,2)?></p><?php endif; ?>
+ <label>Available start time (SAST)<select name="time"><option value="">Choose a time</option><?php foreach ($q['times']??[] as $t): ?><option <?=($f['time']??'')===$t?'selected':''?>><?=esc($t)?></option><?php endforeach; ?></select></label>
++<details<?= (!empty($f['notes']) || !empty(array_intersect_key($f['visit_details']??[],['pets'=>true,'equipment'=>true]))) ? ' open' : '' ?>><summary>Extras and access notes (optional)</summary>
++<div class="booking-access-row">
++<?php require_once '/var/www/vhosts/shalean.com/faraios.com/account/booking-location-ui.php';
++foreach (booking_visit_fields() as $key=>[$label,$choices]) {
++    if ($key==='extra_rooms') continue;
++    booking_dropdown($key, $label.' (optional)', $choices, $f['visit_details'][$key]??null, 'Choose if applicable');
++} ?>
++</div>
++<label>Instructions (optional)<textarea name="requirements" maxlength="1900"><?=esc($f['notes'])?></textarea></label>
 +</details>
  <?php if (!empty($q['outside_scope'])): ?><p role="status">Instant booking covers one-time Regular Cleaning with one cleaner in the listed service areas. Change your selection to see available times.</p>
  <?php elseif (isset($q['times']) && !$q['times']): ?><p>No cleaner is available for this entire visit. Choose another date or check the next seven days.</p>
@@ -661,7 +664,7 @@
 +<?php book01_close($initialQuote,$summaryVisit); ?>
 --- /dev/null
 +++ b/faraios.com/account/booking-location-ui.php
-@@ -0,0 +1,25 @@
+@@ -0,0 +1,30 @@
 +<?php
 +declare(strict_types=1);
 +
@@ -676,12 +679,17 @@
 +</div>
 +<?php }
 +
-+function booking_service_area(array $areas, ?string $selected = null): void { ?>
-+<label class="booking-location-label">Service area
++function booking_service_area(array $areas, ?string $selected = null): void {
++    booking_dropdown('service_area', 'Service area', $areas, $selected);
++}
++
++function booking_dropdown(string $name, string $label, array $options, ?string $selected = null, ?string $placeholder = null): void { ?>
++<label class="booking-location-label"><?=esc($label)?>
 +    <span class="booking-area-control">
-+        <select name="service_area" required>
-+            <?php foreach ($areas as $area): ?>
-+                <option value="<?=esc($area)?>"<?=$selected === $area ? ' selected' : ''?>><?=esc($area)?></option>
++        <select name="<?=esc($name)?>"<?=$placeholder === null ? ' required' : ''?>>
++            <?php if ($placeholder !== null): ?><option value=""><?=esc($placeholder)?></option><?php endif; ?>
++            <?php foreach ($options as $option): ?>
++                <option value="<?=esc($option)?>"<?=$selected === $option ? ' selected' : ''?>><?=esc($option)?></option>
 +            <?php endforeach; ?>
 +        </select>
 +    </span>
@@ -689,7 +697,7 @@
 +<?php }
 --- /dev/null
 +++ b/faraios.com/account/booking-location-ui.css
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,86 @@
 +.booking-address-row {
 +    display: grid;
 +    grid-template-columns: minmax(0, 1fr) clamp(6.25rem, 28%, 10rem);
@@ -769,6 +777,13 @@
 +    .booking-area-control::after { border-color: ButtonText; }
 +}
 +#booking-location-components .booking-location-example { max-width: 38rem; }
++
++.booking-access-row {
++    display: grid;
++    grid-template-columns: repeat(2, minmax(0, 1fr));
++    gap: 0 .75rem;
++    align-items: end;
++}
 --- a/faraios.com/account/platform.php
 +++ b/faraios.com/account/platform.php
 @@ -44,6 +44,15 @@
