@@ -1,6 +1,8 @@
 'use strict';
 const form = document.getElementById('booking-request');
 if (form) {
+ const visit = window.shaleanVisit;
+ if (visit) visit.prepare(form);
  const fields = form.elements;
  const steps = [...form.querySelectorAll('[data-step]')];
  const progress = [...document.querySelectorAll('.booking-progress li')];
@@ -9,7 +11,7 @@ if (form) {
  const send = document.getElementById('booking-send');
  const zone = document.getElementById('summary-zone').textContent;
  let current = 0;
- const stepNames=['service','details','schedule','contact','review'];
+ const stepNames=visit ? ['service','details','schedule','review'] : ['service','details','schedule','contact','review'];
  const draftKey='faraios-booking:'+location.pathname;
  const draftAge=30*60*1000;
  const clearDraft=()=>{try{sessionStorage.removeItem(draftKey);}catch{}};
@@ -26,7 +28,7 @@ const optionPanel = document.getElementById('booking-options');
   if(draft && Date.now()-draft.savedAt>=0 && Date.now()-draft.savedAt<draftAge && draft.catalogue===JSON.stringify(catalogue)){
    const service=form.querySelector('input[name="service"][value="'+draft.service+'"]');
    if(service)service.checked=true;
-   for(const name of ['address','unit','requirements','service_area','date','time','name','email','phone']){
+   for(const name of ['address','unit','requirements','pets','equipment','service_area','date','time','name','email','phone']){
     if(fields[name] && typeof draft.values?.[name]==='string'){
      fields[name].value=draft.values[name].slice(0,name==='requirements'?1900:name==='address'?1000:254);
      fields[name].dispatchEvent(new Event('change',{bubbles:true}));
@@ -129,6 +131,7 @@ const calculateOptions = service => {
   const option = form.querySelector('input[name="service"]:checked');
   const service = catalogue.items.find(s=>s.id===option?.value);
   const calculated = calculateOptions(service);
+  if (visit) visit.quote(service, calculated, fields);
   const price = calculated.price;
   put('summary-options',calculated.options);put('summary-breakdown',calculated.breakdown);put('summary-duration',calculated.duration);
   const values = {
@@ -169,7 +172,7 @@ const calculateOptions = service => {
  const saveDraft=()=>{
   if(completed)return;
   try{
-   const values={};for(const name of ['address','unit','requirements','service_area','date','time','name','email','phone'])if(fields[name])values[name]=fields[name].value;
+   const values={};for(const name of ['address','unit','requirements','pets','equipment','service_area','date','time','name','email','phone'])if(fields[name])values[name]=fields[name].value;
    sessionStorage.setItem(draftKey,JSON.stringify({savedAt:Date.now(),catalogue:JSON.stringify(catalogue),service:form.querySelector('input[name="service"]:checked')?.value||'',values,options:Object.fromEntries([...optionInputs].map(([id,input])=>[id,input.value]))}));
   }catch{}
  };
@@ -185,14 +188,15 @@ const calculateOptions = service => {
   document.querySelector('.request-summary').hidden = current === 0;
   document.querySelector('.request-layout').classList.toggle('service-selection', current === 0);
   steps.forEach((step, i) => { step.hidden = i !== current; });
-  progress.forEach((item, i) => {
+  if (visit) visit.step(current, completed);
+  else progress.forEach((item, i) => {
    if (i === current) item.setAttribute('aria-current', 'step'); else item.removeAttribute('aria-current');
    item.classList.toggle('complete', i < current);
   });
   back.hidden = current === 0;
   next.hidden = current === 0 || current === steps.length - 1;
   send.hidden = current !== steps.length - 1;
-  put('step-status', `Step ${current + 1} of 5 · ${steps[current].querySelector('legend').textContent}`);
+  put('step-status', visit && current === 0 ? 'Choose a service' : `Step ${visit ? current : current + 1} of ${visit ? 4 : steps.length} · ${steps[current].querySelector('legend').textContent}`);
   saveDraft();
   if (focus) steps[current].querySelector('legend').focus();
  };
@@ -213,8 +217,8 @@ const calculateOptions = service => {
  form.addEventListener('input', () => {update();saveDraft();});
  form.addEventListener('change', () => {update();saveDraft();});
  form.addEventListener('submit', event => {
-  if (current !== 4) { event.preventDefault(); if (valid(current)) show(current + 1); return; }
-  for (let i = 0; i < 4; i++) if (!valid(i)) { event.preventDefault(); return; }
+  if (current !== steps.length - 1) { event.preventDefault(); if (valid(current)) show(current + 1); return; }
+  for (let i = 0; i < steps.length - 1; i++) if (!valid(i)) { event.preventDefault(); return; }
  });
  document.querySelectorAll('[data-summary-edit]').forEach(button => button.addEventListener('click', () => {
   show(Number(button.dataset.summaryEdit));
