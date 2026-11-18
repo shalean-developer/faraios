@@ -1,0 +1,1317 @@
+--- /dev/null
++++ b/faraios.com/account/_book05-preview/business/book01-visit.css
+@@ -0,0 +1,231 @@
++:root{font:16px/1.5 system-ui,sans-serif;color:#153438;background:#f4f7f5;--teal:#087e79;--line:#ccdcda}*{box-sizing:border-box}body{margin:0}
++
++.outer { margin:0; container-type:inline-size; }
++
++
++.booking-header {
++    position:sticky;
++    top:0;
++    z-index:10;
++    width:100%;
++    background:white;
++    border-bottom:1px solid var(--line);
++}
++html { scroll-padding-top:10rem; }
++
++.header-inner{padding:12px clamp(16px,2vw,32px) 16px}
++.preview,.brand-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
++.preview{font-size:.85rem;color:#276b66}
++
++.brand-row {
++    display:grid;
++    grid-template-columns:minmax(0,1fr) min(45%,30rem) minmax(0,1fr);
++    align-items:center;
++    gap:12px;
++    padding:12px 0 4px;
++}
++
++.brand-row>strong{font-size:1.15rem;overflow-wrap:anywhere}
++.brand-row .help{grid-column:3;justify-self:end;max-width:100%}
++
++.brand-row nav { grid-column:2; width:100%; }
++.brand-row ol {
++    display:flex;
++    justify-content:space-evenly;
++    gap:.3rem;
++    margin:0;
++    padding:0;
++    list-style:none;
++}
++.brand-row li {
++    display:grid;
++    justify-items:center;
++    align-content:start;
++    gap:.25rem;
++    font-size:.875rem;
++    line-height:1.3;
++}
++.brand-row li b {
++    display:grid;
++    place-items:center;
++    width:1.65rem;
++    height:1.65rem;
++    border-radius:50%;
++    background:#edf6f3;
++}
++.brand-row .current b { background:var(--teal); color:white; }
++.brand-row [aria-current="step"] span { font-weight:650; }
++
++
++main {
++    background:white;
++    border:1px solid var(--line);
++    border-top:0;
++    border-radius:0 0 15px 15px;
++    padding-block:18px 28px;
++}
++@media (min-width:720.01px) {
++    /* Let the actual header height set the top of the desktop scroll area. */
++    body {
++        height:100vh;
++        height:100dvh;
++        display:grid;
++        grid-template-rows:auto minmax(0,1fr);
++    }
++    .outer {
++        overflow-y:auto;
++        container-type:size;
++    }
++    .layout > aside {
++        position:sticky;
++        top:18px;
++        /* Leave space for the card padding and footer at the last scroll position. */
++        max-height:calc(100cqh - 7rem);
++        overflow-y:auto;
++    }
++
++    main {
++        /* Preserve the columns of the original centered 1060px form. */
++        --form-inset:calc(max(0px, (100cqw - 1060px) / 2) + 48px);
++        --summary-inset:clamp(16px, 2cqw, 32px);
++        padding-inline:var(--form-inset) var(--summary-inset);
++    }
++    main .layout {
++        column-gap:calc(36px + var(--form-inset) - var(--summary-inset));
++    }
++    .outer footer { max-width:1016px; margin-inline:auto; }
++}
++
++.layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(250px,.85fr);gap:36px}section{min-width:0}aside,.mobile-summary,.hold{background:#edf6f3;border-radius:12px;padding:20px;align-self:start}aside h2{margin-top:0}.mobile-summary{display:none}h1{font-size:clamp(1.55rem,3vw,2rem);line-height:1.18;letter-spacing:-.035em;margin:5px 0 18px}h2{font-size:1.2rem}h3{font-size:1.05rem}label{display:block;font-size:.91rem;font-weight:600;margin:12px 0 5px}input,select,textarea,button{font:inherit}input,select,textarea{display:block;width:100%;margin-top:4px;border:1px solid #98b5b1;border-radius:7px;color:inherit;background:white;padding:10px 11px}fieldset{margin:15px 0;padding:10px 14px 14px;border:1px solid var(--line);border-radius:8px}legend{font-weight:600}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}button{display:block;border-radius:7px;padding:11px 16px;width:100%;margin-top:15px;background:var(--teal);color:white;border:0;font-weight:650;cursor:pointer}button:hover{background:#056763}.secondary,button[name=action][value=next]{background:#edf6f3;color:#075e59}summary,a{color:#006d67;cursor:pointer}details>summary{font-weight:600}details{margin:12px 0}.help{margin:0;position:relative}.help p{position:absolute;right:0;z-index:2;width:min(340px,83vw);padding:15px;background:white;border:1px solid var(--line);border-radius:8px}.breakdown{border-top:1px solid var(--line);padding-top:10px}.breakdown div{display:flex;justify-content:space-between;gap:12px;margin:6px 0}dd{margin-left:0}dl:not(.breakdown) dt{font-weight:650;margin-top:12px}.breakdown dd{white-space:nowrap}.total dd{font-weight:700}footer{color:#526a67;font-size:.84rem;padding:15px 2px}.tools{margin-top:24px}.tools a{display:inline-block;margin:4px 10px 4px 0}[role=alert]{border-left:4px solid #a54e27;background:#fff5ec;padding:10px}.hold{margin:12px 0}:focus-visible{outline:3px solid #197baf;outline-offset:2px}section,aside{overflow-wrap:anywhere}@media(max-width:720px){.outer{padding:0;margin:0}.header-inner{padding:10px 16px 12px}.preview{flex-wrap:wrap}main,footer{padding-left:16px;padding-right:16px}main{border-radius:0;border:0}.layout{display:block}.mobile-summary{display:block}.mobile-summary{padding:12px 14px}.layout aside{display:none}}
++
++@media (max-width:620px) {
++    .brand-row { grid-template-columns:minmax(0,1fr) max-content minmax(0,1fr); gap:.45rem; }
++    .brand-row>strong { font-size:.875rem; line-height:1.25; }
++    .brand-row .help { grid-column:3; font-size:.875rem; line-height:1.25; }
++    .brand-row li { font-size:.78rem; }
++    .brand-row ol { gap:.4rem; }
++}
++@media (max-width:360px) {
++    .header-inner { padding-inline:8px; }
++    .brand-row { gap:.25rem; }
++    .brand-row ol { gap:.21rem; }
++}
++@media (max-width:360px) {
++    .brand-row .help summary { list-style:none; text-align:right; }
++    .brand-row .help summary::-webkit-details-marker { display:none; }
++    .brand-row .help { font-size:.8rem; }
++}
++
++.details-heading { text-align:center; }
++
++/* The launch screen has its own scroll region between the header and booking action. */
++.launch-page {
++    display:grid;
++    grid-template-rows:auto minmax(0,1fr) auto;
++    height:100vh;
++    height:100dvh;
++    background:#fffcf8;
++}
++.launch-page .header-inner { padding:0 clamp(16px,2.7vw,40px); }
++.launch-page .preview { display:none; }
++.launch-page .brand-row { display:flex; justify-content:space-between; min-height:74px; padding:10px 0; }
++.launch-page .brand-row>strong { font-size:clamp(1rem,2vw,1.35rem); }
++.launch-page .help summary, .panel-action, .launch-panel summary {
++    display:inline-block;
++    border-radius:999px;
++    padding:9px 19px;
++    font-size:.95rem;
++    text-decoration:none;
++    cursor:pointer;
++}
++.launch-page .help summary { background:var(--teal); color:white; }
++.launch-page .help summary::-webkit-details-marker, .launch-panel summary::-webkit-details-marker { display:none; }
++.launch-page .outer { overflow:auto; min-height:0; container-type:normal; }
++.launch-page main {
++    background:transparent;
++    border:0;
++    padding:20px clamp(16px,4.5vw,76px) 36px;
++    margin:auto;
++    max-width:1600px;
++}
++.service-entry h1 { margin:0 0 10px; font-size:clamp(1.22rem,2vw,1.55rem); letter-spacing:-.025em; }
++.service-tiles { display:flex; gap:8px; overflow-x:auto; padding:4px; }
++.service-tile {
++    position:relative;
++    color:inherit;
++    width:auto;
++    display:flex;
++    flex:0 0 128px;
++    flex-direction:column;
++    align-items:center;
++    justify-content:center;
++    gap:8px;
++    min-height:128px;
++    margin:0;
++    padding:12px;
++    text-align:center;
++    font-size:.97rem;
++    line-height:1.25;
++    font-weight:500;
++    border:1px solid #d4dedb;
++    border-radius:9px;
++    background:white;
++    cursor:pointer;
++}
++.service-tile:hover { border-color:var(--teal); box-shadow:inset 0 0 0 1px var(--teal); }
++.service-tile:focus-visible { outline:3px solid #197baf; outline-offset:1px; }
++.launch-panels { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:28px; margin:clamp(36px,7vh,72px) 12px 0; }
++.launch-panel { background:#dfefea; border-radius:9px; padding:30px 20px; text-align:center; align-content:center; min-height:176px; }
++.launch-panel:nth-child(2) { background:#e6f1ef; }
++.launch-panel h2 { font-size:1.2rem; margin:0 0 16px; }
++.panel-action,.launch-panel summary { border:1px solid #456762; color:#234b47; }
++.panel-action:hover,.launch-panel summary:hover { background:white; }
++.launch-panel details { margin:0; }
++.launch-page footer { padding:0; background:white; text-align:center; }
++.launch-action { padding:13px 16px; border-top:1px solid var(--line); }
++.launch-action button { border-radius:999px; max-width:405px; margin:0 auto; }
++.launch-page .preview-note { background:#e9edeb; padding:8px 16px; }
++@media (max-width:720px) {
++    .launch-page main { padding-inline:16px; }
++    .launch-panels { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; margin-inline:-4px; gap:10px; padding-bottom:8px; }
++    .launch-panel { flex:0 0 94%; min-height:185px; scroll-snap-align:start; }
++    .launch-action button { width:min(100%,240px); }
++}
++
++.room-choice-list { min-inline-size:0; }
++.room-choice-row {
++    display:flex;
++    align-items:center;
++    flex-wrap:wrap;
++    gap:.5rem .75rem;
++    padding:.8rem 0;
++}
++.room-choice-row + .room-choice-row { border-top:1px solid var(--line); }
++.room-choice-row label { margin:0 auto 0 0; }
++.room-choice-row small { flex-basis:100%; color:#486366; }
++.room-choices,.room-counter { display:flex; align-items:center; flex-wrap:wrap; gap:.3rem; max-width:100%; }
++.room-choice-row [hidden] { display:none; }
++.room-choices button,.room-counter input {
++    box-sizing:border-box;
++    display:inline-flex;
++    align-items:center;
++    justify-content:center;
++    width:auto;
++    min-width:2.5rem;
++    min-height:2.5rem;
++    margin:0;
++    padding:.4rem .65rem;
++    border:1px solid #bdcccf;
++    border-radius:7px;
++    background:white;
++    color:#153438;
++    font:inherit;
++    font-size:.9rem;
++    text-align:center;
++}
++.room-choices button[aria-pressed=true] { background:#e4f2ef; border-color:#087e79; font-weight:650; }
++.room-choices button:hover { border-color:#087e79; }
++.room-counter { flex-wrap:nowrap; gap:.3rem; }
++.room-counter input { display:block; width:3.7rem; }
++.room-counter button { border-radius:50%; font-size:1.1rem; }
++.room-counter button:disabled { opacity:.5; }
+--- /dev/null
++++ b/faraios.com/account/_book05-preview/business/book01-details.js
+@@ -0,0 +1,60 @@
++const detailsForm = document.querySelector('form[data-room-quote]');
++if (detailsForm) {
++    const status = detailsForm.querySelector('[data-quote-status]');
++    let renewing = false;
++    let readyToSubmit = false;
++    detailsForm.addEventListener('submit', async event => {
++        if (readyToSubmit) return;
++        event.preventDefault();
++        if (renewing) return;
++        renewing = true;
++        const url = new URL(detailsForm.action);
++        url.searchParams.set('form_ticket', '1');
++        try {
++            const response = await fetch(url, {
++                mode: 'same-origin',
++                cache: 'no-store',
++                headers: {'X-Booking-Form': 'refresh'}
++            });
++            if (!response.ok) throw new Error();
++            const {csrf} = await response.json();
++            if (typeof csrf !== 'string' || !/^[a-f0-9]{64}$/.test(csrf)) throw new Error();
++            detailsForm.elements.namedItem('csrf').value = csrf;
++            readyToSubmit = true;
++            detailsForm.requestSubmit();
++        } catch {
++            status.textContent = 'Your entries are still here. Choose a time again to reconnect.';
++        } finally {
++            readyToSubmit = false;
++            renewing = false;
++        }
++    });
++    let pending;
++    detailsForm.addEventListener('change', async event => {
++        if (!event.target.matches('select[name^="options["], select[name="service_area"]')) return;
++        pending?.abort();
++        const request = new AbortController();
++        pending = request;
++        const url = new URL(detailsForm.dataset.roomQuote, window.location.href);
++        url.searchParams.set('summary', '1');
++        for (const [name, value] of new FormData(detailsForm)) {
++            if (name.startsWith('options[') || name === 'service_area') url.searchParams.set(name, value);
++        }
++        status.textContent = 'Updating your booking summary…';
++        try {
++            const response = await fetch(url, {signal: request.signal});
++            if (!response.ok) throw new Error();
++            const quote = await response.json();
++            if (request !== pending) return;
++            const template = document.createElement('template');
++            template.innerHTML = quote.html;
++            for (const body of document.querySelectorAll('[data-booking-summary]')) {
++                body.replaceChildren(template.content.cloneNode(true));
++            }
++            document.querySelector('.mobile-summary > summary').textContent = quote.caption;
++            status.textContent = '';
++        } catch {
++            if (request === pending) status.textContent = 'The summary could not update. Choose a time to recalculate your visit.';
++        }
++    });
++}
+--- /dev/null
++++ b/private/faraios-checkout-preview/app/book01-layout.php
+@@ -0,0 +1,69 @@
++<?php
++declare(strict_types=1);
++function book01_money(int $minor): string {
++    return 'ZAR '.number_format($minor/100,2);
++}
++function book01_summary(array $quote,array $visit): void { ?>
++<strong>Regular Cleaning</strong><p>One-time visit<?=empty($visit['area'])?'':' / '.esc($visit['area'])?></p>
++<?php if (!empty($visit['at'])): ?><p><?=esc($visit['at'])?> SAST</p><?php endif; ?>
++<?php if (isset($quote['total']) && empty($quote['outside_scope'])): ?>
++<dl class="breakdown"><?php foreach ($quote['items']??[] as $item): if (!(int)$item['quantity']) continue; ?>
++<div><dt><?=esc($item['name'])?></dt><dd><?=esc(book01_money((int)$item['quantity']*(int)$item['price']))?></dd></div>
++<?php endforeach; ?></dl><dl class="breakdown total"><div><dt>Total</dt><dd><?=esc(book01_money((int)$quote['total']))?></dd></div><div><dt>Duration</dt><dd><?=esc(book01_duration((int)$quote['minutes']))?></dd></div></dl>
++<?php else: ?><p>The schedule step calculates the price and duration for your selections.</p><?php endif;
++}
++function book01_duration(int $minutes): string {
++    return $minutes>0 && $minutes%60===0 ? intdiv($minutes,60).' '.($minutes===60?'hour':'hours') : $minutes.' minutes';
++}
++function book01_open(string $business,int $step,string $heading,array $quote=[],array $visit=[]): void {
++    $steps=['Details','Schedule','Review','Payment']; ?>
++<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=room-picker-1"><?php if ($step===1 || $step===2): ?><link rel="stylesheet" href="/account/booking-location-ui.css?v=2"><?php endif; ?></head><body<?=$step===0?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
++<?php if ($step>=1 && $step<=4): ?><nav aria-label="Booking steps"><ol><?php foreach($steps as $i=>$label): ?><li class="<?=$i+1<=$step?'current':''?>" <?=$i+1===$step?'aria-current="step"':''?>><b><?=$i+1?></b><span><?=esc($label)?></span></li><?php endforeach; ?></ol></nav><?php endif; ?>
++<details class="help"><summary>Booking help</summary><p>Use synthetic details. Card checkout uses Paystack Test. For manual EFT, report a synthetic transfer and wait for the business to verify it.</p></details></div>
++</div></header><div class="outer"><main>
++<div class="<?=$step===0?'service-entry':'layout'?>"><section><h1<?=$step===1?' class="details-heading"':''?>><?=esc($heading)?></h1><?php if ($step>0): ?><details class="mobile-summary"><summary>Summary<?=isset($quote['total']) && empty($quote['outside_scope'])?' · '.esc(book01_money((int)$quote['total'])).' · '.esc(book01_duration((int)$quote['minutes'])):''?></summary><div data-booking-summary><?php book01_summary($quote,$visit); ?></div></details><?php endif; ?>
++<?php }
++function book01_close(array $quote=[],array $visit=[],bool $showSummary=true,bool $canBook=false): void { ?>
++</section><?php if ($showSummary): ?><aside aria-label="Your booking"><h2>Your booking</h2><div data-booking-summary><?php book01_summary($quote,$visit); ?></div></aside><?php endif; ?></div></main><?php if (!$showSummary): ?></div><?php endif; ?>
++<footer><?php if ($canBook): ?><div class="launch-action"><button type="submit" form="launch-service">Book Now</button></div><?php endif; ?><div class="preview-note">Private preview · Synthetic records only</div></footer>
++<?php if ($showSummary): ?></div><?php endif; ?></body></html>
++<?php }
++function booking_visit_fields(): array {
++    return [
++        'extra_rooms'=>['Extra Rooms requested',array_map('strval',range(0,8))],
++        'pets'=>['Pets at the property',['No pets','Pets present']],
++        'equipment'=>['Cleaning equipment at the property',['Available','Partly available','Unavailable']],
++    ];
++}
++
++
++const BOOK01_ROOM_INTEGRITY='sha384-z6RpZ9S5Q4X0Lqpd8nkbvwFAJJ47gOIQSzENJA4L1mTdIetYZ6KqfOzFCSSd0xGB';
++function book01_quantity_picker(string $id,string $field,string $title,array $choices,int $quantity,string $hint): void { ?>
++<div class="room-choice-row" data-room-picker>
++    <label for="<?=esc($id)?>" id="<?=esc($id)?>-label"><?=esc($title)?></label>
++    <select id="<?=esc($id)?>" name="<?=esc($field)?>" aria-describedby="<?=esc($id)?>-hint" required>
++        <?php foreach ($choices as $i): ?><option value="<?=(int)$i?>" <?=(int)$i===$quantity?'selected':''?>><?=(int)$i?></option><?php endforeach; ?>
++    </select>
++    <small id="<?=esc($id)?>-hint"><?=esc($hint)?></small>
++</div>
++<?php }
++function book01_room_fields(array $rows,array $visit=[]): void {
++    $hasExtraRooms=false; ?>
++    <fieldset class="room-choice-list"><legend>Rooms</legend>
++    <?php foreach ($rows as $row):
++        $id=$row['id']; $name=$row['name'];
++        $min=(int)$row['minimum']; $max=(int)$row['maximum'];
++        $quantity=(int)$row['quantity'];
++        if (strcasecmp($name,'Service fee')===0 && $min===$max): ?>
++            <input type="hidden" name="options[<?=esc($id)?>]" value="<?=$min?>">
++            <?php continue; endif;
++        $hasExtraRooms=$hasExtraRooms || strcasecmp($name,'Extra Rooms')===0;
++        $hint=(int)$row['included'].' included · +'.book01_money((int)$row['price']).' per additional unit · +'.(int)$row['minutes'].' min';
++        book01_quantity_picker('room-'.$id,'options['.$id.']',$name,range($min,$max),$quantity,$hint);
++    endforeach;
++    if (!$hasExtraRooms) {
++        book01_quantity_picker('room-extra','extra_rooms','Extra Rooms',booking_visit_fields()['extra_rooms'][1],(int)($visit['extra_rooms']??0),'Extra rooms are a request. They are excluded from the quoted price and duration.');
++    } ?>
++    </fieldset>
++    <script defer src="../business/book01-room-picker.js" integrity="<?=BOOK01_ROOM_INTEGRITY?>"></script>
++<?php }
+--- a/private/faraios-checkout-preview/app/runtime/b/instant.php
++++ b/private/faraios-checkout-preview/app/runtime/b/instant.php
+@@ -11,7 +11,8 @@
+ $checkoutOrigin = 'https://checkout.paystack.com';
+ if ((cfg()['environment'] ?? '') === 'test' && preg_match('~^http://127\.0\.0\.1:[0-9]+$~D', cfg()['instant_fixture'] ?? ''))
+     $checkoutOrigin = cfg()['instant_fixture'];
+-header("Content-Security-Policy: default-src 'none'; style-src 'self'; form-action 'self' $checkoutOrigin; base-uri 'none'; frame-ancestors 'none'");
++$previewPolicy="default-src 'none'; style-src 'self'; form-action 'self' $checkoutOrigin; base-uri 'none'; frame-ancestors 'none'";
++header('Content-Security-Policy: '.$previewPolicy);
+ if (!instant_enabled()) { http_response_code(404); exit; }
+ 
+ if (isset($_GET['webhook'])) {
+@@ -28,10 +29,17 @@
+     }
+     exit;
+ }
++require_once '/var/www/vhosts/shalean.com/private/faraios-checkout-preview/app/book01-layout.php';
+ enquiry_session();
+ $slug = $_GET['slug'] ?? '';
+ if (!is_string($slug) || !preg_match('/^[a-z0-9-]{3,64}$/D',$slug)) { http_response_code(404); exit; }
+ $ticket = enquiry_ticket($slug.':booking');
++if ($_SERVER['REQUEST_METHOD']==='GET' && isset($_GET['form_ticket'])) {
++    if (($_SERVER['HTTP_X_BOOKING_FORM']??'')!=='refresh') {http_response_code(400); exit;}
++    header('Content-Type: application/json');
++    echo json_encode(['csrf'=>$ticket['csrf']],JSON_THROW_ON_ERROR);
++    exit;
++}
+ $base = cfg()['base_url'];
+ $back = $base.'/b/index.php';
+ $self = $base.'/b/instant.php?slug='.$slug;
+@@ -41,12 +49,20 @@
+ $problem = '';
+ try {
+     if ($_SERVER['REQUEST_METHOD']==='POST') {
+-        if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0)>20000 || !is_string($_POST['csrf'] ?? null) ||
+-            !hash_equals($ticket['csrf'],$_POST['csrf']) || ($_POST['website'] ?? '')!=='' ||
+-            ($_SERVER['HTTP_SEC_FETCH_SITE'] ?? '')==='cross-site') throw new DomainException('Reload the booking form before continuing.');
++        if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0)>20000 || ($_POST['website'] ?? '')!=='' ||
++            ($_SERVER['HTTP_SEC_FETCH_SITE'] ?? '')==='cross-site') {
++            throw new DomainException('Reload the booking form before continuing.');
++        }
++        if (!is_string($_POST['csrf']??null) || !hash_equals($ticket['csrf'],$_POST['csrf'])) {
++            // Discard the expired submission. Recover only the draft already owned by this session.
++            if (is_string($flow) && isset($_SESSION['instant'][$flow]) && $_SESSION['instant'][$flow]['slug']===$slug) {
++                $returnTo=$self.'&flow='.rawurlencode($flow).'&renewed=1';
++            } else {
++                $returnTo=$back.'?slug='.rawurlencode($slug).'&renewed=1';
++            }
++            header('Location: '.$returnTo,true,303); exit;
++        }
+         if ($flow==='') {
+-            if (count($_SESSION['instant'] ?? [])>=20) throw new DomainException('Too many open booking attempts.');
+-            $flow=instant_reference();
+             $options=[];
+             foreach ($_POST['options'] ?? [] as $id=>$quantity) {
+                 if (!is_string($quantity) || !ctype_digit($quantity) || strlen($quantity)>4) throw new DomainException('Check room quantities.');
+@@ -56,9 +72,13 @@
+             $unit=enquiry_text('unit',0,120);
+             if ($unit!=='') $address.=', '.$unit;
+             if (mb_len($address)>1000) throw new DomainException('Shorten the service address.');
+-            $_SESSION['instant'][$flow]=['slug'=>$slug,'created'=>time(),'service'=>enquiry_text('service',32,32),
++            $draft=['slug'=>$slug,'created'=>time(),'service'=>enquiry_text('service',32,32),
+                 'area'=>enquiry_text('service_area',1,200),'address'=>$address,'notes'=>enquiry_text('requirements',0,1900),
+                 'options'=>json_encode($options, JSON_THROW_ON_ERROR),'day'=>$today->modify('+1 day')->format('Y-m-d')];
++            $draft['visit_details']=booking_visit_details($_POST);
++            $draft['contact']=['name'=>enquiry_text('name',0,120),'email'=>enquiry_text('email',0,254),'phone'=>enquiry_text('phone',0,40),'notes'=>booking_visit_notes($draft['visit_details'],$draft['notes'])];
++            $_SESSION['instant']??=[];
++            $flow=book01_start_draft($_SESSION['instant'],$draft,$_POST['entry']??null);
+             header('Location: '.$self.'&flow='.$flow,true,303); exit;
+         }
+     }
+@@ -103,36 +123,23 @@
+         } elseif (in_array($action,['date','review','next'],true) && !isset($f['reserved'])) {
+             $previous=$f;
+             $f['day']=enquiry_text('date',10,10);
+-            $f['address']=enquiry_text('address',5,1000);
+-            $chosen=enquiry_text('service_area',1,200);
+-            $f['outside']=$chosen==='__outside';
+-            if (!$f['outside']) $f['area']=$chosen;
+-            $f['requested_service']=(($_POST['requested_service']??'regular')==='regular')?'regular':'other';
+-            $f['team']=(($_POST['team']??'1')==='1')?'1':'multiple';
+-            $f['visit_details']=booking_visit_details($_POST);
++            if ($action==='date' && isset($_POST['alternative_date'])) {
++                $f['day']=enquiry_text('alternative_date',10,10);
++            }
++            $access=booking_visit_details($_POST);
++            unset($access['extra_rooms']);
++            $f['visit_details']=array_intersect_key($f['visit_details']??[],['extra_rooms'=>true])+$access;
+             $f['notes']=enquiry_text('requirements',0,1900);
+-            $f['contact']=['name'=>enquiry_text('name',0,120),'email'=>enquiry_text('email',0,254),'phone'=>enquiry_text('phone',0,40),'notes'=>booking_visit_notes($f['visit_details'],$f['notes'])];
++            $f['contact']['notes']=booking_visit_notes($f['visit_details'],$f['notes']);
+             $f['time']=enquiry_text('time',0,5);
+-            $options=[];
+-            foreach ($_POST['options']??[] as $id=>$quantity) {
+-                if (!is_string($quantity) || !ctype_digit($quantity) || strlen($quantity)>4) throw new DomainException('Check room quantities.');
+-                $options[]=['id'=>(string)$id,'quantity'=>(int)$quantity];
+-            }
+-            $f['options']=json_encode($options,JSON_THROW_ON_ERROR);
+             unset($f['review']);
+             $f['quote']=book04_quote($f);
++            if ($action==='date') {
++                $f['checked_date']=$f['day'];
++                if ($f['day']!==$previous['day']) $f['time']='';
++            }
+             if ($action==='next' && empty($f['quote']['outside_scope'])) {
+-                $day=new DateTimeImmutable($f['day'],new DateTimeZone('Africa/Johannesburg'));
+-                $limit=$today->modify('+30 days');
+-                $f['time']='';
+-                for ($i=1;$i<=7;$i++) {
+-                    $day=$day->modify('+1 day');
+-                    if ($day>$limit) break;
+-                    $f['day']=$day->format('Y-m-d');
+-                    $f['quote']=book04_quote($f);
+-                    if ($f['quote']['times']) break;
+-                }
+-                $f['availability_notice']=$f['quote']['times']?'Available times found on '.$f['day'].'.':'No available times found through '.$f['day'].'.';
++                book01_find_next_date($f,$today->modify('+30 days'),true);
+             }
+             if ($action==='review') {
+                 if (mb_len($f['contact']['name'])<2 || !filter_var($f['contact']['email'],FILTER_VALIDATE_EMAIL)) throw new DomainException('Enter your name and a valid test checkout email.');
+@@ -180,7 +187,16 @@
+         header('Location: '.$self,true,303); exit;
+     }
+     if (!isset($f['reserved']) && !isset($f['review'])) {
++        $firstVisit=!isset($f['quote']);
+         $f['quote']=book04_quote($f);
++        $checkedDate=($f['checked_date']??null)===$f['day'];
++        unset($f['checked_date']);
++        if ($checkedDate && empty($f['quote']['outside_scope']) && !$f['quote']['times']) {
++            $alternatives=book01_nearby_dates($f,$today);
++        }
++        if ($firstVisit && empty($f['quote']['outside_scope']) && !$f['quote']['times']) {
++            book01_find_next_date($f,$today->modify('+30 days'),false);
++        }
+     }
+ } catch (DomainException $e) { $problem=$e->getMessage(); }
+ catch (Throwable $e) {
+@@ -188,19 +204,37 @@
+         'The booking could not proceed. Check your details or choose another available time.';
+     if (isset($f) && !isset($f['reserved'])) { unset($f['review']); }
+ }
+-function booking_visit_fields(): array {
+-    return [
+-        'property_type'=>['Property type',['Apartment','House','Townhouse','Other']],
+-        'pets'=>['Pets at the property',['No pets','Pets present']],
+-        'equipment'=>['Cleaning equipment at the property',['Available','Partly available','Unavailable']],
+-    ];
++function book01_start_draft(array &$attempts,array $draft,mixed $entry): string {
++    // A repeated submission of this form should reopen its original visit.
++    if (is_string($entry) && preg_match('/^[a-f0-9]{32}$/D',$entry)) {
++        $input=$draft;
++        unset($input['created'],$input['day']);
++        $draft['entry_signature']=hash('sha256',json_encode([$entry,$input],JSON_THROW_ON_ERROR));
++        foreach ($attempts as $id=>$attempt) {
++            if (($attempt['entry_signature']??null)===$draft['entry_signature']) return $id;
++        }
++    }
++
++    // Bound ordinary drafts separately from checkouts and their return links.
++    $replacementIds=array_flip(array_column($attempts,'replacement'));
++    $draftIds=[];
++    foreach ($attempts as $id=>$attempt) {
++        if (isset($replacementIds[$id]) || array_intersect_key($attempt,[
++            'reserved'=>true,'checkout'=>true,'method'=>true,'result'=>true,'replacement'=>true
++        ])) continue;
++        $draftIds[]=$id;
++    }
++    foreach (array_slice($draftIds,0,max(0,count($draftIds)-19)) as $id) unset($attempts[$id]);
++    $flow=instant_reference();
++    $attempts[$flow]=$draft;
++    return $flow;
+ }
+ 
+ function booking_visit_details(array $input): array {
+     $details=[];
+     foreach (booking_visit_fields() as $key=>[$label,$choices]) {
+         $value=$input[$key]??'';
+-        if ($value==='') continue;
++        if ($value==='' || ($key==='extra_rooms' && $value==='0')) continue;
+         if (!in_array($value,$choices,true)) throw new DomainException('Choose a listed option for '.$label.'.');
+         $details[$key]=$value;
+     }
+@@ -226,20 +260,69 @@
+     }
+     return $result;
+ }
++// On first entry move only to a bookable date. An explicit search can also
++// advance through an empty week so a customer can check the following week.
++function book01_find_next_date(array &$visit,DateTimeImmutable $limit,bool $advanceWhenFull): void {
++    $day=new DateTimeImmutable($visit['day'],$limit->getTimezone());
++    $candidate=$visit;
++    $visit['time']='';
++    for ($i=0;$i<7;$i++) {
++        $day=$day->modify('+1 day');
++        if ($day>$limit) break;
++        $candidate['day']=$day->format('Y-m-d');
++        $candidate['quote']=book04_quote($candidate);
++        if ($candidate['quote']['times']) break;
++    }
++    if ($candidate['quote']['times'] || $advanceWhenFull) {
++        $visit['day']=$candidate['day'];
++        $visit['quote']=$candidate['quote'];
++    }
++    $visit['availability_notice']=!empty($candidate['quote']['times'])
++        ? 'Next available date: '.$candidate['day'].'. Choose a start time below.'
++        : 'No start times found through '.$candidate['day'].'.';
++}
++function book01_nearby_dates(array $visit,DateTimeImmutable $today): array {
++    $selected=new DateTimeImmutable($visit['day'],$today->getTimezone());
++    $limit=$today->modify('+30 days');
++    $available=[];
++    $checked=0;
++    for ($distance=1;$checked<7;$distance++) {
++        foreach ([$distance,-$distance] as $offset) {
++            $candidate=$selected->modify($offset.' days');
++            if ($candidate<$today || $candidate>$limit) continue;
++            $visit['day']=$candidate->format('Y-m-d');
++            $quote=book04_quote($visit);
++            if (!empty($quote['times'])) $available[$visit['day']]=$candidate->format('D, j M');
++            if (++$checked===7 || count($available)===3) break 2;
++        }
++    }
++    ksort($available);
++    return $available;
++}
+ function instant_form(string $action,string $url,string $csrf): void {
+     echo '<form method="post" action="'.esc($url).'"><input type="hidden" name="csrf" value="'.esc($csrf).'"><input type="hidden" name="action" value="'.esc($action).'">';
+ }
+-?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Regular Cleaning · Test booking</title><link rel="stylesheet" href="<?=esc($base)?>/business/profile.css"><link rel="stylesheet" href="<?=esc($base)?>/business/instant.css"></head><body><main class="instant">
+-<?php if (!isset($f) || isset($f['result'])): ?><a href="<?=esc($back)?>">Back to service details</a><?php endif; ?>
+-<h1>Regular Cleaning</h1><p>Preview · Test checkout</p>
+-<?php if (!empty($restored)): ?><p role="status">Your saved booking details have been restored. You can review and edit them.</p><?php endif; ?>
++$summaryQuote=$f['quote']??[];
++$state=$f['result']['state']??'';
++$step=$state!=='' ? 5 : (isset($f['reserved']) ? 4 : (isset($f['review']) ? 3 : 2));
++$title=match(true) {
++    $state==='confirmed'=>'Your visit is confirmed', $state!==''=>'Payment needs review',
++    ($f['method']??'')==='eft'=>'Awaiting payment verification',
++    $step===4=>'Pay for your visit', $step===3=>'Review your visit', default=>'Choose a time'
++};
++if ($step===2) header('Content-Security-Policy: '.$previewPolicy."; script-src 'sha384-ZT4GZgloQpIHElCCO51Nvt8xclKn/41Ufqj1VzWswR1ln+ChG09QN3sjZKSnGmPk'");
++book01_open(book05_merchants()[$slug]['name']??'Private booking preview',$step,$title,$summaryQuote,$f??[]);
++?>
++<?php if (!isset($f) || isset($f['result'])): ?><a href="<?=esc($back.'?slug='.$slug)?>">Back to service details</a><?php endif; ?>
++<?php if (isset($f) && ($_GET['renewed']??'')==='1'): ?><p role="status">Your form expired. Check your saved details before continuing.</p>
++<?php elseif (!empty($restored)): ?><p role="status">Your saved booking details have been restored. You can review and edit them.</p><?php endif; ?>
+ <?php if ($problem): ?><p role="alert" tabindex="-1" autofocus><?=esc($problem)?></p><?php endif; ?>
+ <?php if (isset($f['result'])): ?>
+-<h2><?=$f['result']['state']==='confirmed'?'Booking confirmed':'Payment needs review'?></h2>
+-<?php if ($f['result']['state']==='confirmed'): ?><p>Booking reference <?=esc($f['result']['booking'])?></p><p><?=esc($f['at'])?> · Africa/Johannesburg</p><p><?=esc($f['address'])?></p>
++
++<?php if ($f['result']['state']==='confirmed'): ?><p class="hold">Booking confirmed · Verified test payment</p><p>Regular Cleaning</p><p>Booking reference <?=esc($f['result']['booking'])?></p><p><?=esc($f['at'])?> · Africa/Johannesburg</p><p><?=esc($f['address'])?></p><details><summary>View receipt</summary><p><?=esc(book05_merchants()[$slug]['name'])?> · <?=esc(book01_money((int)$f['reserved']['total']))?></p><p>Payment reference <?=esc(($f['method']??'')==='eft'?$flow:'fi-'.$flow)?></p></details>
+ <?php else: ?><p>The test payment arrived after availability changed. Contact the business with reference <?=esc(($f['method'] ?? '')==='eft' ? $flow : 'fi-'.$flow)?>.</p><?php endif; ?>
+ <?php elseif (($f['method'] ?? '')==='eft'): ?>
+-<h2 role="status">Awaiting payment verification</h2>
++
+ <p><?=esc(book05_merchants()[$slug]['name'])?> will check the reported transfer before confirming your booking.</p>
+ <p>Transfer report reference <strong><?=esc($flow)?></strong></p>
+ <p>If the hold expires first, the business will review the payment and availability.</p>
+@@ -251,12 +334,11 @@
+ $start=new DateTimeImmutable($f['at'],new DateTimeZone('Africa/Johannesburg'));
+ $finish=$start->modify('+'.(int)($q['minutes']??0).' minutes');
+ ?>
+-<h2><?=$held?'Checkout':'Review your booking'?></h2>
++<h2><?=$held?'Payment details':'Visit details'?></h2>
+ <p>Payment recipient: <?=esc(book05_merchants()[$slug]['name'])?></p>
+-<dl><dt>Service</dt><dd>One-time Regular Cleaning</dd>
++<dl><dt>Service</dt><dd>One-time</dd>
+ <dt>Address</dt><dd><?=esc($f['address'])?> · <?=esc($f['area'])?></dd>
+ <dt>Visit</dt><dd><?=esc($start->format('d M Y, H:i'))?>–<?=esc($finish->format('H:i'))?> SAST · <?=(int)$q['minutes']?> minutes · 1 cleaner</dd>
+-<dt>Job details and extras</dt><dd><ul><?php foreach ($q['rows']??[] as $row): if ((int)$row['quantity']===0) continue; ?><li><?=esc($row['name'])?> × <?=(int)$row['quantity']?></li><?php endforeach; ?></ul></dd>
+ <?php foreach (booking_visit_fields() as $key=>[$label]): if (isset($f['visit_details'][$key])): ?><dt><?=esc($label)?></dt><dd><?=esc($f['visit_details'][$key])?></dd><?php endif; endforeach; ?>
+ <?php if ($f['notes']!==''): ?><dt>Instructions</dt><dd><?=esc($f['notes'])?></dd><?php endif; ?>
+ <dt>Contact</dt><dd><?=esc($f['contact']['name'])?> · <?=esc($f['contact']['email'])?> <?=esc($f['contact']['phone']??'')?></dd></dl>
+@@ -264,46 +346,68 @@
+ <?php foreach ($q['items'] as $item): ?><li><?=esc($item['name'])?> · <?=(int)$item['quantity']?> × ZAR <?=number_format($item['price']/100,2)?> = ZAR <?=number_format($item['quantity']*$item['price']/100,2)?></li><?php endforeach; ?>
+ </ul><?php endif; ?>
+ <p><strong>Full amount due: ZAR <?=number_format(($f['reserved']['total']??$q['total'])/100,2)?></strong></p>
+-<h3>Cancellation and refunds</h3>
++<link rel="stylesheet" href="../business/book01-policy.css">
++<button class="booking-policy-trigger" type="button" popovertarget="booking-policy" aria-haspopup="dialog">Cancellation and refunds</button>
++<div id="booking-policy" class="booking-policy" popover="auto" role="dialog" aria-labelledby="booking-policy-title">
++<h2 id="booking-policy-title">Cancellation and refunds</h2>
+ <p>Cancel before the visit starts for a full refund. If the business cancels, you may choose a full refund or agree to a new time. The business reviews no-shows and visits already underway individually. Your statutory rights apply.</p>
+ <p>If your payment arrives and the visit cannot be confirmed, you receive a full refund. The business initiates approved refunds to the original payment method within two business days. Refunds stay pending until the provider confirms them.</p>
+ <?php if (!$held): ?>
+ <p>Continuing holds the slot for up to ten minutes or until the visit starts, whichever comes first. Your booking is confirmed after payment and availability are verified.</p>
+-<?php instant_form('hold',$self,$ticket['csrf']); ?><input type="hidden" name="email" value="<?=esc($f['contact']['email'])?>"><input type="hidden" name="review" value="<?=esc($f['review'])?>"><button>Continue to checkout</button></form>
++<?php endif; ?>
++<button class="booking-policy-close" type="button" popovertarget="booking-policy" popovertargetaction="hide" autofocus>Close</button>
++</div>
++<?php if (!$held): ?>
++<?php instant_form('hold',$self,$ticket['csrf']); ?><input type="hidden" name="email" value="<?=esc($f['contact']['email'])?>"><input type="hidden" name="review" value="<?=esc($f['review'])?>"><button>Hold slot &amp; continue</button></form>
+ <?php elseif ($expiry>time()): ?>
+-<p>Reserved until <?=esc((new DateTimeImmutable($f['reserved']['expires']))->setTimezone(new DateTimeZone('Africa/Johannesburg'))->format('d M Y, H:i:s'))?> SAST.</p>
+-<?php instant_form('pay',$self,$ticket['csrf']); ?><button>Pay with test checkout</button></form>
++<p class="hold">Slot held until <?=esc((new DateTimeImmutable($f['reserved']['expires']))->setTimezone(new DateTimeZone('Africa/Johannesburg'))->format('d M Y, H:i:s'))?> SAST.</p>
++<?php instant_form('pay',$self,$ticket['csrf']); ?><button>Pay <?=esc(book01_money((int)$f['reserved']['total']))?> with Paystack Test</button></form>
+ <?php if (empty($f['method']) && empty($f['checkout'])): instant_form('eft',$self,$ticket['csrf']); ?><button>Report a test EFT transfer</button></form><?php endif; ?>
+ <?php else: ?><p role="status">Your hold expired. Your details are saved. Choose an available time to continue.</p><?php endif; ?>
+ <?php if (!$held || empty($f['method']) || $expiry<=time()): instant_form('edit',$self,$ticket['csrf']); ?><button><?=$held&&$expiry>time()?'Release hold and edit booking':'Edit booking details'?></button></form><?php endif; ?>
+ <?php elseif (isset($f)): $q=$f['quote']??[]; ?>
+-<h2>Choose an available time</h2>
++
+ <p>The business assigns an eligible cleaner. Choosing a time does not reserve it.</p>
+ <?php if(isset($f['availability_notice'])): ?><p role="status"><?=esc($f['availability_notice'])?></p><?php unset($f['availability_notice']);endif; ?>
+ <?php instant_form('date',$self,$ticket['csrf']); ?>
+-<label>Service<select name="requested_service"><option value="regular">One-time Regular Cleaning</option><option value="other" <?=($f['requested_service']??'')==='other'?'selected':''?>>Other cleaning service</option></select></label>
+-<label>Team size<select name="team"><option value="1">1 cleaner</option><option value="multiple" <?=($f['team']??'')==='multiple'?'selected':''?>>2 or more cleaners</option></select></label>
+-<label>Service address<input minlength="5" name="address" value="<?=esc($f['address'])?>" required maxlength="1000"></label>
+-<label>Service area<select name="service_area"><?php foreach ($q['areas']??[$f['area']] as $area): ?><option <?=empty($f['outside']) && $area===$f['area']?'selected':''?>><?=esc($area)?></option><?php endforeach; ?><option value="__outside" <?=!empty($f['outside'])?'selected':''?>>Outside listed areas</option></select></label>
+-<fieldset><legend>Rooms, extras and fees</legend>
+-<?php foreach ($q['rows']??[] as $row): ?><label><?=esc($row['name'])?><input type="number" name="options[<?=esc($row['id'])?>]" min="<?=(int)$row['minimum']?>" max="<?=(int)$row['maximum']?>" value="<?=(int)$row['quantity']?>" required></label><?php endforeach; ?>
+-</fieldset>
+-<fieldset><legend>Property and access</legend>
+-<?php foreach (booking_visit_fields() as $key=>[$label,$choices]): ?>
+-<label><?=esc($label)?> (optional)<select name="<?=esc($key)?>"><option value="">Choose if applicable</option>
+-<?php foreach ($choices as $choice): ?><option <?=($f['visit_details'][$key]??'')===$choice?'selected':''?>><?=esc($choice)?></option><?php endforeach; ?>
+-</select></label>
+-<?php endforeach; ?></fieldset>
++<link rel="stylesheet" href="../business/book01-schedule.css?v=start-buttons-1">
++<script src="../business/book01-schedule.js?v=start-buttons-1" integrity="sha384-ZT4GZgloQpIHElCCO51Nvt8xclKn/41Ufqj1VzWswR1ln+ChG09QN3sjZKSnGmPk" defer></script>
++<label>Visit date<input data-visit-date type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
++<?php if (isset($q['total']) && empty($q['outside_scope'])): ?><p><?=esc($f['area'])?> · <?=(int)$q['minutes']?> minutes · ZAR <?=number_format($q['total']/100,2)?></p><?php endif; ?>
++<button data-date-fallback formnovalidate>Show start times</button>
++<div role="status" data-date-status></div>
++<?php if (isset($alternatives)): ?>
++<dialog open class="date-alternatives" aria-labelledby="date-options-heading">
++    <h2 id="date-options-heading">No start times on <?=esc((new DateTimeImmutable($f['day']))->format('j M'))?></h2>
++    <?php if ($alternatives): ?><p>Choose an available date for this visit.</p>
++    <?php foreach ($alternatives as $value=>$label): ?><button name="alternative_date" value="<?=esc($value)?>"><?=esc($label)?></button><?php endforeach; ?>
++    <?php else: ?><p>No openings on the nearby dates checked. Try another date.</p><?php endif; ?>
++    <button type="button" class="secondary" data-close hidden>Close</button>
++</dialog>
++<?php endif; ?>
++<?php $starts=$q['times']??[]; if ($starts): ?>
++<fieldset class="booking-starts">
++    <legend>Available starts / SAST</legend>
++    <div class="booking-start-row">
++    <?php foreach ($starts as $t):
++        $selected=count($starts)===1 || ($f['time']??'')===$t; ?>
++        <label><input type="radio" name="time" value="<?=esc($t)?>" <?=$selected?'checked':''?> required><span><?=esc($t)?></span></label>
++    <?php endforeach; ?>
++    </div>
++</fieldset>
++<?php endif; ?>
++<section aria-labelledby="access-notes-heading"><h2 id="access-notes-heading">Extras and access notes (optional)</h2>
++<div class="booking-access-row">
++<?php require_once '/var/www/vhosts/shalean.com/faraios.com/account/booking-location-ui.php';
++foreach (booking_visit_fields() as $key=>[$label,$choices]) {
++    if ($key==='extra_rooms') continue;
++    booking_dropdown($key, $label.' (optional)', $choices, $f['visit_details'][$key]??null, 'Choose if applicable');
++} ?>
++</div>
+ <label>Instructions (optional)<textarea name="requirements" maxlength="1900"><?=esc($f['notes'])?></textarea></label>
+-<label>Date<input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
+-<?php if (isset($q['total']) && empty($q['outside_scope'])): ?><p><?=esc($f['area'])?> · <?=(int)$q['minutes']?> minutes · ZAR <?=number_format($q['total']/100,2)?></p><?php endif; ?>
+-<label>Available start time (SAST)<select name="time"><option value="">Choose a time</option><?php foreach ($q['times']??[] as $t): ?><option <?=($f['time']??'')===$t?'selected':''?>><?=esc($t)?></option><?php endforeach; ?></select></label>
++</section>
+ <?php if (!empty($q['outside_scope'])): ?><p role="status">Instant booking covers one-time Regular Cleaning with one cleaner in the listed service areas. Change your selection to see available times.</p>
+ <?php elseif (isset($q['times']) && !$q['times']): ?><p>No cleaner is available for this entire visit. Choose another date or check the next seven days.</p>
+ <button name="action" value="next">Find another available date</button><?php endif; ?>
+-<label>Your name<input name="name" autocomplete="name" value="<?=esc($f['contact']['name']??'')?>" maxlength="120"></label>
+-<label>Email for test checkout<input name="email" type="email" autocomplete="email" value="<?=esc($f['contact']['email']??'')?>" maxlength="254"></label>
+-<label>Phone (optional)<input name="phone" type="tel" value="<?=esc($f['contact']['phone']??'')?>" maxlength="40"></label>
+-<button>Update availability</button>
+-<?php if (!empty($q['times'])): ?><button name="action" value="review">Review booking</button><?php endif; ?></form>
+-<?php endif; ?></main></body></html>
++<?php if (!empty($q['times'])): ?><button name="action" value="review">Review this visit</button><?php endif; ?></form>
++<?php endif; book01_close($summaryQuote,$f??[]); ?>
+--- a/faraios.com/account/_book05-preview/b/index.php
++++ b/faraios.com/account/_book05-preview/b/index.php
+@@ -2,7 +2,15 @@
+ declare(strict_types=1);
+ $private='/var/www/vhosts/shalean.com/private/faraios-checkout-preview';
+ require $private.'/app/guard.php';
++if ($_SERVER['REQUEST_METHOD']==='GET' && empty($_COOKIE['book05_private'])) {
++    header('Cache-Control: no-store');
++    $destination=array_intersect_key($_GET,['slug'=>true,'service'=>true]);
++    $destination=array_filter($destination,static fn($v)=>is_string($v) && strlen($v)<=120);
++    header('Location: '.BOOK05_PATH.'enter.php'.($destination?'?'.http_build_query($destination):''),true,303);
++    exit;
++}
+ book05_gate();
++require_once '/var/www/vhosts/shalean.com/private/faraios-checkout-preview/app/book01-layout.php';
+ $_SERVER['SCRIPT_NAME']='/account/_book05-preview/account/index.php';
+ require $private.'/app/runtime/account/core.php';
+ require $private.'/app/runtime/account/profile-core.php';
+@@ -25,26 +33,102 @@
+ try { book05_merchant_key($slug,$private); }
+ catch (DomainException $error) { $ready=false; }
+ $ticket=enquiry_ticket($slug.':booking');
+-header("Content-Security-Policy: default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+-?><!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Private booking preview</title><main>
+-<h1>Private booking preview</h1>
+-<nav aria-label="Test recipient"><?php foreach ($merchants as $id=>$merchant): ?><a href="?slug=<?=esc($id)?>"><?=esc($merchant['name'])?></a> <?php endforeach; ?></nav>
++header("Content-Security-Policy: default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
++function booking_preview_tools(array $merchants): void { ?>
++<details class="tools"><summary>Preview tools and test businesses</summary><nav aria-label="Test recipient"><?php foreach ($merchants as $id=>$merchant): ?><a href="?slug=<?=esc($id)?>"><?=esc($merchant['name'])?></a> <?php endforeach; ?></nav>
+ <p><a href="../availability.php">Manage booking availability</a> · <a href="../payments.php">Review unbooked payments</a> · <a href="../eft.php">Verify a test EFT receipt</a></p>
+-<p>Recipient: <?=esc($merchants[$slug]['name'])?></p>
+-<?php if (!empty($unavailable)): ?><p>Service details are temporarily unavailable. Try again shortly.</p>
+-<?php elseif (!$offer): ?><p>No eligible instant booking service is available for this business.</p>
+-<?php elseif (!$ready): ?><p>Test checkout is awaiting this business’s Paystack connection.</p>
+-<?php else: ?><form action="instant.php?slug=<?=esc($slug)?>" method="post">
++</details>
++<?php }
++$renewed=($_GET['renewed']??'')==='1';
++$selected=$_GET['service']??($renewed?($offer['id']??null):null);
++if (!$ready || !$offer || $selected!==$offer['id']) {
++    book01_open($merchants[$slug]['name'],0,'Book a service');
++    if (!empty($unavailable)): ?><p>Service details are temporarily unavailable. Try again shortly.</p>
++    <?php elseif (!$offer): ?><p>No eligible instant booking service is available for this business.</p>
++    <?php elseif (!$ready): ?><p>Test checkout is awaiting this business’s Paystack connection.</p>
++    <?php else: ?>
++        <?php if ($selected!==null): ?><p role="alert">Choose an available service to continue.</p><?php endif; ?>
++        <form id="launch-service" method="get" aria-label="Book a service">
++            <input type="hidden" name="slug" value="<?=esc($slug)?>">
++            <input type="hidden" name="service" value="<?=esc($offer['id'])?>">
++            <div class="service-tiles">
++                <button class="service-tile" type="submit">
++                    <svg viewBox="0 0 64 56" width="62" height="54" fill="none" aria-hidden="true" focusable="false">
++                        <g stroke="#183c3b" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
++                            <path d="M15 42 23 15c2-7 7-10 13-9 6 0 10 5 10 12v8"/>
++                            <path d="m17 32 3 1-3 11-3-1z" fill="#92cfc0"/>
++                            <path d="M9 43h12l4 5H5z" fill="#e7f2ef"/>
++                            <path d="M34 42V29c0-7 5-12 12-12 8 0 14 6 14 14v9c0 3-2 5-5 5H39z" fill="#a6d8c7"/>
++                            <path d="M41 24c4-3 9-1 10 2m0 6h5m-5 4h5"/>
++                            <circle cx="38" cy="42" r="8" fill="#fff9e8"/><circle cx="38" cy="42" r="2.5" fill="#edbb71"/>
++                        </g>
++                    </svg>
++                    <span>Regular Cleaning</span>
++                </button>
++            </div>
++        </form>
++    <?php endif; ?>
++    <div class="launch-panels" role="region" aria-label="Private preview tools" tabindex="0">
++        <section class="launch-panel"><h2>Booking availability</h2>
++            <a class="panel-action" href="../availability.php">Manage availability</a>
++        </section>
++        <section class="launch-panel"><h2>Preview tools</h2>
++            <?php booking_preview_tools($merchants); ?>
++        </section>
++    </div>
++    <?php book01_close([],[],false,$ready && !empty($offer));
++    exit;
++}
++$initialQuote=[];
++$sampleOptions=[];
++$summaryOnly=($_GET['summary']??'')==='1';
++$area=$offer['areas'][0];
++if ($summaryOnly) {
++    $area=$_GET['service_area']??null;
++    if (!in_array($area,$offer['areas'],true) || !is_array($_GET['options']??[])) {http_response_code(422);exit;}
++}
++foreach ($rows as $index=>$row) {
++    $default=['Bedrooms'=>2,'Bathrooms'=>1][$row['name']]??$row['included'];
++    $min=(int)$row['minimum']; $max=(int)$row['maximum'];
++    $quantity=max($min,min($max,(int)$default));
++    if ($summaryOnly && $min!==$max) {
++        $value=$_GET['options'][$row['id']]??null;
++        if (!is_string($value)||!ctype_digit($value)||strlen($value)>4||(int)$value<$min||(int)$value>$max) {http_response_code(422);exit;}
++        $quantity=(int)$value;
++    }
++    $rows[$index]['quantity']=$quantity;
++    $sampleOptions[]=['id'=>$row['id'],'quantity'=>$quantity];
++}
++if ($offer && $ready) {
++    try {
++        $tomorrow=(new DateTimeImmutable('tomorrow',new DateTimeZone('Africa/Johannesburg')))->format('Y-m-d');
++        $initialQuote=instant_query('select instant_private.slots(?,?,?,?::jsonb,?::date)',[$slug,$offer['id'],$area,json_encode($sampleOptions,JSON_THROW_ON_ERROR),$tomorrow]);
++    } catch (Throwable $e) { $initialQuote=[]; }
++}
++require_once dirname(__DIR__, 2).'/booking-location-ui.php';
++$summaryVisit=['area'=>$area];
++if ($summaryOnly) {
++    header('Content-Type: application/json');
++    if (!isset($initialQuote['total'],$initialQuote['minutes'])) {http_response_code(503);exit;}
++    ob_start();
++    book01_summary($initialQuote,$summaryVisit);
++    echo json_encode(['html'=>ob_get_clean(),'caption'=>'Summary · '.book01_money((int)$initialQuote['total']).' · '.book01_duration((int)$initialQuote['minutes'])],JSON_THROW_ON_ERROR);
++    exit;
++}
++book01_open($merchants[$slug]['name'],1,'Your cleaning details',$initialQuote,$summaryVisit);
++if ($renewed): ?><p role="status">Your form expired. Check your cleaning and contact details before choosing a time.</p><?php endif;
++?><form data-room-quote="?<?=esc(http_build_query(['slug'=>$slug,'service'=>$offer['id']]))?>" action="instant.php?slug=<?=esc($slug)?>" method="post">
+ <input type="hidden" name="csrf" value="<?=esc($ticket['csrf'])?>">
+-<label>Service <select name="service"><option value="<?=esc($offer['id'])?>">Regular Cleaning</option></select></label>
+-<label>Service address <input name="address" value="10 Example Street" required minlength="5" maxlength="1000"></label>
+-<label>Service area <select name="service_area"><?php foreach ($offer['areas'] as $area): ?><option><?=esc($area)?></option><?php endforeach; ?></select></label>
+-<fieldset><legend>Rooms, extras and fees</legend>
+-<?php foreach ($rows as $row):
+-    $min=(int)$row['minimum']; $max=(int)$row['maximum'];
+-    $sample=['Bedrooms'=>2,'Bathrooms'=>1][$row['name']]??$row['included'];
+-    $quantity=max($min,min($max,(int)$sample)); ?>
+-<label><?=esc($row['name'])?> <input type="number" name="options[<?=esc($row['id'])?>]" min="<?=$min?>" max="<?=$max?>" value="<?=$quantity?>" <?= $min===$max?'readonly':'required' ?>></label>
+-<?php endforeach; ?></fieldset>
+-<p>Use synthetic details. The next step shows the calculated price and duration.</p>
+-<button>See available times</button></form><?php endif; ?></main></html>
++<input type="hidden" name="entry" value="<?=bin2hex(random_bytes(16))?>">
++<input type="hidden" name="service" value="<?=esc($offer['id'])?>">
++<?php booking_address_row('10 Example Street'); ?>
++<?php booking_service_area($offer['areas']); ?>
++<?php book01_room_fields($rows); ?>
++<div role="status" data-quote-status></div>
++<label>Your name<input name="name" value="Preview Guest" required minlength="2" maxlength="120"></label>
++<label>Contact email<input name="email" type="email" value="book05@example.com" readonly></label>
++<label>Phone number (optional)<input name="phone" type="tel" autocomplete="tel" maxlength="40"></label>
++<button>Choose a time</button></form>
++<?php booking_preview_tools($merchants); ?>
++<script src="../business/book01-details.js?v=form-refresh-1" defer></script>
++<?php book01_close($initialQuote,$summaryVisit); ?>
+--- /dev/null
++++ b/faraios.com/account/booking-location-ui.php
+@@ -0,0 +1,30 @@
++<?php
++declare(strict_types=1);
++
++function booking_address_row(string $street = '', string $unit = ''): void { ?>
++<div class="booking-address-row">
++    <label class="booking-location-label">Street address
++        <input name="address" autocomplete="address-line1" value="<?=esc($street)?>" required minlength="5" maxlength="1000">
++    </label>
++    <label class="booking-location-label">Apt/Unit No.
++        <input name="unit" autocomplete="address-line2" value="<?=esc($unit)?>" maxlength="120">
++    </label>
++</div>
++<?php }
++
++function booking_service_area(array $areas, ?string $selected = null): void {
++    booking_dropdown('service_area', 'Service area', $areas, $selected);
++}
++
++function booking_dropdown(string $name, string $label, array $options, ?string $selected = null, ?string $placeholder = null): void { ?>
++<label class="booking-location-label"><?=esc($label)?>
++    <span class="booking-area-control">
++        <select name="<?=esc($name)?>"<?=$placeholder === null ? ' required' : ''?>>
++            <?php if ($placeholder !== null): ?><option value=""><?=esc($placeholder)?></option><?php endif; ?>
++            <?php foreach ($options as $option): ?>
++                <option value="<?=esc($option)?>"<?=$selected === $option ? ' selected' : ''?>><?=esc($option)?></option>
++            <?php endforeach; ?>
++        </select>
++    </span>
++</label>
++<?php }
+--- /dev/null
++++ b/faraios.com/account/booking-location-ui.css
+@@ -0,0 +1,86 @@
++.booking-address-row {
++    display: grid;
++    grid-template-columns: minmax(0, 1fr) clamp(6.25rem, 28%, 10rem);
++    column-gap: clamp(.5rem, 2%, 1rem);
++    align-items: end;
++}
++label.booking-location-label {
++    display: block;
++    min-width: 0;
++    margin: 12px 0 5px;
++    font-size: .91rem;
++    font-weight: 600;
++    line-height: 1.5;
++    color: #153438;
++}
++.booking-location-label input,
++.booking-area-control select {
++    display: block;
++    box-sizing: border-box;
++    width: 100%;
++    min-height: 44px;
++    margin: 4px 0 0;
++    padding: 10px 11px;
++    border: 1px solid #98b5b1;
++    border-radius: 7px;
++    background: white;
++    color: inherit;
++    font: inherit;
++}
++.booking-area-control {
++    position: relative;
++    display: block;
++}
++.booking-area-control select {
++    appearance: none;
++    padding-right: 2.75rem;
++    cursor: pointer;
++}
++.booking-area-control::after {
++    content: "";
++    position: absolute;
++    top: 50%;
++    right: 1.05rem;
++    width: .5rem;
++    height: .5rem;
++    border-bottom: 2px solid #087e79;
++    border-right: 2px solid #087e79;
++    transform: translateY(-70%) rotate(45deg);
++    pointer-events: none;
++}
++.booking-area-control select:hover { border-color: #087e79; }
++.booking-location-label :is(input, select):focus-visible {
++    outline: 3px solid #197baf;
++    outline-offset: 2px;
++}
++@supports (appearance: base-select) {
++    .booking-area-control select,
++    .booking-area-control select::picker(select) { appearance: base-select; }
++    .booking-area-control select::picker-icon { display: none; }
++    .booking-area-control select::picker(select) {
++        margin-block: 4px;
++        padding: 4px;
++        border: 1px solid #98b5b1;
++        border-radius: 8px;
++        background: white;
++        color: #153438;
++        box-shadow: 0 6px 18px #15343820;
++    }
++    .booking-area-control option {
++        padding: 9px 12px;
++        border-radius: 5px;
++    }
++    .booking-area-control option:checked { background: #edf6f3; font-weight: 650; }
++    .booking-area-control option:is(:hover, :focus-visible) { background: #dceee9; }
++}
++@media (forced-colors: active) {
++    .booking-area-control::after { border-color: ButtonText; }
++}
++#booking-location-components .booking-location-example { max-width: 38rem; }
++
++.booking-access-row {
++    display: grid;
++    grid-template-columns: repeat(2, minmax(0, 1fr));
++    gap: 0 .75rem;
++    align-items: end;
++}
+--- a/faraios.com/account/platform.php
++++ b/faraios.com/account/platform.php
+@@ -44,6 +44,15 @@
+ <?php if($view==='overview'||$view==='releases'):?><section class="release-banner"><div><span class="pill">Target · v1.0.0</span><h2><?=$stats['blockers']?'Release on hold':'Checklist complete — release review required'?></h2><p><?=$stats['blockers']?> open blocking items. Preview work stays separate from verified release work.</p></div><div class="progress-block"><strong><?=$stats['verified']?> <small>/ <?=$stats['total']?></small></strong><span>release tasks verified</span><progress max="<?=max(1,$stats['total'])?>" value="<?=$stats['verified']?>"><?=$stats['verified']?> / <?=$stats['total']?></progress></div></section><div class="stats"><article><span>Open blockers</span><strong><?=$stats['blockers']?></strong><small>Resolve before release</small></article><article><span>In preview</span><strong><?=$stats['preview']?></strong><small>Awaiting acceptance or rollout</small></article><article><span>Verified</span><strong><?=$stats['verified']?></strong><small>Evidence recorded</small></article><article><span>Audit date</span><strong class="date"><?=esc($store['audited_at'])?></strong><small>Readiness snapshot · not a live scan</small></article></div><?php endif;?>
+ <?php if($view==='review'):?>
+ <section class="panel"><h2>UI preview catalogue</h2><p>Homepage-derived styling. Account, business and document examples use disposable synthetic data. Forms cannot submit. These previews are design references and may differ from the current live application.</p><a href="/_ui-preview/review.html?buttons=96aef3a" target="_blank" rel="noopener noreferrer">Open original review catalogue ↗</a></section>
++<?php require_once __DIR__.'/booking-location-ui.php'; ?>
++<link rel="stylesheet" href="/account/booking-location-ui.css?v=1">
++<section id="booking-location-components" class="panel">
++    <h2>Booking location components</h2>
++    <div class="booking-location-example">
++        <?php booking_address_row('10 Example Street', '4B'); ?>
++        <?php booking_service_area(['Gardens', 'Claremont', 'Newlands'], 'Gardens'); ?>
++    </div>
++</section>
+ <section class="panel audit-note"><h2>Marketing</h2><ul><li style="padding:8px 0"><a href="/_ui-preview/index.html" target="_blank" rel="noopener noreferrer">index.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/features" target="_blank" rel="noopener noreferrer">features <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/about.html" target="_blank" rel="noopener noreferrer">about.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/contact.html" target="_blank" rel="noopener noreferrer">contact.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/privacy.html" target="_blank" rel="noopener noreferrer">privacy.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/terms" target="_blank" rel="noopener noreferrer">terms <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/pricing" target="_blank" rel="noopener noreferrer">pricing <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/marketplace" target="_blank" rel="noopener noreferrer">marketplace <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/industries" target="_blank" rel="noopener noreferrer">industries <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/waitlist.html" target="_blank" rel="noopener noreferrer">waitlist.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/guides/enquiry-to-invoice" target="_blank" rel="noopener noreferrer">guides/enquiry-to-invoice <span aria-hidden="true">↗</span></a></li></ul></section>
+ <section class="panel audit-note"><h2>Account and business tools</h2><ul><li style="padding:8px 0"><a href="/_ui-preview/account/dashboard.html" target="_blank" rel="noopener noreferrer">account/dashboard.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/requests.html" target="_blank" rel="noopener noreferrer">account/requests.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/enquiries.html" target="_blank" rel="noopener noreferrer">account/enquiries.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/quotes.html" target="_blank" rel="noopener noreferrer">account/quotes.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/bookings.html" target="_blank" rel="noopener noreferrer">account/bookings.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/customers.html" target="_blank" rel="noopener noreferrer">account/customers.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/staff.html" target="_blank" rel="noopener noreferrer">account/staff.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/invoices.html" target="_blank" rel="noopener noreferrer">account/invoices.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/services.html" target="_blank" rel="noopener noreferrer">account/services.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/profile.html" target="_blank" rel="noopener noreferrer">account/profile.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/quotes-new.html" target="_blank" rel="noopener noreferrer">account/quotes-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/bookings-new.html" target="_blank" rel="noopener noreferrer">account/bookings-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/customers-new.html" target="_blank" rel="noopener noreferrer">account/customers-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/staff-new.html" target="_blank" rel="noopener noreferrer">account/staff-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/invoices-new.html" target="_blank" rel="noopener noreferrer">account/invoices-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/enquiry-new.html" target="_blank" rel="noopener noreferrer">account/enquiry-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/signin.html" target="_blank" rel="noopener noreferrer">account/signin.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/signup.html" target="_blank" rel="noopener noreferrer">account/signup.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/forgot.html" target="_blank" rel="noopener noreferrer">account/forgot.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/verify.html" target="_blank" rel="noopener noreferrer">account/verify.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/confirm.html" target="_blank" rel="noopener noreferrer">account/confirm.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/welcome.html" target="_blank" rel="noopener noreferrer">account/welcome.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/business.html" target="_blank" rel="noopener noreferrer">account/business.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/welcome-edit.html" target="_blank" rel="noopener noreferrer">account/welcome-edit.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/customer.html" target="_blank" rel="noopener noreferrer">account/customer.html <span aria-hidden="true">↗</span></a></li></ul></section>
+ <section class="panel audit-note"><h2>Business website</h2><ul><li style="padding:8px 0"><a href="/_ui-preview/business-example/index.html" target="_blank" rel="noopener noreferrer">business-example/index.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/business-example/services.html" target="_blank" rel="noopener noreferrer">business-example/services.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/business-example/how-it-works.html" target="_blank" rel="noopener noreferrer">business-example/how-it-works.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/business-example/areas.html" target="_blank" rel="noopener noreferrer">business-example/areas.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/business-example/contact.html" target="_blank" rel="noopener noreferrer">business-example/contact.html <span aria-hidden="true">↗</span></a></li></ul></section>
+--- a/faraios.com/account/_book05-preview/enter.php
++++ b/faraios.com/account/_book05-preview/enter.php
+@@ -3,11 +3,54 @@
+ require dirname(__DIR__).'/platform-session.php';
+ require dirname(__DIR__).'/platform-core.php';
+ require '/var/www/vhosts/shalean.com/private/faraios-checkout-preview/app/guard.php';
+-header('Cache-Control: no-store');header('Referrer-Policy: no-referrer');header('X-Robots-Tag: noindex, nofollow');
++
++header('Cache-Control: no-store');
++header('Referrer-Policy: no-referrer');
++header('X-Robots-Tag: noindex, nofollow');
++
++$query=[];
++foreach (['slug','service'] as $key) {
++    if (isset($_GET[$key]) && is_string($_GET[$key]) && strlen($_GET[$key])<=120) {
++        $query[$key]=$_GET[$key];
++    }
++}
++$retry=BOOK05_PATH.'enter.php'.($query?'?'.http_build_query($query):'');
++$signin=false;
+ try {
+-    start();$operator=user();
+-    if(!platform_authorized($operator,platform_settings())) {http_response_code(403);exit;}
+-    $expiry=(string)(time()+1800);
+-    setcookie('book05_private',$expiry.'.'.book05_sig($expiry),['expires'=>(int)$expiry,'path'=>BOOK05_PATH,'secure'=>true,'httponly'=>true,'samesite'=>'Lax']);
+-    header('Location: '.BOOK05_PATH.'b/index.php',true,303);
+-} catch(Throwable $e){http_response_code(403);}
++    if (($_GET['checked']??'')==='1') {
++        if (!empty($_COOKIE['book05_private'])) {
++            header('Location: '.BOOK05_PATH.'b/index.php'.($query?'?'.http_build_query($query):''),true,303);
++            exit;
++        }
++        http_response_code(403);
++        $message='Allow cookies for FaraiOS in this browser, then continue to the private preview.';
++    } else {
++        start();
++        if (empty($_SESSION['auth'])) {
++            $signin=true;
++        } elseif (!platform_authorized(user(),platform_settings())) {
++            http_response_code(403);
++            $message='Only the configured FaraiOS platform owner can open this private preview.';
++        } else {
++            $expiry=(string)(time()+1800);
++            setcookie('book05_private',$expiry.'.'.book05_sig($expiry),['expires'=>(int)$expiry,'path'=>BOOK05_PATH,'secure'=>true,'httponly'=>true,'samesite'=>'Lax']);
++            $query['checked']='1';
++            header('Location: '.BOOK05_PATH.'enter.php?'.http_build_query($query),true,303);
++            exit;
++        }
++    }
++} catch (AccountSessionExpired $e) {
++    $signin=true;
++} catch (Throwable $e) {
++    http_response_code(503);
++    $message='The owner check is temporarily unavailable. Please try again.';
++}
++if ($signin) {
++    http_response_code(401);
++    $message='Sign in with your FaraiOS platform-owner account, then return to this tab and continue.';
++}
++?>
++<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Private booking preview · FaraiOS</title><link rel="stylesheet" href="../platform.css"></head>
++<body><main><section class="panel"><h1>Private booking preview</h1><p><?=esc($message)?></p>
++<?php if ($signin): ?><p><a class="button" href="/account/index.php?page=signin" target="_blank" rel="noopener">Sign in to FaraiOS</a></p><?php endif; ?>
++<p><a href="<?=esc($retry)?>">Continue to private preview</a></p></section></main></body></html>
+--- /dev/null
++++ b/faraios.com/account/_book05-preview/business/book01-room-picker.js
+@@ -0,0 +1,93 @@
++// The select is the submitted value and remains usable when JavaScript is unavailable.
++for (const row of document.querySelectorAll('[data-room-picker]')) {
++    const select = row.querySelector('select');
++    const label = row.querySelector('label');
++    const choices = Array.from(select.options, option => Number(option.value));
++    if (choices.length < 2) continue;
++
++    const min = choices[0];
++    const max = choices[choices.length - 1];
++    const threshold = min + 3;
++    const group = document.createElement('div');
++    group.className = 'room-choices';
++    group.setAttribute('role', 'group');
++    group.setAttribute('aria-labelledby', label.id);
++
++    function makeButton(parent, text, action, accessibleName) {
++        const button = document.createElement('button');
++        button.type = 'button';
++        button.textContent = text;
++        if (accessibleName) button.setAttribute('aria-label', accessibleName);
++        button.addEventListener('click', action);
++        parent.append(button);
++        return button;
++    }
++
++    function commit(value) {
++        if (String(value) === select.value) return;
++        select.value = String(value);
++        select.dispatchEvent(new Event('change', {bubbles: true}));
++    }
++
++    const presets = choices.slice(0, 3).map(value => makeButton(group, String(value), () => {
++        commit(value);
++        render(false);
++    }));
++    const stepper = document.createElement('div');
++    stepper.className = 'room-counter';
++    const number = document.createElement('input');
++    number.type = 'number';
++    number.step = '1';
++    number.min = String(min);
++    number.max = String(max);
++    number.setAttribute('aria-label', label.textContent + ' quantity');
++    number.setAttribute('aria-describedby', select.getAttribute('aria-describedby'));
++    const decrease = makeButton(stepper, '−', () => step(-1), 'Decrease ' + label.textContent);
++    stepper.append(number);
++    const increase = makeButton(stepper, '+', () => step(1), 'Increase ' + label.textContent);
++    function step(delta) {
++        const value = Math.max(min, Math.min(max, Number(select.value) + delta));
++        commit(value);
++        render(value >= threshold);
++        if (value < threshold) presets[value - min].focus();
++    }
++    let custom;
++    if (max >= threshold) {
++        custom = makeButton(group, threshold + '+ Custom', () => {
++            commit(Math.max(Number(select.value), threshold));
++            render(true);
++            number.focus();
++            number.select();
++        });
++        group.append(stepper);
++    }
++    function updateLimits() {
++        decrease.disabled = number.valueAsNumber <= min;
++        increase.disabled = number.valueAsNumber >= max;
++    }
++    function render(showCustom) {
++        const value = Number(select.value);
++        presets.forEach((button, index) => button.setAttribute('aria-pressed', String(!showCustom && value === choices[index])));
++        if (custom) custom.setAttribute('aria-pressed', String(showCustom));
++        stepper.hidden = !showCustom;
++        number.disabled = !showCustom;
++        number.required = showCustom;
++        number.value = select.value;
++        updateLimits();
++    }
++    number.addEventListener('input', () => {
++        if (number.value !== '' && number.validity.valid) commit(number.valueAsNumber);
++        updateLimits();
++    });
++    number.addEventListener('change', () => {
++        if (number.validity.valid && number.valueAsNumber < threshold) {
++            const value = number.valueAsNumber;
++            render(false);
++            presets[value - min]?.focus();
++        }
++    });
++    select.hidden = true;
++    label.removeAttribute('for');
++    select.after(group);
++    render(Number(select.value) >= threshold);
++}
+--- /dev/null
++++ b/faraios.com/account/_book05-preview/business/book01-schedule.js
+@@ -0,0 +1,27 @@
++const dateField = document.querySelector('input[data-visit-date]');
++if (dateField) {
++    const form = dateField.form;
++    const status = form.querySelector('[data-date-status]');
++    form.querySelector('[data-date-fallback]').hidden = true;
++    dateField.addEventListener('change', () => {
++        if (!dateField.value || !dateField.validity.valid) return;
++        for (const option of form.querySelectorAll('input[name="time"]')) {
++            option.checked = false;
++            option.disabled = true;
++        }
++        status.textContent = 'Checking start times…';
++        form.requestSubmit();
++    });
++
++    const dialog = form.querySelector('dialog');
++    if (dialog && typeof dialog.showModal === 'function') {
++        const close = dialog.querySelector('[data-close]');
++        close.hidden = false;
++        dialog.close();
++        dialog.showModal();
++        close.addEventListener('click', () => dialog.close());
++        dialog.addEventListener('close', () => {
++            if (!dialog.open) dateField.focus();
++        });
++    }
++}
+--- /dev/null
++++ b/faraios.com/account/_book05-preview/business/book01-schedule.css
+@@ -0,0 +1,64 @@
++.date-alternatives {
++    box-sizing: border-box;
++    width: min(25rem, calc(100% - 2rem));
++    max-height: 80vh;
++    overflow: auto;
++    padding: 1.4rem;
++    border: 1px solid #c4d9d4;
++    border-radius: 12px;
++    background: white;
++    color: #153438;
++}
++.date-alternatives::backdrop { background: rgb(13 40 42 / 42%); }
++.date-alternatives h2 { margin: 0 0 .5rem; }
++.date-alternatives p { margin: 0 0 .8rem; }
++.date-alternatives button { margin-top: .5rem; }
++[data-date-fallback][hidden], .date-alternatives [hidden] { display: none; }
++.date-alternatives[open]:not(:modal) { position: static; margin: .75rem 0; }
++
++fieldset.booking-starts {
++    min-inline-size: 0;
++    margin: 1rem 0;
++    padding: 0;
++    border: 0;
++}
++.booking-starts legend {
++    padding: 0;
++    color: #153438;
++    font-size: .91rem;
++    font-weight: 650;
++}
++.booking-start-row {
++    display: flex;
++    flex-wrap: nowrap;
++    gap: .5rem;
++    overflow-x: auto;
++    padding: .5rem .2rem;
++}
++.booking-start-row label {
++    display: inline-flex;
++    flex: 0 0 auto;
++    align-items: center;
++    justify-content: center;
++    gap: .4rem;
++    min-height: 44px;
++    margin: 0;
++    padding: .45rem 1rem;
++    border: 1px solid #b6cfca;
++    border-radius: 6px;
++    background: white;
++    color: #153438;
++    white-space: nowrap;
++    cursor: pointer;
++}
++.booking-start-row label:has(:checked) { background: #edf6f3; border-color: #087e79; }
++.booking-start-row label:focus-within { outline: 2px solid #087e79; outline-offset: 1px; }
++.booking-start-row input[type="radio"] {
++    appearance: auto;
++    width: .95rem;
++    height: .95rem;
++    min-height: 0;
++    margin: 0;
++    padding: 0;
++    accent-color: #087e79;
++}
+--- /dev/null
++++ b/faraios.com/account/_book05-preview/business/book01-policy.css
+@@ -0,0 +1,36 @@
++.booking-policy-trigger, .booking-policy-close { display: none; }
++@supports selector(:popover-open) {
++    .booking-policy-trigger {
++        display: inline-block;
++        width: auto;
++        min-height: 44px;
++        margin: 0;
++        padding: .35rem 0;
++        border: 0;
++        background: transparent;
++        color: #006d67;
++        font-weight: 650;
++        text-decoration: underline;
++        text-underline-offset: .16em;
++    }
++    .booking-policy-trigger:hover { background: transparent; color: #064e49; }
++    .booking-policy:popover-open {
++        box-sizing: border-box;
++        position: fixed;
++        inset: 0;
++        margin: auto;
++        width: min(35rem, calc(100% - 2rem));
++        max-height: 85dvh;
++        overflow: auto;
++        overscroll-behavior: contain;
++        padding: clamp(1rem, 4vw, 1.75rem);
++        border: 1px solid #b8cdc8;
++        border-radius: 12px;
++        background: white;
++        color: #153438;
++        box-shadow: 0 12px 48px #15343838;
++    }
++    .booking-policy::backdrop { background: rgb(13 40 42 / 42%); }
++    .booking-policy h2 { margin-top: 0; }
++    .booking-policy-close { display: block; }
++}
