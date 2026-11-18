@@ -234,10 +234,38 @@
 +.room-counter button:disabled { opacity:.5; }
 --- /dev/null
 +++ b/faraios.com/account/_book05-preview/business/book01-details.js
-@@ -0,0 +1,32 @@
+@@ -0,0 +1,60 @@
 +const detailsForm = document.querySelector('form[data-room-quote]');
 +if (detailsForm) {
 +    const status = detailsForm.querySelector('[data-quote-status]');
++    let renewing = false;
++    let readyToSubmit = false;
++    detailsForm.addEventListener('submit', async event => {
++        if (readyToSubmit) return;
++        event.preventDefault();
++        if (renewing) return;
++        renewing = true;
++        const url = new URL(detailsForm.action);
++        url.searchParams.set('form_ticket', '1');
++        try {
++            const response = await fetch(url, {
++                mode: 'same-origin',
++                cache: 'no-store',
++                headers: {'X-Booking-Form': 'refresh'}
++            });
++            if (!response.ok) throw new Error();
++            const {csrf} = await response.json();
++            if (typeof csrf !== 'string' || !/^[a-f0-9]{64}$/.test(csrf)) throw new Error();
++            detailsForm.elements.namedItem('csrf').value = csrf;
++            readyToSubmit = true;
++            detailsForm.requestSubmit();
++        } catch {
++            status.textContent = 'Your entries are still here. Choose a time again to reconnect.';
++        } finally {
++            readyToSubmit = false;
++            renewing = false;
++        }
++    });
 +    let pending;
 +    detailsForm.addEventListener('change', async event => {
 +        if (!event.target.matches('select[name^="options["], select[name="service_area"]')) return;
@@ -351,7 +379,7 @@
  if (!instant_enabled()) { http_response_code(404); exit; }
  
  if (isset($_GET['webhook'])) {
-@@ -28,6 +29,7 @@
+@@ -28,10 +29,17 @@
      }
      exit;
  }
@@ -359,7 +387,40 @@
  enquiry_session();
  $slug = $_GET['slug'] ?? '';
  if (!is_string($slug) || !preg_match('/^[a-z0-9-]{3,64}$/D',$slug)) { http_response_code(404); exit; }
-@@ -59,6 +61,9 @@
+ $ticket = enquiry_ticket($slug.':booking');
++if ($_SERVER['REQUEST_METHOD']==='GET' && isset($_GET['form_ticket'])) {
++    if (($_SERVER['HTTP_X_BOOKING_FORM']??'')!=='refresh') {http_response_code(400); exit;}
++    header('Content-Type: application/json');
++    echo json_encode(['csrf'=>$ticket['csrf']],JSON_THROW_ON_ERROR);
++    exit;
++}
+ $base = cfg()['base_url'];
+ $back = $base.'/b/index.php';
+ $self = $base.'/b/instant.php?slug='.$slug;
+@@ -41,9 +49,19 @@
+ $problem = '';
+ try {
+     if ($_SERVER['REQUEST_METHOD']==='POST') {
+-        if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0)>20000 || !is_string($_POST['csrf'] ?? null) ||
+-            !hash_equals($ticket['csrf'],$_POST['csrf']) || ($_POST['website'] ?? '')!=='' ||
+-            ($_SERVER['HTTP_SEC_FETCH_SITE'] ?? '')==='cross-site') throw new DomainException('Reload the booking form before continuing.');
++        if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0)>20000 || ($_POST['website'] ?? '')!=='' ||
++            ($_SERVER['HTTP_SEC_FETCH_SITE'] ?? '')==='cross-site') {
++            throw new DomainException('Reload the booking form before continuing.');
++        }
++        if (!is_string($_POST['csrf']??null) || !hash_equals($ticket['csrf'],$_POST['csrf'])) {
++            // Discard the expired submission. Recover only the draft already owned by this session.
++            if (is_string($flow) && isset($_SESSION['instant'][$flow]) && $_SESSION['instant'][$flow]['slug']===$slug) {
++                $returnTo=$self.'&flow='.rawurlencode($flow).'&renewed=1';
++            } else {
++                $returnTo=$back.'?slug='.rawurlencode($slug).'&renewed=1';
++            }
++            header('Location: '.$returnTo,true,303); exit;
++        }
+         if ($flow==='') {
+             if (count($_SESSION['instant'] ?? [])>=20) throw new DomainException('Too many open booking attempts.');
+             $flow=instant_reference();
+@@ -59,6 +77,9 @@
              $_SESSION['instant'][$flow]=['slug'=>$slug,'created'=>time(),'service'=>enquiry_text('service',32,32),
                  'area'=>enquiry_text('service_area',1,200),'address'=>$address,'notes'=>enquiry_text('requirements',0,1900),
                  'options'=>json_encode($options, JSON_THROW_ON_ERROR),'day'=>$today->modify('+1 day')->format('Y-m-d')];
@@ -369,7 +430,7 @@
              header('Location: '.$self.'&flow='.$flow,true,303); exit;
          }
      }
-@@ -103,36 +108,16 @@
+@@ -103,36 +124,16 @@
          } elseif (in_array($action,['date','review','next'],true) && !isset($f['reserved'])) {
              $previous=$f;
              $f['day']=enquiry_text('date',10,10);
@@ -411,7 +472,7 @@
              }
              if ($action==='review') {
                  if (mb_len($f['contact']['name'])<2 || !filter_var($f['contact']['email'],FILTER_VALIDATE_EMAIL)) throw new DomainException('Enter your name and a valid test checkout email.');
-@@ -180,7 +165,11 @@
+@@ -180,7 +181,11 @@
          header('Location: '.$self,true,303); exit;
      }
      if (!isset($f['reserved']) && !isset($f['review'])) {
@@ -423,7 +484,7 @@
      }
  } catch (DomainException $e) { $problem=$e->getMessage(); }
  catch (Throwable $e) {
-@@ -188,19 +177,11 @@
+@@ -188,19 +193,11 @@
          'The booking could not proceed. Check your details or choose another available time.';
      if (isset($f) && !isset($f['reserved'])) { unset($f['review']); }
  }
@@ -444,7 +505,7 @@
          if (!in_array($value,$choices,true)) throw new DomainException('Choose a listed option for '.$label.'.');
          $details[$key]=$value;
      }
-@@ -226,20 +207,49 @@
+@@ -226,20 +223,50 @@
      }
      return $result;
  }
@@ -475,6 +536,7 @@
 -?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Regular Cleaning · Test booking</title><link rel="stylesheet" href="<?=esc($base)?>/business/profile.css"><link rel="stylesheet" href="<?=esc($base)?>/business/instant.css"></head><body><main class="instant">
 -<?php if (!isset($f) || isset($f['result'])): ?><a href="<?=esc($back)?>">Back to service details</a><?php endif; ?>
 -<h1>Regular Cleaning</h1><p>Preview · Test checkout</p>
+-<?php if (!empty($restored)): ?><p role="status">Your saved booking details have been restored. You can review and edit them.</p><?php endif; ?>
 +$summaryQuote=$f['quote']??[];
 +$state=$f['result']['state']??'';
 +$step=$state!=='' ? 5 : (isset($f['reserved']) ? 4 : (isset($f['review']) ? 3 : 2));
@@ -486,7 +548,8 @@
 +book01_open(book05_merchants()[$slug]['name']??'Private booking preview',$step,$title,$summaryQuote,$f??[]);
 +?>
 +<?php if (!isset($f) || isset($f['result'])): ?><a href="<?=esc($back.'?slug='.$slug)?>">Back to service details</a><?php endif; ?>
- <?php if (!empty($restored)): ?><p role="status">Your saved booking details have been restored. You can review and edit them.</p><?php endif; ?>
++<?php if (isset($f) && ($_GET['renewed']??'')==='1'): ?><p role="status">Your form expired. Check your saved details before continuing.</p>
++<?php elseif (!empty($restored)): ?><p role="status">Your saved booking details have been restored. You can review and edit them.</p><?php endif; ?>
  <?php if ($problem): ?><p role="alert" tabindex="-1" autofocus><?=esc($problem)?></p><?php endif; ?>
  <?php if (isset($f['result'])): ?>
 -<h2><?=$f['result']['state']==='confirmed'?'Booking confirmed':'Payment needs review'?></h2>
@@ -500,7 +563,7 @@
  <p><?=esc(book05_merchants()[$slug]['name'])?> will check the reported transfer before confirming your booking.</p>
  <p>Transfer report reference <strong><?=esc($flow)?></strong></p>
  <p>If the hold expires first, the business will review the payment and availability.</p>
-@@ -251,12 +261,12 @@
+@@ -251,12 +278,12 @@
  $start=new DateTimeImmutable($f['at'],new DateTimeZone('Africa/Johannesburg'));
  $finish=$start->modify('+'.(int)($q['minutes']??0).' minutes');
  ?>
@@ -515,7 +578,7 @@
  <?php foreach (booking_visit_fields() as $key=>[$label]): if (isset($f['visit_details'][$key])): ?><dt><?=esc($label)?></dt><dd><?=esc($f['visit_details'][$key])?></dd><?php endif; endforeach; ?>
  <?php if ($f['notes']!==''): ?><dt>Instructions</dt><dd><?=esc($f['notes'])?></dd><?php endif; ?>
  <dt>Contact</dt><dd><?=esc($f['contact']['name'])?> · <?=esc($f['contact']['email'])?> <?=esc($f['contact']['phone']??'')?></dd></dl>
-@@ -269,41 +279,34 @@
+@@ -269,41 +296,34 @@
  <p>If your payment arrives and the visit cannot be confirmed, you receive a full refund. The business initiates approved refunds to the original payment method within two business days. Refunds stay pending until the provider confirms them.</p>
  <?php if (!$held): ?>
  <p>Continuing holds the slot for up to ten minutes or until the visit starts, whichever comes first. Your booking is confirmed after payment and availability are verified.</p>
@@ -594,7 +657,7 @@
  $_SERVER['SCRIPT_NAME']='/account/_book05-preview/account/index.php';
  require $private.'/app/runtime/account/core.php';
  require $private.'/app/runtime/account/profile-core.php';
-@@ -25,26 +33,99 @@
+@@ -25,26 +33,101 @@
  try { book05_merchant_key($slug,$private); }
  catch (DomainException $error) { $ready=false; }
  $ticket=enquiry_ticket($slug.':booking');
@@ -613,7 +676,8 @@
 -<?php else: ?><form action="instant.php?slug=<?=esc($slug)?>" method="post">
 +</details>
 +<?php }
-+$selected=$_GET['service']??null;
++$renewed=($_GET['renewed']??'')==='1';
++$selected=$_GET['service']??($renewed?($offer['id']??null):null);
 +if (!$ready || !$offer || $selected!==$offer['id']) {
 +    book01_open($merchants[$slug]['name'],0,'Book a service');
 +    if (!empty($unavailable)): ?><p>Service details are temporarily unavailable. Try again shortly.</p>
@@ -689,6 +753,7 @@
 +    exit;
 +}
 +book01_open($merchants[$slug]['name'],1,'Your cleaning details',$initialQuote,$summaryVisit);
++if ($renewed): ?><p role="status">Your form expired. Check your cleaning and contact details before choosing a time.</p><?php endif;
 +?><form data-room-quote="?<?=esc(http_build_query(['slug'=>$slug,'service'=>$offer['id']]))?>" action="instant.php?slug=<?=esc($slug)?>" method="post">
  <input type="hidden" name="csrf" value="<?=esc($ticket['csrf'])?>">
 -<label>Service <select name="service"><option value="<?=esc($offer['id'])?>">Regular Cleaning</option></select></label>
@@ -713,7 +778,7 @@
 +<label>Phone number (optional)<input name="phone" type="tel" autocomplete="tel" maxlength="40"></label>
 +<button>Choose a time</button></form>
 +<?php booking_preview_tools($merchants); ?>
-+<script src="../business/book01-details.js?v=rooms-1" defer></script>
++<script src="../business/book01-details.js?v=form-refresh-1" defer></script>
 +<?php book01_close($initialQuote,$summaryVisit); ?>
 --- /dev/null
 +++ b/faraios.com/account/booking-location-ui.php
