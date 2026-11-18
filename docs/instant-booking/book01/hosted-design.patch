@@ -377,15 +377,23 @@
 +<?php endif; book01_close($summaryQuote,$f??[]); ?>
 --- a/faraios.com/account/_book05-preview/b/index.php
 +++ b/faraios.com/account/_book05-preview/b/index.php
-@@ -3,6 +3,7 @@
+@@ -2,7 +2,15 @@
+ declare(strict_types=1);
  $private='/var/www/vhosts/shalean.com/private/faraios-checkout-preview';
  require $private.'/app/guard.php';
++if ($_SERVER['REQUEST_METHOD']==='GET' && empty($_COOKIE['book05_private'])) {
++    header('Cache-Control: no-store');
++    $destination=array_intersect_key($_GET,['slug'=>true,'service'=>true]);
++    $destination=array_filter($destination,static fn($v)=>is_string($v) && strlen($v)<=120);
++    header('Location: '.BOOK05_PATH.'enter.php'.($destination?'?'.http_build_query($destination):''),true,303);
++    exit;
++}
  book05_gate();
 +require_once '/var/www/vhosts/shalean.com/private/faraios-checkout-preview/app/book01-layout.php';
  $_SERVER['SCRIPT_NAME']='/account/_book05-preview/account/index.php';
  require $private.'/app/runtime/account/core.php';
  require $private.'/app/runtime/account/profile-core.php';
-@@ -25,20 +26,71 @@
+@@ -25,20 +33,71 @@
  try { book05_merchant_key($slug,$private); }
  catch (DomainException $error) { $ready=false; }
  $ticket=enquiry_ticket($slug.':booking');
@@ -469,7 +477,7 @@
  <fieldset><legend>Rooms, extras and fees</legend>
  <?php foreach ($rows as $row):
      $min=(int)$row['minimum']; $max=(int)$row['maximum'];
-@@ -46,5 +98,12 @@
+@@ -46,5 +105,12 @@
      $quantity=max($min,min($max,(int)$sample)); ?>
  <label><?=esc($row['name'])?> <input type="number" name="options[<?=esc($row['id'])?>]" min="<?=$min?>" max="<?=$max?>" value="<?=$quantity?>" <?= $min===$max?'readonly':'required' ?>></label>
  <?php endforeach; ?></fieldset>
@@ -612,3 +620,67 @@
  <section class="panel audit-note"><h2>Marketing</h2><ul><li style="padding:8px 0"><a href="/_ui-preview/index.html" target="_blank" rel="noopener noreferrer">index.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/features" target="_blank" rel="noopener noreferrer">features <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/about.html" target="_blank" rel="noopener noreferrer">about.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/contact.html" target="_blank" rel="noopener noreferrer">contact.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/privacy.html" target="_blank" rel="noopener noreferrer">privacy.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/terms" target="_blank" rel="noopener noreferrer">terms <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/pricing" target="_blank" rel="noopener noreferrer">pricing <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/marketplace" target="_blank" rel="noopener noreferrer">marketplace <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/industries" target="_blank" rel="noopener noreferrer">industries <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/waitlist.html" target="_blank" rel="noopener noreferrer">waitlist.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/guides/enquiry-to-invoice" target="_blank" rel="noopener noreferrer">guides/enquiry-to-invoice <span aria-hidden="true">↗</span></a></li></ul></section>
  <section class="panel audit-note"><h2>Account and business tools</h2><ul><li style="padding:8px 0"><a href="/_ui-preview/account/dashboard.html" target="_blank" rel="noopener noreferrer">account/dashboard.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/requests.html" target="_blank" rel="noopener noreferrer">account/requests.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/enquiries.html" target="_blank" rel="noopener noreferrer">account/enquiries.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/quotes.html" target="_blank" rel="noopener noreferrer">account/quotes.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/bookings.html" target="_blank" rel="noopener noreferrer">account/bookings.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/customers.html" target="_blank" rel="noopener noreferrer">account/customers.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/staff.html" target="_blank" rel="noopener noreferrer">account/staff.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/invoices.html" target="_blank" rel="noopener noreferrer">account/invoices.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/services.html" target="_blank" rel="noopener noreferrer">account/services.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/profile.html" target="_blank" rel="noopener noreferrer">account/profile.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/quotes-new.html" target="_blank" rel="noopener noreferrer">account/quotes-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/bookings-new.html" target="_blank" rel="noopener noreferrer">account/bookings-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/customers-new.html" target="_blank" rel="noopener noreferrer">account/customers-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/staff-new.html" target="_blank" rel="noopener noreferrer">account/staff-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/invoices-new.html" target="_blank" rel="noopener noreferrer">account/invoices-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/enquiry-new.html" target="_blank" rel="noopener noreferrer">account/enquiry-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/signin.html" target="_blank" rel="noopener noreferrer">account/signin.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/signup.html" target="_blank" rel="noopener noreferrer">account/signup.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/forgot.html" target="_blank" rel="noopener noreferrer">account/forgot.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/verify.html" target="_blank" rel="noopener noreferrer">account/verify.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/confirm.html" target="_blank" rel="noopener noreferrer">account/confirm.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/welcome.html" target="_blank" rel="noopener noreferrer">account/welcome.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/business.html" target="_blank" rel="noopener noreferrer">account/business.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/welcome-edit.html" target="_blank" rel="noopener noreferrer">account/welcome-edit.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/customer.html" target="_blank" rel="noopener noreferrer">account/customer.html <span aria-hidden="true">↗</span></a></li></ul></section>
  <section class="panel audit-note"><h2>Business website</h2><ul><li style="padding:8px 0"><a href="/_ui-preview/business-example/index.html" target="_blank" rel="noopener noreferrer">business-example/index.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/business-example/services.html" target="_blank" rel="noopener noreferrer">business-example/services.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/business-example/how-it-works.html" target="_blank" rel="noopener noreferrer">business-example/how-it-works.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/business-example/areas.html" target="_blank" rel="noopener noreferrer">business-example/areas.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/business-example/contact.html" target="_blank" rel="noopener noreferrer">business-example/contact.html <span aria-hidden="true">↗</span></a></li></ul></section>
+--- a/faraios.com/account/_book05-preview/enter.php
++++ b/faraios.com/account/_book05-preview/enter.php
+@@ -3,11 +3,54 @@
+ require dirname(__DIR__).'/platform-session.php';
+ require dirname(__DIR__).'/platform-core.php';
+ require '/var/www/vhosts/shalean.com/private/faraios-checkout-preview/app/guard.php';
+-header('Cache-Control: no-store');header('Referrer-Policy: no-referrer');header('X-Robots-Tag: noindex, nofollow');
++
++header('Cache-Control: no-store');
++header('Referrer-Policy: no-referrer');
++header('X-Robots-Tag: noindex, nofollow');
++
++$query=[];
++foreach (['slug','service'] as $key) {
++    if (isset($_GET[$key]) && is_string($_GET[$key]) && strlen($_GET[$key])<=120) {
++        $query[$key]=$_GET[$key];
++    }
++}
++$retry=BOOK05_PATH.'enter.php'.($query?'?'.http_build_query($query):'');
++$signin=false;
+ try {
+-    start();$operator=user();
+-    if(!platform_authorized($operator,platform_settings())) {http_response_code(403);exit;}
+-    $expiry=(string)(time()+1800);
+-    setcookie('book05_private',$expiry.'.'.book05_sig($expiry),['expires'=>(int)$expiry,'path'=>BOOK05_PATH,'secure'=>true,'httponly'=>true,'samesite'=>'Lax']);
+-    header('Location: '.BOOK05_PATH.'b/index.php',true,303);
+-} catch(Throwable $e){http_response_code(403);}
++    if (($_GET['checked']??'')==='1') {
++        if (!empty($_COOKIE['book05_private'])) {
++            header('Location: '.BOOK05_PATH.'b/index.php'.($query?'?'.http_build_query($query):''),true,303);
++            exit;
++        }
++        http_response_code(403);
++        $message='Allow cookies for FaraiOS in this browser, then continue to the private preview.';
++    } else {
++        start();
++        if (empty($_SESSION['auth'])) {
++            $signin=true;
++        } elseif (!platform_authorized(user(),platform_settings())) {
++            http_response_code(403);
++            $message='Only the configured FaraiOS platform owner can open this private preview.';
++        } else {
++            $expiry=(string)(time()+1800);
++            setcookie('book05_private',$expiry.'.'.book05_sig($expiry),['expires'=>(int)$expiry,'path'=>BOOK05_PATH,'secure'=>true,'httponly'=>true,'samesite'=>'Lax']);
++            $query['checked']='1';
++            header('Location: '.BOOK05_PATH.'enter.php?'.http_build_query($query),true,303);
++            exit;
++        }
++    }
++} catch (AccountSessionExpired $e) {
++    $signin=true;
++} catch (Throwable $e) {
++    http_response_code(503);
++    $message='The owner check is temporarily unavailable. Please try again.';
++}
++if ($signin) {
++    http_response_code(401);
++    $message='Sign in with your FaraiOS platform-owner account, then return to this tab and continue.';
++}
++?>
++<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Private booking preview · FaraiOS</title><link rel="stylesheet" href="../platform.css"></head>
++<body><main><section class="panel"><h1>Private booking preview</h1><p><?=esc($message)?></p>
++<?php if ($signin): ?><p><a class="button" href="/account/index.php?page=signin" target="_blank" rel="noopener">Sign in to FaraiOS</a></p><?php endif; ?>
++<p><a href="<?=esc($retry)?>">Continue to private preview</a></p></section></main></body></html>
