@@ -1,6 +1,6 @@
 # MON-01 — Plesk scheduling fallback
 
-Status: installed privately on Plesk; task 268 saved INACTIVE. Credential missing. MON-01 remains In progress.
+Status: Plesk268 and269 activated18Nov2026; credential provisioned. Unattended acceptance in progress. Historical checkpoints below retain prior states; newest dated section governs.
 
 Owner decision: Plesk and GitHub only. This replaces the independent-host prerequisite below; the host-down limitation remains explicit. No Vercel setup is required.
 
@@ -104,9 +104,9 @@ References:
 - https://docs.github.com/en/rest/actions/workflows
 - https://www.faraios.com/account/platform.php?task=TASK-5C4FCF2ED6
 
-Decision: NO-GO for closure/activation until credential, timer supervision
-and automatic-run evidence are in place. Code preparation is complete only after
-the recorded isolated test result passes.
+Historical preparation decision: activation was pending at that checkpoint.
+See the latest activation evidence below. Closure remains pending sustained cadence
+and the explicitly retained coverage limits.
 
 ## Plesk installation — 18 Nov 2026
 
@@ -125,3 +125,73 @@ Monitor remains at44262840889. GitHub requires Confirm access before token setup
 Next: owner completes re-authentication; provision dedicated repository Actions
 read/write credential into the private token file without chat/source/log output,
 then finish timer receipts/supervision and verify unattended execution.
+
+## Receipt-backed Plesk activation — 18 Nov 2026
+
+Owner approved dedicated credential provisioning. Token23219291 is scoped to
+faraios only (Actions read/write, required metadata read-only), expires18Dec2026,
+and is stored privately0600. Hosted authenticated read-only access passed for all
+three workflows. No token value is in this repository or timer command.
+
+Added `scripts/schedule-runner.py` (wrapper SHA256
+26306160c5400be0d828b3655750eff4b8fb8d4201e30450b7b9c3886db2bd5f).
+The original hash-pinned helper is unchanged. Wrapper writes an fsynced per-run
+start record before dispatch, then final result/exit/timestamps and exact run IDs.
+A killed process leaves an unfinished record. All records remain in the private
+directory; no routine evidence deletion is configured. Review disk usage as history
+grows. A separate latest record supports freshness checking. Each record is 0600.
+
+Plesk268 now uses the wrapper every5min. New task269 checks it at2-57/5 * * * *;
+errors-only notifications route through Plesk to the existing alerts@faraios.com
+operator mailbox. Identical issues are suppressed for one hour. This uses Plesk
+mail transport, not the previously tested application SMTP route; delivery has not
+yet been proved. Expiry warns7days ahead and execution refuses at18Dec00:00UTC
+(conservative expiry boundary). Rotate/reconfigure before then; do not silently
+extend credential lifetime. No application files, native workflows, previous five
+Plesk tasks, database permissions, encryption or backup implementation changed.
+
+Check detects missing receipts, timer age over15min, unfinished runs over3min,
+failed execution and credential expiry. It is an independent task on the SAME
+Plesk host: it detects a stopped fallback task if cron still operates, but cannot
+report a whole-host/cron outage. Existing independent GitHub monitor remains,
+with its native scheduling reliability unresolved. Do not claim independent timer
+supervision or full V1-014 recovery acceptance.
+
+Validation: 10 existing helper tests and8 new runner tests passed. Cases include
+write-before-dispatch, exact run IDs, restart gap history, timeout/malformed-output
+sanitization, stale/unfinished/future receipts, expired credential refusal, alert
+deduplication/recovery, symlink refusal and helper drift. Tests use synthetic local
+fixtures, not real token revocation or production outage. Hosted wrapper installed
+0600 and exact hash verified. Activation is not proof of success; record actual
+unattended timestamps/run IDs below before closing any criterion.
+
+Rollback: deactivate268 and269, keep receipts and pending intents for audit and
+reconciliation. Original five jobs/native GitHub schedules stay enabled. No
+application rollback is required. Credential revocation is a separate deliberate
+operator action; never clear an ambiguous dispatch just to retry.
+
+### First unattended dispatch
+
+Task268 fired at16:30:01Z/18:30:01SAST. Receipt
+6f0fe1c845324845b20a9ca6b5a9ded9 finished16:30:06Z, exit0. It dispatched
+monitor44347938721 and suppressed recent backup/heartbeat. GitHub independently
+confirms workflow_dispatch, main138ee5f, created16:30:04Z. Job134955390622 report
+at16:30:31Z: healthy; homepage/preview/Auth200, backup/confighealthy,
+alert_sent=false/quiet. Restore-related jobs skipped by normal monitor policy;
+this run is not new recovery proof. No manual dispatch/RunNow execution of the
+scheduler was used. Plesk RunNow was used only for installation/read-only receipts.
+
+Tracker correction: prior credential update exceeded the3000-character evidence
+limit and did not persist despite optimistic in-form read. Replaced with concise
+current summary and PR evidence link; preservation of original criteria required.
+
+Task269 automatically checked at16:32:01Z (supervision.checked_at1795019521.3296409):
+issues[], notified_at0. This proves the separate cron check ran, not delivery of a
+fault alert. First monitor job completed success with cleanup. Live Monitoring
+read16:31:59Z shows Independent availability Passed16:30:04Z, encrypted backup
+Passed15:46:19Z/artifactpresent, heartbeat Passed16:26:14Z. V1-023 remains
+Verified3/3, V1-014 Inprogress2/3. Original acceptance criterion3 can now be checked
+for the implemented bounded repair; first trigger-cause criterion and complete
+fresh-monitor/backup/heartbeat cadence criterion remain open. MON-01 stays
+Inprogress3/5. Full backup-cycle observation and Plesk alert-delivery acceptance
+remain; do not claim continuous availability or incident recovery from this run.
