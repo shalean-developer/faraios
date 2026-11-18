@@ -67,6 +67,23 @@ final class PlatformDirectoryReader {
  }
 }
 
+// Only the reviewed FaraiOS project and session endpoint are accepted. Never take
+// connection mode, username or DSN options from an HTTP request.
+function platform_directory_connection(array $config, string $private): array {
+ $mode=array_key_exists('mode',$config)?$config['mode']:'direct';
+ $host=$mode==='direct'?'db.rxelmugnucfajrqmphhe.supabase.co':($mode==='session'?'aws-1-eu-west-1.pooler.supabase.com':null);
+ $allowed=['enabled','mode','host','port','database','password'];
+ if (array_diff(array_keys($config),$allowed) || ($config['enabled']??false)!==true || $host===null
+  || ($config['host']??null)!==$host || ($config['port']??null)!==5432 || ($config['database']??null)!=='postgres'
+  || !is_string($config['password']??null) || $config['password']==='' || str_contains($config['password'],"\0")
+  || !preg_match('~\A/[a-zA-Z0-9_./-]+\z~D',$private)) throw new RuntimeException('Reader configuration unavailable.');
+ return [
+  'dsn'=>'pgsql:host='.$host.';port=5432;dbname=postgres;sslmode=verify-full;sslrootcert='.$private.'/platform-directory-root.crt;connect_timeout=5',
+  'username'=>'faraios_owner_reader'.($mode==='session'?'.rxelmugnucfajrqmphhe':''),
+  'options'=>[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false,PDO::ATTR_PERSISTENT=>false]
+ ];
+}
+
 function platform_directory_reader(): PlatformDirectoryReader {
  // Load only after PlatformDirectory's per-request authorization. No credentials in
  // source, request parameters, webroot, tracker settings or browser responses.
@@ -76,11 +93,14 @@ function platform_directory_reader(): PlatformDirectoryReader {
  $path=$private.'/platform-directory-db.json';
  if (is_link($path) || !is_file($path) || (fileperms($path)&0077)!==0 || filesize($path)>4096) throw new RuntimeException('Reader configuration unavailable.');
  $config=json_decode(file_get_contents($path),true,16,JSON_THROW_ON_ERROR);
- if (($config['enabled']??false)!==true || !is_string($config['host']??null) || !preg_match('/\A[a-z0-9][a-z0-9.-]{0,252}\z/D',$config['host']) || !is_string($config['database']??null) || !preg_match('/\A[a-zA-Z0-9_]{1,63}\z/D',$config['database']) || !is_int($config['port']??null) || $config['port']<1 || $config['port']>65535 || !is_string($config['password']??null) || $config['password']==='') throw new RuntimeException('Reader configuration unavailable.');
+ if (!is_array($config)) throw new RuntimeException('Reader configuration unavailable.');
+ $connection=platform_directory_connection($config,$private);
+ // Explicit reviewed trust bundle for hosted libpq13; no sslmode=require fallback.
+ $ca=$private.'/platform-directory-root.crt';
+ if (is_link($ca) || !is_file($ca) || !is_readable($ca) || (fileperms($ca)&0022)!==0) throw new RuntimeException('Reader trust unavailable.');
  $regions=json_decode(file_get_contents(__DIR__.'/regions.json'),true,512,JSON_THROW_ON_ERROR);
  if (!is_array($regions['countries']??null) || !is_array($regions['time_zones']??null)) throw new RuntimeException('Regions unavailable.');
  return new PlatformDirectoryReader(static fn():PDO=>new PDO(
-  'pgsql:host='.$config['host'].';port='.$config['port'].';dbname='.$config['database'].';sslmode=verify-full;connect_timeout=5',
-  'faraios_owner_reader',$config['password'],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false,PDO::ATTR_PERSISTENT=>false]
+  $connection['dsn'],$connection['username'],$config['password'],$connection['options']
  ),$regions);
 }
