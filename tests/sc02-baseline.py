@@ -76,7 +76,7 @@ class Baseline(unittest.TestCase):
         instant=json.loads((ROOT/'docs/instant-booking/source-delta.json').read_text())
         self.assertEqual(set(instant),{'.github/workflows/instant-preview.yml','account/instant-settings.php',
             'account/requests-core.php','account/services.php','b/.htaccess','b/instant.php',
-            'business/booking.js','business/instant-core.php','business/instant.css'})
+            'business/booking.css','business/booking.js','business/instant-core.php','business/instant.css'})
         for path,change in instant.items():
             self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
             self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))

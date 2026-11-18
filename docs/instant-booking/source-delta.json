@@ -23,6 +23,10 @@
     "baseline_sha256": null,
     "candidate_sha256": "487bc872818e9064c7bea7e37ce48ed12bf74b4eefb5d01304817155b71fcf8f"
   },
+  "business/booking.css": {
+    "baseline_sha256": "c8718829add8bf5d15e15c8273c17335e0d07cb04370b114f419be91a6cfe9f4",
+    "candidate_sha256": "98182b6186dce77725f8839ba790da7c053e261e9d1a2e412047817bba83ae5b"
+  },
   "business/booking.js": {
     "baseline_sha256": "2ceef3df2679b5db881e21ad62f76575f625f4efbb3433ae9fb48b8fab6b4a45",
     "candidate_sha256": "af6d1ca9c790145cc6247eb6efd01c1ade23b7bb67bbdff60793ef11e44cb65f"
