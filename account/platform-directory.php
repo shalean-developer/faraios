@@ -62,7 +62,7 @@ final class PlatformDirectory {
    $seen[$id]=true;
    $row=['id'=>$id,'registered_at'=>self::date($r['registered_at']??null)];
    if ($resource==='businesses') {
-    $row['name']=self::text($r['name']??null,120);
+    $row['name']=self::text($r['name']??null,480); // DB permits120 Unicode characters (up to4 UTF-8 bytes each).
     foreach(['location_configured','service_configured','profile_saved','published'] as $fact) $row[$fact]=self::fact($r[$fact]??null);
    } else {
     $row['email_verified']=self::fact($r['email_verified']??null);
@@ -93,9 +93,8 @@ function platform_directory(): PlatformDirectory {
   require_once __DIR__.'/platform-session.php';
   start(); return user(); // Existing user() performs managed Auth verification per request.
  },static fn():array=>platform_settings(),static function(string $resource,array $query):array {
-  // OWNER-04/05 must supply a separately reviewed restricted server-side reader.
-  // No service-role key, database grant, file export or broad Auth admin API is enabled here.
-  throw new RuntimeException('Reader not installed.');
+  require_once __DIR__.'/platform-directory-reader.php';
+  return (platform_directory_reader())($resource,$query);
  });
 }
 function platform_directory_headers(): void {
