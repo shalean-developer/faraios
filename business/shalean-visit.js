@@ -10,6 +10,27 @@ window.shaleanVisit = (() => {
   }
 
   function prepare(form) {
+    const testCard = one('[data-regular-test]', form);
+    if (testCard) {
+      // Previously saved Regular Cleaning tabs use step-only URLs.
+      const locationUrl = new URL(location.href);
+      const stepName = locationUrl.searchParams.get('step');
+      if (!locationUrl.searchParams.has('service') && ['details','schedule','review','contact','payment'].includes(stepName)) {
+        try {
+          const draft = JSON.parse(sessionStorage.getItem('faraios-booking:' + location.pathname));
+          const age = Date.now() - draft?.savedAt;
+          if (draft?.service === testCard.dataset.regularTest && age >= 0 && age < 30*60*1000) {
+            location.replace(testCard.href);
+            return;
+          }
+        } catch { /* A missing draft starts a fresh booking. */ }
+      }
+      const manual = new URL(testCard.href);
+      manual.searchParams.set('flow','request');
+      const link = element('a', 'Request Regular Cleaning without online payment', 'manual-regular-link');
+      link.href = manual.href;
+      testCard.closest('fieldset').append(link);
+    }
     const details = one('.booking-details-content', form);
     const contacts = one('.contact-entry', form);
     contacts.querySelector('h2').remove();
