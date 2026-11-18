@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/faraios.com/account/_book05-preview/business/book01-visit.css
-@@ -0,0 +1,193 @@
+@@ -0,0 +1,200 @@
 +:root{font:16px/1.5 system-ui,sans-serif;color:#153438;background:#f4f7f5;--teal:#087e79;--line:#ccdcda}*{box-sizing:border-box}body{margin:0}
 +
 +.outer { margin:0; container-type:inline-size; }
@@ -120,6 +120,13 @@
 +}
 +
 +.details-heading { text-align:center; }
++.address-row {
++    display:grid;
++    grid-template-columns:minmax(0,1fr) clamp(6.25rem,28%,10rem);
++    column-gap:clamp(.5rem,2%,1rem);
++    align-items:end;
++}
++.address-row label { min-width:0; }
 +
 +/* The launch screen has its own scroll region between the header and booking action. */
 +.launch-page {
@@ -233,7 +240,7 @@
 +}
 +function book01_open(string $business,int $step,string $heading,array $quote=[],array $visit=[]): void {
 +    $steps=['Details','Schedule','Review','Payment']; ?>
-+<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=launch-2"></head><body<?=$step===0?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
++<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=address-1"></head><body<?=$step===0?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
 +<?php if ($step>=1 && $step<=4): ?><nav aria-label="Booking steps"><ol><?php foreach($steps as $i=>$label): ?><li class="<?=$i+1<=$step?'current':''?>" <?=$i+1===$step?'aria-current="step"':''?>><b><?=$i+1?></b><span><?=esc($label)?></span></li><?php endforeach; ?></ol></nav><?php endif; ?>
 +<details class="help"><summary>Booking help</summary><p>Use synthetic details. Card checkout uses Paystack Test. For manual EFT, report a synthetic transfer and wait for the business to verify it.</p></details></div>
 +</div></header><div class="outer"><main>
@@ -385,7 +392,7 @@
  $_SERVER['SCRIPT_NAME']='/account/_book05-preview/account/index.php';
  require $private.'/app/runtime/account/core.php';
  require $private.'/app/runtime/account/profile-core.php';
-@@ -25,19 +26,69 @@
+@@ -25,19 +26,72 @@
  try { book05_merchant_key($slug,$private); }
  catch (DomainException $error) { $ready=false; }
  $ticket=enquiry_ticket($slug.':booking');
@@ -462,11 +469,14 @@
 -<label>Service <select name="service"><option value="<?=esc($offer['id'])?>">Regular Cleaning</option></select></label>
 -<label>Service address <input name="address" value="10 Example Street" required minlength="5" maxlength="1000"></label>
 +<input type="hidden" name="service" value="<?=esc($offer['id'])?>">
-+<label>Street address <input name="address" value="10 Example Street" required minlength="5" maxlength="1000"></label>
++<div class="address-row">
++    <label>Street address<input name="address" autocomplete="address-line1" value="10 Example Street" required minlength="5" maxlength="1000"></label>
++    <label>Apt/Unit No.<input name="unit" autocomplete="address-line2" maxlength="120"></label>
++</div>
  <label>Service area <select name="service_area"><?php foreach ($offer['areas'] as $area): ?><option><?=esc($area)?></option><?php endforeach; ?></select></label>
  <fieldset><legend>Rooms, extras and fees</legend>
  <?php foreach ($rows as $row):
-@@ -46,5 +97,12 @@
+@@ -46,5 +100,12 @@
      $quantity=max($min,min($max,(int)$sample)); ?>
  <label><?=esc($row['name'])?> <input type="number" name="options[<?=esc($row['id'])?>]" min="<?=$min?>" max="<?=$max?>" value="<?=$quantity?>" <?= $min===$max?'readonly':'required' ?>></label>
  <?php endforeach; ?></fieldset>
