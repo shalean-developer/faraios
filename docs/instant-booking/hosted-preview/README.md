@@ -12,6 +12,8 @@ Plesk calls one pinned Supabase HTTPS Edge Function. It authenticates every oper
 - The customer returned to Booking confirmed. Booking e02f6e1f-602c-4c93-8c56-a9b83e7197d2 has one booking row and one cleaner assignment. An invalid webhook signature returned 403. Two operator-generated signed replays of the successful charge returned 200. Counts remained one and one after both replays.
 - The hosted success proves the provider callback and private HTTPS checkout for one synthetic merchant. The signed replays exercise the handler. They do not prove delivery directly from Paystack. Multi-business routing, bank settlement, automated refunds, manual EFT and public rollout are separate checks.
 
+- Paystack hosted decline tested on fi-89b0d632-205d-4806-a49f-52736855a7ad. The provider showed Declined and the database showed zero bookings and assignments. The first abandoned attempt passed its deadline and the 09:00 slot became available again. The confirmed visit's 09:00 slot remained unavailable. An anonymous request to the private browser launcher returned HTTP 403.
+
 ## Fixture boundaries
 
 The private launcher preloads synthetic cleaning details and then hands off to the PR #87 slot, hold, review, provider and return screens. Its return link opens the private launcher. The hosted-only overlay pins the preview project and mount. Production PHP is not patched by this branch. Secret files are outside the document root with owner-only permissions. The deploy-time publishable key should be read from preview configuration. No test secret or database password belongs in this directory.
