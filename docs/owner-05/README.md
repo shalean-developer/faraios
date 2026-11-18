@@ -21,3 +21,11 @@ Desktop/mobile/keyboard final checks and tracker closeout are appended once veri
 ## Recovery
 
 OWNER-05 pre-change page is backed up privately at `/var/www/vhosts/shalean.com/private/faraios-account/owner05-20261118`; manifest records exact before/after hashes. For full phase rollback to OWNER-03, `rollback.py` defaults to verify-only and uses the OWNER-04 four-file backup plus final hashes from `rollback-manifest.json`. `--restore` restores the old page first, then adapter/module/CSS, removes only matching new JS, and refuses any subsequent drift. After code restoration, apply `../owner-04/rollback.sql` using the migration tool to remove only the additive four-argument RPC overload. This does not revoke original owner access or touch tracker/business data. Global emergency containment covers both signatures.
+
+## Remaining verification at last checkpoint
+
+Browser automation timed out repeatedly while checking Users empty/Clear and mobile layout, then timed out even naming the recovered browser session. Do not treat those actions as verified. OWNER-05 remains In progress; finish observed mobile/desktop geometry, keyboard and empty-state recovery, reset the temporary viewport, and save evidence/accepted criteria in the live task when the connection works. Do not replace this with the older preview tracker. The unsaved Plesk Run Now form had Active unchecked and Do not notify selected; no scheduled task was saved.
+
+Security advisor check at 11:50 UTC remained unchanged from OWNER-03: 39 RLS-no-policy INFO, 26 authenticated-definer WARN and one leaked-password-protection WARN. No new advisory count from this additive overload. These baseline advisories are not a claim of whole-platform security clearance.
+
+Remote source commit643f816e447a935049a149e164796b5177bb9b53 and local source commitca3b7c4 have identical tree b78e7899c52dcaf365c24fccca7ef3018dba465d. Later documentation-only checkpoints do not change installed code.
