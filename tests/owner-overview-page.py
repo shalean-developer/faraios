@@ -27,6 +27,7 @@ function platform_directory_https_request($args,$config,$token,$rpc){
  $data=['observed_at'=>gmdate('Y-m-d\\TH:i:s\\Z',time()-($who==='stale'?600:0)),'token'=>'SECRET'];
  foreach(['businesses'=>['total','published','draft','in_progress','not_started','unknown'],'users'=>['total','verified','unverified','no_business']] as $r=>$keys)foreach(['all','known_test','other'] as $cohort)$data[$r][$cohort]=array_fill_keys($keys,0);
  if($who==='bad')$data['users']['all']['total']='<script>SECRET</script>';
+ $data['activity_from']=gmdate('Y-m-d\\TH:i:s\\Z',strtotime($data['observed_at'])-30*86400);foreach(['all','known_test','other'] as $c)$data['metrics'][$c]=['active_30d'=>0,'setup_complete'=>0];
  return $data;
 }
 """)

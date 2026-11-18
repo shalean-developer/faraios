@@ -5,6 +5,7 @@ function rejects($f,$status){try{$f();}catch(PlatformDirectoryError $e){ok($e->s
 $uid='11111111-1111-4111-8111-111111111111';$now=time();
 $d=['observed_at'=>gmdate('Y-m-d\TH:i:s\Z',$now)];
 foreach(['businesses'=>['total'=>3,'published'=>1,'draft'=>2,'in_progress'=>0,'not_started'=>0,'unknown'=>0],'users'=>['total'=>3,'verified'=>2,'unverified'=>1,'no_business'=>1]] as $r=>$v){$d[$r]['all']=$v;$d[$r]['known_test']=array_fill_keys(array_keys($v),0);$d[$r]['other']=$v;}
+$d['activity_from']=gmdate('Y-m-d\TH:i:s\Z',$now-30*86400);$d['metrics']=['all'=>['active_30d'=>2,'setup_complete'=>1],'known_test'=>['active_30d'=>0,'setup_complete'=>0],'other'=>['active_30d'=>2,'setup_complete'=>1]];
 $identity=fn()=>['id'=>$uid,'email_confirmed_at'=>'2026-11-18'];$settings=fn()=>['enabled'=>true,'owner_ids'=>[$uid]];
 $make=fn($data)=>new PlatformOverview($identity,$settings,fn()=>$data,fn()=>$now);
 $o=$make($d);ok($o->read('GET',[])===$d,'exact projection');
@@ -17,5 +18,8 @@ foreach([null,[],array_replace($d,['observed_at'=>gmdate('Y-m-d\TH:i:s\Z',$now-3
 foreach([-1,'3',null,1.5] as $v){$bad=$d;$bad['businesses']['all']['total']=$v;rejects(fn()=>$make($bad)->read('GET',[]),503);}
 $bad=$d;$bad['users']['known_test']['total']=1;rejects(fn()=>$make($bad)->read('GET',[]),503);
 $bad=$d;$bad['users']['all']['no_business']=4;rejects(fn()=>$make($bad)->read('GET',[]),503);
-$empty=$d;foreach(['users','businesses'] as $r)foreach($empty[$r] as &$group)foreach($group as &$v)$v=0;unset($group,$v);ok($make($empty)->read('GET',[])===$empty,'confirmed zero counts');
+foreach([null,-1,4,'2'] as $v){$bad=$d;$bad['metrics']['all']['active_30d']=$v;rejects(fn()=>$make($bad)->read('GET',[]),503);}
+$bad=$d;$bad['activity_from']='2020-01-01T00:00:00Z';rejects(fn()=>$make($bad)->read('GET',[]),503);
+$bad=$d;$bad['metrics']['known_test']['setup_complete']=1;rejects(fn()=>$make($bad)->read('GET',[]),503);
+$empty=$d;foreach($empty['metrics'] as &$group)foreach($group as &$v)$v=0;unset($group,$v);foreach(['users','businesses'] as $r)foreach($empty[$r] as &$group)foreach($group as &$v)$v=0;unset($group,$v);ok($make($empty)->read('GET',[])===$empty,'confirmed zero counts');
 echo json_encode(['status'=>'PASS','assertions'=>$n,'network_calls'=>0]);

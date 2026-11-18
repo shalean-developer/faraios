@@ -23,6 +23,12 @@ final class PlatformOverview {
    }
    foreach($fields as $field)if($out[$resource]['all'][$field]!==$out[$resource]['known_test'][$field]+$out[$resource]['other'][$field])throw new RuntimeException('Inconsistent cohort');
   }
+  if(!is_string($data['activity_from']??null)||$data['activity_from']!==gmdate('Y-m-d\TH:i:s\Z',$date->getTimestamp()-30*86400))throw new RuntimeException('Invalid activity window');
+  $out['activity_from']=$data['activity_from'];
+  foreach(['all','known_test','other'] as $cohort)foreach(['active_30d','setup_complete'] as $metric){
+   $n=$data['metrics'][$cohort][$metric]??null;if(!is_int($n)||$n<0||$n>$out['businesses'][$cohort]['total'])throw new RuntimeException('Invalid metric');$out['metrics'][$cohort][$metric]=$n;
+  }
+  foreach(['active_30d','setup_complete'] as $metric)if($out['metrics']['all'][$metric]!==$out['metrics']['known_test'][$metric]+$out['metrics']['other'][$metric])throw new RuntimeException('Invalid metric cohorts');
   return $out;
  }
 }
