@@ -370,7 +370,34 @@
              header('Location: '.$self.'&flow='.$flow,true,303); exit;
          }
      }
-@@ -188,19 +193,11 @@
+@@ -103,22 +108,12 @@
+         } elseif (in_array($action,['date','review','next'],true) && !isset($f['reserved'])) {
+             $previous=$f;
+             $f['day']=enquiry_text('date',10,10);
+-            $f['address']=enquiry_text('address',5,1000);
+-            $chosen=enquiry_text('service_area',1,200);
+-            $f['outside']=$chosen==='__outside';
+-            if (!$f['outside']) $f['area']=$chosen;
+-            $f['requested_service']=(($_POST['requested_service']??'regular')==='regular')?'regular':'other';
+-            $f['team']=(($_POST['team']??'1')==='1')?'1':'multiple';
+-            $f['visit_details']=booking_visit_details($_POST);
++            $access=booking_visit_details($_POST);
++            unset($access['extra_rooms']);
++            $f['visit_details']=array_intersect_key($f['visit_details']??[],['extra_rooms'=>true])+$access;
+             $f['notes']=enquiry_text('requirements',0,1900);
+-            $f['contact']=['name'=>enquiry_text('name',0,120),'email'=>enquiry_text('email',0,254),'phone'=>enquiry_text('phone',0,40),'notes'=>booking_visit_notes($f['visit_details'],$f['notes'])];
++            $f['contact']['notes']=booking_visit_notes($f['visit_details'],$f['notes']);
+             $f['time']=enquiry_text('time',0,5);
+-            $options=[];
+-            foreach ($_POST['options']??[] as $id=>$quantity) {
+-                if (!is_string($quantity) || !ctype_digit($quantity) || strlen($quantity)>4) throw new DomainException('Check room quantities.');
+-                $options[]=['id'=>(string)$id,'quantity'=>(int)$quantity];
+-            }
+-            $f['options']=json_encode($options,JSON_THROW_ON_ERROR);
+             unset($f['review']);
+             $f['quote']=book04_quote($f);
+             if ($action==='next' && empty($f['quote']['outside_scope'])) {
+@@ -188,19 +183,11 @@
          'The booking could not proceed. Check your details or choose another available time.';
      if (isset($f) && !isset($f['reserved'])) { unset($f['review']); }
  }
@@ -391,7 +418,7 @@
          if (!in_array($value,$choices,true)) throw new DomainException('Choose a listed option for '.$label.'.');
          $details[$key]=$value;
      }
-@@ -229,17 +226,26 @@
+@@ -229,17 +216,25 @@
  function instant_form(string $action,string $url,string $csrf): void {
      echo '<form method="post" action="'.esc($url).'"><input type="hidden" name="csrf" value="'.esc($csrf).'"><input type="hidden" name="action" value="'.esc($action).'">';
  }
@@ -401,7 +428,6 @@
 +$summaryQuote=$f['quote']??[];
 +$state=$f['result']['state']??'';
 +$step=$state!=='' ? 5 : (isset($f['reserved']) ? 4 : (isset($f['review']) ? 3 : 2));
-+if ($step===2) header("Content-Security-Policy: ".$previewPolicy."; script-src '".BOOK01_ROOM_INTEGRITY."'");
 +$title=match(true) {
 +    $state==='confirmed'=>'Your visit is confirmed', $state!==''=>'Payment needs review',
 +    ($f['method']??'')==='eft'=>'Awaiting payment verification',
@@ -424,7 +450,7 @@
  <p><?=esc(book05_merchants()[$slug]['name'])?> will check the reported transfer before confirming your booking.</p>
  <p>Transfer report reference <strong><?=esc($flow)?></strong></p>
  <p>If the hold expires first, the business will review the payment and availability.</p>
-@@ -251,12 +257,12 @@
+@@ -251,12 +246,12 @@
  $start=new DateTimeImmutable($f['at'],new DateTimeZone('Africa/Johannesburg'));
  $finish=$start->modify('+'.(int)($q['minutes']??0).' minutes');
  ?>
@@ -439,7 +465,7 @@
  <?php foreach (booking_visit_fields() as $key=>[$label]): if (isset($f['visit_details'][$key])): ?><dt><?=esc($label)?></dt><dd><?=esc($f['visit_details'][$key])?></dd><?php endif; endforeach; ?>
  <?php if ($f['notes']!==''): ?><dt>Instructions</dt><dd><?=esc($f['notes'])?></dd><?php endif; ?>
  <dt>Contact</dt><dd><?=esc($f['contact']['name'])?> · <?=esc($f['contact']['email'])?> <?=esc($f['contact']['phone']??'')?></dd></dl>
-@@ -269,41 +275,40 @@
+@@ -269,41 +264,32 @@
  <p>If your payment arrives and the visit cannot be confirmed, you receive a full refund. The business initiates approved refunds to the original payment method within two business days. Refunds stay pending until the provider confirms them.</p>
  <?php if (!$held): ?>
  <p>Continuing holds the slot for up to ten minutes or until the visit starts, whichever comes first. Your booking is confirmed after payment and availability are verified.</p>
@@ -460,20 +486,15 @@
  <?php if(isset($f['availability_notice'])): ?><p role="status"><?=esc($f['availability_notice'])?></p><?php unset($f['availability_notice']);endif; ?>
  <?php instant_form('date',$self,$ticket['csrf']); ?>
 -<label>Service<select name="requested_service"><option value="regular">One-time Regular Cleaning</option><option value="other" <?=($f['requested_service']??'')==='other'?'selected':''?>>Other cleaning service</option></select></label>
-+<details <?=($problem || $action==='edit' || empty($f['contact']['name']))?'open':''?>><summary>Edit cleaning and contact details</summary><label>Service<select name="requested_service"><option value="regular">One-time Regular Cleaning</option><option value="other" <?=($f['requested_service']??'')==='other'?'selected':''?>>Other cleaning service</option></select></label>
- <label>Team size<select name="team"><option value="1">1 cleaner</option><option value="multiple" <?=($f['team']??'')==='multiple'?'selected':''?>>2 or more cleaners</option></select></label>
- <label>Service address<input minlength="5" name="address" value="<?=esc($f['address'])?>" required maxlength="1000"></label>
- <label>Service area<select name="service_area"><?php foreach ($q['areas']??[$f['area']] as $area): ?><option <?=empty($f['outside']) && $area===$f['area']?'selected':''?>><?=esc($area)?></option><?php endforeach; ?><option value="__outside" <?=!empty($f['outside'])?'selected':''?>>Outside listed areas</option></select></label>
+-<label>Team size<select name="team"><option value="1">1 cleaner</option><option value="multiple" <?=($f['team']??'')==='multiple'?'selected':''?>>2 or more cleaners</option></select></label>
+-<label>Service address<input minlength="5" name="address" value="<?=esc($f['address'])?>" required maxlength="1000"></label>
+-<label>Service area<select name="service_area"><?php foreach ($q['areas']??[$f['area']] as $area): ?><option <?=empty($f['outside']) && $area===$f['area']?'selected':''?>><?=esc($area)?></option><?php endforeach; ?><option value="__outside" <?=!empty($f['outside'])?'selected':''?>>Outside listed areas</option></select></label>
 -<fieldset><legend>Rooms, extras and fees</legend>
 -<?php foreach ($q['rows']??[] as $row): ?><label><?=esc($row['name'])?><input type="number" name="options[<?=esc($row['id'])?>]" min="<?=(int)$row['minimum']?>" max="<?=(int)$row['maximum']?>" value="<?=(int)$row['quantity']?>" required></label><?php endforeach; ?>
 -</fieldset>
 -<fieldset><legend>Property and access</legend>
 -<?php foreach (booking_visit_fields() as $key=>[$label,$choices]): ?>
-+<?php book01_room_fields($q['rows']??[],$f['visit_details']??[]); ?>
-+<label>Your name<input name="name" autocomplete="name" value="<?=esc($f['contact']['name']??'')?>" maxlength="120"></label>
-+<label>Email for test checkout<input name="email" type="email" autocomplete="email" value="<?=esc($f['contact']['email']??'')?>" maxlength="254"></label>
-+<label>Phone number (optional)<input name="phone" type="tel" autocomplete="tel" value="<?=esc($f['contact']['phone']??'')?>" maxlength="40"></label>
-+</details><label>Visit date<input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
++<label>Visit date<input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
 +<?php if (isset($q['total']) && empty($q['outside_scope'])): ?><p><?=esc($f['area'])?> · <?=(int)$q['minutes']?> minutes · ZAR <?=number_format($q['total']/100,2)?></p><?php endif; ?>
 +<label>Available start time (SAST)<select name="time"><option value="">Choose a time</option><?php foreach ($q['times']??[] as $t): ?><option <?=($f['time']??'')===$t?'selected':''?>><?=esc($t)?></option><?php endforeach; ?></select></label>
 +<details<?= (!empty($f['notes']) || !empty(array_diff_key($f['visit_details']??[],['extra_rooms'=>true]))) ? ' open' : '' ?>><summary>Extras and access notes (optional)</summary>
