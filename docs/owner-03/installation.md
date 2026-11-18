@@ -2,6 +2,24 @@
 
 Prepared18 November2026. NOT deployed, NOT approved for execution, PR88 remains draft. Live task TASK-4D58A7674A remains In progress; reconciliation and data-contract criteria are supported (2/5). This document supersedes the README's earlier pending-tracker-save note: evidence was saved successfully before this preparation and the new results must also be recorded.
 
+## Latest session-pooler follow-up — 18 November 2026
+
+Supersedes the earlier driver-approval and direct-only notes below. User approved enabling only pdo_pgsql in the shared CloudLinux PHP8.4 settings. Actual FaraiOS web runtime now reports PDO mysql/pgsql/sqlite, PostgreSQL driver enabled and libpq13.23. The separate pgsql extension remains disabled. Four affected public entry points passed before/after page-load smoke checks; shalean.com redirects to shalean.co.za. These are not full business-journey regression tests.
+
+Supabase's authenticated Connect panel confirmed `aws-1-eu-west-1.pooler.supabase.com:5432`, database `postgres`, session mode, project `rxelmugnucfajrqmphhe`. Project metadata is ACTIVE_HEALTHY. Reader configuration now explicitly supports `session` or `direct` (legacy default), pins the reviewed host per mode, requires port5432/database postgres, derives only the restricted username, rejects additional configuration keys and keeps native prepared statements/nonpersistent connections. Server-side current_user and excessive-privilege checks remain unchanged.
+
+Connection is NOT verified: a credential-free host probe to the exact session endpoint returned `ConnectionRefusedError: [Errno 111] Connection refused`, before TLS/authentication. Each of the three DNS-resolved IPv4 addresses (18.202.64.2,54.229.189.117,54.247.26.119) independently returned the same refusal on port5432. Direct IPv6 is also unreachable. No password was used, SQL executed, firewall changed or database role provisioned. Ask the hosting operator to investigate outbound TCP5432 to this exact pooler hostname and its DNS-resolved IPv4 addresses; do not assume the refusal proves which firewall or service is responsible. Do not switch to transaction pooling, privileged credentials or weaker TLS. No outreach was sent.
+
+Private configuration, when separately provisioned, has exactly these fields:
+
+```json
+{"enabled":false,"mode":"session","host":"aws-1-eu-west-1.pooler.supabase.com","port":5432,"database":"postgres","password":"REPLACE_PRIVATELY"}
+```
+
+The login is derived as `faraios_owner_reader.rxelmugnucfajrqmphhe`; database current_user must still equal `faraios_owner_reader`. Never enter postgres credentials. Add a reviewed PEM CA trust bundle as `platform-directory-root.crt` alongside the private config, outside webroot. It must be readable, not a symlink and not group/world writable. The adapter supplies this explicit sslrootcert for libpq13 and always sslmode=verify-full. The certificate bundle has not been provisioned or tested here. Confirm its source, server-chain trust and hostname validation on the host before activation.
+
+Validation for this revision:23 connection-configuration assertions PASS (mode/host/project/port overrides, injected DSN options, privileged username, invalid credentials and trust-path injection rejected); existing69 authorization/projection assertions PASS;36 isolated PostgreSQL reader/rollback assertions PASS; PHP syntax PASS. No hosted query has passed. No application deployment, merge or database grants made. OWNER-03 remains In progress,2/5. Next gates: outbound connectivity, verified TLS with the reviewed CA bundle, then separately authorized provisioning and authenticated restricted-reader acceptance.
+
 ## Reconciled sources
 
 Six account files were read through the signed-in Plesk editor without saving. `hosted-baseline.json` contains hashes of the observed UTF-8 editor text. A subsequent read-only Python SHA256 check on the actual host confirmed all six raw file-byte hashes match these observations on 18 November 2026. This attests these six files at that point in time; repeat before installation. The new-target absence output was truncated, so that gate remains unverified. A host-side byte check remains mandatory immediately before installation. Do not rewrite a file to make its hash match.
