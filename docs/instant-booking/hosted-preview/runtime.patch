@@ -16,7 +16,18 @@
   $c['_ops_root']=realpath($dir)?:'';ops_install($c);return $c;
 --- a/business/instant-core.php
 +++ b/business/instant-core.php
-@@ -6,18 +6,27 @@
+@@ -1,23 +1,38 @@
+ <?php
+ declare(strict_types=1);
+ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) { http_response_code(404); exit; }
++
++require_once dirname(__DIR__, 2).'/merchants.php';
++
++function instant_key(string $slug): string {
++    return book05_merchant_key($slug, dirname(__DIR__, 3));
++}
+ 
+ function instant_enabled(): bool {
      return profile_env() === 'preview' && (cfg()['instant_test_enabled'] ?? false) === true;
  }
  
@@ -55,8 +66,14 @@
  }
  
  function instant_entry(string $slug): void {
-@@ -40,8 +49,8 @@
-     $key = cfg()['instant_paystack_key'] ?? '';
+@@ -36,12 +51,12 @@
+     return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($bytes), 4));
+ }
+ 
+-function instant_provider(string $path, ?array $body = null): array {
+-    $key = cfg()['instant_paystack_key'] ?? '';
++function instant_provider(string $slug, string $path, ?array $body = null): array {
++    $key = instant_key($slug);
      if (!instant_enabled() || !str_starts_with($key, 'sk_test_')) throw new RuntimeException('Test checkout unavailable.');
      $ctx = stream_context_create(['http' => [
 -        'method' => $body === null ? 'GET' : 'POST', 'timeout' => 12, 'follow_location' => 0,
@@ -66,7 +83,7 @@
          'content' => $body === null ? '' : json_encode($body, JSON_THROW_ON_ERROR)
      ]]);
      $base = 'https://api.paystack.co';
-@@ -50,7 +59,12 @@
+@@ -50,12 +65,19 @@
          $base = cfg()['instant_fixture'];
      $raw = @file_get_contents($base.'/transaction/'.$path, false, $ctx);
      $reply = json_decode($raw ?: '{}', true);
@@ -80,9 +97,36 @@
      return $reply['data'];
  }
  
+-function instant_verify(string $reference): array {
+-    $receipt = instant_provider('verify/'.rawurlencode($reference));
++function instant_verify(string $reference, string $slug): array {
++    $hold = instant_query('select instant_private.receipt(?::uuid)', [substr($reference, 3)]);
++    if (!book05_receipt_matches($hold, $slug)) throw new DomainException('Payment recipient mismatch.');
++    $receipt = instant_provider($slug, 'verify/'.rawurlencode($reference));
+     if (($receipt['domain'] ?? '') !== 'test' || ($receipt['reference'] ?? '') !== $reference ||
+         ($receipt['status'] ?? '') !== 'success' || ($receipt['currency'] ?? '') !== 'ZAR' || !is_int($receipt['amount'] ?? null))
+         throw new RuntimeException('Successful test payment has not been verified.');
 --- a/b/instant.php
 +++ b/b/instant.php
-@@ -31,7 +31,7 @@
+@@ -16,13 +16,15 @@
+ 
+ if (isset($_GET['webhook'])) {
+     $raw = file_get_contents('php://input',false,null,0,65537);
+-    $key = cfg()['instant_paystack_key'] ?? '';
++    $merchant = $_GET['merchant'] ?? 'synthetic-cleaning';
++    if (!is_string($merchant)) { http_response_code(403); exit; }
++    try { $key = instant_key($merchant); } catch (Throwable $e) { http_response_code(403); exit; }
+     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || strlen($raw)>65536 || !str_starts_with($key,'sk_test_') ||
+         !hash_equals(hash_hmac('sha512',$raw,$key),$_SERVER['HTTP_X_PAYSTACK_SIGNATURE'] ?? '')) { http_response_code(403); exit; }
+     $event = json_decode($raw,true);
+     if (($event['event'] ?? '') === 'charge.success' && ($event['data']['domain'] ?? '') === 'test'
+         && preg_match('/^fi-([0-9a-f-]{36})$/D',$event['data']['reference'] ?? '',$m)) {
+-        try { instant_verify($m[0]); } catch (Throwable $e) { http_response_code(503); }
++        try { instant_verify($m[0], $merchant); } catch (DomainException $e) { http_response_code(200); } catch (Throwable $e) { http_response_code(503); }
+     }
+     exit;
+ }
+@@ -31,7 +33,7 @@
  if (!is_string($slug) || !preg_match('/^[a-z0-9-]{3,64}$/D',$slug)) { http_response_code(404); exit; }
  $ticket = enquiry_ticket($slug.':booking');
  $base = cfg()['base_url'];
@@ -91,3 +135,32 @@
  $self = $base.'/b/instant.php?slug='.$slug;
  $flow = $_GET['flow'] ?? '';
  $today = new DateTimeImmutable('today',new DateTimeZone('Africa/Johannesburg'));
+@@ -69,7 +71,7 @@
+     }
+     if (isset($_GET['reference'])) {
+         if (!isset($f['reserved']) || $_GET['reference']!=='fi-'.$flow) throw new DomainException('Payment reference unavailable.');
+-        $f['result']=instant_verify('fi-'.$flow);
++        $f['result']=instant_verify('fi-'.$flow, $slug);
+         header('Location: '.$self,true,303); exit;
+     }
+     if ($_SERVER['REQUEST_METHOD']==='POST') {
+@@ -88,7 +90,9 @@
+             if (strtotime($f['reserved']['expires'])<=time()) throw new DomainException('Your reservation expired. Choose a new time.');
+             if (!isset($f['checkout'])) {
+                 $ref='fi-'.$flow;
+-                $reply=instant_provider('initialize',['amount'=>$f['reserved']['total'],'email'=>$f['contact']['email'],
++                $hold = instant_query('select instant_private.receipt(?::uuid)', [$flow]);
++                if (!book05_receipt_matches($hold, $slug)) throw new DomainException('Payment recipient mismatch.');
++                $reply=instant_provider($slug, 'initialize',['amount'=>$f['reserved']['total'],'email'=>$f['contact']['email'],
+                     'currency'=>'ZAR','reference'=>$ref,'callback_url'=>$self]);
+                 $f['checkout']=instant_checkout_url($reply,$ref);
+             }
+@@ -117,7 +121,7 @@
+ <?php if ($f['result']['state']==='confirmed'): ?><p>Booking reference <?=esc($f['result']['booking'])?></p><p><?=esc($f['at'])?> · Africa/Johannesburg</p><p><?=esc($f['address'])?></p>
+ <?php else: ?><p>The test payment arrived after availability changed. Contact the business with reference <?=esc('fi-'.$flow)?>.</p><?php endif; ?>
+ <?php elseif (isset($f['reserved'])): ?>
+-<h2>Review and pay</h2><p><?=esc($f['address'])?> · <?=esc($f['area'])?></p><p><?=esc($f['at'])?> · Africa/Johannesburg · <?=(int)$f['quote']['minutes']?> minutes</p>
++<h2>Review and pay</h2><p>Payment recipient: <?=esc(book05_merchants()[$slug]['name'])?></p><p><?=esc($f['address'])?> · <?=esc($f['area'])?></p><p><?=esc($f['at'])?> · Africa/Johannesburg · <?=(int)$f['quote']['minutes']?> minutes</p>
+ <p><?=esc($f['contact']['name'])?> · <?=esc($f['contact']['email'])?></p><p><strong>Total ZAR <?=number_format($f['reserved']['total']/100,2)?></strong></p>
+ <?php if (strtotime($f['reserved']['expires'])>time()): ?><p>Reserved until <?=esc((new DateTimeImmutable($f['reserved']['expires']))->setTimezone(new DateTimeZone('Africa/Johannesburg'))->format('H:i:s'))?> SAST.</p>
+ <?php instant_form('pay',$self,$ticket['csrf']); ?><button>Pay with test checkout</button></form>

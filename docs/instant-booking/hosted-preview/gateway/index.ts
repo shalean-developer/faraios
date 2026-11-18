@@ -1,7 +1,7 @@
 import postgres from "npm:postgres@3.4.7";
 
 const project = "jqnecahhaxxdsrybwuoo";
-const slug = "synthetic-cleaning";
+const recipients = new Set(["synthetic-cleaning", "bokkie-book05", "pure-book05"]);
 const verifier = "eec10fc9941addc70c1ae4df438371e72d5ffa1ecb59dc1a9cb3412ce95bdd21";
 const maxBody = 16384;
 const statements = new Map<string, [string, number]>([
@@ -43,7 +43,7 @@ Deno.serve(async (req:Request) => {
     const entry = statements.get(op);
     if (!entry || !Array.isArray(args) || args.length !== entry[1] ||
       args.some(v=>typeof v !== "string" && !Number.isSafeInteger(v))) throw Error();
-    if ((op==="slots" || op==="offer") && args[0]!==slug || op==="reserve" && args[1]!==slug) throw Error();
+    if ((op==="slots" || op==="offer") && !recipients.has(String(args[0])) || op==="reserve" && !recipients.has(String(args[1]))) throw Error();
     if (["reserve","receipt","settle"].includes(op) && !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(String(args[0]))) throw Error();
   } catch { return reply(400,{error:"Invalid checkout operation"}); }
   const password = Deno.env.get("BOOK05_DATABASE_PASSWORD");
@@ -59,3 +59,4 @@ Deno.serve(async (req:Request) => {
     return state==="P0001" || state==="P0002" ? reply(409,{error:"Booking details or availability changed"}) : reply(503,{error:"Checkout unavailable"});
   } finally { await db.end({timeout:2}); }
 });
+
