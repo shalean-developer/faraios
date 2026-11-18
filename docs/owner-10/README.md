@@ -1,0 +1,15 @@
+# OWNER-10 delivery — 18 November 2026
+
+18 November 2026: installed read-only Support at /account/platform-support-page.php from PR99 commit3fd086c61d5cb29abc2bddb420ff4b3864dd7965. Confirmed authoritative manual source: live contact.html and privacy.html#export/#closure; hello@faraios.com, Farai Chitekedza, Mon-Fri08:00-17:00 Africa/Johannesburg, normal one-business-day/critical one-covered-hour acknowledgement, outside-hours best effort. No authorized case feed established: explicit unavailable source, unknown count/reference/status/age/operator and no invented freshness. No customer content, inbox, business enquiry or credentials read; no case destination links generated. Identity/authority, private delivery, scope/retention and unresolved closure checks preserved. 24 local support access/privacy assertions and32 SEO regression assertions pass. Hosted anonymous page303 to sign-in; include-only model404. Owner desktop1280/mobile390/320 no overflow; keyboard export details, active Support nav, invalid-query error and reload recovery pass. Three runtime files only; preimage/download SHA guards, PHP lint, verified private original navigation and rollback instructions. OWNER-01 Verified5/5 and V1-015 Verified3/3 confirmed. No customer messages, account mutations, inbox integration, merge or main changes. MON-01 remains separate.
+
+## Scope and rollback
+
+The case source is explicitly unavailable. This phase displays approved manual guidance, not an inbox or fabricated case queue. Case integration needs a separately reviewed source, field contract and authorization. Published policy checked on 18 November; this date is not a live refresh timestamp.
+
+Runtime changes: platform-support.php, platform-support-page.php (new), platform-navigation.php (one link/active group). Shared access is unchanged. The installation script pins all three hashes and refuses preimage drift, stages/lints before installation, and rolls back partial installation on failure. Plesk Run Now used an inactive, unsaved form; cancelled afterward, no new schedule.
+
+Rollback: compare current files against the pinned hashes in install.py; stop on drift. Restore platform-navigation.php from private/faraios-account/owner10-support-backup/platform-navigation.php.before (original SHA af232010b34b89d2807fef5bd24c11f7b30acd730ecc022ab16c102dcc50f543); move the two new support files into the private backup directory. Preserve mode0644 for restored public navigation. Never change tracker.json or database data. Original navigation hash and PHP syntax verified before installation; no live rollback performed.
+
+Source evidence: current production OWNER-10 TASK-405349EFBE, dependencies OWNER-01 TASK-494DD69682 and V1-015, published contact/privacy notices. OWNER-09 final reload confirmed Verified5/5. No launch-readiness or backup-cadence claim.
+
+OWNER-10 saved Verified5/5 at production revision200, 2026-11-18T19:09:13Z; final reload confirmed persisted Verified5/5. Desktop screenshot: support-live.jpg.
