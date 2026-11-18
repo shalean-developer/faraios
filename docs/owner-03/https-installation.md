@@ -1,3 +1,5 @@
+> Initial foundation-phase record. The protected UI and navigation are now installed; see [closeout evidence](closeout-20261118.md) for current scope and verification.
+
 # OWNER-03 HTTPS foundation — installed, pages inactive
 
 18 November 2026. User-approved narrow installation is complete. Two PHP modules, private projections, checked HTTPS gateway and a managed-Postgres compatibility migration are installed. Exactly the existing immutable platform-owner account is enrolled. No visible page, navigation link or application transport switch is enabled. PR88 remains draft; no merge or whole-branch deployment. See [installation receipt](installed-20261118.md) for authoritative hosted evidence and remaining limits.

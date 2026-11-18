@@ -1,3 +1,5 @@
+> Initial foundation-phase record. The protected UI and navigation are now installed; see [closeout evidence](closeout-20261118.md) for current scope and verification.
+
 # OWNER-03 installation receipt — 18 November 2026
 
 User approved the bounded HTTPS foundation and enrollment of only the existing platform-owner account. No merge, main-branch change, visible directory pages, application transport switch, customer messages or business/Auth row edits.
