@@ -1,10 +1,10 @@
 # OWNER-03 bounded installation and rollback preparation
 
-Prepared18 November2026. NOT deployed, NOT approved for execution, PR88 remains draft. Live task TASK-4D58A7674A remains In progress,1/5. This document supersedes the README's earlier pending-tracker-save note: evidence was saved successfully before this preparation and the new results must also be recorded.
+Prepared18 November2026. NOT deployed, NOT approved for execution, PR88 remains draft. Live task TASK-4D58A7674A remains In progress; reconciliation and data-contract criteria are supported (2/5). This document supersedes the README's earlier pending-tracker-save note: evidence was saved successfully before this preparation and the new results must also be recorded.
 
 ## Reconciled sources
 
-Six account files were read through the signed-in Plesk editor without saving. `hosted-baseline.json` contains hashes of the observed UTF-8 editor text. They are not a raw filesystem byte attestation: browser text can normalize line endings. A host-side byte check remains mandatory immediately before installation. Do not rewrite a file to make its hash match.
+Six account files were read through the signed-in Plesk editor without saving. `hosted-baseline.json` contains hashes of the observed UTF-8 editor text. A subsequent read-only Python SHA256 check on the actual host confirmed all six raw file-byte hashes match these observations on 18 November 2026. This attests these six files at that point in time; repeat before installation. The new-target absence output was truncated, so that gate remains unverified. A host-side byte check remains mandatory immediately before installation. Do not rewrite a file to make its hash match.
 
 | File | Comparison with PR88 historical base | Installation action |
 | --- | --- | --- |
@@ -27,12 +27,25 @@ The production session adapter loads private production configuration, uses the 
 
 ## Pre-installation gates
 
-1. On the host, run `php scripts/owner-directory-preflight.php /var/www/vhosts/shalean.com/faraios.com docs/owner-03/hosted-baseline.json` from a private review directory, after verifying the actual document-root path in Plesk. The path shown is an example consistent with earlier host receipts, not fresh path verification. The script reads only and exits nonzero on changed/missing source bytes or existing new-file targets. It is not a deploy script. Preserve before/after receipts outside the webroot.
+1. On the host, run `php scripts/owner-directory-preflight.php /var/www/vhosts/shalean.com/faraios.com docs/owner-03/hosted-baseline.json` from a private review directory, after verifying the actual document-root path in Plesk. This document root was freshly confirmed in both Plesk and the actual web runtime on 18 November 2026. The script reads only and exits nonzero on changed/missing source bytes or existing new-file targets. It is not a deploy script. Preserve before/after receipts outside the webroot.
 2. Verify PHP PDO_PGSQL, CA trust, network and database mode using the hosted PHP runtime. Current adapter uses a fixed unqualified username and native prepared statements: use direct PostgreSQL with verified TLS. Supabase Free direct connectivity requires IPv6. If that network path is unavailable, stop and review a bounded session-pooler username/configuration change; do not use a privileged account or disable TLS verification. Transaction pooler mode is not accepted by this adapter.
 3. Confirm private schema is not in the Data API exposed-schema list. Confirm reader role/schema are still absent before applying the exact migration and capture migration-history state. Production metadata on18Nov showed both absent; this is not permission to create them.
 4. After applying, verify role NOLOGIN, no memberships, no superuser/bypass-RLS/create-role/create-db rights; exact two-view SELECT, no underlying-table writes/reads, no public/anon/authenticated view access and no unexpected default ACL recipients. The PHP adapter additionally rejects excess effective grants and accessible SECURITY DEFINER functions. Never remove unrelated global PUBLIC grants to make this check pass.
 5. Before login activation, review existing security-advisor baseline and rerun after installation. Baseline:39 RLS-without-policy informational findings,26 authenticated SECURITY DEFINER warnings,1 leaked-password-protection warning. These were not introduced by this uninstalled reader; this preparation did not remediate unrelated tables/functions. Provision only the dedicated reader identity, mode0600 private config outside webroot, enabled=false initially. Confirm TLS verify-full and query plan/latency against representative data before any owner-facing caller exists.
 6. Test protected route wiring and every supported-role denial, expired/revoked owner, direct URLs, error redaction, mobile/keyboard and navigation before enabling OWNER-04/05 links. None of these new hosted-route tests has passed yet because no route is installed.
+
+## Confirmed hosted runtime blockers — 18 November 2026
+
+Read-only checks found two installation blockers:
+
+- Actual web phpinfo reports CloudLinux PHP 8.4.27 / lsapi, despite Plesk domain settings showing PHP 8.2.35 / FastCGI. PDO lists only mysql and sqlite; pdo_pgsql is absent. Use actual web-runtime evidence, not the Plesk version label or CLI runtime.
+- The direct Supabase endpoint resolves to IPv6 on the hosting server, and a credential-free TCP/TLS probe returned `OSError: [Errno 101] Network is unreachable`. The probe never authenticated or queried SQL. TLS certificate verification could not be reached and remains untested.
+
+CloudLinux offers pdo_pgsql, but the PHP 8.4 extension settings are shared by faraios.com, shalean.com, bokkiecleaning.co.za and staging.bokkiecleaning.co.za, all with domain isolation disabled. No extension or isolation setting was changed. Obtain authorization for this concrete shared-setting change before enabling only pdo_pgsql; preserve PHP version and all other extensions, verify all four sites and restore the single checkbox if regression occurs. Do not reset extension defaults.
+
+Next scoped development: obtain the project's exact session-pooler endpoint from Supabase connection settings; add explicit session-pooler mode with the project-qualified dedicated reader login while retaining role verification, native prepared statements and verify-full TLS. Do not guess the regional pooler hostname, accept arbitrary usernames, use transaction pooling, weaken TLS or provision a privileged credential. Test parser/connection identity and repeat credential-free host TLS checks before installation.
+
+Host probes used the unsaved Plesk Add Task form with notifications disabled and Run Now. The form was cancelled afterward; the scheduler still contains its original five entries. No scheduled task, source file, PHP setting, database object or business row was changed.
 
 ## Two-step rollback
 
