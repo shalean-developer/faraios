@@ -130,6 +130,9 @@ $overview=function(?array $jwt=null,string $b='{20000000-0000-4000-8000-00000000
   $q=$admin->prepare('SELECT public.platform_owner_overview_read(CAST(:b AS uuid[]),CAST(:u AS uuid[]))');$q->execute(['b'=>$b,'u'=>$u]);return json_decode($q->fetchColumn(),true,128,JSON_THROW_ON_ERROR);
  }finally{$admin->exec('RESET ROLE');}
 };
+$admin->exec("CREATE TABLE public.business_quotes(business_id uuid,environment text,created_at timestamptz); CREATE TABLE public.business_bookings(LIKE public.business_quotes); CREATE TABLE public.business_invoices(LIKE public.business_quotes)");
+$admin->exec("INSERT INTO public.business_quotes VALUES('20000000-0000-4000-8000-000000000001','live',now()-interval '1 day'),('20000000-0000-4000-8000-000000000002','preview',now()),('20000000-0000-4000-8000-000000000003','live',now()-interval '31 days'),('20000000-0000-4000-8000-000000000004','live',now()+interval '1 day'); INSERT INTO public.business_bookings VALUES('20000000-0000-4000-8000-000000000001','live',now()); INSERT INTO public.business_invoices VALUES('20000000-0000-4000-8000-000000000005','live',now())");
+$admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118194000_owner_overview_metrics.sql'));
 $summary=$overview();
 good($summary['businesses']['all']['total']===30&&$summary['users']['all']['total']===30,'overview counts registrations not memberships');
 good($summary['businesses']['known_test']['total']===2&&$summary['businesses']['other']['total']===28,'explicit fixture split deduplicates IDs');
@@ -139,10 +142,23 @@ foreach(['published'=>1,'draft'=>2,'in_progress'=>1,'not_started'=>25,'unknown'=
 good(!preg_match('/SECRET|encrypted_password|business_associations|10000000/',json_encode($summary)),'aggregate payload minimal');
 require_once __DIR__.'/../account/platform-overview.php';
 good(PlatformOverview::project($summary,time())==$summary,'overview contract reconciles');
+good($summary['metrics']['all']['active_30d']===2,'deduplicate live activity and exclude preview old future');
+good($summary['metrics']['known_test']['active_30d']===1&&$summary['metrics']['other']['active_30d']===1,'metric cohorts');
+$expectedSetup=(int)$admin->query("SELECT count(*) FROM faraios_owner_directory.businesses WHERE profile_saved IS TRUE AND service_configured IS TRUE AND published IS TRUE AND nullif(trim(name),'') IS NOT NULL AND nullif(trim(country),'') IS NOT NULL AND nullif(trim(time_zone),'') IS NOT NULL")->fetchColumn();
+good($summary['metrics']['all']['setup_complete']===$expectedSetup,'complete setup requires all current facts');
+$admin->beginTransaction();
+$admin->exec("INSERT INTO public.business_quotes VALUES('20000000-0000-4000-8000-000000000006','live',now()-interval '30 days'),('20000000-0000-4000-8000-000000000007','live',now()-interval '30 days 1 second')");
+good($overview()['metrics']['all']['active_30d']===3,'inclusive thirty day cutoff, just older excluded');
+$admin->rollBack();
+
+good(!$admin->query("SELECT has_table_privilege('faraios_owner_api','public.business_quotes','SELECT')")->fetchColumn(),'no raw quote grant');
+good(!$admin->query("SELECT has_table_privilege('authenticated','faraios_owner_directory.business_metric_facts','SELECT')")->fetchColumn(),'no direct metric view grant');
 foreach([[],array_replace($claims,['sub'=>$other]),array_replace($claims,['exp'=>0]),array_replace($claims,['session_id'=>'30000000-0000-4000-8000-000000000099'])] as $bad)denied(fn()=>$overview($bad),'overview auth denied');
 denied(fn()=>$overview(null,'{NULL}'),'null fixture rejected');
 denied(fn()=>$overview(null,'{'.implode(',',array_fill(0,101,'20000000-0000-4000-8000-000000000001')).'}'),'oversized registry rejected');
 $admin->beginTransaction();$admin->exec('DELETE FROM public.businesses');$zero=$overview();good($zero['businesses']['all']['total']===0&&$zero['businesses']['known_test']['total']===0,'empty business aggregate');$admin->rollBack();
+$admin->exec(file_get_contents(__DIR__.'/../docs/owner-metrics/rollback.sql'));
+good(!isset($overview()['metrics']),'metrics rollback restores old response');
 $admin->exec(file_get_contents(__DIR__.'/../docs/owner-07/rollback.sql'));
 good($admin->query("SELECT to_regprocedure('public.platform_owner_overview_read(uuid[],uuid[])') IS NULL")->fetchColumn(),'scoped rollback removes overview');
 good(count($call($claims)['rows'])===26,'scoped rollback preserves directories');
