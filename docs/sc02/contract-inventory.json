@@ -10787,6 +10787,38 @@
       ]
     },
     {
+      "path": "account/instant-settings.php",
+      "line": 17,
+      "text": "$saved=profile_rpc('preview_instant_offer',$context);",
+      "literal_rpcs": [],
+      "methods": []
+    },
+    {
+      "path": "account/instant-settings.php",
+      "line": 20,
+      "text": "$pages=api('/rest/v1/business_public_pages'.$filter.'&select=document,services',[],'GET',$token);",
+      "literal_rpcs": [],
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "account/instant-settings.php",
+      "line": 22,
+      "text": "$staff=api('/rest/v1/business_staff'.$filter.'&active=eq.true&select=id,name',[],'GET',$token);",
+      "literal_rpcs": [],
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "account/instant-settings.php",
+      "line": 27,
+      "text": "profile_rpc('preview_instant_offer',$context+['p_save'=>true,'p_service'=>$_POST['service']??'',",
+      "literal_rpcs": [],
+      "methods": []
+    },
+    {
       "path": "account/invoices-core.php",
       "line": 13,
       "text": "$rows=[];for($offset=0;;$offset+=100){$page=api('/rest/v1/business_invoice_payments?business_id=eq.'.rawurlencode($b['id']).'&environment=eq.'.profile_env().'&invoice_id=eq.'.rawurlencode($id).'&select=*&order=created_at.asc,id.asc&limit=100&offset='.$offset,[],'GET',$_SESSION['auth']['access_token']);$rows=array_merge($rows,$page);if(count($page)<100)return $rows;if($offset>=9900)throw new RuntimeException('Payment history exceeds the display limit. Contact support.');}",
@@ -10935,7 +10967,7 @@
     },
     {
       "path": "account/requests-core.php",
-      "line": 58,
+      "line": 60,
       "text": "enquiry_ip_limit();api('/rest/v1/rpc/business_booking_request_submit',['p_environment'=>profile_env(),'p_slug'=>$slug,'p_service'=>$service,'p_name'=>$name,'p_email'=>$email,'p_phone'=>$phone,'p_requirements'=>$requirements,'p_request'=>$ticket['request'],'p_address'=>$address,'p_local'=>$local.':00','p_zone'=>$snapshot['zone'],'p_currency'=>$snapshot['services']['currency'],'p_service_snapshot'=>$s,'p_selections'=>$selections]);",
       "literal_rpcs": [],
       "methods": []
@@ -11272,7 +11304,7 @@
     },
     {
       "path": "business/booking.js",
-      "line": 173,
+      "line": 200,
       "text": "sessionStorage.setItem(draftKey,JSON.stringify({savedAt:Date.now(),catalogue:JSON.stringify(catalogue),service:form.querySelector('input[name=\"service\"]:checked')?.value||'',values,options:Object.fromEntries([...optionInputs].map(([id,input])=>[id,input.value]))}));"
     },
     {
@@ -11761,6 +11793,6 @@
     "policies": 23,
     "grant_statements": 87,
     "revoke_statements": 78,
-    "application_access_sites": 96
+    "application_access_sites": 100
   }
 }
