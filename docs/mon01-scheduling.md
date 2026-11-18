@@ -1,6 +1,8 @@
-# MON-01 — external scheduling fallback
+# MON-01 — Plesk scheduling fallback
 
-Status: prepared, not installed or enabled. MON-01 remains In progress.
+Status: installed privately on Plesk; task 268 saved INACTIVE. Credential missing. MON-01 remains In progress.
+
+Owner decision: Plesk and GitHub only. This replaces the independent-host prerequisite below; the host-down limitation remains explicit. No Vercel setup is required.
 
 ## Evidence and diagnosis
 
@@ -21,7 +23,7 @@ success proves the full V1-014 incident-recovery target.
 
 ## Prepared repair
 
-Run `scripts/schedule-fallback.py` from a separately operated Linux scheduler
+Run `scripts/schedule-fallback.py` from Plesk Scheduled Tasks
 every five minutes. This is an alternative trigger, not an alternative backup
 implementation. Only the existing monitor (15 min), encrypted backup (6 hours)
 and heartbeat (1 hour) may be dispatched, always on main. Keep native schedules.
@@ -43,18 +45,19 @@ only to this repository still has broader authority than these three workflows;
 the script allowlist is NOT a credential-level permission boundary. Prefer a
 dedicated GitHub App with short-lived installation credentials and approved
 rotation; static fine-grained tokens require expiry/rotation ownership. Credential
-provisioning and selecting an independent host remain prerequisites. Do not reuse
+provisioning remains a prerequisite. The owner selected the existing Plesk host. Do not reuse
 an unrelated existing token or create access without authorization.
 
 An external timer will appear in GitHub as `workflow_dispatch`, not `schedule`.
 Acceptance must pair unattended timer receipts with exact returned GitHub run IDs,
 conclusions and encrypted artifacts. A person pressing Run workflow is not proof.
 
-## Installation and rollback procedure (not executed)
+## Installation and rollback procedure (activation pending)
 
-1. Select a host outside FaraiOS/Plesk and outside GitHub Actions scheduling.
-   Do not put the host-down watchdog on the monitored host. No host or paid plan
-   is assumed approved by this preparation.
+1. Use the existing Plesk host as directed by the owner. It can trigger GitHub
+   jobs while that host is running; it cannot trigger them during a host outage.
+   Native GitHub schedules remain enabled for independent coverage, whose
+   demonstrated scheduling gaps are still unresolved. No new provider is required.
 2. Install reviewed script read-only for its dedicated unprivileged account;
    provide Python 3, CA certificates, HTTPS access to api.github.com, private
    durable state and the approved repository-scoped credential.
@@ -84,8 +87,8 @@ existing monitor/backup concurrency limits overlap, but dispatch is not globally
 exactly-once. Heartbeat is read-only and duplicate checks may occur. The latest 100
 workflow runs are inspected; unknown/missing evidence fails closed. Long-stuck jobs
 block more dispatches and require operator review. No failed jobs are hidden by
-increasing thresholds. Approval to prepare this does not establish a host, provide
-credentials, change main or prove automatic execution.
+increasing thresholds. The owner has selected Plesk; credentials, activation and automatic
+execution remain unverified. No main change is needed for this helper.
 
 ## Validation
 
@@ -101,6 +104,24 @@ References:
 - https://docs.github.com/en/rest/actions/workflows
 - https://www.faraios.com/account/platform.php?task=TASK-5C4FCF2ED6
 
-Decision: NO-GO for closure/activation until host, credential, timer supervision
+Decision: NO-GO for closure/activation until credential, timer supervision
 and automatic-run evidence are in place. Code preparation is complete only after
 the recorded isolated test result passes.
+
+## Plesk installation — 18 Nov 2026
+
+Private directory: `/var/www/vhosts/shalean.com/private/faraios-account/mon01-scheduler-v1`
+(0700); helper and empty dedicated `github-token` file (0600). Helper SHA256
+`8af66a3aaaceea271a2357baa6d0363ae9536ec3dcd370bc641cd7123945e2fd`.
+Task 268 saved inactive, `*/5 * * * *`, running the helper with `--execute`
+and that private directory. Original tasks 263–267 unchanged. No credentials
+reused, grants made, dispatches triggered or messages sent. Hosted read-only
+test at15:48:19Z passed: monitor due, backup recent, heartbeat active.
+
+Native scheduled backup44339467194 at15:46:19Z succeeded and retained encrypted
+artifact14442124467 (not expired); workflow_run heartbeat44339829409 at15:48:15Z
+succeeded. This is native execution, not proof of the inactive Plesk timer.
+Monitor remains at44262840889. GitHub requires Confirm access before token setup.
+Next: owner completes re-authentication; provision dedicated repository Actions
+read/write credential into the private token file without chat/source/log output,
+then finish timer receipts/supervision and verify unattended execution.
