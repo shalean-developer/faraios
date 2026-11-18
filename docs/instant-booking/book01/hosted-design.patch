@@ -502,7 +502,7 @@
 +<label>Visit date<input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
  <?php if (isset($q['total']) && empty($q['outside_scope'])): ?><p><?=esc($f['area'])?> · <?=(int)$q['minutes']?> minutes · ZAR <?=number_format($q['total']/100,2)?></p><?php endif; ?>
  <label>Available start time (SAST)<select name="time"><option value="">Choose a time</option><?php foreach ($q['times']??[] as $t): ?><option <?=($f['time']??'')===$t?'selected':''?>><?=esc($t)?></option><?php endforeach; ?></select></label>
-+<details<?= (!empty($f['notes']) || !empty(array_intersect_key($f['visit_details']??[],['pets'=>true,'equipment'=>true]))) ? ' open' : '' ?>><summary>Extras and access notes (optional)</summary>
++<section aria-labelledby="access-notes-heading"><h2 id="access-notes-heading">Extras and access notes (optional)</h2>
 +<div class="booking-access-row">
 +<?php require_once '/var/www/vhosts/shalean.com/faraios.com/account/booking-location-ui.php';
 +foreach (booking_visit_fields() as $key=>[$label,$choices]) {
@@ -511,7 +511,7 @@
 +} ?>
 +</div>
 +<label>Instructions (optional)<textarea name="requirements" maxlength="1900"><?=esc($f['notes'])?></textarea></label>
-+</details>
++</section>
  <?php if (!empty($q['outside_scope'])): ?><p role="status">Instant booking covers one-time Regular Cleaning with one cleaner in the listed service areas. Change your selection to see available times.</p>
  <?php elseif (isset($q['times']) && !$q['times']): ?><p>No cleaner is available for this entire visit. Choose another date or check the next seven days.</p>
  <button name="action" value="next">Find another available date</button><?php endif; ?>
