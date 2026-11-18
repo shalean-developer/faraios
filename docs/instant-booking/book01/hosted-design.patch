@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/faraios.com/account/_book05-preview/business/book01-visit.css
-@@ -0,0 +1,117 @@
+@@ -0,0 +1,123 @@
 +:root{font:16px/1.5 system-ui,sans-serif;color:#153438;background:#f4f7f5;--teal:#087e79;--line:#ccdcda}*{box-sizing:border-box}body{margin:0}
 +
 +.outer { margin:0; container-type:inline-size; }
@@ -118,6 +118,12 @@
 +    .brand-row .help summary::-webkit-details-marker { display:none; }
 +    .brand-row .help { font-size:.8rem; }
 +}
++
++.details-heading { text-align:center; }
++.selected-service { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
++.service-entry { width:min(100%, 31rem); margin-inline:auto; padding-block:1.5rem; }
++main:has(.service-entry) { padding-inline:clamp(16px, 3vw, 40px); }
++.service-entry h1 { text-align:center; }
 --- /dev/null
 +++ b/faraios.com/account/_book05-preview/business/book01-details.js
 @@ -0,0 +1,14 @@
@@ -157,14 +163,14 @@
 +}
 +function book01_open(string $business,int $step,string $heading,array $quote=[],array $visit=[]): void {
 +    $steps=['Details','Schedule','Review','Payment']; ?>
-+<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=card-2"></head><body><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
-+<?php if ($step<=4): ?><nav aria-label="Booking steps"><ol><?php foreach($steps as $i=>$label): ?><li class="<?=$i+1<=$step?'current':''?>" <?=$i+1===$step?'aria-current="step"':''?>><b><?=$i+1?></b><span><?=esc($label)?></span></li><?php endforeach; ?></ol></nav><?php endif; ?>
++<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=service-1"></head><body><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
++<?php if ($step>=1 && $step<=4): ?><nav aria-label="Booking steps"><ol><?php foreach($steps as $i=>$label): ?><li class="<?=$i+1<=$step?'current':''?>" <?=$i+1===$step?'aria-current="step"':''?>><b><?=$i+1?></b><span><?=esc($label)?></span></li><?php endforeach; ?></ol></nav><?php endif; ?>
 +<details class="help"><summary>Booking help</summary><p>Use synthetic details. Card checkout uses Paystack Test. For manual EFT, report a synthetic transfer and wait for the business to verify it.</p></details></div>
 +</div></header><div class="outer"><main>
-+<div class="layout"><section><h1><?=esc($heading)?></h1><details class="mobile-summary"><summary>Summary<?=isset($quote['total']) && empty($quote['outside_scope'])?' · '.esc(book01_money((int)$quote['total'])).' · '.esc(book01_duration((int)$quote['minutes'])):''?></summary><?php book01_summary($quote,$visit); ?></details>
++<div class="<?=$step===0?'service-entry':'layout'?>"><section><h1<?=$step===1?' class="details-heading"':''?>><?=esc($heading)?></h1><?php if ($step>0): ?><details class="mobile-summary"><summary>Summary<?=isset($quote['total']) && empty($quote['outside_scope'])?' · '.esc(book01_money((int)$quote['total'])).' · '.esc(book01_duration((int)$quote['minutes'])):''?></summary><?php book01_summary($quote,$visit); ?></details><?php endif; ?>
 +<?php }
-+function book01_close(array $quote=[],array $visit=[]): void { ?>
-+</section><aside aria-label="Your booking"><h2>Your booking</h2><?php book01_summary($quote,$visit); ?></aside></div></main><footer>Private preview · Synthetic records only</footer></div></body></html>
++function book01_close(array $quote=[],array $visit=[],bool $showSummary=true): void { ?>
++</section><?php if ($showSummary): ?><aside aria-label="Your booking"><h2>Your booking</h2><?php book01_summary($quote,$visit); ?></aside><?php endif; ?></div></main><footer>Private preview · Synthetic records only</footer></div></body></html>
 +<?php }
 +function booking_visit_fields(): array {
 +    return [
@@ -307,7 +313,7 @@
  $_SERVER['SCRIPT_NAME']='/account/_book05-preview/account/index.php';
  require $private.'/app/runtime/account/core.php';
  require $private.'/app/runtime/account/profile-core.php';
-@@ -25,19 +26,28 @@
+@@ -25,19 +26,49 @@
  try { book05_merchant_key($slug,$private); }
  catch (DomainException $error) { $ready=false; }
  $ticket=enquiry_ticket($slug.':booking');
@@ -315,10 +321,35 @@
 -?><!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Private booking preview</title><main>
 -<h1>Private booking preview</h1>
 -<nav aria-label="Test recipient"><?php foreach ($merchants as $id=>$merchant): ?><a href="?slug=<?=esc($id)?>"><?=esc($merchant['name'])?></a> <?php endforeach; ?></nav>
--<p><a href="../availability.php">Manage booking availability</a> · <a href="../payments.php">Review unbooked payments</a> · <a href="../eft.php">Verify a test EFT receipt</a></p>
++header("Content-Security-Policy: default-src 'none'; style-src 'self'; script-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
++function booking_preview_tools(array $merchants): void { ?>
++<details class="tools"><summary>Preview tools and test businesses</summary><nav aria-label="Test recipient"><?php foreach ($merchants as $id=>$merchant): ?><a href="?slug=<?=esc($id)?>"><?=esc($merchant['name'])?></a> <?php endforeach; ?></nav>
+ <p><a href="../availability.php">Manage booking availability</a> · <a href="../payments.php">Review unbooked payments</a> · <a href="../eft.php">Verify a test EFT receipt</a></p>
 -<p>Recipient: <?=esc($merchants[$slug]['name'])?></p>
 -<?php if (!empty($unavailable)): ?><p>Service details are temporarily unavailable. Try again shortly.</p>
-+header("Content-Security-Policy: default-src 'none'; style-src 'self'; script-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+-<?php elseif (!$offer): ?><p>No eligible instant booking service is available for this business.</p>
+-<?php elseif (!$ready): ?><p>Test checkout is awaiting this business’s Paystack connection.</p>
+-<?php else: ?><form action="instant.php?slug=<?=esc($slug)?>" method="post">
++</details>
++<?php }
++$selected=$_GET['service']??null;
++if (!$ready || !$offer || $selected!==$offer['id']) {
++    book01_open($merchants[$slug]['name'],0,'Choose a service');
++    if (!empty($unavailable)): ?><p>Service details are temporarily unavailable. Try again shortly.</p>
++    <?php elseif (!$offer): ?><p>No eligible instant booking service is available for this business.</p>
++    <?php elseif (!$ready): ?><p>Test checkout is awaiting this business’s Paystack connection.</p>
++    <?php else: ?>
++        <?php if ($selected!==null): ?><p role="alert">Choose an available service to continue.</p><?php endif; ?>
++        <form method="get">
++            <input type="hidden" name="slug" value="<?=esc($slug)?>">
++            <label>Service<select name="service" required><option value="<?=esc($offer['id'])?>">Regular Cleaning</option></select></label>
++            <button>Continue to details</button>
++        </form>
++    <?php endif;
++    booking_preview_tools($merchants);
++    book01_close([],[],false);
++    exit;
++}
 +$initialQuote=[];
 +$sampleOptions=[];
 +foreach ($rows as $row) {
@@ -333,18 +364,17 @@
 +}
 +$summaryVisit=['area'=>$offer['areas'][0]??''];
 +book01_open($merchants[$slug]['name'],1,'Your cleaning details',$initialQuote,$summaryVisit);
-+?><?php if (!empty($unavailable)): ?><p>Service details are temporarily unavailable. Try again shortly.</p>
- <?php elseif (!$offer): ?><p>No eligible instant booking service is available for this business.</p>
- <?php elseif (!$ready): ?><p>Test checkout is awaiting this business’s Paystack connection.</p>
- <?php else: ?><form action="instant.php?slug=<?=esc($slug)?>" method="post">
++?><form action="instant.php?slug=<?=esc($slug)?>" method="post">
  <input type="hidden" name="csrf" value="<?=esc($ticket['csrf'])?>">
- <label>Service <select name="service"><option value="<?=esc($offer['id'])?>">Regular Cleaning</option></select></label>
+-<label>Service <select name="service"><option value="<?=esc($offer['id'])?>">Regular Cleaning</option></select></label>
 -<label>Service address <input name="address" value="10 Example Street" required minlength="5" maxlength="1000"></label>
++<input type="hidden" name="service" value="<?=esc($offer['id'])?>">
++<p class="selected-service"><strong>Regular Cleaning</strong> <a href="?slug=<?=esc($slug)?>">Change service</a></p>
 +<label>Street address <input name="address" value="10 Example Street" required minlength="5" maxlength="1000"></label>
  <label>Service area <select name="service_area"><?php foreach ($offer['areas'] as $area): ?><option><?=esc($area)?></option><?php endforeach; ?></select></label>
  <fieldset><legend>Rooms, extras and fees</legend>
  <?php foreach ($rows as $row):
-@@ -46,5 +56,14 @@
+@@ -46,5 +77,12 @@
      $quantity=max($min,min($max,(int)$sample)); ?>
  <label><?=esc($row['name'])?> <input type="number" name="options[<?=esc($row['id'])?>]" min="<?=$min?>" max="<?=$max?>" value="<?=$quantity?>" <?= $min===$max?'readonly':'required' ?>></label>
  <?php endforeach; ?></fieldset>
@@ -355,9 +385,7 @@
 +<details><summary>Extras and access notes (optional)</summary>
 +<?php foreach (booking_visit_fields() as $key=>[$label,$choices]): ?><label><?=esc($label)?><select name="<?=esc($key)?>"><option value="">Choose if applicable</option><?php foreach ($choices as $choice): ?><option><?=esc($choice)?></option><?php endforeach; ?></select></label><?php endforeach; ?>
 +<label>Instructions<textarea name="requirements" maxlength="1900"></textarea></label></details>
-+<button>Choose a time</button></form><?php endif; ?>
-+<details class="tools"><summary>Preview tools and test businesses</summary><nav aria-label="Test recipient"><?php foreach ($merchants as $id=>$merchant): ?><a href="?slug=<?=esc($id)?>"><?=esc($merchant['name'])?></a> <?php endforeach; ?></nav>
-+<p><a href="../availability.php">Manage booking availability</a> · <a href="../payments.php">Review unbooked payments</a> · <a href="../eft.php">Verify a test EFT receipt</a></p>
-+</details>
++<button>Choose a time</button></form>
++<?php booking_preview_tools($merchants); ?>
 +<script src="../business/book01-details.js" defer></script>
 +<?php book01_close($initialQuote,$summaryVisit); ?>
