@@ -10,6 +10,7 @@ function platform_workspace_navigation(string $current, bool $directory=false): 
  if ($directory) {
   $html.='<details class="nav-group" open><summary><span class="nav-symbol" aria-hidden="true">◫</span>Platform<span class="nav-chevron" aria-hidden="true">›</span></summary><div class="nav-children">';
   $html.='<a href="platform-overview-page.php"'.($current==='platform-overview'?' aria-current="page"':'').'>Platform overview</a>';
+  $html.='<a href="platform-monitoring-page.php"'.($current==='monitoring'?' aria-current="page"':'').'>Monitoring</a>';
   foreach(['businesses'=>'Businesses','users'=>'Users'] as $key=>$label) $html.='<a href="platform-directory-page.php?view='.$key.'"'.($current===$key?' aria-current="page"':'').'>'.$label.'</a>';
   $html.='</div></details>';
  }
