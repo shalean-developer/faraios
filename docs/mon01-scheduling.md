@@ -195,3 +195,8 @@ for the implemented bounded repair; first trigger-cause criterion and complete
 fresh-monitor/backup/heartbeat cadence criterion remain open. MON-01 stays
 Inprogress3/5. Full backup-cycle observation and Plesk alert-delivery acceptance
 remain; do not claim continuous availability or incident recovery from this run.
+
+Second unattended268 tick16:35:01Z exited0, gap300.097seconds. All3 workflows
+reported recent; pending state reconciled to{}. No duplicate dispatch. Two
+consecutive timer ticks and one independent-task check are proved; no six-hour
+backup cycle has yet elapsed since activation.
