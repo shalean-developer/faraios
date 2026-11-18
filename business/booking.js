@@ -65,11 +65,13 @@ const rebuildOptions = service => {
  for (const [id,input] of optionInputs) remembered[id] = input.value;
  optionInputs.clear(); optionPanel.replaceChildren(); activeService = service?.id || '';
  const options = service?.options || [];
- for (const [title,kinds] of [['Rooms',['bedrooms','bathrooms']],['Extra rooms',['room']],['Extras',['extra','toggle']]]) {
-  const group = options.filter(o => kinds.includes(o.kind)); if (!group.length) continue;
+ for (const [title,kinds] of [['Rooms',['bedrooms','bathrooms','room']],['Extras',['extra','toggle']]]) {
+  const group = kinds.flatMap(kind => options.filter(option => option.kind === kind));
+  if (!group.length) continue;
   const section = document.createElement('section'); section.className = 'booking-option-group';
   const heading = document.createElement('h3'); heading.textContent = title; section.append(heading);
-  const tiles=document.createElement('div');tiles.className='extra-task-grid';if(kinds.includes('toggle'))section.append(tiles);
+  const tiles=document.createElement('div');tiles.className='extra-task-grid';
+  if (group.some(option => option.kind === 'toggle')) section.append(tiles);
   for (const o of group) {
    const row = document.createElement('div'); row.className = 'booking-option';
    const label = document.createElement('label'); label.htmlFor = `quantity-${o.id}`; label.textContent = o.name;
@@ -79,6 +81,10 @@ const rebuildOptions = service => {
    optionInputs.set(o.id,input);
    if (o.minimum === o.maximum) {
     input.type = 'hidden';
+    if (o.kind === 'extra') {
+     section.append(input);
+     continue;
+    }
     const fixed = document.createElement('p');
     fixed.textContent = o.name + ' · ' + money(Math.max(0, o.minimum - o.included) * o.price);
     row.append(fixed, input);
@@ -99,18 +105,34 @@ const rebuildOptions = service => {
     if(o.maximum>o.minimum+2){const button=document.createElement('button');button.type='button';button.textContent=`${o.minimum+3}+ Custom`;button.addEventListener('click',()=>{custom=true;if(Number(input.value)<o.minimum+3)input.value=String(o.minimum+3);refresh();update();input.focus();});presets.append(button);}
     input.addEventListener('input',()=>{custom=true;refresh();});refresh();row.append(label,presets,controls,hint);
    }if(o.kind==='toggle')tiles.append(row);else section.append(row);
-  }optionPanel.append(section);
+  }
+  section.hidden = !section.querySelector('.booking-option');
+  optionPanel.append(section);
  }
 };
 const calculateOptions = service => {
  if(activeService !== (service?.id||''))rebuildOptions(service);
- if(!service)return {price:'Choose a service',options:'None selected',breakdown:'Not selected',duration:'Not selected'};
- let total=service.amount||0,minutes=service.duration;const selected=[],lines=[`${service.name}: ${service.mode==='quote'?'Quote required':money(total)}`];
- for(const o of service.options||[]){const q=Number(optionInputs.get(o.id).value);const charge=Math.max(0,q-o.included);total+=charge*o.price;minutes+=charge*o.minutes;if(q>0)selected.push(`${o.name} × ${q}`);if(charge>0)lines.push(`${o.name} × ${charge}: ${money(charge*o.price)}`);}
+ if(!service)return {price:'Choose a service',options:'None selected',breakdown:'Not selected',duration:'Not selected',summary:'None selected'};
+ let total=service.amount||0,minutes=service.duration;const selected=[],fees=[],lines=[`${service.name}: ${service.mode==='quote'?'Quote required':money(total)}`];
+ for (const option of service.options || []) {
+  const quantity = Number(optionInputs.get(option.id).value);
+  const charge = Math.max(0, quantity - option.included);
+  const cost = charge * option.price;
+  total += cost;
+  minutes += charge * option.minutes;
+  if (quantity > 0) {
+   if (option.kind === 'extra' && option.minimum === option.maximum && service.mode !== 'quote') {
+    fees.push(option.name + ' · ' + money(cost));
+   } else {
+    selected.push(option.name + ' × ' + quantity);
+   }
+  }
+  if (charge > 0) lines.push(option.name + ' × ' + charge + ': ' + money(cost));
+ }
  const invalid=total>999999999||minutes>10080;
  for(const input of optionInputs.values())input.setCustomValidity(invalid?'Selected scope exceeds supported price or duration.':'');
  const price=service.mode==='quote'?'Quote required':`${service.mode==='from'?'From ':''}${money(total)}`;
- return {price,options:selected.join(', ')||'None selected',breakdown:lines.join('\n'),duration:[Math.floor(minutes/60)?`${Math.floor(minutes/60)} hr`:'',minutes%60?`${minutes%60} min`:''].filter(Boolean).join(' ') || '0 min'};
+ return {price,options:selected.join(', ')||'None selected',summary:[selected.join(', '),...fees].filter(Boolean).join(' · ')||'None selected',breakdown:lines.join('\n'),duration:[Math.floor(minutes/60)?`${Math.floor(minutes/60)} hr`:'',minutes%60?`${minutes%60} min`:''].filter(Boolean).join(' ') || '0 min'};
 };
 
  const put = (id, value) => { document.getElementById(id).textContent = value; };
@@ -135,7 +157,7 @@ const calculateOptions = service => {
   const service = catalogue.items.find(s=>s.id===option?.value);
   const calculated = calculateOptions(service);
   const price = calculated.price;
-  put('summary-options',calculated.options);put('summary-breakdown',calculated.breakdown);put('summary-duration',calculated.duration);
+  put('summary-options',calculated.summary);put('summary-breakdown',calculated.breakdown);put('summary-duration',calculated.duration);
   const values = {
    service: option ? option.dataset.name : 'Not selected', price, options:calculated.options,
    area: fields.service_area?.value || 'Not selected',
@@ -153,7 +175,7 @@ const calculateOptions = service => {
   document.getElementById('summary-when-row').hidden = !fields.date.value && !fields.time.value;
   put('summary-address', [fields.address.value.trim(), fields.unit.value.trim()].filter(Boolean).join(', '));
   put('summary-area', fields.service_area?.value || '');
-  document.getElementById('summary-options').hidden = calculated.options === 'None selected';
+  document.getElementById('summary-options').hidden = calculated.summary === 'None selected';
   if(fields.date.value) {
    const date = new Date(fields.date.value+'T12:00:00');
    put('summary-schedule', [new Intl.DateTimeFormat('en-ZA',{weekday:'short',day:'numeric',month:'short'}).format(date),fields.time.value].filter(Boolean).join(' · '));
