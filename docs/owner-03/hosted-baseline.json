@@ -1,0 +1,16 @@
+{
+  "observed_at": "2026-11-18",
+  "source": "Plesk editor DOM text, UTF-8; line endings may be normalized; not a raw filesystem byte attestation",
+  "must_preserve": {
+    "account/platform.php": "d7ac087c3568b7032214118130f173bdc963d6568d84c0715f3d3aa30fb0128b",
+    "account/platform-core.php": "4f06496db3bb0b9ce72ff37c29f24547fa2654708fd40e305a096bf9602f64c7",
+    "account/platform-session.php": "01bb9fdec84ed397470ce9d7136a959975dcae182bad2e60448706a26edb8508",
+    "account/index.php": "dc85bb9a2a4d2ff623c2b928eff8b7d51b946119da0a6b51f996c43d867ef947",
+    "account/core.php": "a91323937bc38a3c4ae5f7bdb9afe6ac19fc434b8ab001d2234a67a8d754652e",
+    "account/regions.json": "92f05112093c0937e82879d68a7ae1e59ee3600e0c63f860072f547e520b2c19"
+  },
+  "must_be_absent": [
+    "account/platform-directory.php",
+    "account/platform-directory-reader.php"
+  ]
+}

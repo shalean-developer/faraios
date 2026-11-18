@@ -1,0 +1,5 @@
+-- SUPERSEDED REVIEW DRAFT. Do not use this file for installation.
+-- Canonical prepared migration:
+-- supabase/migrations/20261118092848_owner_directory_restricted_reader.sql
+-- See docs/owner-03/installation.md for preflight and two-step rollback.
+-- No SQL is executed by this pointer file.
