@@ -1,0 +1,20 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: #f3f6f7; color: #182f34; font: 1rem/1.5 system-ui, sans-serif; }
+main { max-width: 52rem; margin: auto; padding: 2rem clamp(1rem, 4vw, 3rem); }
+a { color: #006458; text-underline-offset: .18em; }
+header { padding: 1.5rem 0 .6rem; }
+header p { color: #47615f; margin: 0; }
+h1 { margin: .2rem 0; font-size: clamp(2rem, 6vw, 3rem); line-height: 1.15; }
+h2, h3, .amount { margin: .25rem 0; }
+.search, article, section { margin: 1.2rem 0; padding: 1.25rem; background: white; border: 1px solid #cad7d8; border-radius: .6rem; overflow-wrap: anywhere; }
+.search label { font-weight: 600; }
+.search div, .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; margin-top: .5rem; }
+input, button { padding: .65rem .85rem; font: inherit; border-radius: .3rem; }
+input { border: 1px solid #6d8384; min-width: 0; width: min(100%,24rem); }
+button { border: none; background: #006458; color: white; cursor: pointer; }
+:focus-visible { outline: 3px solid #bc6100; outline-offset: 3px; }
+.amount { font-size: 1.45rem; }
+dl { display: grid; grid-template-columns: max-content minmax(0,1fr); gap: .45rem 1.5rem; }
+dt { color: #496263; } dd { margin: 0; }
+[role=alert] { padding: .75rem; border-left: 4px solid #a85313; background: #fff4e8; }
+@media (max-width: 36rem) { dl { grid-template-columns: 1fr; gap: 0; } dd { margin-bottom: .75rem; } }

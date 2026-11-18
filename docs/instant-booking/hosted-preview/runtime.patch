@@ -1,0 +1,200 @@
+--- a/account/core.php
++++ b/account/core.php
+@@ -4,11 +4,11 @@
+ class AccountSessionExpired extends RuntimeException {}
+ function cfg(): array {
+  static $c; if ($c !== null) return $c;
+- $dir=getenv('FARAIOS_ACCOUNT_DIR') ?: '/var/www/vhosts/shalean.com/private/faraios-account';
++ $dir='/var/www/vhosts/shalean.com/private/faraios-checkout-preview/app';
+  $c=is_file($dir.'/config.php') ? require $dir.'/config.php' : [];
+  if (!is_array($c) || !($c['enabled']??false)) throw new RuntimeException('Account setup is not available yet. Please try again later.');
+  $test=($c['environment']??'')==='test';
+- if (!$test && (($c['supabase_url']??'')!=='https://rxelmugnucfajrqmphhe.supabase.co' || !str_starts_with($c['base_url']??'', 'https://www.faraios.com'))) throw new RuntimeException('Account configuration is unavailable.');
++ if (!$test && (($c['supabase_url']??'')!=='https://jqnecahhaxxdsrybwuoo.supabase.co' || ($c['base_url']??'') !== 'https://www.faraios.com/account/_book05-preview')) throw new RuntimeException('Account configuration is unavailable.');
+  if (!$test && !str_starts_with($_SERVER['SCRIPT_NAME']??'', (parse_url($c['base_url'],PHP_URL_PATH)?:'').'/account/')) throw new RuntimeException('Account configuration is unavailable.');
+  if (empty($c['publishable_key'])) throw new RuntimeException('Account configuration is unavailable.');
+  $c['_ops_root']=realpath($dir)?:'';ops_install($c);return $c;
+--- a/business/instant-core.php
++++ b/business/instant-core.php
+@@ -1,23 +1,39 @@
+ <?php
+ declare(strict_types=1);
+ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) { http_response_code(404); exit; }
++
++require_once dirname(__DIR__, 2).'/merchants.php';
++
++function instant_key(string $slug): string {
++    return book05_merchant_key($slug, dirname(__DIR__, 3));
++}
+ 
+ function instant_enabled(): bool {
+     return profile_env() === 'preview' && (cfg()['instant_test_enabled'] ?? false) === true;
+ }
+ 
+-function instant_db(): PDO {
+-    static $db;
+-    if (!instant_enabled()) throw new RuntimeException('Test checkout unavailable.');
+-    return $db ??= new PDO(cfg()['instant_dsn'], cfg()['instant_user'], cfg()['instant_password'],
+-        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_EMULATE_PREPARES => false]);
+-}
+-
+ function instant_query(string $sql, array $args): array {
+-    $statement = instant_db()->prepare($sql);
+-    $statement->execute($args);
+-    $value = $statement->fetchColumn();
+-    return $value === false ? [] : json_decode($value, true, 32, JSON_THROW_ON_ERROR);
++    $operations = [
++        "select instant_private.select_method(?::uuid,?,?)" => 'method',
++        "select jsonb_build_object('id',service->>'id','areas',areas) from instant_private.config(?)" => 'offer',
++        "select instant_private.receipt(?::uuid)" => 'receipt',
++        "select instant_private.reserve(?::uuid,?,?,?,?::jsonb,?::timestamptz,?::int,?::int,?::jsonb,?)" => 'reserve',
++        "select instant_private.slots(?,?,?,?::jsonb,?::date)" => 'slots',
++        "select instant_private.settle_verified(?::uuid,?::int,?::bigint)" => 'settleVerified',
++    ];
++    if (!instant_enabled() || !isset($operations[$sql])) throw new RuntimeException('Preview unavailable.');
++    $token = trim(file_get_contents('/var/www/vhosts/shalean.com/private/faraios-checkout-preview/https-gateway.key'));
++    if (!preg_match('/^[A-Za-z0-9_-]{64}$/D',$token)) throw new RuntimeException('Preview unavailable.');
++    $options = ['http'=>['method'=>'POST','header'=>"Content-Type: application/json\r\nAuthorization: Bearer ".$token,
++        'content'=>json_encode(['operation'=>$operations[$sql],'args'=>$args],JSON_THROW_ON_ERROR),
++        'timeout'=>15,'follow_location'=>0,'ignore_errors'=>true],'ssl'=>['verify_peer'=>true,'verify_peer_name'=>true]];
++    $stream = @fopen('https://jqnecahhaxxdsrybwuoo.supabase.co/functions/v1/book05-checkout','rb',false,stream_context_create($options));
++    if (!$stream) throw new RuntimeException('Preview unavailable.');
++    try {$body=stream_get_contents($stream,32769);$meta=stream_get_meta_data($stream);} finally {fclose($stream);}
++    if (!preg_match('~^HTTP/\S+ 200\b~',$meta['wrapper_data'][0]??'') || $meta['timed_out'] || $body===false || strlen($body)>32768) throw new RuntimeException('Preview unavailable.');
++    $reply=json_decode($body,true,32,JSON_THROW_ON_ERROR);
++    if (!array_key_exists('result',$reply)) throw new RuntimeException('Preview unavailable.');
++    return $reply['result']??[];
+ }
+ 
+ function instant_entry(string $slug): void {
+@@ -36,12 +52,12 @@
+     return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($bytes), 4));
+ }
+ 
+-function instant_provider(string $path, ?array $body = null): array {
+-    $key = cfg()['instant_paystack_key'] ?? '';
++function instant_provider(string $slug, string $path, ?array $body = null): array {
++    $key = instant_key($slug);
+     if (!instant_enabled() || !str_starts_with($key, 'sk_test_')) throw new RuntimeException('Test checkout unavailable.');
+     $ctx = stream_context_create(['http' => [
+-        'method' => $body === null ? 'GET' : 'POST', 'timeout' => 12, 'follow_location' => 0,
+-        'header' => "Authorization: Bearer ".$key."\r\nContent-Type: application/json",
++        'method' => $body === null ? 'GET' : 'POST', 'timeout' => 12, 'follow_location' => 0, 'ignore_errors'=>true,
++        'header' => "Authorization: Bearer ".$key."\r\nContent-Type: application/json\r\nAccept: application/json\r\nUser-Agent: FaraiOS-Private-Checkout/1.0",
+         'content' => $body === null ? '' : json_encode($body, JSON_THROW_ON_ERROR)
+     ]]);
+     $base = 'https://api.paystack.co';
+@@ -50,16 +66,24 @@
+         $base = cfg()['instant_fixture'];
+     $raw = @file_get_contents($base.'/transaction/'.$path, false, $ctx);
+     $reply = json_decode($raw ?: '{}', true);
+-    if (($reply['status'] ?? false) !== true || !is_array($reply['data'] ?? null)) throw new RuntimeException('Payment service unavailable.');
++    if (($reply['status'] ?? false) !== true || !is_array($reply['data'] ?? null)) {
++        preg_match('~^HTTP/\\S+ (\\d{3})~',$http_response_header[0]??'',$code);
++        $message = preg_replace('/[^a-zA-Z0-9 .,!?_-]/',' ',substr(str_replace($key,'[redacted]',(string)($reply['message']??'')),0,180));
++        file_put_contents('/var/www/vhosts/shalean.com/private/faraios-checkout-preview/paystack-status.json',json_encode(['http'=>(int)($code[1]??0),'operation'=>$body===null?'verify':'initialize','message'=>$message]),LOCK_EX);
++        throw new RuntimeException('Payment service unavailable.');
++    }
+     return $reply['data'];
+ }
+ 
+-function instant_verify(string $reference): array {
+-    $receipt = instant_provider('verify/'.rawurlencode($reference));
++function instant_verify(string $reference, string $slug): array {
++    $hold = instant_query('select instant_private.receipt(?::uuid)', [substr($reference, 3)]);
++    if (!book05_receipt_matches($hold, $slug)) throw new DomainException('Payment recipient mismatch.');
++    $receipt = instant_provider($slug, 'verify/'.rawurlencode($reference));
+     if (($receipt['domain'] ?? '') !== 'test' || ($receipt['reference'] ?? '') !== $reference ||
+         ($receipt['status'] ?? '') !== 'success' || ($receipt['currency'] ?? '') !== 'ZAR' || !is_int($receipt['amount'] ?? null))
+         throw new RuntimeException('Successful test payment has not been verified.');
+-    return instant_query('select instant_private.settle(?::uuid,?::int)', [substr($reference,3),$receipt['amount']]);
++    if (!is_int($receipt['id'] ?? null) || $receipt['id'] <= 0) throw new RuntimeException('Payment identifier unavailable.');
++    return instant_query('select instant_private.settle_verified(?::uuid,?::int,?::bigint)', [substr($reference,3),$receipt['amount'],$receipt['id']]);
+ }
+ 
+ function instant_checkout_url(array $reply, string $reference): string {
+--- a/b/instant.php
++++ b/b/instant.php
+@@ -16,13 +16,15 @@
+ 
+ if (isset($_GET['webhook'])) {
+     $raw = file_get_contents('php://input',false,null,0,65537);
+-    $key = cfg()['instant_paystack_key'] ?? '';
++    $merchant = $_GET['merchant'] ?? 'synthetic-cleaning';
++    if (!is_string($merchant)) { http_response_code(403); exit; }
++    try { $key = instant_key($merchant); } catch (Throwable $e) { http_response_code(403); exit; }
+     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || strlen($raw)>65536 || !str_starts_with($key,'sk_test_') ||
+         !hash_equals(hash_hmac('sha512',$raw,$key),$_SERVER['HTTP_X_PAYSTACK_SIGNATURE'] ?? '')) { http_response_code(403); exit; }
+     $event = json_decode($raw,true);
+     if (($event['event'] ?? '') === 'charge.success' && ($event['data']['domain'] ?? '') === 'test'
+         && preg_match('/^fi-([0-9a-f-]{36})$/D',$event['data']['reference'] ?? '',$m)) {
+-        try { instant_verify($m[0]); } catch (Throwable $e) { http_response_code(503); }
++        try { instant_verify($m[0], $merchant); } catch (DomainException $e) { http_response_code(200); } catch (Throwable $e) { http_response_code(503); }
+     }
+     exit;
+ }
+@@ -31,7 +33,7 @@
+ if (!is_string($slug) || !preg_match('/^[a-z0-9-]{3,64}$/D',$slug)) { http_response_code(404); exit; }
+ $ticket = enquiry_ticket($slug.':booking');
+ $base = cfg()['base_url'];
+-$back = $base.'/b/'.$slug.'?booking=1';
++$back = $base.'/b/index.php';
+ $self = $base.'/b/instant.php?slug='.$slug;
+ $flow = $_GET['flow'] ?? '';
+ $today = new DateTimeImmutable('today',new DateTimeZone('Africa/Johannesburg'));
+@@ -65,11 +67,12 @@
+     $action=$_POST['action'] ?? '';
+     if (isset($f['reserved']) && !isset($f['result'])) {
+         $receipt=instant_query('select instant_private.receipt(?::uuid)',[$flow]);
++        $f['method']=$receipt['method'] ?? null;
+         if (in_array($receipt['state'] ?? '', ['confirmed','review'],true)) $f['result']=$receipt;
+     }
+     if (isset($_GET['reference'])) {
+         if (!isset($f['reserved']) || $_GET['reference']!=='fi-'.$flow) throw new DomainException('Payment reference unavailable.');
+-        $f['result']=instant_verify('fi-'.$flow);
++        $f['result']=instant_verify('fi-'.$flow, $slug);
+         header('Location: '.$self,true,303); exit;
+     }
+     if ($_SERVER['REQUEST_METHOD']==='POST') {
+@@ -84,11 +87,16 @@
+             $f['reserved']=instant_query('select instant_private.reserve(?::uuid,?,?,?,?::jsonb,?::timestamptz,?::int,?::int,?::jsonb,?)',
+               [$flow,$slug,$f['service'],$f['area'],$f['options'],$at.'+02:00',$f['quote']['total'],$f['quote']['minutes'],json_encode($contact),$f['address']]);
+             $f['contact']=$contact; $f['at']=$at;
++        } elseif ($action==='eft' && isset($f['reserved']) && !isset($f['result'])) {
++            instant_query('select instant_private.select_method(?::uuid,?,?)',[$flow,$slug,'eft']);
+         } elseif ($action==='pay' && isset($f['reserved']) && !isset($f['result'])) {
+             if (strtotime($f['reserved']['expires'])<=time()) throw new DomainException('Your reservation expired. Choose a new time.');
+             if (!isset($f['checkout'])) {
++                instant_query('select instant_private.select_method(?::uuid,?,?)',[$flow,$slug,'paystack']);
+                 $ref='fi-'.$flow;
+-                $reply=instant_provider('initialize',['amount'=>$f['reserved']['total'],'email'=>$f['contact']['email'],
++                $hold = instant_query('select instant_private.receipt(?::uuid)', [$flow]);
++                if (!book05_receipt_matches($hold, $slug)) throw new DomainException('Payment recipient mismatch.');
++                $reply=instant_provider($slug, 'initialize',['amount'=>$f['reserved']['total'],'email'=>$f['contact']['email'],
+                     'currency'=>'ZAR','reference'=>$ref,'callback_url'=>$self]);
+                 $f['checkout']=instant_checkout_url($reply,$ref);
+             }
+@@ -115,12 +123,21 @@
+ <?php if (isset($f['result'])): ?>
+ <h2><?=$f['result']['state']==='confirmed'?'Booking confirmed':'Payment needs review'?></h2>
+ <?php if ($f['result']['state']==='confirmed'): ?><p>Booking reference <?=esc($f['result']['booking'])?></p><p><?=esc($f['at'])?> · Africa/Johannesburg</p><p><?=esc($f['address'])?></p>
+-<?php else: ?><p>The test payment arrived after availability changed. Contact the business with reference <?=esc('fi-'.$flow)?>.</p><?php endif; ?>
++<?php else: ?><p>The test payment arrived after availability changed. Contact the business with reference <?=esc(($f['method'] ?? '')==='eft' ? $flow : 'fi-'.$flow)?>.</p><?php endif; ?>
++<?php elseif (($f['method'] ?? '')==='eft'): ?>
++<h2 role="status">Awaiting payment verification</h2>
++<p><?=esc(book05_merchants()[$slug]['name'])?> will check the reported transfer before confirming your booking.</p>
++<p>Transfer report reference <strong><?=esc($flow)?></strong></p>
++<p>If the hold expires first, the business will review the payment and availability.</p>
++<a href="<?=esc($self)?>">Refresh booking status</a>
+ <?php elseif (isset($f['reserved'])): ?>
+-<h2>Review and pay</h2><p><?=esc($f['address'])?> · <?=esc($f['area'])?></p><p><?=esc($f['at'])?> · Africa/Johannesburg · <?=(int)$f['quote']['minutes']?> minutes</p>
++<h2>Review and pay</h2><p>Payment recipient: <?=esc(book05_merchants()[$slug]['name'])?></p><p><?=esc($f['address'])?> · <?=esc($f['area'])?></p><p><?=esc($f['at'])?> · Africa/Johannesburg · <?=(int)$f['quote']['minutes']?> minutes</p>
+ <p><?=esc($f['contact']['name'])?> · <?=esc($f['contact']['email'])?></p><p><strong>Total ZAR <?=number_format($f['reserved']['total']/100,2)?></strong></p>
+ <?php if (strtotime($f['reserved']['expires'])>time()): ?><p>Reserved until <?=esc((new DateTimeImmutable($f['reserved']['expires']))->setTimezone(new DateTimeZone('Africa/Johannesburg'))->format('H:i:s'))?> SAST.</p>
+ <?php instant_form('pay',$self,$ticket['csrf']); ?><button>Pay with test checkout</button></form>
++<?php if (empty($f['method']) && empty($f['checkout'])): ?>
++<?php instant_form('eft',$self,$ticket['csrf']); ?><button>Report a test EFT transfer</button></form>
++<?php endif; ?>
+ <?php else: ?><p>Your reservation expired. Choose another time to start again.</p><?php endif; ?>
+ <?php elseif (isset($f)): ?><h2>Choose an available time</h2>
+ <?php instant_form('date',$self,$ticket['csrf']); ?><label>Date <input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label><button>Show times</button></form>
