@@ -93,6 +93,10 @@ function platform_directory(): PlatformDirectory {
   require_once __DIR__.'/platform-session.php';
   start(); return user(); // Existing user() performs managed Auth verification per request.
  },static fn():array=>platform_settings(),static function(string $resource,array $query):array {
+  if ((platform_settings()['directory_transport']??'')==='https') {
+   require_once __DIR__.'/platform-directory-https.php';
+   return (platform_directory_https_reader())($resource,$query);
+  }
   require_once __DIR__.'/platform-directory-reader.php';
   return (platform_directory_reader())($resource,$query);
  });
