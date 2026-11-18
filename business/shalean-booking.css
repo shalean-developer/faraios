@@ -1,0 +1,108 @@
+/* The public request form uses the business catalogue and preferred visit time. */
+body.ui-business {
+  color: #153438;
+  background: #f4f7f5;
+}
+.booking-header.topbar {
+  max-width: none;
+  margin: 0;
+  padding-inline: clamp(16px, 2vw, 32px);
+  background: white;
+  border-bottom: 1px solid #ccdcda;
+}
+.booking-header .booking-identity { justify-self: end; }
+.booking-header .booking-progress li {
+  width: 30px;
+  height: 30px;
+  background: #edf6f3;
+  color: #153438;
+}
+.booking-header .booking-progress li[aria-current="step"] {
+  color: white;
+  background: #087e79;
+}
+.booking-header .booking-progress ol::before { display: none; }
+.booking-header .booking-progress li span {
+  top: 34px;
+  color: #244a47;
+}
+main.public-main {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+#booking.public-card {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 18px clamp(16px, 2vw, 32px) 32px;
+  border: 1px solid #ccdcda;
+  border-top: 0;
+  border-radius: 0 0 15px 15px;
+  background: white;
+}
+.request-layout { margin-top: 0; }
+.request-layout .service-intro {
+  color: #153438;
+  font-weight: 650;
+  font-size: clamp(20px, 2vw, 26px);
+}
+.request-layout .booking-services { gap: 12px; }
+.request-layout .booking-service-card {
+  flex: 0 1 128px;
+  min-height: 128px;
+  background: white;
+  border-radius: 9px;
+}
+.request-layout .booking-service-card:hover,
+.request-layout .booking-service-card:focus-within { border-color: #087e79; }
+.request-layout :is(.address-entry, .schedule-entry, .contact-entry, .review-entry) {
+  border: 0;
+  box-shadow: none;
+  padding-inline: 0;
+}
+.request-layout :is(.address-entry, .schedule-entry, .contact-entry, .review-entry) h2 {
+  text-align: center;
+  color: #153438;
+}
+.request-layout .request-summary {
+  border-radius: 12px;
+  background: #edf6f3;
+}
+.request-summary .summary-shell { background: transparent; }
+@media (min-width: 901px) {
+  .booking-header.topbar {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 460px) minmax(0, 1fr);
+  }
+  .request-layout:not(.service-selection) {
+    grid-template-columns: minmax(0, 1fr) clamp(265px, 27vw, 380px);
+    gap: clamp(24px, 4vw, 64px);
+  }
+  .request-layout .request-summary {
+    position: sticky;
+    top: calc(var(--booking-header-height, 112px) + 12px);
+    max-height: calc(100dvh - var(--booking-header-height, 112px) - 24px);
+    overflow-y: auto;
+    align-self: start;
+  }
+}
+@media (min-width: 420px) {
+  .address-entry {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 2fr);
+    column-gap: 12px;
+  }
+  .address-entry h2, .address-entry #address-help { grid-column: 1 / -1; }
+  .address-entry label[for="address"], .address-entry .unit-label {
+    grid-row: 2;
+    align-self: end;
+    margin: 0 0 6px;
+  }
+  .address-entry .address-input-wrap, .address-entry #unit {
+    grid-row: 3;
+    min-width: 0;
+  }
+  .address-entry #unit, .address-entry .unit-label { grid-column: 2; }
+  .address-entry #address-help { grid-row: 4; }
+}
