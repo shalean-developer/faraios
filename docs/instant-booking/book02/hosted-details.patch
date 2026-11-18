@@ -1,0 +1,163 @@
+--- a/faraios.com/account/_book05-preview/b/index.php
++++ b/faraios.com/account/_book05-preview/b/index.php
+@@ -1,13 +1,50 @@
+ <?php
+-require '/var/www/vhosts/shalean.com/private/faraios-checkout-preview/app/guard.php';book05_gate();require '/var/www/vhosts/shalean.com/private/faraios-checkout-preview/app/runtime/account/core.php';require '/var/www/vhosts/shalean.com/private/faraios-checkout-preview/app/runtime/account/enquiries-core.php';
++declare(strict_types=1);
++$private='/var/www/vhosts/shalean.com/private/faraios-checkout-preview';
++require $private.'/app/guard.php';
++book05_gate();
+ $_SERVER['SCRIPT_NAME']='/account/_book05-preview/account/index.php';
+-require_once '/var/www/vhosts/shalean.com/private/faraios-checkout-preview/app/merchants.php';
++require $private.'/app/runtime/account/core.php';
++require $private.'/app/runtime/account/profile-core.php';
++require $private.'/app/runtime/account/enquiries-core.php';
++require $private.'/app/runtime/business/instant-core.php';
+ enquiry_session();
+-$merchants = book05_merchants();
+-$slug = $_GET['slug'] ?? 'synthetic-cleaning';
++$merchants=book05_merchants();
++$slug=$_GET['slug']??'synthetic-cleaning';
+ if (!is_string($slug) || !isset($merchants[$slug])) { http_response_code(404); exit; }
+-$ready = true;
+-try { book05_merchant_key($slug, '/var/www/vhosts/shalean.com/private/faraios-checkout-preview'); }
+-catch (DomainException $exception) { $ready = false; }
+-$ticket=enquiry_ticket($slug.':booking');header("Content-Security-Policy: default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+-?><!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Private checkout test</title><main><h1>Regular Cleaning</h1><nav aria-label="Test recipient"><?php foreach ($merchants as $id=>$merchant): ?><a href="?slug=<?=esc($id)?>"><?=esc($merchant['name'])?></a> <?php endforeach; ?></nav><p><a href="../availability.php">Manage booking availability</a> · <a href="../payments.php">Review unbooked payments</a> · <a href="../eft.php">Verify a test EFT receipt</a></p><p>Recipient: <?=esc($merchants[$slug]['name'])?></p><p>Private test booking · Gardens · 2 bedrooms, 1 bathroom</p><?php if (!$ready): ?><p>Test checkout is awaiting this business’s Paystack connection.</p><?php else: ?><form action="instant.php?slug=<?=esc($slug)?>" method="post"><input type="hidden" name="csrf" value="<?=esc($ticket['csrf'])?>"><input type="hidden" name="service" value="<?=str_repeat('1',32)?>"><input type="hidden" name="address" value="10 Example Street"><input type="hidden" name="service_area" value="Gardens"><?php foreach([2=>2,3=>1,4=>1] as $id=>$qty):?><input type="hidden" name="options[<?=str_repeat((string)$id,32)?>]" value="<?=$qty?>"><?php endforeach;?><button>See available times</button></form><?php endif; ?></main></html>
++$offer=[];
++$rows=[];
++try {
++    $config=instant_query("select jsonb_build_object('id',service->>'id','areas',areas) from instant_private.config(?)",[$slug]);
++    if (!empty($config['areas']) && !empty($config['id'])) {
++        $offer=$config;
++        $rows=$offer['options']??[];
++    }
++} catch (Throwable $error) { $unavailable=true; $offer=[]; }
++$ready=true;
++try { book05_merchant_key($slug,$private); }
++catch (DomainException $error) { $ready=false; }
++$ticket=enquiry_ticket($slug.':booking');
++header("Content-Security-Policy: default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
++?><!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Private booking preview</title><main>
++<h1>Private booking preview</h1>
++<nav aria-label="Test recipient"><?php foreach ($merchants as $id=>$merchant): ?><a href="?slug=<?=esc($id)?>"><?=esc($merchant['name'])?></a> <?php endforeach; ?></nav>
++<p><a href="../availability.php">Manage booking availability</a> · <a href="../payments.php">Review unbooked payments</a> · <a href="../eft.php">Verify a test EFT receipt</a></p>
++<p>Recipient: <?=esc($merchants[$slug]['name'])?></p>
++<?php if (!empty($unavailable)): ?><p>Service details are temporarily unavailable. Try again shortly.</p>
++<?php elseif (!$offer): ?><p>No eligible instant booking service is available for this business.</p>
++<?php elseif (!$ready): ?><p>Test checkout is awaiting this business’s Paystack connection.</p>
++<?php else: ?><form action="instant.php?slug=<?=esc($slug)?>" method="post">
++<input type="hidden" name="csrf" value="<?=esc($ticket['csrf'])?>">
++<label>Service <select name="service"><option value="<?=esc($offer['id'])?>">Regular Cleaning</option></select></label>
++<label>Service address <input name="address" value="10 Example Street" required minlength="5" maxlength="1000"></label>
++<label>Service area <select name="service_area"><?php foreach ($offer['areas'] as $area): ?><option><?=esc($area)?></option><?php endforeach; ?></select></label>
++<fieldset><legend>Rooms, extras and fees</legend>
++<?php foreach ($rows as $row):
++    $min=(int)$row['minimum']; $max=(int)$row['maximum'];
++    $sample=['Bedrooms'=>2,'Bathrooms'=>1][$row['name']]??$row['included'];
++    $quantity=max($min,min($max,(int)$sample)); ?>
++<label><?=esc($row['name'])?> <input type="number" name="options[<?=esc($row['id'])?>]" min="<?=$min?>" max="<?=$max?>" value="<?=$quantity?>" <?= $min===$max?'readonly':'required' ?>></label>
++<?php endforeach; ?></fieldset>
++<p>Use synthetic details. The next step shows the calculated price and duration.</p>
++<button>See available times</button></form><?php endif; ?></main></html>
+--- a/private/faraios-checkout-preview/app/runtime/b/instant.php
++++ b/private/faraios-checkout-preview/app/runtime/b/instant.php
+@@ -65,6 +65,8 @@
+     if (!is_string($flow) || ($_SESSION['instant'][$flow]['slug'] ?? null)!==$slug) throw new DomainException('Start again from the booking form.');
+     $f=&$_SESSION['instant'][$flow]; $self.='&flow='.$flow;
+     $action=$_POST['action'] ?? '';
++    $restored=$_SERVER['REQUEST_METHOD']==='GET' && !empty($f['details_seen']) && !isset($f['reserved']);
++    $f['details_seen']=$_SERVER['REQUEST_METHOD']==='GET';
+     if (isset($f['reserved']) && !isset($f['result'])) {
+         $receipt=instant_query('select instant_private.receipt(?::uuid)',[$flow]);
+         $f['method']=$receipt['method'] ?? null;
+@@ -107,8 +109,9 @@
+             if (!$f['outside']) $f['area']=$chosen;
+             $f['requested_service']=(($_POST['requested_service']??'regular')==='regular')?'regular':'other';
+             $f['team']=(($_POST['team']??'1')==='1')?'1':'multiple';
++            $f['visit_details']=booking_visit_details($_POST);
+             $f['notes']=enquiry_text('requirements',0,1900);
+-            $f['contact']=['name'=>enquiry_text('name',0,120),'email'=>enquiry_text('email',0,254),'phone'=>enquiry_text('phone',0,40),'notes'=>$f['notes']];
++            $f['contact']=['name'=>enquiry_text('name',0,120),'email'=>enquiry_text('email',0,254),'phone'=>enquiry_text('phone',0,40),'notes'=>booking_visit_notes($f['visit_details'],$f['notes'])];
+             $f['time']=enquiry_text('time',0,5);
+             $options=[];
+             foreach ($_POST['options']??[] as $id=>$quantity) {
+@@ -185,6 +188,36 @@
+         'The booking could not proceed. Check your details or choose another available time.';
+     if (isset($f) && !isset($f['reserved'])) { unset($f['review']); }
+ }
++function booking_visit_fields(): array {
++    return [
++        'property_type'=>['Property type',['Apartment','House','Townhouse','Other']],
++        'pets'=>['Pets at the property',['No pets','Pets present']],
++        'equipment'=>['Cleaning equipment at the property',['Available','Partly available','Unavailable']],
++    ];
++}
++
++function booking_visit_details(array $input): array {
++    $details=[];
++    foreach (booking_visit_fields() as $key=>[$label,$choices]) {
++        $value=$input[$key]??'';
++        if ($value==='') continue;
++        if (!in_array($value,$choices,true)) throw new DomainException('Choose a listed option for '.$label.'.');
++        $details[$key]=$value;
++    }
++    return $details;
++}
++
++function booking_visit_notes(array $details,string $notes): string {
++    $lines=[];
++    foreach (booking_visit_fields() as $key=>[$label]) {
++        if (isset($details[$key])) $lines[]=$label.': '.$details[$key];
++    }
++    if ($notes!=='') $lines[]=$notes;
++    $result=implode("\n",$lines);
++    if (mb_len($result)>1900) throw new DomainException('Shorten the instructions to include the visit details.');
++    return $result;
++}
++
+ function book04_quote(array $f): array {
+     $result=instant_query('select instant_private.slots(?,?,?,?::jsonb,?::date)',[$f['slug'],$f['service'],$f['area'],$f['options'],$f['day']]);
+     if (($f['requested_service']??'regular')!=='regular' || ($f['team']??'1')!=='1' || !empty($f['outside'])) {
+@@ -199,7 +232,8 @@
+ ?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Regular Cleaning · Test booking</title><link rel="stylesheet" href="<?=esc($base)?>/business/profile.css"><link rel="stylesheet" href="<?=esc($base)?>/business/instant.css"></head><body><main class="instant">
+ <?php if (!isset($f) || isset($f['result'])): ?><a href="<?=esc($back)?>">Back to service details</a><?php endif; ?>
+ <h1>Regular Cleaning</h1><p>Preview · Test checkout</p>
+-<?php if ($problem): ?><p role="alert"><?=esc($problem)?></p><?php endif; ?>
++<?php if (!empty($restored)): ?><p role="status">Your saved booking details have been restored. You can review and edit them.</p><?php endif; ?>
++<?php if ($problem): ?><p role="alert" tabindex="-1" autofocus><?=esc($problem)?></p><?php endif; ?>
+ <?php if (isset($f['result'])): ?>
+ <h2><?=$f['result']['state']==='confirmed'?'Booking confirmed':'Payment needs review'?></h2>
+ <?php if ($f['result']['state']==='confirmed'): ?><p>Booking reference <?=esc($f['result']['booking'])?></p><p><?=esc($f['at'])?> · Africa/Johannesburg</p><p><?=esc($f['address'])?></p>
+@@ -223,6 +257,7 @@
+ <dt>Address</dt><dd><?=esc($f['address'])?> · <?=esc($f['area'])?></dd>
+ <dt>Visit</dt><dd><?=esc($start->format('d M Y, H:i'))?>–<?=esc($finish->format('H:i'))?> SAST · <?=(int)$q['minutes']?> minutes · 1 cleaner</dd>
+ <dt>Job details and extras</dt><dd><ul><?php foreach ($q['rows']??[] as $row): if ((int)$row['quantity']===0) continue; ?><li><?=esc($row['name'])?> × <?=(int)$row['quantity']?></li><?php endforeach; ?></ul></dd>
++<?php foreach (booking_visit_fields() as $key=>[$label]): if (isset($f['visit_details'][$key])): ?><dt><?=esc($label)?></dt><dd><?=esc($f['visit_details'][$key])?></dd><?php endif; endforeach; ?>
+ <?php if ($f['notes']!==''): ?><dt>Instructions</dt><dd><?=esc($f['notes'])?></dd><?php endif; ?>
+ <dt>Contact</dt><dd><?=esc($f['contact']['name'])?> · <?=esc($f['contact']['email'])?> <?=esc($f['contact']['phone']??'')?></dd></dl>
+ <?php if (!empty($q['items'])): ?><h3>Price breakdown</h3><ul>
+@@ -248,9 +283,17 @@
+ <?php instant_form('date',$self,$ticket['csrf']); ?>
+ <label>Service<select name="requested_service"><option value="regular">One-time Regular Cleaning</option><option value="other" <?=($f['requested_service']??'')==='other'?'selected':''?>>Other cleaning service</option></select></label>
+ <label>Team size<select name="team"><option value="1">1 cleaner</option><option value="multiple" <?=($f['team']??'')==='multiple'?'selected':''?>>2 or more cleaners</option></select></label>
+-<label>Service address<input name="address" value="<?=esc($f['address'])?>" required maxlength="1000"></label>
++<label>Service address<input minlength="5" name="address" value="<?=esc($f['address'])?>" required maxlength="1000"></label>
+ <label>Service area<select name="service_area"><?php foreach ($q['areas']??[$f['area']] as $area): ?><option <?=empty($f['outside']) && $area===$f['area']?'selected':''?>><?=esc($area)?></option><?php endforeach; ?><option value="__outside" <?=!empty($f['outside'])?'selected':''?>>Outside listed areas</option></select></label>
++<fieldset><legend>Rooms, extras and fees</legend>
+ <?php foreach ($q['rows']??[] as $row): ?><label><?=esc($row['name'])?><input type="number" name="options[<?=esc($row['id'])?>]" min="<?=(int)$row['minimum']?>" max="<?=(int)$row['maximum']?>" value="<?=(int)$row['quantity']?>" required></label><?php endforeach; ?>
++</fieldset>
++<fieldset><legend>Property and access</legend>
++<?php foreach (booking_visit_fields() as $key=>[$label,$choices]): ?>
++<label><?=esc($label)?> (optional)<select name="<?=esc($key)?>"><option value="">Choose if applicable</option>
++<?php foreach ($choices as $choice): ?><option <?=($f['visit_details'][$key]??'')===$choice?'selected':''?>><?=esc($choice)?></option><?php endforeach; ?>
++</select></label>
++<?php endforeach; ?></fieldset>
+ <label>Instructions (optional)<textarea name="requirements" maxlength="1900"><?=esc($f['notes'])?></textarea></label>
+ <label>Date<input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
+ <?php if (isset($q['total']) && empty($q['outside_scope'])): ?><p><?=esc($f['area'])?> · <?=(int)$q['minutes']?> minutes · ZAR <?=number_format($q['total']/100,2)?></p><?php endif; ?>
+--- a/book05-checkout/index.ts
++++ b/book05-checkout/index.ts
+@@ -9 +9 @@
+-  ["offer", ["select jsonb_build_object('id',service->>'id','areas',areas) as result from instant_private.config($1)",1]],
++  ["offer", ["select jsonb_build_object('id',service->>'id','areas',areas,'options',coalesce(service->'options','[]'::jsonb)) as result from instant_private.config($1)",1]],
