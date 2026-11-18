@@ -641,11 +641,24 @@
  <?php foreach (booking_visit_fields() as $key=>[$label]): if (isset($f['visit_details'][$key])): ?><dt><?=esc($label)?></dt><dd><?=esc($f['visit_details'][$key])?></dd><?php endif; endforeach; ?>
  <?php if ($f['notes']!==''): ?><dt>Instructions</dt><dd><?=esc($f['notes'])?></dd><?php endif; ?>
  <dt>Contact</dt><dd><?=esc($f['contact']['name'])?> · <?=esc($f['contact']['email'])?> <?=esc($f['contact']['phone']??'')?></dd></dl>
-@@ -269,41 +352,46 @@
+@@ -264,46 +347,58 @@
+ <?php foreach ($q['items'] as $item): ?><li><?=esc($item['name'])?> · <?=(int)$item['quantity']?> × ZAR <?=number_format($item['price']/100,2)?> = ZAR <?=number_format($item['quantity']*$item['price']/100,2)?></li><?php endforeach; ?>
+ </ul><?php endif; ?>
+ <p><strong>Full amount due: ZAR <?=number_format(($f['reserved']['total']??$q['total'])/100,2)?></strong></p>
+-<h3>Cancellation and refunds</h3>
++<link rel="stylesheet" href="../business/book01-policy.css">
++<button class="booking-policy-trigger" type="button" popovertarget="booking-policy" aria-haspopup="dialog">Cancellation and refunds</button>
++<div id="booking-policy" class="booking-policy" popover="auto" role="dialog" aria-labelledby="booking-policy-title">
++<h2 id="booking-policy-title">Cancellation and refunds</h2>
+ <p>Cancel before the visit starts for a full refund. If the business cancels, you may choose a full refund or agree to a new time. The business reviews no-shows and visits already underway individually. Your statutory rights apply.</p>
  <p>If your payment arrives and the visit cannot be confirmed, you receive a full refund. The business initiates approved refunds to the original payment method within two business days. Refunds stay pending until the provider confirms them.</p>
  <?php if (!$held): ?>
  <p>Continuing holds the slot for up to ten minutes or until the visit starts, whichever comes first. Your booking is confirmed after payment and availability are verified.</p>
 -<?php instant_form('hold',$self,$ticket['csrf']); ?><input type="hidden" name="email" value="<?=esc($f['contact']['email'])?>"><input type="hidden" name="review" value="<?=esc($f['review'])?>"><button>Continue to checkout</button></form>
++<?php endif; ?>
++<button class="booking-policy-close" type="button" popovertarget="booking-policy" popovertargetaction="hide" autofocus>Close</button>
++</div>
++<?php if (!$held): ?>
 +<?php instant_form('hold',$self,$ticket['csrf']); ?><input type="hidden" name="email" value="<?=esc($f['contact']['email'])?>"><input type="hidden" name="review" value="<?=esc($f['review'])?>"><button>Hold slot &amp; continue</button></form>
  <?php elseif ($expiry>time()): ?>
 -<p>Reserved until <?=esc((new DateTimeImmutable($f['reserved']['expires']))->setTimezone(new DateTimeZone('Africa/Johannesburg'))->format('d M Y, H:i:s'))?> SAST.</p>
@@ -1205,3 +1218,42 @@
 +.date-alternatives button { margin-top: .5rem; }
 +[data-date-fallback][hidden], .date-alternatives [hidden] { display: none; }
 +.date-alternatives[open]:not(:modal) { position: static; margin: .75rem 0; }
+--- /dev/null
++++ b/faraios.com/account/_book05-preview/business/book01-policy.css
+@@ -0,0 +1,36 @@
++.booking-policy-trigger, .booking-policy-close { display: none; }
++@supports selector(:popover-open) {
++    .booking-policy-trigger {
++        display: inline-block;
++        width: auto;
++        min-height: 44px;
++        margin: 0;
++        padding: .35rem 0;
++        border: 0;
++        background: transparent;
++        color: #006d67;
++        font-weight: 650;
++        text-decoration: underline;
++        text-underline-offset: .16em;
++    }
++    .booking-policy-trigger:hover { background: transparent; color: #064e49; }
++    .booking-policy:popover-open {
++        box-sizing: border-box;
++        position: fixed;
++        inset: 0;
++        margin: auto;
++        width: min(35rem, calc(100% - 2rem));
++        max-height: 85dvh;
++        overflow: auto;
++        overscroll-behavior: contain;
++        padding: clamp(1rem, 4vw, 1.75rem);
++        border: 1px solid #b8cdc8;
++        border-radius: 12px;
++        background: white;
++        color: #153438;
++        box-shadow: 0 12px 48px #15343838;
++    }
++    .booking-policy::backdrop { background: rgb(13 40 42 / 42%); }
++    .booking-policy h2 { margin-top: 0; }
++    .booking-policy-close { display: block; }
++}
