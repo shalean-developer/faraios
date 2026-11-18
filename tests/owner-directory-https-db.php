@@ -83,6 +83,20 @@ denied(fn()=>$admin->exec("UPDATE faraios_owner_directory.owner_access SET enabl
 good($admin->query("SELECT rolcanlogin FROM pg_roles WHERE rolname='faraios_owner_api'")->fetchColumn()===false,'executor cannot login');
 good($admin->query("SELECT has_table_privilege('faraios_owner_api','auth.users','SELECT')")->fetchColumn()===false,'executor cannot read raw auth');
 good($admin->query("SELECT has_table_privilege('faraios_owner_api','public.businesses','UPDATE')")->fetchColumn()===false,'executor cannot mutate businesses');
+// OWNER-05: scoped synthetic registration/association accuracy, no contact fields.
+$admin->exec("UPDATE public.businesses SET owner_id=NULL WHERE id='20000000-0000-4000-8000-000000000030'");
+$one=$call($claims,'users',1,$uid)['rows'];
+good(count($one)===1&&$one[0]['email_verified']===true,'verified user identity search');
+good(count($one[0]['business_associations'])===2,'owner plus staff association deduplicated');
+good($one[0]['business_associations'][0]['role']==='owner'&&$one[0]['business_associations'][1]['role']==='worker'&&$one[0]['business_associations'][1]['active']===true,'live associations and active OR semantics');
+good((new DateTimeImmutable($one[0]['registered_at']))->getTimestamp()===(new DateTimeImmutable('2026-11-18T08:00:00Z'))->getTimestamp(),'Auth registration timestamp accuracy');
+$none=$call($claims,'users',1,'10000000-0000-4000-8000-000000000030')['rows'][0];
+good($none['email_verified']===false&&$none['business_associations']===[],'unverified without business');
+$usersAll=array_merge(array_slice($call($claims,'users')['rows'],0,25),$call($claims,'users',2)['rows']);
+good(count($usersAll)===30&&count(array_unique(array_column($usersAll,'id')))===30,'users pagination no missing or duplicate');
+good($call($claims,'users',1,'999999999999')['rows']===[],'anonymous account excluded');
+good($call($claims,'users',1,'%_!')['rows']===[],'users search literal wildcard');
+good(array_diff(array_keys($one[0]),['id','registered_at','email_verified','business_associations'])===[],'Users field allowlist');
 $before=$admin->query("SELECT md5(string_agg(row_to_json(b)::text,',' ORDER BY id)) FROM public.businesses b")->fetchColumn();
 $admin->exec(<<<'SQL'
 INSERT INTO public.business_service_catalogues VALUES('20000000-0000-4000-8000-000000000004','live','{"items":[{"archived":false}]}');

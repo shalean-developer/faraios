@@ -15,3 +15,9 @@ Installed five account files on 2026-11-18 after exact OWNER-03 hash checks and 
 Recovery: validate all installed hashes and all four backup hashes before writing. Restore page first, then adapter, module and CSS using same-filesystem atomic replacements; remove the additive JS only if its installed hash matches. Then apply `rollback.sql` through the database migration tool. If any file differs, stop and reconcile the later change. Global containment remains `docs/owner-03/disable-https.sql` and now covers both signatures.
 
 Hosted checks and final task acceptance are recorded after verification; do not infer completion from this preparation note.
+
+## Hosted acceptance
+
+2026-11-18: OWNER-04 saved Verified with all five original criteria checked and PR90 evidence. Hosted migration version `20261118113440`. Real owner browser showed nine businesses; Published filter three, Published + Shalean one, unmatched search zero, Clear restores nine. Read-only database counts agreed. Actual measured viewport widths 390 and1280 had no document/card overflow; Enter opened setup definitions. Controlled owner_a, manager, receptionist and worker were each denied403 by the installed PHP page and signed filtered HTTPS RPC (42501), with no rows and created-session cleanup. These role-page executions were hosted CLI, not four browser logins. The existing owner browser exercised the full web/Auth/HTTPS positive path. Original three-argument RPC remains compatible and both helper signatures have the same restricted owner/ACL. API role still cannot CREATE in the private schema, SELECT raw Auth or UPDATE businesses.
+
+The final OWNER-05 page changes are included in the combined rollback manifest under docs/owner-05. Browser timeouts during UI checks were recovered; only observed dimensions/results are reported.

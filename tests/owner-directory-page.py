@@ -27,6 +27,9 @@ function platform_directory_https_reader():Closure{return function($resource,$qu
  $r=['id'=>'33333333-3333-4333-8333-333333333333','registered_at'=>'2026-11-18T10:00:00+00:00','email'=>'secret@example.invalid'];
  if($resource==='businesses')$r+=['name'=>'<script>alert(1)</script>','location_configured'=>true,'service_configured'=>false,'profile_saved'=>null,'published'=>false];
  else $r+=['email_verified'=>true,'business_associations'=>[['business_id'=>'44444444-4444-4444-8444-444444444444','role'=>'worker','active'=>false]]];
+ if($resource==='users'&&$query['q']==='unverified')$r['email_verified']=false;
+ if($resource==='users'&&$query['q']==='no-business')$r['business_associations']=[];
+ if($resource==='users'&&$query['q']==='unknown'){$r['email_verified']=null;$r['business_associations']=null;}
  $rows[]=$r;}
  return ['rows'=>$rows,'has_more'=>$query['page']===1,'observed_at'=>'2026-11-18T10:00:00Z'];};}
 ''')
@@ -80,6 +83,15 @@ function platform_directory_https_reader():Closure{return function($resource,$qu
         check(get('?stage[]=all')[0]==400,'stage array rejected')
         check(get('?view=users&stage=all')[0]==400,'business filter cannot change user scope')
         check('stage=unknown' in get('?stage=unknown')[2],'pagination preserves setup filter')
+        check('Account registration does not mean a business' in get('?view=users')[2],'registration separate from setup')
+        check('Email verification: <strong>Unverified' in get('?view=users&q=unverified')[2],'unverified state')
+        check('No live business associations recorded.' in get('?view=users&q=no-business')[2],'no-business state')
+        check('Email verification: <strong>Unknown' in get('?view=users&q=unknown')[2] and 'Business associations unavailable.' in get('?view=users&q=unknown')[2],'unknown not invented')
+        check('No matching records' in get('?view=users&q=empty')[2],'users empty state')
+        status,_,html=get('?view=users&q=failure')
+        check(status==503 and 'SECRET' not in html,'users unavailable redacted')
+        for role in ['', 'expired', 'owner', 'manager', 'receptionist', 'worker']:
+            check(get('?view=users',identity=role)[0]==(303 if role=='' else 401 if role=='expired' else 403),'users access '+role)
         print({'status':'PASS','assertions':count,'hosted_requests':0})
     finally:
         server.terminate();server.wait(timeout=5);log.close()

@@ -1,0 +1,15 @@
+{
+  "before": {
+    "platform-directory.php": "b26f9e8e0697c0f490c8bf9f0d36ec50b43b50bd44b14af3db6e0238025c8c77",
+    "platform-directory-https.php": "104d98727971cdbdbbff18c47d0af513f588e38a1ca8eccdd8630a4e3a1d59d6",
+    "platform-directory-page.php": "0884a939e0bc304434714b8171414ecdf33e97181a937b6b0bede1391c83d875",
+    "platform-directory.css": "1b3859c61a6c3b196c2b4060cd51b5490c834be6012968bc322af83f06686f48"
+  },
+  "after": {
+    "platform-directory.php": "fb427eb46a59e63c2ac5440cbbd7fe2cdad297f5a492b72d689dd21112f0e5e2",
+    "platform-directory-https.php": "c42c6ffa2ebe9d7d0f3651e5b31ee30d90d21b60f50d719392b43960cdb3362a",
+    "platform-directory-page.php": "945bcdf23b217277ce2015ac797d3450b9c66f67994dfa64567e720023805c58",
+    "platform-directory.css": "7756999a8dc1d2795281be999dde42fb5b599b4908a7563dfaf002321b293069",
+    "platform-directory.js": "9e53568e4aa1cb5a301abfabab6c47156f0c6becdd9748b959dd48a293345914"
+  }
+}
