@@ -29,7 +29,7 @@ jobs:
           sudo apt-get install -y postgresql-17 php-cli php-curl php-pgsql
       - run: php -l b/instant.php && php -l business/instant-core.php && php -l account/instant-settings.php && node --check business/booking.js
       - run: npm install --prefix "$RUNNER_TEMP/instant-browser" playwright-core@1.55.0 --ignore-scripts --no-audit --no-fund
-      - run: python3 -m unittest discover -s tests -p 'not-used' && python3 tests/instant-checkout.py Checkout.test_mobile_browser
+      - run: python3 tests/instant-checkout.py Checkout.test_mobile_browser
         env:
           NODE_PATH: ${{ runner.temp }}/instant-browser/node_modules
           PG_BIN: /usr/lib/postgresql/17/bin
