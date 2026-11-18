@@ -7,6 +7,10 @@ function request_areas(string $text): array {
 function request_progress(): void {
  echo '<nav class="booking-progress" aria-label="Booking progress"><ol><li aria-current="step">1<span>Service</span></li><li>2<span>Details</span></li><li>3<span>Schedule</span></li><li>4<span>Contact</span></li><li>5<span>Review</span></li></ol></nav>';
 }
+// The published Shalean service and its isolated Paystack Test counterpart.
+const SHALEAN_REGULAR_SERVICE_ID = 'e24f1406066decfa9e904669475311ca';
+const SHALEAN_TEST_DETAILS = '/account/_book05-preview/b/index.php?slug=synthetic-cleaning&service=11111111111111111111111111111111';
+
 function request_form(string $slug,array $row,string $error,bool $sent): void {
  // A query can preselect only a visible service in this business snapshot. POST stays authoritative.
  if(($_SERVER['REQUEST_METHOD']??'GET')==='GET'&&is_string($_GET['service']??null))foreach($row['services']['items']??[] as $candidate)if(!empty($candidate['visible'])&&empty($candidate['archived'])&&$candidate['id']===$_GET['service'])$_POST['service']=$candidate['id'];
@@ -17,10 +21,15 @@ function request_form(string $slug,array $row,string $error,bool $sent): void {
  echo '<section class="public-card" id="booking" aria-label="Booking request">';
  if($error)echo '<p class="alert" role="alert">'.esc($error).'</p>';
  if($sent)echo '<p class="notice" role="status">Request received — pending confirmation. This is not a confirmed booking. The business will review your request.</p>';
- echo '<div class="request-layout"><form id="booking-request" method="post" action="'.esc(cfg()['base_url'].'/b/'.$slug.'?booking=1').'#booking"><input type="hidden" name="snapshot_hash" value="'.esc(hash('sha256',json_encode($_SESSION['forms'][$key]['snapshot'],JSON_THROW_ON_ERROR))).'"><input type="hidden" name="csrf" value="'.esc($ticket['csrf']).'"><div class="spam-field" aria-hidden="true"><label for="website">Leave blank</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div><p id="step-status" class="step-status" aria-live="polite" hidden></p><fieldset data-step="0"><legend>Service</legend><p class="service-intro">Choose a service</p><div class="booking-services">';
+ echo '<div class="request-layout"><form id="booking-request" method="post" action="'.esc(cfg()['base_url'].'/b/'.$slug.'?booking=1'.($slug==='shalean-cleaning-services' && ($_GET['flow']??'')==='request'?'&flow=request':'')).'#booking"><input type="hidden" name="snapshot_hash" value="'.esc(hash('sha256',json_encode($_SESSION['forms'][$key]['snapshot'],JSON_THROW_ON_ERROR))).'"><input type="hidden" name="csrf" value="'.esc($ticket['csrf']).'"><div class="spam-field" aria-hidden="true"><label for="website">Leave blank</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div><p id="step-status" class="step-status" aria-live="polite" hidden></p><fieldset data-step="0"><legend>Service</legend><p class="service-intro">Choose a service</p><div class="booking-services">';
  foreach($catalogue['items']??[] as $s)if($s['visible']&&!$s['archived']){
   $price=$s['mode']==='quote'?'Quote required':services_price($s,$catalogue['currency']);
   $icon=str_contains(strtolower($s['name']),'office')?'<path d="M8 27V7h16v20M5 27h22M12 11h2m4 0h2m-8 5h2m4 0h2m-8 5h2m4 0h2"/>':(str_contains(strtolower($s['name']),'deep')?'<path d="m16 3 3.5 9.5L29 16l-9.5 3.5L16 29l-3.5-9.5L3 16l9.5-3.5ZM26 3v6m-3-3h6"/>':'<path d="m4 15 12-10 12 10M8 13v15h16V13M13 28v-9h6v9"/>');
+  if ($slug==='shalean-cleaning-services' && $s['id']===SHALEAN_REGULAR_SERVICE_ID && ($_GET['flow']??'')!=='request') {
+   $entry=cfg()['base_url'].'/b/'.$slug.'?'.http_build_query(['booking'=>'1','service'=>$s['id'],'step'=>'details']);
+   echo '<a class="booking-service-card regular-test-card" data-regular-test="'.esc($s['id']).'" href="'.esc($entry).'"><span class="service-card-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7">'.$icon.'</svg></span><span class="service-card-name">'.esc($s['name']).'</span><small>Owner test booking</small></a>';
+   continue;
+  }
   echo '<label class="booking-service-card"><input type="radio" name="service" value="'.esc($s['id']).'" data-name="'.esc($s['name']).'" data-price="'.esc($price).'" required'.(($_POST['service']??'')===$s['id']?' checked':'').'><span class="service-card-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'.$icon.'</svg></span><span class="service-card-name">'.esc($s['name']).'</span> ';
 
   echo '</label>';
