@@ -1,0 +1,224 @@
+--- a/app/runtime/b/instant.php
++++ b/app/runtime/b/instant.php
+@@ -68,6 +68,11 @@
+     if (isset($f['reserved']) && !isset($f['result'])) {
+         $receipt=instant_query('select instant_private.receipt(?::uuid)',[$flow]);
+         $f['method']=$receipt['method'] ?? null;
++        if (isset($receipt['expires'])) $f['reserved']['expires']=$receipt['expires'];
++        if (isset($receipt['rows'],$receipt['minutes'])) {
++            $f['quote']['rows']=$receipt['rows'];
++            $f['quote']['minutes']=$receipt['minutes'];
++        }
+         if (in_array($receipt['state'] ?? '', ['confirmed','review'],true)) $f['result']=$receipt;
+     }
+     if (isset($_GET['reference'])) {
+@@ -75,18 +80,68 @@
+         $f['result']=instant_verify('fi-'.$flow, $slug);
+         header('Location: '.$self,true,303); exit;
+     }
++    if (isset($f['replacement']) && !isset($_GET['reference']) && !isset($f['result'])) {
++        header('Location: '.$base.'/b/instant.php?slug='.$slug.'&flow='.$f['replacement'],true,303); exit;
++    }
+     if ($_SERVER['REQUEST_METHOD']==='POST') {
+-        if ($action==='date' && !isset($f['reserved'])) $f['day']=enquiry_text('date',10,10);
+-        elseif ($action==='hold' && !isset($f['reserved'])) {
+-            $at=$f['day'].' '.enquiry_text('time',5,5);
+-            if (!in_array($_POST['time'],$f['quote']['times'] ?? [],true)) throw new DomainException('Choose an available time.');
+-            $email=enquiry_text('email',3,254);
+-            if (!filter_var($email,FILTER_VALIDATE_EMAIL)) throw new DomainException('Enter an email address for test checkout.');
+-            $contact=['name'=>enquiry_text('name',2,120),'email'=>$email,'phone'=>enquiry_text('phone',0,40),'notes'=>$f['notes']];
++        if ($action==='edit' && !isset($f['result'])) {
++            if (isset($f['reserved'])) {
++                $release=instant_query('select instant_private.release_unpaid(?::uuid,?)',[$flow,$slug]);
++                if (empty($release['released'])) throw new DomainException('This payment is already underway. Check its status before changing the booking.');
++                $next=instant_reference();
++                $draft=$f;
++                unset($draft['reserved'],$draft['checkout'],$draft['method'],$draft['review'],$draft['result']);
++                $draft['created']=time();
++                $draft['time']=$draft['time']??substr($draft['at'],11,5);
++                $_SESSION['instant'][$next]=$draft;
++                $f['replacement']=$next;
++                header('Location: '.$base.'/b/instant.php?slug='.$slug.'&flow='.$next,true,303); exit;
++            }
++            unset($f['review']);
++        } elseif (in_array($action,['date','review'],true) && !isset($f['reserved'])) {
++            $previous=$f;
++            $f['day']=enquiry_text('date',10,10);
++            $f['address']=enquiry_text('address',5,1000);
++            $f['area']=enquiry_text('service_area',1,200);
++            $f['notes']=enquiry_text('requirements',0,1900);
++            $f['contact']=['name'=>enquiry_text('name',0,120),'email'=>enquiry_text('email',0,254),'phone'=>enquiry_text('phone',0,40),'notes'=>$f['notes']];
++            $f['time']=enquiry_text('time',0,5);
++            $options=[];
++            foreach ($_POST['options']??[] as $id=>$quantity) {
++                if (!is_string($quantity) || !ctype_digit($quantity) || strlen($quantity)>4) throw new DomainException('Check room quantities.');
++                $options[]=['id'=>(string)$id,'quantity'=>(int)$quantity];
++            }
++            $f['options']=json_encode($options,JSON_THROW_ON_ERROR);
++            unset($f['review']);
++            $f['quote']=book04_quote($f);
++            if ($action==='review') {
++                if (mb_len($f['contact']['name'])<2 || !filter_var($f['contact']['email'],FILTER_VALIDATE_EMAIL)) throw new DomainException('Enter your name and a valid test checkout email.');
++                if ($f['contact']['email']!=='book05@example.com') throw new DomainException('Use the synthetic test address.');
++                if ($previous['day']!==$f['day'] || !in_array($f['time'],$f['quote']['times'],true)) throw new DomainException('Choose an available time for the updated details.');
++                $f['at']=$f['day'].' '.$f['time'];
++                $f['review']=bin2hex(random_bytes(16));
++            }
++        } elseif ($action==='hold' && !isset($f['reserved'])) {
++            if (empty($f['review']) || !hash_equals($f['review'],(string)($_POST['review']??''))) throw new DomainException('Review the current booking details before continuing.');
++            $q=$f['quote'];
++            $contact=$f['contact']+['review_version'=>$q['version'],'review_business'=>$q['business']];
+             enquiry_ip_limit();
+-            $f['reserved']=instant_query('select instant_private.reserve(?::uuid,?,?,?,?::jsonb,?::timestamptz,?::int,?::int,?::jsonb,?)',
+-              [$flow,$slug,$f['service'],$f['area'],$f['options'],$at.'+02:00',$f['quote']['total'],$f['quote']['minutes'],json_encode($contact),$f['address']]);
+-            $f['contact']=$contact; $f['at']=$at;
++            try {
++                $reserved=instant_query('select instant_private.reserve(?::uuid,?,?,?,?::jsonb,?::timestamptz,?::int,?::int,?::jsonb,?)',
++                  [$flow,$slug,$f['service'],$f['area'],$f['options'],$f['at'].'+02:00',$q['total'],$q['minutes'],json_encode($contact,JSON_THROW_ON_ERROR),$f['address']]);
++            } catch (Throwable $error) {
++                unset($f['review']);
++                $f['quote']=book04_quote($f);
++                throw new DomainException('We could not reserve that time. Check the available times and review again.');
++            }
++            if (!empty($reserved['changed'])) {
++                $f['quote']=book04_quote($f);
++                unset($f['review']);
++                if (in_array($f['time'],$f['quote']['times'],true)) $f['review']=bin2hex(random_bytes(16));
++                throw new DomainException('The price or service details changed. Review the updated booking before continuing.');
++            }
++            if (empty($reserved['expires'])) throw new RuntimeException('Hold unavailable.');
++            $f['reserved']=$reserved;
+         } elseif ($action==='eft' && isset($f['reserved']) && !isset($f['result'])) {
+             instant_query('select instant_private.select_method(?::uuid,?,?)',[$flow,$slug,'eft']);
+         } elseif ($action==='pay' && isset($f['reserved']) && !isset($f['result'])) {
+@@ -104,20 +159,23 @@
+         }
+         header('Location: '.$self,true,303); exit;
+     }
+-    if (!isset($f['reserved'])) {
+-        $f['quote']=instant_query('select instant_private.slots(?,?,?,?::jsonb,?::date)',[$slug,$f['service'],$f['area'],$f['options'],$f['day']]);
++    if (!isset($f['reserved']) && !isset($f['review'])) {
++        $f['quote']=book04_quote($f);
+     }
+ } catch (DomainException $e) { $problem=$e->getMessage(); }
+ catch (Throwable $e) {
+     $problem=isset($_GET['reference'])?'Payment verification is pending. Refresh this page to check again.':
+         'The booking could not proceed. Check your details or choose another available time.';
+-    if (isset($f) && !isset($f['reserved'])) unset($f['quote']);
++    if (isset($f) && !isset($f['reserved'])) { unset($f['review']); }
++}
++function book04_quote(array $f): array {
++    return instant_query('select instant_private.slots(?,?,?,?::jsonb,?::date)',[$f['slug'],$f['service'],$f['area'],$f['options'],$f['day']]);
+ }
+ function instant_form(string $action,string $url,string $csrf): void {
+     echo '<form method="post" action="'.esc($url).'"><input type="hidden" name="csrf" value="'.esc($csrf).'"><input type="hidden" name="action" value="'.esc($action).'">';
+ }
+ ?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Regular Cleaning · Test booking</title><link rel="stylesheet" href="<?=esc($base)?>/business/profile.css"><link rel="stylesheet" href="<?=esc($base)?>/business/instant.css"></head><body><main class="instant">
+-<a href="<?=esc($back)?>">Back to service details</a>
++<?php if (!isset($f) || isset($f['result'])): ?><a href="<?=esc($back)?>">Back to service details</a><?php endif; ?>
+ <h1>Regular Cleaning</h1><p>Preview · Test checkout</p>
+ <?php if ($problem): ?><p role="alert"><?=esc($problem)?></p><?php endif; ?>
+ <?php if (isset($f['result'])): ?>
+@@ -130,19 +188,48 @@
+ <p>Transfer report reference <strong><?=esc($flow)?></strong></p>
+ <p>If the hold expires first, the business will review the payment and availability.</p>
+ <a href="<?=esc($self)?>">Refresh booking status</a>
+-<?php elseif (isset($f['reserved'])): ?>
+-<h2>Review and pay</h2><p>Payment recipient: <?=esc(book05_merchants()[$slug]['name'])?></p><p><?=esc($f['address'])?> · <?=esc($f['area'])?></p><p><?=esc($f['at'])?> · Africa/Johannesburg · <?=(int)$f['quote']['minutes']?> minutes</p>
+-<p><?=esc($f['contact']['name'])?> · <?=esc($f['contact']['email'])?></p><p><strong>Total ZAR <?=number_format($f['reserved']['total']/100,2)?></strong></p>
+-<?php if (strtotime($f['reserved']['expires'])>time()): ?><p>Reserved until <?=esc((new DateTimeImmutable($f['reserved']['expires']))->setTimezone(new DateTimeZone('Africa/Johannesburg'))->format('H:i:s'))?> SAST.</p>
++<?php elseif (isset($f['reserved']) || isset($f['review'])):
++$held=isset($f['reserved']);
++$expiry=$held?strtotime($f['reserved']['expires']):0;
++$q=$f['quote']??[];
++$start=new DateTimeImmutable($f['at'],new DateTimeZone('Africa/Johannesburg'));
++$finish=$start->modify('+'.(int)($q['minutes']??0).' minutes');
++?>
++<h2><?=$held?'Checkout':'Review your booking'?></h2>
++<p>Payment recipient: <?=esc(book05_merchants()[$slug]['name'])?></p>
++<dl><dt>Service</dt><dd>One-time Regular Cleaning</dd>
++<dt>Address</dt><dd><?=esc($f['address'])?> · <?=esc($f['area'])?></dd>
++<dt>Visit</dt><dd><?=esc($start->format('d M Y, H:i'))?>–<?=esc($finish->format('H:i'))?> SAST · <?=(int)$q['minutes']?> minutes · 1 cleaner</dd>
++<dt>Job details and extras</dt><dd><ul><?php foreach ($q['rows']??[] as $row): if ((int)$row['quantity']===0) continue; ?><li><?=esc($row['name'])?> × <?=(int)$row['quantity']?></li><?php endforeach; ?></ul></dd>
++<?php if ($f['notes']!==''): ?><dt>Instructions</dt><dd><?=esc($f['notes'])?></dd><?php endif; ?>
++<dt>Contact</dt><dd><?=esc($f['contact']['name'])?> · <?=esc($f['contact']['email'])?> <?=esc($f['contact']['phone']??'')?></dd></dl>
++<p><strong>Full amount due: ZAR <?=number_format(($f['reserved']['total']??$q['total'])/100,2)?></strong></p>
++<h3>Cancellation and refunds</h3>
++<p>Cancel before the visit starts for a full refund. If the business cancels, you may choose a full refund or agree to a new time. The business reviews no-shows and visits already underway individually. Your statutory rights apply.</p>
++<p>If your payment arrives and the visit cannot be confirmed, you receive a full refund. The business initiates approved refunds to the original payment method within two business days. Refunds stay pending until the provider confirms them.</p>
++<?php if (!$held): ?>
++<p>Continuing holds the slot for up to ten minutes or until the visit starts, whichever comes first. Your booking is confirmed after payment and availability are verified.</p>
++<?php instant_form('hold',$self,$ticket['csrf']); ?><input type="hidden" name="email" value="<?=esc($f['contact']['email'])?>"><input type="hidden" name="review" value="<?=esc($f['review'])?>"><button>Continue to checkout</button></form>
++<?php elseif ($expiry>time()): ?>
++<p>Reserved until <?=esc((new DateTimeImmutable($f['reserved']['expires']))->setTimezone(new DateTimeZone('Africa/Johannesburg'))->format('d M Y, H:i:s'))?> SAST.</p>
+ <?php instant_form('pay',$self,$ticket['csrf']); ?><button>Pay with test checkout</button></form>
+-<?php if (empty($f['method']) && empty($f['checkout'])): ?>
+-<?php instant_form('eft',$self,$ticket['csrf']); ?><button>Report a test EFT transfer</button></form>
+-<?php endif; ?>
+-<?php else: ?><p>Your reservation expired. Choose another time to start again.</p><?php endif; ?>
+-<?php elseif (isset($f)): ?><h2>Choose an available time</h2>
+-<?php instant_form('date',$self,$ticket['csrf']); ?><label>Date <input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label><button>Show times</button></form>
+-<?php if (isset($f['quote'])): ?><p><?=esc($f['area'])?> · <?=(int)$f['quote']['minutes']?> minutes · <strong>ZAR <?=number_format($f['quote']['total']/100,2)?></strong></p>
+-<?php if (!$f['quote']['times']): ?><p>No cleaner is available for this entire visit. Choose another date.</p>
+-<?php else: instant_form('hold',$self,$ticket['csrf']); ?><label>Available start time (SAST)<select name="time" required><option value="">Choose a time</option><?php foreach($f['quote']['times'] as $t): ?><option><?=esc($t)?></option><?php endforeach; ?></select></label>
+-<label>Your name<input name="name" autocomplete="name" required maxlength="120"></label><label>Email for test checkout<input name="email" type="email" autocomplete="email" required maxlength="254"></label><label>Phone (optional)<input name="phone" type="tel" maxlength="40"></label><button>Reserve and review</button></form>
+-<?php endif; endif; endif; ?></main></body></html>
++<?php if (empty($f['method']) && empty($f['checkout'])): instant_form('eft',$self,$ticket['csrf']); ?><button>Report a test EFT transfer</button></form><?php endif; ?>
++<?php else: ?><p role="status">Your hold expired. Your details are saved. Choose an available time to continue.</p><?php endif; ?>
++<?php if (!$held || empty($f['method']) || $expiry<=time()): instant_form('edit',$self,$ticket['csrf']); ?><button><?=$held&&$expiry>time()?'Release hold and edit booking':'Edit booking details'?></button></form><?php endif; ?>
++<?php elseif (isset($f)): $q=$f['quote']??[]; ?>
++<h2>Choose an available time</h2>
++<?php instant_form('date',$self,$ticket['csrf']); ?>
++<label>Service address<input name="address" value="<?=esc($f['address'])?>" required maxlength="1000"></label>
++<label>Service area<select name="service_area"><?php foreach ($q['areas']??[$f['area']] as $area): ?><option <?=$area===$f['area']?'selected':''?>><?=esc($area)?></option><?php endforeach; ?></select></label>
++<?php foreach ($q['rows']??[] as $row): ?><label><?=esc($row['name'])?><input type="number" name="options[<?=esc($row['id'])?>]" min="<?=(int)$row['minimum']?>" max="<?=(int)$row['maximum']?>" value="<?=(int)$row['quantity']?>" required></label><?php endforeach; ?>
++<label>Instructions (optional)<textarea name="requirements" maxlength="1900"><?=esc($f['notes'])?></textarea></label>
++<label>Date<input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
++<?php if (isset($q['total'])): ?><p><?=esc($f['area'])?> · <?=(int)$q['minutes']?> minutes · ZAR <?=number_format($q['total']/100,2)?></p><?php endif; ?>
++<label>Available start time (SAST)<select name="time"><option value="">Choose a time</option><?php foreach ($q['times']??[] as $t): ?><option <?=($f['time']??'')===$t?'selected':''?>><?=esc($t)?></option><?php endforeach; ?></select></label>
++<?php if (isset($q['times']) && !$q['times']): ?><p>No cleaner is available for this entire visit. Choose another date.</p><?php endif; ?>
++<label>Your name<input name="name" autocomplete="name" value="<?=esc($f['contact']['name']??'')?>" maxlength="120"></label>
++<label>Email for test checkout<input name="email" type="email" autocomplete="email" value="<?=esc($f['contact']['email']??'')?>" maxlength="254"></label>
++<label>Phone (optional)<input name="phone" type="tel" value="<?=esc($f['contact']['phone']??'')?>" maxlength="40"></label>
++<button>Update availability</button>
++<?php if (!empty($q['times'])): ?><button name="action" value="review">Review booking</button><?php endif; ?></form>
++<?php endif; ?></main></body></html>
+--- a/app/runtime/business/instant-core.php
++++ b/app/runtime/business/instant-core.php
+@@ -14,6 +14,7 @@
+ 
+ function instant_query(string $sql, array $args): array {
+     $operations = [
++        "select instant_private.release_unpaid(?::uuid,?)" => 'releaseUnpaid',
+         "select instant_private.select_method(?::uuid,?,?)" => 'method',
+         "select jsonb_build_object('id',service->>'id','areas',areas) from instant_private.config(?)" => 'offer',
+         "select instant_private.receipt(?::uuid)" => 'receipt',
+@@ -30,6 +31,9 @@
+     $stream = @fopen('https://jqnecahhaxxdsrybwuoo.supabase.co/functions/v1/book05-checkout','rb',false,stream_context_create($options));
+     if (!$stream) throw new RuntimeException('Preview unavailable.');
+     try {$body=stream_get_contents($stream,32769);$meta=stream_get_meta_data($stream);} finally {fclose($stream);}
++    if ($operations[$sql]==='method' && preg_match('~^HTTP/\S+ 409\b~',$meta['wrapper_data'][0]??'')) {
++        throw new DomainException('Availability, price or payment status changed. Check your booking status or edit the booking to review it again.');
++    }
+     if (!preg_match('~^HTTP/\S+ 200\b~',$meta['wrapper_data'][0]??'') || $meta['timed_out'] || $body===false || strlen($body)>32768) throw new RuntimeException('Preview unavailable.');
+     $reply=json_decode($body,true,32,JSON_THROW_ON_ERROR);
+     if (!array_key_exists('result',$reply)) throw new RuntimeException('Preview unavailable.');
+--- a/gateway/index.ts
++++ b/gateway/index.ts
+@@ -15,6 +15,7 @@
+   ["resolveEft", ["select instant_private.resolve_eft($1::uuid,$2::uuid,$3) as result",3]],
+   ["claimRefund", ["select instant_private.claim_refund($1::uuid,$2::bigint) as result",2]],
+   ["settleVerified", ["select instant_private.settle_verified($1::uuid,$2::int,$3::bigint) as result",3]],
++  ["releaseUnpaid", ["select instant_private.release_unpaid($1::uuid,$2) as result",2]],
+   ["method", ["select instant_private.select_method($1::uuid,$2,$3) as result",3]],
+ ]);
+ const reply = (status:number, obj:unknown) => Response.json(obj,{status,headers:{"Cache-Control":"no-store"}});
+@@ -56,7 +57,7 @@
+       args.some(v=>typeof v !== "string" && !Number.isSafeInteger(v))) throw Error();
+     if ((op==="review" || op==="unbooked") && (typeof args[0]!=="string" || args[0].length>64 || !Number.isSafeInteger(args[1]) || Number(args[1])<0 || Number(args[1])>2147483647)) throw Error();
+     if ((op==="slots" || op==="offer") && !recipients.has(String(args[0])) || op==="reserve" && !recipients.has(String(args[1]))) throw Error();
+-    if (["reserve","receipt","method","settleVerified","claimRefund","resolveEft"].includes(op) && !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(String(args[0]))) throw Error();
++    if (["releaseUnpaid","reserve","receipt","method","settleVerified","claimRefund","resolveEft"].includes(op) && !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(String(args[0]))) throw Error();
+     if (op==="resolveEft" && (typeof args[1]!=="string" || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(args[1]) ||
+       typeof args[2]!=="string" || !args[2].trim() || [...args[2]].length>500)) throw Error();
+   } catch { return reply(400,{error:"Invalid checkout operation"}); }
