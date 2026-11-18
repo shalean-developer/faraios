@@ -1,0 +1,14 @@
+{
+  "waitlist/core.php": {
+    "baseline_sha256": "25678c5f2a3e921ff62030c75371d35527db59f6bd4b4b5775f5ca5c4ad14325",
+    "candidate_sha256": "fdd9875ece735fd0e4195973ad9c3022c5454dfabaec2560e2a704692b95457e"
+  },
+  "scripts/waitlist.php": {
+    "baseline_sha256": "d91a9f989df9998dfd6b33d83600a86de64f93bf466acd71c171d601122d8678",
+    "candidate_sha256": "8cdc4bc2ea6d7b888e33aaca733fadb93e810c7723973e49dba9534b5b3f8f24"
+  },
+  ".github/workflows/waitlist-diagnostics-check.yml": {
+    "baseline_sha256": null,
+    "candidate_sha256": "b659901ea628ce781fd1bcc53007cd8e7cd80a7bf5f166a70749b1409358000f"
+  }
+}

@@ -33,4 +33,10 @@ try {
         fclose($out);
         echo 'Export created: ' . basename($file) . " (private storage only).\n";
     } else { echo "Commands: work | cleanup | status | export\n"; }
-} catch (Throwable $e) { fwrite(STDERR, 'Waitlist command failed: ' . $e->getMessage() . "\n"); exit(1); }
+} catch (Throwable $e) {
+    if ($e instanceof WLDatabaseFailure) {
+        fwrite(STDERR, json_encode($e->diagnostic(), JSON_UNESCAPED_SLASHES) . "\n");
+    }
+    fwrite(STDERR, 'Waitlist command failed: ' . $e->getMessage() . "\n");
+    exit(1);
+}
