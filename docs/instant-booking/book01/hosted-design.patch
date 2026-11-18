@@ -1,18 +1,72 @@
 --- /dev/null
 +++ b/faraios.com/account/_book05-preview/business/book01-visit.css
-@@ -0,0 +1,12 @@
+@@ -0,0 +1,66 @@
 +:root{font:16px/1.5 system-ui,sans-serif;color:#153438;background:#f4f7f5;--teal:#087e79;--line:#ccdcda}*{box-sizing:border-box}body{margin:0}
 +.outer{max-width:1060px;margin:24px auto;padding:0 22px}
 +.booking-header{width:100%;background:white;border-bottom:1px solid var(--line)}
-+.header-inner{max-width:1060px;margin-inline:auto;padding:12px 48px 16px}
++.header-inner{padding:12px clamp(16px,2vw,32px) 16px}
 +.preview,.brand-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
 +.preview{font-size:.85rem;color:#276b66}
-+.brand-row{padding:12px 0 4px}
++
++.brand-row {
++    display:grid;
++    grid-template-columns:minmax(0,1fr) min(45%,30rem) minmax(0,1fr);
++    align-items:center;
++    gap:12px;
++    padding:12px 0 4px;
++}
++
 +.brand-row>strong{font-size:1.15rem;overflow-wrap:anywhere}
-+.brand-row .help{flex-shrink:0}
-+.booking-header nav{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
++.brand-row .help{grid-column:3;justify-self:end;max-width:100%}
++
++.brand-row nav { grid-column:2; width:100%; }
++.brand-row ol {
++    display:flex;
++    justify-content:space-evenly;
++    gap:.3rem;
++    margin:0;
++    padding:0;
++    list-style:none;
++}
++.brand-row li {
++    display:grid;
++    justify-items:center;
++    align-content:start;
++    gap:.25rem;
++    font-size:.875rem;
++    line-height:1.3;
++}
++.brand-row li b {
++    display:grid;
++    place-items:center;
++    width:1.65rem;
++    height:1.65rem;
++    border-radius:50%;
++    background:#edf6f3;
++}
++.brand-row .current b { background:var(--teal); color:white; }
++.brand-row [aria-current="step"] span { font-weight:650; }
++
 +main{background:white;border:1px solid var(--line);border-radius:15px;padding:18px 26px 28px}
-+.layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(250px,.85fr);gap:36px}section{min-width:0}aside,.mobile-summary,.hold{background:#edf6f3;border-radius:12px;padding:20px;align-self:start}aside h2{margin-top:0}.mobile-step,.mobile-summary{display:none}h1{font-size:clamp(1.55rem,3vw,2rem);line-height:1.18;letter-spacing:-.035em;margin:5px 0 18px}h2{font-size:1.2rem}h3{font-size:1.05rem}label{display:block;font-size:.91rem;font-weight:600;margin:12px 0 5px}input,select,textarea,button{font:inherit}input,select,textarea{display:block;width:100%;margin-top:4px;border:1px solid #98b5b1;border-radius:7px;color:inherit;background:white;padding:10px 11px}fieldset{margin:15px 0;padding:10px 14px 14px;border:1px solid var(--line);border-radius:8px}legend{font-weight:600}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}button{display:block;border-radius:7px;padding:11px 16px;width:100%;margin-top:15px;background:var(--teal);color:white;border:0;font-weight:650;cursor:pointer}button:hover{background:#056763}.secondary,button[name=action][value=next]{background:#edf6f3;color:#075e59}summary,a{color:#006d67;cursor:pointer}details>summary{font-weight:600}details{margin:12px 0}.help{margin:0;position:relative}.help p{position:absolute;right:0;z-index:2;width:min(340px,83vw);padding:15px;background:white;border:1px solid var(--line);border-radius:8px}.breakdown{border-top:1px solid var(--line);padding-top:10px}.breakdown div{display:flex;justify-content:space-between;gap:12px;margin:6px 0}dd{margin-left:0}dl:not(.breakdown) dt{font-weight:650;margin-top:12px}.breakdown dd{white-space:nowrap}.total dd{font-weight:700}nav ol{display:flex;gap:6px;list-style:none;margin:0;padding:0}nav li{flex:1;font-size:.9rem}nav b{display:inline-grid;place-items:center;border-radius:50%;width:26px;height:26px;background:#edf6f3}nav .current b{background:var(--teal);color:white}footer{color:#526a67;font-size:.84rem;padding:15px 2px}.tools{margin-top:24px}.tools a{display:inline-block;margin:4px 10px 4px 0}[role=alert]{border-left:4px solid #a54e27;background:#fff5ec;padding:10px}.hold{margin:12px 0}:focus-visible{outline:3px solid #197baf;outline-offset:2px}section,aside{overflow-wrap:anywhere}@media(max-width:720px){.outer{padding:0;margin:0}.header-inner{padding:10px 16px 12px}.brand-row{flex-wrap:wrap}.preview{flex-wrap:wrap}.booking-header nav{margin-top:6px;padding-top:8px}main,footer{padding-left:16px;padding-right:16px}main{border-radius:0;border:0}.layout{display:block}.mobile-step,.mobile-summary{display:block}.mobile-summary{padding:12px 14px}.mobile-step{font-weight:650;margin:0}.layout aside{display:none}nav ol{margin:6px 0 0}nav li{font-size:0;height:4px;background:#dbe7e4;border-radius:4px}nav li.current{background:var(--teal)}nav b{display:none}}
++.layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(250px,.85fr);gap:36px}section{min-width:0}aside,.mobile-summary,.hold{background:#edf6f3;border-radius:12px;padding:20px;align-self:start}aside h2{margin-top:0}.mobile-summary{display:none}h1{font-size:clamp(1.55rem,3vw,2rem);line-height:1.18;letter-spacing:-.035em;margin:5px 0 18px}h2{font-size:1.2rem}h3{font-size:1.05rem}label{display:block;font-size:.91rem;font-weight:600;margin:12px 0 5px}input,select,textarea,button{font:inherit}input,select,textarea{display:block;width:100%;margin-top:4px;border:1px solid #98b5b1;border-radius:7px;color:inherit;background:white;padding:10px 11px}fieldset{margin:15px 0;padding:10px 14px 14px;border:1px solid var(--line);border-radius:8px}legend{font-weight:600}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}button{display:block;border-radius:7px;padding:11px 16px;width:100%;margin-top:15px;background:var(--teal);color:white;border:0;font-weight:650;cursor:pointer}button:hover{background:#056763}.secondary,button[name=action][value=next]{background:#edf6f3;color:#075e59}summary,a{color:#006d67;cursor:pointer}details>summary{font-weight:600}details{margin:12px 0}.help{margin:0;position:relative}.help p{position:absolute;right:0;z-index:2;width:min(340px,83vw);padding:15px;background:white;border:1px solid var(--line);border-radius:8px}.breakdown{border-top:1px solid var(--line);padding-top:10px}.breakdown div{display:flex;justify-content:space-between;gap:12px;margin:6px 0}dd{margin-left:0}dl:not(.breakdown) dt{font-weight:650;margin-top:12px}.breakdown dd{white-space:nowrap}.total dd{font-weight:700}footer{color:#526a67;font-size:.84rem;padding:15px 2px}.tools{margin-top:24px}.tools a{display:inline-block;margin:4px 10px 4px 0}[role=alert]{border-left:4px solid #a54e27;background:#fff5ec;padding:10px}.hold{margin:12px 0}:focus-visible{outline:3px solid #197baf;outline-offset:2px}section,aside{overflow-wrap:anywhere}@media(max-width:720px){.outer{padding:0;margin:0}.header-inner{padding:10px 16px 12px}.preview{flex-wrap:wrap}main,footer{padding-left:16px;padding-right:16px}main{border-radius:0;border:0}.layout{display:block}.mobile-summary{display:block}.mobile-summary{padding:12px 14px}.layout aside{display:none}}
++
++@media (max-width:620px) {
++    .brand-row { grid-template-columns:minmax(0,1fr) max-content minmax(0,1fr); gap:.45rem; }
++    .brand-row>strong { font-size:.875rem; line-height:1.25; }
++    .brand-row .help { grid-column:3; font-size:.875rem; line-height:1.25; }
++    .brand-row li { font-size:.78rem; }
++    .brand-row ol { gap:.4rem; }
++}
++@media (max-width:360px) {
++    .header-inner { padding-inline:8px; }
++    .brand-row { gap:.25rem; }
++    .brand-row ol { gap:.21rem; }
++}
++@media (max-width:360px) {
++    .brand-row .help summary { list-style:none; text-align:right; }
++    .brand-row .help summary::-webkit-details-marker { display:none; }
++    .brand-row .help { font-size:.8rem; }
++}
 --- /dev/null
 +++ b/faraios.com/account/_book05-preview/business/book01-details.js
 @@ -0,0 +1,14 @@
@@ -32,7 +86,7 @@
 +}
 --- /dev/null
 +++ b/private/faraios-checkout-preview/app/book01-layout.php
-@@ -0,0 +1,35 @@
+@@ -0,0 +1,36 @@
 +<?php
 +declare(strict_types=1);
 +function book01_money(int $minor): string {
@@ -52,8 +106,9 @@
 +}
 +function book01_open(string $business,int $step,string $heading,array $quote=[],array $visit=[]): void {
 +    $steps=['Details','Schedule','Review','Payment']; ?>
-+<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=header-2"></head><body><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong><details class="help"><summary>Booking help</summary><p>Use synthetic details. Card checkout uses Paystack Test. For manual EFT, report a synthetic transfer and wait for the business to verify it.</p></details></div>
-+<?php if ($step<=4): ?><nav aria-label="Booking steps"><p class="mobile-step">Step <?=$step?> of 4 / <?=esc($steps[$step-1])?></p><ol><?php foreach($steps as $i=>$label): ?><li class="<?=$i+1<=$step?'current':''?>" <?=$i+1===$step?'aria-current="step"':''?>><b><?=$i+1?></b> <?=esc($label)?></li><?php endforeach; ?></ol></nav><?php endif; ?>
++<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=header-5"></head><body><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
++<?php if ($step<=4): ?><nav aria-label="Booking steps"><ol><?php foreach($steps as $i=>$label): ?><li class="<?=$i+1<=$step?'current':''?>" <?=$i+1===$step?'aria-current="step"':''?>><b><?=$i+1?></b><span><?=esc($label)?></span></li><?php endforeach; ?></ol></nav><?php endif; ?>
++<details class="help"><summary>Booking help</summary><p>Use synthetic details. Card checkout uses Paystack Test. For manual EFT, report a synthetic transfer and wait for the business to verify it.</p></details></div>
 +</div></header><div class="outer"><main>
 +<div class="layout"><section><h1><?=esc($heading)?></h1><details class="mobile-summary"><summary>Summary<?=isset($quote['total']) && empty($quote['outside_scope'])?' · '.esc(book01_money((int)$quote['total'])).' · '.esc(book01_duration((int)$quote['minutes'])):''?></summary><?php book01_summary($quote,$visit); ?></details>
 +<?php }
