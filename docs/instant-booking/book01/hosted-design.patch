@@ -1,9 +1,21 @@
 --- /dev/null
 +++ b/faraios.com/account/_book05-preview/business/book01-visit.css
-@@ -0,0 +1,66 @@
+@@ -0,0 +1,97 @@
 +:root{font:16px/1.5 system-ui,sans-serif;color:#153438;background:#f4f7f5;--teal:#087e79;--line:#ccdcda}*{box-sizing:border-box}body{margin:0}
-+.outer{max-width:1060px;margin:24px auto;padding:0 22px}
-+.booking-header{width:100%;background:white;border-bottom:1px solid var(--line)}
++
++.outer { margin:24px 0; container-type:inline-size; }
++
++
++.booking-header {
++    position:sticky;
++    top:0;
++    z-index:10;
++    width:100%;
++    background:white;
++    border-bottom:1px solid var(--line);
++}
++html { scroll-padding-top:10rem; }
++
 +.header-inner{padding:12px clamp(16px,2vw,32px) 16px}
 +.preview,.brand-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
 +.preview{font-size:.85rem;color:#276b66}
@@ -47,7 +59,26 @@
 +.brand-row .current b { background:var(--teal); color:white; }
 +.brand-row [aria-current="step"] span { font-weight:650; }
 +
-+main{background:white;border:1px solid var(--line);border-radius:15px;padding:18px 26px 28px}
++
++main {
++    background:white;
++    border:1px solid var(--line);
++    border-radius:15px;
++    padding-block:18px 28px;
++}
++@media (min-width:720.01px) {
++    main {
++        /* Preserve the columns of the original centered 1060px form. */
++        --form-inset:calc(max(0px, (100cqw - 1060px) / 2) + 48px);
++        --summary-inset:clamp(16px, 2cqw, 32px);
++        padding-inline:var(--form-inset) var(--summary-inset);
++    }
++    main .layout {
++        column-gap:calc(36px + var(--form-inset) - var(--summary-inset));
++    }
++    .outer footer { max-width:1016px; margin-inline:auto; }
++}
++
 +.layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(250px,.85fr);gap:36px}section{min-width:0}aside,.mobile-summary,.hold{background:#edf6f3;border-radius:12px;padding:20px;align-self:start}aside h2{margin-top:0}.mobile-summary{display:none}h1{font-size:clamp(1.55rem,3vw,2rem);line-height:1.18;letter-spacing:-.035em;margin:5px 0 18px}h2{font-size:1.2rem}h3{font-size:1.05rem}label{display:block;font-size:.91rem;font-weight:600;margin:12px 0 5px}input,select,textarea,button{font:inherit}input,select,textarea{display:block;width:100%;margin-top:4px;border:1px solid #98b5b1;border-radius:7px;color:inherit;background:white;padding:10px 11px}fieldset{margin:15px 0;padding:10px 14px 14px;border:1px solid var(--line);border-radius:8px}legend{font-weight:600}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}button{display:block;border-radius:7px;padding:11px 16px;width:100%;margin-top:15px;background:var(--teal);color:white;border:0;font-weight:650;cursor:pointer}button:hover{background:#056763}.secondary,button[name=action][value=next]{background:#edf6f3;color:#075e59}summary,a{color:#006d67;cursor:pointer}details>summary{font-weight:600}details{margin:12px 0}.help{margin:0;position:relative}.help p{position:absolute;right:0;z-index:2;width:min(340px,83vw);padding:15px;background:white;border:1px solid var(--line);border-radius:8px}.breakdown{border-top:1px solid var(--line);padding-top:10px}.breakdown div{display:flex;justify-content:space-between;gap:12px;margin:6px 0}dd{margin-left:0}dl:not(.breakdown) dt{font-weight:650;margin-top:12px}.breakdown dd{white-space:nowrap}.total dd{font-weight:700}footer{color:#526a67;font-size:.84rem;padding:15px 2px}.tools{margin-top:24px}.tools a{display:inline-block;margin:4px 10px 4px 0}[role=alert]{border-left:4px solid #a54e27;background:#fff5ec;padding:10px}.hold{margin:12px 0}:focus-visible{outline:3px solid #197baf;outline-offset:2px}section,aside{overflow-wrap:anywhere}@media(max-width:720px){.outer{padding:0;margin:0}.header-inner{padding:10px 16px 12px}.preview{flex-wrap:wrap}main,footer{padding-left:16px;padding-right:16px}main{border-radius:0;border:0}.layout{display:block}.mobile-summary{display:block}.mobile-summary{padding:12px 14px}.layout aside{display:none}}
 +
 +@media (max-width:620px) {
@@ -106,7 +137,7 @@
 +}
 +function book01_open(string $business,int $step,string $heading,array $quote=[],array $visit=[]): void {
 +    $steps=['Details','Schedule','Review','Payment']; ?>
-+<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=header-5"></head><body><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
++<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=card-1"></head><body><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
 +<?php if ($step<=4): ?><nav aria-label="Booking steps"><ol><?php foreach($steps as $i=>$label): ?><li class="<?=$i+1<=$step?'current':''?>" <?=$i+1===$step?'aria-current="step"':''?>><b><?=$i+1?></b><span><?=esc($label)?></span></li><?php endforeach; ?></ol></nav><?php endif; ?>
 +<details class="help"><summary>Booking help</summary><p>Use synthetic details. Card checkout uses Paystack Test. For manual EFT, report a synthetic transfer and wait for the business to verify it.</p></details></div>
 +</div></header><div class="outer"><main>
