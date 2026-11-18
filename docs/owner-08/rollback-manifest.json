@@ -1,0 +1,11 @@
+{
+  "before": {
+    "platform-navigation.php": "862daeae391d9d7dc47b5d60b50bd48d268f3dc1c999f7c516cb0169ee4273e7"
+  },
+  "after": {
+    "platform-navigation.php": "9d588b9d5e71ed2ce818c88dadf3bba40e641a028070f349abec36f7a6c1c411",
+    "platform-monitoring.php": "7b7e330d1ebd668011c42983fecece9918f3dc122f92df08809c89debe0293e3",
+    "platform-monitoring-sources.php": "3c8f796ec710df250fccf4fcaad2173cd8cc90352026c20a9929ae3fea828032",
+    "platform-monitoring-page.php": "44db803f2c201b8c758db22a7e4ca936db5dc506f4c638f67bc1648abb7dfda5"
+  }
+}
