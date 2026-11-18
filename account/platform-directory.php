@@ -19,17 +19,31 @@ final class PlatformDirectory {
   if ($method!=='GET') throw new PlatformDirectoryError(405,'This directory is read-only.');
   if (!in_array($resource,['businesses','users'],true)) throw new PlatformDirectoryError(404,'Page unavailable.');
   $request=self::query($query);
+  if ($resource!=='businesses'&&isset($request['stage'])) throw new PlatformDirectoryError(400,'Check the directory filters.');
   try { $data=($this->reader)($resource,$request); }
   catch (Throwable $e) { throw new PlatformDirectoryError(503,'Directory data is unavailable. Try again later.'); }
   return self::page($resource,$request,$data);
  }
  public static function query(array $q): array {
-  if (array_diff(array_keys($q),['page','q'])) throw new PlatformDirectoryError(400,'Check the directory filters.');
+  if (array_diff(array_keys($q),['page','q','stage'])) throw new PlatformDirectoryError(400,'Check the directory filters.');
   $page=$q['page']??'1'; $search=$q['q']??'';
   if (!is_string($page)||!preg_match('/\A[1-9][0-9]{0,3}\z/D',$page)||!is_string($search)||strlen($search)>100||!preg_match('//u',$search)||preg_match('/[\x00-\x1f\x7f]/',$search)) {
    throw new PlatformDirectoryError(400,'Check the directory filters.');
   }
-  return ['page'=>(int)$page,'limit'=>25,'offset'=>((int)$page-1)*25,'q'=>trim($search),'environment'=>'live'];
+  $out=['page'=>(int)$page,'limit'=>25,'offset'=>((int)$page-1)*25,'q'=>trim($search),'environment'=>'live'];
+  if(array_key_exists('stage',$q)){
+   if(!is_string($q['stage'])||!array_key_exists($q['stage'],self::stages()))throw new PlatformDirectoryError(400,'Check the directory filters.');
+   $out['stage']=$q['stage'];
+  }
+  return $out;
+ }
+ public static function stages():array{return ['all'=>'All setup stages','published'=>'Published','draft'=>'Draft profile','in_progress'=>'Service configured','not_started'=>'Service not configured','unknown'=>'Unknown setup'];}
+ public static function businessStage(array $r):string{
+  if(($r['published']??null)===true)return 'published';
+  if(($r['published']??null)===null)return 'unknown';
+  if(($r['profile_saved']??null)===true)return 'draft';
+  if(($r['profile_saved']??null)===null)return 'unknown';
+  return ($r['service_configured']??null)===true?'in_progress':(($r['service_configured']??null)===false?'not_started':'unknown');
  }
  private static function text(mixed $v,int $max): string {
   if (!is_string($v)||strlen($v)>$max||!preg_match('//u',$v)||preg_match('/[\x00-\x1f\x7f]/',$v)) throw new PlatformDirectoryError(503,'Directory data is unavailable. Try again later.');
@@ -64,6 +78,7 @@ final class PlatformDirectory {
    if ($resource==='businesses') {
     $row['name']=self::text($r['name']??null,480); // DB permits120 Unicode characters (up to4 UTF-8 bytes each).
     foreach(['location_configured','service_configured','profile_saved','published'] as $fact) $row[$fact]=self::fact($r[$fact]??null);
+    if(isset($request['stage'])&&$request['stage']!=='all'&&self::businessStage($row)!==$request['stage'])throw new PlatformDirectoryError(503,'Directory data is unavailable. Try again later.');
    } else {
     $row['email_verified']=self::fact($r['email_verified']??null);
     $links=$r['business_associations']??null;

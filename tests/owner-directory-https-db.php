@@ -38,6 +38,7 @@ $admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118101850_o
 // Hosted postgres cannot delegate managed auth-schema USAGE to custom roles.
 $admin->exec('REVOKE USAGE ON SCHEMA auth FROM faraios_owner_api');
 $admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118104000_owner_directory_claims_compatibility.sql'));
+$admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118112500_owner_business_stage_filter.sql'));
 $n=0;
 function good(bool $v,string $m):void{global $n;if(!$v)throw new RuntimeException($m);$n++;}
 function denied(callable $f,string $m):void{try{$f();}catch(PDOException $e){good(in_array($e->getCode(),['42501','22023'],true),$m.' SQLSTATE '.$e->getCode());return;}throw new RuntimeException('Expected denial: '.$m);}
@@ -83,8 +84,32 @@ good($admin->query("SELECT rolcanlogin FROM pg_roles WHERE rolname='faraios_owne
 good($admin->query("SELECT has_table_privilege('faraios_owner_api','auth.users','SELECT')")->fetchColumn()===false,'executor cannot read raw auth');
 good($admin->query("SELECT has_table_privilege('faraios_owner_api','public.businesses','UPDATE')")->fetchColumn()===false,'executor cannot mutate businesses');
 $before=$admin->query("SELECT md5(string_agg(row_to_json(b)::text,',' ORDER BY id)) FROM public.businesses b")->fetchColumn();
+$admin->exec(<<<'SQL'
+INSERT INTO public.business_service_catalogues VALUES('20000000-0000-4000-8000-000000000004','live','{"items":[{"archived":false}]}');
+INSERT INTO public.business_profiles VALUES('20000000-0000-4000-8000-000000000005','live');
+INSERT INTO public.business_public_pages VALUES('20000000-0000-4000-8000-000000000006','live');
+SQL);
+$filtered=function(string $stage,int $page=1,string $search='',?array $jwt=null)use($admin,$claims):array{
+ $admin->exec('SET ROLE authenticated');
+ try{
+  $q=$admin->prepare("SELECT set_config('request.jwt.claims',:c,false)");$q->execute(['c'=>json_encode($jwt??$claims)]);
+  $q=$admin->prepare("SELECT public.platform_owner_directory_read('businesses',:p,:q,:s)");$q->execute(['p'=>$page,'q'=>$search,'s'=>$stage]);
+  return json_decode($q->fetchColumn(),true,128,JSON_THROW_ON_ERROR);
+ }finally{$admin->exec('RESET ROLE');}
+};
+foreach(['published'=>1,'draft'=>2,'in_progress'=>1,'not_started'=>25,'unknown'=>1] as $stage=>$expected){
+ $filteredRows=$filtered($stage)['rows'];good(count($filteredRows)===$expected,'stage fixture count '.$stage);
+ foreach($filteredRows as $r)good(PlatformDirectory::businessStage($r)===$stage,'database/PHP stage agreement');
+}
+$paged=array_merge(array_slice($filtered('all')['rows'],0,25),$filtered('all',2)['rows']);
+good(count($paged)===30&&count(array_unique(array_column($paged,'id')))===30,'filtered pagination no duplicate or missing fixtures');
+good(count($filtered('draft',1,'%_!')['rows'])===1,'stage and literal search combined');
+foreach(['invalid',"' OR 1=1 --"] as $bad)denied(fn()=>$filtered($bad),'stage allowlist');
+denied(fn()=>$filtered('all',1,'',array_replace($claims,['sub'=>$other])),'filtered nonowner denied');
+denied(fn()=>$filtered('all',1,'',array_replace($claims,['exp'=>0])),'filtered expired denied');
 $admin->exec(file_get_contents(__DIR__.'/../docs/owner-03/disable-https.sql'));
 denied(fn()=>$call($claims),'disabled API rejects previous owner');
+denied(fn()=>$filtered('all'),'filtered API containment');
 $admin->exec(file_get_contents(__DIR__.'/../docs/owner-03/uninstall-https.sql'));
 good($admin->query("SELECT to_regprocedure('public.platform_owner_directory_read(text,integer,text)')")->fetchColumn()===null,'wrapper removed');
 good($admin->query("SELECT count(*) FROM pg_roles WHERE rolname='faraios_owner_api'")->fetchColumn()===0,'executor removed');
@@ -101,6 +126,7 @@ SET ROLE fixture_installer;
 SQL);
 $admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118101850_owner_directory_https_gateway.sql'));
 $admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118104000_owner_directory_claims_compatibility.sql'));
+$admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118112500_owner_business_stage_filter.sql'));
 good($admin->query("SELECT has_schema_privilege('faraios_owner_api','auth','USAGE')")->fetchColumn()===false,'managed Auth schema grant unavailable');
 good((int)$admin->query("SELECT count(*) FROM pg_auth_members WHERE roleid=(SELECT oid FROM pg_roles WHERE rolname='faraios_owner_api') AND (inherit_option OR set_option)")->fetchColumn()===0,'temporary execution membership removed');
 $admin->exec(file_get_contents(__DIR__.'/../docs/owner-03/disable-https.sql'));

@@ -73,6 +73,13 @@ function platform_directory_https_reader():Closure{return function($resource,$qu
         check('No matching records' in get('?q=empty')[2],'empty state')
         check('page=2' in get('?q=a%26b')[2] and 'q=a%26b' in get('?q=a%26b')[2],'pagination preserves escaped query')
         check(get(path='platform-navigation.php')[0]==404,'include-only navigation')
+        check('name="stage"' in get()[2],'business setup filter present')
+        check(get('?stage=unknown')[0]==200,'unknown-stage filter renders')
+        check(get('?stage=published')[0]==503,'provider stage mismatch fails closed')
+        check(get('?stage=invalid')[0]==400,'invalid setup stage rejected')
+        check(get('?stage[]=all')[0]==400,'stage array rejected')
+        check(get('?view=users&stage=all')[0]==400,'business filter cannot change user scope')
+        check('stage=unknown' in get('?stage=unknown')[2],'pagination preserves setup filter')
         print({'status':'PASS','assertions':count,'hosted_requests':0})
     finally:
         server.terminate();server.wait(timeout=5);log.close()

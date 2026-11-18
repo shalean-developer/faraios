@@ -5,8 +5,12 @@ if (realpath($_SERVER['SCRIPT_FILENAME']??'')===__FILE__) {http_response_code(40
 final class PlatformDirectoryHttpsReader {
  public function __construct(private readonly Closure $request,private readonly array $regions) {}
  public function __invoke(string $resource,array $query):array {
-  if (!in_array($resource,['businesses','users'],true) || PlatformDirectory::query(['page'=>(string)($query['page']??''),'q'=>$query['q']??null])!==$query) throw new RuntimeException('Invalid directory scope.');
-  $data=($this->request)(['p_resource'=>$resource,'p_page'=>$query['page'],'p_search'=>$query['q']]);
+  $check=['page'=>(string)($query['page']??''),'q'=>$query['q']??null];
+  if(isset($query['stage']))$check['stage']=$query['stage'];
+  if (!in_array($resource,['businesses','users'],true) || PlatformDirectory::query($check)!==$query || ($resource!=='businesses'&&isset($query['stage']))) throw new RuntimeException('Invalid directory scope.');
+  $args=['p_resource'=>$resource,'p_page'=>$query['page'],'p_search'=>$query['q']];
+  if(isset($query['stage']))$args['p_stage']=$query['stage'];
+  $data=($this->request)($args);
   if (!is_array($data)||!is_array($data['rows']??null)||!array_is_list($data['rows'])||count($data['rows'])>26) throw new RuntimeException('Invalid directory response.');
   $more=count($data['rows'])>25;$rows=array_slice($data['rows'],0,25);
   foreach($rows as &$row) {
