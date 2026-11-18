@@ -120,7 +120,6 @@
 +}
 +
 +.details-heading { text-align:center; }
-+.selected-service { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
 +
 +/* The launch screen has its own scroll region between the header and booking action. */
 +.launch-page {
@@ -156,6 +155,8 @@
 +.service-tiles { display:flex; gap:8px; overflow-x:auto; padding:4px; }
 +.service-tile {
 +    position:relative;
++    color:inherit;
++    width:auto;
 +    display:flex;
 +    flex:0 0 128px;
 +    flex-direction:column;
@@ -174,9 +175,8 @@
 +    background:white;
 +    cursor:pointer;
 +}
-+.service-tile input { position:absolute; width:1px; height:1px; opacity:0; margin:0; padding:0; }
-+.service-tile:has(:checked) { border-color:var(--teal); box-shadow:inset 0 0 0 1px var(--teal); }
-+.service-tile:focus-within { outline:3px solid #197baf; outline-offset:1px; }
++.service-tile:hover { border-color:var(--teal); box-shadow:inset 0 0 0 1px var(--teal); }
++.service-tile:focus-visible { outline:3px solid #197baf; outline-offset:1px; }
 +.launch-panels { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:28px; margin:clamp(36px,7vh,72px) 12px 0; }
 +.launch-panel { background:#dfefea; border-radius:9px; padding:30px 20px; text-align:center; align-content:center; min-height:176px; }
 +.launch-panel:nth-child(2) { background:#e6f1ef; }
@@ -233,7 +233,7 @@
 +}
 +function book01_open(string $business,int $step,string $heading,array $quote=[],array $visit=[]): void {
 +    $steps=['Details','Schedule','Review','Payment']; ?>
-+<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=launch-1"></head><body<?=$step===0?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
++<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=launch-2"></head><body<?=$step===0?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
 +<?php if ($step>=1 && $step<=4): ?><nav aria-label="Booking steps"><ol><?php foreach($steps as $i=>$label): ?><li class="<?=$i+1<=$step?'current':''?>" <?=$i+1===$step?'aria-current="step"':''?>><b><?=$i+1?></b><span><?=esc($label)?></span></li><?php endforeach; ?></ol></nav><?php endif; ?>
 +<details class="help"><summary>Booking help</summary><p>Use synthetic details. Card checkout uses Paystack Test. For manual EFT, report a synthetic transfer and wait for the business to verify it.</p></details></div>
 +</div></header><div class="outer"><main>
@@ -385,7 +385,7 @@
  $_SERVER['SCRIPT_NAME']='/account/_book05-preview/account/index.php';
  require $private.'/app/runtime/account/core.php';
  require $private.'/app/runtime/account/profile-core.php';
-@@ -25,19 +26,70 @@
+@@ -25,19 +26,69 @@
  try { book05_merchant_key($slug,$private); }
  catch (DomainException $error) { $ready=false; }
  $ticket=enquiry_ticket($slug.':booking');
@@ -414,9 +414,9 @@
 +        <?php if ($selected!==null): ?><p role="alert">Choose an available service to continue.</p><?php endif; ?>
 +        <form id="launch-service" method="get" aria-label="Book a service">
 +            <input type="hidden" name="slug" value="<?=esc($slug)?>">
++            <input type="hidden" name="service" value="<?=esc($offer['id'])?>">
 +            <div class="service-tiles">
-+                <label class="service-tile">
-+                    <input type="radio" name="service" value="<?=esc($offer['id'])?>" checked required>
++                <button class="service-tile" type="submit">
 +                    <svg viewBox="0 0 64 56" width="62" height="54" fill="none" aria-hidden="true" focusable="false">
 +                        <g stroke="#183c3b" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
 +                            <path d="M15 42 23 15c2-7 7-10 13-9 6 0 10 5 10 12v8"/>
@@ -428,7 +428,7 @@
 +                        </g>
 +                    </svg>
 +                    <span>Regular Cleaning</span>
-+                </label>
++                </button>
 +            </div>
 +        </form>
 +    <?php endif; ?>
@@ -462,12 +462,11 @@
 -<label>Service <select name="service"><option value="<?=esc($offer['id'])?>">Regular Cleaning</option></select></label>
 -<label>Service address <input name="address" value="10 Example Street" required minlength="5" maxlength="1000"></label>
 +<input type="hidden" name="service" value="<?=esc($offer['id'])?>">
-+<p class="selected-service"><strong>Regular Cleaning</strong> <a href="?slug=<?=esc($slug)?>">Change service</a></p>
 +<label>Street address <input name="address" value="10 Example Street" required minlength="5" maxlength="1000"></label>
  <label>Service area <select name="service_area"><?php foreach ($offer['areas'] as $area): ?><option><?=esc($area)?></option><?php endforeach; ?></select></label>
  <fieldset><legend>Rooms, extras and fees</legend>
  <?php foreach ($rows as $row):
-@@ -46,5 +98,12 @@
+@@ -46,5 +97,12 @@
      $quantity=max($min,min($max,(int)$sample)); ?>
  <label><?=esc($row['name'])?> <input type="number" name="options[<?=esc($row['id'])?>]" min="<?=$min?>" max="<?=$max?>" value="<?=$quantity?>" <?= $min===$max?'readonly':'required' ?>></label>
  <?php endforeach; ?></fieldset>
