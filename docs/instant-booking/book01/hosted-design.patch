@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/faraios.com/account/_book05-preview/business/book01-visit.css
-@@ -0,0 +1,200 @@
+@@ -0,0 +1,193 @@
 +:root{font:16px/1.5 system-ui,sans-serif;color:#153438;background:#f4f7f5;--teal:#087e79;--line:#ccdcda}*{box-sizing:border-box}body{margin:0}
 +
 +.outer { margin:0; container-type:inline-size; }
@@ -120,13 +120,6 @@
 +}
 +
 +.details-heading { text-align:center; }
-+.address-row {
-+    display:grid;
-+    grid-template-columns:minmax(0,1fr) clamp(6.25rem,28%,10rem);
-+    column-gap:clamp(.5rem,2%,1rem);
-+    align-items:end;
-+}
-+.address-row label { min-width:0; }
 +
 +/* The launch screen has its own scroll region between the header and booking action. */
 +.launch-page {
@@ -240,7 +233,7 @@
 +}
 +function book01_open(string $business,int $step,string $heading,array $quote=[],array $visit=[]): void {
 +    $steps=['Details','Schedule','Review','Payment']; ?>
-+<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=address-1"></head><body<?=$step===0?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
++<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=location-1"><?php if ($step===1): ?><link rel="stylesheet" href="/account/booking-location-ui.css?v=1"><?php endif; ?></head><body<?=$step===0?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
 +<?php if ($step>=1 && $step<=4): ?><nav aria-label="Booking steps"><ol><?php foreach($steps as $i=>$label): ?><li class="<?=$i+1<=$step?'current':''?>" <?=$i+1===$step?'aria-current="step"':''?>><b><?=$i+1?></b><span><?=esc($label)?></span></li><?php endforeach; ?></ol></nav><?php endif; ?>
 +<details class="help"><summary>Booking help</summary><p>Use synthetic details. Card checkout uses Paystack Test. For manual EFT, report a synthetic transfer and wait for the business to verify it.</p></details></div>
 +</div></header><div class="outer"><main>
@@ -392,7 +385,7 @@
  $_SERVER['SCRIPT_NAME']='/account/_book05-preview/account/index.php';
  require $private.'/app/runtime/account/core.php';
  require $private.'/app/runtime/account/profile-core.php';
-@@ -25,19 +26,72 @@
+@@ -25,20 +26,71 @@
  try { book05_merchant_key($slug,$private); }
  catch (DomainException $error) { $ready=false; }
  $ticket=enquiry_ticket($slug.':booking');
@@ -462,21 +455,21 @@
 +        $initialQuote=instant_query('select instant_private.slots(?,?,?,?::jsonb,?::date)',[$slug,$offer['id'],$offer['areas'][0],json_encode($sampleOptions,JSON_THROW_ON_ERROR),$tomorrow]);
 +    } catch (Throwable $e) { $initialQuote=[]; }
 +}
++require_once dirname(__DIR__, 2).'/booking-location-ui.php';
 +$summaryVisit=['area'=>$offer['areas'][0]??''];
 +book01_open($merchants[$slug]['name'],1,'Your cleaning details',$initialQuote,$summaryVisit);
 +?><form action="instant.php?slug=<?=esc($slug)?>" method="post">
  <input type="hidden" name="csrf" value="<?=esc($ticket['csrf'])?>">
 -<label>Service <select name="service"><option value="<?=esc($offer['id'])?>">Regular Cleaning</option></select></label>
 -<label>Service address <input name="address" value="10 Example Street" required minlength="5" maxlength="1000"></label>
+-<label>Service area <select name="service_area"><?php foreach ($offer['areas'] as $area): ?><option><?=esc($area)?></option><?php endforeach; ?></select></label>
 +<input type="hidden" name="service" value="<?=esc($offer['id'])?>">
-+<div class="address-row">
-+    <label>Street address<input name="address" autocomplete="address-line1" value="10 Example Street" required minlength="5" maxlength="1000"></label>
-+    <label>Apt/Unit No.<input name="unit" autocomplete="address-line2" maxlength="120"></label>
-+</div>
- <label>Service area <select name="service_area"><?php foreach ($offer['areas'] as $area): ?><option><?=esc($area)?></option><?php endforeach; ?></select></label>
++<?php booking_address_row('10 Example Street'); ?>
++<?php booking_service_area($offer['areas']); ?>
  <fieldset><legend>Rooms, extras and fees</legend>
  <?php foreach ($rows as $row):
-@@ -46,5 +100,12 @@
+     $min=(int)$row['minimum']; $max=(int)$row['maximum'];
+@@ -46,5 +98,12 @@
      $quantity=max($min,min($max,(int)$sample)); ?>
  <label><?=esc($row['name'])?> <input type="number" name="options[<?=esc($row['id'])?>]" min="<?=$min?>" max="<?=$max?>" value="<?=$quantity?>" <?= $min===$max?'readonly':'required' ?>></label>
  <?php endforeach; ?></fieldset>
@@ -491,3 +484,131 @@
 +<?php booking_preview_tools($merchants); ?>
 +<script src="../business/book01-details.js" defer></script>
 +<?php book01_close($initialQuote,$summaryVisit); ?>
+--- /dev/null
++++ b/faraios.com/account/booking-location-ui.php
+@@ -0,0 +1,25 @@
++<?php
++declare(strict_types=1);
++
++function booking_address_row(string $street = '', string $unit = ''): void { ?>
++<div class="booking-address-row">
++    <label class="booking-location-label">Street address
++        <input name="address" autocomplete="address-line1" value="<?=esc($street)?>" required minlength="5" maxlength="1000">
++    </label>
++    <label class="booking-location-label">Apt/Unit No.
++        <input name="unit" autocomplete="address-line2" value="<?=esc($unit)?>" maxlength="120">
++    </label>
++</div>
++<?php }
++
++function booking_service_area(array $areas, ?string $selected = null): void { ?>
++<label class="booking-location-label">Service area
++    <span class="booking-area-control">
++        <select name="service_area" required>
++            <?php foreach ($areas as $area): ?>
++                <option value="<?=esc($area)?>"<?=$selected === $area ? ' selected' : ''?>><?=esc($area)?></option>
++            <?php endforeach; ?>
++        </select>
++    </span>
++</label>
++<?php }
+--- /dev/null
++++ b/faraios.com/account/booking-location-ui.css
+@@ -0,0 +1,79 @@
++.booking-address-row {
++    display: grid;
++    grid-template-columns: minmax(0, 1fr) clamp(6.25rem, 28%, 10rem);
++    column-gap: clamp(.5rem, 2%, 1rem);
++    align-items: end;
++}
++label.booking-location-label {
++    display: block;
++    min-width: 0;
++    margin: 12px 0 5px;
++    font-size: .91rem;
++    font-weight: 600;
++    line-height: 1.5;
++    color: #153438;
++}
++.booking-location-label input,
++.booking-area-control select {
++    display: block;
++    box-sizing: border-box;
++    width: 100%;
++    min-height: 44px;
++    margin: 4px 0 0;
++    padding: 10px 11px;
++    border: 1px solid #98b5b1;
++    border-radius: 7px;
++    background: white;
++    color: inherit;
++    font: inherit;
++}
++.booking-area-control {
++    position: relative;
++    display: block;
++}
++.booking-area-control select {
++    appearance: none;
++    padding-right: 2.75rem;
++    cursor: pointer;
++}
++.booking-area-control::after {
++    content: "";
++    position: absolute;
++    top: 50%;
++    right: 1.05rem;
++    width: .5rem;
++    height: .5rem;
++    border-bottom: 2px solid #087e79;
++    border-right: 2px solid #087e79;
++    transform: translateY(-70%) rotate(45deg);
++    pointer-events: none;
++}
++.booking-area-control select:hover { border-color: #087e79; }
++.booking-location-label :is(input, select):focus-visible {
++    outline: 3px solid #197baf;
++    outline-offset: 2px;
++}
++@supports (appearance: base-select) {
++    .booking-area-control select,
++    .booking-area-control select::picker(select) { appearance: base-select; }
++    .booking-area-control select::picker-icon { display: none; }
++    .booking-area-control select::picker(select) {
++        margin-block: 4px;
++        padding: 4px;
++        border: 1px solid #98b5b1;
++        border-radius: 8px;
++        background: white;
++        color: #153438;
++        box-shadow: 0 6px 18px #15343820;
++    }
++    .booking-area-control option {
++        padding: 9px 12px;
++        border-radius: 5px;
++    }
++    .booking-area-control option:checked { background: #edf6f3; font-weight: 650; }
++    .booking-area-control option:is(:hover, :focus-visible) { background: #dceee9; }
++}
++@media (forced-colors: active) {
++    .booking-area-control::after { border-color: ButtonText; }
++}
++#booking-location-components .booking-location-example { max-width: 38rem; }
+--- a/faraios.com/account/platform.php
++++ b/faraios.com/account/platform.php
+@@ -44,6 +44,15 @@
+ <?php if($view==='overview'||$view==='releases'):?><section class="release-banner"><div><span class="pill">Target · v1.0.0</span><h2><?=$stats['blockers']?'Release on hold':'Checklist complete — release review required'?></h2><p><?=$stats['blockers']?> open blocking items. Preview work stays separate from verified release work.</p></div><div class="progress-block"><strong><?=$stats['verified']?> <small>/ <?=$stats['total']?></small></strong><span>release tasks verified</span><progress max="<?=max(1,$stats['total'])?>" value="<?=$stats['verified']?>"><?=$stats['verified']?> / <?=$stats['total']?></progress></div></section><div class="stats"><article><span>Open blockers</span><strong><?=$stats['blockers']?></strong><small>Resolve before release</small></article><article><span>In preview</span><strong><?=$stats['preview']?></strong><small>Awaiting acceptance or rollout</small></article><article><span>Verified</span><strong><?=$stats['verified']?></strong><small>Evidence recorded</small></article><article><span>Audit date</span><strong class="date"><?=esc($store['audited_at'])?></strong><small>Readiness snapshot · not a live scan</small></article></div><?php endif;?>
+ <?php if($view==='review'):?>
+ <section class="panel"><h2>UI preview catalogue</h2><p>Homepage-derived styling. Account, business and document examples use disposable synthetic data. Forms cannot submit. These previews are design references and may differ from the current live application.</p><a href="/_ui-preview/review.html?buttons=96aef3a" target="_blank" rel="noopener noreferrer">Open original review catalogue ↗</a></section>
++<?php require_once __DIR__.'/booking-location-ui.php'; ?>
++<link rel="stylesheet" href="/account/booking-location-ui.css?v=1">
++<section id="booking-location-components" class="panel">
++    <h2>Booking location components</h2>
++    <div class="booking-location-example">
++        <?php booking_address_row('10 Example Street', '4B'); ?>
++        <?php booking_service_area(['Gardens', 'Claremont', 'Newlands'], 'Gardens'); ?>
++    </div>
++</section>
+ <section class="panel audit-note"><h2>Marketing</h2><ul><li style="padding:8px 0"><a href="/_ui-preview/index.html" target="_blank" rel="noopener noreferrer">index.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/features" target="_blank" rel="noopener noreferrer">features <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/about.html" target="_blank" rel="noopener noreferrer">about.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/contact.html" target="_blank" rel="noopener noreferrer">contact.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/privacy.html" target="_blank" rel="noopener noreferrer">privacy.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/terms" target="_blank" rel="noopener noreferrer">terms <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/pricing" target="_blank" rel="noopener noreferrer">pricing <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/marketplace" target="_blank" rel="noopener noreferrer">marketplace <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/industries" target="_blank" rel="noopener noreferrer">industries <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/waitlist.html" target="_blank" rel="noopener noreferrer">waitlist.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/guides/enquiry-to-invoice" target="_blank" rel="noopener noreferrer">guides/enquiry-to-invoice <span aria-hidden="true">↗</span></a></li></ul></section>
+ <section class="panel audit-note"><h2>Account and business tools</h2><ul><li style="padding:8px 0"><a href="/_ui-preview/account/dashboard.html" target="_blank" rel="noopener noreferrer">account/dashboard.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/requests.html" target="_blank" rel="noopener noreferrer">account/requests.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/enquiries.html" target="_blank" rel="noopener noreferrer">account/enquiries.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/quotes.html" target="_blank" rel="noopener noreferrer">account/quotes.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/bookings.html" target="_blank" rel="noopener noreferrer">account/bookings.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/customers.html" target="_blank" rel="noopener noreferrer">account/customers.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/staff.html" target="_blank" rel="noopener noreferrer">account/staff.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/invoices.html" target="_blank" rel="noopener noreferrer">account/invoices.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/services.html" target="_blank" rel="noopener noreferrer">account/services.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/profile.html" target="_blank" rel="noopener noreferrer">account/profile.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/quotes-new.html" target="_blank" rel="noopener noreferrer">account/quotes-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/bookings-new.html" target="_blank" rel="noopener noreferrer">account/bookings-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/customers-new.html" target="_blank" rel="noopener noreferrer">account/customers-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/staff-new.html" target="_blank" rel="noopener noreferrer">account/staff-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/invoices-new.html" target="_blank" rel="noopener noreferrer">account/invoices-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/enquiry-new.html" target="_blank" rel="noopener noreferrer">account/enquiry-new.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/signin.html" target="_blank" rel="noopener noreferrer">account/signin.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/signup.html" target="_blank" rel="noopener noreferrer">account/signup.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/forgot.html" target="_blank" rel="noopener noreferrer">account/forgot.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/verify.html" target="_blank" rel="noopener noreferrer">account/verify.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/confirm.html" target="_blank" rel="noopener noreferrer">account/confirm.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/welcome.html" target="_blank" rel="noopener noreferrer">account/welcome.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/business.html" target="_blank" rel="noopener noreferrer">account/business.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/welcome-edit.html" target="_blank" rel="noopener noreferrer">account/welcome-edit.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/account/customer.html" target="_blank" rel="noopener noreferrer">account/customer.html <span aria-hidden="true">↗</span></a></li></ul></section>
+ <section class="panel audit-note"><h2>Business website</h2><ul><li style="padding:8px 0"><a href="/_ui-preview/business-example/index.html" target="_blank" rel="noopener noreferrer">business-example/index.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/business-example/services.html" target="_blank" rel="noopener noreferrer">business-example/services.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/business-example/how-it-works.html" target="_blank" rel="noopener noreferrer">business-example/how-it-works.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/business-example/areas.html" target="_blank" rel="noopener noreferrer">business-example/areas.html <span aria-hidden="true">↗</span></a></li><li style="padding:8px 0"><a href="/_ui-preview/business-example/contact.html" target="_blank" rel="noopener noreferrer">business-example/contact.html <span aria-hidden="true">↗</span></a></li></ul></section>
