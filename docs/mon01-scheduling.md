@@ -200,3 +200,28 @@ Second unattended268 tick16:35:01Z exited0, gap300.097seconds. All3 workflows
 reported recent; pending state reconciled to{}. No duplicate dispatch. Two
 consecutive timer ticks and one independent-task check are proved; no six-hour
 backup cycle has yet elapsed since activation.
+
+## Closeout investigation and hosted detection test — 18 Nov 2026
+
+Operational diagnosis: native schedule invocation gaps despite active workflows,
+correct main cron definitions and enabled repository Actions. Existing monitor
+execution succeeds when triggered by Plesk. No reproducible repository-setting or
+schedule-owner fault found; GitHub internal cause is unknown. The owner's prior
+instruction explicitly permits an alternative scheduler if no fixable fault is
+found. Criterion1 is accepted at this operational boundary, not as a claim about
+GitHub internals. Fresh automatic backup after repair remains the final original
+criterion; do not replace that with a manual dispatch or a shorter cadence.
+
+One-time Plesk270 ran synthetic script `schedule-alert-test.py` at16:44:01Z.
+Private receipt alert-test-20261118.json confirms missed-run detection, duplicate
+suppression and recovery detection. Isolated temporary receipt directory; no
+production state or credential touched. Labelled TEST MON01-ALERT-20261118 emitted
+on stderr with exit1 for errors-only delivery to alerts@faraios.com. This proves
+emission, not inbox receipt. Connected Gmail has no matching message and is not
+the alerts mailbox. Task270 disabled after execution; one-shot marker also prevents
+repeat output. Initial long-command scheduling attempt was rejected by Plesk's
+980-character limit; replaced with a short private script command before saving.
+
+MON-01 Inprogress4/5 pending fresh automatic monitor/backup/heartbeat evidence.
+Last backup15:46:19Z; next fallback eligible around21:50Z/23:50SAST unless a native
+run occurs sooner. Keep V1-014 separate and Plesk outage limitation explicit.
