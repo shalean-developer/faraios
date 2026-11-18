@@ -24,12 +24,13 @@ final class PlatformDirectoryHttpsReader {
   return ['rows'=>$rows,'has_more'=>$more,'observed_at'=>$data['observed_at']??null];
  }
 }
-function platform_directory_https_request(array $args,array $config,string $token):array {
+function platform_directory_https_request(array $args,array $config,string $token,string $rpc='platform_owner_directory_read'):array {
+ if (!in_array($rpc,['platform_owner_directory_read','platform_owner_overview_read'],true)) throw new RuntimeException('Invalid RPC.');
  if (($config['supabase_url']??'')!=='https://rxelmugnucfajrqmphhe.supabase.co'
   || !is_string($config['publishable_key']??null) || !preg_match('/\Asb_publishable_[A-Za-z0-9_-]+\z/D',$config['publishable_key'])
   || !preg_match('/\A[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\z/D',$token)) throw new RuntimeException('Directory connection unavailable.');
  // Authentication uses the current user's JWT, never a service-role/database secret.
- $url=$config['supabase_url'].'/rest/v1/rpc/platform_owner_directory_read?'.http_build_query($args,'','&',PHP_QUERY_RFC3986);
+ $url=$config['supabase_url'].'/rest/v1/rpc/'.$rpc.'?'.http_build_query($args,'','&',PHP_QUERY_RFC3986);
  $context=stream_context_create(['http'=>['method'=>'GET','header'=>'apikey: '.$config['publishable_key']."\r\nAuthorization: Bearer ".$token."\r\nAccept: application/json",'timeout'=>5,'follow_location'=>0,'ignore_errors'=>true],
   'ssl'=>['verify_peer'=>true,'verify_peer_name'=>true]]);
  $stream=@fopen($url,'rb',false,$context);

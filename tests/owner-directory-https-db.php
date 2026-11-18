@@ -39,6 +39,7 @@ $admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118101850_o
 $admin->exec('REVOKE USAGE ON SCHEMA auth FROM faraios_owner_api');
 $admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118104000_owner_directory_claims_compatibility.sql'));
 $admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118112500_owner_business_stage_filter.sql'));
+$admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118122000_owner_platform_overview.sql'));
 $n=0;
 function good(bool $v,string $m):void{global $n;if(!$v)throw new RuntimeException($m);$n++;}
 function denied(callable $f,string $m):void{try{$f();}catch(PDOException $e){good(in_array($e->getCode(),['42501','22023'],true),$m.' SQLSTATE '.$e->getCode());return;}throw new RuntimeException('Expected denial: '.$m);}
@@ -121,9 +122,37 @@ good(count($filtered('draft',1,'%_!')['rows'])===1,'stage and literal search com
 foreach(['invalid',"' OR 1=1 --"] as $bad)denied(fn()=>$filtered($bad),'stage allowlist');
 denied(fn()=>$filtered('all',1,'',array_replace($claims,['sub'=>$other])),'filtered nonowner denied');
 denied(fn()=>$filtered('all',1,'',array_replace($claims,['exp'=>0])),'filtered expired denied');
+// OWNER-07: one-snapshot aggregates do not multiply membership rows.
+$overview=function(?array $jwt=null,string $b='{20000000-0000-4000-8000-000000000001,20000000-0000-4000-8000-000000000006,20000000-0000-4000-8000-000000000001}',string $u='{10000000-0000-4000-8000-000000000001}')use($admin,$claims):array{
+ $admin->exec('SET ROLE authenticated');
+ try{
+  $q=$admin->prepare("SELECT set_config('request.jwt.claims',:c,false)");$q->execute(['c'=>json_encode($jwt??$claims)]);
+  $q=$admin->prepare('SELECT public.platform_owner_overview_read(CAST(:b AS uuid[]),CAST(:u AS uuid[]))');$q->execute(['b'=>$b,'u'=>$u]);return json_decode($q->fetchColumn(),true,128,JSON_THROW_ON_ERROR);
+ }finally{$admin->exec('RESET ROLE');}
+};
+$summary=$overview();
+good($summary['businesses']['all']['total']===30&&$summary['users']['all']['total']===30,'overview counts registrations not memberships');
+good($summary['businesses']['known_test']['total']===2&&$summary['businesses']['other']['total']===28,'explicit fixture split deduplicates IDs');
+good($summary['users']['known_test']['total']===1&&$summary['users']['other']['total']===29,'user fixture split');
+good($summary['users']['all']['no_business']===1&&$summary['users']['all']['verified']===1&&$summary['users']['all']['unverified']===29,'verification and no-business counts');
+foreach(['published'=>1,'draft'=>2,'in_progress'=>1,'not_started'=>25,'unknown'=>1] as $stage=>$value)good($summary['businesses']['all'][$stage]===$value,'overview stage accuracy '.$stage);
+good(!preg_match('/SECRET|encrypted_password|business_associations|10000000/',json_encode($summary)),'aggregate payload minimal');
+require_once __DIR__.'/../account/platform-overview.php';
+good(PlatformOverview::project($summary,time())==$summary,'overview contract reconciles');
+foreach([[],array_replace($claims,['sub'=>$other]),array_replace($claims,['exp'=>0]),array_replace($claims,['session_id'=>'30000000-0000-4000-8000-000000000099'])] as $bad)denied(fn()=>$overview($bad),'overview auth denied');
+denied(fn()=>$overview(null,'{NULL}'),'null fixture rejected');
+denied(fn()=>$overview(null,'{'.implode(',',array_fill(0,101,'20000000-0000-4000-8000-000000000001')).'}'),'oversized registry rejected');
+$admin->beginTransaction();$admin->exec('DELETE FROM public.businesses');$zero=$overview();good($zero['businesses']['all']['total']===0&&$zero['businesses']['known_test']['total']===0,'empty business aggregate');$admin->rollBack();
+$admin->exec(file_get_contents(__DIR__.'/../docs/owner-07/rollback.sql'));
+good($admin->query("SELECT to_regprocedure('public.platform_owner_overview_read(uuid[],uuid[])') IS NULL")->fetchColumn(),'scoped rollback removes overview');
+good(count($call($claims)['rows'])===26,'scoped rollback preserves directories');
+good((int)$admin->query('SELECT count(*) FROM faraios_owner_directory.owner_access WHERE enabled')->fetchColumn()===1,'scoped rollback preserves owner enrollment');
+$admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118122000_owner_platform_overview.sql'));
+good($overview()['businesses']['all']['total']===30,'overview reinstall after scoped rollback');
 $admin->exec(file_get_contents(__DIR__.'/../docs/owner-03/disable-https.sql'));
 denied(fn()=>$call($claims),'disabled API rejects previous owner');
 denied(fn()=>$filtered('all'),'filtered API containment');
+denied(fn()=>$overview(),'overview API containment');
 $admin->exec(file_get_contents(__DIR__.'/../docs/owner-03/uninstall-https.sql'));
 good($admin->query("SELECT to_regprocedure('public.platform_owner_directory_read(text,integer,text)')")->fetchColumn()===null,'wrapper removed');
 good($admin->query("SELECT count(*) FROM pg_roles WHERE rolname='faraios_owner_api'")->fetchColumn()===0,'executor removed');
@@ -141,6 +170,7 @@ SQL);
 $admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118101850_owner_directory_https_gateway.sql'));
 $admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118104000_owner_directory_claims_compatibility.sql'));
 $admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118112500_owner_business_stage_filter.sql'));
+$admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118122000_owner_platform_overview.sql'));
 good($admin->query("SELECT has_schema_privilege('faraios_owner_api','auth','USAGE')")->fetchColumn()===false,'managed Auth schema grant unavailable');
 good((int)$admin->query("SELECT count(*) FROM pg_auth_members WHERE roleid=(SELECT oid FROM pg_roles WHERE rolname='faraios_owner_api') AND (inherit_option OR set_option)")->fetchColumn()===0,'temporary execution membership removed');
 $admin->exec(file_get_contents(__DIR__.'/../docs/owner-03/disable-https.sql'));

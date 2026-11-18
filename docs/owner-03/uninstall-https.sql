@@ -8,8 +8,11 @@ DO $$ BEGIN
  OR has_function_privilege('authenticated','faraios_owner_directory.read_https(text,integer,text)','EXECUTE')
  OR COALESCE(has_function_privilege('authenticated',to_regprocedure('public.platform_owner_directory_read(text,integer,text,text)'),'EXECUTE'),false)
  OR COALESCE(has_function_privilege('authenticated',to_regprocedure('faraios_owner_directory.read_https(text,integer,text,text)'),'EXECUTE'),false)
+ OR COALESCE(has_function_privilege('authenticated',to_regprocedure('public.platform_owner_overview_read(uuid[],uuid[])'),'EXECUTE'),false)
  THEN RAISE EXCEPTION 'Disable HTTPS gateway first'; END IF;
 END $$;
+DROP FUNCTION IF EXISTS public.platform_owner_overview_read(uuid[],uuid[]) RESTRICT;
+DROP FUNCTION IF EXISTS faraios_owner_directory.overview_https(uuid[],uuid[]) RESTRICT;
 DROP FUNCTION IF EXISTS public.platform_owner_directory_read(text,integer,text,text) RESTRICT;
 DROP FUNCTION IF EXISTS faraios_owner_directory.read_https(text,integer,text,text) RESTRICT;
 DROP FUNCTION public.platform_owner_directory_read(text,integer,text) RESTRICT;

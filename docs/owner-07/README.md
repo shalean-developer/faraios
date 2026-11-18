@@ -1,0 +1,13 @@
+# OWNER-07: Platform overview and registration metrics
+
+Task: https://www.faraios.com/account/platform.php?task=TASK-422F1DBE5C
+
+The metric contract was saved to the live task before implementation on 18 November 2026. This read-only page counts unique businesses and nonanonymous Auth users at one database snapshot through the existing immutable-owner/session boundary and private projections. It uses existing business stage precedence and live setup/membership facts. Auth registrations are shared across environments. All-time means currently stored registrations, not a historical reconstruction.
+
+Known tests are explicit controlled UUIDs from SC04 (two businesses/five users) and the accepted V1-009 synthetic pilot (one business/one user). The remaining cohort is labelled Other, unclassified; it can contain additional tests/trials and is not a customer count. No active-business, completed-setup, booking-ready, revenue or platform-health metric is claimed. Counts reconcile by stage and cohort; provider extra fields are discarded. Zero is displayed only for confirmed empty data. Snapshots older than five minutes, inconsistent counts and provider failures return a private 503 error instead of fabricated totals.
+
+The new aggregate RPC has no new raw-table grants and uses the installed directory owner/session gate. Authenticated execution is gated per request; anonymous/service-role execution is not granted. Neither customer data nor owner enrollment is changed. The application uses the existing user JWT over verified HTTPS, never a database/service secret.
+
+Deployment sequence: validate local contract, route, real PostgreSQL authorization and rollback tests; reconcile live hashes; retain the two previous files privately; install the aggregate function and protected unlinked page; verify hosted owner/nonowner paths, counts, query timing, keyboard and responsive layouts; only then enable the Platform overview navigation link. Keep Development progress distinct. Record actual verification and any limits in a closeout document and live task.
+
+Rollback: run `rollback.py` without arguments to check installed/backup hashes. With `--restore`, it restores navigation first, then the prior HTTPS adapter, and removes the four new overview files. It refuses installed or backup drift. Apply `rollback.sql` afterward to remove only the two new overview functions; no cascade or data deletion. Existing directory access and owner enrollment remain. Global OWNER-03 containment scripts also cover the new functions. A production rollback is not needed for rehearsal: validate in a disposable database and private file copies.

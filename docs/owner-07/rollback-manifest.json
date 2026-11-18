@@ -1,0 +1,14 @@
+{
+  "before": {
+    "platform-directory-https.php": "c42c6ffa2ebe9d7d0f3651e5b31ee30d90d21b60f50d719392b43960cdb3362a",
+    "platform-navigation.php": "be242f358d0b16fd3ebc52f7a1f98169b9c828d95401305861205f19156c4522"
+  },
+  "after": {
+    "platform-directory-https.php": "f13993d4bd888c0e6a1deb0af151d4ba9577c6156a697d99573679d9d01c7bb0",
+    "platform-navigation.php": "862daeae391d9d7dc47b5d60b50bd48d268f3dc1c999f7c516cb0169ee4273e7",
+    "platform-overview.php": "a6663d0ca39adc942f8f3e472b17121ebec21e578eb38d6a6f20c27b9e7e9665",
+    "platform-overview-fixtures.php": "95f6eafc868bc213f3aa069d980c56f61af92b002cb87dc9f6a0621dc7cd867a",
+    "platform-overview-page.php": "9c0718d66b55e4b87a95b2eed1fa0c78c963a88030c7ebc734f65cc1acff36b8",
+    "platform-overview.css": "f2a954202e8111aa9913e8fa8a7864cecdbf1309cce39f2394304bb894600319"
+  }
+}
