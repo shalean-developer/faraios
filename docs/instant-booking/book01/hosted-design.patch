@@ -626,22 +626,22 @@
  <p><?=esc(book05_merchants()[$slug]['name'])?> will check the reported transfer before confirming your booking.</p>
  <p>Transfer report reference <strong><?=esc($flow)?></strong></p>
  <p>If the hold expires first, the business will review the payment and availability.</p>
-@@ -251,12 +334,12 @@
+@@ -251,12 +334,11 @@
  $start=new DateTimeImmutable($f['at'],new DateTimeZone('Africa/Johannesburg'));
  $finish=$start->modify('+'.(int)($q['minutes']??0).' minutes');
  ?>
 -<h2><?=$held?'Checkout':'Review your booking'?></h2>
 +<h2><?=$held?'Payment details':'Visit details'?></h2>
  <p>Payment recipient: <?=esc(book05_merchants()[$slug]['name'])?></p>
- <dl><dt>Service</dt><dd>One-time Regular Cleaning</dd>
+-<dl><dt>Service</dt><dd>One-time Regular Cleaning</dd>
++<dl><dt>Service</dt><dd>One-time</dd>
  <dt>Address</dt><dd><?=esc($f['address'])?> · <?=esc($f['area'])?></dd>
  <dt>Visit</dt><dd><?=esc($start->format('d M Y, H:i'))?>–<?=esc($finish->format('H:i'))?> SAST · <?=(int)$q['minutes']?> minutes · 1 cleaner</dd>
 -<dt>Job details and extras</dt><dd><ul><?php foreach ($q['rows']??[] as $row): if ((int)$row['quantity']===0) continue; ?><li><?=esc($row['name'])?> × <?=(int)$row['quantity']?></li><?php endforeach; ?></ul></dd>
-+<dt>Job details and extras</dt><dd><ul><?php foreach ($q['rows']??[] as $row): if ((int)$row['quantity']===0 || strcasecmp($row['name'],'Service fee')===0) continue; ?><li><?=esc($row['name'])?> × <?=(int)$row['quantity']?></li><?php endforeach; ?></ul></dd>
  <?php foreach (booking_visit_fields() as $key=>[$label]): if (isset($f['visit_details'][$key])): ?><dt><?=esc($label)?></dt><dd><?=esc($f['visit_details'][$key])?></dd><?php endif; endforeach; ?>
  <?php if ($f['notes']!==''): ?><dt>Instructions</dt><dd><?=esc($f['notes'])?></dd><?php endif; ?>
  <dt>Contact</dt><dd><?=esc($f['contact']['name'])?> · <?=esc($f['contact']['email'])?> <?=esc($f['contact']['phone']??'')?></dd></dl>
-@@ -264,46 +347,68 @@
+@@ -264,46 +346,68 @@
  <?php foreach ($q['items'] as $item): ?><li><?=esc($item['name'])?> · <?=(int)$item['quantity']?> × ZAR <?=number_format($item['price']/100,2)?> = ZAR <?=number_format($item['quantity']*$item['price']/100,2)?></li><?php endforeach; ?>
  </ul><?php endif; ?>
  <p><strong>Full amount due: ZAR <?=number_format(($f['reserved']['total']??$q['total'])/100,2)?></strong></p>
