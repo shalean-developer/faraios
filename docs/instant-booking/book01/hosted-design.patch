@@ -607,7 +607,7 @@
 +    ($f['method']??'')==='eft'=>'Awaiting payment verification',
 +    $step===4=>'Pay for your visit', $step===3=>'Review your visit', default=>'Choose a time'
 +};
-+if ($step===2) header('Content-Security-Policy: '.$previewPolicy."; script-src 'sha384-USr+vWVVvVYVVELvdRrg4cHBjd/YqBc2b2z500DldNmy/L0hW3Ip81A4l9dN3n4g'");
++if ($step===2) header('Content-Security-Policy: '.$previewPolicy."; script-src 'sha384-ZT4GZgloQpIHElCCO51Nvt8xclKn/41Ufqj1VzWswR1ln+ChG09QN3sjZKSnGmPk'");
 +book01_open(book05_merchants()[$slug]['name']??'Private booking preview',$step,$title,$summaryQuote,$f??[]);
 +?>
 +<?php if (!isset($f) || isset($f['result'])): ?><a href="<?=esc($back.'?slug='.$slug)?>">Back to service details</a><?php endif; ?>
@@ -641,7 +641,7 @@
  <?php foreach (booking_visit_fields() as $key=>[$label]): if (isset($f['visit_details'][$key])): ?><dt><?=esc($label)?></dt><dd><?=esc($f['visit_details'][$key])?></dd><?php endif; endforeach; ?>
  <?php if ($f['notes']!==''): ?><dt>Instructions</dt><dd><?=esc($f['notes'])?></dd><?php endif; ?>
  <dt>Contact</dt><dd><?=esc($f['contact']['name'])?> · <?=esc($f['contact']['email'])?> <?=esc($f['contact']['phone']??'')?></dd></dl>
-@@ -264,46 +347,58 @@
+@@ -264,46 +347,68 @@
  <?php foreach ($q['items'] as $item): ?><li><?=esc($item['name'])?> · <?=(int)$item['quantity']?> × ZAR <?=number_format($item['price']/100,2)?> = ZAR <?=number_format($item['quantity']*$item['price']/100,2)?></li><?php endforeach; ?>
  </ul><?php endif; ?>
  <p><strong>Full amount due: ZAR <?=number_format(($f['reserved']['total']??$q['total'])/100,2)?></strong></p>
@@ -687,11 +687,11 @@
 -<?php foreach ($choices as $choice): ?><option <?=($f['visit_details'][$key]??'')===$choice?'selected':''?>><?=esc($choice)?></option><?php endforeach; ?>
 -</select></label>
 -<?php endforeach; ?></fieldset>
-+<link rel="stylesheet" href="../business/book01-schedule.css">
-+<script src="../business/book01-schedule.js" integrity="sha384-USr+vWVVvVYVVELvdRrg4cHBjd/YqBc2b2z500DldNmy/L0hW3Ip81A4l9dN3n4g" defer></script>
++<link rel="stylesheet" href="../business/book01-schedule.css?v=start-buttons-1">
++<script src="../business/book01-schedule.js?v=start-buttons-1" integrity="sha384-ZT4GZgloQpIHElCCO51Nvt8xclKn/41Ufqj1VzWswR1ln+ChG09QN3sjZKSnGmPk" defer></script>
 +<label>Visit date<input data-visit-date type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
 +<?php if (isset($q['total']) && empty($q['outside_scope'])): ?><p><?=esc($f['area'])?> · <?=(int)$q['minutes']?> minutes · ZAR <?=number_format($q['total']/100,2)?></p><?php endif; ?>
-+<button data-date-fallback>Show start times</button>
++<button data-date-fallback formnovalidate>Show start times</button>
 +<div role="status" data-date-status></div>
 +<?php if (isset($alternatives)): ?>
 +<dialog open class="date-alternatives" aria-labelledby="date-options-heading">
@@ -702,7 +702,17 @@
 +    <button type="button" class="secondary" data-close hidden>Close</button>
 +</dialog>
 +<?php endif; ?>
-+<label>Available start time (SAST)<select name="time" <?=!empty($checkedDate) && !empty($q['times'])?'autofocus':''?> <?=empty($q['times'])?'disabled':''?>><option value=""><?=empty($q['times'])?'No start times on this date':'Choose a time'?></option><?php foreach ($q['times']??[] as $t): ?><option <?=($f['time']??'')===$t?'selected':''?>><?=esc($t)?></option><?php endforeach; ?></select></label>
++<?php $starts=$q['times']??[]; if ($starts): ?>
++<fieldset class="booking-starts">
++    <legend>Available starts / SAST</legend>
++    <div class="booking-start-row">
++    <?php foreach ($starts as $t):
++        $selected=count($starts)===1 || ($f['time']??'')===$t; ?>
++        <label><input type="radio" name="time" value="<?=esc($t)?>" <?=$selected?'checked':''?> required><span><?=esc($t)?></span></label>
++    <?php endforeach; ?>
++    </div>
++</fieldset>
++<?php endif; ?>
 +<section aria-labelledby="access-notes-heading"><h2 id="access-notes-heading">Extras and access notes (optional)</h2>
 +<div class="booking-access-row">
 +<?php require_once '/var/www/vhosts/shalean.com/faraios.com/account/booking-location-ui.php';
@@ -1171,17 +1181,18 @@
 +}
 --- /dev/null
 +++ b/faraios.com/account/_book05-preview/business/book01-schedule.js
-@@ -0,0 +1,26 @@
+@@ -0,0 +1,27 @@
 +const dateField = document.querySelector('input[data-visit-date]');
 +if (dateField) {
 +    const form = dateField.form;
 +    const status = form.querySelector('[data-date-status]');
-+    const time = form.elements.namedItem('time');
 +    form.querySelector('[data-date-fallback]').hidden = true;
 +    dateField.addEventListener('change', () => {
 +        if (!dateField.value || !dateField.validity.valid) return;
-+        time.value = '';
-+        time.disabled = true;
++        for (const option of form.querySelectorAll('input[name="time"]')) {
++            option.checked = false;
++            option.disabled = true;
++        }
 +        status.textContent = 'Checking start times…';
 +        form.requestSubmit();
 +    });
@@ -1200,7 +1211,7 @@
 +}
 --- /dev/null
 +++ b/faraios.com/account/_book05-preview/business/book01-schedule.css
-@@ -0,0 +1,17 @@
+@@ -0,0 +1,64 @@
 +.date-alternatives {
 +    box-sizing: border-box;
 +    width: min(25rem, calc(100% - 2rem));
@@ -1218,6 +1229,53 @@
 +.date-alternatives button { margin-top: .5rem; }
 +[data-date-fallback][hidden], .date-alternatives [hidden] { display: none; }
 +.date-alternatives[open]:not(:modal) { position: static; margin: .75rem 0; }
++
++fieldset.booking-starts {
++    min-inline-size: 0;
++    margin: 1rem 0;
++    padding: 0;
++    border: 0;
++}
++.booking-starts legend {
++    padding: 0;
++    color: #153438;
++    font-size: .91rem;
++    font-weight: 650;
++}
++.booking-start-row {
++    display: flex;
++    flex-wrap: nowrap;
++    gap: .5rem;
++    overflow-x: auto;
++    padding: .5rem .2rem;
++}
++.booking-start-row label {
++    display: inline-flex;
++    flex: 0 0 auto;
++    align-items: center;
++    justify-content: center;
++    gap: .4rem;
++    min-height: 44px;
++    margin: 0;
++    padding: .45rem 1rem;
++    border: 1px solid #b6cfca;
++    border-radius: 6px;
++    background: white;
++    color: #153438;
++    white-space: nowrap;
++    cursor: pointer;
++}
++.booking-start-row label:has(:checked) { background: #edf6f3; border-color: #087e79; }
++.booking-start-row label:focus-within { outline: 2px solid #087e79; outline-offset: 1px; }
++.booking-start-row input[type="radio"] {
++    appearance: auto;
++    width: .95rem;
++    height: .95rem;
++    min-height: 0;
++    margin: 0;
++    padding: 0;
++    accent-color: #087e79;
++}
 --- /dev/null
 +++ b/faraios.com/account/_book05-preview/business/book01-policy.css
 @@ -0,0 +1,36 @@
