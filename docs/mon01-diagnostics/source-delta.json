@@ -1,0 +1,10 @@
+{
+  "scripts/operations-watchdog.php": {
+    "baseline_sha256": "43771a4f8a853b56ac53c9b9db01f5932128eabf1bd26c6a63ba8e3d29f44bae",
+    "candidate_sha256": "2489b13f984ba6f09b56f5830ef2b295eaee9d5e61ccb05465b7b0573bfbfb3e"
+  },
+  ".github/workflows/monitor-diagnostics-check.yml": {
+    "baseline_sha256": null,
+    "candidate_sha256": "e404dd91173eecebd2715afed34089afa08c005daac6a2656fc7c3a6e2ff58c6"
+  }
+}

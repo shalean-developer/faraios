@@ -73,6 +73,13 @@ class Baseline(unittest.TestCase):
             self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
             self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
             original[path]={'path':path,'sha256':change['candidate_sha256']}
+        diagnostic=json.loads((ROOT/'docs/mon01-diagnostics/source-delta.json').read_text())
+        self.assertEqual(set(diagnostic),{'scripts/operations-watchdog.php',
+                                         '.github/workflows/monitor-diagnostics-check.yml'})
+        for path,change in diagnostic.items():
+            self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
+            self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
+            original[path]={'path':path,'sha256':change['candidate_sha256']}
         expected['files']=[original[path] for path in sorted(original,key=Path)]
         self.assertEqual(expected,manifest())
         self.assertEqual(len(self.inventory['files']),31)

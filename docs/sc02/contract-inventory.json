@@ -11136,8 +11136,8 @@
     },
     {
       "path": "scripts/operations-watchdog.php",
-      "line": 26,
-      "text": "[$code,$raw]=$fetch('https://rxelmugnucfajrqmphhe.supabase.co/auth/v1/health',['apikey: '.$m[1]]);$data=json_decode($raw,true);$auth=$code===200&&is_array($data)&&isset($data['name']);unset($config,$m,$raw,$data);",
+      "line": 54,
+      "text": "[$code,$raw]=watchdog_fetch('https://rxelmugnucfajrqmphhe.supabase.co/auth/v1/health',['apikey: '.$m[1]]);$data=json_decode($raw,true);$auth=$code===200&&is_array($data)&&isset($data['name']);unset($config,$m,$raw,$data);",
       "literal_rpcs": [],
       "methods": []
     },

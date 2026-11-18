@@ -1,0 +1,21 @@
+name: Monitor diagnostic regression
+on:
+  pull_request:
+    paths:
+      - 'scripts/operations-watchdog.php'
+      - 'tests/watchdog*.php'
+      - 'tests/watchdog-diagnostics.py'
+      - '.github/workflows/monitor-diagnostics-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnostics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: php -l scripts/operations-watchdog.php
+      - run: php tests/watchdog.php
+      - run: php tests/watchdog-diagnostics.php
+      - run: python3 tests/watchdog-diagnostics.py
