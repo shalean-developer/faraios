@@ -1,3 +1,5 @@
+> Current preferred path: [HTTPS installation](https-installation.md). Port443 verified reachable with TLS; narrow owner/session-gated RPC prepared and129 local assertions PASS. No new deployment or grants. Earlier PDO/session-pooler notes below are historical alternatives.
+
 # OWNER-03 bounded installation and rollback preparation
 
 Prepared18 November2026. NOT deployed, NOT approved for execution, PR88 remains draft. Live task TASK-4D58A7674A remains In progress; reconciliation and data-contract criteria are supported (2/5). This document supersedes the README's earlier pending-tracker-save note: evidence was saved successfully before this preparation and the new results must also be recorded.
