@@ -1,0 +1,32 @@
+[
+  {
+    "path": "account/platform-core.php",
+    "line": 64,
+    "text": "$lock=fopen($dir.'/tracker.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Tracker is busy. Try again.');chmod($dir.'/tracker.lock',0600);"
+  },
+  {
+    "path": "account/platform-core.php",
+    "line": 77,
+    "text": "try{chmod($tmp,0600);if(file_put_contents($tmp,$bytes,LOCK_EX)!==strlen($bytes)||!rename($tmp,$dir.'/tracker.json'))throw new RuntimeException('Task could not save.');}finally{if(is_file($tmp))unlink($tmp);}"
+  },
+  {
+    "path": "account/platform-core.php",
+    "line": 108,
+    "text": "try{chmod($tmp,0600);if(file_put_contents($tmp,$packet,LOCK_EX)!==strlen($packet)||!rename($tmp,$file))throw new RuntimeException('Tracker backup could not save.');}finally{if(is_file($tmp))unlink($tmp);}"
+  },
+  {
+    "path": "scripts/platform-owner-release-20261116.php",
+    "line": 9,
+    "text": "function write_private(string $p,string $b):void{must(!is_link($p),'symlink');must(file_put_contents($p,$b,LOCK_EX)===strlen($b),'write');must(chmod($p,0600),'mode');}"
+  },
+  {
+    "path": "scripts/platform-owner-release-20261116.php",
+    "line": 11,
+    "text": "$lock=fopen($private.'/platform-release.lock','c');must($lock!==false&&flock($lock,LOCK_EX),'lock');chmod($private.'/platform-release.lock',0600);"
+  },
+  {
+    "path": "scripts/platform-owner-release-20261116.php",
+    "line": 25,
+    "text": "$stateLock=fopen($src.'/tracker.lock','c');must($stateLock!==false&&flock($stateLock,LOCK_EX),'state_lock');chmod($src.'/tracker.lock',0600);"
+  }
+]

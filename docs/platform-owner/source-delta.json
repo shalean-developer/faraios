@@ -1,0 +1,30 @@
+{
+  "account/platform.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "d7ac087c3568b7032214118130f173bdc963d6568d84c0715f3d3aa30fb0128b"
+  },
+  "account/platform-core.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "4f06496db3bb0b9ce72ff37c29f24547fa2654708fd40e305a096bf9602f64c7"
+  },
+  "account/platform-seed.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "283d5c1fdba87305e4515fe7e005550b4f726a16131aab13584ddfa6dc305da7"
+  },
+  "account/platform.css": {
+    "baseline_sha256": null,
+    "candidate_sha256": "c96183f1ef3d55e228171d318a8216823b39bdd6ea326b4e8a30600272407c80"
+  },
+  "account/platform.js": {
+    "baseline_sha256": null,
+    "candidate_sha256": "e0450345c2a40064cf767d4e6c555e111889e12f43a26ff4d432d1e8a1865c70"
+  },
+  ".github/workflows/foundation-regression.yml": {
+    "baseline_sha256": "eeffe96d931fbd3ef0b9f6b4f8c9c744b9e86f350d6ec2393e9a125b7ed7d8c3",
+    "candidate_sha256": "8e63c25aac12d28a2c755ce11a35580b8a67209aa230cfc85105ac5bf18ca593"
+  },
+  "scripts/platform-owner-release-20261116.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "b36366a7c024873e6316cb84498125c787c0e46288a9ea4a510435588e7c2445"
+  }
+}

@@ -18,7 +18,13 @@ class Baseline(unittest.TestCase):
         cls.inventory=json.loads((ROOT/'docs/sc02/contract-inventory.json').read_text())
 
     def test_01_inventory_reproducible_and_complete(self):
-        self.assertEqual(self.inventory,build())
+        current=build()
+        additions=json.loads((ROOT/'docs/platform-owner/access-sites.json').read_text())
+        self.assertEqual({x['path'] for x in additions},{'account/platform-core.php','scripts/platform-owner-release-20261116.php'})
+        for row in additions:
+            self.assertIn(row,current['local_access_sites'])
+            current['local_access_sites'].remove(row)
+        self.assertEqual(self.inventory,current)
         # Preserve the historical SC-02 manifest. Only these reviewed operational
         # workflow/configuration bytes and the bounded marketing repair below may differ.
         # Every other original file remains exact; keep both historical baselines.
@@ -71,6 +77,11 @@ class Baseline(unittest.TestCase):
         self.assertEqual(set(ui),{'account/customers.php', 'industries/beauty-spa.html', 'industries/construction.html', 'account/quotes.php', 'industries/security.html', 'quote/index.php', 'hosting.html', 'industries/technology.html', 'b/index.php', 'industries/cleaning.html', 'account/account-view.php', 'account/customer.php', 'account/invoices.php', 'account/customer-help.php', 'industries/consulting.html', 'account/layout.php', 'pricing.html', 'ui/design-system.css', 'account/services.php', 'account/profile.php', 'industries/fitness.html', 'guides/enquiry-to-invoice.html', 'industries/gardening.html', 'waitlist/action-page.php', 'index.html', '.github/workflows/foundation-regression.yml', 'account/requests.php', 'account/index.php', 'features.html', 'terms.html', 'account/bookings.php', 'account/staff.php', 'privacy.html', 'contact.html', 'industries.html', 'industries/electrical.html', 'invoice/index.php', 'marketplace.html', 'ui/site-menu.js', 'ui/homepage-header.css', 'ui/marketing-header.html', 'account/enquiry-new.php', 'about.html', 'account/dashboard.php', 'waitlist.html', 'account/enquiries.php', 'industries/tourism.html'})
         for path,change in ui.items():
             self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
+            self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
+            original[path]={'path':path,'sha256':change['candidate_sha256']}
+        platform=json.loads((ROOT/'docs/platform-owner/source-delta.json').read_text())
+        self.assertEqual(set(platform),{'account/platform.php','account/platform-core.php','account/platform-seed.php','account/platform.css','account/platform.js','.github/workflows/foundation-regression.yml','scripts/platform-owner-release-20261116.php'})
+        for path,change in platform.items():
             self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
             original[path]={'path':path,'sha256':change['candidate_sha256']}
         expected['files']=[original[path] for path in sorted(original,key=Path)]
