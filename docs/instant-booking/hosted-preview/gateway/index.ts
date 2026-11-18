@@ -13,7 +13,7 @@ const statements = new Map<string, [string, number]>([
   ["review", ["select instant_private.review_payments($1,$2::int) as result",2]],
   ["claimRefund", ["select instant_private.claim_refund($1::uuid,$2::bigint) as result",2]],
   ["settleVerified", ["select instant_private.settle_verified($1::uuid,$2::int,$3::bigint) as result",3]],
-  ["settle", ["select instant_private.settle($1::uuid,$2::int) as result",2]],
+  ["method", ["select instant_private.select_method($1::uuid,$2,$3) as result",3]],
 ]);
 const reply = (status:number, obj:unknown) => Response.json(obj,{status,headers:{"Cache-Control":"no-store"}});
 async function body(req:Request) {
@@ -54,7 +54,7 @@ Deno.serve(async (req:Request) => {
       args.some(v=>typeof v !== "string" && !Number.isSafeInteger(v))) throw Error();
     if (op==="review" && (typeof args[0]!=="string" || args[0].length>64 || !Number.isSafeInteger(args[1]) || Number(args[1])<0 || Number(args[1])>2147483647)) throw Error();
     if ((op==="slots" || op==="offer") && !recipients.has(String(args[0])) || op==="reserve" && !recipients.has(String(args[1]))) throw Error();
-    if (["reserve","receipt","settle","settleVerified","claimRefund"].includes(op) && !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(String(args[0]))) throw Error();
+    if (["reserve","receipt","method","settleVerified","claimRefund"].includes(op) && !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(String(args[0]))) throw Error();
   } catch { return reply(400,{error:"Invalid checkout operation"}); }
   const password = Deno.env.get("BOOK05_DATABASE_PASSWORD");
   if (!password || Deno.env.get("SUPABASE_URL") !== "https://"+project+".supabase.co") return reply(503,{error:"Preview unavailable"});
@@ -69,4 +69,5 @@ Deno.serve(async (req:Request) => {
     return state==="P0001" || state==="P0002" ? reply(409,{error:"Booking details or availability changed"}) : reply(503,{error:"Checkout unavailable"});
   } finally { await db.end({timeout:2}); }
 });
+
 
