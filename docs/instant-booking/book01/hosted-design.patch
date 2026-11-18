@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/faraios.com/account/_book05-preview/business/book01-visit.css
-@@ -0,0 +1,193 @@
+@@ -0,0 +1,231 @@
 +:root{font:16px/1.5 system-ui,sans-serif;color:#153438;background:#f4f7f5;--teal:#087e79;--line:#ccdcda}*{box-sizing:border-box}body{margin:0}
 +
 +.outer { margin:0; container-type:inline-size; }
@@ -194,6 +194,44 @@
 +    .launch-panel { flex:0 0 94%; min-height:185px; scroll-snap-align:start; }
 +    .launch-action button { width:min(100%,240px); }
 +}
++
++.room-choice-list { min-inline-size:0; }
++.room-choice-row {
++    display:flex;
++    align-items:center;
++    flex-wrap:wrap;
++    gap:.5rem .75rem;
++    padding:.8rem 0;
++}
++.room-choice-row + .room-choice-row { border-top:1px solid var(--line); }
++.room-choice-row label { margin:0 auto 0 0; }
++.room-choice-row small { flex-basis:100%; color:#486366; }
++.room-choices,.room-counter { display:flex; align-items:center; flex-wrap:wrap; gap:.3rem; max-width:100%; }
++.room-choice-row [hidden] { display:none; }
++.room-choices button,.room-counter input {
++    box-sizing:border-box;
++    display:inline-flex;
++    align-items:center;
++    justify-content:center;
++    width:auto;
++    min-width:2.5rem;
++    min-height:2.5rem;
++    margin:0;
++    padding:.4rem .65rem;
++    border:1px solid #bdcccf;
++    border-radius:7px;
++    background:white;
++    color:#153438;
++    font:inherit;
++    font-size:.9rem;
++    text-align:center;
++}
++.room-choices button[aria-pressed=true] { background:#e4f2ef; border-color:#087e79; font-weight:650; }
++.room-choices button:hover { border-color:#087e79; }
++.room-counter { flex-wrap:nowrap; gap:.3rem; }
++.room-counter input { display:block; width:3.7rem; }
++.room-counter button { border-radius:50%; font-size:1.1rem; }
++.room-counter button:disabled { opacity:.5; }
 --- /dev/null
 +++ b/faraios.com/account/_book05-preview/business/book01-details.js
 @@ -0,0 +1,32 @@
@@ -231,7 +269,7 @@
 +}
 --- /dev/null
 +++ b/private/faraios-checkout-preview/app/book01-layout.php
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,70 @@
 +<?php
 +declare(strict_types=1);
 +function book01_money(int $minor): string {
@@ -251,7 +289,7 @@
 +}
 +function book01_open(string $business,int $step,string $heading,array $quote=[],array $visit=[]): void {
 +    $steps=['Details','Schedule','Review','Payment']; ?>
-+<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=location-1"><?php if ($step===1): ?><link rel="stylesheet" href="/account/booking-location-ui.css?v=1"><?php endif; ?></head><body<?=$step===0?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
++<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=room-picker-1"><?php if ($step===1): ?><link rel="stylesheet" href="/account/booking-location-ui.css?v=1"><?php endif; ?></head><body<?=$step===0?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
 +<?php if ($step>=1 && $step<=4): ?><nav aria-label="Booking steps"><ol><?php foreach($steps as $i=>$label): ?><li class="<?=$i+1<=$step?'current':''?>" <?=$i+1===$step?'aria-current="step"':''?>><b><?=$i+1?></b><span><?=esc($label)?></span></li><?php endforeach; ?></ol></nav><?php endif; ?>
 +<details class="help"><summary>Booking help</summary><p>Use synthetic details. Card checkout uses Paystack Test. For manual EFT, report a synthetic transfer and wait for the business to verify it.</p></details></div>
 +</div></header><div class="outer"><main>
@@ -272,9 +310,19 @@
 +}
 +
 +
++const BOOK01_ROOM_INTEGRITY='sha384-z6RpZ9S5Q4X0Lqpd8nkbvwFAJJ47gOIQSzENJA4L1mTdIetYZ6KqfOzFCSSd0xGB';
++function book01_quantity_picker(string $id,string $field,string $title,array $choices,int $quantity,string $hint): void { ?>
++<div class="room-choice-row" data-room-picker>
++    <label for="<?=esc($id)?>" id="<?=esc($id)?>-label"><?=esc($title)?></label>
++    <select id="<?=esc($id)?>" name="<?=esc($field)?>" aria-describedby="<?=esc($id)?>-hint" required>
++        <?php foreach ($choices as $i): ?><option value="<?=(int)$i?>" <?=(int)$i===$quantity?'selected':''?>><?=(int)$i?></option><?php endforeach; ?>
++    </select>
++    <small id="<?=esc($id)?>-hint"><?=esc($hint)?></small>
++</div>
++<?php }
 +function book01_room_fields(array $rows,array $visit=[]): void {
 +    $hasExtraRooms=false; ?>
-+    <fieldset><legend>Rooms</legend>
++    <fieldset class="room-choice-list"><legend>Rooms</legend>
 +    <?php foreach ($rows as $row):
 +        $id=$row['id']; $name=$row['name'];
 +        $min=(int)$row['minimum']; $max=(int)$row['maximum'];
@@ -282,20 +330,29 @@
 +        if (strcasecmp($name,'Service fee')===0 && $min===$max): ?>
 +            <input type="hidden" name="options[<?=esc($id)?>]" value="<?=$min?>">
 +            <?php continue; endif;
-+        $hasExtraRooms=$hasExtraRooms || strcasecmp($name,'Extra Rooms')===0; ?>
-+        <label><?=esc($name)?><select name="options[<?=esc($id)?>]" required>
-+            <?php for ($i=$min;$i<=$max;$i++): ?><option value="<?=$i?>" <?=$quantity===$i?'selected':''?>><?=$i?></option><?php endfor; ?>
-+        </select></label>
-+    <?php endforeach;
-+    if (!$hasExtraRooms): ?>
-+        <label>Extra Rooms<select name="extra_rooms" aria-describedby="extra-rooms-help">
-+            <?php foreach (booking_visit_fields()['extra_rooms'][1] as $i): ?><option value="<?=$i?>" <?=$i===($visit['extra_rooms']??'0')?'selected':''?>><?=$i?></option><?php endforeach; ?>
-+        </select></label><small id="extra-rooms-help">Extra rooms are a request. They are excluded from the quoted price and duration.</small>
-+    <?php endif; ?></fieldset>
++        $hasExtraRooms=$hasExtraRooms || strcasecmp($name,'Extra Rooms')===0;
++        $hint=(int)$row['included'].' included · +'.book01_money((int)$row['price']).' per additional unit · +'.(int)$row['minutes'].' min';
++        book01_quantity_picker('room-'.$id,'options['.$id.']',$name,range($min,$max),$quantity,$hint);
++    endforeach;
++    if (!$hasExtraRooms) {
++        book01_quantity_picker('room-extra','extra_rooms','Extra Rooms',booking_visit_fields()['extra_rooms'][1],(int)($visit['extra_rooms']??0),'Extra rooms are a request. They are excluded from the quoted price and duration.');
++    } ?>
++    </fieldset>
++    <script defer src="../business/book01-room-picker.js" integrity="<?=BOOK01_ROOM_INTEGRITY?>"></script>
 +<?php }
 --- a/private/faraios-checkout-preview/app/runtime/b/instant.php
 +++ b/private/faraios-checkout-preview/app/runtime/b/instant.php
-@@ -28,6 +28,7 @@
+@@ -11,7 +11,8 @@
+ $checkoutOrigin = 'https://checkout.paystack.com';
+ if ((cfg()['environment'] ?? '') === 'test' && preg_match('~^http://127\.0\.0\.1:[0-9]+$~D', cfg()['instant_fixture'] ?? ''))
+     $checkoutOrigin = cfg()['instant_fixture'];
+-header("Content-Security-Policy: default-src 'none'; style-src 'self'; form-action 'self' $checkoutOrigin; base-uri 'none'; frame-ancestors 'none'");
++$previewPolicy="default-src 'none'; style-src 'self'; form-action 'self' $checkoutOrigin; base-uri 'none'; frame-ancestors 'none'";
++header('Content-Security-Policy: '.$previewPolicy);
+ if (!instant_enabled()) { http_response_code(404); exit; }
+ 
+ if (isset($_GET['webhook'])) {
+@@ -28,6 +29,7 @@
      }
      exit;
  }
@@ -303,7 +360,7 @@
  enquiry_session();
  $slug = $_GET['slug'] ?? '';
  if (!is_string($slug) || !preg_match('/^[a-z0-9-]{3,64}$/D',$slug)) { http_response_code(404); exit; }
-@@ -59,6 +60,9 @@
+@@ -59,6 +61,9 @@
              $_SESSION['instant'][$flow]=['slug'=>$slug,'created'=>time(),'service'=>enquiry_text('service',32,32),
                  'area'=>enquiry_text('service_area',1,200),'address'=>$address,'notes'=>enquiry_text('requirements',0,1900),
                  'options'=>json_encode($options, JSON_THROW_ON_ERROR),'day'=>$today->modify('+1 day')->format('Y-m-d')];
@@ -313,7 +370,7 @@
              header('Location: '.$self.'&flow='.$flow,true,303); exit;
          }
      }
-@@ -188,19 +192,11 @@
+@@ -188,19 +193,11 @@
          'The booking could not proceed. Check your details or choose another available time.';
      if (isset($f) && !isset($f['reserved'])) { unset($f['review']); }
  }
@@ -334,7 +391,7 @@
          if (!in_array($value,$choices,true)) throw new DomainException('Choose a listed option for '.$label.'.');
          $details[$key]=$value;
      }
-@@ -229,17 +225,25 @@
+@@ -229,17 +226,26 @@
  function instant_form(string $action,string $url,string $csrf): void {
      echo '<form method="post" action="'.esc($url).'"><input type="hidden" name="csrf" value="'.esc($csrf).'"><input type="hidden" name="action" value="'.esc($action).'">';
  }
@@ -344,6 +401,7 @@
 +$summaryQuote=$f['quote']??[];
 +$state=$f['result']['state']??'';
 +$step=$state!=='' ? 5 : (isset($f['reserved']) ? 4 : (isset($f['review']) ? 3 : 2));
++if ($step===2) header("Content-Security-Policy: ".$previewPolicy."; script-src '".BOOK01_ROOM_INTEGRITY."'");
 +$title=match(true) {
 +    $state==='confirmed'=>'Your visit is confirmed', $state!==''=>'Payment needs review',
 +    ($f['method']??'')==='eft'=>'Awaiting payment verification',
@@ -366,7 +424,7 @@
  <p><?=esc(book05_merchants()[$slug]['name'])?> will check the reported transfer before confirming your booking.</p>
  <p>Transfer report reference <strong><?=esc($flow)?></strong></p>
  <p>If the hold expires first, the business will review the payment and availability.</p>
-@@ -251,12 +255,12 @@
+@@ -251,12 +257,12 @@
  $start=new DateTimeImmutable($f['at'],new DateTimeZone('Africa/Johannesburg'));
  $finish=$start->modify('+'.(int)($q['minutes']??0).' minutes');
  ?>
@@ -381,7 +439,7 @@
  <?php foreach (booking_visit_fields() as $key=>[$label]): if (isset($f['visit_details'][$key])): ?><dt><?=esc($label)?></dt><dd><?=esc($f['visit_details'][$key])?></dd><?php endif; endforeach; ?>
  <?php if ($f['notes']!==''): ?><dt>Instructions</dt><dd><?=esc($f['notes'])?></dd><?php endif; ?>
  <dt>Contact</dt><dd><?=esc($f['contact']['name'])?> · <?=esc($f['contact']['email'])?> <?=esc($f['contact']['phone']??'')?></dd></dl>
-@@ -269,41 +273,39 @@
+@@ -269,41 +275,39 @@
  <p>If your payment arrives and the visit cannot be confirmed, you receive a full refund. The business initiates approved refunds to the original payment method within two business days. Refunds stay pending until the provider confirms them.</p>
  <?php if (!$held): ?>
  <p>Continuing holds the slot for up to ten minutes or until the visit starts, whichever comes first. Your booking is confirmed after payment and availability are verified.</p>
@@ -769,3 +827,99 @@
 +<body><main><section class="panel"><h1>Private booking preview</h1><p><?=esc($message)?></p>
 +<?php if ($signin): ?><p><a class="button" href="/account/index.php?page=signin" target="_blank" rel="noopener">Sign in to FaraiOS</a></p><?php endif; ?>
 +<p><a href="<?=esc($retry)?>">Continue to private preview</a></p></section></main></body></html>
+--- /dev/null
++++ b/faraios.com/account/_book05-preview/business/book01-room-picker.js
+@@ -0,0 +1,93 @@
++// The select is the submitted value and remains usable when JavaScript is unavailable.
++for (const row of document.querySelectorAll('[data-room-picker]')) {
++    const select = row.querySelector('select');
++    const label = row.querySelector('label');
++    const choices = Array.from(select.options, option => Number(option.value));
++    if (choices.length < 2) continue;
++
++    const min = choices[0];
++    const max = choices[choices.length - 1];
++    const threshold = min + 3;
++    const group = document.createElement('div');
++    group.className = 'room-choices';
++    group.setAttribute('role', 'group');
++    group.setAttribute('aria-labelledby', label.id);
++
++    function makeButton(parent, text, action, accessibleName) {
++        const button = document.createElement('button');
++        button.type = 'button';
++        button.textContent = text;
++        if (accessibleName) button.setAttribute('aria-label', accessibleName);
++        button.addEventListener('click', action);
++        parent.append(button);
++        return button;
++    }
++
++    function commit(value) {
++        if (String(value) === select.value) return;
++        select.value = String(value);
++        select.dispatchEvent(new Event('change', {bubbles: true}));
++    }
++
++    const presets = choices.slice(0, 3).map(value => makeButton(group, String(value), () => {
++        commit(value);
++        render(false);
++    }));
++    const stepper = document.createElement('div');
++    stepper.className = 'room-counter';
++    const number = document.createElement('input');
++    number.type = 'number';
++    number.step = '1';
++    number.min = String(min);
++    number.max = String(max);
++    number.setAttribute('aria-label', label.textContent + ' quantity');
++    number.setAttribute('aria-describedby', select.getAttribute('aria-describedby'));
++    const decrease = makeButton(stepper, '−', () => step(-1), 'Decrease ' + label.textContent);
++    stepper.append(number);
++    const increase = makeButton(stepper, '+', () => step(1), 'Increase ' + label.textContent);
++    function step(delta) {
++        const value = Math.max(min, Math.min(max, Number(select.value) + delta));
++        commit(value);
++        render(value >= threshold);
++        if (value < threshold) presets[value - min].focus();
++    }
++    let custom;
++    if (max >= threshold) {
++        custom = makeButton(group, threshold + '+ Custom', () => {
++            commit(Math.max(Number(select.value), threshold));
++            render(true);
++            number.focus();
++            number.select();
++        });
++        group.append(stepper);
++    }
++    function updateLimits() {
++        decrease.disabled = number.valueAsNumber <= min;
++        increase.disabled = number.valueAsNumber >= max;
++    }
++    function render(showCustom) {
++        const value = Number(select.value);
++        presets.forEach((button, index) => button.setAttribute('aria-pressed', String(!showCustom && value === choices[index])));
++        if (custom) custom.setAttribute('aria-pressed', String(showCustom));
++        stepper.hidden = !showCustom;
++        number.disabled = !showCustom;
++        number.required = showCustom;
++        number.value = select.value;
++        updateLimits();
++    }
++    number.addEventListener('input', () => {
++        if (number.value !== '' && number.validity.valid) commit(number.valueAsNumber);
++        updateLimits();
++    });
++    number.addEventListener('change', () => {
++        if (number.validity.valid && number.valueAsNumber < threshold) {
++            const value = number.valueAsNumber;
++            render(false);
++            presets[value - min]?.focus();
++        }
++    });
++    select.hidden = true;
++    label.removeAttribute('for');
++    select.after(group);
++    render(Number(select.value) >= threshold);
++}
