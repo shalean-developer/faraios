@@ -29,3 +29,13 @@ Browser automation timed out repeatedly while checking Users empty/Clear and mob
 Security advisor check at 11:50 UTC remained unchanged from OWNER-03: 39 RLS-no-policy INFO, 26 authenticated-definer WARN and one leaked-password-protection WARN. No new advisory count from this additive overload. These baseline advisories are not a claim of whole-platform security clearance.
 
 Remote source commit643f816e447a935049a149e164796b5177bb9b53 and local source commitca3b7c4 have identical tree b78e7899c52dcaf365c24fccca7ef3018dba465d. Later documentation-only checkpoints do not change installed code.
+
+## Final closeout — 2026-11-18
+
+Browser reconnected. The authoritative task still showed To do on reopening (the prior In progress selection/save had not persisted). Reconciled the original unchanged five criteria, saved Verified with evidence, reloaded the page, and confirmed persisted Status=Verified and all5/5 accepted. Dependency remains OWNER-03 TASK-4D58A7674A; release Later, non-blocking.
+
+Remaining live checks passed: observed Users viewport widths320/390/1280, document width equal to viewport and no overflowing record cards; keyboard Enter search; unmatched query No matching records; Clear restores20 users; skip link focuses main. Temporary viewport override reset after testing. These are desktop browser viewport checks, not a new physical-phone acceptance claim. Earlier security/privacy, data accuracy and recovery evidence is retained, not rerun or broadened. No application files, database grants, business records or unrelated pages changed during this closeout.
+
+Task: https://www.faraios.com/account/platform.php?task=TASK-A22D0249AA
+Live page: https://www.faraios.com/account/platform-directory-page.php?view=users
+PR: https://github.com/shalean-developer/faraios/pull/90
