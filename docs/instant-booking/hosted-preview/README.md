@@ -17,3 +17,11 @@ Plesk calls one pinned Supabase HTTPS Edge Function. It authenticates every oper
 ## Fixture boundaries
 
 The private launcher preloads synthetic cleaning details and then hands off to the PR #87 slot, hold, review, provider and return screens. Its return link opens the private launcher. The hosted-only overlay pins the preview project and mount. Production PHP is not patched by this branch. Secret files are outside the document root with owner-only permissions. The deploy-time publishable key should be read from preview configuration. No test secret or database password belongs in this directory.
+
+## Operator review for unbooked payments
+
+The private checkout links to `payments.php`. The platform owner can search by Paystack transaction ID or FaraiOS payment reference, request a full test refund for a verified unbooked payment, and refresh the merchant’s refund records. A request with an uncertain outcome remains recorded for reconciliation. Only a full amount reported as processed counts as complete.
+
+The private database found Shalean transaction 6776264389 (ZAR 375.00) by both transaction ID and payment reference. A transaction rolled back after verification showed that only the first refund claim succeeds. The replacement booking retained one assignment. Local HTTP tests with a simulated provider covered the operator view, denied access, CSRF validation, duplicate submission and the transition from pending to processed. Ten status checks covered partial, failed and other responses.
+
+Hosted acceptance still requires confirming the installed PHP files, opening the operator screen and matching its refund status to Paystack Test Mode. At this checkpoint the isolated database migration and gateway version 4 are installed. The browser connection was interrupted during the PHP install. No refund was submitted in these checks.
