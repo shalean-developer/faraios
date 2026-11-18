@@ -1,6 +1,7 @@
 -- First disable application transport and commit disable-https.sql.
 BEGIN;
 SET LOCAL lock_timeout='2s';
+GRANT faraios_owner_api TO CURRENT_USER;
 DO $$ BEGIN
  IF EXISTS(SELECT 1 FROM faraios_owner_directory.owner_access WHERE enabled)
  OR has_function_privilege('authenticated','public.platform_owner_directory_read(text,integer,text)','EXECUTE')

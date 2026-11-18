@@ -55,6 +55,9 @@ BEGIN
  RETURN jsonb_build_object('rows',result,'observed_at',to_char(now() AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"'));
 END $$;
 -- Temporary CREATE permits ownership transfer, then is removed in this transaction.
+-- Managed Supabase postgres is not a superuser: transfer also requires SET ROLE.
+-- Membership is removed before commit; runtime roles receive no membership.
+GRANT faraios_owner_api TO CURRENT_USER;
 GRANT CREATE ON SCHEMA faraios_owner_directory TO faraios_owner_api;
 ALTER FUNCTION faraios_owner_directory.read_https(text,integer,text) OWNER TO faraios_owner_api;
 REVOKE CREATE ON SCHEMA faraios_owner_directory FROM faraios_owner_api;
@@ -68,4 +71,5 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY INVOKER SET search_path=pg_catalog
 AS $$ SELECT faraios_owner_directory.read_https(p_resource,p_page,p_search) $$;
 REVOKE ALL ON FUNCTION public.platform_owner_directory_read(text,integer,text) FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.platform_owner_directory_read(text,integer,text) TO authenticated;
+REVOKE faraios_owner_api FROM CURRENT_USER;
 COMMIT;

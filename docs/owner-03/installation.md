@@ -1,3 +1,5 @@
+> Current status: approved HTTPS foundation installed; pages remain inactive. See [installation receipt](installed-20261118.md). Earlier PDO/preparation details below are historical.
+
 > Current preferred path: [HTTPS installation](https-installation.md). Port443 verified reachable with TLS; narrow owner/session-gated RPC prepared and129 local assertions PASS. No new deployment or grants. Earlier PDO/session-pooler notes below are historical alternatives.
 
 # OWNER-03 bounded installation and rollback preparation

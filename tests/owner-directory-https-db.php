@@ -35,6 +35,9 @@ CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT (auth.j
 GRANT USAGE ON SCHEMA auth TO authenticated;
 SQL);
 $admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118101850_owner_directory_https_gateway.sql'));
+// Hosted postgres cannot delegate managed auth-schema USAGE to custom roles.
+$admin->exec('REVOKE USAGE ON SCHEMA auth FROM faraios_owner_api');
+$admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118104000_owner_directory_claims_compatibility.sql'));
 $n=0;
 function good(bool $v,string $m):void{global $n;if(!$v)throw new RuntimeException($m);$n++;}
 function denied(callable $f,string $m):void{try{$f();}catch(PDOException $e){good(in_array($e->getCode(),['42501','22023'],true),$m.' SQLSTATE '.$e->getCode());return;}throw new RuntimeException('Expected denial: '.$m);}
@@ -86,4 +89,22 @@ $admin->exec(file_get_contents(__DIR__.'/../docs/owner-03/uninstall-https.sql'))
 good($admin->query("SELECT to_regprocedure('public.platform_owner_directory_read(text,integer,text)')")->fetchColumn()===null,'wrapper removed');
 good($admin->query("SELECT count(*) FROM pg_roles WHERE rolname='faraios_owner_api'")->fetchColumn()===0,'executor removed');
 good($before===$admin->query("SELECT md5(string_agg(row_to_json(b)::text,',' ORDER BY id)) FROM public.businesses b")->fetchColumn(),'business fixtures unchanged');
+// Rehearse installation/removal as a managed-style non-superuser CREATEROLE
+// installer. Auth schema USAGE cannot be delegated by this installer.
+$admin->exec(<<<'SQL'
+CREATE ROLE fixture_installer NOLOGIN NOSUPERUSER CREATEROLE;
+GRANT USAGE ON SCHEMA auth TO fixture_installer;
+GRANT SELECT ON auth.users,auth.sessions TO fixture_installer;
+GRANT ALL ON SCHEMA public,faraios_owner_directory TO fixture_installer WITH GRANT OPTION;
+GRANT SELECT ON faraios_owner_directory.businesses,faraios_owner_directory.users TO fixture_installer WITH GRANT OPTION;
+SET ROLE fixture_installer;
+SQL);
+$admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118101850_owner_directory_https_gateway.sql'));
+$admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118104000_owner_directory_claims_compatibility.sql'));
+good($admin->query("SELECT has_schema_privilege('faraios_owner_api','auth','USAGE')")->fetchColumn()===false,'managed Auth schema grant unavailable');
+good((int)$admin->query("SELECT count(*) FROM pg_auth_members WHERE roleid=(SELECT oid FROM pg_roles WHERE rolname='faraios_owner_api') AND (inherit_option OR set_option)")->fetchColumn()===0,'temporary execution membership removed');
+$admin->exec(file_get_contents(__DIR__.'/../docs/owner-03/disable-https.sql'));
+$admin->exec(file_get_contents(__DIR__.'/../docs/owner-03/uninstall-https.sql'));
+$admin->exec('RESET ROLE');
+good($admin->query("SELECT count(*) FROM pg_roles WHERE rolname='faraios_owner_api'")->fetchColumn()===0,'managed installer can remove executor');
 echo json_encode(['status'=>'PASS','assertions'=>$n,'hosted_writes'=>0]).PHP_EOL;

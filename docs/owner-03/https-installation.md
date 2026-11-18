@@ -1,7 +1,8 @@
-# OWNER-03 HTTPS alternative — prepared, not installed
+# OWNER-03 HTTPS foundation — installed, pages inactive
 
-18 November 2026. Preferred transport for this hosting account. Supersedes requiring outbound PostgreSQL5432, a database password or the PDO CA bundle for owner-directory operation. No application deployment, merge, production grant or owner enrollment has been made.
+18 November 2026. User-approved narrow installation is complete. Two PHP modules, private projections, checked HTTPS gateway and a managed-Postgres compatibility migration are installed. Exactly the existing immutable platform-owner account is enrolled. No visible page, navigation link or application transport switch is enabled. PR88 remains draft; no merge or whole-branch deployment. See [installation receipt](installed-20261118.md) for authoritative hosted evidence and remaining limits.
 
+The installation found two managed-Postgres differences: function ownership transfer needs temporary SET ROLE membership, and hosted postgres cannot delegate Auth schema USAGE. Temporary membership is removed before commit; the helper reads the same trusted PostgREST request claims directly instead of calling auth.jwt()/auth.uid(). No Auth-table grant was added.
 ## Verified network result
 
 An unsaved, credential-free host probe to https://rxelmugnucfajrqmphhe.supabase.co/rest/v1/ used Python's default verified TLS context and received HTTP401, the expected missing-API-key rejection. This proves the hosting server can reach the project's HTTPS gateway over443 with certificate validation. It does not prove PHP transport, JWT authorization, the uninstalled RPC, or hosted database queries. The probe form was cancelled; no scheduled job was added. Prior direct IPv6/5432 refusal remains irrelevant to this proposed HTTPS path; no firewall change or hosting support contact is needed to prepare it.
@@ -16,9 +17,9 @@ Database authorization independently checks immutable auth.uid(), signed JWT rol
 
 The owner allowlist is empty by default. The private schema MUST remain absent from exposed Data API schemas. Provisioning identity must validate source-view ownership/RLS behavior and existing default ACLs. Do not suppress an advisor merely because the helper is private: inspect the exact grants and recognize the intentional checked-definer boundary.
 
-## Exact future installation, requiring review
+## Installation and follow-up procedure
 
-1. Recheck live hashes/overlays and absent new targets. Apply only the reviewed base migration `20261118092848_owner_directory_restricted_reader.sql`, then `20261118101850_owner_directory_https_gateway.sql`, transactionally. No blanket db push. Base reader remains NOLOGIN; do not provision PDO credentials.
+1. Recheck live hashes/overlays and absent new targets. Apply only the reviewed base migration `20261118092848_owner_directory_restricted_reader.sql`, then `20261118101850_owner_directory_https_gateway.sql` and `20261118104000_owner_directory_claims_compatibility.sql`, transactionally. These are already installed on this project; do not replay them. No blanket db push. Base reader remains NOLOGIN; do not provision PDO credentials.
 2. Verify all ACLs, no elevated executor memberships, private-schema exposure, wrapper/helper definitions and empty allowlist. Rerun advisors and compare to the baseline39 INFO,26 definer WARN,1 password WARN. No production advisors were changed in preparation.
 3. After explicit approval of owner enrollment, insert only the existing verified immutable platform-owner Auth UUID into the private allowlist. Reconcile it with the local owner_ids. Enrollment is a security access change, not a business-row repair. Do not identify the owner by email or user_metadata. Revocation should disable the database enrollment first, then remove local access; local-only removal cannot revoke a direct API request.
 4. Add only platform-directory.php and platform-directory-https.php; preserve production platform-session.php/core/index/tracker and booking overlays. Set directory_transport=https only after reviewed owner enrollment and protected endpoint wiring are ready. Existing PDO code may remain draft; it is unnecessary for this transport. No visible directory page/navigation is included here.
@@ -32,9 +33,9 @@ Disable application callers/transport. Execute `disable-https.sql` and COMMIT: d
 
 -69 authorization/projection assertions PASS.
 -14 HTTPS adapter validation/redaction assertions PASS; no network calls.
--46 real isolated PostgreSQL HTTPS gate/ACL/pagination/projection/rollback assertions PASS.
+-49 real isolated PostgreSQL HTTPS gate/ACL/pagination/projection/rollback assertions PASS, including managed-style non-superuser installation/removal.
 -PHP syntax and diff checks PASS.
--Current hosted metadata confirmed required Auth column types. Production advisors retain39 INFO,26 authenticated-definer WARN and1 leaked-password WARN; no new migration was applied.
--No hosted RPC success claimed. OWNER-03 remains In progress,2/5.
+-Current hosted metadata confirmed required Auth column types. Post-install production advisors retain39 INFO,26 authenticated-definer WARN and1 leaked-password WARN; no owner-directory finding was reported.
+-Hosted database-role reads and eight denial checks passed, but signed owner JWT/HTTP end-to-end success is still pending. OWNER-03 remains In progress,2/5.
 
 Documentation consulted: https://supabase.com/docs/guides/api/securing-your-api and https://supabase.com/docs/guides/observability/advisors?queryGroups=lint&lint=0029_authenticated_security_definer_function_executable .

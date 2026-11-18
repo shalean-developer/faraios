@@ -1,3 +1,5 @@
+> Current status: approved HTTPS foundation installed; pages remain inactive. See [installation receipt](installed-20261118.md). Earlier PDO/preparation details below are historical.
+
 > Current preferred path: [HTTPS installation](https-installation.md). Port443 verified reachable with TLS; narrow owner/session-gated RPC prepared and129 local assertions PASS. No new deployment or grants. Earlier PDO/session-pooler notes below are historical alternatives.
 
 > Latest preparation (18 November2026): see [installation.md](installation.md), [hosted-baseline.json](hosted-baseline.json) and the generated migration. Six hosted editor sources reconciled; raw-byte host guard still required. Local DB/rollback checks now36 PASS. The live tracker save was recovered successfully; earlier unsaved-tracker notes below are historical. No deployment or merge.
