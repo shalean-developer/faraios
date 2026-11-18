@@ -1,6 +1,7 @@
 <?php
 require (is_file(__DIR__.'/platform-session.php')?__DIR__.'/platform-session.php':__DIR__.'/core.php');require __DIR__.'/platform-core.php';require_once __DIR__.'/platform-navigation.php';
-$allowed=false;$error='';$store=null;$edit=null;$u=[];$values=[];
+header('Cache-Control: no-store');
+$receipt=null;$allowed=false;$error='';$store=null;$edit=null;$u=[];$values=[];
 try{
  start();$u=user();
  if(!platform_authorized($u,platform_settings())){http_response_code(403);throw new RuntimeException('This workspace is available only to the configured FaraiOS platform owner.');}
@@ -8,9 +9,12 @@ try{
  if(!in_array($_SERVER['REQUEST_METHOD'],['GET','POST'],true)){http_response_code(405);throw new RuntimeException('Use the workspace controls.');}
  if($_SERVER['REQUEST_METHOD']==='POST'){
   $values=$_POST;csrf(30000);$saved=platform_save($dir,$_POST,$u['id']);
+  $_SESSION['platform_save_receipt']=['id'=>$saved['id'],'at'=>$saved['updated_at'],'checks'=>count(array_filter($saved['checks'],fn($c)=>$c['done'])),'total'=>count($saved['checks']),'revision'=>(int)$_POST['revision']+1];
   header('Location: platform.php?task='.rawurlencode($saved['id']).'&saved=1',true,303);exit;
  }
  $store=platform_load($dir);
+ $pending=$_SESSION['platform_save_receipt']??null;unset($_SESSION['platform_save_receipt']);
+ if(is_array($pending)&&($pending['id']??null)===($_GET['task']??null)&&isset($_GET['saved']))$receipt=$pending;
  if(($_GET['export']??'')==='1'){header('Content-Type: application/json');header('Content-Disposition: attachment; filename="faraios-release-tracker.json"');echo json_encode($store,JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR);exit;}
 }catch(AccountSessionExpired $e){$_SESSION=['csrf'=>bin2hex(random_bytes(32)),'notice'=>$e->getMessage()];session_regenerate_id(true);go('signin');}
 catch(Throwable $e){$error=$e instanceof RuntimeException?$e->getMessage():'The tracker could not load. Your saved tasks have not been replaced.';if($allowed){http_response_code(400);try{$store=platform_load($dir);}catch(Throwable $ignored){$store=null;}}}
@@ -19,15 +23,16 @@ $id=(string)($_POST['id']??$_GET['task']??'');if($store){foreach($store['tasks']
 $new=isset($_GET['new'])||($allowed&&$_SERVER['REQUEST_METHOD']==='POST'&&$id==='');
 $editing=$edit||$new;
 if($editing){$default=['id'=>'','title'=>'','summary'=>'','kind'=>'Verification','priority'=>'High','release'=>'v1.0.0','status'=>'To do','blocking'=>true,'checks'=>[],'notes'=>'','evidence_note'=>'','evidence_url'=>'','dependencies'=>[]];$edit=$edit??$default;$form=$values?:$edit;$form['checklist']=$values['checklist']??implode("\n",array_column($edit['checks'],'text'));$form['dependencies']=$values['dependencies']??implode(', ',$edit['dependencies']);}
-?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Platform workspace | FaraiOS</title><link rel="icon" href="../favicon.svg"><link rel="stylesheet" href="platform.css?v=20261116-group1"><script src="platform.js?v=20261116" defer></script></head><body>
+?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Platform workspace | FaraiOS</title><link rel="icon" href="../favicon.svg"><link rel="stylesheet" href="platform.css?v=20261116-group1"><script src="platform.js?v=20261118-receipt" defer></script></head><body>
 <a class="skip" href="#main">Skip to content</a><header class="top"><a href="platform.php" aria-label="FaraiOS platform home"><img src="../FaraiOS-logo.svg" alt="FaraiOS" width="153" height="45"></a><span class="workspace-label">Platform owner</span><a class="account-link" href="index.php?page=welcome">My account <span aria-hidden="true">↗</span></a></header>
 <div class="shell"><aside><p class="nav-label">WORKSPACE</p><?=platform_workspace_navigation($editing?'tasks':$view,$allowed)?><div class="sidebar-note"><strong>Build. Grow. Manage.</strong><p>Your path to a dependable first release.</p></div></aside><main id="main">
 <?php if(!$allowed):?><section class="panel denied"><p class="eyebrow">Private workspace</p><h1>Platform access required</h1><p role="alert"><?=esc($error)?></p><p>Being a business owner does not grant software-owner access.</p><a class="button secondary" href="index.php?page=welcome">Back to my account</a></section><?php else:?>
-<?php if($error):?><div class="alert" role="alert"><?=esc($error)?></div><?php endif;?>
-<?php if(isset($_GET['saved'])&&!$error):?><p class="notice" role="status">Task saved. Progress and history updated.</p><?php endif;?>
+<?php if($error):?><div class="alert" role="alert" tabindex="-1" id="tracker-error"><?=esc($error)?></div><?php endif;?>
+<?php if($receipt&&!$error):?><p class="notice" role="status">Task saved. Revision <?=(int)$receipt['revision']?> · <?=(int)$receipt['checks']?>/<?=(int)$receipt['total']?> checks · <?=esc($receipt['at'])?>. Recorded in history.</p><?php endif;?>
 <?php if($store):$stats=platform_stats($store['tasks']);?>
 <?php if($editing):?><div class="heading"><div><p class="eyebrow"><?=esc($edit['id']?:'New task')?></p><h1><?=$new?'Create task':'Review task'?></h1></div><a href="platform.php?view=tasks">← All tasks</a></div>
-<form method="post" class="panel task-form"><input type="hidden" name="csrf" value="<?=esc($_SESSION['csrf'])?>"><input type="hidden" name="revision" value="<?=esc((string)($values['revision']??$store['revision']))?>"><input type="hidden" name="id" value="<?=esc($edit['id'])?>">
+<p class="muted" id="persisted-progress"><?php if($edit['id']):?>Saved record: <?=esc($edit['status'])?> · <?=count(array_filter($edit['checks'],fn($c)=>$c['done']))?>/<?=count($edit['checks'])?> checks · <?=esc($edit['updated_at']??'Unknown update time')?>. Unsaved edits below do not change this record.<?php else:?>New task — not saved yet.<?php endif;?></p>
+<form method="post" class="panel task-form"><p id="tracker-validation" class="alert" role="alert" hidden></p><input type="hidden" name="csrf" value="<?=esc($_SESSION['csrf'])?>"><input type="hidden" name="revision" value="<?=esc((string)($values['revision']??$store['revision']))?>"><input type="hidden" name="id" value="<?=esc($edit['id'])?>">
 <label for="title">Task title</label><input id="title" name="title" maxlength="160" required value="<?=esc((string)$form['title'])?>"><label for="summary">Expected result / finding</label><textarea id="summary" name="summary" maxlength="3000" rows="3"><?=esc((string)$form['summary'])?></textarea>
 <div class="form-grid"><?php foreach(['kind'=>['Type',PLATFORM_KINDS],'priority'=>['Priority',PLATFORM_PRIORITIES],'status'=>['Status',PLATFORM_STATUSES],'release'=>['Release',['v1.0.0','Later']]] as $k=>[$label,$options]):?><div><label for="<?=$k?>"><?=$label?></label><select id="<?=$k?>" name="<?=$k?>"><?php foreach($options as $v):?><option <?=($form[$k]??'')===$v?'selected':''?>><?=esc($v)?></option><?php endforeach;?></select></div><?php endforeach;?></div>
 <label class="check"><input type="checkbox" name="blocking" <?=($values?isset($values['blocking']):$edit['blocking'])?'checked':''?>>Blocks its target release</label>

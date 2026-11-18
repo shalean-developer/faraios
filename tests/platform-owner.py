@@ -83,6 +83,17 @@ class Tracker(unittest.TestCase):
   type(self).user=OTHER;self.assertEqual(self.get('/account/platform.php?export=1')[0],403);type(self).user=OWNER
   self.assertNotIn('localStorage',(ROOT/'account/platform.js').read_text())
   self.assertNotIn('service_role',(ROOT/'account/platform-core.php').read_text())
+ def test_09_save_receipt_cannot_be_forged_or_replayed(self):
+  path='/account/platform.php?task='+self.taskid+'&saved=1'
+  self.assertNotIn('Task saved.',self.get(path)[1])
+  before=json.loads(self.get('/account/platform.php?export=1')[1])
+  f=self.fields(id=self.taskid,status='Verified',done=['0'],evidence_note='Actual synthetic evidence',notes='é'*3001)
+  status,html=self.post(path,f)
+  self.assertEqual(status,400);self.assertNotIn('Task saved.',html);self.assertIn('tracker-error',html)
+  after=json.loads(self.get('/account/platform.php?export=1')[1]);self.assertEqual(before,after)
+  f['notes']='Updated receipt test'
+  status,html=self.post(path,f);self.assertEqual(status,200);self.assertIn('Task saved. Revision',html);self.assertIn('1/1 checks',html)
+  self.assertNotIn('Task saved.',self.get(path)[1]);self.assertIn('Saved record:',self.get(path)[1])
  def test_08_encrypted_history_recovery(self):
   code=r'''require 'account/platform-core.php';
   $key=openssl_pkey_new(['private_key_bits'=>3072]);openssl_pkey_export($key,$private);
