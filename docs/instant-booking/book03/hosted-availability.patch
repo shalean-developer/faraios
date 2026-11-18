@@ -1,0 +1,87 @@
+--- a/web/b/index.php
++++ b/web/b/index.php
+@@ -10,4 +10,4 @@
+ try { book05_merchant_key($slug, '/var/www/vhosts/shalean.com/private/faraios-checkout-preview'); }
+ catch (DomainException $exception) { $ready = false; }
+ $ticket=enquiry_ticket($slug.':booking');header("Content-Security-Policy: default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+-?><!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Private checkout test</title><main><h1>Regular Cleaning</h1><nav aria-label="Test recipient"><?php foreach ($merchants as $id=>$merchant): ?><a href="?slug=<?=esc($id)?>"><?=esc($merchant['name'])?></a> <?php endforeach; ?></nav><p><a href="../payments.php">Review unbooked payments</a> · <a href="../eft.php">Verify a test EFT receipt</a></p><p>Recipient: <?=esc($merchants[$slug]['name'])?></p><p>Private test booking · Gardens · 2 bedrooms, 1 bathroom</p><?php if (!$ready): ?><p>Test checkout is awaiting this business’s Paystack connection.</p><?php else: ?><form action="instant.php?slug=<?=esc($slug)?>" method="post"><input type="hidden" name="csrf" value="<?=esc($ticket['csrf'])?>"><input type="hidden" name="service" value="<?=str_repeat('1',32)?>"><input type="hidden" name="address" value="10 Example Street"><input type="hidden" name="service_area" value="Gardens"><?php foreach([2=>2,3=>1,4=>1] as $id=>$qty):?><input type="hidden" name="options[<?=str_repeat((string)$id,32)?>]" value="<?=$qty?>"><?php endforeach;?><button>See available times</button></form><?php endif; ?></main></html>
++?><!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Private checkout test</title><main><h1>Regular Cleaning</h1><nav aria-label="Test recipient"><?php foreach ($merchants as $id=>$merchant): ?><a href="?slug=<?=esc($id)?>"><?=esc($merchant['name'])?></a> <?php endforeach; ?></nav><p><a href="../availability.php">Manage booking availability</a> · <a href="../payments.php">Review unbooked payments</a> · <a href="../eft.php">Verify a test EFT receipt</a></p><p>Recipient: <?=esc($merchants[$slug]['name'])?></p><p>Private test booking · Gardens · 2 bedrooms, 1 bathroom</p><?php if (!$ready): ?><p>Test checkout is awaiting this business’s Paystack connection.</p><?php else: ?><form action="instant.php?slug=<?=esc($slug)?>" method="post"><input type="hidden" name="csrf" value="<?=esc($ticket['csrf'])?>"><input type="hidden" name="service" value="<?=str_repeat('1',32)?>"><input type="hidden" name="address" value="10 Example Street"><input type="hidden" name="service_area" value="Gardens"><?php foreach([2=>2,3=>1,4=>1] as $id=>$qty):?><input type="hidden" name="options[<?=str_repeat((string)$id,32)?>]" value="<?=$qty?>"><?php endforeach;?><button>See available times</button></form><?php endif; ?></main></html>
+--- a/app/runtime/b/instant.php
++++ b/app/runtime/b/instant.php
+@@ -98,11 +98,15 @@
+                 header('Location: '.$base.'/b/instant.php?slug='.$slug.'&flow='.$next,true,303); exit;
+             }
+             unset($f['review']);
+-        } elseif (in_array($action,['date','review'],true) && !isset($f['reserved'])) {
++        } elseif (in_array($action,['date','review','next'],true) && !isset($f['reserved'])) {
+             $previous=$f;
+             $f['day']=enquiry_text('date',10,10);
+             $f['address']=enquiry_text('address',5,1000);
+-            $f['area']=enquiry_text('service_area',1,200);
++            $chosen=enquiry_text('service_area',1,200);
++            $f['outside']=$chosen==='__outside';
++            if (!$f['outside']) $f['area']=$chosen;
++            $f['requested_service']=(($_POST['requested_service']??'regular')==='regular')?'regular':'other';
++            $f['team']=(($_POST['team']??'1')==='1')?'1':'multiple';
+             $f['notes']=enquiry_text('requirements',0,1900);
+             $f['contact']=['name'=>enquiry_text('name',0,120),'email'=>enquiry_text('email',0,254),'phone'=>enquiry_text('phone',0,40),'notes'=>$f['notes']];
+             $f['time']=enquiry_text('time',0,5);
+@@ -114,6 +118,19 @@
+             $f['options']=json_encode($options,JSON_THROW_ON_ERROR);
+             unset($f['review']);
+             $f['quote']=book04_quote($f);
++            if ($action==='next' && empty($f['quote']['outside_scope'])) {
++                $day=new DateTimeImmutable($f['day'],new DateTimeZone('Africa/Johannesburg'));
++                $limit=$today->modify('+30 days');
++                $f['time']='';
++                for ($i=1;$i<=7;$i++) {
++                    $day=$day->modify('+1 day');
++                    if ($day>$limit) break;
++                    $f['day']=$day->format('Y-m-d');
++                    $f['quote']=book04_quote($f);
++                    if ($f['quote']['times']) break;
++                }
++                $f['availability_notice']=$f['quote']['times']?'Available times found on '.$f['day'].'.':'No available times found through '.$f['day'].'.';
++            }
+             if ($action==='review') {
+                 if (mb_len($f['contact']['name'])<2 || !filter_var($f['contact']['email'],FILTER_VALIDATE_EMAIL)) throw new DomainException('Enter your name and a valid test checkout email.');
+                 if ($f['contact']['email']!=='book05@example.com') throw new DomainException('Use the synthetic test address.');
+@@ -169,7 +186,12 @@
+     if (isset($f) && !isset($f['reserved'])) { unset($f['review']); }
+ }
+ function book04_quote(array $f): array {
+-    return instant_query('select instant_private.slots(?,?,?,?::jsonb,?::date)',[$f['slug'],$f['service'],$f['area'],$f['options'],$f['day']]);
++    $result=instant_query('select instant_private.slots(?,?,?,?::jsonb,?::date)',[$f['slug'],$f['service'],$f['area'],$f['options'],$f['day']]);
++    if (($f['requested_service']??'regular')!=='regular' || ($f['team']??'1')!=='1' || !empty($f['outside'])) {
++        $result['outside_scope']=true;
++        $result['times']=[];
++    }
++    return $result;
+ }
+ function instant_form(string $action,string $url,string $csrf): void {
+     echo '<form method="post" action="'.esc($url).'"><input type="hidden" name="csrf" value="'.esc($csrf).'"><input type="hidden" name="action" value="'.esc($action).'">';
+@@ -221,15 +243,21 @@
+ <?php if (!$held || empty($f['method']) || $expiry<=time()): instant_form('edit',$self,$ticket['csrf']); ?><button><?=$held&&$expiry>time()?'Release hold and edit booking':'Edit booking details'?></button></form><?php endif; ?>
+ <?php elseif (isset($f)): $q=$f['quote']??[]; ?>
+ <h2>Choose an available time</h2>
++<p>The business assigns an eligible cleaner. Choosing a time does not reserve it.</p>
++<?php if(isset($f['availability_notice'])): ?><p role="status"><?=esc($f['availability_notice'])?></p><?php unset($f['availability_notice']);endif; ?>
+ <?php instant_form('date',$self,$ticket['csrf']); ?>
++<label>Service<select name="requested_service"><option value="regular">One-time Regular Cleaning</option><option value="other" <?=($f['requested_service']??'')==='other'?'selected':''?>>Other cleaning service</option></select></label>
++<label>Team size<select name="team"><option value="1">1 cleaner</option><option value="multiple" <?=($f['team']??'')==='multiple'?'selected':''?>>2 or more cleaners</option></select></label>
+ <label>Service address<input name="address" value="<?=esc($f['address'])?>" required maxlength="1000"></label>
+-<label>Service area<select name="service_area"><?php foreach ($q['areas']??[$f['area']] as $area): ?><option <?=$area===$f['area']?'selected':''?>><?=esc($area)?></option><?php endforeach; ?></select></label>
++<label>Service area<select name="service_area"><?php foreach ($q['areas']??[$f['area']] as $area): ?><option <?=empty($f['outside']) && $area===$f['area']?'selected':''?>><?=esc($area)?></option><?php endforeach; ?><option value="__outside" <?=!empty($f['outside'])?'selected':''?>>Outside listed areas</option></select></label>
+ <?php foreach ($q['rows']??[] as $row): ?><label><?=esc($row['name'])?><input type="number" name="options[<?=esc($row['id'])?>]" min="<?=(int)$row['minimum']?>" max="<?=(int)$row['maximum']?>" value="<?=(int)$row['quantity']?>" required></label><?php endforeach; ?>
+ <label>Instructions (optional)<textarea name="requirements" maxlength="1900"><?=esc($f['notes'])?></textarea></label>
+ <label>Date<input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
+-<?php if (isset($q['total'])): ?><p><?=esc($f['area'])?> · <?=(int)$q['minutes']?> minutes · ZAR <?=number_format($q['total']/100,2)?></p><?php endif; ?>
++<?php if (isset($q['total']) && empty($q['outside_scope'])): ?><p><?=esc($f['area'])?> · <?=(int)$q['minutes']?> minutes · ZAR <?=number_format($q['total']/100,2)?></p><?php endif; ?>
+ <label>Available start time (SAST)<select name="time"><option value="">Choose a time</option><?php foreach ($q['times']??[] as $t): ?><option <?=($f['time']??'')===$t?'selected':''?>><?=esc($t)?></option><?php endforeach; ?></select></label>
+-<?php if (isset($q['times']) && !$q['times']): ?><p>No cleaner is available for this entire visit. Choose another date.</p><?php endif; ?>
++<?php if (!empty($q['outside_scope'])): ?><p role="status">Instant booking covers one-time Regular Cleaning with one cleaner in the listed service areas. Change your selection to see available times.</p>
++<?php elseif (isset($q['times']) && !$q['times']): ?><p>No cleaner is available for this entire visit. Choose another date or check the next seven days.</p>
++<button name="action" value="next">Find another available date</button><?php endif; ?>
+ <label>Your name<input name="name" autocomplete="name" value="<?=esc($f['contact']['name']??'')?>" maxlength="120"></label>
+ <label>Email for test checkout<input name="email" type="email" autocomplete="email" value="<?=esc($f['contact']['email']??'')?>" maxlength="254"></label>
+ <label>Phone (optional)<input name="phone" type="tel" value="<?=esc($f['contact']['phone']??'')?>" maxlength="40"></label>
