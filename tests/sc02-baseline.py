@@ -80,6 +80,13 @@ class Baseline(unittest.TestCase):
             self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
             self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
             original[path]={'path':path,'sha256':change['candidate_sha256']}
+        waitlist=json.loads((ROOT/'docs/waitlist-diagnostics/source-delta.json').read_text())
+        self.assertEqual(set(waitlist),{'waitlist/core.php','scripts/waitlist.php',
+                                      '.github/workflows/waitlist-diagnostics-check.yml'})
+        for path,change in waitlist.items():
+            self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
+            self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
+            original[path]={'path':path,'sha256':change['candidate_sha256']}
         expected['files']=[original[path] for path in sorted(original,key=Path)]
         self.assertEqual(expected,manifest())
         self.assertEqual(len(self.inventory['files']),31)

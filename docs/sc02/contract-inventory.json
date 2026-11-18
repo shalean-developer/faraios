@@ -11170,14 +11170,14 @@
     },
     {
       "path": "waitlist/core.php",
-      "line": 41,
+      "line": 65,
       "text": "$result = wl_http($c['supabase_url'] . '/rest/v1/rpc/' . $name, $params, [",
       "literal_rpcs": [],
       "methods": []
     },
     {
       "path": "waitlist/core.php",
-      "line": 101,
+      "line": 125,
       "text": "return $db->rpc('waitlist_rate', ['p_bucket' => $bucket, 'p_limit' => $limit, 'p_seconds' => $seconds]) === true;",
       "literal_rpcs": [
         "waitlist_rate"
@@ -11186,7 +11186,7 @@
     },
     {
       "path": "waitlist/core.php",
-      "line": 122,
+      "line": 146,
       "text": "return $db->rpc('waitlist_signup', [",
       "literal_rpcs": [
         "waitlist_signup"
@@ -11195,7 +11195,7 @@
     },
     {
       "path": "waitlist/core.php",
-      "line": 131,
+      "line": 155,
       "text": "$changed = $db->rpc('waitlist_transition', ['p_action' => $action, 'p_token' => $token]) === true;",
       "literal_rpcs": [
         "waitlist_transition"
@@ -11204,7 +11204,7 @@
     },
     {
       "path": "waitlist/core.php",
-      "line": 174,
+      "line": 198,
       "text": "$job = $db->rpc('waitlist_claim', ['p_only' => $only]);",
       "literal_rpcs": [
         "waitlist_claim"
@@ -11213,7 +11213,7 @@
     },
     {
       "path": "waitlist/core.php",
-      "line": 177,
+      "line": 201,
       "text": "$db->rpc('waitlist_ack', ['p_id' => $job['id'], 'p_lease' => $job['lease'], 'p_outcome' => $result['outcome'], 'p_provider_id' => $result['provider_id']]);",
       "literal_rpcs": [
         "waitlist_ack"
@@ -11222,7 +11222,7 @@
     },
     {
       "path": "waitlist/core.php",
-      "line": 184,
+      "line": 208,
       "text": "$db->rpc('waitlist_cleanup');",
       "literal_rpcs": [
         "waitlist_cleanup"
@@ -11482,7 +11482,7 @@
     },
     {
       "path": "waitlist/core.php",
-      "line": 161,
+      "line": 185,
       "text": "file_put_contents($c['dir'] . '/captured.jsonl', json_encode(['id' => $id, 'message' => $message]) . \"\\n\", FILE_APPEND | LOCK_EX);"
     }
   ],

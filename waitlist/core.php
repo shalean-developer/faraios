@@ -35,13 +35,37 @@ function wl_config(): array {
     return $config;
 }
 
+/** Safe metadata only: never retain response bodies, credentials or RPC parameters. */
+final class WLDatabaseFailure extends RuntimeException {
+    private array $diagnostic;
+
+    public function __construct(string $operation, array $result) {
+        parent::__construct('Database request failed');
+        $operations = ['waitlist_rate','waitlist_signup','waitlist_transition','waitlist_claim','waitlist_ack','waitlist_cleanup','waitlist_status','waitlist_export','waitlist_delivery'];
+        $status = $result['status'] ?? 0;
+        $status = is_int($status) && $status >= 100 && $status <= 599 ? $status : 0;
+        $body = $result['body'] ?? null;
+        $code = is_array($body) ? ($body['code'] ?? null) : null;
+        // Accept only bounded PostgREST codes or SQLSTATE format, never free-form messages.
+        $code = is_string($code) && preg_match('/\A(?:PGRST[0-9]{3}|[0-9A-Z]{5})\z/D', $code) ? $code : null;
+        $this->diagnostic = [
+            'event' => 'faraios.waitlist-db-failure.v1', 'utc' => gmdate('Y-m-d\TH:i:s\Z'),
+            'operation' => in_array($operation, $operations, true) ? $operation : 'unknown',
+            'http_status' => $status, 'error_code' => $code,
+            'category' => $status === 0 ? 'transport_or_unavailable_response' : 'http_rejection'
+        ];
+    }
+
+    public function diagnostic(): array { return $this->diagnostic; }
+}
+
 final class WLStore {
     public function rpc(string $name, array $params = []): mixed {
         $c = wl_config();
         $result = wl_http($c['supabase_url'] . '/rest/v1/rpc/' . $name, $params, [
             'apikey: ' . $c['supabase_key'], 'Authorization: Bearer ' . $c['supabase_key']
         ]);
-        if ($result['status'] < 200 || $result['status'] >= 300) throw new RuntimeException('Database request failed');
+        if ($result['status'] < 200 || $result['status'] >= 300) throw new WLDatabaseFailure($name, $result);
         return $result['body'];
     }
 }
