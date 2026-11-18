@@ -366,7 +366,7 @@
                  'options'=>json_encode($options, JSON_THROW_ON_ERROR),'day'=>$today->modify('+1 day')->format('Y-m-d')];
 +            $draft=&$_SESSION['instant'][$flow];
 +            $draft['visit_details']=booking_visit_details($_POST);
-+            $draft['contact']=['name'=>enquiry_text('name',0,120),'email'=>enquiry_text('email',0,254),'phone'=>'','notes'=>booking_visit_notes($draft['visit_details'],$draft['notes'])];
++            $draft['contact']=['name'=>enquiry_text('name',0,120),'email'=>enquiry_text('email',0,254),'phone'=>enquiry_text('phone',0,40),'notes'=>booking_visit_notes($draft['visit_details'],$draft['notes'])];
              header('Location: '.$self.'&flow='.$flow,true,303); exit;
          }
      }
@@ -479,7 +479,7 @@
 -<label>Date<input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
 +<label>Your name<input name="name" autocomplete="name" value="<?=esc($f['contact']['name']??'')?>" maxlength="120"></label>
 +<label>Email for test checkout<input name="email" type="email" autocomplete="email" value="<?=esc($f['contact']['email']??'')?>" maxlength="254"></label>
-+<label>Phone (optional)<input name="phone" type="tel" value="<?=esc($f['contact']['phone']??'')?>" maxlength="40"></label>
++<label>Phone number (optional)<input name="phone" type="tel" autocomplete="tel" value="<?=esc($f['contact']['phone']??'')?>" maxlength="40"></label>
 +</details><label>Visit date<input type="date" name="date" min="<?=$today->format('Y-m-d')?>" max="<?=$today->modify('+30 days')->format('Y-m-d')?>" value="<?=esc($f['day'])?>" required></label>
  <?php if (isset($q['total']) && empty($q['outside_scope'])): ?><p><?=esc($f['area'])?> · <?=(int)$q['minutes']?> minutes · ZAR <?=number_format($q['total']/100,2)?></p><?php endif; ?>
  <label>Available start time (SAST)<select name="time"><option value="">Choose a time</option><?php foreach ($q['times']??[] as $t): ?><option <?=($f['time']??'')===$t?'selected':''?>><?=esc($t)?></option><?php endforeach; ?></select></label>
@@ -512,7 +512,7 @@
  $_SERVER['SCRIPT_NAME']='/account/_book05-preview/account/index.php';
  require $private.'/app/runtime/account/core.php';
  require $private.'/app/runtime/account/profile-core.php';
-@@ -25,26 +33,101 @@
+@@ -25,26 +33,102 @@
  try { book05_merchant_key($slug,$private); }
  catch (DomainException $error) { $ready=false; }
  $ticket=enquiry_ticket($slug.':booking');
@@ -628,6 +628,7 @@
 +<div role="status" data-quote-status></div>
 +<label>Your name<input name="name" value="Preview Guest" required minlength="2" maxlength="120"></label>
 +<label>Contact email<input name="email" type="email" value="book05@example.com" readonly></label>
++<label>Phone number (optional)<input name="phone" type="tel" autocomplete="tel" maxlength="40"></label>
 +<details><summary>Extras and access notes (optional)</summary>
 +<?php foreach (booking_visit_fields() as $key=>[$label,$choices]): if ($key==='extra_rooms') continue; ?><label><?=esc($label)?><select name="<?=esc($key)?>"><option value="">Choose if applicable</option><?php foreach ($choices as $choice): ?><option><?=esc($choice)?></option><?php endforeach; ?></select></label><?php endforeach; ?>
 +<label>Instructions<textarea name="requirements" maxlength="1900"></textarea></label></details>
