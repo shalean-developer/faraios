@@ -397,7 +397,7 @@
  $base = cfg()['base_url'];
  $back = $base.'/b/index.php';
  $self = $base.'/b/instant.php?slug='.$slug;
-@@ -41,9 +49,19 @@
+@@ -41,12 +49,20 @@
  $problem = '';
  try {
      if ($_SERVER['REQUEST_METHOD']==='POST') {
@@ -418,19 +418,27 @@
 +            header('Location: '.$returnTo,true,303); exit;
 +        }
          if ($flow==='') {
-             if (count($_SESSION['instant'] ?? [])>=20) throw new DomainException('Too many open booking attempts.');
-             $flow=instant_reference();
-@@ -59,6 +77,9 @@
-             $_SESSION['instant'][$flow]=['slug'=>$slug,'created'=>time(),'service'=>enquiry_text('service',32,32),
+-            if (count($_SESSION['instant'] ?? [])>=20) throw new DomainException('Too many open booking attempts.');
+-            $flow=instant_reference();
+             $options=[];
+             foreach ($_POST['options'] ?? [] as $id=>$quantity) {
+                 if (!is_string($quantity) || !ctype_digit($quantity) || strlen($quantity)>4) throw new DomainException('Check room quantities.');
+@@ -56,9 +72,13 @@
+             $unit=enquiry_text('unit',0,120);
+             if ($unit!=='') $address.=', '.$unit;
+             if (mb_len($address)>1000) throw new DomainException('Shorten the service address.');
+-            $_SESSION['instant'][$flow]=['slug'=>$slug,'created'=>time(),'service'=>enquiry_text('service',32,32),
++            $draft=['slug'=>$slug,'created'=>time(),'service'=>enquiry_text('service',32,32),
                  'area'=>enquiry_text('service_area',1,200),'address'=>$address,'notes'=>enquiry_text('requirements',0,1900),
                  'options'=>json_encode($options, JSON_THROW_ON_ERROR),'day'=>$today->modify('+1 day')->format('Y-m-d')];
-+            $draft=&$_SESSION['instant'][$flow];
 +            $draft['visit_details']=booking_visit_details($_POST);
 +            $draft['contact']=['name'=>enquiry_text('name',0,120),'email'=>enquiry_text('email',0,254),'phone'=>enquiry_text('phone',0,40),'notes'=>booking_visit_notes($draft['visit_details'],$draft['notes'])];
++            $_SESSION['instant']??=[];
++            $flow=book01_start_draft($_SESSION['instant'],$draft,$_POST['entry']??null);
              header('Location: '.$self.'&flow='.$flow,true,303); exit;
          }
      }
-@@ -103,36 +124,16 @@
+@@ -103,36 +123,16 @@
          } elseif (in_array($action,['date','review','next'],true) && !isset($f['reserved'])) {
              $previous=$f;
              $f['day']=enquiry_text('date',10,10);
@@ -472,7 +480,7 @@
              }
              if ($action==='review') {
                  if (mb_len($f['contact']['name'])<2 || !filter_var($f['contact']['email'],FILTER_VALIDATE_EMAIL)) throw new DomainException('Enter your name and a valid test checkout email.');
-@@ -180,7 +181,11 @@
+@@ -180,7 +180,11 @@
          header('Location: '.$self,true,303); exit;
      }
      if (!isset($f['reserved']) && !isset($f['review'])) {
@@ -484,7 +492,7 @@
      }
  } catch (DomainException $e) { $problem=$e->getMessage(); }
  catch (Throwable $e) {
-@@ -188,19 +193,11 @@
+@@ -188,19 +192,37 @@
          'The booking could not proceed. Check your details or choose another available time.';
      if (isset($f) && !isset($f['reserved'])) { unset($f['review']); }
  }
@@ -494,8 +502,32 @@
 -        'pets'=>['Pets at the property',['No pets','Pets present']],
 -        'equipment'=>['Cleaning equipment at the property',['Available','Partly available','Unavailable']],
 -    ];
--}
--
++function book01_start_draft(array &$attempts,array $draft,mixed $entry): string {
++    // A repeated submission of this form should reopen its original visit.
++    if (is_string($entry) && preg_match('/^[a-f0-9]{32}$/D',$entry)) {
++        $input=$draft;
++        unset($input['created'],$input['day']);
++        $draft['entry_signature']=hash('sha256',json_encode([$entry,$input],JSON_THROW_ON_ERROR));
++        foreach ($attempts as $id=>$attempt) {
++            if (($attempt['entry_signature']??null)===$draft['entry_signature']) return $id;
++        }
++    }
++
++    // Bound ordinary drafts separately from checkouts and their return links.
++    $replacementIds=array_flip(array_column($attempts,'replacement'));
++    $draftIds=[];
++    foreach ($attempts as $id=>$attempt) {
++        if (isset($replacementIds[$id]) || array_intersect_key($attempt,[
++            'reserved'=>true,'checkout'=>true,'method'=>true,'result'=>true,'replacement'=>true
++        ])) continue;
++        $draftIds[]=$id;
++    }
++    foreach (array_slice($draftIds,0,max(0,count($draftIds)-19)) as $id) unset($attempts[$id]);
++    $flow=instant_reference();
++    $attempts[$flow]=$draft;
++    return $flow;
+ }
+ 
  function booking_visit_details(array $input): array {
      $details=[];
      foreach (booking_visit_fields() as $key=>[$label,$choices]) {
@@ -505,7 +537,7 @@
          if (!in_array($value,$choices,true)) throw new DomainException('Choose a listed option for '.$label.'.');
          $details[$key]=$value;
      }
-@@ -226,20 +223,50 @@
+@@ -226,20 +248,50 @@
      }
      return $result;
  }
@@ -563,7 +595,7 @@
  <p><?=esc(book05_merchants()[$slug]['name'])?> will check the reported transfer before confirming your booking.</p>
  <p>Transfer report reference <strong><?=esc($flow)?></strong></p>
  <p>If the hold expires first, the business will review the payment and availability.</p>
-@@ -251,12 +278,12 @@
+@@ -251,12 +303,12 @@
  $start=new DateTimeImmutable($f['at'],new DateTimeZone('Africa/Johannesburg'));
  $finish=$start->modify('+'.(int)($q['minutes']??0).' minutes');
  ?>
@@ -578,7 +610,7 @@
  <?php foreach (booking_visit_fields() as $key=>[$label]): if (isset($f['visit_details'][$key])): ?><dt><?=esc($label)?></dt><dd><?=esc($f['visit_details'][$key])?></dd><?php endif; endforeach; ?>
  <?php if ($f['notes']!==''): ?><dt>Instructions</dt><dd><?=esc($f['notes'])?></dd><?php endif; ?>
  <dt>Contact</dt><dd><?=esc($f['contact']['name'])?> · <?=esc($f['contact']['email'])?> <?=esc($f['contact']['phone']??'')?></dd></dl>
-@@ -269,41 +296,34 @@
+@@ -269,41 +321,34 @@
  <p>If your payment arrives and the visit cannot be confirmed, you receive a full refund. The business initiates approved refunds to the original payment method within two business days. Refunds stay pending until the provider confirms them.</p>
  <?php if (!$held): ?>
  <p>Continuing holds the slot for up to ten minutes or until the visit starts, whichever comes first. Your booking is confirmed after payment and availability are verified.</p>
@@ -657,7 +689,7 @@
  $_SERVER['SCRIPT_NAME']='/account/_book05-preview/account/index.php';
  require $private.'/app/runtime/account/core.php';
  require $private.'/app/runtime/account/profile-core.php';
-@@ -25,26 +33,101 @@
+@@ -25,26 +33,102 @@
  try { book05_merchant_key($slug,$private); }
  catch (DomainException $error) { $ready=false; }
  $ticket=enquiry_ticket($slug.':booking');
@@ -768,6 +800,7 @@
 -<?php endforeach; ?></fieldset>
 -<p>Use synthetic details. The next step shows the calculated price and duration.</p>
 -<button>See available times</button></form><?php endif; ?></main></html>
++<input type="hidden" name="entry" value="<?=bin2hex(random_bytes(16))?>">
 +<input type="hidden" name="service" value="<?=esc($offer['id'])?>">
 +<?php booking_address_row('10 Example Street'); ?>
 +<?php booking_service_area($offer['areas']); ?>
