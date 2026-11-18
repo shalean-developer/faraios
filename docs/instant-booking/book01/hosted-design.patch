@@ -1,9 +1,9 @@
 --- /dev/null
 +++ b/faraios.com/account/_book05-preview/business/book01-visit.css
-@@ -0,0 +1,97 @@
+@@ -0,0 +1,117 @@
 +:root{font:16px/1.5 system-ui,sans-serif;color:#153438;background:#f4f7f5;--teal:#087e79;--line:#ccdcda}*{box-sizing:border-box}body{margin:0}
 +
-+.outer { margin:24px 0; container-type:inline-size; }
++.outer { margin:0; container-type:inline-size; }
 +
 +
 +.booking-header {
@@ -63,10 +63,30 @@
 +main {
 +    background:white;
 +    border:1px solid var(--line);
-+    border-radius:15px;
++    border-top:0;
++    border-radius:0 0 15px 15px;
 +    padding-block:18px 28px;
 +}
 +@media (min-width:720.01px) {
++    /* Let the actual header height set the top of the desktop scroll area. */
++    body {
++        height:100vh;
++        height:100dvh;
++        display:grid;
++        grid-template-rows:auto minmax(0,1fr);
++    }
++    .outer {
++        overflow-y:auto;
++        container-type:size;
++    }
++    .layout > aside {
++        position:sticky;
++        top:18px;
++        /* Leave space for the card padding and footer at the last scroll position. */
++        max-height:calc(100cqh - 7rem);
++        overflow-y:auto;
++    }
++
 +    main {
 +        /* Preserve the columns of the original centered 1060px form. */
 +        --form-inset:calc(max(0px, (100cqw - 1060px) / 2) + 48px);
@@ -137,7 +157,7 @@
 +}
 +function book01_open(string $business,int $step,string $heading,array $quote=[],array $visit=[]): void {
 +    $steps=['Details','Schedule','Review','Payment']; ?>
-+<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=card-1"></head><body><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
++<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=esc($heading)?> · <?=esc($business)?></title><link rel="stylesheet" href="../business/book01-visit.css?v=card-2"></head><body><header class="booking-header"><div class="header-inner"><div class="preview">FaraiOS / BOOK-01 <span>Private booking preview</span></div><div class="brand-row"><strong><?=esc($business)?></strong>
 +<?php if ($step<=4): ?><nav aria-label="Booking steps"><ol><?php foreach($steps as $i=>$label): ?><li class="<?=$i+1<=$step?'current':''?>" <?=$i+1===$step?'aria-current="step"':''?>><b><?=$i+1?></b><span><?=esc($label)?></span></li><?php endforeach; ?></ol></nav><?php endif; ?>
 +<details class="help"><summary>Booking help</summary><p>Use synthetic details. Card checkout uses Paystack Test. For manual EFT, report a synthetic transfer and wait for the business to verify it.</p></details></div>
 +</div></header><div class="outer"><main>
