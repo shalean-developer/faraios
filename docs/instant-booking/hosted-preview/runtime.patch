@@ -48,7 +48,7 @@
 +        "select instant_private.receipt(?::uuid)" => 'receipt',
 +        "select instant_private.reserve(?::uuid,?,?,?,?::jsonb,?::timestamptz,?::int,?::int,?::jsonb,?)" => 'reserve',
 +        "select instant_private.slots(?,?,?,?::jsonb,?::date)" => 'slots',
-+        "select instant_private.settle(?::uuid,?::int)" => 'settle',
++        "select instant_private.settle_verified(?::uuid,?::int,?::bigint)" => 'settleVerified',
 +    ];
 +    if (!instant_enabled() || !isset($operations[$sql])) throw new RuntimeException('Preview unavailable.');
 +    $token = trim(file_get_contents('/var/www/vhosts/shalean.com/private/faraios-checkout-preview/https-gateway.key'));
@@ -83,7 +83,7 @@
          'content' => $body === null ? '' : json_encode($body, JSON_THROW_ON_ERROR)
      ]]);
      $base = 'https://api.paystack.co';
-@@ -50,12 +65,19 @@
+@@ -50,16 +65,24 @@
          $base = cfg()['instant_fixture'];
      $raw = @file_get_contents($base.'/transaction/'.$path, false, $ctx);
      $reply = json_decode($raw ?: '{}', true);
@@ -106,6 +106,12 @@
      if (($receipt['domain'] ?? '') !== 'test' || ($receipt['reference'] ?? '') !== $reference ||
          ($receipt['status'] ?? '') !== 'success' || ($receipt['currency'] ?? '') !== 'ZAR' || !is_int($receipt['amount'] ?? null))
          throw new RuntimeException('Successful test payment has not been verified.');
+-    return instant_query('select instant_private.settle(?::uuid,?::int)', [substr($reference,3),$receipt['amount']]);
++    if (!is_int($receipt['id'] ?? null) || $receipt['id'] <= 0) throw new RuntimeException('Payment identifier unavailable.');
++    return instant_query('select instant_private.settle_verified(?::uuid,?::int,?::bigint)', [substr($reference,3),$receipt['amount'],$receipt['id']]);
+ }
+ 
+ function instant_checkout_url(array $reply, string $reference): string {
 --- a/b/instant.php
 +++ b/b/instant.php
 @@ -16,13 +16,15 @@
