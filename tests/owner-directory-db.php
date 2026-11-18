@@ -26,7 +26,7 @@ INSERT INTO public.business_profiles VALUES('20000000-0000-4000-8000-00000000000
 INSERT INTO public.business_public_pages VALUES('20000000-0000-4000-8000-000000000001','preview');
 INSERT INTO public.business_memberships VALUES('20000000-0000-4000-8000-000000000002','live','10000000-0000-4000-8000-000000000001','worker',true),('20000000-0000-4000-8000-000000000002','live','10000000-0000-4000-8000-000000000001','worker',false),('20000000-0000-4000-8000-000000000003','preview','10000000-0000-4000-8000-000000000001','manager',true);
 SQL);
-$admin->exec(file_get_contents(__DIR__.'/../docs/owner-03/restricted-reader.sql'));
+$admin->exec(file_get_contents(__DIR__.'/../supabase/migrations/20261118092848_owner_directory_restricted_reader.sql'));
 $admin->exec('ALTER ROLE faraios_owner_reader LOGIN'); // Local fixture only; no password, loopback trust auth.
 $n=0;
 function assert_ok(bool $v,string $label):void{global $n;if(!$v)throw new RuntimeException($label);$n++;}
@@ -74,4 +74,22 @@ $admin->rollBack();
 assert_ok(count($directory->read('GET','businesses',[])['rows'])===25,'recovery after lock released');
 $admin->exec('REVOKE SELECT ON faraios_owner_directory.users FROM faraios_owner_reader');
 try{$directory->read('GET','users',[]);throw new RuntimeException('Expected503');}catch(PlatformDirectoryError $e){assert_ok($e->status===503&&!str_contains($e->getMessage(),'permission'),'denied query gives redacted503');}
+// Rollback rehearsal: containment commits even if RESTRICT detects unexpected objects.
+$db=null;
+$before=$admin->query("SELECT md5(string_agg(row_to_json(b)::text,',' ORDER BY id)) FROM public.businesses b")->fetchColumn();
+$authBefore=$admin->query("SELECT md5(string_agg(row_to_json(u)::text,',' ORDER BY id)) FROM auth.users u")->fetchColumn();
+$admin->exec(file_get_contents(__DIR__.'/../docs/owner-03/disable-reader.sql'));
+assert_ok($admin->query("SELECT rolcanlogin FROM pg_roles WHERE rolname='faraios_owner_reader'")->fetchColumn()===false,'containment disables login');
+assert_ok($admin->query("SELECT has_table_privilege('faraios_owner_reader','faraios_owner_directory.businesses','SELECT')")->fetchColumn()===false,'containment revokes reads');
+fails(fn()=>$connect(),'new login denied after containment');
+$admin->exec('CREATE VIEW faraios_owner_directory.unexpected_dependency AS SELECT id FROM faraios_owner_directory.businesses');
+fails(fn()=>$admin->exec(file_get_contents(__DIR__.'/../docs/owner-03/uninstall-reader.sql')),'RESTRICT preserves unexpected dependent objects');
+$admin->rollBack();
+assert_ok($admin->query("SELECT rolcanlogin FROM pg_roles WHERE rolname='faraios_owner_reader'")->fetchColumn()===false,'failed uninstall does not undo containment');
+$admin->exec('DROP VIEW faraios_owner_directory.unexpected_dependency');
+$admin->exec(file_get_contents(__DIR__.'/../docs/owner-03/uninstall-reader.sql'));
+assert_ok($admin->query("SELECT count(*) FROM pg_namespace WHERE nspname='faraios_owner_directory'")->fetchColumn()===0,'directory schema removed');
+assert_ok($admin->query("SELECT count(*) FROM pg_roles WHERE rolname='faraios_owner_reader'")->fetchColumn()===0,'reader role removed');
+assert_ok($before===$admin->query("SELECT md5(string_agg(row_to_json(b)::text,',' ORDER BY id)) FROM public.businesses b")->fetchColumn(),'business data unchanged after rollback');
+assert_ok($authBefore===$admin->query("SELECT md5(string_agg(row_to_json(u)::text,',' ORDER BY id)) FROM auth.users u")->fetchColumn(),'auth data unchanged after rollback');
 echo json_encode(['status'=>'PASS','assertions'=>$n,'database'=>'disposable local PostgreSQL','hosted_writes'=>0]).PHP_EOL;
