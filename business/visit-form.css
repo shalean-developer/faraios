@@ -337,3 +337,5 @@ fieldset.booking-starts {
 .service-tile img { width:80px; height:65px; object-fit:cover; border-radius:7px; }
 .service-tiles { flex-wrap:wrap; }
 footer { padding-inline:clamp(16px,2vw,32px); }
+
+.payment-layout { max-width:36rem; margin-inline:auto; }

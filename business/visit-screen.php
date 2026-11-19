@@ -1,17 +1,27 @@
 <?php
 if (realpath($_SERVER['SCRIPT_FILENAME']??'')===__FILE__){http_response_code(404);exit;}
 $titles=['service'=>'Book a service','details'=>'Your cleaning details','schedule'=>'Choose a time','review'=>'Review your visit','payment'=>'Pay for your visit'];
-if($step==='payment'&&$record&&$record['state']==='confirmed')$titles['payment']='Test booking confirmed';
+$showBookingSummary = $s && $step !== 'payment';
+$layoutClass = ['service'=>'service-entry','payment'=>'payment-layout'][$step] ?? 'layout';
+if ($step === 'payment') {
+    $received = in_array($record['state'], ['confirmed', 'reconcile'], true);
+    $canPay = $record['state'] === 'held' && (int)$record['expires'] > time();
+    if ($received) {
+        $titles['payment'] = $record['state'] === 'confirmed' ? 'Test booking confirmed' : 'Test payment received';
+    } elseif (!$canPay) {
+        $titles['payment'] = 'Booking hold expired';
+    }
+}
 $self=visit_url($step,$service);$labels=['details'=>'Details','schedule'=>'Schedule','review'=>'Review','payment'=>'Payment'];
 ?><!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
-<title><?=esc($titles[$step].' · '.$company)?></title><link rel="stylesheet" href="/business/visit-form.css?v=1"><link rel="stylesheet" href="/account/booking-location-ui.css?v=2">
+<title><?=esc($titles[$step].' · '.$company)?></title><link rel="stylesheet" href="/business/visit-form.css?v=2"><link rel="stylesheet" href="/account/booking-location-ui.css?v=2">
 <script src="/business/visit-room-picker.js?v=1" defer></script><script src="/business/visit-form.js?v=1" defer></script></head>
 <body<?=$step==='service'?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="brand-row"><a class="visit-brand" href="/b/shalean-cleaning-services"><?php if(!empty($row['document']['logo'])):?><img src="/b/shalean-cleaning-services?logo=1" alt="<?=esc($company)?>"><?php else:?><?=esc($company)?><?php endif;?></a>
 <?php if($step!=='service'):?><nav aria-label="Booking steps"><ol><?php $past=true;$number=0; foreach($labels as $key=>$label):?><li class="<?=$past?'current':''?>" <?=$key===$step?'aria-current="step"':''?>><b><?=++$number?></b><span><?=$label?></span></li><?php if($key===$step)$past=false;endforeach;?></ol></nav><?php endif;?>
 <details class="help"><summary>Booking help</summary><p>Choose a service and an available start in South African time. This checkout uses Paystack Test. Use synthetic contact details.</p></details></div></div></header>
-<div class="outer"><main><div class="<?=$step==='service'?'service-entry':'layout'?>"><section><h1<?=$step==='details'?' class="details-heading"':''?>><?=esc($titles[$step])?></h1>
+<div class="outer"><main><div class="<?=$layoutClass?>"><section><h1<?=$step==='details'?' class="details-heading"':''?>><?=esc($titles[$step])?></h1>
 <?php if($message!==''):?><p role="alert"><?=esc($message)?></p><?php endif;?>
-<?php if($s):?><details class="mobile-summary"><summary>Summary · <?=esc(visit_money($q['cents']))?></summary><?php visit_summary($q,$s,$draft);?></details><?php endif;?>
+<?php if($showBookingSummary):?><details class="mobile-summary"><summary>Summary · <?=esc(visit_money($q['cents']))?></summary><?php visit_summary($q,$s,$draft);?></details><?php endif;?>
 <?php if($step==='service'):?><div class="service-tiles"><?php foreach($catalogue as $id=>$item):?><a class="service-tile" href="<?=esc(visit_url('details',$id))?>"><?php if(!empty($item['image'])):?><img alt="" src="/b/shalean-cleaning-services?service_image=<?=esc($id)?>"><?php endif;?><span><?=esc($item['name'])?></span></a><?php endforeach;?></div>
 <?php elseif($step==='details'):
 ?><script type="application/json" id="visit-pricing"><?=json_encode(['name'=>$s['name'],'mode'=>$s['mode'],'amount'=>$s['amount'],'duration'=>$s['duration'],'options'=>$s['options']??[]],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS|JSON_THROW_ON_ERROR)?></script><?php
@@ -38,8 +48,8 @@ $opts=array_filter($s['options']??[],fn($o)=>in_array($o['kind'],$kinds,true)&&$
 <?php if($alternatives):?><dialog open class="date-alternatives"><h2>Choose an available date</h2><?php foreach($alternatives as $day):?><button type="button" data-alternative="<?=esc($day)?>"><?=esc($day)?></button><?php endforeach;?><button type="button" data-close>Close</button></dialog><?php endif;endif;?>
 <section><h2>Extras and access notes (optional)</h2><div class="booking-access-row"><?php booking_dropdown('pets','Pets at the property (optional)',['No pets','Pets present'],$draft['pets']??null,'Choose if applicable');booking_dropdown('equipment','Cleaning equipment at the property (optional)',['Available','Partly available','Unavailable'],$draft['equipment']??null,'Choose if applicable');?></div><label>Instructions (optional)<textarea name="notes" maxlength="1900"><?=esc($draft['notes']??'')?></textarea></label></section>
 <?php if($slots):?><button name="action" value="review">Review this visit</button><?php endif;?></form>
-<?php elseif($step==='review' || $step==='payment'):?>
-<h2><?=$step==='review'?'Visit details':'Payment details'?></h2>
+<?php elseif($step==='review'):?>
+<h2>Visit details</h2>
 <div class="visit-details">
     <div><strong>Service:</strong> One-time</div>
     <div><strong>Address:</strong> <?=esc(implode(', ',array_filter([$draft['address'],$draft['unit'],$draft['area']])))?></div>
@@ -56,12 +66,28 @@ $opts=array_filter($s['options']??[],fn($o)=>in_array($o['kind'],$kinds,true)&&$
 <p>Cancel before the visit starts for a full refund. If the business cancels, you may choose a full refund or agree to a new time. The business reviews no-shows and visits already underway individually. Your statutory rights apply.</p>
 <p>If your payment arrives and the visit cannot be confirmed, you receive a full refund. The business initiates approved refunds to the original payment method within two business days. Refunds stay pending until the provider confirms them.</p>
 <button type="button" class="booking-policy-close" popovertarget="visit-policy" popovertargetaction="hide">Close</button></div>
-<?php if($step==='review'): if($s['mode']==='quote'):?><p>This service requires a quote before payment.</p><?php else: visit_form_start($self,$csrf,'hold');?><button>Hold slot &amp; continue</button></form><?php endif;?>
+<?php if($s['mode']==='quote'):?><p>This service requires a quote before payment.</p><?php else: visit_form_start($self,$csrf,'hold');?><button>Hold slot &amp; continue</button></form><?php endif;?>
 <a href="<?=esc(visit_url('schedule',$service))?>">Edit visit</a>
-<?php elseif($record['state']==='confirmed'):?><p role="status">Synthetic payment verified and test booking confirmed.</p><p>Booking reference <?=esc($record['ref'])?></p>
-<?php elseif($record['state']==='reconcile'):?><p role="status">Test payment received after the slot became unavailable. Payment reference <?=esc($record['ref'])?> is saved for reconciliation.</p>
-<?php endif;if($step==='payment' && in_array($record['state'],['confirmed','reconcile'],true)): visit_form_start($self,$csrf,'restart');?><button>Start another booking</button></form>
-<?php elseif($step==='payment'):if($record['state']==='held'&&$record['expires']>time()):?><p class="hold">Test slot held until <?=esc((new DateTimeImmutable('@'.$record['expires']))->setTimezone(new DateTimeZone(VISIT_TZ))->format('H:i:s'))?> SAST.</p>
-<?php visit_form_start($self,$csrf,'pay');?><button>Pay <?=esc(visit_money((int)$record['cents']))?> with Paystack Test</button></form>
-<?php else:?><p role="status">Your hold has expired. Choose another available start time.</p><?php endif;visit_form_start($self,$csrf,'release');?><button class="secondary">Release hold and edit booking</button></form><?php endif;endif;?>
-</section><?php if($s):?><aside aria-label="Your booking"><h2>Your booking</h2><?php visit_summary($q,$s,$draft);?></aside><?php endif;?></div></main><footer>Paystack Test · Synthetic bookings only</footer></div></body></html>
+<?php elseif ($step === 'payment'): ?>
+<p><strong>Payee:</strong> <?=esc($company)?></p>
+<?php if ($received): ?>
+    <p><strong>Test amount paid:</strong> <?=esc(visit_money((int)$record['cents']))?></p>
+    <?php if ($record['state'] === 'confirmed'): ?>
+        <p role="status">Synthetic payment verified and test booking confirmed.</p>
+        <p><strong>Booking reference:</strong> <?=esc($record['ref'])?></p>
+    <?php else: ?>
+        <p role="status">Your test payment was received after the slot became unavailable. The booking could not be confirmed.</p>
+        <p><strong>Payment reference:</strong> <?=esc($record['ref'])?></p>
+    <?php endif; ?>
+    <?php visit_form_start($self,$csrf,'restart'); ?><button>Start another booking</button></form>
+<?php elseif ($canPay): ?>
+    <p><strong>Amount due:</strong> <?=esc(visit_money((int)$record['cents']))?></p>
+    <p class="hold">Your slot is held until <?=esc((new DateTimeImmutable('@'.$record['expires']))->setTimezone(new DateTimeZone(VISIT_TZ))->format('H:i:s'))?> SAST.</p>
+    <?php visit_form_start($self,$csrf,'pay'); ?><button>Pay with Paystack Test</button></form>
+    <?php visit_form_start($self,$csrf,'release'); ?><button class="secondary">Release hold and edit booking</button></form>
+<?php else: ?>
+    <p role="status">Your hold has expired. Choose another available start time.</p>
+    <?php visit_form_start($self,$csrf,'release'); ?><button>Choose another time</button></form>
+<?php endif; ?>
+<?php endif; ?>
+</section><?php if($showBookingSummary):?><aside aria-label="Your booking"><h2>Your booking</h2><?php visit_summary($q,$s,$draft);?></aside><?php endif;?></div></main><footer>Paystack Test · Synthetic bookings only</footer></div></body></html>
