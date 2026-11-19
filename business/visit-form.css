@@ -390,3 +390,28 @@ footer { padding-inline:clamp(16px,2vw,32px); }
 @media(max-width:600px) {
     .room-choice-list.task-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
 }
+
+.outer .booking-footer {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:.25rem 1.5rem;
+    max-width:none;
+    margin:0;
+    padding:.75rem max(1rem,calc((100% - 1060px) / 2));
+    background:white;
+    border-top:1px solid var(--line);
+    text-align:start;
+}
+.booking-footer nav { display:flex; flex-wrap:wrap; gap:0 1rem; }
+.booking-footer a { display:inline-flex; align-items:center; gap:.25em; min-height:44px; color:#375853; text-decoration:none; }
+.booking-footer a:hover, .booking-footer a:focus-visible { text-decoration:underline; }
+.outer:has(> .booking-footer) { display:flex; flex-direction:column; }
+.outer:has(> .booking-footer) > main { flex-shrink:0; width:100%; }
+.outer > .booking-footer { margin-top:auto; flex-shrink:0; }
+@media (max-width:720px) {
+    body:not(.launch-page):has(.booking-footer) { display:flex; flex-direction:column; min-height:100dvh; }
+    body:not(.launch-page) > .outer:has(.booking-footer) { flex:1; }
+    .outer .booking-footer { justify-content:center; text-align:center; }
+}
