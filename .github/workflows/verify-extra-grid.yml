@@ -1,0 +1,90 @@
+name: Verify PR 105 extra task icons
+on:
+  pull_request:
+    branches: [ui/shalean-extra-task-icons]
+  push:
+    branches: [qa/pr105-extra-grid-20261119]
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare synthetic details page
+        run: |
+          cat > /tmp/grid.php <<'PHP'
+          <?php
+          $step='details';$service='regular';$company='Shalean';$csrf='fixture';$message='';$areas=[];$row=[];$draft=['area'=>''];$q=['values'=>[]];
+          $s=['name'=>'Regular Cleaning','mode'=>'from','amount'=>25000,'duration'=>210,'options'=>[]];
+          foreach ([['Inside Fridge',15,30],['Inside Oven',20,45],['Laundry',35,30],['Ironing',40,30],['Interior Windows',30,45],['Inside Cabinets',25,30],['Interior Walls',35,60]] as $i=>[$name,$price,$minutes]) {
+              $id='extra'.$i;
+              $s['options'][]=['kind'=>'toggle','id'=>$id,'name'=>$name,'price'=>$price*100,'minutes'=>$minutes,'included'=>0,'minimum'=>0,'maximum'=>1];
+              $q['values'][$id]=0;
+          }
+          function esc($s){return htmlspecialchars($s,ENT_QUOTES);}
+          function visit_url($step,$service){return '#'.$step;}
+          function visit_summary(...$args){echo '<div class="visit-summary-footer"><span data-total></span><span data-duration></span></div>';}
+          function visit_form_start(...$args){echo '<form>';}
+          function visit_money($c){return 'ZAR '.number_format($c/100,2);}
+          function booking_address_row(...$args){echo '<input name="address"><input name="unit">';}
+          function booking_service_area(...$args){echo '<input name="service_area">';}
+          require getcwd().'/business/visit-screen.php';
+          PHP
+          php /tmp/grid.php > qa-grid.html
+          cat > /tmp/grid.py <<'PY'
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+          items = [('Inside Fridge',15,30),('Inside Oven',20,45),('Laundry',35,30),('Ironing',40,30),('Interior Windows',30,45),('Inside Cabinets',25,30),('Interior Walls',35,60)]
+          def duration(m):
+              return ' '.join(filter(None,[f'{m//60} hours' if m>=60 else '', f'{m%60} min' if m%60 else '']))
+          with sync_playwright() as pw:
+              browser=pw.chromium.launch(channel='chrome')
+              for w in (320,390,768,1280):
+                  page=browser.new_page(viewport={'width':w,'height':900},has_touch=w<400)
+                  errors=[]
+                  page.on('pageerror',lambda error: errors.append(str(error)))
+                  page.goto('http://localhost:9174/qa-grid.html')
+                  grid=page.get_by_role('group',name='Extra tasks')
+                  assert grid.get_by_role('button').count()==7
+                  positions=grid.get_by_role('button').evaluate_all('(bs)=>bs.map(b=>Math.round(b.getBoundingClientRect().top))')
+                  if w<400: assert [positions.count(p) for p in sorted(set(positions))]==[4,3],positions
+                  bounds=grid.bounding_box()
+                  print('grid and viewport', w, bounds, 'overflow elements',page.evaluate("Array.from(document.querySelectorAll('body *')).filter(e=>e.getBoundingClientRect().right>innerWidth+1).map(e=>[e.tagName,e.className,Math.round(e.getBoundingClientRect().right)]).slice(0,25)"),flush=True)
+                  assert bounds['x']>=0 and bounds['x']+bounds['width']<=w
+                  def summary(cost,minutes):
+                      assert set(page.locator('[data-total]').all_text_contents())=={f'ZAR {cost:.2f}'}
+                      assert set(page.locator('[data-duration]').all_text_contents())=={duration(minutes)}
+                  for i,(name,price,mins) in enumerate(items):
+                      btn=grid.get_by_role('button',name=name,exact=True)
+                      assert btn.locator('svg path').count()==1
+                      assert btn.get_attribute('aria-pressed')=='false'
+                      if w<400: btn.tap()
+                      else: btn.focus(); btn.press('Space')
+                      assert btn.get_attribute('aria-pressed')=='true'
+                      assert btn.locator('.task-circle').evaluate("e=>getComputedStyle(e,'::after').content").strip('"')=='✓'
+                      assert page.locator(f'[name="options[extra{i}]"]').input_value()=='1'
+                      summary(250+price,210+mins)
+                      btn.click(); summary(250,210)
+                  for name,_,_ in items: grid.get_by_role('button',name=name,exact=True).click()
+                  summary(450,480)
+                  Path('grid-evidence').mkdir(exist_ok=True)
+                  grid.screenshot(path=f'grid-evidence/all-selected-{w}.png')
+                  for name,_,_ in items[1:]: grid.get_by_role('button',name=name,exact=True).click()
+                  grid.screenshot(path=f'grid-evidence/one-selected-{w}.png')
+                  print(f'PASS {w}px: all seven individual toggles, selected mark, price, duration, combined totals, row layout and screenshots',flush=True)
+                  assert not errors,errors
+                  page.close()
+          PY
+      - name: Exercise the actual checkout assets in Chrome
+        run: |
+          python -m venv /tmp/grid-env
+          /tmp/grid-env/bin/pip -q install playwright
+          python -m http.server 9174 --bind 127.0.0.1 >/tmp/grid-server.log 2>&1 &
+          /tmp/grid-env/bin/python /tmp/grid.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: extra-task-grid-screenshots
+          path: grid-evidence
