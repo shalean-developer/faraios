@@ -1,20 +1,26 @@
-import base64,hashlib,io,json,os,stat,time,zipfile
+import hashlib,io,json,os,stat,time,zipfile
 from pathlib import Path
 from urllib.parse import urlsplit
-from urllib.request import urlopen
-from cryptography.hazmat.primitives import hashes,serialization
-from cryptography.hazmat.primitives.asymmetric import padding
+from urllib.request import Request, HTTPRedirectHandler, build_opener
 from restore import restore
+class SafeAssetRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        u=urlsplit(newurl)
+        if u.scheme!="https" or u.hostname!="release-assets.githubusercontent.com" or u.username or u.password or u.port not in (None,443):
+            raise ValueError("Unexpected asset redirect")
+        # Do not forward the API credential to the signed asset destination.
+        return Request(newurl,headers={"Accept":"application/octet-stream","User-Agent":"FaraiOS-isolated-recovery"})
 def drill():
     global stage; stage='key'; start=time.monotonic(); root=Path(os.environ["RUNNER_TEMP"]); os.umask(0o077)
     key=root/"key/encrypted-private.pem"
-    private=serialization.load_pem_private_key(key.read_bytes(),os.environ["BACKUP_PASSPHRASE"].encode())
-    alg=padding.OAEP(padding.MGF1(hashes.SHA256()),hashes.SHA256(),None)
-    link=b"".join(private.decrypt(base64.b64decode(p,validate=True),alg) for p in ["JELo6/+UVg6/F1mHAs5wCywlVEdtrTr8N094C4utHaxHMQaLAN9nY2w//XlkCad/zUciZBAKAcLP8e/4aNixJxfgsW4xFNWVRV4+FdmLEEdYYAy1ptI2/RzXzlejEMlcKRWkj17mubGZgVecUzqtsiYDvbCCWfs5mktapijACR4arOizvKP5NHsW3UfqZc72OWyzl8qgBQyPHhK7lUJ+hhjCle6Vwp0vDOro/dmy7/KpyLkIrEiO2Pe+jt7jMRif59pC6eppflgJ9hYatn5IetYff6x1X60qmQm+k7HjFNbYYhC2Dh14vPgFbLKzZK4iTvsknHljs3D+uMH4Mo6F+3uckk4lJ2P72Ndej88Aa8wQETqIlnu6SmfwVHQ1ZkKwhgm1XTTrqHPI0O5KB+eCxwUwGKbC35k9sqE3rKmaDuSxHhlQzC6RWljomC9HKp1jtxcnWxHMlf4xQ6oCCkcrXDvm1wk1yt25ZVe4Dtt6/WMU4GPeUtw3qDJ9D1OAAAge"]).decode()
-    stage='download'; u=urlsplit(link)
-    expected="/shalean-developer/faraios-private-recovery/58074ba/faraios-20261119T074502Z-1e3a8125feeb.zip"
-    if u.scheme!="https" or u.hostname!="raw.githubusercontent.com" or u.path!=expected: raise ValueError()
-    with urlopen(link,timeout=90) as response: data=response.read(24000001)
+    stage='download'
+    token=os.environ.pop("RECOVERY_READ_TOKEN")
+    if not token or any(c.isspace() for c in token): raise ValueError()
+    api="https://api.github.com/repos/shalean-developer/faraios-private-recovery/releases/assets/766742800"
+    request=Request(api,headers={"Authorization":"Bearer "+token,"Accept":"application/octet-stream","X-GitHub-Api-Version":"2022-11-28","User-Agent":"FaraiOS-isolated-recovery"})
+    with build_opener(SafeAssetRedirect()).open(request,timeout=90) as response:
+        data=response.read(24000001)
+    del token,request
     if len(data)!=14111203 or hashlib.sha256(data).hexdigest()!="1e3a8125feeb2dcc373fc91ee64e292c08cbd44d48986caeed853a5f0e71b2a5": raise ValueError()
     stage='zip';
     with zipfile.ZipFile(io.BytesIO(data)) as z:

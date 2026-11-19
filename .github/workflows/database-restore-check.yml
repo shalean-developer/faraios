@@ -1,4 +1,4 @@
-name: Isolated database restore check
+name: Isolated uploaded website recovery check
 on:
   push:
     branches: [verify/mon01-archive-20261119]
@@ -23,7 +23,7 @@ jobs:
       - name: Restore exact uploaded archive into a new private directory
         env:
           BACKUP_PASSPHRASE: ${{ secrets.FARAIOS_BACKUP_PASSPHRASE }}
-          SEALED_RECEIPT: '["HyJNgHzVLLeEXqftwxLYu0DUJqpf+VyQL33Y16TPANwYMCKgXhX8htYbiErYhbswUkvRWhrDRkbdQGktcSzYXbNsS54jaCmxkEjI7Ouul5e4yKPs+kmS0EOuFyI76BkqOVW1w8FOsI0Se66izJWKcdpEgiO7RRjyfp9DYC6sqE/q54VI477jXxeqVnJayt4k/QDCcaWj09vjgiD6kEdlCKarcj5yV0/AfaR4/t2XqxQud4WNZmOaGXSFbtxOdsbYN3tQSspS137dp1kbHK+8wybQvQY7XHcpqmHzyrddIcQt6fx7sXi+73Ve6IRS2ZugREw2I1bbN1EOvu8SLhd04x67aSYZsnd+Olrlj1Tkgyx38QKGNSjpE724FtVxm0v0wqAtjdF+z3J9O0qYe+3hehtZiZjiWX0zLLqCh44pDnEEGMdS8AJbrC8W3JGXBgTHoMV1FZ3tHvNAPhDA8bGzH4zRKCgxKqAH9OuAYb3lljYPR46r4WQcyXLDEBajuob+"]'
+          RECOVERY_READ_TOKEN: ${{ secrets.FARAIOS_RECOVERY_READ_TOKEN }}
         run: /usr/bin/python3 docs/v1-023/verify_uploaded.py
       - name: Remove disposable inputs and restored files
         if: always()
