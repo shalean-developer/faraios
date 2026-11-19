@@ -4,18 +4,24 @@ require __DIR__.'/core.php';
 require __DIR__.'/profile-core.php';
 require dirname(__DIR__).'/business/visit-store.php';
 
+$_SERVER['SCRIPT_NAME'] = preg_replace('~/account/manual-eft\.php$~','/account/index.php',$_SERVER['SCRIPT_NAME']);
+$failure = 'The account session could not be opened.';
 try {
  start();
+ $failure = 'Your sign-in could not be verified. Sign in again to continue.';
  $owner = user();
+ $failure = 'Shalean ownership could not be checked.';
  $rows = api('/rest/v1/businesses?id=eq.'.VISIT_EFT_BUSINESS.'&owner_id=eq.'.rawurlencode($owner['id']).'&select=id', [], 'GET', $_SESSION['auth']['access_token']);
  if (profile_env() !== 'live' || ($rows[0]['id'] ?? null) !== VISIT_EFT_BUSINESS) {
   http_response_code(403); exit('Only the Shalean business owner can verify these test transfers.');
  }
+ $failure = 'The test transfer ledger is unavailable.';
  $notice = '';
  if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   csrf();
   $ref = $_POST['reference'] ?? '';
   if (!is_string($ref) || !preg_match('/^fosb-[a-f0-9]{32}$/D',$ref)) throw new RuntimeException('Invalid transfer reference.');
+  $failure = 'The transfer could not be verified. Check its reference and retry.';
   $state = visit_verify_eft($ref,$owner['id']);
   $_SESSION['eft_notice'] = $state === 'confirmed' ? 'Test receipt verified and booking confirmed.' : 'Test receipt verified. The slot is unavailable and the payment needs reconciliation.';
   header('Location: manual-eft.php',true,303); exit;
@@ -24,8 +30,10 @@ try {
  unset($_SESSION['eft_notice']);
  $pending = visit_stmt('SELECT v.ref,v.cents,v.day,v.clock FROM visit_eft_reports e JOIN visits v USING(ref) WHERE e.verified_at IS NULL ORDER BY e.reported_at')->fetchAll();
  $conflicts = visit_stmt("SELECT v.ref,v.cents FROM visits v JOIN visit_eft_reports e USING(ref) WHERE v.state='reconcile' ORDER BY e.verified_at DESC")->fetchAll();
+} catch (AccountSessionExpired $e) {
+ go('signin');
 } catch (Throwable $e) {
- http_response_code(503); exit('Transfer verification is unavailable. Refresh and try again.');
+ http_response_code(503); exit($failure);
 }
 ?>
 <!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Manual EFT · Shalean</title><link rel="stylesheet" href="../business/visit-form.css?v=4"></head><body><main>
