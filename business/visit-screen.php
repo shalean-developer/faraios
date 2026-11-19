@@ -7,7 +7,7 @@ if ($step === 'payment') {
     $received = in_array($record['state'], ['confirmed', 'reconcile'], true);
     $canPay = $record['state'] === 'held' && (int)$record['expires'] > time();
     if ($received) {
-        $titles['payment'] = $record['state'] === 'confirmed' ? 'Test booking confirmed' : 'Test payment received';
+        $titles['payment'] = $record['state'] === 'confirmed' ? 'Booking preview complete' : 'Payment preview complete';
     } elseif ($record['state'] === 'eft_pending') {
         $titles['payment'] = 'Awaiting payment verification';
     } elseif (!$canPay) {
@@ -17,10 +17,10 @@ if ($step === 'payment') {
 $self=visit_url($step,$service);$labels=['details'=>'Details','schedule'=>'Schedule','review'=>'Review','payment'=>'Payment'];
 ?><!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
 <title><?=esc($titles[$step].' · '.$company)?></title><link rel="stylesheet" href="/business/visit-form.css?v=11"><link rel="stylesheet" href="/account/booking-location-ui.css?v=2">
-<script src="/business/visit-room-picker.js?v=2" defer></script><script src="/business/visit-form.js?v=4" defer></script></head>
+<script src="/business/visit-room-picker.js?v=2" defer></script><script src="/business/visit-form.js?v=4" defer></script><link rel="stylesheet" href="/business/shalean-theme.php"></head>
 <body<?=$step==='service'?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="brand-row"><a class="visit-brand" href="/b/shalean-cleaning-services"><?php if(!empty($row['document']['logo'])):?><img src="/b/shalean-cleaning-services?logo=1" alt="<?=esc($company)?>"><?php else:?><?=esc($company)?><?php endif;?></a>
 <?php if($step!=='service'):?><nav aria-label="Booking steps"><ol><?php $past=true;$number=0; foreach($labels as $key=>$label):?><li class="<?=$past?'current':''?>" <?=$key===$step?'aria-current="step"':''?>><b><?=++$number?></b><span><?=$label?></span></li><?php if($key===$step)$past=false;endforeach;?></ol></nav><?php endif;?>
-<details class="help"><summary>Booking help</summary><p>Choose a service and an available start in South African time. This checkout uses Paystack Test. Use synthetic contact details.</p></details></div></div></header>
+<details class="help"><summary>Booking help</summary><p>Choose a service and an available start in South African time.</p></details></div></div></header>
 <div class="outer"><main><div class="<?=$layoutClass?>"><section><h1<?=$step==='details'?' class="details-heading"':''?>><?=esc($titles[$step])?></h1>
 <?php if($message!==''):?><p role="alert"><?=esc($message)?></p><?php endif;?>
 <?php if($showBookingSummary):?><details class="mobile-summary"><summary>Booking summary</summary><?php visit_summary($s,$draft,$step,$q);?></details><?php endif;?>
@@ -91,7 +91,7 @@ $opts=array_filter($s['options']??[],fn($o)=>in_array($o['kind'],$kinds,true)&&$
     <div><strong>Contact:</strong> <?=esc(implode(' · ',array_filter([$draft['name'],$draft['email'],$draft['phone']])))?></div>
 </div>
 <h3 id="visit-costs" tabindex="-1">Price breakdown</h3><ul><?php foreach($q['parts'] as [$label,$cost]):?><li><?=esc($label)?> · <?=esc(visit_money($cost))?></li><?php endforeach;?></ul>
-<p><strong>Test payment amount · <?=esc(visit_money($q['cents']))?></strong></p>
+<p><strong>Total · <?=esc(visit_money($q['cents']))?></strong></p>
 <button type="button" class="booking-policy-trigger" popovertarget="visit-policy">Cancellation and refunds</button>
 <div class="booking-policy" id="visit-policy" popover="auto" role="dialog" aria-labelledby="policy-title"><h2 id="policy-title">Cancellation and refunds</h2>
 <p>Cancel before the visit starts for a full refund. If the business cancels, you may choose a full refund or agree to a new time. The business reviews no-shows and visits already underway individually. Your statutory rights apply.</p>
@@ -101,32 +101,32 @@ $opts=array_filter($s['options']??[],fn($o)=>in_array($o['kind'],$kinds,true)&&$
 <a href="<?=esc(visit_url('schedule',$service))?>">Edit visit</a>
 <?php elseif ($step === 'payment'): ?>
 <p><strong>Payee:</strong> <?=esc($company)?></p>
+<?php if ($canPay): ?><p>Practice checkout · No money will be collected.</p><?php endif; ?>
 <?php if ($received): ?>
-    <p><strong>Test amount paid:</strong> <?=esc(visit_money((int)$record['cents']))?></p>
+    <p><strong>Booking total:</strong> <?=esc(visit_money((int)$record['cents']))?></p>
     <?php if ($record['state'] === 'confirmed'): ?>
-        <p role="status">Synthetic payment verified and test booking confirmed.</p>
+        <p role="status">This was a practice booking. No money was collected.</p>
         <p><strong>Booking reference:</strong> <?=esc($record['ref'])?></p>
     <?php else: ?>
-        <p role="status">Your test payment was received after the slot became unavailable. The booking could not be confirmed.</p>
+        <p role="status">The slot became unavailable before confirmation. No money was collected.</p>
         <p><strong>Payment reference:</strong> <?=esc($record['ref'])?></p>
     <?php endif; ?>
     <?php visit_form_start($self,$csrf,'restart'); ?><button>Start another booking</button></form>
 <?php elseif ($record['state'] === 'eft_pending'): ?>
-<p role="status">Shalean has received your test transfer report. Your booking will be confirmed after Shalean verifies receipt and checks availability.</p>
+<p role="status">Shalean has received your transfer report for this practice booking. Your booking will be confirmed after Shalean verifies receipt and checks availability.</p>
 <p><strong>Amount reported:</strong> <?=esc(visit_money((int)$record['cents']))?></p>
 <p><strong>Transfer reference:</strong> <?=esc($record['ref'])?></p>
 <a href="<?=esc($self)?>">Refresh payment status</a>
 <?php elseif ($canPay): ?>
     <p><strong>Amount due:</strong> <?=esc(visit_money((int)$record['cents']))?></p>
     <p class="hold">Your slot is held until <?=esc((new DateTimeImmutable('@'.$record['expires']))->setTimezone(new DateTimeZone(VISIT_TZ))->format('H:i:s'))?> SAST.</p>
-    <?php visit_form_start($self,$csrf,'pay'); ?><button>Pay with Paystack Test</button></form>
+    <?php visit_form_start($self,$csrf,'pay'); ?><button>Continue to Paystack</button></form>
     <?php if (empty($record['url'])): ?>
     <details class="hold"><summary>Manual EFT</summary>
-        <p>Test bank transfer only. Do not send money.</p>
+        <p>Do not send a bank transfer for this practice booking.</p>
         <p><strong>Account holder:</strong> <?=esc($company)?><br>
-        <strong>Test account number:</strong> TEST-ONLY<br>
         <strong>Transfer reference:</strong> <?=esc($record['ref'])?></p>
-        <?php visit_form_start($self,$csrf,'report_eft'); ?><button>Report test transfer</button></form>
+        <?php visit_form_start($self,$csrf,'report_eft'); ?><button>Report transfer</button></form>
     </details>
     <?php endif; ?>
     <?php visit_form_start($self,$csrf,'release'); ?><button class="secondary">Release hold and edit booking</button></form>

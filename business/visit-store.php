@@ -97,9 +97,16 @@ function visit_verify_eft(string $ref, string $owner): string {
  });
 }
 function visit_key(): string {
+ require_once __DIR__.'/shalean-settings.php';
+ $path = SHALEAN_SETTINGS.'/paystack-test';
+ if (is_file($path)) {
+  $pair = json_decode((string)file_get_contents($path), true);
+  if (!is_string($pair['secret'] ?? null) || !str_starts_with($pair['secret'],'sk_test_')) throw new RuntimeException('Payments are unavailable.');
+  return $pair['secret'];
+ }
  $c=require '/var/www/vhosts/shalean.com/private/faraios-checkout-preview/app/config.php';
  $key=$c['instant_paystack_key']??'';
- if(!is_string($key)||!str_starts_with($key,'sk_test_'))throw new RuntimeException('Test payments are unavailable.');
+ if(!is_string($key)||!str_starts_with($key,'sk_test_'))throw new RuntimeException('Payments are unavailable.');
  return $key;
 }
 function visit_provider(string $path,?array $body=null): array {
@@ -109,7 +116,7 @@ function visit_provider(string $path,?array $body=null): array {
  if($body!==null)curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>json_encode($body,JSON_THROW_ON_ERROR)]);
  $raw=curl_exec($ch);$code=curl_getinfo($ch,CURLINFO_RESPONSE_CODE);curl_close($ch);
  $json=json_decode($raw?:'{}',true);
- if($code!==200||($json['status']??false)!==true||!is_array($json['data']??null))throw new RuntimeException('The test payment could not be verified yet. Please retry.');
+ if($code!==200||($json['status']??false)!==true||!is_array($json['data']??null))throw new RuntimeException('The payment could not be verified yet. Please retry.');
  return $json['data'];
 }
 function visit_pay(array $r,string $callback): string {
@@ -120,17 +127,17 @@ function visit_pay(array $r,string $callback): string {
   $data=visit_provider('initialize',['reference'=>$r['ref'],'amount'=>(int)$r['cents'],'currency'=>'ZAR',
     'email'=>'book05@example.com','callback_url'=>$callback,'metadata'=>['business'=>'shalean-cleaning-services','service'=>$r['service']]]);
   $url=$data['authorization_url']??'';
-  if(($data['reference']??'')!==$r['ref']||!preg_match('~^https://checkout\.paystack\.com/[A-Za-z0-9_-]+$~D',$url))throw new RuntimeException('Unable to open test checkout.');
+  if(($data['reference']??'')!==$r['ref']||!preg_match('~^https://checkout\.paystack\.com/[A-Za-z0-9_-]+$~D',$url))throw new RuntimeException('Unable to open checkout.');
   visit_stmt('UPDATE visits SET url=? WHERE ref=?',[$url,$r['ref']]);return $url;
  });
 }
 function visit_verify(string $ref): array {
- if(!preg_match('/^fosb-[a-f0-9]{32}$/D',$ref)||!($r=visit_record($ref)))throw new RuntimeException('Unknown test payment.');
+ if(!preg_match('/^fosb-[a-f0-9]{32}$/D',$ref)||!($r=visit_record($ref)))throw new RuntimeException('Unknown payment.');
  if(in_array($r['state'],['confirmed','reconcile'],true))return $r;
  if ($r['state']==='eft_pending') throw new RuntimeException('Manual EFT is awaiting verification.');
  $d=visit_provider('verify/'.rawurlencode($ref));
  if(($d['domain']??'')!=='test'||($d['status']??'')!=='success'||($d['currency']??'')!=='ZAR'||($d['reference']??'')!==$ref||
-    ($d['amount']??null)!==(int)$r['cents']||!is_int($d['id']??null))throw new RuntimeException('A successful test payment has not been verified.');
+    ($d['amount']??null)!==(int)$r['cents']||!is_int($d['id']??null))throw new RuntimeException('A successful payment has not been verified.');
  $cap=visit_capacity($r['service'],$r['day'],(int)$r['minutes']);
  return visit_locked(function()use($ref,$d,$cap){
   $r=visit_record($ref);if($r['provider_id']!==null)return $r;
