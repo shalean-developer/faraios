@@ -405,3 +405,13 @@ footer { padding-inline:clamp(16px,2vw,32px); }
     body:not(.launch-page) > .outer:has(.booking-footer) { flex:1; }
     .outer .booking-footer { justify-content:center; text-align:center; }
 }
+
+.visit-contact { color:inherit; border:1px solid var(--line); border-radius:12px; padding:1.25rem; background:white; }
+.visit-contact[open]:not(:modal) { position:static; width:100%; margin:1rem 0; }
+.visit-contact:modal { width:min(27rem,calc(100% - 2rem)); max-height:85dvh; margin:auto; overflow:auto; }
+.visit-contact::backdrop { background:rgb(13 40 42 / 46%); }
+.visit-contact h2 { margin:0; }
+.visit-contact fieldset { min-width:0; margin:0; padding:0; border:0; }
+.contact-actions { display:flex; justify-content:flex-end; gap:.6rem; }
+.contact-actions button { width:auto; }
+[data-contact-trigger][hidden], [data-contact-close][hidden] { display:none; }
