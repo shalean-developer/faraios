@@ -27,14 +27,27 @@ function visit_field(string $k,int $min,int $max): string {
  return trim($v);
 }
 function visit_ref(): string {return 'fosb-'.bin2hex(random_bytes(16));}
-function visit_summary(array $s, array $draft): void {
- $when = empty($draft['time']) ? 'Choose a time' : $draft['date'].' · '.$draft['time'].' SAST';
+function visit_summary(array $s, array $draft, string $step = 'details', ?array $q = null): void {
+ $q ??= visit_quote($s, $draft['options']);
+ $where = implode(', ', array_filter([$draft['address'] ?? '', $draft['unit'] ?? '', $draft['area']]));
+ $when = empty($draft['time']) ? '' : (new DateTimeImmutable($draft['date']))->format('D j M').' @ '.$draft['time'].' SAST';
+ $whereUrl = ($step === 'details' ? '' : visit_url('details', $s['id'])).'#visit-address';
+ $whenUrl = ($step === 'schedule' ? '' : visit_url('schedule', $s['id'])).'#visit-date';
+ $price = $s['mode'] === 'quote' ? 'Quote required' : visit_money($q['cents']);
  ?>
-<dl class="visit-summary">
-    <div><dt>Where</dt><dd data-summary-area><?=esc($draft['area'] ?: 'Choose an area')?></dd></div>
-    <div><dt>What</dt><dd><?=esc($s['name'])?></dd></div>
-    <div><dt>When</dt><dd data-summary-when><?=esc($when)?></dd></div>
-</dl>
+<div class="visit-summary-rows">
+    <a href="<?=esc($whereUrl)?>"><span>Where: <span data-summary-address><?=esc($where ?: 'Add address')?></span></span><i aria-hidden="true">✎</i><span class="summary-sr">Edit address</span></a>
+    <a href="<?=esc(visit_url('service'))?>"><span>What: <?=esc($s['name'])?></span><i aria-hidden="true">✎</i><span class="summary-sr">Change service</span></a>
+    <a href="<?=esc($whenUrl)?>" data-summary-time-row <?=$when === '' ? 'hidden' : ''?>><span>When: <span data-summary-when><?=esc($when)?></span></span><i aria-hidden="true">✎</i><span class="summary-sr">Edit visit time</span></a>
+</div>
+<div class="visit-summary-footer">
+    <?php if ($step === 'review'): ?>
+    <span><strong><?=esc($price)?></strong><small><?=$s['mode'] === 'from' ? 'Estimated total from' : 'Total'?></small></span><a href="#visit-costs">Costs</a>
+    <?php else: ?>
+    <span><strong data-duration><?=esc(visit_duration($q['minutes']))?></strong><small>Est. duration</small></span>
+    <span><strong data-total><?=esc($price)?></strong><small><?=$s['mode'] === 'from' ? 'Est. price from' : 'Est. price'?></small></span>
+    <?php endif; ?>
+</div>
 <?php }
 function visit_form_start(string $url,string $csrf,string $action): void {?>
 <form method="post" action="<?=esc($url)?>"><input type="hidden" name="visit_token" value="<?=esc($csrf)?>"><input type="hidden" name="action" value="<?=esc($action)?>">

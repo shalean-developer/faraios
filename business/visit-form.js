@@ -4,7 +4,11 @@ if (date) {
   const form = date.form;
   const syncStart = () => {
     const start = form.querySelector('[name=time]:checked');
-    const value = start ? date.value + ' · ' + start.value + ' SAST' : 'Choose a time';
+    const day = new Date(date.value + 'T12:00:00Z');
+    const selected = Boolean(start && Number.isFinite(day.getTime()));
+    const formatted = selected ? day.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short', timeZone:'UTC'}).replace(',', '') : '';
+    const value = selected ? formatted + ' @ ' + start.value + ' SAST' : '';
+    for (const row of document.querySelectorAll('[data-summary-time-row]')) row.hidden = !selected;
     for (const node of document.querySelectorAll('[data-summary-when]')) node.textContent = value;
   };
   for (const start of form.querySelectorAll('[name=time]')) start.addEventListener('change', syncStart);
@@ -44,10 +48,17 @@ if (pricing) {
     const total = model.mode==='quote'?'Quote required':money(cents);
     for (const node of document.querySelectorAll('[data-total]')) node.textContent=total;
     for (const node of document.querySelectorAll('[data-duration]')) node.textContent=duration;
-    for (const node of document.querySelectorAll('[data-summary-area]')) {
-      node.textContent = form.elements.service_area?.value || 'Choose an area';
-    }
   }
+  function updateAddress() {
+    const address = ['address','unit','service_area'].map(name => form.elements.namedItem(name).value.trim()).filter(Boolean).join(', ');
+    for (const node of document.querySelectorAll('[data-summary-address]')) node.textContent = address || 'Add address';
+  }
+  for (const name of ['address','unit','service_area']) {
+    const field = form.elements.namedItem(name);
+    field.addEventListener('input', updateAddress);
+    field.addEventListener('change', updateAddress);
+  }
+  updateAddress();
   form.addEventListener('change',recalculate);
   recalculate();
 }

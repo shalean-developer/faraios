@@ -340,6 +340,24 @@ footer { padding-inline:clamp(16px,2vw,32px); }
 
 .payment-layout { max-width:36rem; margin-inline:auto; }
 
-dl.visit-summary { display:grid; gap:.4rem; margin:.6rem 0 0; }
-.visit-summary > div { display:grid; grid-template-columns:3.4rem minmax(0,1fr); gap:.5rem; }
-dl.visit-summary dt, dl.visit-summary dd { margin:0; }
+/* Compact, editable booking summary on desktop and mobile. */
+.visit-summary-card, .mobile-summary {
+    padding:0; background:#fff; border:1px solid var(--line); border-radius:8px; overflow:hidden;
+}
+.visit-summary-card h2, .mobile-summary > summary { margin:0; padding:12px 14px; }
+.visit-summary-rows { display:grid; gap:5px; padding:0 10px 14px; }
+.visit-summary-rows a {
+    display:flex; align-items:center; justify-content:space-between; gap:.6rem;
+    min-height:42px; padding:6px 10px; border:1px solid var(--line); border-radius:5px;
+    color:inherit; text-decoration:none; font-size:.92rem;
+}
+.visit-summary-rows a[hidden] { display:none; }
+.visit-summary-rows a:hover { border-color:var(--teal); background:#f5faf8; }
+.visit-summary-rows a > span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.visit-summary-rows i { font:1.35rem/1 system-ui; color:var(--teal); }
+.summary-sr { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+.visit-summary-footer { display:grid; grid-template-columns:1fr 1fr; background:#183a36; color:white; text-align:center; }
+.visit-summary-footer > * { display:grid; align-content:center; padding:8px 4px; }
+.visit-summary-footer > :last-child { border-left:1px solid #ffffff55; }
+.visit-summary-footer a { color:white; }
+.visit-summary-footer small { font-size:.76rem; }
