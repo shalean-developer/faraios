@@ -1,0 +1,40 @@
+name: Verify checkout footer geometry
+on:
+  pull_request:
+    branches: [ui/booking-footer-scroll]
+permissions:
+  contents: read
+jobs:
+  layout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Render Review and Payment and measure their footer in Chromium
+        run: |
+          cat >/tmp/footer.php <<'PHP'
+          <?php
+          $step=$argv[1]; $company='Shalean';$service='regular'; $s=['name'=>'Regular Cleaning','mode'=>'from'];$row=[];$message='';$csrf='fixture';$record=['state'=>$argv[2],'cents'=>28000,'expires'=>time()+600,'ref'=>'example'];define('VISIT_TZ','Africa/Johannesburg');
+          $draft=array_fill_keys(['address','unit','area','date','time','name','email','phone'],'Example');$q=['parts'=>[['Regular Cleaning',28000]],'minutes'=>210,'cents'=>28000];
+          function esc($s){return htmlspecialchars($s);}function visit_url(...$args){return '#';}function visit_duration($m){return '3 hours 30 min';}function visit_money($c){return 'R280';}function visit_form_start(...$args){echo '<form>';}function visit_summary(...$args){echo '<p>Regular Cleaning</p>';}
+          require getcwd().'/business/visit-screen.php';
+          PHP
+          for view in review-held payment-held payment-eft_pending payment-confirmed payment-expired payment-reconcile; do php /tmp/footer.php "${view%-*}" "${view#*-}" > "$view.html"; done
+          python -m venv /tmp/footer-env
+          /tmp/footer-env/bin/pip -q install playwright
+          python -m http.server 9310 --bind 127.0.0.1 >/tmp/server.log 2>&1 &
+          /tmp/footer-env/bin/python - <<'PY'
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as pw:
+              b=pw.chromium.launch(channel='chrome')
+              for w in [320,390,768,1280]:
+                  p=b.new_page(viewport={'width':w,'height':820})
+                  for f in sorted([*Path('.').glob('review-*.html'),*Path('.').glob('payment-*.html')]):
+                      p.goto('http://localhost:9310/'+f.name)
+                      ft=p.get_by_role('contentinfo')
+                      ft.scroll_into_view_if_needed()
+                      gap,overflow=ft.evaluate('(f)=>[Math.round(document.documentElement.scrollHeight-f.getBoundingClientRect().bottom-scrollY),f.parentElement.scrollHeight-f.parentElement.clientHeight]')
+                      print(w,f.name,gap,overflow)
+                      assert abs(gap)<=1 and abs(overflow)<=1
+                  p.close()
+          PY
