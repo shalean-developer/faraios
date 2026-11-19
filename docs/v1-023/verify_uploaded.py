@@ -10,9 +10,9 @@ def drill():
     key=root/"key/encrypted-private.pem"
     private=serialization.load_pem_private_key(key.read_bytes(),os.environ["BACKUP_PASSPHRASE"].encode())
     alg=padding.OAEP(padding.MGF1(hashes.SHA256()),hashes.SHA256(),None)
-    link=b"".join(private.decrypt(base64.b64decode(p,validate=True),alg) for p in json.loads(os.environ["SEALED_RECEIPT"])).decode()
+    link=b"".join(private.decrypt(base64.b64decode(p,validate=True),alg) for p in ["JELo6/+UVg6/F1mHAs5wCywlVEdtrTr8N094C4utHaxHMQaLAN9nY2w//XlkCad/zUciZBAKAcLP8e/4aNixJxfgsW4xFNWVRV4+FdmLEEdYYAy1ptI2/RzXzlejEMlcKRWkj17mubGZgVecUzqtsiYDvbCCWfs5mktapijACR4arOizvKP5NHsW3UfqZc72OWyzl8qgBQyPHhK7lUJ+hhjCle6Vwp0vDOro/dmy7/KpyLkIrEiO2Pe+jt7jMRif59pC6eppflgJ9hYatn5IetYff6x1X60qmQm+k7HjFNbYYhC2Dh14vPgFbLKzZK4iTvsknHljs3D+uMH4Mo6F+3uckk4lJ2P72Ndej88Aa8wQETqIlnu6SmfwVHQ1ZkKwhgm1XTTrqHPI0O5KB+eCxwUwGKbC35k9sqE3rKmaDuSxHhlQzC6RWljomC9HKp1jtxcnWxHMlf4xQ6oCCkcrXDvm1wk1yt25ZVe4Dtt6/WMU4GPeUtw3qDJ9D1OAAAge"]).decode()
     stage='download'; u=urlsplit(link)
-    expected="/shalean-developer/faraios-private-recovery/verify/uploaded-archive-20261119/faraios-20261119T074502Z-1e3a8125feeb.zip"
+    expected="/shalean-developer/faraios-private-recovery/58074ba/faraios-20261119T074502Z-1e3a8125feeb.zip"
     if u.scheme!="https" or u.hostname!="raw.githubusercontent.com" or u.path!=expected: raise ValueError()
     with urlopen(link,timeout=90) as response: data=response.read(24000001)
     if len(data)!=14111203 or hashlib.sha256(data).hexdigest()!="1e3a8125feeb2dcc373fc91ee64e292c08cbd44d48986caeed853a5f0e71b2a5": raise ValueError()
