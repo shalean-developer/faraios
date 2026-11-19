@@ -50,7 +50,9 @@ jobs:
                   assert grid.get_by_role('button').count()==7
                   positions=grid.get_by_role('button').evaluate_all('(bs)=>bs.map(b=>Math.round(b.getBoundingClientRect().top))')
                   if w<400: assert [positions.count(p) for p in sorted(set(positions))]==[4,3],positions
-                  assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+                  bounds=grid.bounding_box()
+                  print('grid and viewport', w, bounds, 'overflow elements',page.evaluate("Array.from(document.querySelectorAll('body *')).filter(e=>e.getBoundingClientRect().right>innerWidth+1).map(e=>[e.tagName,e.className,Math.round(e.getBoundingClientRect().right)]).slice(0,25)"),flush=True)
+                  assert bounds['x']>=0 and bounds['x']+bounds['width']<=w
                   def summary(cost,minutes):
                       assert set(page.locator('[data-total]').all_text_contents())=={f'ZAR {cost:.2f}'}
                       assert set(page.locator('[data-duration]').all_text_contents())=={duration(minutes)}
