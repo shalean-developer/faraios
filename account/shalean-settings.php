@@ -35,12 +35,56 @@ try {
     }
 } catch (AccountSessionExpired $e) { go('signin'); }
   catch (Throwable $e) { http_response_code(403); exit('Sign in as the business owner to manage settings.'); }
-?><!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Brand and payments | Shalean</title><link rel="stylesheet" href="private.css"><link rel="stylesheet" href="layout.css"><script src="layout.js" defer></script></head><body class="ui-page ui-workspace"><?php require_once __DIR__.'/layout.php'; app_layout('Brand and payments', $b); ?><main id="app-main" class="editor-main">
-<h1>Brand and payments</h1>
-<?php if ($notice): ?><p role="status"><?=esc($notice)?></p><?php endif; if ($error): ?><p role="alert"><?=esc($error)?></p><?php endif; ?>
-<section class="panel"><h2>Brand colour</h2><?php form_start(); ?><input type="hidden" name="action" value="colour"><label for="colour">Website and booking accent</label><input type="color" id="colour" name="colour" value="<?=esc(shalean_colour())?>"><button>Save colour</button></form></section>
-<section class="panel"><h2>Paystack</h2><p>Checkout currently uses the sandbox. Live keys are stored for launch.</p>
-<?php foreach (['test'=>'Sandbox','live'=>'Live'] as $mode=>$label): ?><details><summary><?=$label?> keys · <?=is_file(SHALEAN_SETTINGS.'/paystack-'.$mode)?'Configured':'Add keys'?></summary><?php form_start(); ?><input type="hidden" name="action" value="paystack"><input type="hidden" name="mode" value="<?=$mode?>">
-<label for="<?=$mode?>-public">Public key</label><input type="password" id="<?=$mode?>-public" name="public" autocomplete="new-password" spellcheck="false" maxlength="140" required>
-<label for="<?=$mode?>-secret">Secret key</label><input type="password" id="<?=$mode?>-secret" name="secret" autocomplete="new-password" spellcheck="false" maxlength="140" required>
-<button>Save <?=strtolower($label)?> keys</button></form></details><?php endforeach; ?></section></main></body></html>
+?>
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brand and payments | Shalean</title>
+<link rel="icon" href="../favicon.svg">
+<link rel="stylesheet" href="../business/profile.css">
+<link rel="stylesheet" href="layout.css?v=20261113-4">
+<link rel="stylesheet" href="private.css">
+<link rel="stylesheet" href="settings.css">
+<link rel="stylesheet" href="../ui/design-system.css?v=20261115">
+<script src="layout.js?v=20261113-2" defer></script>
+</head>
+<body class="ui-page ui-workspace business-page account-settings">
+<?php require_once __DIR__.'/layout.php'; app_layout('Brand and payments', $b); ?>
+<main id="app-main" class="editor-main" tabindex="-1">
+    <div class="editor-heading"><h1>Brand and payments</h1></div>
+    <?php if ($notice): ?><p class="notice" role="status"><?=esc($notice)?></p><?php endif; ?>
+    <?php if ($error): ?><p class="alert" role="alert"><?=esc($error)?></p><?php endif; ?>
+    <div class="account-settings-grid">
+        <section class="panel">
+            <h2>Brand colour</h2>
+            <?php form_start(); ?>
+                <input type="hidden" name="action" value="colour">
+                <label for="colour">Website and booking accent</label>
+                <input type="color" id="colour" name="colour" value="<?=esc(shalean_colour())?>">
+                <button class="button" type="submit">Save colour</button>
+            </form>
+        </section>
+        <section class="panel">
+            <h2>Paystack</h2>
+            <p>Checkout uses the sandbox. Live keys are stored for launch.</p>
+            <?php foreach (['test'=>'Sandbox','live'=>'Live'] as $mode=>$label): ?>
+            <details>
+                <summary><?=$label?> keys · <?=is_file(SHALEAN_SETTINGS.'/paystack-'.$mode)?'Configured':'Add keys'?></summary>
+                <?php form_start(); ?>
+                    <input type="hidden" name="action" value="paystack">
+                    <input type="hidden" name="mode" value="<?=$mode?>">
+                    <label for="<?=$mode?>-public">Public key</label>
+                    <input type="password" id="<?=$mode?>-public" name="public" autocomplete="new-password" spellcheck="false" maxlength="140" required>
+                    <label for="<?=$mode?>-secret">Secret key</label>
+                    <input type="password" id="<?=$mode?>-secret" name="secret" autocomplete="new-password" spellcheck="false" maxlength="140" required>
+                    <button class="button" type="submit">Save <?=strtolower($label)?> keys</button>
+                </form>
+            </details>
+            <?php endforeach; ?>
+        </section>
+    </div>
+</main>
+</body>
+</html>
