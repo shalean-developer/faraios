@@ -1,6 +1,6 @@
-:root{font:16px/1.5 system-ui,sans-serif;color:#153438;background:#f4f7f5;--teal:#087e79;--line:#ccdcda}*{box-sizing:border-box}body{margin:0}
+:root{font:16px/1.5 system-ui,sans-serif;color:#153438;background:#f4f7f5;--teal:#087e79;--line:#ccdcda}*{box-sizing:border-box}body{margin:0;display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
 
-.outer { margin:0; container-type:inline-size; }
+.outer { margin:0; flex:1 0 auto; container-type:inline-size; }
 
 
 .booking-header {
@@ -66,22 +66,11 @@ main {
     padding-block:18px 28px;
 }
 @media (min-width:720.01px) {
-    /* Let the actual header height set the top of the desktop scroll area. */
-    body {
-        height:100vh;
-        height:100dvh;
-        display:grid;
-        grid-template-rows:auto minmax(0,1fr);
-    }
-    .outer {
-        overflow-y:auto;
-        container-type:size;
-    }
     .layout > aside {
         position:sticky;
-        top:18px;
+        top:calc(75px + 1rem);
         /* Leave space for the card padding and footer at the last scroll position. */
-        max-height:calc(100cqh - 7rem);
+        max-height:calc(100dvh - 75px - 2rem);
         overflow-y:auto;
     }
 
@@ -113,14 +102,7 @@ main {
 
 .details-heading { text-align:center; }
 
-/* The launch screen has its own scroll region between the header and booking action. */
-.launch-page {
-    display:grid;
-    grid-template-rows:auto minmax(0,1fr) auto;
-    height:100vh;
-    height:100dvh;
-    background:#fffcf8;
-}
+.launch-page { background:#fffcf8; }
 .launch-page .preview { display:none; }
 .launch-page .brand-row { display:flex; justify-content:space-between; }
 .launch-page .brand-row>strong { font-size:clamp(1rem,2vw,1.35rem); }
@@ -136,12 +118,12 @@ main {
 .booking-header .help summary { background:var(--teal); color:white; list-style:none; white-space:nowrap; }
 .booking-header .help p { max-width:calc(100vw - 32px); }
 .booking-header .help summary::-webkit-details-marker, .launch-panel summary::-webkit-details-marker { display:none; }
-.launch-page .outer { overflow:auto; min-height:0; container-type:normal; }
+.launch-page .outer { container-type:normal; }
 .launch-page main {
     background:transparent;
     border:0;
     padding:20px clamp(16px,4.5vw,76px) 36px;
-    margin:auto;
+    margin:0 auto;
     max-width:1600px;
 }
 .service-entry h1 { margin:0 0 10px; font-size:clamp(1.22rem,2vw,1.55rem); letter-spacing:-.025em; }
@@ -401,8 +383,6 @@ footer { padding-inline:clamp(16px,2vw,32px); }
 .outer:has(> .booking-footer) > main { flex-shrink:0; width:100%; }
 .outer > .booking-footer { margin-top:auto; flex-shrink:0; }
 @media (max-width:720px) {
-    body:not(.launch-page):has(.booking-footer) { display:flex; flex-direction:column; min-height:100dvh; }
-    body:not(.launch-page) > .outer:has(.booking-footer) { flex:1; }
     .outer .booking-footer { justify-content:center; text-align:center; }
 }
 
