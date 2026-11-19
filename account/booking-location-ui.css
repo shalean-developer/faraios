@@ -1,0 +1,86 @@
+.booking-address-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(6.25rem, 28%, 10rem);
+    column-gap: clamp(.5rem, 2%, 1rem);
+    align-items: end;
+}
+label.booking-location-label {
+    display: block;
+    min-width: 0;
+    margin: 12px 0 5px;
+    font-size: .91rem;
+    font-weight: 600;
+    line-height: 1.5;
+    color: #153438;
+}
+.booking-location-label input,
+.booking-area-control select {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    margin: 4px 0 0;
+    padding: 10px 11px;
+    border: 1px solid #98b5b1;
+    border-radius: 7px;
+    background: white;
+    color: inherit;
+    font: inherit;
+}
+.booking-area-control {
+    position: relative;
+    display: block;
+}
+.booking-area-control select {
+    appearance: none;
+    padding-right: 2.75rem;
+    cursor: pointer;
+}
+.booking-area-control::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 1.05rem;
+    width: .5rem;
+    height: .5rem;
+    border-bottom: 2px solid #087e79;
+    border-right: 2px solid #087e79;
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+}
+.booking-area-control select:hover { border-color: #087e79; }
+.booking-location-label :is(input, select):focus-visible {
+    outline: 3px solid #197baf;
+    outline-offset: 2px;
+}
+@supports (appearance: base-select) {
+    .booking-area-control select,
+    .booking-area-control select::picker(select) { appearance: base-select; }
+    .booking-area-control select::picker-icon { display: none; }
+    .booking-area-control select::picker(select) {
+        margin-block: 4px;
+        padding: 4px;
+        border: 1px solid #98b5b1;
+        border-radius: 8px;
+        background: white;
+        color: #153438;
+        box-shadow: 0 6px 18px #15343820;
+    }
+    .booking-area-control option {
+        padding: 9px 12px;
+        border-radius: 5px;
+    }
+    .booking-area-control option:checked { background: #edf6f3; font-weight: 650; }
+    .booking-area-control option:is(:hover, :focus-visible) { background: #dceee9; }
+}
+@media (forced-colors: active) {
+    .booking-area-control::after { border-color: ButtonText; }
+}
+#booking-location-components .booking-location-example { max-width: 38rem; }
+
+.booking-access-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 .75rem;
+    align-items: end;
+}

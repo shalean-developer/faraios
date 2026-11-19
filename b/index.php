@@ -33,18 +33,22 @@ if(!$p||profile_env()==='preview'||($_GET['booking']??'')==='1')header('X-Robots
 $canBook=$p&&business_booking_available($slug);
 $base=cfg()['base_url'];$enquiry_error='';$sent=false;$enquiry_ready=false;$booking=$page===''&&($_GET['booking']??'')==='1';
 if($p&&$booking&&!$canBook&&in_array($_SERVER['REQUEST_METHOD'],['GET','HEAD'],true)){header('Location: '.$base.'/b/'.$slug.'/contact#enquire',true,303);exit;}$homepage=$p&&!$booking&&business_website_enabled(profile_env());
-if ($p && $canBook && $booking && $slug==='shalean-cleaning-services' && ($_GET['flow']??'')!=='request') {
- $method=$_SERVER['REQUEST_METHOD']??'GET';
- $service=$method==='POST' ? ($_POST['service']??null) : ($_GET['service']??null);
- if ($service===SHALEAN_REGULAR_SERVICE_ID || ($method==='GET' && ($_GET['mode']??'')==='test')) {
-  foreach ($row['services']['items']??[] as $item) {
-   if ($item['id']===SHALEAN_REGULAR_SERVICE_ID && !empty($item['visible']) && empty($item['archived'])) {
-    // Start in the owner's isolated session. No public request fields cross this boundary.
-    header('Location: '.SHALEAN_TEST_DETAILS,true,303);
-    exit;
-   }
-  }
+if ($slug==='shalean-cleaning-services' && $page==='' && ($_GET['visit_event']??null)==='paystack-test') {
+ require_once dirname(__DIR__).'/business/visit-store.php';
+ visit_webhook();
+ exit;
+}
+if ($p && $canBook && $booking && $slug==='shalean-cleaning-services') {
+ require_once dirname(__DIR__).'/business/visit-flow.php';
+ if ($_SERVER['REQUEST_METHOD']==='POST' && !isset($_POST['visit_token'])) {
+  // An old request form may still be open. Start using the current live service.
+  $old=is_string($_POST['service']??null)?$_POST['service']:'';
+  header('Location: '.visit_url($old!==''?'details':'service',$old),true,303);
+  exit;
  }
+ header("Content-Security-Policy: default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self'; form-action 'self' https://checkout.paystack.com; base-uri 'none'; frame-ancestors 'none'");
+ visit_main($row);
+ exit;
 }
 if($p&&$_SERVER['REQUEST_METHOD']==='POST'&&!$booking&&$page!==''&&$page!=='contact'){http_response_code(405);header('Allow: GET, HEAD');header('X-Robots-Tag: noindex,nofollow');$indexable=false;}
 if($p&&($booking||$page===''||$page==='contact')){try{enquiry_session();$enquiry_ready=true;

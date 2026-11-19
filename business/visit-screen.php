@@ -1,0 +1,60 @@
+<?php
+if (realpath($_SERVER['SCRIPT_FILENAME']??'')===__FILE__){http_response_code(404);exit;}
+$titles=['service'=>'Book a service','details'=>'Your cleaning details','schedule'=>'Choose a time','review'=>'Review your visit','payment'=>'Pay for your visit'];
+if($step==='payment'&&$record&&$record['state']==='confirmed')$titles['payment']='Test booking confirmed';
+$self=visit_url($step,$service);$labels=['details'=>'Details','schedule'=>'Schedule','review'=>'Review','payment'=>'Payment'];
+?><!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title><?=esc($titles[$step].' · '.$company)?></title><link rel="stylesheet" href="/business/visit-form.css?v=1"><link rel="stylesheet" href="/account/booking-location-ui.css?v=2">
+<script src="/business/visit-room-picker.js?v=1" defer></script><script src="/business/visit-form.js?v=1" defer></script></head>
+<body<?=$step==='service'?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="brand-row"><a class="visit-brand" href="/b/shalean-cleaning-services"><?php if(!empty($row['document']['logo'])):?><img src="/b/shalean-cleaning-services?logo=1" alt="<?=esc($company)?>"><?php else:?><?=esc($company)?><?php endif;?></a>
+<?php if($step!=='service'):?><nav aria-label="Booking steps"><ol><?php $past=true;$number=0; foreach($labels as $key=>$label):?><li class="<?=$past?'current':''?>" <?=$key===$step?'aria-current="step"':''?>><b><?=++$number?></b><span><?=$label?></span></li><?php if($key===$step)$past=false;endforeach;?></ol></nav><?php endif;?>
+<details class="help"><summary>Booking help</summary><p>Choose a service and an available start in South African time. This checkout uses Paystack Test. Use synthetic contact details.</p></details></div></div></header>
+<div class="outer"><main><div class="<?=$step==='service'?'service-entry':'layout'?>"><section><h1<?=$step==='details'?' class="details-heading"':''?>><?=esc($titles[$step])?></h1>
+<?php if($message!==''):?><p role="alert"><?=esc($message)?></p><?php endif;?>
+<?php if($s):?><details class="mobile-summary"><summary>Summary · <?=esc(visit_money($q['cents']))?></summary><?php visit_summary($q,$s,$draft);?></details><?php endif;?>
+<?php if($step==='service'):?><div class="service-tiles"><?php foreach($catalogue as $id=>$item):?><a class="service-tile" href="<?=esc(visit_url('details',$id))?>"><?php if(!empty($item['image'])):?><img alt="" src="/b/shalean-cleaning-services?service_image=<?=esc($id)?>"><?php endif;?><span><?=esc($item['name'])?></span></a><?php endforeach;?></div>
+<?php elseif($step==='details'):
+?><script type="application/json" id="visit-pricing"><?=json_encode(['name'=>$s['name'],'mode'=>$s['mode'],'amount'=>$s['amount'],'duration'=>$s['duration'],'options'=>$s['options']??[]],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS|JSON_THROW_ON_ERROR)?></script><?php
+?><p>Use synthetic details for this test booking.</p><?php
+visit_form_start($self,$csrf,'details');booking_address_row($draft['address']??'',$draft['unit']??'');booking_service_area($areas,$draft['area']);?>
+<?php foreach(['Rooms'=>['bedrooms','bathrooms','room'],'Extra tasks'=>['extra','toggle']] as $legend=>$kinds):
+$opts=array_filter($s['options']??[],fn($o)=>in_array($o['kind'],$kinds,true)&&$o['minimum']!==$o['maximum']);if(!$opts)continue;?>
+<fieldset class="room-choice-list"><legend><?=esc($legend)?></legend><?php foreach($opts as $o):$oid=$o['id'];$v=$q['values'][$oid];?>
+<div class="room-choice-row" data-room-picker><label id="room-<?=esc($oid)?>-label" for="room-<?=esc($oid)?>"><?=esc($o['name'])?></label>
+<select id="room-<?=esc($oid)?>" name="options[<?=esc($oid)?>]" data-charge="<?=intval($o['price'])?>" data-minutes="<?=intval($o['minutes'])?>" data-included="<?=intval($o['included'])?>" aria-describedby="hint-<?=esc($oid)?>">
+<?php for($i=(int)$o['minimum'];$i<=(int)$o['maximum'];$i++):?><option value="<?=$i?>" <?=$i===$v?'selected':''?>><?=$i?></option><?php endfor;?></select>
+<small id="hint-<?=esc($oid)?>"><?=(int)$o['included']?> included · +<?=esc(visit_money((int)$o['price']))?> per additional unit · +<?=(int)$o['minutes']?> min</small></div><?php endforeach;?></fieldset><?php endforeach;?>
+<label>Your name<input name="name" autocomplete="name" required minlength="2" maxlength="120" value="<?=esc($draft['name']??'')?>"></label>
+<label>Contact email<input name="email" type="email" autocomplete="email" required maxlength="254" value="<?=esc($draft['email']??'')?>"></label>
+<label>Phone number (optional)<input name="phone" type="tel" autocomplete="tel" maxlength="40" value="<?=esc($draft['phone']??'')?>"></label>
+<button>Choose a time</button></form>
+<?php elseif($step==='schedule'):?>
+<a href="<?=esc(visit_url('details',$service))?>">Back to details</a>
+<?php visit_form_start($self,$csrf,'date');?>
+<label>Visit date<input data-date type="date" name="date" min="<?=$min?>" max="<?=$max?>" value="<?=esc($draft['date'])?>" required></label>
+<p><?=esc($draft['area'])?> · <?=esc(visit_duration($q['minutes']))?> · <?=esc(visit_money($q['cents']))?></p><button data-date-fallback>Show start times</button>
+<?php if($slots):?><fieldset class="booking-starts"><legend>Available starts / SAST</legend><div class="booking-start-row"><?php foreach($slots as $clock):?><label><input type="radio" name="time" value="<?=esc($clock)?>" <?=($draft['time']===$clock||count($slots)===1)?'checked':''?> required><span><?=esc($clock)?></span></label><?php endforeach;?></div></fieldset>
+<?php elseif(!$message):?><p role="status"><?=$configured?'No start times are available for the full visit on this date.':'Shalean has not opened any online booking times yet.'?></p>
+<?php if($alternatives):?><dialog open class="date-alternatives"><h2>Choose an available date</h2><?php foreach($alternatives as $day):?><button type="button" data-alternative="<?=esc($day)?>"><?=esc($day)?></button><?php endforeach;?><button type="button" data-close>Close</button></dialog><?php endif;endif;?>
+<section><h2>Extras and access notes (optional)</h2><div class="booking-access-row"><?php booking_dropdown('pets','Pets at the property (optional)',['No pets','Pets present'],$draft['pets']??null,'Choose if applicable');booking_dropdown('equipment','Cleaning equipment at the property (optional)',['Available','Partly available','Unavailable'],$draft['equipment']??null,'Choose if applicable');?></div><label>Instructions (optional)<textarea name="notes" maxlength="1900"><?=esc($draft['notes']??'')?></textarea></label></section>
+<?php if($slots):?><button name="action" value="review">Review this visit</button><?php endif;?></form>
+<?php elseif($step==='review' || $step==='payment'):?>
+<h2><?=$step==='review'?'Visit details':'Payment details'?></h2><dl><dt>Service</dt><dd>One-time</dd><dt>Address</dt><dd><?=esc(implode(', ',array_filter([$draft['address'],$draft['unit'],$draft['area']])))?></dd><dt>Visit</dt><dd><?=esc($draft['date'].' · '.$draft['time'])?> SAST · <?=esc(visit_duration($q['minutes']))?></dd>
+<?php foreach(['pets'=>'Pets at the property','equipment'=>'Cleaning equipment','notes'=>'Instructions'] as $k=>$v):if(!empty($draft[$k])):?><dt><?=esc($v)?></dt><dd><?=esc($draft[$k])?></dd><?php endif;endforeach;?>
+<dt>Contact</dt><dd><?=esc(implode(' · ',array_filter([$draft['name'],$draft['email'],$draft['phone']])))?></dd></dl>
+<h3>Price breakdown</h3><ul><?php foreach($q['parts'] as [$label,$cost]):?><li><?=esc($label)?> · <?=esc(visit_money($cost))?></li><?php endforeach;?></ul>
+<p><strong>Test payment amount · <?=esc(visit_money($q['cents']))?></strong></p>
+<button type="button" class="booking-policy-trigger" popovertarget="visit-policy">Cancellation and refunds</button>
+<div class="booking-policy" id="visit-policy" popover="auto" role="dialog" aria-labelledby="policy-title"><h2 id="policy-title">Cancellation and refunds</h2>
+<p>Cancel before the visit starts for a full refund. If the business cancels, you may choose a full refund or agree to a new time. The business reviews no-shows and visits already underway individually. Your statutory rights apply.</p>
+<p>If your payment arrives and the visit cannot be confirmed, you receive a full refund. The business initiates approved refunds to the original payment method within two business days. Refunds stay pending until the provider confirms them.</p>
+<button type="button" class="booking-policy-close" popovertarget="visit-policy" popovertargetaction="hide">Close</button></div>
+<?php if($step==='review'): if($s['mode']==='quote'):?><p>This service requires a quote before payment.</p><?php else: visit_form_start($self,$csrf,'hold');?><button>Hold slot &amp; continue</button></form><?php endif;?>
+<a href="<?=esc(visit_url('schedule',$service))?>">Edit visit</a>
+<?php elseif($record['state']==='confirmed'):?><p role="status">Synthetic payment verified and test booking confirmed.</p><p>Booking reference <?=esc($record['ref'])?></p>
+<?php elseif($record['state']==='reconcile'):?><p role="status">Test payment received after the slot became unavailable. Payment reference <?=esc($record['ref'])?> is saved for reconciliation.</p>
+<?php endif;if($step==='payment' && in_array($record['state'],['confirmed','reconcile'],true)): visit_form_start($self,$csrf,'restart');?><button>Start another booking</button></form>
+<?php elseif($step==='payment'):if($record['state']==='held'&&$record['expires']>time()):?><p class="hold">Test slot held until <?=esc((new DateTimeImmutable('@'.$record['expires']))->setTimezone(new DateTimeZone(VISIT_TZ))->format('H:i:s'))?> SAST.</p>
+<?php visit_form_start($self,$csrf,'pay');?><button>Pay <?=esc(visit_money((int)$record['cents']))?> with Paystack Test</button></form>
+<?php else:?><p role="status">Your hold has expired. Choose another available start time.</p><?php endif;visit_form_start($self,$csrf,'release');?><button class="secondary">Release hold and edit booking</button></form><?php endif;endif;?>
+</section><?php if($s):?><aside aria-label="Your booking"><h2>Your booking</h2><?php visit_summary($q,$s,$draft);?></aside><?php endif;?></div></main><footer>Paystack Test · Synthetic bookings only</footer></div></body></html>
