@@ -395,3 +395,12 @@ footer { padding-inline:clamp(16px,2vw,32px); }
 .contact-actions { display:flex; justify-content:flex-end; gap:.6rem; }
 .contact-actions button { width:auto; }
 [data-contact-trigger][hidden], [data-contact-close][hidden] { display:none; }
+
+/* Keep the payment card and footer together on short receipts. */
+.outer > main:has(> .payment-layout) {
+    flex-grow:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-end;
+}
+.payment-layout { width:100%; }
