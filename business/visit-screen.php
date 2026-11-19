@@ -1,6 +1,6 @@
 <?php
 if (realpath($_SERVER['SCRIPT_FILENAME']??'')===__FILE__){http_response_code(404);exit;}
-$titles=['service'=>'Book a service','details'=>'Your cleaning details','schedule'=>'Choose a time','review'=>'Review your visit','payment'=>'Pay for your visit'];
+$titles=['service'=>'Choose a cleaning service','details'=>'Your cleaning details','schedule'=>'Choose a time','review'=>'Review your visit','payment'=>'Pay for your visit'];
 $showBookingSummary = $s && $step !== 'payment';
 $layoutClass = ['service'=>'service-entry','payment'=>'payment-layout'][$step] ?? 'layout';
 if ($step === 'payment') {
@@ -16,7 +16,7 @@ if ($step === 'payment') {
 }
 $self=visit_url($step,$service);$labels=['details'=>'Details','schedule'=>'Schedule','review'=>'Review','payment'=>'Payment'];
 ?><!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
-<title><?=esc($titles[$step].' · '.$company)?></title><link rel="stylesheet" href="/business/visit-form.css?v=6"><link rel="stylesheet" href="/account/booking-location-ui.css?v=2">
+<title><?=esc($titles[$step].' · '.$company)?></title><link rel="stylesheet" href="/business/visit-form.css?v=7"><link rel="stylesheet" href="/account/booking-location-ui.css?v=2">
 <script src="/business/visit-room-picker.js?v=2" defer></script><script src="/business/visit-form.js?v=3" defer></script></head>
 <body<?=$step==='service'?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="brand-row"><a class="visit-brand" href="/b/shalean-cleaning-services"><?php if(!empty($row['document']['logo'])):?><img src="/b/shalean-cleaning-services?logo=1" alt="<?=esc($company)?>"><?php else:?><?=esc($company)?><?php endif;?></a>
 <?php if($step!=='service'):?><nav aria-label="Booking steps"><ol><?php $past=true;$number=0; foreach($labels as $key=>$label):?><li class="<?=$past?'current':''?>" <?=$key===$step?'aria-current="step"':''?>><b><?=++$number?></b><span><?=$label?></span></li><?php if($key===$step)$past=false;endforeach;?></ol></nav><?php endif;?>
@@ -24,7 +24,30 @@ $self=visit_url($step,$service);$labels=['details'=>'Details','schedule'=>'Sched
 <div class="outer"><main><div class="<?=$layoutClass?>"><section><h1<?=$step==='details'?' class="details-heading"':''?>><?=esc($titles[$step])?></h1>
 <?php if($message!==''):?><p role="alert"><?=esc($message)?></p><?php endif;?>
 <?php if($showBookingSummary):?><details class="mobile-summary"><summary>Booking summary</summary><?php visit_summary($s,$draft,$step,$q);?></details><?php endif;?>
-<?php if($step==='service'):?><div class="service-tiles"><?php foreach($catalogue as $id=>$item):?><a class="service-tile" href="<?=esc(visit_url('details',$id))?>"><?php if(!empty($item['image'])):?><img alt="" src="/b/shalean-cleaning-services?service_image=<?=esc($id)?>"><?php endif;?><span><?=esc($item['name'])?></span></a><?php endforeach;?></div>
+<?php if($step==='service'):?>
+<div class="service-tiles">
+<?php foreach($catalogue as $id=>$item):
+    $description = preg_split('/(?<=[.!?])\s+/u', trim($item['description'] ?? ''), 2)[0] ?? '';
+    $priceLabel = 'Request a quote';
+    if ($item['mode'] !== 'quote') {
+        try {
+            $cents = visit_quote($item, [])['cents'];
+            $priceLabel = ($item['mode'] === 'from' ? 'From ' : '') . 'R' . number_format($cents / 100, $cents % 100 ? 2 : 0);
+        } catch (RuntimeException $exception) {
+            // This configuration requires a custom quote.
+        }
+    }
+?>
+<a class="service-tile" href="<?=esc(visit_url('details',$id))?>">
+    <?php if(!empty($item['photo']) || !empty($item['image'])):?><img alt="" width="68" height="68" src="/b/shalean-cleaning-services?service_image=<?=esc($id)?>"><?php endif;?>
+    <span class="service-copy"><strong><?=esc($item['name'])?></strong>
+        <?php if($description !== ''):?><span class="service-description"><?=esc($description)?></span><?php endif;?>
+        <span class="service-price"><?=esc($priceLabel)?></span>
+    </span>
+    <span class="service-arrow" aria-hidden="true">›</span>
+</a>
+<?php endforeach;?>
+</div>
 <?php elseif($step==='details'):
 ?><script type="application/json" id="visit-pricing"><?=json_encode(['name'=>$s['name'],'mode'=>$s['mode'],'amount'=>$s['amount'],'duration'=>$s['duration'],'options'=>$s['options']??[]],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS|JSON_THROW_ON_ERROR)?></script><?php
 visit_form_start($self,$csrf,'details');?><div id="visit-address" tabindex="-1"><?php booking_address_row($draft['address']??'',$draft['unit']??'');booking_service_area($areas,$draft['area']);?></div>
