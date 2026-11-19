@@ -339,3 +339,7 @@ fieldset.booking-starts {
 footer { padding-inline:clamp(16px,2vw,32px); }
 
 .payment-layout { max-width:36rem; margin-inline:auto; }
+
+dl.visit-summary { display:grid; gap:.4rem; margin:.6rem 0 0; }
+.visit-summary > div { display:grid; grid-template-columns:3.4rem minmax(0,1fr); gap:.5rem; }
+dl.visit-summary dt, dl.visit-summary dd { margin:0; }

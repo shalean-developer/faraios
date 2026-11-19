@@ -2,6 +2,13 @@
 const date = document.querySelector('[data-date]');
 if (date) {
   const form = date.form;
+  const syncStart = () => {
+    const start = form.querySelector('[name=time]:checked');
+    const value = start ? date.value + ' · ' + start.value + ' SAST' : 'Choose a time';
+    for (const node of document.querySelectorAll('[data-summary-when]')) node.textContent = value;
+  };
+  for (const start of form.querySelectorAll('[name=time]')) start.addEventListener('change', syncStart);
+  syncStart();
   const updateDate = () => {
     if (!date.value || !date.validity.valid) return;
     for (const radio of form.querySelectorAll('[name=time]')) radio.disabled = true;
@@ -25,12 +32,10 @@ if (pricing) {
   const money = cents => 'ZAR ' + (cents/100).toFixed(2);
   function recalculate() {
     let cents = Number(model.amount), minutes = Number(model.duration);
-    const rows = [[model.name,cents]];
     for (const option of model.options) {
       const control = form.elements.namedItem('options[' + option.id + ']');
       const quantity = control ? Number(control.value) : Math.max(option.minimum,option.included);
       const units = Math.max(0,quantity-option.included);
-      if (units) rows.push([option.name,units*option.price]);
       cents += units*option.price;
       minutes += units*option.minutes;
     }
@@ -39,15 +44,9 @@ if (pricing) {
     const total = model.mode==='quote'?'Quote required':money(cents);
     for (const node of document.querySelectorAll('[data-total]')) node.textContent=total;
     for (const node of document.querySelectorAll('[data-duration]')) node.textContent=duration;
-    for (const node of document.querySelectorAll('[data-area]')) node.textContent=['One-time visit',form.elements.service_area?.value].filter(Boolean).join(' / ');
-    for (const list of document.querySelectorAll('[data-lines]')) {
-      list.replaceChildren();
-      for (const [label,value] of rows) {
-        const row=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');
-        dt.textContent=label;dd.textContent=money(value);row.append(dt,dd);list.append(row);
-      }
+    for (const node of document.querySelectorAll('[data-summary-area]')) {
+      node.textContent = form.elements.service_area?.value || 'Choose an area';
     }
-    document.querySelector('.mobile-summary summary').textContent='Summary · '+total+' · '+duration;
   }
   form.addEventListener('change',recalculate);
   recalculate();

@@ -14,14 +14,14 @@ if ($step === 'payment') {
 }
 $self=visit_url($step,$service);$labels=['details'=>'Details','schedule'=>'Schedule','review'=>'Review','payment'=>'Payment'];
 ?><!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
-<title><?=esc($titles[$step].' · '.$company)?></title><link rel="stylesheet" href="/business/visit-form.css?v=2"><link rel="stylesheet" href="/account/booking-location-ui.css?v=2">
-<script src="/business/visit-room-picker.js?v=1" defer></script><script src="/business/visit-form.js?v=1" defer></script></head>
+<title><?=esc($titles[$step].' · '.$company)?></title><link rel="stylesheet" href="/business/visit-form.css?v=3"><link rel="stylesheet" href="/account/booking-location-ui.css?v=2">
+<script src="/business/visit-room-picker.js?v=1" defer></script><script src="/business/visit-form.js?v=2" defer></script></head>
 <body<?=$step==='service'?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="brand-row"><a class="visit-brand" href="/b/shalean-cleaning-services"><?php if(!empty($row['document']['logo'])):?><img src="/b/shalean-cleaning-services?logo=1" alt="<?=esc($company)?>"><?php else:?><?=esc($company)?><?php endif;?></a>
 <?php if($step!=='service'):?><nav aria-label="Booking steps"><ol><?php $past=true;$number=0; foreach($labels as $key=>$label):?><li class="<?=$past?'current':''?>" <?=$key===$step?'aria-current="step"':''?>><b><?=++$number?></b><span><?=$label?></span></li><?php if($key===$step)$past=false;endforeach;?></ol></nav><?php endif;?>
 <details class="help"><summary>Booking help</summary><p>Choose a service and an available start in South African time. This checkout uses Paystack Test. Use synthetic contact details.</p></details></div></div></header>
 <div class="outer"><main><div class="<?=$layoutClass?>"><section><h1<?=$step==='details'?' class="details-heading"':''?>><?=esc($titles[$step])?></h1>
 <?php if($message!==''):?><p role="alert"><?=esc($message)?></p><?php endif;?>
-<?php if($showBookingSummary):?><details class="mobile-summary"><summary>Summary · <?=esc(visit_money($q['cents']))?></summary><?php visit_summary($q,$s,$draft);?></details><?php endif;?>
+<?php if($showBookingSummary):?><details class="mobile-summary"><summary>Booking summary</summary><?php visit_summary($s,$draft);?></details><?php endif;?>
 <?php if($step==='service'):?><div class="service-tiles"><?php foreach($catalogue as $id=>$item):?><a class="service-tile" href="<?=esc(visit_url('details',$id))?>"><?php if(!empty($item['image'])):?><img alt="" src="/b/shalean-cleaning-services?service_image=<?=esc($id)?>"><?php endif;?><span><?=esc($item['name'])?></span></a><?php endforeach;?></div>
 <?php elseif($step==='details'):
 ?><script type="application/json" id="visit-pricing"><?=json_encode(['name'=>$s['name'],'mode'=>$s['mode'],'amount'=>$s['amount'],'duration'=>$s['duration'],'options'=>$s['options']??[]],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS|JSON_THROW_ON_ERROR)?></script><?php
@@ -37,6 +37,7 @@ $opts=array_filter($s['options']??[],fn($o)=>in_array($o['kind'],$kinds,true)&&$
 <label>Your name<input name="name" autocomplete="name" required minlength="2" maxlength="120" value="<?=esc($draft['name']??'')?>"></label>
 <label>Contact email<input name="email" type="email" autocomplete="email" required maxlength="254" value="<?=esc($draft['email']??'')?>"></label>
 <label>Phone number (optional)<input name="phone" type="tel" autocomplete="tel" maxlength="40" value="<?=esc($draft['phone']??'')?>"></label>
+<p><?=$s['mode']==='from'?'Estimated total from':'Total'?> <strong data-total><?=esc($s['mode']==='quote'?'Quote required':visit_money($q['cents']))?></strong> · <span data-duration><?=esc(visit_duration($q['minutes']))?></span></p>
 <button>Choose a time</button></form>
 <?php elseif($step==='schedule'):?>
 <a href="<?=esc(visit_url('details',$service))?>">Back to details</a>
@@ -90,4 +91,4 @@ $opts=array_filter($s['options']??[],fn($o)=>in_array($o['kind'],$kinds,true)&&$
     <?php visit_form_start($self,$csrf,'release'); ?><button>Choose another time</button></form>
 <?php endif; ?>
 <?php endif; ?>
-</section><?php if($showBookingSummary):?><aside aria-label="Your booking"><h2>Your booking</h2><?php visit_summary($q,$s,$draft);?></aside><?php endif;?></div></main><footer>Paystack Test · Synthetic bookings only</footer></div></body></html>
+</section><?php if($showBookingSummary):?><aside aria-label="Booking summary"><h2>Booking summary</h2><?php visit_summary($s,$draft);?></aside><?php endif;?></div></main><footer>Paystack Test · Synthetic bookings only</footer></div></body></html>

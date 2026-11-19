@@ -27,11 +27,14 @@ function visit_field(string $k,int $min,int $max): string {
  return trim($v);
 }
 function visit_ref(): string {return 'fosb-'.bin2hex(random_bytes(16));}
-function visit_summary(array $q,array $s,array $draft): void { ?>
-<strong><?=esc($s['name'])?></strong><p data-area>One-time visit<?=empty($draft['area'])?'':' / '.esc($draft['area'])?></p>
-<?php if(!empty($draft['time'])):?><p><?=esc($draft['date'].' · '.$draft['time'])?> SAST</p><?php endif;?>
-<dl class="breakdown" data-lines><?php foreach($q['parts'] as [$label,$cost]):?><div><dt><?=esc($label)?></dt><dd><?=esc(visit_money($cost))?></dd></div><?php endforeach;?></dl>
-<dl class="breakdown total"><div><dt><?=$s['mode']==='from'?'Estimated total from':'Total'?></dt><dd data-total><?=esc($s['mode']==='quote'?'Quote required':visit_money($q['cents']))?></dd></div><div><dt>Duration</dt><dd data-duration><?=esc(visit_duration($q['minutes']))?></dd></div></dl>
+function visit_summary(array $s, array $draft): void {
+ $when = empty($draft['time']) ? 'Choose a time' : $draft['date'].' · '.$draft['time'].' SAST';
+ ?>
+<dl class="visit-summary">
+    <div><dt>Where</dt><dd data-summary-area><?=esc($draft['area'] ?: 'Choose an area')?></dd></div>
+    <div><dt>What</dt><dd><?=esc($s['name'])?></dd></div>
+    <div><dt>When</dt><dd data-summary-when><?=esc($when)?></dd></div>
+</dl>
 <?php }
 function visit_form_start(string $url,string $csrf,string $action): void {?>
 <form method="post" action="<?=esc($url)?>"><input type="hidden" name="visit_token" value="<?=esc($csrf)?>"><input type="hidden" name="action" value="<?=esc($action)?>">
