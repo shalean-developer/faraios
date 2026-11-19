@@ -39,17 +39,16 @@ $opts=array_filter($s['options']??[],fn($o)=>in_array($o['kind'],$kinds,true)&&$
 <label>Your name<input name="name" autocomplete="name" required minlength="2" maxlength="120" value="<?=esc($draft['name']??'')?>"></label>
 <label>Contact email<input name="email" type="email" autocomplete="email" required maxlength="254" value="<?=esc($draft['email']??'')?>"></label>
 <label>Phone number (optional)<input name="phone" type="tel" autocomplete="tel" maxlength="40" value="<?=esc($draft['phone']??'')?>"></label>
-<p><?=$s['mode']==='from'?'Estimated total from':'Total'?> <strong data-total><?=esc($s['mode']==='quote'?'Quote required':visit_money($q['cents']))?></strong> · <span data-duration><?=esc(visit_duration($q['minutes']))?></span></p>
 <button>Choose a time</button></form>
 <?php elseif($step==='schedule'):?>
 <a href="<?=esc(visit_url('details',$service))?>">Back to details</a>
 <?php visit_form_start($self,$csrf,'date');?>
 <label>Visit date<input id="visit-date" data-date type="date" name="date" min="<?=$min?>" max="<?=$max?>" value="<?=esc($draft['date'])?>" required></label>
-<p><?=esc($draft['area'])?> · <?=esc(visit_duration($q['minutes']))?> · <?=esc(visit_money($q['cents']))?></p><button data-date-fallback>Show start times</button>
+<button data-date-fallback>Show start times</button>
 <?php if($slots):?><fieldset class="booking-starts"><legend>Available starts / SAST</legend><div class="booking-start-row"><?php foreach($slots as $clock):?><label><input type="radio" name="time" value="<?=esc($clock)?>" <?=($draft['time']===$clock||count($slots)===1)?'checked':''?> required><span><?=esc($clock)?></span></label><?php endforeach;?></div></fieldset>
 <?php elseif(!$message):?><p role="status"><?=$configured?'No start times are available for the full visit on this date.':'Shalean has not opened any online booking times yet.'?></p>
 <?php if($alternatives):?><dialog open class="date-alternatives"><h2>Choose an available date</h2><?php foreach($alternatives as $day):?><button type="button" data-alternative="<?=esc($day)?>"><?=esc($day)?></button><?php endforeach;?><button type="button" data-close>Close</button></dialog><?php endif;endif;?>
-<section><h2>Extras and access notes (optional)</h2><div class="booking-access-row"><?php booking_dropdown('pets','Pets at the property (optional)',['No pets','Pets present'],$draft['pets']??null,'Choose if applicable');booking_dropdown('equipment','Cleaning equipment at the property (optional)',['Available','Partly available','Unavailable'],$draft['equipment']??null,'Choose if applicable');?></div><label>Instructions (optional)<textarea name="notes" maxlength="1900"><?=esc($draft['notes']??'')?></textarea></label></section>
+<section><h2>Extras and access notes (optional)</h2><div class="booking-access-row"><?php booking_dropdown('pets','Pets (optional)',['No pets','Pets present'],$draft['pets']??null,'Choose if applicable');booking_dropdown('equipment','Cleaning equipment (optional)',['Available','Partly available','Unavailable'],$draft['equipment']??null,'Choose if applicable');?></div><label>Instructions (optional)<textarea name="notes" maxlength="1900"><?=esc($draft['notes']??'')?></textarea></label></section>
 <?php if($slots):?><button name="action" value="review">Review this visit</button><?php endif;?></form>
 <?php elseif($step==='review'):?>
 <h2>Visit details</h2>

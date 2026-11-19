@@ -49,7 +49,7 @@
   },
   "business/visit-screen.php": {
     "baseline_sha256": null,
-    "candidate_sha256": "ef9f98b5944c301dd4de48d04639f7bb596cc710980b6618f4a156106e1dac9e"
+    "candidate_sha256": "269de161d984b01e270bf1646dce95e79223151fad156e559745c30f7d4c5491"
   },
   "business/visit-store.php": {
     "baseline_sha256": null,
