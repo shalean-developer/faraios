@@ -37,7 +37,7 @@
   },
   "business/visit-form.css": {
     "baseline_sha256": null,
-    "candidate_sha256": "0803c5f58437f186315da23b6ebd37233f02e95803e5bb06a1b21adba24c61fd"
+    "candidate_sha256": "a1999d98f3102517c095a1a36ffc1143d5d7303b19470a094f8c2403828dd16c"
   },
   "business/visit-form.js": {
     "baseline_sha256": null,
@@ -49,7 +49,7 @@
   },
   "business/visit-screen.php": {
     "baseline_sha256": null,
-    "candidate_sha256": "480de6802700b33c53627fd27c8ce22f46dba3759f8e087f2012eff3c071e9a6"
+    "candidate_sha256": "ecd3e0de7d7b73a7e9891413ef81987bc8d0a23c6a0c31ce38a8043fc84fafb5"
   },
   "business/visit-store.php": {
     "baseline_sha256": null,
