@@ -80,6 +80,16 @@ class Baseline(unittest.TestCase):
             self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
             self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
             original[path]={'path':path,'sha256':change['candidate_sha256']}
+        checkout=json.loads((ROOT/'docs/instant-booking/shalean-source-delta.json').read_text())
+        self.assertEqual(set(checkout),{
+            'account/booking-location-ui.css','account/booking-location-ui.php','account/requests-core.php',
+            'b/index.php','business/booking.js','business/shalean-booking.css','business/shalean-visit.js',
+            'business/visit-flow.php','business/visit-form.css','business/visit-form.js',
+            'business/visit-room-picker.js','business/visit-screen.php','business/visit-store.php'})
+        for path,change in checkout.items():
+            self.assertEqual(set(change),{'baseline_sha256','candidate_sha256'})
+            self.assertEqual(change['baseline_sha256'],original.get(path,{}).get('sha256'))
+            original[path]={'path':path,'sha256':change['candidate_sha256']}
         expected['files']=[original[path] for path in sorted(original,key=Path)]
         self.assertEqual(expected,manifest())
         self.assertEqual(len(self.inventory['files']),31)

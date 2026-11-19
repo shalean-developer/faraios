@@ -1,0 +1,54 @@
+{
+  "account/booking-location-ui.css": {
+    "baseline_sha256": null,
+    "candidate_sha256": "a2f1a38fc67d28a9d757347202093b6f1bc57bb2b20c0f399bcffb69823b33c0"
+  },
+  "account/booking-location-ui.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "52a476fd5e3cb18732a6a3fa56ea9c0284a9c6269a2d4219a36ee9e5772398b4"
+  },
+  "account/requests-core.php": {
+    "baseline_sha256": "20f6fd38f89e93ed94ae2ada726d1e43baad1af8cfa276d4e25fc617dbfc8a45",
+    "candidate_sha256": "e7b973d1ef89a430c5c01c55a6d346875380564dfb7537e4ad63d3feaa419daa"
+  },
+  "b/index.php": {
+    "baseline_sha256": "220eedda2330b4f3de0575c8a7fbe7113b08d41f6d1a47a655a984d0ffc1052a",
+    "candidate_sha256": "1d6023f8b40c3ff6278ce9d4f8db8b044fe828fe471536eb6eb86d2dcb75ba5a"
+  },
+  "business/booking.js": {
+    "baseline_sha256": "2ceef3df2679b5db881e21ad62f76575f625f4efbb3433ae9fb48b8fab6b4a45",
+    "candidate_sha256": "126b72952d9da13e037fc17315bc687ecb0ac477925ade21afe4f603d564e120"
+  },
+  "business/shalean-booking.css": {
+    "baseline_sha256": null,
+    "candidate_sha256": "d15b7e62f556c08b185242a17e16ad3f837e63e3fe5e671973d193fc0224272f"
+  },
+  "business/shalean-visit.js": {
+    "baseline_sha256": null,
+    "candidate_sha256": "07222e0c60a5e7ed561f4f9914db71f8be8e1ae96ce2e97ac1f36c632a4c7e4c"
+  },
+  "business/visit-flow.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "1718554743a7875240da45ec6dde18d57569b2bf2fb9ff3e335bfd0b7be2c158"
+  },
+  "business/visit-form.css": {
+    "baseline_sha256": null,
+    "candidate_sha256": "95f96e8ba95827e6479aa7d3bbc684dd0a53cc40570888d1619dd1e190fd1d90"
+  },
+  "business/visit-form.js": {
+    "baseline_sha256": null,
+    "candidate_sha256": "cd770be9be78c87873c88b7282a5f3382f51828b1283456473ad725fb6bbc814"
+  },
+  "business/visit-room-picker.js": {
+    "baseline_sha256": null,
+    "candidate_sha256": "4d90653dee7a6cea7b87c86dbb915e113270266375cf7582ccdbb9235c60fc53"
+  },
+  "business/visit-screen.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "997409954186da4920d36ee46f52eb5c9f3481d65d80014f11dbc2cd7df1c581"
+  },
+  "business/visit-store.php": {
+    "baseline_sha256": null,
+    "candidate_sha256": "d5a63160f7d7e0836f15be4b4e9d9ebcc34f8727f275b8c21b38b6112ad755e5"
+  }
+}

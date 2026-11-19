@@ -10935,7 +10935,7 @@
     },
     {
       "path": "account/requests-core.php",
-      "line": 58,
+      "line": 90,
       "text": "enquiry_ip_limit();api('/rest/v1/rpc/business_booking_request_submit',['p_environment'=>profile_env(),'p_slug'=>$slug,'p_service'=>$service,'p_name'=>$name,'p_email'=>$email,'p_phone'=>$phone,'p_requirements'=>$requirements,'p_request'=>$ticket['request'],'p_address'=>$address,'p_local'=>$local.':00','p_zone'=>$snapshot['zone'],'p_currency'=>$snapshot['services']['currency'],'p_service_snapshot'=>$s,'p_selections'=>$selections]);",
       "literal_rpcs": [],
       "methods": []
@@ -11069,6 +11069,13 @@
       "path": "business/homepage.php",
       "line": 40,
       "text": "try{$r=api('/rest/v1/rpc/business_booking_available',['p_environment'=>profile_env(),'p_slug'=>$slug]);return ($r['available']??false)===true;}catch(Throwable $e){return false;}",
+      "literal_rpcs": [],
+      "methods": []
+    },
+    {
+      "path": "business/visit-store.php",
+      "line": 32,
+      "text": "return profile_rpc('shalean_test_capacity',['p_token'=>$token,'p_service'=>$service,'p_date'=>$day,'p_minutes'=>$minutes],true);",
       "literal_rpcs": [],
       "methods": []
     },
@@ -11262,18 +11269,23 @@
     },
     {
       "path": "business/booking.js",
-      "line": 15,
+      "line": 17,
       "text": "const clearDraft=()=>{try{sessionStorage.removeItem(draftKey);}catch{}};"
     },
     {
       "path": "business/booking.js",
-      "line": 25,
+      "line": 27,
       "text": "const draft=JSON.parse(sessionStorage.getItem(draftKey)||'null');"
     },
     {
       "path": "business/booking.js",
-      "line": 173,
+      "line": 176,
       "text": "sessionStorage.setItem(draftKey,JSON.stringify({savedAt:Date.now(),catalogue:JSON.stringify(catalogue),service:form.querySelector('input[name=\"service\"]:checked')?.value||'',values,options:Object.fromEntries([...optionInputs].map(([id,input])=>[id,input.value]))}));"
+    },
+    {
+      "path": "business/shalean-visit.js",
+      "line": 20,
+      "text": "const draft = JSON.parse(sessionStorage.getItem('faraios-booking:' + location.pathname));"
     },
     {
       "path": "notifications/ops-alerts.php",
@@ -11761,6 +11773,6 @@
     "policies": 23,
     "grant_statements": 87,
     "revoke_statements": 78,
-    "application_access_sites": 96
+    "application_access_sites": 97
   }
 }
