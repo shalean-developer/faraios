@@ -62,3 +62,28 @@ if (pricing) {
   form.addEventListener('change',recalculate);
   recalculate();
 }
+
+const contact = document.getElementById('visit-contact');
+if (contact && typeof contact.showModal === 'function') {
+  const form = contact.closest('form');
+  const trigger = form.querySelector('[data-contact-trigger]');
+  const fields = contact.querySelector('[data-contact-fields]');
+  const back = contact.querySelector('[data-contact-close]');
+  contact.removeAttribute('open');
+  fields.disabled = true;
+  trigger.hidden = back.hidden = false;
+
+  form.addEventListener('submit', event => {
+    if (contact.open) return;
+    event.preventDefault();
+    fields.disabled = false;
+    contact.showModal();
+    fields.querySelector('input').focus();
+  });
+  back.addEventListener('click', () => contact.close());
+  contact.addEventListener('close', () => {
+    if (contact.open) return;
+    fields.disabled = true;
+    trigger.focus();
+  });
+}
