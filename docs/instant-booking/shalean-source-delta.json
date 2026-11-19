@@ -45,7 +45,7 @@
   },
   "business/visit-screen.php": {
     "baseline_sha256": null,
-    "candidate_sha256": "997409954186da4920d36ee46f52eb5c9f3481d65d80014f11dbc2cd7df1c581"
+    "candidate_sha256": "17aa68fb2cf7b3ae6d32574f16e4ab239bb1f0c00123073a94bb2e02e331b865"
   },
   "business/visit-store.php": {
     "baseline_sha256": null,

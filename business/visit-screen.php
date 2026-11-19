@@ -39,9 +39,16 @@ $opts=array_filter($s['options']??[],fn($o)=>in_array($o['kind'],$kinds,true)&&$
 <section><h2>Extras and access notes (optional)</h2><div class="booking-access-row"><?php booking_dropdown('pets','Pets at the property (optional)',['No pets','Pets present'],$draft['pets']??null,'Choose if applicable');booking_dropdown('equipment','Cleaning equipment at the property (optional)',['Available','Partly available','Unavailable'],$draft['equipment']??null,'Choose if applicable');?></div><label>Instructions (optional)<textarea name="notes" maxlength="1900"><?=esc($draft['notes']??'')?></textarea></label></section>
 <?php if($slots):?><button name="action" value="review">Review this visit</button><?php endif;?></form>
 <?php elseif($step==='review' || $step==='payment'):?>
-<h2><?=$step==='review'?'Visit details':'Payment details'?></h2><dl><dt>Service</dt><dd>One-time</dd><dt>Address</dt><dd><?=esc(implode(', ',array_filter([$draft['address'],$draft['unit'],$draft['area']])))?></dd><dt>Visit</dt><dd><?=esc($draft['date'].' · '.$draft['time'])?> SAST · <?=esc(visit_duration($q['minutes']))?></dd>
-<?php foreach(['pets'=>'Pets at the property','equipment'=>'Cleaning equipment','notes'=>'Instructions'] as $k=>$v):if(!empty($draft[$k])):?><dt><?=esc($v)?></dt><dd><?=esc($draft[$k])?></dd><?php endif;endforeach;?>
-<dt>Contact</dt><dd><?=esc(implode(' · ',array_filter([$draft['name'],$draft['email'],$draft['phone']])))?></dd></dl>
+<h2><?=$step==='review'?'Visit details':'Payment details'?></h2>
+<div class="visit-details">
+    <div><strong>Service:</strong> One-time</div>
+    <div><strong>Address:</strong> <?=esc(implode(', ',array_filter([$draft['address'],$draft['unit'],$draft['area']])))?></div>
+    <div><strong>Visit:</strong> <?=esc($draft['date'].' · '.$draft['time'])?> SAST · <?=esc(visit_duration($q['minutes']))?></div>
+    <?php foreach(['pets'=>'Pets at the property','equipment'=>'Cleaning equipment','notes'=>'Instructions'] as $k=>$v):if(!empty($draft[$k])):?>
+    <div><strong><?=esc($v)?>:</strong> <?=esc($draft[$k])?></div>
+    <?php endif;endforeach;?>
+    <div><strong>Contact:</strong> <?=esc(implode(' · ',array_filter([$draft['name'],$draft['email'],$draft['phone']])))?></div>
+</div>
 <h3>Price breakdown</h3><ul><?php foreach($q['parts'] as [$label,$cost]):?><li><?=esc($label)?> · <?=esc(visit_money($cost))?></li><?php endforeach;?></ul>
 <p><strong>Test payment amount · <?=esc(visit_money($q['cents']))?></strong></p>
 <button type="button" class="booking-policy-trigger" popovertarget="visit-policy">Cancellation and refunds</button>
