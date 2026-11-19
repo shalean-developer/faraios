@@ -91,3 +91,44 @@ for (const row of document.querySelectorAll('[data-room-picker]')) {
     select.after(group);
     render(Number(select.value) >= threshold);
 }
+
+// Enhance optional tasks while preserving the same select for pricing and submission.
+const taskPaths = new Map([
+    ['inside fridge', 'M6 3h12v18H6z M6 10h12 M9 6v2 M9 12v3'],
+    ['inside oven', 'M3 4h18v16H3z M3 9h18 M7 12h10v5H7z M6 6.5h1 M10 6.5h1'],
+    ['inside cabinets', 'M3 4h18v16H3z M12 4v16 M9 10v3 M15 10v3'],
+    ['interior windows', 'M4 3h16v18H4z M12 3v18 M4 12h16 M2 21h20'],
+    ['interior walls', 'M2 4h20v16H2z M2 9h20 M2 15h20 M9 4v5 M16 9v6 M7 15v5'],
+    ['laundry', 'M4 2h16v20H4z M4 7h16 M7 4.5h2 M17 14a5 5 0 1 1-10 0 5 5 0 0 1 10 0 M8 14q2-2 4 0t4 0'],
+    ['ironing', 'M3 17q3-8 10-8h5l3 8v2H3z M9 9V6h6q2 0 3 3 M4 16h16']
+]);
+for (const row of document.querySelectorAll('[data-extra-toggle]')) {
+    const select = row.querySelector('select');
+    const label = row.querySelector('label');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'task-button';
+    button.setAttribute('aria-describedby', select.getAttribute('aria-describedby'));
+    const circle = document.createElement('span');
+    circle.className = 'task-circle';
+    circle.setAttribute('aria-hidden', 'true');
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    const path = document.createElementNS(svg.namespaceURI, 'path');
+    path.setAttribute('d', taskPaths.get(label.textContent.trim().toLowerCase()) || 'M12 3l2 6 6 3-6 2-2 7-2-7-6-2 6-3z');
+    svg.append(path);
+    circle.append(svg);
+    button.append(circle, document.createTextNode(label.textContent));
+    const sync = () => button.setAttribute('aria-pressed', String(select.value === '1'));
+    button.addEventListener('click', () => {
+        select.value = select.value === '1' ? '0' : '1';
+        select.dispatchEvent(new Event('change', {bubbles: true}));
+    });
+    select.addEventListener('change', sync);
+    window.addEventListener('pageshow', sync);
+    sync();
+    select.hidden = label.hidden = true;
+    row.append(button);
+    row.classList.add('task-tile');
+    row.closest('fieldset').classList.add('task-grid');
+}

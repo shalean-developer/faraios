@@ -16,8 +16,8 @@ if ($step === 'payment') {
 }
 $self=visit_url($step,$service);$labels=['details'=>'Details','schedule'=>'Schedule','review'=>'Review','payment'=>'Payment'];
 ?><!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
-<title><?=esc($titles[$step].' · '.$company)?></title><link rel="stylesheet" href="/business/visit-form.css?v=4"><link rel="stylesheet" href="/account/booking-location-ui.css?v=2">
-<script src="/business/visit-room-picker.js?v=1" defer></script><script src="/business/visit-form.js?v=3" defer></script></head>
+<title><?=esc($titles[$step].' · '.$company)?></title><link rel="stylesheet" href="/business/visit-form.css?v=5"><link rel="stylesheet" href="/account/booking-location-ui.css?v=2">
+<script src="/business/visit-room-picker.js?v=2" defer></script><script src="/business/visit-form.js?v=3" defer></script></head>
 <body<?=$step==='service'?' class="launch-page"':''?>><header class="booking-header"><div class="header-inner"><div class="brand-row"><a class="visit-brand" href="/b/shalean-cleaning-services"><?php if(!empty($row['document']['logo'])):?><img src="/b/shalean-cleaning-services?logo=1" alt="<?=esc($company)?>"><?php else:?><?=esc($company)?><?php endif;?></a>
 <?php if($step!=='service'):?><nav aria-label="Booking steps"><ol><?php $past=true;$number=0; foreach($labels as $key=>$label):?><li class="<?=$past?'current':''?>" <?=$key===$step?'aria-current="step"':''?>><b><?=++$number?></b><span><?=$label?></span></li><?php if($key===$step)$past=false;endforeach;?></ol></nav><?php endif;?>
 <details class="help"><summary>Booking help</summary><p>Choose a service and an available start in South African time. This checkout uses Paystack Test. Use synthetic contact details.</p></details></div></div></header>
@@ -32,7 +32,7 @@ visit_form_start($self,$csrf,'details');?><div id="visit-address" tabindex="-1">
 <?php foreach(['Rooms'=>['bedrooms','bathrooms','room'],'Extra tasks'=>['extra','toggle']] as $legend=>$kinds):
 $opts=array_filter($s['options']??[],fn($o)=>in_array($o['kind'],$kinds,true)&&$o['minimum']!==$o['maximum']);if(!$opts)continue;?>
 <fieldset class="room-choice-list"><legend><?=esc($legend)?></legend><?php foreach($opts as $o):$oid=$o['id'];$v=$q['values'][$oid];?>
-<div class="room-choice-row" data-room-picker><label id="room-<?=esc($oid)?>-label" for="room-<?=esc($oid)?>"><?=esc($o['name'])?></label>
+<div class="room-choice-row" <?= $o['kind'] === 'toggle' ? 'data-extra-toggle' : 'data-room-picker' ?>><label id="room-<?=esc($oid)?>-label" for="room-<?=esc($oid)?>"><?=esc($o['name'])?></label>
 <select id="room-<?=esc($oid)?>" name="options[<?=esc($oid)?>]" data-charge="<?=intval($o['price'])?>" data-minutes="<?=intval($o['minutes'])?>" data-included="<?=intval($o['included'])?>" aria-describedby="hint-<?=esc($oid)?>">
 <?php for($i=(int)$o['minimum'];$i<=(int)$o['maximum'];$i++):?><option value="<?=$i?>" <?=$i===$v?'selected':''?>><?=$i?></option><?php endfor;?></select>
 <small id="hint-<?=esc($oid)?>"><?=(int)$o['included']?> included · +<?=esc(visit_money((int)$o['price']))?> per additional unit · +<?=(int)$o['minutes']?> min</small></div><?php endforeach;?></fieldset><?php endforeach;?>
