@@ -1,5 +1,7 @@
 name: Verify PR 105 extra task icons
 on:
+  pull_request:
+    branches: [ui/shalean-extra-task-icons]
   push:
     branches: [qa/pr105-extra-grid-20261119]
 permissions:
