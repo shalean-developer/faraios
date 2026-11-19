@@ -80,7 +80,7 @@ function visit_main(array $row): void {
      header('Location: '.visit_url('service'),true,303);exit;
     }
     if($action==='details' && $step==='details'){
-     if($record && ($record['state']==='confirmed'||($record['state']==='held'&&$record['expires']>time())))throw new RuntimeException('Open Payment to view or release your existing hold.');
+     if($record && (in_array($record['state'],['confirmed','eft_pending','reconcile'],true)||($record['state']==='held'&&$record['expires']>time())))throw new RuntimeException('Open Payment to view or release your existing hold.');
      $opts=$_POST['options']??[];if(!is_array($opts))throw new RuntimeException('Check the room quantities.');
      $q=visit_quote($s,$opts);$area=visit_field('service_area',1,200);
      if(!in_array($area,$areas,true))throw new RuntimeException('Choose a published service area.');
@@ -89,7 +89,7 @@ function visit_main(array $row): void {
      $draft=array_merge($draft,['address'=>visit_field('address',5,1000),'unit'=>visit_field('unit',0,120),'area'=>$area,'name'=>$name,'email'=>$email,'phone'=>$phone,'options'=>$q['values'],'snapshot'=>$latest,'ref'=>visit_ref(),'time'=>'']);
      $step='schedule';
     }else{
-     if(($draft['snapshot']??'')!==$latest)throw new RuntimeException('The service details changed. Review your selections in Details.');
+     if(!($record && $step==='payment' && $action==='report_eft') && ($draft['snapshot']??'')!==$latest)throw new RuntimeException('The service details changed. Review your selections in Details.');
      if(in_array($action,['date','review'],true)&&$step==='schedule'){
       $date=visit_field('date',10,10);
       $parsed=DateTimeImmutable::createFromFormat('!Y-m-d',$date,new DateTimeZone(VISIT_TZ));
@@ -104,9 +104,11 @@ function visit_main(array $row): void {
       }
      }elseif($action==='hold'&&$step==='review'&&!empty($draft['time'])&&$s['mode']!=='quote'&&$q['cents']>0){
       $record=visit_hold($draft,$q);$step='payment';
+     }elseif($action==='report_eft'&&$step==='payment'&&$record){
+      visit_report_eft($record['ref']);
      }elseif($action==='release'&&$step==='payment'&&$record){
       visit_stmt("UPDATE visits SET state='released' WHERE ref=? AND state='held'",[$record['ref']]);
-      if(in_array(visit_record($record['ref'])['state'],['confirmed','reconcile'],true))throw new RuntimeException('This payment has already been recorded.');
+      if(in_array(visit_record($record['ref'])['state'],['eft_pending','confirmed','reconcile'],true))throw new RuntimeException('This payment is already under review or recorded.');
       $draft['ref']=visit_ref();$draft['time']='';$record=null;$step='schedule';
      }elseif($action==='pay'&&$step==='payment'&&$record){
       $url=visit_pay($record,'https://www.faraios.com'.visit_url('payment',$service));
@@ -117,7 +119,7 @@ function visit_main(array $row): void {
     header('Location: '.visit_url($step,$service),true,303);exit;
    }
   }catch(Throwable $e){$message=$e instanceof RuntimeException&&!($e instanceof PDOException)?$e->getMessage():'The booking could not be updated. Try again.';}
-  if($record && ($record['state']==='confirmed'||$record['state']==='reconcile'||($record['state']==='held'&&$record['expires']>time())))$step='payment';
+  if($record && (in_array($record['state'],['confirmed','reconcile','eft_pending'],true)||($record['state']==='held'&&$record['expires']>time())))$step='payment';
   if(in_array($step,['schedule','review','payment'],true)&&empty($draft['name']))$step='details';
   if($step==='review'&&empty($draft['time']))$step='schedule';
   if($step==='payment'&&!$record)$step=empty($draft['name'])?'details':'schedule';

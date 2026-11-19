@@ -8,6 +8,8 @@ if ($step === 'payment') {
     $canPay = $record['state'] === 'held' && (int)$record['expires'] > time();
     if ($received) {
         $titles['payment'] = $record['state'] === 'confirmed' ? 'Test booking confirmed' : 'Test payment received';
+    } elseif ($record['state'] === 'eft_pending') {
+        $titles['payment'] = 'Awaiting payment verification';
     } elseif (!$canPay) {
         $titles['payment'] = 'Booking hold expired';
     }
@@ -81,10 +83,24 @@ $opts=array_filter($s['options']??[],fn($o)=>in_array($o['kind'],$kinds,true)&&$
         <p><strong>Payment reference:</strong> <?=esc($record['ref'])?></p>
     <?php endif; ?>
     <?php visit_form_start($self,$csrf,'restart'); ?><button>Start another booking</button></form>
+<?php elseif ($record['state'] === 'eft_pending'): ?>
+<p role="status">Shalean has received your test transfer report. Your booking will be confirmed after Shalean verifies receipt and checks availability.</p>
+<p><strong>Amount reported:</strong> <?=esc(visit_money((int)$record['cents']))?></p>
+<p><strong>Transfer reference:</strong> <?=esc($record['ref'])?></p>
+<a href="<?=esc($self)?>">Refresh payment status</a>
 <?php elseif ($canPay): ?>
     <p><strong>Amount due:</strong> <?=esc(visit_money((int)$record['cents']))?></p>
     <p class="hold">Your slot is held until <?=esc((new DateTimeImmutable('@'.$record['expires']))->setTimezone(new DateTimeZone(VISIT_TZ))->format('H:i:s'))?> SAST.</p>
     <?php visit_form_start($self,$csrf,'pay'); ?><button>Pay with Paystack Test</button></form>
+    <?php if (empty($record['url'])): ?>
+    <details class="hold"><summary>Manual EFT</summary>
+        <p>Test bank transfer only. Do not send money.</p>
+        <p><strong>Account holder:</strong> <?=esc($company)?><br>
+        <strong>Test account number:</strong> TEST-ONLY<br>
+        <strong>Transfer reference:</strong> <?=esc($record['ref'])?></p>
+        <?php visit_form_start($self,$csrf,'report_eft'); ?><button>Report test transfer</button></form>
+    </details>
+    <?php endif; ?>
     <?php visit_form_start($self,$csrf,'release'); ?><button class="secondary">Release hold and edit booking</button></form>
 <?php else: ?>
     <p role="status">Your hold has expired. Choose another available start time.</p>

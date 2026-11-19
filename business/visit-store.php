@@ -2,6 +2,7 @@
 declare(strict_types=1);
 if (realpath($_SERVER['SCRIPT_FILENAME']??'')===__FILE__) {http_response_code(404);exit;}
 const VISIT_STORE='/var/www/vhosts/shalean.com/private/faraios-booking-test';
+const VISIT_EFT_BUSINESS = 'e6e684b4-947c-447e-bd8a-2401125c2a0f';
 const VISIT_TZ='Africa/Johannesburg';
 function visit_db(): PDO {
  static $db;
@@ -14,6 +15,9 @@ function visit_db(): PDO {
  cents INTEGER NOT NULL, expires INTEGER NOT NULL, state TEXT NOT NULL,
  provider_id TEXT UNIQUE, checkout TEXT, url TEXT)");
  $db->exec('CREATE INDEX IF NOT EXISTS visit_calendar ON visits(worker,lo,hi)');
+ $db->exec('CREATE TABLE IF NOT EXISTS visit_eft_reports (
+   ref TEXT PRIMARY KEY REFERENCES visits(ref), reported_at INTEGER NOT NULL,
+   verified_at INTEGER, verified_by TEXT)');
  return $db;
 }
 function visit_stmt(string $sql,array $args=[]): PDOStatement {
@@ -35,12 +39,12 @@ function visit_bounds(string $day,string $clock,int $minutes,array $cap): array 
  $at=(new DateTimeImmutable($day.' '.$clock,new DateTimeZone(VISIT_TZ)))->getTimestamp();
  return [$at-60*(int)$cap['before'],$at+60*($minutes+(int)$cap['after'])];
 }
-function visit_free_workers(array $cap,string $day,string $clock,int $minutes): array {
+function visit_free_workers(array $cap,string $day,string $clock,int $minutes,string $excludeRef=''): array {
  $workers=$cap['times'][$clock]??[];
  if (!$workers) return [];
  [$lo,$hi]=visit_bounds($day,$clock,$minutes,$cap);
- $used=visit_stmt("SELECT worker FROM visits WHERE lo<? AND hi>? AND
- (state='confirmed' OR (state='held' AND expires>?))",[$hi,$lo,time()])->fetchAll(PDO::FETCH_COLUMN);
+ $used=visit_stmt("SELECT worker FROM visits WHERE lo<? AND hi>? AND ref<>? AND
+ (state='confirmed' OR (state IN ('held','eft_pending') AND expires>?))",[$hi,$lo,$excludeRef,time()])->fetchAll(PDO::FETCH_COLUMN);
  return array_values(array_diff($workers,$used));
 }
 function visit_times(array $cap,string $day,int $minutes): array {
@@ -62,6 +66,34 @@ function visit_hold(array $draft,array $quote): array {
   visit_stmt("INSERT INTO visits(ref,service,day,clock,worker,lo,hi,minutes,cents,expires,state) VALUES(?,?,?,?,?,?,?,?,?,?,'held')",
    [$draft['ref'],$draft['service'],$draft['date'],$draft['time'],$workers[0],$lo,$hi,$quote['minutes'],$quote['cents'],min(time()+600,$start)]);
   return visit_record($draft['ref']);
+ });
+}
+function visit_report_eft(string $ref): void {
+ visit_locked(function () use ($ref) {
+  if (visit_stmt('SELECT 1 FROM visit_eft_reports WHERE ref=?', [$ref])->fetchColumn()) return;
+  $updated = visit_stmt("UPDATE visits SET state='eft_pending' WHERE ref=? AND state='held' AND url IS NULL AND provider_id IS NULL", [$ref]);
+  if ($updated->rowCount() !== 1) throw new RuntimeException('This booking reference is unavailable for Manual EFT.');
+  visit_stmt('INSERT INTO visit_eft_reports(ref,reported_at) VALUES(?,?)', [$ref,time()]);
+ });
+}
+function visit_verify_eft(string $ref, string $owner): string {
+ return visit_locked(function () use ($ref,$owner) {
+  $row = visit_stmt('SELECT v.*, e.verified_at FROM visits v JOIN visit_eft_reports e USING(ref) WHERE ref=?', [$ref])->fetch();
+  if (!$row) throw new RuntimeException('Transfer report not found.');
+  if ($row['verified_at'] !== null) return $row['state'];
+  if ($row['state'] !== 'eft_pending') throw new RuntimeException('This transfer needs review.');
+  $minutes = (int)$row['minutes'];
+  $cap = visit_capacity($row['service'],$row['day'],$minutes);
+  if (!isset($cap['times']) || !is_array($cap['times'])) throw new RuntimeException('Availability could not be checked. Try again.');
+  $workers = visit_free_workers($cap,$row['day'],$row['clock'],$minutes,$ref);
+  $state = $workers ? 'confirmed' : 'reconcile';
+  if ($workers) {
+   [$lo,$hi] = visit_bounds($row['day'],$row['clock'],$minutes,$cap);
+   visit_stmt('UPDATE visits SET worker=?,lo=?,hi=? WHERE ref=?',[$workers[0],$lo,$hi,$ref]);
+  }
+  visit_stmt('UPDATE visits SET state=?,provider_id=? WHERE ref=?',[$state,'eft:'.$ref,$ref]);
+  visit_stmt('UPDATE visit_eft_reports SET verified_at=?,verified_by=? WHERE ref=?',[time(),$owner,$ref]);
+  return $state;
  });
 }
 function visit_key(): string {
@@ -95,6 +127,7 @@ function visit_pay(array $r,string $callback): string {
 function visit_verify(string $ref): array {
  if(!preg_match('/^fosb-[a-f0-9]{32}$/D',$ref)||!($r=visit_record($ref)))throw new RuntimeException('Unknown test payment.');
  if(in_array($r['state'],['confirmed','reconcile'],true))return $r;
+ if ($r['state']==='eft_pending') throw new RuntimeException('Manual EFT is awaiting verification.');
  $d=visit_provider('verify/'.rawurlencode($ref));
  if(($d['domain']??'')!=='test'||($d['status']??'')!=='success'||($d['currency']??'')!=='ZAR'||($d['reference']??'')!==$ref||
     ($d['amount']??null)!==(int)$r['cents']||!is_int($d['id']??null))throw new RuntimeException('A successful test payment has not been verified.');
