@@ -9,7 +9,7 @@
   },
   "account/manual-eft.php": {
     "baseline_sha256": null,
-    "candidate_sha256": "b40cd8a8eb1092ef1774f1742fa8eb9f327135a7c7d84d6bacbe3bd3170df801"
+    "candidate_sha256": "ec662ea331b3ef1575d257808e22481a5283a81f04f0e9c2bab88c325ca19a17"
   },
   "account/requests-core.php": {
     "baseline_sha256": "20f6fd38f89e93ed94ae2ada726d1e43baad1af8cfa276d4e25fc617dbfc8a45",

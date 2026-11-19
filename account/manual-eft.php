@@ -11,7 +11,7 @@ try {
  $failure = 'Your sign-in could not be verified. Sign in again to continue.';
  $owner = user();
  $failure = 'Shalean ownership could not be checked.';
- $rows = api('/rest/v1/businesses?id=eq.'.VISIT_EFT_BUSINESS.'&owner_id=eq.'.rawurlencode($owner['id']).'&select=id', [], 'GET', $_SESSION['auth']['access_token']);
+ $rows = api('/rest/v1/businesses?id=eq.'.VISIT_EFT_BUSINESS.'&owner_id=eq.'.rawurlencode($owner['id']).'&select=id,name', [], 'GET', $_SESSION['auth']['access_token']);
  if (profile_env() !== 'live' || ($rows[0]['id'] ?? null) !== VISIT_EFT_BUSINESS) {
   http_response_code(403); exit('Only the Shalean business owner can verify these test transfers.');
  }
@@ -65,8 +65,8 @@ function eft_booking_link(string $ref): void { ?>
  <a href="?booking=<?=rawurlencode($ref)?>">View booking</a>
 <?php }
 ?>
-<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Manual EFT · Shalean</title><link rel="stylesheet" href="../business/visit-form.css?v=4"></head>
-<body><div class="outer"><main><section class="payment-layout">
+<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Manual EFT · Shalean</title><link rel="stylesheet" href="../business/visit-form.css?v=4"><link rel="stylesheet" href="layout.css?v=20261113-4"><link rel="stylesheet" href="private.css?v=20261113-3"><link rel="stylesheet" href="../ui/design-system.css?v=20261115"><script src="layout.js?v=20261113-2" defer></script></head>
+<body class="ui-page ui-workspace business-page"><?php require_once __DIR__.'/layout.php'; app_layout('Invoices',$rows[0]); ?><main id="app-main" class="editor-main" tabindex="-1"><section class="payment-layout">
 <?php if ($booking): ?>
 <a href="manual-eft.php">Back to EFT verification</a>
 <h1>Confirmed test booking</h1>
@@ -77,7 +77,7 @@ function eft_booking_link(string $ref): void { ?>
 <p><strong>Payment reference:</strong> <?=esc($booking['provider_id'])?></p>
 <p><strong>Worker assignment:</strong> <?=esc($booking['worker'])?></p>
 <?php else: ?>
-<a href="bookings.php">Bookings</a><h1>Manual EFT verification</h1>
+<a href="invoices.php">Back to invoices</a><h1>Manual EFT verification</h1>
 <p>Shalean test transfers only. Match the reference and amount before verifying receipt.</p>
 <?php if ($receipt): ?><div role="status" class="hold"><strong><?=eft_amount($receipt)?> receipt verified</strong>
 <p><?=esc($receipt['ref'])?></p>
@@ -102,4 +102,4 @@ function eft_booking_link(string $ref): void { ?>
  Page <?=$page?> of <?=$pages?>
 <?php if ($page<$pages): ?><a href="?<?=esc(http_build_query(['q'=>$search,'page'=>$page+1]))?>#history">Next</a><?php endif; ?></nav><?php endif; ?>
 <?php endif; ?>
-</section></main></div></body></html>
+</section></main></body></html>
